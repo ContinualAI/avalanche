@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2019. ContinualAI. All rights reserved.                        #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 15-07-2019                                                             #
+# Author: ContinualAI                                                          #
+# E-mail: contact@continualai.org                                              #
+# Website: continualai.org                                                     #
+################################################################################
+
+""" Common metrics for CL. """
+
+# Python 2-3 compatible
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+
+import numpy as np
+import os
+import psutil
+
+
+class ACC(object):
+
+    def __init__(self, num_class=None):
+        """
+        Accuracy metrics should be called for each test set
+
+        Args:
+            y (tensor list): true labels for each mini-batch
+            y_hat (tensor list): predicted labels for each mini-batch
+            num_class (int, optional): number of classes in the test_set (useful in
+            case the test_set does not cover all the classes in the train_set.
+
+        Returns:
+            acc (float): average accuracy for the test set
+            accs (float list): accuracy for each class in the training set
+        """
+        self.num_class = num_class
+
+    def compute(self, y, y_hat):
+
+        if self.num_class is None:
+            num_class = int(np.max(y) + 1)
+        hits_per_class = [0] * num_class
+        pattern_per_class = [0] * num_class
+
+        correct_cnt = 0
+
+        for true_y, y_pred in zip(y, y_hat):
+
+            for item1, item2 in zip(y_pred, true_y):
+                if item1 == item2:
+                    correct_cnt += 1
+
+            for label in true_y:
+                pattern_per_class[int(label)] += 1
+
+            for i, pred in enumerate(y_pred):
+                if pred == true_y[i]:
+                    hits_per_class[int(pred)] += 1
+
+        accs = np.asarray(hits_per_class) / \
+               np.asarray(pattern_per_class).astype(float)
+
+        acc = correct_cnt / (y_hat[0].shape[0] * len(y_hat))
+
+        return acc, accs
+
+
+class CF(object):
+
+    def __init__(self, num_class=None):
+        """
+        Catastrophic Forgetting metric.
+        """
+
+        self.best_acc = {}
+        self.acc_metric = ACC(num_class=num_class)
+
+    def compute(self, y, y_hat, train_t, test_t):
+
+        acc, accs = self.acc_metric.compute(y, y_hat)
+        if train_t not in self.best_acc.keys() and train_t == test_t:
+            self.best_acc[train_t] = acc
+
+        if test_t not in self.best_acc.keys():
+            cf = np.NAN
+        else:
+            cf = self.best_acc[test_t] - acc
+
+        print("Task {:} - CF: {:.4f}"
+              .format(test_t, cf))
+
+        return cf
+
+
+class RAMU(object):
+
+    def __init__(self):
+        """
+        RAM Usage metric.
+        """
+
+    def compute(self, t):
+
+        process = psutil.Process(os.getpid())
+        mem = process.memory_info().rss  # in bytes
+
+        print("Train Task {:} - MU: {:.3f} GB"
+              .format(t, mem / (1024 * 1024 * 1024)))
+
+        return mem
+
+
+
