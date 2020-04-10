@@ -107,7 +107,7 @@ class MNIST(object):
             perm_mnist.append(flat_set[:, perm_inds].reshape(num_img, w, h))
         return perm_mnist
 
-    def rotate_mnist(self, rotation):
+    def rotate_mnist(self, rotation=20):
         """
         Given the train and test set (no labels), rotate each img the
         same way.
@@ -117,9 +117,10 @@ class MNIST(object):
         mnist_imgs = [self.train_set[0], self.test_set[0]]
         rot_mnist = deepcopy(mnist_imgs)
 
-        for i, set in enumerate(mnist):
+        print("starting rotation...")
+        for i, set in enumerate(rot_mnist):
             for j in range(set.shape[0]):
-                img = Image.fromarray(set[j], mode='L')
+                img = Image.fromarray(np.squeeze(set[j]), mode='L')
                 rot_mnist[i][j] = img.rotate(rotation)
 
         return rot_mnist

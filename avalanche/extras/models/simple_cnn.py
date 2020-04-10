@@ -14,7 +14,7 @@
 
 """
 
-This is the definition of a simple MLP in Tensorflow
+This is the definition od the Mid-caffenet high resolution in Pythorch
 
 """
 
@@ -23,29 +23,44 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import tensorflow as tf
+import torch.nn as nn
 
 
-class SimpleMLP(tf.keras.Model):
+class SimpleCNN(nn.Module):
 
     def __init__(self, num_classes=10):
-        super(SimpleMLP, self).__init__()
+        super(SimpleCNN, self).__init__()
 
-        self.features = tf.keras.Sequential([
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(512),
-            tf.keras.layers.ReLU(),
-            tf.keras.layers.Dropout(0.1)
-        ])
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(32, 32, kernel_size=3, padding=0),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Dropout(p=0.25),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=3, padding=0),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Dropout(p=0.25),
+            nn.Conv2d(64, 64, kernel_size=1, padding=0),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveMaxPool2d(1),
+            nn.Dropout(p=0.25)
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(64, num_classes)
+        )
 
-        self.classifier = tf.keras.layers.Dense(num_classes)
-
-    def call(self, x):
+    def forward(self, x):
         x = self.features(x)
+        x = x.squeeze()
         x = self.classifier(x)
         return x
 
 
 if __name__ == "__main__":
+
     kwargs = {'num_classes': 10}
-    print(SimpleMLP(**kwargs))
+    print(SimpleCNN(**kwargs))

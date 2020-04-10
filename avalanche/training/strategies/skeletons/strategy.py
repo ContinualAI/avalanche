@@ -19,17 +19,184 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+from avalanche.evaluation.metrics import ACC
+from avalanche.evaluation.eval_protocol import EvalProtocol
+from avalanche.training.utils import pad_data, shuffle_in_unison
+from avalanche.training.utils import maybe_cuda
+import torch
+import numpy as np
 
 class Strategy(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, model, optimizer=None,
+                 criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
+                 train_ep=2, multi_head=False, use_cuda=False, preproc=None,
+                 eval_protocol=EvalProtocol(metrics=[ACC])):
+
+        self.model = model
+        if optimizer is None:
+            self.optimizer = torch.optim.SGD(
+                self.model.parameters(),
+                lr=0.01
+            )
+        else:
+            self.optimizer = optimizer
+
+        self.preproc = preproc
+        self.criterion = criterion
+        self.mb_size = mb_size
+        self.train_ep = train_ep
+        self.multi_head = multi_head
+        self.use_cuda = use_cuda
+        self.eval_protocol = eval_protocol
+
+        # to be updated
+        self.cur_ep = None
+        self.cur_train_t = None
+        self.cur_test_t = None
+        self.num_class = None
+        self.batch_processed = 0
+        self.total_it_processed = 0
+
+        super(Strategy, self).__init__()
 
     def train(self, x, y, t):
-        raise NotImplemented
+
+        self.cur_ep = 0
+        self.cur_train_t = t
+
+        if self.preproc:
+            x = self.preproc(x)
+
+        (train_x, train_y), it_x_ep = pad_data(
+            [x, y], self.mb_size
+        )
+
+        shuffle_in_unison(
+            [train_x, train_y], 0, in_place=True
+        )
+
+        correct_cnt, ave_loss = 0, 0
+        model = maybe_cuda(self.model, use_cuda=self.use_cuda)
+        acc = None
+
+        train_x = torch.from_numpy(train_x).type(torch.FloatTensor)
+        train_y = torch.from_numpy(train_y).type(torch.LongTensor)
+
+        for ep in range(self.train_ep):
+            self.before_epoch()
+
+            for it in range(it_x_ep):
+                self.before_iteration()
+
+                start = it * self.mb_size
+                end = (it + 1) * self.mb_size
+
+                self.optimizer.zero_grad()
+
+                x_mb = maybe_cuda(train_x[start:end], use_cuda=self.use_cuda)
+                y_mb = maybe_cuda(train_y[start:end], use_cuda=self.use_cuda)
+                logits = model(x_mb)
+
+                _, pred_label = torch.max(logits, 1)
+                correct_cnt += (pred_label == y_mb).sum()
+
+                loss = self.criterion(logits, y_mb)
+                ave_loss += loss.item()
+
+                self.before_weights_update()
+                loss.backward()
+                self.optimizer.step()
+
+                acc = correct_cnt.item() / \
+                      ((it + 1) * y_mb.size(0) + ep * x.shape[0])
+                ave_loss /= ((it + 1) * y_mb.size(0) + ep * x.shape[0])
+
+                if it % 100 == 0:
+                    print(
+                        '==>>> it: {}, avg. loss: {:.6f}, '
+                        'running train acc: {:.3f}'
+                            .format(it, ave_loss, acc)
+                    )
+                    self.eval_protocol.update_tb_train(
+                        ave_loss, acc, self.total_it_processed,
+                        torch.unique(train_y), self.cur_train_t
+                    )
+
+                self.after_iter_ended()
+                self.total_it_processed += 1
+
+            self.after_epoch_ended()
+            self.cur_ep += 1
+
+        self.batch_processed +=1
+
+        return ave_loss, acc
 
     def test(self, test_set):
-        raise NotImplemented
+
+        self.before_test()
+
+        res = {}
+        ave_loss = 0
+
+        for (x, y), t in test_set:
+
+            if self.preproc:
+                x = self.preproc(x)
+
+            self.cur_test_t = t
+            self.before_task_test()
+
+            (test_x, test_y), it_x_ep = pad_data(
+                [x, y], self.mb_size
+            )
+
+            test_x = torch.from_numpy(test_x).type(torch.FloatTensor)
+            test_y = torch.from_numpy(test_y).type(torch.LongTensor)
+
+            model = maybe_cuda(self.model, use_cuda=self.use_cuda)
+
+            y_hat = []
+            true_y = []
+
+            for i in range(it_x_ep):
+
+                # indexing
+                start = i * self.mb_size
+                end = (i + 1) * self.mb_size
+
+                x_mb = maybe_cuda(test_x[start:end], use_cuda=self.use_cuda)
+                y_mb = maybe_cuda(test_y[start:end], use_cuda=self.use_cuda)
+
+                logits = model(x_mb)
+
+                loss = self.criterion(logits, y_mb)
+                ave_loss += loss.item()
+
+                _, pred_label = torch.max(logits, 1)
+
+                y_hat.append(pred_label.cpu().numpy())
+                true_y.append(y_mb.cpu().numpy())
+
+            results = self.eval_protocol.get_results(
+                true_y, y_hat, self.cur_train_t, self.cur_test_t
+            )
+            acc, accs = results[ACC]
+
+            ave_loss /= test_y.size(0)
+
+            print("Task {0}: Avg Loss {1}; Avg Acc {2}"
+                  .format(t, ave_loss, acc))
+            res[t] = (ave_loss, acc, accs, results)
+
+            self.after_task_test()
+
+        self.eval_protocol.update_tb_test(res, self.batch_processed)
+
+        self.after_test()
+
+        return res
 
     def before_epoch(self):
         raise NotImplemented

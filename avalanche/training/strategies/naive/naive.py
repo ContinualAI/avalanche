@@ -19,23 +19,27 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from avalanche.training.strategies.skeletons.strategy_caffe\
-    import StrategyCaffe
+from avalanche.training.strategies.skeletons.strategy\
+    import Strategy
+from avalanche.evaluation.eval_protocol import EvalProtocol
+from avalanche.evaluation.metrics import ACC
 import copy
-from avalanche.training.utils.caffe_utils import \
-    reset_classifier, set_classifier, get_classifier
+import torch
 
 
-class NaiveCaffe(StrategyCaffe):
+class Naive(Strategy):
     """
     Naive Strategy: PyTorch implementation.
     """
 
-    def __init__(self, model, optimizer=None, mb_size=256,
-                 train_ep=2, multi_head=False, use_cuda=True, preproc=None):
+    def __init__(self, model, optimizer=None,
+                 criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
+                 train_ep=2, multi_head=False, use_cuda=True, preproc=None,
+                 eval_protocol=EvalProtocol(metrics=[ACC])):
 
-        super(NaiveCaffe, self).__init__(
-            model, optimizer, mb_size, train_ep, multi_head, use_cuda, preproc
+        super(Naive, self).__init__(
+            model, optimizer, criterion, mb_size, train_ep, multi_head,
+            use_cuda, preproc, eval_protocol
         )
 
         # to be filled with {t:params}
@@ -46,7 +50,12 @@ class NaiveCaffe(StrategyCaffe):
         pass
         if self.multi_head:
             if self.cur_ep == 0:
-                reset_classifier(self.model)
+                shape = self.model.classifier.weight.data.size()
+                self.model.classifier = torch.nn.Linear(shape[1], shape[0])
+
+                # here eventual zero-reinit
+                # weight_init.xavier_uniform(self.model.classifier.weight)
+                # weight_init.uniform(self.model.classifier.weight, 0.0, 0.1)
 
     def before_iteration(self):
         pass
@@ -62,7 +71,7 @@ class NaiveCaffe(StrategyCaffe):
         if self.cur_ep == self.train_ep-1:
             # we have finished training
             if self.multi_head:
-                w, b = get_classifier(self.model)
+                w, b = self.model.classifier.weight, self.model.classifier.bias
                 self.heads[self.cur_train_t] = copy.deepcopy((w, b))
                 print("multi-head used: ", self.heads.keys())
 
@@ -70,7 +79,7 @@ class NaiveCaffe(StrategyCaffe):
 
         if self.multi_head:
             # save training head for later use
-            w, b = get_classifier(self.model)
+            w, b = self.model.classifier.weight, self.model.classifier.bias
             self.heads['train'] = copy.deepcopy((w, b))
 
     def after_test(self):
@@ -78,7 +87,8 @@ class NaiveCaffe(StrategyCaffe):
         if self.multi_head:
             # reposition train head
             w, b = self.heads['train']
-            set_classifier(self.model, w, b)
+            self.model.classifier.weight = w
+            self.model.classifier.bias = b
 
     def before_task_test(self):
 
@@ -86,9 +96,11 @@ class NaiveCaffe(StrategyCaffe):
             # reposition right head
             if self.cur_test_t in self.heads.keys():
                 w, b = self.heads[self.cur_test_t]
-                set_classifier(self.model, w, b)
+                self.model.classifier.weight = w
+                self.model.classifier.bias = b
             else:
-                reset_classifier(self.model)
+                shape = self.model.classifier.weight.data.size()
+                self.model.classifier = torch.nn.Linear(shape[1], shape[0])
 
     def after_task_test(self):
         pass

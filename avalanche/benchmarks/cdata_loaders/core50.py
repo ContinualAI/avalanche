@@ -62,7 +62,7 @@ class CORE50(object):
         'nicv2_391': 391
     }
 
-    def __init__(self, root='', preload=False, scenario='ni', cumul=False,
+    def __init__(self, root='', preload=True, scenario='ni', cumul=False,
                  run=0, start_batch=0, task_sep=False):
         """" Initialize Object """
 
@@ -163,7 +163,7 @@ class CORE50(object):
 
     next = __next__  # python2.x compatibility.
 
-    def get_full_testset(self):
+    def get_full_testset(self, reduced=True):
         """
         Return the test set (the same for each inc. batch).
         """
@@ -189,6 +189,12 @@ class CORE50(object):
 
         test_y = self.labels[scen][run][-1]
         test_y = np.asarray(test_y, dtype=np.float32)
+
+        if reduced:
+            # reduce test set 20 substampling
+            idx = range(0, test_y.shape[0], 20)
+            test_x = np.take(test_x, idx, axis=0)
+            test_y = np.take(test_y, idx, axis=0)
 
         return [[(test_x, test_y), self.tasks_id[self.batch-1]]]
 

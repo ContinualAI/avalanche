@@ -19,26 +19,30 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from avalanche.benchmarks import CMNIST, CORE50
-from avalanche.evaluation.metrics import ACC, CF, RAMU
-# from avalanche.extras.models.pytorch import SimpleMLP
-# from avalanche.extras.models.tensorflow import SimpleMLP
-from avalanche.extras.models.caffe import SimpleMLP
-from avalanche.training.utils.common import imagenet_batch_preproc
+from avalanche.benchmarks import CMNIST
+from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
 
-# load the model with PyTorch/Tensorflow for example
+from torch.utils.tensorboard import SummaryWriter
+
+# Tensorboard setup
+exp_name = "mnist_test"
+log_dir = '../logs/' + exp_name
+writer = SummaryWriter(log_dir)
+
+# load the model with PyTorch for example
 model = SimpleMLP()
 
 # load the benchmark as a python iterator object
 cdata = CMNIST()
 
-# adding the CL strategy
-clmodel = Naive({'model': model})
-
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC, CF, RAMU])
+evalp = EvalProtocol(metrics=[ACC, CF, RAMU, CM], tb_writer=writer)
+
+# adding the CL strategy
+clmodel = Naive(model, eval_protocol=evalp)
 
 # getting full test set beforehand
 test_full = cdata.get_full_testset()
@@ -56,5 +60,7 @@ for i, (x, y, t) in enumerate(cdata):
     # test_grow = cdata.get_growing_testset()
 
     # testing
-    results.append(clmodel.test(test_full, eval_protocol=evalp))
+    results.append(clmodel.test(test_full))
+
+writer.close()
 

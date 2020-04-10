@@ -21,6 +21,7 @@ from __future__ import absolute_import
 # other imports
 import logging
 from avalanche.benchmarks.datasets_envs import MNIST
+from avalanche.benchmarks.utils import remove_some_labels
 
 
 class CMNIST(object):
@@ -30,6 +31,10 @@ class CMNIST(object):
                  eval_protocol=None):
 
         """" Initialize Object. mode={perm|split|rot}. """
+
+        # checks
+        if num_batch > 5 and mode == "split":
+            raise Exception("Split mode cannot have more than 5 tasks!")
 
         self.bp = bp
         self.num_batch = num_batch
@@ -46,6 +51,8 @@ class CMNIST(object):
             self.mnist = MNIST(data_loc=bp)
 
         self.train_set, self.test_set = self.mnist.get_data()
+
+        # to be filled
         self.all_train_sets = []
         self.all_test_sets = []
         self.tasks_id = []
@@ -53,8 +60,27 @@ class CMNIST(object):
         print("preparing CL benchmark...")
         for i in range(self.num_batch):
 
-            train_x, test_x = self.mnist.permute_mnist(seed=i)
-            train_y, test_y = self.train_set[1], self.test_set[1]
+            if mode == "perm":
+
+                train_x, test_x = self.mnist.permute_mnist(seed=i)
+                train_y, test_y = self.train_set[1], self.test_set[1]
+            elif mode == "rot":
+
+                train_x, test_x = self.mnist.rotate_mnist(rotation=i*5)
+                train_y, test_y = self.train_set[1], self.test_set[1]
+            elif mode == "split":
+
+                train_x, train_y = remove_some_labels(
+                    self.train_set, [j for j in range(10)
+                                         if j not in [i * 2, i * 2 + 1]]
+                )
+                test_x, test_y = remove_some_labels(
+                    self.test_set, [j for j in range(10)
+                                        if j not in [i * 2, i * 2 + 1]]
+                )
+            else:
+                raise NotImplemented
+
             self.all_train_sets.append([train_x, train_y])
             self.all_test_sets.append([test_x, test_y])
             if self.task_sep:
@@ -102,7 +128,7 @@ class CMNIST(object):
 if __name__ == "__main__":
 
     # Create the dataset object
-    cmnist = CMNIST()
+    cmnist = CMNIST(mode="split", num_batch=5)
 
     test_full = cmnist.get_full_testset()
 
@@ -111,8 +137,5 @@ if __name__ == "__main__":
         # WARNING train_batch is NOT a mini-batch, but one incremental batch!
         # You can later train with SGD indexing train_x and train_y properly.
 
-        # do your computation here...
-
-        test_grow = cmnist.get_growing_testset()
-        pass
+        print("task {}: xsize: {}, ysize: {}".format(t, x.shape, y.shape))
 

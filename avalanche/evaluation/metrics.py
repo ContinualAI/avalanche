@@ -23,6 +23,14 @@ import numpy as np
 import os
 import psutil
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import PIL.Image
+from torchvision.transforms import ToTensor
+from sklearn.utils.multiclass import unique_labels
+import io
 
 class ACC(object):
 
@@ -114,7 +122,59 @@ class RAMU(object):
         print("Train Task {:} - MU: {:.3f} GB"
               .format(t, mem / (1024 * 1024 * 1024)))
 
-        return mem
+        return mem / (1024 * 1024 * 1024)
 
+class CM(object):
 
+    def __init__(self, num_class=None):
+        """
+        Confusion Matrix computation
+        """
+        self.num_class = num_class
+
+    def compute(self, y, y_hat, normalize=False):
+
+        if self.num_class is None:
+            num_class = int(np.max(y) + 1)
+
+        cmap = plt.cm.Blues
+
+        y = np.concatenate(y)
+        y_hat = np.concatenate(y_hat)
+
+        # Compute confusion matrix
+        cm = confusion_matrix(y, y_hat)
+        # Only use the labels that appear in the data
+        classes = [str(i) for i in range(num_class)]
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+            print("Normalized confusion matrix")
+        else:
+            print('Confusion matrix, without normalization')
+
+        fig, ax = plt.subplots()
+        im = ax.matshow(cm, interpolation='nearest', cmap=cmap)
+        ax.figure.colorbar(im, ax=ax)
+        # We want to show all ticks...
+        ax.set(xticks=np.arange(cm.shape[1]),
+               yticks=np.arange(cm.shape[0]),
+               # ... and label them with the respective list entries
+               xticklabels=classes, yticklabels=classes,
+               title=None,
+               ylabel='True label',
+               xlabel='Predicted label')
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        fig.tight_layout()
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format='jpg', dpi=50)
+        # fig.savefig("temp.jpg", format='jpg')
+        buf.seek(0)
+        image = PIL.Image.open(buf)
+        image = ToTensor()(image)
+        return image
 
