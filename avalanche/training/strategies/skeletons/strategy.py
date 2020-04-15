@@ -62,19 +62,11 @@ class Strategy(object):
 
     def train(self, x, y, t):
 
+        self.before_train()
         self.cur_ep = 0
         self.cur_train_t = t
 
-        if self.preproc:
-            x = self.preproc(x)
-
-        (train_x, train_y), it_x_ep = pad_data(
-            [x, y], self.mb_size
-        )
-
-        shuffle_in_unison(
-            [train_x, train_y], 0, in_place=True
-        )
+        train_x, train_y, it_x_ep = self.preproc_batch_data(x, y ,t)
 
         correct_cnt, ave_loss = 0, 0
         model = maybe_cuda(self.model, use_cuda=self.use_cuda)
@@ -130,6 +122,7 @@ class Strategy(object):
             self.cur_ep += 1
 
         self.batch_processed +=1
+        self.after_train()
 
         return ave_loss, acc
 
@@ -198,6 +191,25 @@ class Strategy(object):
 
         return res
 
+
+    def before_train(self):
+        raise NotImplemented
+
+    def preproc_batch_data(self, x, y, t):
+
+        if self.preproc:
+            x = self.preproc(x)
+
+        (train_x, train_y), it_x_ep = pad_data(
+            [x, y], self.mb_size
+        )
+
+        shuffle_in_unison(
+            [train_x, train_y], 0, in_place=True
+        )
+
+        return train_x, train_y, it_x_ep
+
     def before_epoch(self):
         raise NotImplemented
 
@@ -211,6 +223,9 @@ class Strategy(object):
         raise NotImplemented
 
     def after_epoch_ended(self):
+        raise NotImplemented
+
+    def after_train(self):
         raise NotImplemented
 
     def before_test(self):

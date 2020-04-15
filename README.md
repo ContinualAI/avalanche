@@ -5,7 +5,7 @@ prototype new continual learning algorithms and assess them in a comprehensive
 way without effort. This can also help standardize training and evaluation 
 protocols in continual learning. 
 
-In order to achieve this goal the \textit{avalanche} framework should be 
+In order to achieve this goal the *avalanche* framework should be 
 general enough to quickly incorporate new CL strategies as well as new 
 benchmarks and metrics. While it would be great to be DL framework independent, 
 for semplicity I believe we should stick to Pytorch which today is becoming 
@@ -15,7 +15,7 @@ The framework is than split in three main modules:
 
 - [Benchmarks](avalanche/benchmarks): This module should maintain a uniform
  API for processing data in  a stream and contain all the major CL datasets
- /environments (similar to what has been done for Pytorch-vision).
+ / environments (similar to what has been done for Pytorch-vision).
 - [Training](avalanche/training): This module should provide all the
  utilities as well as a standard interface to implement and add a new
   continual learning strategy. All major CL baselines should be provided here.
@@ -49,7 +49,7 @@ conda env create -f environment.yml
 conda activate avalanche-env
 ```
 
-Than you can use it as follows:
+Then you can use it as follows:
 
 ```python
 from avalanche.benchmarks import CMNIST

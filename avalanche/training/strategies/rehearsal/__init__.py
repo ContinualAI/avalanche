@@ -1,0 +1,1 @@
+from .rehearsal import Naive

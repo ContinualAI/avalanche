@@ -193,10 +193,23 @@ def reset_classifier(model, val=0, std=None):
 
     set_classifier(model, weights, biases)
 
-def shuffle_in_unison(dataset, seed, in_place=False):
-    """ Shuffle two (or more) list in unison. """
+def shuffle_in_unison(dataset, seed=None, in_place=False):
+    """
+    Shuffle two (or more) list in unison. It's important to shuffle the images
+    and the labels maintaining their correspondence.
 
-    np.random.seed(seed)
+        Args:
+            dataset (dict): list of shuffle with the same order.
+            seed (int): set of fixed Cifar parameters.
+            in_place (bool): if we want to shuffle the same data or we want
+                             to return a new shuffled dataset.
+        Returns:
+            list: train and test sets composed of images and labels, if in_place
+                  is set to False.
+    """
+
+    if seed:
+        np.random.seed(seed)
     rng_state = np.random.get_state()
     new_dataset = []
     for x in dataset:
