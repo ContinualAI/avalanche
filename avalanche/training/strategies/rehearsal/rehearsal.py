@@ -36,12 +36,12 @@ class Rehearsal(Strategy):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
-                 train_ep=2, multi_head=False, use_cuda=True, preproc=None,
+                 train_ep=2, multi_head=False, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC]), rm_sz=1500):
 
         super(Rehearsal, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
-            use_cuda, preproc, eval_protocol
+            device, preproc, eval_protocol
         )
 
         # to be updated
@@ -77,7 +77,7 @@ class Rehearsal(Strategy):
         (train_x, train_y), it_x_ep = pad_data([train_x, train_y], self.mb_size)
         shuffle_in_unison([train_x, train_y], in_place=True)
 
-        return  train_x, train_y, it_x_ep
+        return train_x, train_y, it_x_ep
 
     def before_epoch(self):
         pass

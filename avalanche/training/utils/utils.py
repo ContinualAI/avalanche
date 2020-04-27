@@ -28,11 +28,11 @@ from torch.autograd import Variable
 
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
-                 use_cuda=False, mask=None):
+                 device=None, mask=None):
     """ Test accuracy given net and data. """
 
     correct_cnt, ave_loss = 0, 0
-    model = maybe_cuda(model, use_cuda=use_cuda)
+    model = model.to(device)
 
     num_class = torch.max(test_y) + 1
     hits_per_class = [0] * num_class
@@ -43,19 +43,16 @@ def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
         start = i * batch_size
         end = (i + 1) * batch_size
 
-        x = Variable(
-            maybe_cuda(test_x[start:end], use_cuda=use_cuda), volatile=True
-        )
-        y = Variable(
-            maybe_cuda(test_y[start:end], use_cuda=use_cuda), volatile=True
-        )
+        x = test_x[start:end].to(device)
+
+        y = test_y[start:end].to(device)
 
         logits = model(x)
 
         if mask is not None:
             # we put an high negative number so that after softmax that prob
             # will be zero and not contribute to the loss
-            idx = (torch.FloatTensor(mask).cuda() == 0).nonzero()
+            idx = (torch.tensor(mask, dtype=torch.float, device=device) == 0).nonzero()
             idx = idx.view(idx.size(0))
             logits[:, idx] = -10e10
 
@@ -82,11 +79,11 @@ def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
 
 
 def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
-              train_it, use_cuda=True, mask=None):
+              train_it, device=None, mask=None):
     """ Train net from memory using pytorch """
 
     correct_cnt, ave_loss = 0, 0
-    model = maybe_cuda(model, use_cuda=use_cuda)
+    model = model.to(device)
 
     for it in range(train_it):
 
@@ -94,14 +91,14 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
         end = (it + 1) * batch_size
 
         optimizer.zero_grad()
-        x = Variable(maybe_cuda(train_x[start:end], use_cuda=use_cuda))
-        y = Variable(maybe_cuda(train_y[start:end], use_cuda=use_cuda))
+        x = train_x[start:end].to(device)
+        y = train_y[start:end]
         logits = model(x)
 
         if mask is not None:
             # we put an high negative number so that after softmax that prob
             # will be zero and not contribute to the loss
-            idx = (torch.FloatTensor(mask).cuda() == 0).nonzero()
+            idx = (torch.tensor(mask, dtype=torch.float, device=device) == 0).nonzero()
             idx = idx.view(idx.size(0))
             logits[:, idx] = -10e10
 
@@ -199,7 +196,7 @@ def shuffle_in_unison(dataset, seed=None, in_place=False):
     and the labels maintaining their correspondence.
 
         Args:
-            dataset (dict): list of shuffle with the same order.
+            dataset (list): list of shuffle with the same order.
             seed (int): set of fixed Cifar parameters.
             in_place (bool): if we want to shuffle the same data or we want
                              to return a new shuffled dataset.

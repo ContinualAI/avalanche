@@ -34,16 +34,19 @@ class Naive(Strategy):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
-                 train_ep=2, multi_head=False, use_cuda=True, preproc=None,
+                 train_ep=2, multi_head=False, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC])):
 
         super(Naive, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
-            use_cuda, preproc, eval_protocol
+            device, preproc, eval_protocol
         )
 
         # to be filled with {t:params}
         self.heads = {}
+
+    def before_train(self):
+        pass
 
     def before_epoch(self):
 
@@ -74,6 +77,9 @@ class Naive(Strategy):
                 w, b = self.model.classifier.weight, self.model.classifier.bias
                 self.heads[self.cur_train_t] = copy.deepcopy((w, b))
                 print("multi-head used: ", self.heads.keys())
+
+    def after_train(self):
+        pass
 
     def before_test(self):
 

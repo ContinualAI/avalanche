@@ -29,7 +29,7 @@ from avalanche.training.strategies.ar1.utils import replace_bn_with_brn, \
     create_syn_data, init_batch, freeze_up_to, change_brn_pars, \
     examples_per_class, reset_weights, pre_update, compute_ewc_loss, \
     consolidate_weights, update_ewc_data, set_consolidate_weights
-from avalanche.training.utils import maybe_cuda, pad_data, shuffle_in_unison
+from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
 import copy
 import numpy as np
@@ -42,12 +42,15 @@ class AR1(Strategy):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=128,
-                 train_ep=2, multi_head=False, use_cuda=True, preproc=None,
+                 train_ep=2, multi_head=False, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC]), lr=0.001,
                  init_update_rate=0.01, inc_update_rate=0.00005, max_r_max=1.25,
                  max_d_max=0.5, inc_step=4.1e-05, rm_sz=1500, momentum=0.9,
                  l2 = 0.0005, freeze_below_layer="lat_features.19.bn.beta",
                  latent_layer_num=19, ewc_lambda=0):
+
+        super(AR1, self).__init__(model, optimizer, criterion, mb_size, train_ep,
+                                  multi_head, device, preproc, eval_protocol)
 
         if optimizer is None:
             optimizer = torch.optim.SGD(
@@ -72,7 +75,7 @@ class AR1(Strategy):
 
         super(AR1, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
-            use_cuda, preproc, eval_protocol
+            device, preproc, eval_protocol
         )
 
         self.ewc_lambda = ewc_lambda
@@ -84,9 +87,7 @@ class AR1(Strategy):
         self.lr = lr
         self.momentum = momentum
         self.l2 = l2
-        self.preproc = preproc
         self.rm = None
-
 
     def train(self, x, y, t):
 
@@ -110,7 +111,8 @@ class AR1(Strategy):
             )
 
         train_x, train_y = x, y
-        train_x = self.preproc(train_x)
+        if self.preproc:
+            train_x = self.preproc(train_x)
 
         if self.batch_processed == 0:
             cur_class = [int(o) for o in set(train_y)]
@@ -132,12 +134,12 @@ class AR1(Strategy):
                                                    self.mb_size)
         shuffle_in_unison([train_x, train_y], in_place=True)
 
-        self.model = maybe_cuda(self.model, use_cuda=self.use_cuda)
+        self.model = self.model.to(self.device)
         acc = None
         ave_loss = 0
 
-        train_x = torch.from_numpy(train_x).type(torch.FloatTensor)
-        train_y = torch.from_numpy(train_y).type(torch.LongTensor)
+        train_x = torch.tensor(train_x, dtype=torch.float)
+        train_y = torch.tensor(train_y, dtype=torch.long)
 
         for ep in range(self.train_ep):
 
@@ -165,20 +167,17 @@ class AR1(Strategy):
 
                 self.optimizer.zero_grad()
 
-                x_mb = maybe_cuda(train_x[start:end], use_cuda=self.use_cuda)
+                x_mb = train_x[start:end].to(self.device)
 
                 if self.batch_processed == 0:
                     lat_mb_x = None
-                    y_mb = maybe_cuda(train_y[start:end],
-                                      use_cuda=self.use_cuda)
+                    y_mb = train_y[start:end].to(self.device)
 
                 else:
                     lat_mb_x = self.rm[0][it * n2inject: (it + 1) * n2inject]
                     lat_mb_y = self.rm[1][it * n2inject: (it + 1) * n2inject]
-                    y_mb = maybe_cuda(
-                        torch.cat((train_y[start:end], lat_mb_y), 0),
-                        use_cuda=self.use_cuda)
-                    lat_mb_x = maybe_cuda(lat_mb_x, use_cuda=self.use_cuda)
+                    y_mb = torch.cat((train_y[start:end], lat_mb_y), 0).to(self.device)
+                    lat_mb_x = lat_mb_x.to(self.device)
 
                 logits, lat_acts = self.model(
                     x_mb, latent_input=lat_mb_x, return_lat_acts=True)
@@ -197,7 +196,8 @@ class AR1(Strategy):
                 loss = self.criterion(logits, y_mb)
                 if self.ewc_lambda != 0:
                     loss += compute_ewc_loss(self.model, self.ewcData,
-                                                lambd=self.ewc_lambda)
+                                             lambd=self.ewc_lambda,
+                                             device=self.device)
                 ave_loss += loss.item()
 
                 loss.backward()
@@ -213,8 +213,7 @@ class AR1(Strategy):
                 if it % 100 == 0:
                     print(
                         '==>>> it: {}, avg. loss: {:.6f}, '
-                        'running train acc: {:.3f}'
-                            .format(it, ave_loss, acc)
+                        'running train acc: {:.3f}'.format(it, ave_loss, acc)
                     )
                     self.eval_protocol.update_tb_train(
                         ave_loss, acc, self.total_it_processed,
@@ -260,7 +259,6 @@ class AR1(Strategy):
         self.batch_processed +=1
 
         return ave_loss, acc
-
 
     def before_test(self):
         pass
