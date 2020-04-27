@@ -22,15 +22,14 @@ from __future__ import absolute_import
 from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
-from avalanche.training.utils import maybe_cuda
 import torch
-import numpy as np
+
 
 class Strategy(object):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
-                 train_ep=2, multi_head=False, use_cuda=False, preproc=None,
+                 train_ep=2, multi_head=False, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC])):
 
         self.model = model
@@ -47,7 +46,7 @@ class Strategy(object):
         self.mb_size = mb_size
         self.train_ep = train_ep
         self.multi_head = multi_head
-        self.use_cuda = use_cuda
+        self.device = device
         self.eval_protocol = eval_protocol
 
         # to be updated
@@ -66,14 +65,14 @@ class Strategy(object):
         self.cur_ep = 0
         self.cur_train_t = t
 
-        train_x, train_y, it_x_ep = self.preproc_batch_data(x, y ,t)
+        train_x, train_y, it_x_ep = self.preproc_batch_data(x, y, t)
 
         correct_cnt, ave_loss = 0, 0
-        model = maybe_cuda(self.model, use_cuda=self.use_cuda)
+        model = self.model.to(self.device)
         acc = None
 
-        train_x = torch.from_numpy(train_x).type(torch.FloatTensor)
-        train_y = torch.from_numpy(train_y).type(torch.LongTensor)
+        train_x = torch.tensor(train_x, dtype=torch.float)
+        train_y = torch.tensor(train_y, dtype=torch.long)
 
         for ep in range(self.train_ep):
             self.before_epoch()
@@ -86,12 +85,12 @@ class Strategy(object):
 
                 self.optimizer.zero_grad()
 
-                x_mb = maybe_cuda(train_x[start:end], use_cuda=self.use_cuda)
-                y_mb = maybe_cuda(train_y[start:end], use_cuda=self.use_cuda)
+                x_mb = train_x[start:end].to(self.device)
+                y_mb = train_y[start:end].to(self.device)
                 logits = model(x_mb)
 
                 _, pred_label = torch.max(logits, 1)
-                correct_cnt += (pred_label == y_mb).sum()
+                correct_cnt += (pred_label == y_mb).sum().item()
 
                 loss = self.criterion(logits, y_mb)
                 ave_loss += loss.item()
@@ -100,15 +99,13 @@ class Strategy(object):
                 loss.backward()
                 self.optimizer.step()
 
-                acc = correct_cnt.item() / \
-                      ((it + 1) * y_mb.size(0) + ep * x.shape[0])
+                acc = correct_cnt / ((it + 1) * y_mb.size(0) + ep * x.shape[0])
                 ave_loss /= ((it + 1) * y_mb.size(0) + ep * x.shape[0])
 
                 if it % 100 == 0:
                     print(
                         '==>>> it: {}, avg. loss: {:.6f}, '
-                        'running train acc: {:.3f}'
-                            .format(it, ave_loss, acc)
+                        'running train acc: {:.3f}'.format(it, ave_loss, acc)
                     )
                     self.eval_protocol.update_tb_train(
                         ave_loss, acc, self.total_it_processed,
@@ -122,7 +119,7 @@ class Strategy(object):
             self.cur_ep += 1
 
         self.after_train()
-        self.batch_processed +=1
+        self.batch_processed += 1
 
         return ave_loss, acc
 
@@ -145,10 +142,10 @@ class Strategy(object):
                 [x, y], self.mb_size
             )
 
-            test_x = torch.from_numpy(test_x).type(torch.FloatTensor)
-            test_y = torch.from_numpy(test_y).type(torch.LongTensor)
+            test_x = torch.tensor(test_x, dtype=torch.float)
+            test_y = torch.tensor(test_y, dtype=torch.long)
 
-            model = maybe_cuda(self.model, use_cuda=self.use_cuda)
+            model = self.model.to(self.device)
 
             y_hat = []
             true_y = []
@@ -159,8 +156,8 @@ class Strategy(object):
                 start = i * self.mb_size
                 end = (i + 1) * self.mb_size
 
-                x_mb = maybe_cuda(test_x[start:end], use_cuda=self.use_cuda)
-                y_mb = maybe_cuda(test_y[start:end], use_cuda=self.use_cuda)
+                x_mb = test_x[start:end].to(self.device)
+                y_mb = test_y[start:end].to(self.device)
 
                 logits = model(x_mb)
 
@@ -191,9 +188,8 @@ class Strategy(object):
 
         return res
 
-
     def before_train(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def preproc_batch_data(self, x, y, t):
 
@@ -211,33 +207,31 @@ class Strategy(object):
         return train_x, train_y, it_x_ep
 
     def before_epoch(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def before_iteration(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def before_weights_update(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def after_iter_ended(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def after_epoch_ended(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def after_train(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def before_test(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def after_test(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def before_task_test(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def after_task_test(self):
-        raise NotImplemented
-
-
+        raise NotImplementedError()

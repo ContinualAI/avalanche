@@ -17,7 +17,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.init as init
-from extras.models.pytorchcv.common import conv1x1_block, conv3x3_block, dwconv3x3_block
+from .common import conv1x1_block, conv3x3_block, dwconv3x3_block
 
 
 class DwsConvBlock(nn.Module):
@@ -172,7 +172,7 @@ def get_mobilenet(version,
     if pretrained:
         if (model_name is None) or (not model_name):
             raise ValueError("Parameter `model_name` should be properly initialized for loading pretrained model.")
-        from extras.models.pytorchcv.model_store import download_model
+        from .model_store import download_model
         download_model(
             net=net,
             model_name=model_name,
