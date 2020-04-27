@@ -121,8 +121,8 @@ class Strategy(object):
             self.after_epoch_ended()
             self.cur_ep += 1
 
-        self.batch_processed +=1
         self.after_train()
+        self.batch_processed +=1
 
         return ave_loss, acc
 

@@ -45,9 +45,11 @@ class Naive(Strategy):
         # to be filled with {t:params}
         self.heads = {}
 
+    def before_train(self):
+        pass
+
     def before_epoch(self):
 
-        pass
         if self.multi_head:
             if self.cur_ep == 0:
                 shape = self.model.classifier.weight.data.size()
@@ -74,6 +76,9 @@ class Naive(Strategy):
                 w, b = self.model.classifier.weight, self.model.classifier.bias
                 self.heads[self.cur_train_t] = copy.deepcopy((w, b))
                 print("multi-head used: ", self.heads.keys())
+
+    def after_train(self):
+        pass
 
     def before_test(self):
 

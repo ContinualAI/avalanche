@@ -1,1 +1,1 @@
-from .rehearsal import Naive
+from .rehearsal import Rehearsal
