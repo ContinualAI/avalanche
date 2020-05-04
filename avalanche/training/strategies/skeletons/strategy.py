@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2019. ContinualAI. All rights reserved.                        #
+# Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 15-07-2019                                                             #
-# Author: ContinualAI                                                          #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
 # E-mail: contact@continualai.org                                              #
-# Website: continualai.org                                                     #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """ Common training utils. """
@@ -24,7 +24,6 @@ from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
 from avalanche.training.utils import maybe_cuda
 import torch
-import numpy as np
 
 class Strategy(object):
 

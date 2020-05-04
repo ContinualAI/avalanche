@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 7-12-2017                                                              #
-# Author: Vincenzo Lomonaco                                                    #
-# E-mail: vincenzo.lomonaco@unibo.it                                           #
-# Website: vincenzolomonaco.com                                                #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """
@@ -25,8 +25,8 @@ from __future__ import absolute_import
 
 import torch.nn as nn
 import torch
-from avalanche.extras.models.pytorchcv.mobilenet import mobilenet_w1
-from avalanche.extras.models.pytorchcv.common import DwsConvBlock
+from pytorchcv.models.mobilenet import mobilenet_w1
+from pytorchcv.models.mobilenet import DwsConvBlock
 
 def remove_sequential(network, all_layers):
 

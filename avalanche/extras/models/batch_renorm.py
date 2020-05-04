@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 7-12-2017                                                              #
-# Author: Vincenzo Lomonaco                                                    #
-# E-mail: vincenzo.lomonaco@unibo.it                                           #
-# Website: vincenzolomonaco.com                                                #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """ Batch Renorm implementation """
@@ -17,13 +17,13 @@
 from torch.nn import Module
 import torch
 
-class BatchRenormalization2D(Module):
+class BatchRenorm2D(Module):
 
     def __init__(self, num_features,  gamma=None, beta=None,
                  running_mean=None, running_var=None, eps=1e-05,
                  momentum=0.01, r_d_max_inc_step = 0.0001, r_max=1.0,
                  d_max=0.0, max_r_max=3.0, max_d_max=5.0):
-        super(BatchRenormalization2D, self).__init__()
+        super(BatchRenorm2D, self).__init__()
 
         self.eps = eps
         self.num_features = num_features

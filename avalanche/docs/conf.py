@@ -1,5 +1,17 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
+
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a

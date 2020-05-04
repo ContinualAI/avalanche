@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2019. ContinualAI. All rights reserved.                        #
+# Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 15-07-2019                                                             #
-# Author: ContinualAI                                                          #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
 # E-mail: contact@continualai.org                                              #
-# Website: continualai.org                                                     #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """ Common training utils. """
@@ -23,7 +23,6 @@ from avalanche.training.strategies.skeletons.strategy \
     import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.training.utils import preprocess_imgs
 from avalanche.extras.models.mobilenetv1 import MobilenetV1
 from avalanche.training.strategies.ar1.utils import replace_bn_with_brn, \
     create_syn_data, init_batch, freeze_up_to, change_brn_pars, \

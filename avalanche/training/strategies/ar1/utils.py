@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2019. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 8-11-2019                                                              #
-# Author: Vincenzo Lomonaco                                                    #
-# E-mail: vincenzo.lomonaco@unibo.it                                           #
-# Website: vincenzolomonaco.com                                                #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """
@@ -23,7 +23,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
-from avalanche.extras.models.batch_renormalization import BatchRenormalization2D
+from avalanche.extras.models.batch_renorm import BatchRenormalization2D
 
 def replace_bn_with_brn(
         m, name="", momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,

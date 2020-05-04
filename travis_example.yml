@@ -1,0 +1,28 @@
+language: python
+
+install:
+#  - pip install travis-sphinx
+#  - export PATH=$HOME/.local/bin:$PATH
+   - pip install sphinx
+   - pip install sphinx_rtd_theme
+#   - sudo apt-get install python3-sphinx
+
+script:
+  # Use Sphinx to make the html docs
+  - make html
+  # Tell GitHub not to use jekyll to compile the docs
+  - touch _build/html/.nojekyll
+
+# Tell Travis CI to copy the documentation to the gh-pages branch of
+# your GitHub repository.
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GH_TOKEN  # Set in travis-ci.org dashboard, marked secure
+  keep-history: true
+  on:
+    branch: master
+  local_dir: _build/html/
+
+after_success:
+    - travis-sphinx deploy

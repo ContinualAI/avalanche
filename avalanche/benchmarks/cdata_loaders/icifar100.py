@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 24-11-2017                                                             #
-# Author: Vincenzo Lomonaco                                                    #
-# E-mail: vincenzo.lomonaco@unibo.it                                           #
-# Website: vincenzolomonaco.com                                                #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
 """ Data Loader for the CIFAR10-100 continual learning benchmark. """
