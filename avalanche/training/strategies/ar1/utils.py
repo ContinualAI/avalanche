@@ -231,7 +231,8 @@ def update_ewc_data(net, ewcData, synData, clip_to, c=0.0015):
     # (except CWR)
     ewcData[0] = synData['new_theta'].clone().detach()
 
-def compute_ewc_loss(model, ewcData, lambd=0):
+
+def compute_ewc_loss(model, ewcData, lambd=0, device=None):
 
     weights_vector = None
     for name, param in model.named_parameters():
@@ -243,12 +244,12 @@ def compute_ewc_loss(model, ewcData, lambd=0):
                 weights_vector = torch.cat(
                     (weights_vector, param.flatten()), 0)
 
-    ewcData = maybe_cuda(ewcData, use_cuda=True)
+    ewcData = ewcData.to(device)
     loss = (lambd / 2) * torch.dot(ewcData[1], (weights_vector - ewcData[0])**2)
     return loss
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     from avalanche.extras.models.mobilenetv1 import MobilenetV1
     model = MobilenetV1(pretrained=True)
     replace_bn_with_brn(model, "net")

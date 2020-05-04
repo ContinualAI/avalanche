@@ -48,9 +48,13 @@ optimizer = torch.optim.SGD(
     model.parameters(),
     lr=0.001
 )
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 clmodel = Naive(
     model, optimizer=optimizer, eval_protocol=evalp,
-    preproc=imagenet_batch_preproc, train_ep=4, mb_size=128
+    preproc=imagenet_batch_preproc, train_ep=4, mb_size=128,
+    device=device
 )
 
 # getting full test set beforehand

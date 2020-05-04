@@ -25,30 +25,33 @@ from __future__ import absolute_import
 
 import torch.nn as nn
 import torch
+
 from pytorchcv.models.mobilenet import mobilenet_w1
 from pytorchcv.models.mobilenet import DwsConvBlock
 
 def remove_sequential(network, all_layers):
 
     for layer in network.children():
-        if isinstance(layer, nn.Sequential): # if sequential layer, apply recursively to layers in sequential layer
-            #print(layer)
+        if isinstance(layer, nn.Sequential):  # if sequential layer, apply recursively to layers in sequential layer
+            # print(layer)
             remove_sequential(layer, all_layers)
-        else: # if leaf node, add it to list
+        else:  # if leaf node, add it to list
             # print(layer)
             all_layers.append(layer)
+
 
 def remove_DwsConvBlock(cur_layers):
 
     all_layers = []
     for layer in cur_layers:
         if isinstance(layer, DwsConvBlock):
-           #  print("helloooo: ", layer)
+            # print("helloooo: ", layer)
             for ch in layer.children():
                 all_layers.append(ch)
         else:
             all_layers.append(layer)
     return all_layers
+
 
 class MobilenetV1(nn.Module):
     def __init__(self, pretrained=True, latent_layer_num=20):
@@ -74,7 +77,6 @@ class MobilenetV1(nn.Module):
         self.end_features = nn.Sequential(*end_list)
 
         self.output = nn.Linear(1024, 50, bias=False)
-
 
     def forward(self, x, latent_input=None, return_lat_acts=False):
 
