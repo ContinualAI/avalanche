@@ -78,6 +78,7 @@ class Phase(Enum):
 class Dataset(Enum):
     FAKE_DATASET = 'fake_dataset'
     CORE50 = 'core50'
+    CMNIST = 'cmnist'
     MNIST_SPLIT = 'mnist_split'
     MNIST_PERM = 'mnist_perm'
     MNIST_ROT = 'mnist_rot'
