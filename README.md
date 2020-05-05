@@ -8,7 +8,7 @@ protocols in continual learning.
 In order to achieve this goal the *avalanche* framework should be 
 general enough to quickly incorporate new CL strategies as well as new 
 benchmarks and metrics. While it would be great to be DL framework independent, 
-for semplicity I believe we should stick to Pytorch which today is becoming 
+for simplicity I believe we should stick to Pytorch which today is becoming 
 the standard de-facto for machine learning research.
 
 The framework is than split in three main modules:
