@@ -18,3 +18,4 @@ dependencies:
 - psutil
 - pytorch::pytorch
 - pytorch::torchvision
+- tensorboard
