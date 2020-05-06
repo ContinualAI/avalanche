@@ -13,6 +13,8 @@ name: avalanche-env
 channels:
 - pytorch
 dependencies:
+- pip
+- psutil
 - python=3
 - pytorch::pytorch
 - pytorch::torchvision
