@@ -23,7 +23,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
-from avalanche.extras.models.batch_renorm import BatchRenormalization2D
+from avalanche.extras.models.batch_renorm import BatchRenorm2D
 
 def replace_bn_with_brn(
         m, name="", momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,
@@ -33,7 +33,7 @@ def replace_bn_with_brn(
         if type(target_attr) == torch.nn.BatchNorm2d:
             # print('replaced: ', name, attr_str)
             setattr(m, attr_str,
-                    BatchRenormalization2D(
+                    BatchRenorm2D(
                         target_attr.num_features,
                         gamma=target_attr.weight,
                         beta=target_attr.bias,
@@ -57,7 +57,7 @@ def change_brn_pars(
         d_max=0.0):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
-        if type(target_attr) == BatchRenormalization2D:
+        if type(target_attr) == BatchRenorm2D:
             target_attr.momentum = torch.tensor((momentum), requires_grad=False)
             target_attr.r_max = torch.tensor(r_max, requires_grad=False)
             target_attr.d_max = torch.tensor(d_max, requires_grad=False)
@@ -120,7 +120,7 @@ def examples_per_class(train_y):
 def set_brn_to_train(m, name=""):
         for attr_str in dir(m):
             target_attr = getattr(m, attr_str)
-            if type(target_attr) == BatchRenormalization2D:
+            if type(target_attr) == BatchRenorm2D:
                 target_attr.train()
                 # print("setting to train..")
         for n, ch in m.named_children():
@@ -129,7 +129,7 @@ def set_brn_to_train(m, name=""):
 def set_brn_to_eval(m, name=""):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
-        if type(target_attr) == BatchRenormalization2D:
+        if type(target_attr) == BatchRenorm2D:
             target_attr.eval()
             # print("setting to train..")
     for n, ch in m.named_children():
