@@ -18,7 +18,7 @@ dependencies:
 - pytorch::torchvision
 - tensorflow-gpu
 - tensorboard
-- sklearn
+- scikit-learn
 - matplotlib
 
 - pip:
