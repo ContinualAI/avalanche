@@ -14,11 +14,13 @@ channels:
 - pytorch
 dependencies:
 - python=3
-- numpy
-- psutil
 - pytorch::pytorch
 - pytorch::torchvision
+- tensorflow-gpu
 - tensorboard
 - sklearn
 - matplotlib
-- pytorchcv
+
+- pip:
+    - pytorchcv
+    - numpy
