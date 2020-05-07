@@ -53,8 +53,7 @@ Project Structure
  need to add a few integration tests.
 - [docs](docs): Avalanche versioned documentation with Sphinx and Trevis CI
  to build it automatically on the gh-pages of the github repo.
-- [How to Contribute](CONTRIBUTE.md): check this for making contributions.
-
+- [How to Contribute](CONTRIBUTE.md): check this for making the contributions.
 
 
 Getting Started
