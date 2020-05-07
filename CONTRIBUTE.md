@@ -1,6 +1,4 @@
 # How to Contribute
-We need to take care of the way we're going to contribute to the project.
-
 We welcome your pull requests.
 
 1. Fork the repo and create your branch from `master`.
@@ -16,7 +14,5 @@ We welcome your pull requests.
 * 4 spaces for indentation rather than tabs
 * 80 character line length
 * PEP8 formatting
-
-## License
 
 
