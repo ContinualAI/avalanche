@@ -15,6 +15,4 @@ We welcome your pull requests.
 * 80 character line length
 * PEP8 formatting
 
-## License
-
 
