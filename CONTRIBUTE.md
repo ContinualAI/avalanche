@@ -1,6 +1,4 @@
 # How to Contribute
-We need to take care of the way we're going to contribute to the project.
-
 We welcome your pull requests.
 
 1. Fork the repo and create your branch from `master`.
