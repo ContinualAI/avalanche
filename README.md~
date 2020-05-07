@@ -1,5 +1,9 @@
 # Avalanche: a Comprehensive Framework for Continual Learning Research
 
+<p align="center">
+<img src="https://www.continualai.org/images/continualai_research_logo.png" width="200"/>
+</p>
+
 **Avalanche** is meant to provide a set of tools and resources for easily 
 prototype new continual learning algorithms and assess them in a comprehensive
 way without effort. This can also help standardize training and evaluation 
@@ -8,7 +12,7 @@ protocols in continual learning.
 In order to achieve this goal the *avalanche* framework should be 
 general enough to quickly incorporate new CL strategies as well as new 
 benchmarks and metrics. While it would be great to be DL framework independent, 
-for semplicity I believe we should stick to Pytorch which today is becoming 
+for simplicity I believe we should stick to Pytorch which today is becoming 
 the standard de-facto for machine learning research.
 
 The framework is than split in three main modules:
@@ -26,17 +30,29 @@ The framework is than split in three main modules:
 Project Structure
 -----------------
 
-- [avalanche](avalanche)
-    - [Benchmarks](avalanche/benchmarks)
-        -  [cdata_loaders](avalanche/benchmarks/cdata_loaders)
-        - [datasets_envs](avalanche/benchmarks/datasets_envs)
-        - [utils.py](avalanche/benchmarks/utils.py)
-    - [Training](avalanche/training)
-    - [Evaluation](avalanche/evaluation)
-    - [Extra](avalanche/extras)
-- [Examples](examples)
-- [Tests](tests)
-- [docs](docs)
+- [avalanche](avalanche): Main avalanche directory.
+    - [Benchmarks](avalanche/benchmarks): All the benchmarks code here.
+        -  [cdata_loaders](avalanche/benchmarks/cdata_loaders): CData Loaders
+         stands for Continual Data Loader. These data loaders should respect the
+          same API and are basically iterators providing new batch/task data
+           on demand.
+        - [datasets_envs](avalanche/benchmarks/datasets_envs): Since there
+         may be multiple CData Loaders (i.e. settings/scenarios) for the same
+          orginal dataset, in this directory we maintain all the basic
+           utilities functions and classes relative to each dataset/environment.
+        - [utils.py](avalanche/benchmarks/utils.py): All the utility function
+         related to datasets and cdata_loaders.
+    - [Training](avalanche/training): In this module we maintain all the
+     continual learning strategies.
+    - [Evaluation](avalanche/evaluation): In this module we maintain all the
+     evaluation part: protocols, metrics computation and logging.
+    - [Extra](avalanche/extras): Other artifacts that may be useful (i.e. pre-trained models, etc.)
+- [Examples](examples): In this directory we need to provide a lot of
+ examples for every avalanche feature.
+- [Tests](tests): A lot of unit tests to cover the entire code. We will also
+ need to add a few integration tests.
+- [docs](docs): Avalanche versioned documentation with Sphinx and Trevis CI
+ to build it automatically on the gh-pages of the github repo.
 - [How to Contribute](CONTRIBUTE.md)
 
 

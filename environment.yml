@@ -13,8 +13,16 @@ name: avalanche-env
 channels:
 - pytorch
 dependencies:
-- python=3
-- numpy
+- pip
 - psutil
+- python=3
 - pytorch::pytorch
 - pytorch::torchvision
+- tensorflow-gpu
+- tensorboard
+- scikit-learn
+- matplotlib
+
+- pip:
+    - pytorchcv
+    - numpy

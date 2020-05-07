@@ -27,7 +27,10 @@ import torch.nn as nn
 import torch
 
 from pytorchcv.models.mobilenet import mobilenet_w1
-from pytorchcv.models.mobilenet import DwsConvBlock
+try:
+    from pytorchcv.models.mobilenet import DwsConvBlock
+except:
+    from pytorchcv.models.common import DwsConvBlock
 
 def remove_sequential(network, all_layers):
 
