@@ -1,4 +1,4 @@
 .vscode/
 __pycache__
 .idea/
-data/
+avalanche/benchmarks/datasets_envs/*/data
