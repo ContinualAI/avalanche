@@ -12,13 +12,6 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-""" Data Loaderif sys.version_info[0] >= 3:
-    from urllib.request import urlretrieve
-else:
-    # Not Python 3 - today, it is most likely to be Python 2
-    # But note that this might need an update when Python 4
-    # might be around one day
-    from urllib import urlretrieve for the CORe50 Dataset """
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -79,11 +72,11 @@ class CORE50(object):
 
         # download dataset and set current data folder
         if root is None:
-            core_data = CORE50_DATA()
+            self.core_data = CORE50_DATA()
         else:
-            core_data = CORE50_DATA(root)
+            self.core_data = CORE50_DATA(root)
 
-        self.root = core_data.data_folder
+        self.root = self.core_data.data_folder
 
         self.preload = preload
         self.scenario = scenario
