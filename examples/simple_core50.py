@@ -19,9 +19,9 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from avalanche.benchmarks import CMNIST, CORE50
+from avalanche.benchmarks import CORE50
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
-from avalanche.extras.models import SimpleMLP, SimpleCNN
+from avalanche.extras.models import SimpleCNN
 from avalanche.training.utils import imagenet_batch_preproc
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
@@ -38,7 +38,7 @@ writer = SummaryWriter(log_dir)
 model = SimpleCNN(num_classes=50)
 
 # load the benchmark as a python iterator object
-cdata = CORE50(root='/home/admin/ssd_data/core50', scenario="nicv2_391")
+cdata = CORE50(scenario="nicv2_391")
 
 # Eval Protocol
 evalp = EvalProtocol(metrics=[ACC, CF, RAMU, CM], tb_writer=writer)

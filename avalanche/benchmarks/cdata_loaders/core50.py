@@ -12,7 +12,13 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-""" Data Loader for the CORe50 Dataset """
+""" Data Loaderif sys.version_info[0] >= 3:
+    from urllib.request import urlretrieve
+else:
+    # Not Python 3 - today, it is most likely to be Python 2
+    # But note that this might need an update when Python 4
+    # might be around one day
+    from urllib import urlretrieve for the CORe50 Dataset """
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -26,15 +32,19 @@ import os
 import logging
 from hashlib import md5
 from PIL import Image
+from avalanche.benchmarks.datasets_envs import CORE50_DATA
 
 
 class CORE50(object):
     """ CORe50 Data Loader calss
 
     Args:
-        root (string): Root directory of the dataset where ``core50_128x128``,
-            ``paths.pkl``, ``LUP.pkl``, ``labels.pkl``, ``core50_imgs.npz``
-            live. For example ``~/data/core50``.
+        root (string): None to download dataset in default folder.
+            Otherwise a string indicating the folder in which to download 
+            dataset or in which it already lives. 
+            For example ``~/data/core50``.
+            Dataset is composed by ``core50_128x128``, ``paths.pkl``, 
+            ``LUP.pkl``, ``labels.pkl``, ``core50_imgs.npz`` files.
         preload (string, optional): If True data is pre-loaded with look-up
             tables. RAM usage may be high.
         scenario (string, optional): One of the three scenarios of the CORe50
@@ -63,11 +73,18 @@ class CORE50(object):
         'nicv2_391': 391
     }
 
-    def __init__(self, root='', preload=True, scenario='ni', cumul=False,
+    def __init__(self, root=None, preload=True, scenario='ni', cumul=False,
                  run=0, start_batch=0, task_sep=False):
         """" Initialize Object """
 
-        self.root = os.path.expanduser(root)
+        # download dataset and set current data folder
+        if root is None:
+            core_data = CORE50_DATA()
+        else:
+            core_data = CORE50_DATA(root)
+
+        self.root = core_data.data_folder
+
         self.preload = preload
         self.scenario = scenario
         self.cumul = cumul
@@ -77,29 +94,29 @@ class CORE50(object):
 
         if preload:
             print("Loading data...")
-            bin_path = os.path.join(root, 'core50_imgs.bin')
+            bin_path = os.path.join(self.root, 'core50_imgs.bin')
             if os.path.exists(bin_path):
                 with open(bin_path, 'rb') as f:
                     self.x = np.fromfile(f, dtype=np.uint8) \
                         .reshape(164866, 128, 128, 3)
 
             else:
-                with open(os.path.join(root, 'core50_imgs.npz'), 'rb') as f:
+                with open(os.path.join(self.root, 'core50_imgs.npz'), 'rb') as f:
                     npzfile = np.load(f)
                     self.x = npzfile['x']
                     print("Writing bin for fast reloading...")
                     self.x.tofile(bin_path)
 
         print("Loading paths...")
-        with open(os.path.join(root, 'paths.pkl'), 'rb') as f:
+        with open(os.path.join(self.root, 'paths.pkl'), 'rb') as f:
             self.paths = pkl.load(f)
 
         print("Loading LUP...")
-        with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
+        with open(os.path.join(self.root, 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 
         print("Loading labels...")
-        with open(os.path.join(root, 'labels.pkl'), 'rb') as f:
+        with open(os.path.join(self.root, 'labels.pkl'), 'rb') as f:
             self.labels = pkl.load(f)
 
         # to be changed
@@ -170,7 +187,7 @@ class CORE50(object):
         """
 
         if self.task_sep:
-            raise NotImplemented
+            raise NotImplementedError()
 
         scen = self.scenario
         run = self.run
@@ -203,7 +220,7 @@ class CORE50(object):
         """
         Return the growing test set (test set of tasks encountered so far.
         """
-        raise NotImplemented
+        raise NotImplementedError()
 
     @staticmethod
     def get_batch_from_paths(paths, compress=False, snap_dir='',
@@ -266,11 +283,12 @@ class CORE50(object):
         return x
 
 
+
 if __name__ == "__main__":
 
     # Create the dataset object for example with the "NIC_v2 - 79 benchmark"
     # and assuming the core50 location in ~/core50/128x128/
-    dataset = CORE50(root='/home/admin/Ior50N/128/', scenario="nicv2_79")
+    dataset = CORE50(scenario="nicv2_79")
 
     # Get the fixed test set
     full_testset = dataset.get_full_testset()
@@ -279,7 +297,7 @@ if __name__ == "__main__":
     for i, (x, y, t) in enumerate(dataset):
 
         print("----------- batch {0} -------------".format(i))
-        print("x shape: {0}, y: {0}"
+        print("x shape: {0}, y: {1}"
               .format(x.shape, y.shape))
 
         # use the data
