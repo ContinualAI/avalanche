@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Rehearsal
 from avalanche.evaluation import EvalProtocol

@@ -30,8 +30,6 @@ from avalanche.evaluation import EvalProtocol
 
 
 # Tensorboard setup
-from avalanche.training.strategies.ar1 import AR1
-
 exp_name = "mnist_test"
 log_dir = '../logs/' + exp_name
 writer = SummaryWriter(log_dir)
