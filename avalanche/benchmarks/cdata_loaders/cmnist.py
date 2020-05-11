@@ -80,7 +80,7 @@ class CMNIST(object):
                                         if j not in [i * 2, i * 2 + 1]]
                 )
             else:
-                raise NotImplemented
+                raise NotImplementedError()
 
             self.all_train_sets.append([train_x, train_y])
             self.all_test_sets.append([test_x, test_y])
