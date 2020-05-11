@@ -25,12 +25,6 @@ from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Rehearsal
 from avalanche.evaluation import EvalProtocol
 import torch
-from torch.utils.tensorboard import SummaryWriter
-
-# Tensorboard setup
-exp_name = "mnist_rehe_test"
-log_dir = '../logs/' + exp_name
-writer = SummaryWriter(log_dir)
 
 # load the model with PyTorch for example
 model = SimpleMLP()
@@ -39,7 +33,7 @@ model = SimpleMLP()
 cdata = CMNIST()
 
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC], tb_writer=writer)
+evalp = EvalProtocol(metrics=[ACC], tb_logdir='../logs/mnist_test')
 
 # adding the CL strategy
 optimizer = torch.optim.SGD(model.parameters(),lr=0.01)
@@ -61,6 +55,4 @@ for i, (x, y, t) in enumerate(cdata):
 
     # testing
     clmodel.test(test_full)
-
-writer.close()
 

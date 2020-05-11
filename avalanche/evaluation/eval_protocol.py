@@ -21,16 +21,16 @@ from __future__ import absolute_import
 
 from .metrics import ACC, CF, RAMU, CM
 import numpy as np
-
+from torch.utils.tensorboard import SummaryWriter
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC], tb_writer=None):
+    def __init__(self, metrics=[ACC], tb_logdir="../logs/test"):
 
         self.metrics = []
         for metric in metrics:
             self.metrics.append(metric())
-        self.tb_writer = tb_writer
+        self.tb_writer = SummaryWriter(tb_logdir)
 
         # to be updated
         self.cur_acc = {}
@@ -159,3 +159,5 @@ class EvalProtocol(object):
             self.tb_writer.add_scalar(
                 'Loss/Train', loss, step
             )
+
+        self.tb_writer.flush()

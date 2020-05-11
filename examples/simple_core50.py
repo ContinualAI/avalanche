@@ -26,13 +26,7 @@ from avalanche.training.utils import imagenet_batch_preproc
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
 
-from torch.utils.tensorboard import SummaryWriter
 import torch
-
-# Tensorboard setup
-exp_name = "core_test_391"
-log_dir = '../logs/' + exp_name
-writer = SummaryWriter(log_dir)
 
 # load the model
 model = SimpleCNN(num_classes=50)
@@ -41,7 +35,9 @@ model = SimpleCNN(num_classes=50)
 cdata = CORE50(scenario="nicv2_391")
 
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC, CF, RAMU, CM], tb_writer=writer)
+evalp = EvalProtocol(
+    metrics=[ACC, CF, RAMU, CM], tb_logdir='../logs/core_test_391'
+)
 
 # adding the CL strategy
 optimizer = torch.optim.SGD(
@@ -69,7 +65,5 @@ for i, (x, y, t) in enumerate(cdata):
 
     # testing
     clmodel.test(test_full)
-
-writer.close()
 
 

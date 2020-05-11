@@ -20,19 +20,12 @@ from __future__ import division
 from __future__ import absolute_import
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from avalanche.benchmarks import CMNIST
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-
-
-# Tensorboard setup
-exp_name = "mnist_test"
-log_dir = '../logs/' + exp_name
-writer = SummaryWriter(log_dir)
 
 # load the model with PyTorch for example
 model = SimpleMLP()
@@ -41,7 +34,9 @@ model = SimpleMLP()
 cdata = CMNIST()
 
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC, CF, RAMU, CM], tb_writer=writer)
+evalp = EvalProtocol(
+    metrics=[ACC, CF, RAMU, CM], tb_logdir='../logs/mnist_test'
+)
 
 # adding the CL strategy
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -64,5 +59,3 @@ for i, (x, y, t) in enumerate(cdata):
 
     # testing
     results.append(clmodel.test(test_full))
-
-writer.close()
