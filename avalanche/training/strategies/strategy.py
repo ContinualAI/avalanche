@@ -91,7 +91,7 @@ class Strategy(object):
                 _, pred_label = torch.max(logits, 1)
                 correct_cnt += (pred_label == y_mb).sum().item()
 
-                loss = self.criterion(logits, y_mb)
+                loss = self.compute_loss(logits, y_mb)
                 ave_loss += loss.item()
 
                 self.before_weights_update()
@@ -160,7 +160,7 @@ class Strategy(object):
 
                 logits = model(x_mb)
 
-                loss = self.criterion(logits, y_mb)
+                loss = self.compute_loss(logits, y_mb)
                 ave_loss += loss.item()
 
                 _, pred_label = torch.max(logits, 1)
@@ -187,8 +187,11 @@ class Strategy(object):
 
         return res
 
+    def compute_loss(self, logits, y_mb):
+        return self.criterion(logits, y_mb)
+
     def before_train(self):
-        raise NotImplementedError()
+        pass
 
     def preproc_batch_data(self, x, y, t):
 
@@ -206,31 +209,31 @@ class Strategy(object):
         return train_x, train_y, it_x_ep
 
     def before_epoch(self):
-        raise NotImplementedError()
+        pass
 
     def before_iteration(self):
-        raise NotImplementedError()
+        pass
 
     def before_weights_update(self):
-        raise NotImplementedError()
+        pass
 
     def after_iter_ended(self):
-        raise NotImplementedError()
+        pass
 
     def after_epoch_ended(self):
-        raise NotImplementedError()
+        pass
 
     def after_train(self):
-        raise NotImplementedError()
+        pass
 
     def before_test(self):
-        raise NotImplementedError()
+        pass
 
     def after_test(self):
-        raise NotImplementedError()
+        pass
 
     def before_task_test(self):
-        raise NotImplementedError()
+        pass
 
     def after_task_test(self):
-        raise NotImplementedError()
+        pass
