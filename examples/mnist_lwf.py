@@ -20,13 +20,11 @@ from __future__ import division
 from __future__ import absolute_import
 
 from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import LearningWithoutForgetting
-from avalanche.evaluation import AccEvalProtocol
+from avalanche.evaluation import EvalProtocol
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from torch import nn
 
 
 # Tensorboard setup
@@ -34,13 +32,13 @@ exp_name = "mnist_lwf"
 log_dir = '../logs/' + exp_name
 writer = SummaryWriter(log_dir)
 num_class = 10
-mode = 'perm'  # one of 'perm' or 'split'
+mode = 'split'  # one of 'perm' or 'split'
 
 
 model = SimpleMLP()
 if mode == 'perm':
     cdata = CMNIST(num_batch=10, mode='perm')
-    evalp = AccEvalProtocol()
+    evalp = EvalProtocol()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     clmodel = LearningWithoutForgetting(
         model, classes_per_task=10, optimizer=optimizer, alpha=1,
@@ -48,7 +46,7 @@ if mode == 'perm':
     )
 elif mode == 'split':
     cdata = CMNIST(num_batch=5, mode='split')
-    evalp = AccEvalProtocol()
+    evalp = EvalProtocol()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     clmodel = LearningWithoutForgetting(
         model, classes_per_task=2, optimizer=optimizer,
