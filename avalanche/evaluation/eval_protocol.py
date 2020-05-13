@@ -92,11 +92,14 @@ class EvalProtocol(object):
                                     acc_diffs_out.append(acc)
                             in_class_diff.append(acc_diffs_in)
                             if acc_diffs_out:
-                                out_class_diff.append(acc_diffs_out)
+                                for diff in acc_diffs_out:
+                                    out_class_diff.append(diff)
                         else:
-                            out_class_diff.append(acc_diffs)
+                            for diff in acc_diffs:
+                                out_class_diff.append(diff)
                         self.prev_acc_x_class[t] = accs_i
 
+            print(np.average(out_class_diff))
             in_out_scalars = {
                 "in_class": np.average(in_class_diff),
                 "out_class": np.average(out_class_diff)
