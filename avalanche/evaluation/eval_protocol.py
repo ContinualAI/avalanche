@@ -25,11 +25,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC], tb_logdir="../logs/test"):
+    def __init__(self, metrics=[ACC()], tb_logdir="../logs/test"):
 
         self.metrics = []
         for metric in metrics:
-            self.metrics.append(metric())
+            self.metrics.append(metric)
         self.tb_writer = SummaryWriter(tb_logdir)
 
         # to be updated

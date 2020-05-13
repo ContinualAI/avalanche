@@ -36,7 +36,7 @@ cdata = CORE50(scenario="nicv2_391")
 
 # Eval Protocol
 evalp = EvalProtocol(
-    metrics=[ACC, CF, RAMU, CM], tb_logdir='../logs/core_test_391'
+    metrics=[ACC(), CF(), RAMU(), CM()], tb_logdir='../logs/core_test_391'
 )
 
 # adding the CL strategy
