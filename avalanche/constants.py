@@ -85,6 +85,7 @@ class Dataset(Enum):
     CIFAR_SPLIT = 'cifar_split'
     CIFAR_SPLIT_FULL = 'cifar_split_full'
     ICIFAR100 = 'icifar100'
+    CFASHION_MNIST = 'cfashionmnist'
 
 @unique
 class Net(Enum):
