@@ -33,7 +33,7 @@ model = SimpleMLP()
 cdata = CMNIST()
 
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC], tb_logdir='../logs/mnist_test')
+evalp = EvalProtocol(metrics=[ACC()], tb_logdir='../logs/mnist_test')
 
 # adding the CL strategy
 optimizer = torch.optim.SGD(model.parameters(),lr=0.01)

@@ -25,11 +25,11 @@ from .tensorboard import TensorboardLogging
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC], tb_logdir="../logs/test"):
+    def __init__(self, metrics=[ACC()], tb_logdir="../logs/test"):
 
         self.metrics = []
         for metric in metrics:
-            self.metrics.append(metric())
+            self.metrics.append(metric)
         self.tb_logging = TensorboardLogging(tb_logdir=tb_logdir)
 
         # to be updated

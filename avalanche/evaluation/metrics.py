@@ -51,7 +51,7 @@ class ACC(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat):
-
+        num_class = self.num_class
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
         hits_per_class = [0] * num_class
@@ -133,7 +133,7 @@ class CM(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat, normalize=False):
-
+        num_class = self.num_class
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
 
