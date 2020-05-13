@@ -59,6 +59,7 @@ class Strategy(object):
         super(Strategy, self).__init__()
 
     def train(self, x, y, t):
+        self.x, self.y, self.t = x, y, t
 
         self.before_train()
         self.cur_ep = 0
@@ -84,9 +85,9 @@ class Strategy(object):
 
                 self.optimizer.zero_grad()
 
-                x_mb = train_x[start:end].to(self.device)
+                self.x_mb = train_x[start:end].to(self.device)
                 y_mb = train_y[start:end].to(self.device)
-                logits = model(x_mb)
+                logits = model(self.x_mb)
 
                 _, pred_label = torch.max(logits, 1)
                 correct_cnt += (pred_label == y_mb).sum().item()
