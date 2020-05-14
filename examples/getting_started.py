@@ -31,11 +31,11 @@ from avalanche.evaluation import EvalProtocol
 model = SimpleMLP()
 
 # load the benchmark as a python iterator object
-cdata = CMNIST()
+cdata = CMNIST(mode="split", num_batch=5)
 
 # Eval Protocol
 evalp = EvalProtocol(
-    metrics=[ACC, CF, RAMU, CM], tb_logdir='../logs/mnist_test'
+    metrics=[ACC(), CF(), RAMU(), CM()], tb_logdir='../logs/mnist_test'
 )
 
 # adding the CL strategy

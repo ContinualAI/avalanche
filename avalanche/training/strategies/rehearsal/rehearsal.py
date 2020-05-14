@@ -19,8 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from training.strategies.strategy \
-    import Strategy
+from ..strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.training.utils import pad_data, shuffle_in_unison
