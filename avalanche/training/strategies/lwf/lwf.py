@@ -39,7 +39,7 @@ def distillation_loss(y_pred, y_teacher, temperature):
 
 
 class LearningWithoutForgetting(Strategy):
-    def __init__(self, model, classes_per_task, alpha=0.5, distillation_loss_T=2, warmup_epochs=2, optimizer=None,
+    def __init__(self, model, classes_per_task, alpha=0.5, distillation_loss_T=2, warmup_epochs=0, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC()])):
@@ -78,7 +78,7 @@ class LearningWithoutForgetting(Strategy):
 
         train_x = torch.tensor(train_x, dtype=torch.float)
         train_y = torch.tensor(train_y, dtype=torch.long)
-        for ep in range(self.train_ep):
+        for ep in range(self.warmup_epochs):
             for it in range(it_x_ep):
                 start = it * self.mb_size
                 end = (it + 1) * self.mb_size
@@ -107,6 +107,9 @@ class LearningWithoutForgetting(Strategy):
         else:
             loss = self.criterion(logits, y_mb)
         return loss
+
+    def before_train(self):
+        self.warmup_train()
 
     def after_train(self):
         self.prev_model = copy.deepcopy(self.model)
