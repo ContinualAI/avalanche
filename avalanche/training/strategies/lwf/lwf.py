@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from .strategy import Strategy
+from training.strategies.strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.training.utils import pad_data, shuffle_in_unison
@@ -42,7 +42,7 @@ class LearningWithoutForgetting(Strategy):
     def __init__(self, model, classes_per_task, alpha=0.5, distillation_loss_T=2, warmup_epochs=0, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, device=None, preproc=None,
-                 eval_protocol=EvalProtocol(metrics=[ACC])):
+                 eval_protocol=EvalProtocol(metrics=[ACC()])):
         """
         Learning without Forgetting Strategy.
 

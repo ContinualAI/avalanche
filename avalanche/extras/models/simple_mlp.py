@@ -49,4 +49,7 @@ class SimpleMLP(nn.Module):
 if __name__ == "__main__":
 
     kwargs = {'num_classes': 10}
-    print(SimpleMLP(**kwargs))
+    model = SimpleMLP(**kwargs)
+
+    for name, module in model.named_parameters():
+        print(name)
