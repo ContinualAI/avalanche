@@ -37,7 +37,7 @@ class EvalProtocol(object):
         self.global_step = 0
         self.cur_classes = None
         self.prev_acc_x_class = {}
-        self_cur_t = None
+        self.cur_t = None
 
     def get_results(self, true_y, y_hat, train_t, test_t):
         """ Compute results based on accuracy """

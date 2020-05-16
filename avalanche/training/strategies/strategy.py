@@ -29,7 +29,7 @@ class Strategy(object):
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, multi_head=False, device=None, preproc=None,
-                 eval_protocol=EvalProtocol(metrics=[ACC])):
+                 eval_protocol=EvalProtocol(metrics=[ACC()])):
 
         self.model = model
         if optimizer is None:
