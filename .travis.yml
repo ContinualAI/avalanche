@@ -1,0 +1,42 @@
+language: python
+
+python:
+  - "3.7"
+
+install:
+  # using anaconda
+  - sudo apt-get update
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  - conda env create -f environment.yml
+  - conda activate avalanche-env
+  # install sphinx and sphinx theme
+  - conda install -c anaconda sphinx
+  - pip install sphinx_rtd_theme
+
+script:
+  - python -m unittest
+
+after_success:
+  - sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
+  - sphinx-build -b dirhtml docs/ doc_html/
+
+deploy:
+  provider: pages
+  repo: ggraffieti/avalanche
+  skip-cleanup: true
+  keep-history: true
+  on:
+    branch: master
+  github-token: $GITHUB_TOKEN
+  local-dir: doc_html
+  committer-from-gh: true
