@@ -33,7 +33,7 @@ after_success:
 
 deploy:
   provider: pages
-  repo: ggraffieti/avalanche
+  repo: vlomonaco/avalanche
   skip-cleanup: true
   keep-history: true
   on:
