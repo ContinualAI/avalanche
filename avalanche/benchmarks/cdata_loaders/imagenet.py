@@ -29,27 +29,31 @@ from avalanche.benchmarks.datasets_envs import ImageNet
 
 
 
-class ImageNetLoader(object):
+class CImageNet(object):
     """ ImageNet Data Loader class
 
     Args:
         root (string): The path to load ImageNet dataset.
         num_batch (int): The number of learning steps.
-        transform (torchvision.transforms): The transform to transfer PIL images to tensors.
+        transform (torchvision.transforms): The transform to transfer PIL
+        images to tensors.
 
     """
 
 
-    def __init__(self, root='../data', num_batch=100, transform=None):
+    def __init__(self, root='../data', num_batch=100, sample_train=100,
+                 sample_test=10, transform=None):
         """" Initialize Object """
 
-        imagenet = ImageNet(data_folder=root, download=False)
+        imagenet = ImageNet(data_folder=root, download=False,
+                            sample_train=sample_train, sample_test=sample_test)
         imagenet_data = imagenet.get_data()
         self.train_set, self.test_set = imagenet_data[0], imagenet_data[1]
         num_classes = len(imagenet.get_classes())
         classes_shuffled = np.random.permutation(num_classes).tolist()
         self.num_batch = num_batch
-        self.tasks = [classes_shuffled[ib::self.num_batch] for ib in range(self.num_batch)]
+        self.tasks = [classes_shuffled[ib::self.num_batch]
+                      for ib in range(self.num_batch)]
         self.transform = transform
         self.iter = 0
 
@@ -92,6 +96,7 @@ class ImageNetLoader(object):
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 img = self.transform(img)
+                img = torch.unsqueeze(img, 0)
             except Exception:
                 print('Image loading error occurs: %s'%fname)
                 continue
@@ -110,7 +115,8 @@ class ImageNetLoader(object):
 
         # up to the current train/test set
         # remember that self.iter has been already incremented at this point
-        # hence, self.iter is 1 when load the growing testset for first learning set
+        # hence, self.iter is 1 when load the growing testset for
+        # first learning set
 
         test_set = []
         for it in range(self.iter):
@@ -141,9 +147,11 @@ class ImageNetLoader(object):
 if __name__ == "__main__":
 
     # Create the dataset object
-    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(),
-                                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    imagenet_loader = ImageNetLoader(root='../data/imagenet', num_batch=100, transform=transform)
+    transform = transforms.Compose([transforms.Resize((224, 224)),
+            transforms.ToTensor(), transforms.Normalize(mean=
+                [0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/', num_batch=100,
+            sample_train=100, sample_test=10, transform=transform)
 
 
     # Get the fixed test set

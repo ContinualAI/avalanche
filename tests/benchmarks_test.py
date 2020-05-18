@@ -20,7 +20,9 @@ from __future__ import division
 from __future__ import absolute_import
 
 import numpy as np
-from avalanche.benchmarks import CMNIST, CORE50
+from avalanche.benchmarks import CMNIST, CORE50, CImageNet
+import torchvision.transforms as transforms
+
 
 if __name__ == "__main__":
 
@@ -42,7 +44,7 @@ if __name__ == "__main__":
             break
 
 
-        
+
     ##################
     ## CORE 50 TEST ##
     ##################
@@ -78,3 +80,28 @@ if __name__ == "__main__":
             assert( type(y) == np.ndarray )
             assert( type(t) == int )
             break
+
+
+
+    ##################
+    ## ImageNet TEST #
+    ##################
+    transform = transforms.Compose([transforms.Resize((224, 224)),
+                    transforms.ToTensor(), transforms.Normalize(mean=
+                            [0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/', num_batch=100,
+                    sample_train=100, sample_test=10, transform=transform)
+
+    # Get the fixed test set
+    full_testset = imagenet_loader.get_full_testset()
+    print("full test:\nx shape: {0}, y: {1}"
+              .format(full_testset.shape, full_testset.shape))
+
+    # loop over the training incremental batches
+    for i, (x, y, t) in enumerate(imagenet_loader):
+        print("----------- batch {0} -------------".format(i))
+        print("x shape: {0}, y: {1}"
+              .format(x.shape, y.shape))
+
+        # use the data
+        pass

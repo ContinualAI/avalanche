@@ -16,7 +16,6 @@
 import os
 import sys
 
-
 if sys.version_info[0] >= 3:
     from urllib.request import urlretrieve
 else:
@@ -33,24 +32,32 @@ class ImageNet(object):
     Args:
         data_folder (string): The path to load ImageNet dataset.
         download (bool): Whether to download ImageNet dataset.
+        sample_train (int): The ratio to sample 1/sample_train training data
+        perclass. If sample_train==1, all training data in a class will
+        be loaded.
+        sample_test (int): The ratio to sample 1/sample_test testing data per
+        class. If sample_test==1, all testing data in a class will be loaded.
 
     """
 
-    def __init__(self, data_folder='../data', download=False):
+    def __init__(self, data_folder='../data', download=False, sample_train=100,
+                 sample_test=10):
 
 
         if download is True:
             msg = ("The dataset is no longer publicly accessible. You need to "
-                   "download the archives externally and place them in the root "
-                   "directory.")
+                   "download the archives externally and place them in the "
+                   "root directory.")
             raise RuntimeError(msg)
 
         self.train_path = os.path.join(data_folder, 'train')
         self.test_path = os.path.join(data_folder, 'val')
 
         try:
-            if len(os.listdir(self.train_path)) != 1000 or len(os.listdir(self.test_path)) != 1000:
-                msg = ("The ImageNet dataset should have 1000 train and val classes.")
+            if len(os.listdir(self.train_path)) != 1000 or \
+                    len(os.listdir(self.test_path)) != 1000:
+                msg = ("The ImageNet dataset should have 1000 train and "
+                       "val classes.")
                 raise RuntimeError(msg)
 
             self.classes = os.listdir(self.train_path)
@@ -62,11 +69,15 @@ class ImageNet(object):
             for lab, cls in enumerate(self.classes):
                 files = os.listdir(os.path.join(self.train_path, cls))
                 files.sort()
-                self.train_set.append([[os.path.join(self.train_path, cls, fname), lab] for fname in files])
+                self.train_set.append(
+                    [[os.path.join(self.train_path, cls, fname), lab]
+                     for fname in files[::sample_test]])
 
                 files = os.listdir(os.path.join(self.test_path, cls))
                 files.sort()
-                self.test_set.append([[os.path.join(self.test_path, cls, fname), lab] for fname in files])
+                self.test_set.append(
+                    [[os.path.join(self.test_path, cls, fname), lab]
+                     for fname in files[::sample_test]])
 
         except Exception:
             msg = ("There exist errors during dataset processing.")
@@ -87,6 +98,8 @@ class ImageNet(object):
 
 if __name__ == '__main__':
 
-    imagenet = ImageNet()
+    imagenet = ImageNet(data_folder='/ssddata/ilsvrc-data/',
+                        download=False, sample_train=100, sample_test=10)
     imagenet_data = imagenet.get_data()
+    print('%d classes are loaded.'%(len(imagenet_data[0])))
 
