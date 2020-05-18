@@ -139,7 +139,7 @@ class CImageNet(object):
 
         images, labels = self.get_images(test_set)
 
-        return images, labels, self.iter
+        return [images, labels, self.iter]
 
 
 

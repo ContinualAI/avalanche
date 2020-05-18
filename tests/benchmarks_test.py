@@ -94,8 +94,6 @@ if __name__ == "__main__":
 
     # Get the fixed test set
     full_testset = imagenet_loader.get_full_testset()
-    print("full test:\nx shape: {0}, y: {1}"
-              .format(full_testset.shape, full_testset.shape))
 
     # loop over the training incremental batches
     for i, (x, y, t) in enumerate(imagenet_loader):
