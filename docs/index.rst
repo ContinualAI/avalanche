@@ -12,6 +12,7 @@ Welcome to Avalanche's documentation!
 
 
 Welcome to Avalanche documentation!
+Avalanche is great!
 
 API
 ==================
