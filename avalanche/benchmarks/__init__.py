@@ -1,1 +1,1 @@
-from .cdata_loaders import CMNIST, CORE50
+from .cdata_loaders import CMNIST, CORE50, CImageNet
