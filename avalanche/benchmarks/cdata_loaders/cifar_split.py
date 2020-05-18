@@ -124,7 +124,7 @@ class CifarSplit(object):
         return list(zip(self.all_test_sets, self.tasks_id))
 
     next = __next__  # python2.x compatibility.
-
+    
 if __name__ == "__main__":
 
     # Create the dataset object
