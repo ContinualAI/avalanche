@@ -23,13 +23,13 @@ from .metrics import ACC, CF, RAMU, CM
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
+
 class EvalProtocol(object):
-
-    def __init__(self, metrics=[ACC], tb_logdir="../logs/test"):
-
-        self.metrics = []
-        for metric in metrics:
-            self.metrics.append(metric())
+    def __init__(self, metrics=None, tb_logdir="../logs/test"):
+        if metrics is None:
+            self.metrics = [ACC()]
+        else:
+            self.metrics = metrics.copy()
         self.tb_writer = SummaryWriter(tb_logdir)
 
         # to be updated

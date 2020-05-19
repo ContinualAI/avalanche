@@ -54,6 +54,8 @@ class ACC(object):
 
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
+        else:
+            num_class = self.num_class
         hits_per_class = [0] * num_class
         pattern_per_class = [0] * num_class
 
@@ -72,8 +74,15 @@ class ACC(object):
                 if pred == true_y[i]:
                     hits_per_class[int(pred)] += 1
 
-        accs = np.asarray(hits_per_class) / \
-               np.asarray(pattern_per_class).astype(float)
+        accs = np.zeros(len(hits_per_class), dtype=np.float)
+        hits_per_class = np.asarray(hits_per_class)
+        pattern_per_class = np.asarray(pattern_per_class).astype(float)
+
+        # np.divide prevents the true divide warning from showing up
+        # when one or more elements of pattern_per_class are zero
+        # Also, those elements will be 0 instead of NaN
+        np.divide(hits_per_class, pattern_per_class,
+                  where=pattern_per_class != 0, out=accs)
 
         acc = correct_cnt / (y_hat[0].shape[0] * len(y_hat))
 
