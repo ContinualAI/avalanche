@@ -71,7 +71,6 @@ class Strategy(object):
         train_x, train_y, it_x_ep = self.preproc_batch_data(x, y, t)
 
         correct_cnt, ave_loss = 0, 0
-        model = self.model.to(self.device)
         acc = None
 
         # Differently from .tensor(...), .as_tensor(...) will not make a
@@ -90,6 +89,7 @@ class Strategy(object):
 
                 self.optimizer.zero_grad()
 
+                model = self.model.to(self.device)
                 x_mb = train_x[start:end].to(self.device)
                 y_mb = train_y[start:end].to(self.device)
                 logits = model(x_mb)
@@ -155,17 +155,15 @@ class Strategy(object):
             test_x = torch.as_tensor(test_x, dtype=torch.float)
             test_y = torch.as_tensor(test_y, dtype=torch.long)
 
-            model = self.model.to(self.device)
-
             y_hat = []
             true_y = []
 
             for i in range(it_x_ep):
-
                 # indexing
                 start = i * self.mb_size
                 end = (i + 1) * self.mb_size
 
+                model = self.model.to(self.device)
                 x_mb = test_x[start:end].to(self.device)
                 y_mb = test_y[start:end].to(self.device)
 
