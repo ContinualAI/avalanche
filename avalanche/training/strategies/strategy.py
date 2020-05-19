@@ -58,6 +58,10 @@ class Strategy(object):
 
         super(Strategy, self).__init__()
 
+    def train_using_dataset(self, dataset, t):
+        x, y = dataset[:]
+        return self.train(x, y, t)
+
     def train(self, x, y, t):
 
         self.before_train()
@@ -70,8 +74,10 @@ class Strategy(object):
         model = self.model.to(self.device)
         acc = None
 
-        train_x = torch.tensor(train_x, dtype=torch.float)
-        train_y = torch.tensor(train_y, dtype=torch.long)
+        # Differently from .tensor(...), .as_tensor(...) will not make a
+        # copy of the data if not strictly needed!
+        train_x = torch.as_tensor(train_x, dtype=torch.float)
+        train_y = torch.as_tensor(train_y, dtype=torch.long)
 
         for ep in range(self.train_ep):
             self.before_epoch()
@@ -129,7 +135,10 @@ class Strategy(object):
         res = {}
         ave_loss = 0
 
-        for (x, y), t in test_set:
+        for dataset, t in test_set:
+            # In this way dataset can be both a tuple (x, y) and a Dataset
+            # Beware, the Dataset must still be sliceable!
+            x, y = dataset[:]
 
             if self.preproc:
                 x = self.preproc(x)
@@ -141,8 +150,10 @@ class Strategy(object):
                 [x, y], self.mb_size
             )
 
-            test_x = torch.tensor(test_x, dtype=torch.float)
-            test_y = torch.tensor(test_y, dtype=torch.long)
+            # Differently from .tensor(...), .as_tensor(...) will not make a
+            # copy of the data if not strictly needed!
+            test_x = torch.as_tensor(test_x, dtype=torch.float)
+            test_y = torch.as_tensor(test_y, dtype=torch.long)
 
             model = self.model.to(self.device)
 
