@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from .metrics import ACC, CF, RAMU, CM
+from .metrics import ACC, CF, RAMU, CM, CPUUsage
 import numpy as np
 from .tensorboard import TensorboardLogging
 
@@ -53,6 +53,10 @@ class EvalProtocol(object):
                 results[RAMU] = metric.compute(train_t)
             elif isinstance(metric, CM):
                 results[CM] = metric.compute(true_y, y_hat)
+            elif isinstance(metric, CPUUsage):
+                results[CPUUsage] = metric.compute(train_t)
+            else:
+                raise ValueError("Unknown metric")
 
         self.global_step += 1
 
