@@ -33,6 +33,27 @@ from torchvision.transforms import ToTensor
 from sklearn.utils.multiclass import unique_labels
 import io
 
+
+class CPUUsage:
+    """
+        CPU usage metric measured in seconds.
+    """
+
+    def compute(self, t):
+        """
+        Compute CPU usage measured in seconds.
+
+        :param t: task id
+        :return: tuple (float, float): (user CPU time, system CPU time)
+        """
+        p = psutil.Process(os.getpid())
+        times = p.cpu_times()
+        user, sys = times.user, times.system
+        print("Train Task {:} - CPU usage: user {} system {}"
+              .format(t, user, sys))
+        return user, sys
+
+
 class ACC(object):
 
     def __init__(self, num_class=None):
