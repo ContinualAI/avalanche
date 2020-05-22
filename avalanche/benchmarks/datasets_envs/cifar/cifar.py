@@ -184,10 +184,9 @@ def get_merged_cifar10_and_100(cifar10_root, cifar100_root):
 if __name__ == '__main__':
     pixel_depth = 255
     seed = 0
-    print(os.listdir(os.path.join(os.getcwd(),'data/cifar10/cifar-10-batches-py/')))
-    train_set, test_set = get_merged_cifar10_and_100(
-        os.path.join(os.getcwd(),'data/cifar10/cifar-10-batches-py/'),
-         os.path.join(os.getcwd(),'data/cifar100/cifar-100-python/')
+
+    train_set, test_set = get_merged_cifar10_and_100('data/cifar10/cifar-10-batches-py/',
+                                                     'data/cifar100/cifar-100-python/'
     )
 
     # split at convenience

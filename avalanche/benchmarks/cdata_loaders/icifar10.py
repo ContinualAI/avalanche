@@ -24,14 +24,15 @@ import os
 import logging
 import numpy as np
 
-from avalanche.benchmarks.datasets_envs.cifar import  remove_some_labels, \
+from avalanche.benchmarks.datasets_envs.cifar import remove_some_labels, \
     read_data_from_pickled
+
 
 class ICIFAR10(object):
     """ iCifar10 (from iCaRL paper) benchmark loader. give the path of the root_cifar10 data"""
 
     def __init__(self,
-                 root_cifar10= '',
+                 root_cifar10='',
                  fixed_test_set=True,
                  num_batch=10,
                  cumulative=False,
@@ -101,7 +102,7 @@ class ICIFAR10(object):
 
         tr_curr_labels = self.batch2labels[self.iter]
         te_curr_labels = []
-        for i in range(self.iter+1):
+        for i in range(self.iter + 1):
             te_curr_labels += self.batch2labels[i]
 
         all_labels = range(self.tot_num_labels)
@@ -118,12 +119,11 @@ class ICIFAR10(object):
 
         train_x, train_y = remove_some_labels(self.train_set, tr_labs2remove)
 
-
         # get ready for next iter
         self.iter += 1
 
         if self.task_sep:
-            t = self.iter-1
+            t = self.iter - 1
         else:
             t = 0
 
@@ -171,4 +171,4 @@ if __name__ == "__main__":
         (test_x, test_y), t = test_batch
 
         print("test task: {}, x: {}, y: {}".format(t, test_x.shape,
-                                                test_y.shape))
+                                                   test_y.shape))
