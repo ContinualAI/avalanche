@@ -24,9 +24,14 @@ import os
 import glob
 import pickle as pkl
 from PIL import Image
+import sys
+
+if sys.version_info[0] >= 3:
+    from urllib.request import urlretrieve
 
 from avalanche.benchmarks.utils import remove_some_labels
 from avalanche.training.utils import shuffle_in_unison
+
 
 def read_data_from_png(params):
     """ Extract the images and pickle them. Values are rescaled from [0, 255]
@@ -179,10 +184,10 @@ def get_merged_cifar10_and_100(cifar10_root, cifar100_root):
 if __name__ == '__main__':
     pixel_depth = 255
     seed = 0
-
+    print(os.listdir(os.path.join(os.getcwd(),'data/cifar10/cifar-10-batches-py/')))
     train_set, test_set = get_merged_cifar10_and_100(
-        '/home/admin/data/cifar10/cifar-10-batches-py/',
-         '/home/admin/data/cifar100/cifar-100-python/'
+        os.path.join(os.getcwd(),'data/cifar10/cifar-10-batches-py/'),
+         os.path.join(os.getcwd(),'data/cifar100/cifar-100-python/')
     )
 
     # split at convenience

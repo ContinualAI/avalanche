@@ -20,17 +20,18 @@ from __future__ import division
 from __future__ import absolute_import
 
 # other imports
+import os
 import logging
 import numpy as np
 
 from avalanche.benchmarks.datasets_envs.cifar import  remove_some_labels, \
     read_data_from_pickled
 
-class ICifar10(object):
-    """ iCifar10 (from iCaRL paper) benchmark loader. """
+class ICIFAR10(object):
+    """ iCifar10 (from iCaRL paper) benchmark loader. give the path of the root_cifar10 data"""
 
     def __init__(self,
-                 root_cifar10='/home/admin/data/cifar10/cifar-10-python/',
+                 root_cifar10= '',
                  fixed_test_set=True,
                  num_batch=10,
                  cumulative=False,
@@ -151,7 +152,7 @@ class ICifar10(object):
 if __name__ == "__main__":
 
     # Create the dataset object
-    dataset = ICifar10()
+    dataset = ICIFAR10()
 
     # Get the fixed test set
     test_set = dataset.get_full_testset()
