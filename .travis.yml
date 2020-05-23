@@ -20,11 +20,14 @@ install:
   - conda info -a
   - conda env create -f environment.yml
   - conda activate avalanche-env
+  # install pylint
+  - conda install -c anaconda pylint
   # install sphinx and sphinx theme
   - conda install -c anaconda sphinx
   - pip install sphinx_rtd_theme
 
 script:
+  - pylint avalanche/
   - python -m unittest
 
 after_success:
@@ -33,7 +36,7 @@ after_success:
 
 deploy:
   provider: pages
-  repo: vlomonaco/avalanche
+  repo: ggraffieti/avalanche
   skip-cleanup: true
   keep-history: true
   on:
