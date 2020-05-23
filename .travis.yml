@@ -27,7 +27,7 @@ install:
   - pip install sphinx_rtd_theme
 
 script:
-  - pylint avalanche/
+  - pylint avalanche/ --exit-zero
   - python -m unittest
 
 after_success:
