@@ -19,10 +19,40 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+import time
+
+from torch.utils.data import DataLoader, Dataset
+
 from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
+
+
+def load_all_dataset(dataset: Dataset, num_workers: int = 0):
+    """
+    Retrieves the contents of a whole dataset by using a DataLoader
+
+    :param dataset: The dataset
+    :param num_workers: The number of workers the DataLoader should use.
+        Defaults to 0.
+    :return: The content of the whole Dataset
+    """
+    # DataLoader parallelism is batch-based. By using "len(dataset)/num_workers"
+    # as the batch size, num_workers [+1] batches will be loaded thus
+    # using the required number of workers.
+    batch_size = max(1, len(dataset) // num_workers)
+    loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
+                        num_workers=num_workers)
+    batches_x = []
+    batches_y = []
+    for batch_x, batch_y in loader:
+        batches_x.append(batch_x)
+        batches_y.append(batch_y)
+
+    x, y = torch.cat(batches_x), torch.cat(batches_y)
+    return x, y
+
 
 class Strategy(object):
 
@@ -58,12 +88,12 @@ class Strategy(object):
 
         super(Strategy, self).__init__()
 
-    def train_using_dataset(self, dataset, t):
-        x, y = dataset[:]
+    def train_using_dataset(self, dataset_and_t_label, num_workers=8):
+        dataset, t = dataset_and_t_label
+        x, y = load_all_dataset(dataset, num_workers=num_workers)
         return self.train(x, y, t)
 
     def train(self, x, y, t):
-
         self.before_train()
         self.cur_ep = 0
         self.cur_train_t = t
@@ -128,8 +158,7 @@ class Strategy(object):
 
         return ave_loss, acc
 
-    def test(self, test_set):
-
+    def test(self, test_set, num_workers=8):
         self.before_test()
 
         res = {}
@@ -138,7 +167,10 @@ class Strategy(object):
         for dataset, t in test_set:
             # In this way dataset can be both a tuple (x, y) and a Dataset
             # Beware, the Dataset must still be sliceable!
-            x, y = dataset[:]
+            if isinstance(dataset, Dataset):
+                x, y = load_all_dataset(dataset, num_workers=num_workers)
+            else:
+                x, y = dataset[:]
 
             if self.preproc:
                 x = self.preproc(x)
