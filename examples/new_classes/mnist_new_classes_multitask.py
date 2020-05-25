@@ -109,7 +109,7 @@ evalp = EvalProtocol(
              CF(num_class=output_units),  # Catastrophic forgetting
              RAMU(),  # Ram usage
              CM()],  # Confusion matrix
-    tb_logdir='../logs/mnist_test'
+    tb_logdir='../logs/mnist_test_mt'
 )
 
 # Here we create an instance of our CL strategy. Naive is a very simple

@@ -167,7 +167,6 @@ class Strategy(object):
 
         for dataset, t in test_set:
             # In this way dataset can be both a tuple (x, y) and a Dataset
-            # Beware, the Dataset must still be sliceable!
             if isinstance(dataset, Dataset):
                 x, y = load_all_dataset(dataset, num_workers=num_workers)
             else:

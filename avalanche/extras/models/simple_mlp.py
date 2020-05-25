@@ -28,19 +28,20 @@ import torch.nn as nn
 
 class SimpleMLP(nn.Module):
 
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, input_size=28*28):
         super(SimpleMLP, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Linear(28 * 28, 512),
+            nn.Linear(input_size, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(),
         )
         self.classifier = nn.Linear(512, num_classes)
+        self._input_size = input_size
 
     def forward(self, x):
         x = x.contiguous()
-        x = x.view(x.size(0), 28 * 28)
+        x = x.view(x.size(0), self._input_size)
         x = self.features(x)
         x = self.classifier(x)
         return x
