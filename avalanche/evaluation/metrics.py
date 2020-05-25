@@ -78,7 +78,6 @@ class GPUUsage:
 
     def close(self):
         self.p.terminate()
-        self.readh_thread.join()
 
 
 class CPUUsage:
