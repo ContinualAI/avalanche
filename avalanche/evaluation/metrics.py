@@ -22,6 +22,7 @@ from __future__ import absolute_import
 import numpy as np
 import os
 import psutil
+from psutil._common import bytes2human
 
 import matplotlib
 matplotlib.use('Agg')
@@ -31,6 +32,27 @@ import PIL.Image
 from torchvision.transforms import ToTensor
 from sklearn.utils.multiclass import unique_labels
 import io
+
+
+class CPUUsage:
+    """
+        CPU usage metric measured in seconds.
+    """
+
+    def compute(self, t):
+        """
+        Compute CPU usage measured in seconds.
+
+        :param t: task id
+        :return: tuple (float, float): (user CPU time, system CPU time)
+        """
+        p = psutil.Process(os.getpid())
+        times = p.cpu_times()
+        user, sys = times.user, times.system
+        print("Train Task {:} - CPU usage: user {} system {}"
+              .format(t, user, sys))
+        return user, sys
+
 
 class ACC(object):
 
@@ -51,7 +73,7 @@ class ACC(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat):
-
+        num_class = self.num_class
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
         else:
@@ -133,6 +155,65 @@ class RAMU(object):
 
         return mem / (1024 * 1024 * 1024)
 
+
+class DiskUsage(object):
+
+    def __init__(self, path_to_monitor=None, disk_io=False):
+        """
+        Args:
+            path_to_monitor (string): a valid path to folder.
+                If None, the current working directory is used.
+            disk_io: True to enable monitoring of I/O operations on disk.
+                WARNING: Reports are system-wide, grouping all disks.
+        """
+
+        if path_to_monitor is not None:
+            self.path_to_monitor = path_to_monitor
+        else:
+            self.path_to_monitor = os.getcwd()   
+
+        self.disk_io = disk_io
+
+    def compute(self, t):
+        usage = psutil.disk_usage(self.path_to_monitor)
+
+        total, used, free, percent = \
+                bytes2human(usage.total), \
+                bytes2human(usage.used), \
+                bytes2human(usage.free), \
+                usage.percent
+
+        print("Disk usage for {:}"
+                .format(self.path_to_monitor))
+        print("Task {:} - disk percent: {:}%, \
+                disk total: {:}, \
+                disk used: {:}, \
+                disk free: {:}"
+                .format(t, percent, total, used, free))
+
+        if self.disk_io:
+            io = psutil.disk_io_counters()
+            read_count, write_count = \
+                        io.read_count, \
+                        io.write_count
+            read_bytes, write_bytes = \
+                        bytes2human(io.read_bytes), \
+                        bytes2human(io.write_bytes)
+
+            print("Task {:} - read count: {:}, \
+                write count: {:}, \
+                bytes read: {:}, \
+                bytes written: {:}"
+                .format(t, read_count, write_count, \
+                    read_bytes, write_bytes))
+
+            return usage, io
+
+        else:
+
+            return usage
+
+
 class CM(object):
 
     def __init__(self, num_class=None):
@@ -142,7 +223,7 @@ class CM(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat, normalize=False):
-
+        num_class = self.num_class
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
 

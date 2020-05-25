@@ -59,7 +59,7 @@ class Strategy(object):
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, multi_head=False, device=None, preproc=None,
-                 eval_protocol=EvalProtocol(metrics=[ACC])):
+                 eval_protocol=EvalProtocol(metrics=[ACC()])):
 
         self.model = model
         if optimizer is None:
@@ -94,6 +94,7 @@ class Strategy(object):
         return self.train(x, y, t)
 
     def train(self, x, y, t):
+        self.x, self.y, self.t = x, y, t
         self.before_train()
         self.cur_ep = 0
         self.cur_train_t = t
@@ -120,14 +121,14 @@ class Strategy(object):
                 self.optimizer.zero_grad()
 
                 model = self.model.to(self.device)
-                x_mb = train_x[start:end].to(self.device)
+                self.x_mb = train_x[start:end].to(self.device)
                 y_mb = train_y[start:end].to(self.device)
-                logits = model(x_mb)
+                logits = model(self.x_mb)
 
                 _, pred_label = torch.max(logits, 1)
                 correct_cnt += (pred_label == y_mb).sum().item()
 
-                loss = self.criterion(logits, y_mb)
+                loss = self.compute_loss(logits, y_mb)
                 ave_loss += loss.item()
 
                 self.before_weights_update()
@@ -201,7 +202,7 @@ class Strategy(object):
 
                 logits = model(x_mb)
 
-                loss = self.criterion(logits, y_mb)
+                loss = self.compute_loss(logits, y_mb)
                 ave_loss += loss.item()
 
                 _, pred_label = torch.max(logits, 1)
@@ -228,8 +229,11 @@ class Strategy(object):
 
         return res
 
+    def compute_loss(self, logits, y_mb):
+        return self.criterion(logits, y_mb)
+
     def before_train(self):
-        raise NotImplementedError()
+        pass
 
     def preproc_batch_data(self, x, y, t):
 
@@ -247,31 +251,31 @@ class Strategy(object):
         return train_x, train_y, it_x_ep
 
     def before_epoch(self):
-        raise NotImplementedError()
+        pass
 
     def before_iteration(self):
-        raise NotImplementedError()
+        pass
 
     def before_weights_update(self):
-        raise NotImplementedError()
+        pass
 
     def after_iter_ended(self):
-        raise NotImplementedError()
+        pass
 
     def after_epoch_ended(self):
-        raise NotImplementedError()
+        pass
 
     def after_train(self):
-        raise NotImplementedError()
+        pass
 
     def before_test(self):
-        raise NotImplementedError()
+        pass
 
     def after_test(self):
-        raise NotImplementedError()
+        pass
 
     def before_task_test(self):
-        raise NotImplementedError()
+        pass
 
     def after_task_test(self):
-        raise NotImplementedError()
+        pass

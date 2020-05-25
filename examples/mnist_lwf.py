@@ -19,28 +19,42 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import torch
-
 from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.strategies import LearningWithoutForgetting
 from avalanche.evaluation import EvalProtocol
+import torch
+from torch.utils.tensorboard import SummaryWriter
 
-# load the model with PyTorch for example
+
+# Tensorboard setup
+exp_name = "mnist_lwf"
+log_dir = '../logs/' + exp_name
+writer = SummaryWriter(log_dir)
+num_class = 10
+mode = 'split'  # one of 'perm' or 'split'
+
+
 model = SimpleMLP()
-
-# load the benchmark as a python iterator object
-cdata = CMNIST(mode="split", num_batch=5)
-
-# Eval Protocol
-evalp = EvalProtocol(
-    metrics=[ACC(), CF(), RAMU(), CM()], tb_logdir='../logs/mnist_test'
-)
-
-# adding the CL strategy
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-clmodel = Naive(model, eval_protocol=evalp, device=device)
+if mode == 'perm':
+    cdata = CMNIST(num_batch=10, mode='perm')
+    evalp = EvalProtocol()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    clmodel = LearningWithoutForgetting(
+        model, classes_per_task=10, optimizer=optimizer, alpha=1,
+        warmup_epochs=0, train_ep=10, eval_protocol=evalp
+    )
+elif mode == 'split':
+    cdata = CMNIST(num_batch=5, mode='split')
+    evalp = EvalProtocol()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    clmodel = LearningWithoutForgetting(
+        model, classes_per_task=2, optimizer=optimizer,
+        alpha=[0, 1/2, 2*2/3, 3*3/4, 4*4/5], warmup_epochs=2,
+        train_ep=10, distillation_loss_T=1, eval_protocol=evalp
+    )
+else:
+    assert False
 
 # getting full test set beforehand
 test_full = cdata.get_full_testset()
@@ -54,8 +68,8 @@ for i, (x, y, t) in enumerate(cdata):
     print("Batch {0}, task {1}".format(i, t))
     clmodel.train(x, y, t)
 
-    # here we could get the growing test set too
-    # test_grow = cdata.get_growing_testset()
-
     # testing
-    results.append(clmodel.test(test_full))
+    clmodel.test(test_full)
+
+writer.close()
+

@@ -7,7 +7,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-05-2020                                                              #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Author(s): Continual AI                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
@@ -19,28 +19,27 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+from avalanche.benchmarks import CTinyImageNet
+from avalanche.evaluation.metrics import ACC
+from avalanche.extras.models.mlp_tiny_imagenet import SimpleMLP_TinyImageNet
+from avalanche.training.strategies import Rehearsal
+from avalanche.evaluation import EvalProtocol
 import torch
 
-from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive
-from avalanche.evaluation import EvalProtocol
-
 # load the model with PyTorch for example
-model = SimpleMLP()
+model = SimpleMLP_TinyImageNet()
 
 # load the benchmark as a python iterator object
-cdata = CMNIST(mode="split", num_batch=5)
+cdata = CTinyImageNet(num_tasks=3, num_classes_per_task=3)
 
 # Eval Protocol
-evalp = EvalProtocol(
-    metrics=[ACC(), CF(), RAMU(), CM()], tb_logdir='../logs/mnist_test'
-)
+evalp = EvalProtocol(metrics=[ACC()], tb_logdir='../logs/mnist_test')
 
 # adding the CL strategy
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-clmodel = Naive(model, eval_protocol=evalp, device=device)
+optimizer = torch.optim.SGD(model.parameters(),lr=0.01)
+clmodel = Rehearsal(
+    model, optimizer=optimizer, rm_sz=1500, train_ep=4, eval_protocol=evalp
+)
 
 # getting full test set beforehand
 test_full = cdata.get_full_testset()
@@ -54,8 +53,6 @@ for i, (x, y, t) in enumerate(cdata):
     print("Batch {0}, task {1}".format(i, t))
     clmodel.train(x, y, t)
 
-    # here we could get the growing test set too
-    # test_grow = cdata.get_growing_testset()
-
     # testing
-    results.append(clmodel.test(test_full))
+    clmodel.test(test_full)
+

@@ -21,14 +21,14 @@ from __future__ import absolute_import
 
 # other imports
 import logging
-from avalanche.benchmarks.datasets_envs import MNIST
+from avalanche.benchmarks.datasets_envs import fashionMNIST
 from avalanche.benchmarks.utils import remove_some_labels
 
 
-class CMNIST(object):
-    """ Continuous MNIST benchmark data loader. """
+class CfashionMNIST(object):
+    """ Continuous fashionMNIST benchmark data loader. """
 
-    def __init__(self, bp=None, num_batch=5, mode='perm', task_sep=True,
+    def __init__(self, bp=None, num_batch=10, mode='perm', task_sep=True,
                  eval_protocol=None):
 
         """" Initialize Object. mode={perm|split|rot}. """
@@ -47,11 +47,11 @@ class CMNIST(object):
         self.log = logging.getLogger('mylogger')
 
         if self.bp is None:
-            self.mnist = MNIST()
+            self.fmnist = fashionMNIST()
         else:
-            self.mnist = MNIST(data_loc=bp)
+            self.fmnist = fashionMNIST(data_loc=bp)
 
-        self.train_set, self.test_set = self.mnist.get_data()
+        self.train_set, self.test_set = self.fmnist.get_data()
 
         # to be filled
         self.all_train_sets = []
@@ -63,11 +63,11 @@ class CMNIST(object):
 
             if mode == "perm":
 
-                train_x, test_x = self.mnist.permute_mnist(seed=i)
+                train_x, test_x = self.fmnist.permute_fmnist(seed=i)
                 train_y, test_y = self.train_set[1], self.test_set[1]
             elif mode == "rot":
 
-                train_x, test_x = self.mnist.rotate_mnist(rotation=i*5)
+                train_x, test_x = self.fmnist.rotate_fmnist(rotation=i*5)
                 train_y, test_y = self.train_set[1], self.test_set[1]
             elif mode == "split":
 
@@ -129,12 +129,12 @@ class CMNIST(object):
 if __name__ == "__main__":
 
     # Create the dataset object
-    cmnist = CMNIST(mode="split", num_batch=5)
+    cfmnist = CfashionMNIST(mode="split", num_batch=5)
 
-    test_full = cmnist.get_full_testset()
+    test_full = cfmnist.get_full_testset()
 
     # loop over the training incremental batches
-    for i, (x, y, t) in enumerate(cmnist):
+    for i, (x, y, t) in enumerate(cfmnist):
         # WARNING train_batch is NOT a mini-batch, but one incremental batch!
         # You can later train with SGD indexing train_x and train_y properly.
 
