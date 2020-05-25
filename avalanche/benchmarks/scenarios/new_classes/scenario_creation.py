@@ -14,7 +14,7 @@ from typing import Sequence, Optional, Dict, List, Union
 import torch
 
 
-from training.utils.transform_dataset import TransformationSubset, \
+from avalanche.training.utils.transform_dataset import TransformationSubset, \
     IDatasetWithTargets, ConcatDatasetWithTargets
 from .nc_generic_scenario import NCGenericScenario
 from .nc_scenario import NCMultiTaskScenario, NCSingleTaskScenario

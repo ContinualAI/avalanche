@@ -12,7 +12,7 @@
 from enum import Enum
 from typing import List, TypeVar, Tuple
 
-from training.utils.transform_dataset import IDatasetWithTargets, \
+from avalanche.training.utils.transform_dataset import IDatasetWithTargets, \
     DatasetWithTargets
 
 

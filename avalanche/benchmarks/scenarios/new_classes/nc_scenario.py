@@ -15,7 +15,7 @@ from .nc_definitions import T_train_set_w_targets, T_test_set_w_targets, \
     DatasetPart, MTSingleSet, MTMultipleSet
 from .nc_utils import make_transformation_subset
 from .nc_generic_scenario import NCGenericScenario, NCGenericBatchInfo
-from training.utils.transform_dataset import TransformationSubset
+from avalanche.training.utils.transform_dataset import TransformationSubset
 
 
 class NCMultiTaskScenario(Generic[T_train_set_w_targets,

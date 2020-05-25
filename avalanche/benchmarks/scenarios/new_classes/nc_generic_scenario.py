@@ -17,7 +17,7 @@ from typing import Sequence, Any, List, Optional, Dict, Generic
 from .nc_definitions import DatasetPart, T_train_set_w_targets, \
     T_test_set_w_targets
 from .nc_utils import make_transformation_subset
-from training.utils.transform_dataset import TransformationSubset, \
+from avalanche.training.utils.transform_dataset import TransformationSubset, \
     DatasetWithTargets
 
 

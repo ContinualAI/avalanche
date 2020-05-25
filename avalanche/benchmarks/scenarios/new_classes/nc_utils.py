@@ -15,7 +15,7 @@ from typing import List, Iterable, Sequence, Dict, Any, Union
 import torch
 from torch import Tensor
 
-from training.utils.transform_dataset import TransformationSubset, \
+from avalanche.training.utils.transform_dataset import TransformationSubset, \
     IDatasetWithTargets
 
 
