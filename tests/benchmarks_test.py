@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import absolute_import
 
 import numpy as np
+from avalanche.benchmarks import CMNIST, CORE50, ICIFAR10
 from avalanche.benchmarks import CMNIST, CORE50, CImageNet, CTinyImageNet
 import torchvision.transforms as transforms
-
 
 if __name__ == "__main__":
 
@@ -42,9 +42,19 @@ if __name__ == "__main__":
             assert( type(y) == np.ndarray )
             assert( type(t) == int )
             break
+    ##################
+    ## ICIFAR10 TEST ##
+    ##################
 
+    icifar10 = ICIFAR10()
+    
+    icifar10.get_full_testset()
 
-
+    for x, y, t in icifar10:
+        assert (type(x) == np.ndarray)
+        assert (type(y) == np.ndarray)
+        assert (type(t) == int)
+        break
     ##################
     ## CORE 50 TEST ##
     ##################
@@ -80,9 +90,7 @@ if __name__ == "__main__":
             assert( type(y) == np.ndarray )
             assert( type(t) == int )
             break
-
-
-    
+            
     ##################
     ## ImageNet TEST #
     ##################
