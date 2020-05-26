@@ -93,10 +93,6 @@ def _manage_advanced_indexing(idx, single_element_getter, max_length):
         labels.append(label)
 
     if len(patterns) == 1:
-        if treat_as_tensors:
-            patterns[0] = patterns[0].squeeze(0)
-        labels[0] = labels[0]
-
         return patterns[0], labels[0]
     else:
         labels_cat = torch.stack(labels)
