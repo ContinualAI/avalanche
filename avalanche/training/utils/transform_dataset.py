@@ -154,6 +154,8 @@ class LazyClassMapping(Sequence[int]):
         self._indices = indices
 
     def __len__(self):
+        if self._indices is None:
+            return len(self._targets)
         return len(self._indices)
 
     def __getitem__(self, item_idx) -> int:

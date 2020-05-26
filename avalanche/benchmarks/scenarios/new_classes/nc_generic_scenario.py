@@ -196,8 +196,11 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
 
             # default_per_batch_classes is the default amount of classes
             # for the remaining batches
-            default_per_batches_classes = (self.n_classes - sum(
-                per_batch_classes.values())) // remaining_batches
+            if remaining_batches > 0:
+                default_per_batches_classes = (self.n_classes - sum(
+                    per_batch_classes.values())) // remaining_batches
+            else:
+                default_per_batches_classes = 0
 
             # Initialize the self.n_classes_per_batch list using
             # "default_per_batches_classes" as the default

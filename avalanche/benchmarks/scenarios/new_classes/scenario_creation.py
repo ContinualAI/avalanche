@@ -103,6 +103,7 @@ def concat_datasets_sequentially(
         remapped_test_datasets.append(
             TransformationSubset(test_set, None,
                                  class_mapping=class_mapping))
+        next_remapped_idx += classes_per_dataset[dataset_idx]
 
     return ConcatDatasetWithTargets(remapped_train_datasets), \
         ConcatDatasetWithTargets(remapped_test_datasets), \
@@ -222,7 +223,7 @@ def create_nc_single_dataset_multi_task_scenario(
 
 def _one_dataset_per_batch_class_order(
         class_list_per_batch: Sequence[Sequence[int]],
-        shuffle: bool, seed: Union[int, None]) -> List[int]:
+        shuffle: bool, seed: Union[int, None]) -> (List[int], Dict[int, int]):
     """
     Utility function that shuffles the class order by keeping classes from the
     same batch together. Each batch is defined by a different entry in the
@@ -246,9 +247,12 @@ def _one_dataset_per_batch_class_order(
         dataset_order = torch.as_tensor(dataset_order)[
             torch.randperm(len(dataset_order))].tolist()
     fixed_class_order = []
-    for dataset_idx in dataset_order:
+    classes_per_batch = {}
+    for dataset_position, dataset_idx in enumerate(dataset_order):
         fixed_class_order.extend(class_list_per_batch[dataset_idx])
-    return fixed_class_order
+        classes_per_batch[dataset_position] = \
+            len(class_list_per_batch[dataset_idx])
+    return fixed_class_order, classes_per_batch
 
 
 def create_nc_multi_dataset_sit_scenario(
@@ -284,6 +288,7 @@ def create_nc_multi_dataset_sit_scenario(
         parameter is mutually exclusive with one_dataset_per_batch.
     :param one_dataset_per_batch: If True, each dataset will be treated as a
         batch. Mutually exclusive with the per_task_classes parameter.
+        Overrides the n_batches parameter.
 
     :returns: A :class:`NCMultiTaskScenario` instance initialized for the
         the SIT scenario.
@@ -305,14 +310,16 @@ def create_nc_multi_dataset_sit_scenario(
         # If one_dataset_per_batch is True, each dataset will be treated as
         # a batch. In this scenario, shuffle refers to the batch order,
         # not to the class one.
-        fixed_class_order = _one_dataset_per_batch_class_order(
-            mapping, shuffle, seed
-        )
+        fixed_class_order, per_batch_classes = \
+            _one_dataset_per_batch_class_order(mapping, shuffle, seed)
 
         # We pass a fixed_class_order to the NCGenericGenericScenario
         # constructor, so we don't need shuffling.
         shuffle = False
         seed = None
+
+        # Overrides n_batches (and per_batch_classes, already done)
+        n_batches = len(train_dataset_list)
 
     base_scenario = NCGenericScenario(
         seq_train_dataset, seq_test_dataset,
@@ -327,7 +334,8 @@ def create_nc_multi_dataset_multi_task_scenario(
         train_dataset_list: Sequence[IDatasetWithTargets],
         test_dataset_list: Sequence[IDatasetWithTargets],
         shuffle: bool = True, seed: Optional[int] = None,
-        classes_ids_from_zero_in_each_task: bool = True):
+        classes_ids_from_zero_in_each_task: bool = True) \
+        -> NCMultiTaskScenario:
     """
     Creates a "New Classes - Multi Task" scenario given a list of
     datasets and the number of batches. Each dataset will be treated as a task.
@@ -373,14 +381,14 @@ def create_nc_multi_dataset_multi_task_scenario(
     # shuffled task order. _one_dataset_per_batch_class_order doesn't shuffle
     # the task internal class order. That is, this utility is suitable when
     # dealing with Multi Task scenarios, not Multi Incremental Task ones!
-    fixed_class_order = _one_dataset_per_batch_class_order(
+    fixed_class_order, classes_per_task = _one_dataset_per_batch_class_order(
         mapping, shuffle, seed
     )
 
     base_scenario = NCGenericScenario(
         seq_train_dataset, seq_test_dataset,
         n_batches=len(train_dataset_list), shuffle=False, seed=None,
-        fixed_class_order=fixed_class_order)
+        fixed_class_order=fixed_class_order, per_batch_classes=classes_per_task)
 
     return NCMultiTaskScenario(
         base_scenario,
