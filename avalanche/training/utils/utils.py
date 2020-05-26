@@ -258,7 +258,10 @@ def pad_data(dataset, mb_size):
     if n_missing > 0:
         n_to_add = mb_size - n_missing
         for i, data in enumerate(dataset):
-            dataset[i] = np.concatenate((data[:n_to_add], data))
+            if isinstance(data, torch.Tensor):
+                dataset[i] = torch.cat((data[:n_to_add], data), dim=0)
+            else:
+                dataset[i] = np.concatenate((data[:n_to_add], data))
     if num_set == 1:
         dataset = dataset[0]
 

@@ -48,15 +48,15 @@ class Naive(Strategy):
         pass
 
     def before_epoch(self):
+        with torch.no_grad():
+            if self.multi_head:
+                if self.cur_ep == 0:
+                    new_head = self.__create_new_head()
+                    self.model.classifier = new_head
 
-        if self.multi_head:
-            if self.cur_ep == 0:
-                shape = self.model.classifier.weight.data.size()
-                self.model.classifier = torch.nn.Linear(shape[1], shape[0])
-
-                # here eventual zero-reinit
-                # weight_init.xavier_uniform(self.model.classifier.weight)
-                # weight_init.uniform(self.model.classifier.weight, 0.0, 0.1)
+                    # here eventual zero-reinit
+                    # weight_init.xavier_uniform(self.model.classifier.weight)
+                    # weight_init.uniform(self.model.classifier.weight, 0.0, 0.1)
 
     def before_iteration(self):
         pass
@@ -95,16 +95,22 @@ class Naive(Strategy):
             self.model.classifier.bias = b
 
     def before_task_test(self):
-
-        if self.multi_head:
-            # reposition right head
-            if self.cur_test_t in self.heads.keys():
-                w, b = self.heads[self.cur_test_t]
-                self.model.classifier.weight = w
-                self.model.classifier.bias = b
-            else:
-                shape = self.model.classifier.weight.data.size()
-                self.model.classifier = torch.nn.Linear(shape[1], shape[0])
+        with torch.no_grad():
+            if self.multi_head:
+                # reposition right head
+                if self.cur_test_t in self.heads.keys():
+                    w, b = self.heads[self.cur_test_t]
+                    self.model.classifier.weight.copy_(w)
+                    self.model.classifier.bias.copy_(b)
+                else:
+                    self.model.classifier = self.__create_new_head()
 
     def after_task_test(self):
         pass
+
+    def __create_new_head(self):
+        shape = self.model.classifier.weight.data.size()
+        new_head = torch.nn.Linear(
+            shape[1], shape[0],
+            bias=self.model.classifier.bias is not None)
+        return new_head
