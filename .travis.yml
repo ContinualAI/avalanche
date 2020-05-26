@@ -36,10 +36,11 @@ after_success:
 
 deploy:
   provider: pages
-  repo: ggraffieti/avalanche
+  repo: vlomonaco/avalanche
   skip-cleanup: true
   keep-history: true
   on:
+    repo: vlomonaco/avalanche
     branch: master
   github-token: $GITHUB_TOKEN
   local-dir: doc_html
