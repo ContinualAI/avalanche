@@ -23,6 +23,7 @@ from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage
 import numpy as np
 from .tensorboard import TensorboardLogging
 
+
 class EvalProtocol(object):
 
     def __init__(self, metrics=[ACC()], tb_logdir="../logs/test"):
