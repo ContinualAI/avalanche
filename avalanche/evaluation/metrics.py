@@ -32,6 +32,52 @@ import PIL.Image
 from torchvision.transforms import ToTensor
 from sklearn.utils.multiclass import unique_labels
 import io
+import queue
+import subprocess
+import threading
+
+
+class GPUUsage:
+    """
+        GPU usage metric measured as average usage percentage over time.
+
+        :param gpu_id: GPU device ID
+        :param every: time delay (in seconds) between measurements
+    """
+    def __init__(self, gpu_id, every=10):
+        # 'nvidia-smi --loop=1 --query-gpu=utilization.gpu --format=csv'
+        cmd = ['nvidia-smi', f'--loop={every}', '--query-gpu=utilization.gpu', '--format=csv', f'--id={gpu_id}']
+        self.p = subprocess.Popen(cmd, bufsize=1, stdout=subprocess.PIPE)  # something long running
+        self.lines_queue = queue.Queue()
+        self.read_thread = threading.Thread(target=GPUUsage.push_lines, args=(self,), daemon=True)
+        self.read_thread.start()
+
+        self.n_measurements = 0
+        self.avg_usage = 0
+
+    def compute(self, t):
+        """
+        Compute CPU usage measured in seconds.
+
+        :param t: task id
+        :return: tuple (float): average GPU usage
+        """
+        while not self.lines_queue.empty():
+            line = self.lines_queue.get()
+            if line[0] == 'u':  # skip first line 'utilization.gpu [%]'
+                continue
+            usage = int(line.strip()[:-1])
+            self.n_measurements += 1
+            self.avg_usage += usage
+        print(f"Train Task {t} - average GPU usage: {self.avg_usage}%")
+
+    def push_lines(self):
+        while True:
+            line = self.p.stdout.readline()
+            self.lines_queue.put(line.decode('ascii'))
+
+    def close(self):
+        self.p.terminate()
 
 
 class CPUUsage:
