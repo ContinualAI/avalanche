@@ -31,10 +31,10 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
     under the form of instances of :class:`NCGenericBatchInfo`.
 
     This class can be used directly. However, we recommend using facilities like
-    :func:`benchmarks.scenarios.create_nc_single_dataset_sit_scenario`,
-    :func:`benchmarks.scenarios.create_nc_single_dataset_multi_task_scenario`,
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_sit_scenario` and
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_multi_task_scenario`.
+    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
+    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
+    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
+    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
     """
     def __init__(self, train_dataset: T_train_set_w_targets,
                  test_dataset: T_test_set_w_targets,
@@ -246,7 +246,7 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
             self.classes_in_batch.append(
                 self.classes_order[classes_start_idx:classes_end_idx])
 
-        # Stea transforms from the datasets, that is, copy the reference to the
+        # Steal transforms from the datasets, that is, copy the reference to the
         # transformation functions, and set to None the fields in the
         # respective Dataset instances. This will allow us to disable
         # transformations (useful while managing rehearsal) or even apply test

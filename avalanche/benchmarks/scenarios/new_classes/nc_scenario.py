@@ -28,10 +28,10 @@ class NCMultiTaskScenario(Generic[T_train_set_w_targets,
 
     Instances of this class can be creating using the constructor directly.
     However, we recommend using facilities like:
-    :func:`benchmarks.scenarios.create_nc_single_dataset_sit_scenario`,
-    :func:`benchmarks.scenarios.create_nc_single_dataset_multi_task_scenario`,
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_sit_scenario` and
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_multi_task_scenario`.
+    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
+    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
+    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
+    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
 
     This class acts as a wrapper for :class:`NCGenericScenario`, adding the
     task label as the output to training/test set related functions
@@ -648,10 +648,10 @@ class NCSingleTaskScenario(Generic[T_train_set_w_targets,
 
     Instances of this class can be creating using the constructor directly.
     However, we recommend using facilities like:
-    :func:`benchmarks.scenarios.create_nc_single_dataset_sit_scenario`,
-    :func:`benchmarks.scenarios.create_nc_single_dataset_multi_task_scenario`,
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_sit_scenario` and
-    :func:`benchmarks.scenarios.create_nc_multi_dataset_multi_task_scenario`.
+    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
+    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
+    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
+    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
 
     This class acts as a wrapper for :class:`NCGenericScenario`, adding the
     task label (always "0") as the output to training/test set related functions
