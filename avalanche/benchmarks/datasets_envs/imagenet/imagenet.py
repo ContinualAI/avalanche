@@ -71,7 +71,7 @@ class ImageNet(object):
                 files.sort()
                 self.train_set.append(
                     [[os.path.join(self.train_path, cls, fname), lab]
-                     for fname in files[::sample_test]])
+                     for fname in files[::sample_train]])
 
                 files = os.listdir(os.path.join(self.test_path, cls))
                 files.sort()
