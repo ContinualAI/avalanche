@@ -31,7 +31,8 @@ import copy
 
 def distillation_loss(y_pred, y_teacher, temperature):
     """ Distillation loss. """
-    scale = y_teacher.shape[-1]  # kl_div is normalized by element instead of observation
+    # kl_div is normalized by element instead of observation
+    scale = y_teacher.shape[-1]
     log_p = F.log_softmax(y_pred / temperature, dim=1)
     q = F.softmax(y_teacher / temperature, dim=1)
     res = scale * F.kl_div(log_p, q, reduction='mean')
@@ -39,7 +40,8 @@ def distillation_loss(y_pred, y_teacher, temperature):
 
 
 class LearningWithoutForgetting(Strategy):
-    def __init__(self, model, classes_per_task, alpha=0.5, distillation_loss_T=2, warmup_epochs=0, optimizer=None,
+    def __init__(self, model, classes_per_task, alpha=0.5,
+                 distillation_loss_T=2, warmup_epochs=0, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC()])):
@@ -47,14 +49,18 @@ class LearningWithoutForgetting(Strategy):
         Learning without Forgetting Strategy.
 
         paper: https://arxiv.org/abs/1606.09282
-        original implementation (Matlab): https://github.com/lizhitwo/LearningWithoutForgetting
-        reference implementation (pytorch): https://github.com/arunmallya/packnet/blob/master/src/lwf.py
+        original implementation (Matlab):
+        https://github.com/lizhitwo/LearningWithoutForgetting
+        reference implementation (pytorch):
+        https://github.com/arunmallya/packnet/blob/master/src/lwf.py
 
         Args:
             classes_per_task:
-            alpha: distillation loss coefficient. Can be an integer or a list of values (one for each task).
+            alpha: distillation loss coefficient.
+            Can be an integer or a list of values (one for each task).
             distillation_loss_T: distillation loss temperature
-            warmup_epochs: number of warmup epochs training only the new parameters.
+            warmup_epochs: number of warmup epochs training only
+            the new parameters.
         """
         super(LearningWithoutForgetting, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head=False,
@@ -71,9 +77,11 @@ class LearningWithoutForgetting(Strategy):
     def warmup_train(self):
         """ Train only the new parameters for the first epochs. """
         # add only the last layer to the trainable parameters
-        opt = torch.optim.SGD(lr=0.01, params=self.model.classifier.parameters())
+        opt = torch.optim.SGD(lr=0.01,
+                              params=self.model.classifier.parameters())
 
-        train_x, train_y, it_x_ep = self.preproc_batch_data(self.x, self.y, self.t)
+        train_x, train_y, it_x_ep = \
+            self.preproc_batch_data(self.x, self.y, self.t)
         model = self.model.to(self.device)
 
         train_x = torch.tensor(train_x, dtype=torch.float)
@@ -88,8 +96,9 @@ class LearningWithoutForgetting(Strategy):
                 y_mb = train_y[start:end].to(self.device)
                 logits = model(x_mb)
                 # loss computed only on the new classes
-                loss = self.criterion(logits[:, self.t*self.classes_per_task:(self.t+1)*self.classes_per_task],
-                                      y_mb - self.t*self.classes_per_task)
+                loss = self.criterion(
+                    logits[:, self.t*self.classes_per_task:(self.t+1)*self.classes_per_task],  # noqa
+                    y_mb - self.t*self.classes_per_task)
                 loss.backward()
                 opt.step()
 
@@ -98,7 +107,8 @@ class LearningWithoutForgetting(Strategy):
         if self.prev_model is not None:
             y_prev = self.prev_model(self.x_mb).detach()
             loss = self.criterion(logits, y_mb)
-            dist_loss += distillation_loss(logits, y_prev, self.distillation_loss_T)
+            dist_loss += distillation_loss(logits, y_prev,
+                                           self.distillation_loss_T)
 
             if isinstance(self.alpha, list):
                 loss = loss + self.alpha[self.t] * dist_loss
@@ -113,4 +123,3 @@ class LearningWithoutForgetting(Strategy):
 
     def after_train(self):
         self.prev_model = copy.deepcopy(self.model)
-

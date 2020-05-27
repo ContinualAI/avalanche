@@ -81,7 +81,7 @@ class EvalProtocol(object):
                 acc_scalars["task_"+str(t).zfill(3)] = acc_i
                 loss_scalars["task_"+str(t).zfill(3)] = ave_loss_i
                 for c in range(len(accs_i)):
-                    class_scalars["task_"+str(t).zfill(3)+"_class_"+ str(
+                    class_scalars["task_"+str(t).zfill(3)+"_class_" + str(
                         c).zfill(3)] = accs_i[c]
 
                     if t not in self.prev_acc_x_class:
@@ -128,7 +128,8 @@ class EvalProtocol(object):
                             cm_imgs = np.expand_dims(m_res[CM], axis=0)
                         else:
                             cm_imgs = np.concatenate((cm_imgs,
-                                 np.expand_dims(m_res[CM], axis=0)))
+                                                      np.expand_dims(m_res[CM],
+                                                                     axis=0)))
                     self.tb_logging.writer.add_images(
                         "Confusion_matrices", cm_imgs, step)
 

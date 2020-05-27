@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 class SimpleMLP_TinyImageNet(nn.Module):
 
     def __init__(self, num_classes=200, num_channels=3):

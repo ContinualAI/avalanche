@@ -29,13 +29,15 @@ import torch
 from pytorchcv.models.mobilenet import mobilenet_w1
 try:
     from pytorchcv.models.mobilenet import DwsConvBlock
-except:
+except Exception:
     from pytorchcv.models.common import DwsConvBlock
+
 
 def remove_sequential(network, all_layers):
 
     for layer in network.children():
-        if isinstance(layer, nn.Sequential):  # if sequential layer, apply recursively to layers in sequential layer
+        # if sequential layer, apply recursively to layers in sequential layer
+        if isinstance(layer, nn.Sequential):
             # print(layer)
             remove_sequential(layer, all_layers)
         else:  # if leaf node, add it to list
@@ -81,7 +83,8 @@ class MobilenetV1(nn.Module):
 
         self.output = nn.Linear(1024, 50, bias=False)
 
-    def forward(self, x, latent_input=None, return_lat_acts=False):
+    def forward(self, x, latent_input=None,
+                return_lat_acts=False):
 
         if latent_input is not None:
             with torch.no_grad():

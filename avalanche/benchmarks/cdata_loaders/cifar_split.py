@@ -124,7 +124,8 @@ class CifarSplit(object):
         return list(zip(self.all_test_sets, self.tasks_id))
 
     next = __next__  # python2.x compatibility.
-    
+
+
 if __name__ == "__main__":
 
     # Create the dataset object
@@ -147,4 +148,4 @@ if __name__ == "__main__":
         (test_x, test_y), t = test_batch
 
         print("test task: {}, x: {}, y: {}".format(t, test_x.shape,
-                                                test_y.shape))
+                                                   test_y.shape))

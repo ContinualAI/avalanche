@@ -27,8 +27,9 @@ else:
     from urllib import urlretrieve
 
 
-filename = ('tiny-imagenet-200.zip', \
-    'http://cs231n.stanford.edu/tiny-imagenet-200.zip' )
+filename = ('tiny-imagenet-200.zip',
+            'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
+
 
 class TinyImageNet_data(object):
     """
@@ -45,9 +46,9 @@ class TinyImageNet_data(object):
             self.data_folder = data_folder
         else:
             self.data_folder = os.path.join(
-                os.path.dirname(__file__), \
+                os.path.dirname(__file__),
                 data_folder
-                )
+            )
                 
         self.data_folder = os.path.join(self.data_folder, 'tiny-imagenet-200')
 
@@ -62,19 +63,17 @@ class TinyImageNet_data(object):
             self.download = False
             print("Directory ", self.data_folder, " already exists")
 
-
         self.label2id, self.id2label = self.labels2dict()
-
 
     def download_tinyImageNet(self):
 
         print("Downloading " + filename[1] + "...")
         urlretrieve(filename[1], os.path.join(self.data_folder, filename[0]))
 
-        with ZipFile( os.path.join(self.data_folder, filename[0]), 'r') as zipf:
-                print('Extracting Tiny ImageNet images...') 
-                zipf.extractall(self.data_folder) 
-                print('Done!')
+        with ZipFile(os.path.join(self.data_folder, filename[0]), 'r') as zipf:
+            print('Extracting Tiny ImageNet images...')
+            zipf.extractall(self.data_folder)
+            print('Done!')
 
         print("Download complete.")
 
@@ -91,10 +90,10 @@ class TinyImageNet_data(object):
 
             reader = csv.reader(f)
             curr_idx = 0
-            for l in reader:
-                if l[0] not in label2id:
-                    label2id[l[0]] = curr_idx
-                    id2label[curr_idx] = l[0]
+            for ll in reader:
+                if ll[0] not in label2id:
+                    label2id[ll[0]] = curr_idx
+                    id2label[curr_idx] = ll[0]
                     curr_idx += 1
         
         return label2id, id2label

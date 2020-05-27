@@ -25,6 +25,7 @@ import numpy as np
 import torch
 from avalanche.extras.models.batch_renorm import BatchRenorm2D
 
+
 def replace_bn_with_brn(
         m, name="", momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,
         d_max=0.0, max_r_max=3.0, max_d_max=5.0):
@@ -52,6 +53,7 @@ def replace_bn_with_brn(
         replace_bn_with_brn(ch, n, momentum, r_d_max_inc_step, r_max, d_max,
                             max_r_max, max_d_max)
 
+
 def change_brn_pars(
         m, name="", momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,
         d_max=0.0):
@@ -65,6 +67,7 @@ def change_brn_pars(
 
     for n, ch in m.named_children():
         change_brn_pars(ch, n, momentum, r_d_max_inc_step, r_max, d_max)
+
 
 def consolidate_weights(model, cur_clas):
     """ Mean-shift for the target layer weights"""
@@ -82,9 +85,10 @@ def consolidate_weights(model, cur_clas):
                     wpast_j = np.sqrt(model.past_j[c] / model.cur_j[c])
                     # wpast_j = model.past_j[c] / model.cur_j[c]
                     model.saved_weights[c] = (model.saved_weights[c] * wpast_j
-                     + new_w) / (wpast_j + 1)
+                                              + new_w) / (wpast_j + 1)
                 else:
                     model.saved_weights[c] = new_w
+
 
 def set_consolidate_weights(model):
     """ set trained weights """
@@ -110,21 +114,24 @@ def reset_weights(model, cur_clas):
                     torch.from_numpy(model.saved_weights[c])
                 )
 
+
 def examples_per_class(train_y):
-    count = {i:0 for i in range(50)}
+    count = {i: 0 for i in range(50)}
     for y in train_y:
-        count[int(y)] +=1
+        count[int(y)] += 1
 
     return count
 
+
 def set_brn_to_train(m, name=""):
-        for attr_str in dir(m):
-            target_attr = getattr(m, attr_str)
-            if type(target_attr) == BatchRenorm2D:
-                target_attr.train()
-                # print("setting to train..")
-        for n, ch in m.named_children():
-            set_brn_to_train(ch, n)
+    for attr_str in dir(m):
+        target_attr = getattr(m, attr_str)
+        if type(target_attr) == BatchRenorm2D:
+            target_attr.train()
+            # print("setting to train..")
+    for n, ch in m.named_children():
+        set_brn_to_train(ch, n)
+
 
 def set_brn_to_eval(m, name=""):
     for attr_str in dir(m):
@@ -135,6 +142,7 @@ def set_brn_to_eval(m, name=""):
     for n, ch in m.named_children():
         set_brn_to_train(ch, n)
 
+
 def freeze_up_to(model, freeze_below_layer):
     for name, param in model.named_parameters():
         # tells whether we want to use gradients for a given parameter
@@ -143,6 +151,7 @@ def freeze_up_to(model, freeze_below_layer):
             print("Freezing parameter " + name)
         if name == freeze_below_layer:
             break
+
 
 def create_syn_data(model):
     size = 0
@@ -169,7 +178,7 @@ def create_syn_data(model):
 def extract_weights(model, target):
 
     with torch.no_grad():
-        weights_vector= None
+        weights_vector = None
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
                 # print(name, param.flatten())
@@ -185,7 +194,7 @@ def extract_weights(model, target):
 def extract_grad(model, target):
     # Store the gradients into target
     with torch.no_grad():
-        grad_vector= None
+        grad_vector = None
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
                 # print(name, param.flatten())
@@ -256,5 +265,3 @@ if __name__ == "__main__":
 
     ewcData, synData = create_syn_data(model)
     extract_weights(model, ewcData[0])
-
-
