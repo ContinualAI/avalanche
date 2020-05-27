@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 24-11-2017                                                             #
-# Author: Vincenzo Lomonaco                                                    #
-# E-mail: vincenzo.lomonaco@unibo.it                                           #
-# Website: vincenzolomonaco.com                                                #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
-""" Data Loader for the CIFAR10-100 continual learning benchmark. """
+""" Data Loader for the CIFAR10 continual learning benchmark. """
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -19,37 +20,57 @@ from __future__ import division
 from __future__ import absolute_import
 
 # other imports
+import os
 import logging
 import numpy as np
 
-from avalanche.benchmarks.datasets_envs.cifar import \
-    get_merged_cifar10_and_100, remove_some_labels, read_data_from_pickled
+from avalanche.benchmarks.datasets_envs.cifar import remove_some_labels, \
+    read_data_from_pickled
 
 
-class CifarSplit(object):
-    """ Cifar10/100 split benchmark loader. """
+class ICIFAR10(object):
+    """ iCifar10 (from iCaRL paper) benchmark loader. give the path of the root_cifar10 data"""
 
     def __init__(self,
-                 root_cifar10='/home/admin/data/cifar10/cifar-10-batches-py/',
-                 root_cifar100='/home/admin/data/cifar100/cifar-100-python/',
-                 num_batch=6,
+                 root_cifar10='',
+                 fixed_test_set=True,
+                 num_batch=10,
                  cumulative=False,
+                 run=0,
+                 seed=0,
                  task_sep=False):
         """" Initialize Object """
 
         self.num_batch = num_batch
         self.classxbatch = 10
-        self.tot_num_labels = 110
+        self.tot_num_labels = 10
         self.iter = 0
+        self.fixed_test_set = fixed_test_set
         self.cumulative = cumulative
+        self.run = run
+        self.seed = seed
         self.task_sep = task_sep
 
         # Getting root logger
         self.log = logging.getLogger('mylogger')
 
-        self.train_set, self.test_set = get_merged_cifar10_and_100(
-            root_cifar10, root_cifar100
+        # load cifar100 images
+        self.train_set, self.test_set = read_data_from_pickled(
+            root_cifar10, 50000, 10000, 32
         )
+
+        # compute which labels select for each batch given run
+        labels = list(range(self.tot_num_labels))
+        np.random.seed(self.seed)
+        if self.run != 0:
+            for i in range(self.run):
+                np.random.shuffle(labels)
+
+        self.batch2labels = {
+            i: labels[i * self.classxbatch:(i + 1) * self.classxbatch]
+            for i in range(10)
+        }
+        self.log.debug('Labels order: ' + str(labels) + '\n')
 
         # to be filled
         self.all_test_sets = []
@@ -59,8 +80,7 @@ class CifarSplit(object):
         for i in range(self.num_batch):
 
             all_labels = range(self.tot_num_labels)
-            te_curr_labels = range(
-                i * self.classxbatch + self.classxbatch)
+            te_curr_labels = self.batch2labels[i]
             te_labs2remove = [j for j in all_labels if j not in te_curr_labels]
             test_x, test_y = remove_some_labels(self.test_set, te_labs2remove)
             self.all_test_sets.append([test_x, test_y])
@@ -80,16 +100,19 @@ class CifarSplit(object):
         if self.iter == self.num_batch:
             raise StopIteration
 
-        tr_curr_labels = range(
-            self.iter * self.classxbatch,
-            self.iter * self.classxbatch + self.classxbatch
-        )
+        tr_curr_labels = self.batch2labels[self.iter]
+        te_curr_labels = []
+        for i in range(self.iter + 1):
+            te_curr_labels += self.batch2labels[i]
 
         all_labels = range(self.tot_num_labels)
 
         if self.cumulative:
             # we remove only never seen before labels
-            tr_labs2remove = [i for i in all_labels if i > max(tr_curr_labels)]
+            not_remove = []
+            for i in range(self.iter + 1):
+                not_remove += self.batch2labels[i]
+            tr_labs2remove = [i for i in all_labels if i not in not_remove]
         else:
             # we remove only labels not belonging to the current batch
             tr_labs2remove = [i for i in all_labels if i not in tr_curr_labels]
@@ -100,7 +123,7 @@ class CifarSplit(object):
         self.iter += 1
 
         if self.task_sep:
-            t = self.iter-1
+            t = self.iter - 1
         else:
             t = 0
 
@@ -124,11 +147,12 @@ class CifarSplit(object):
         return list(zip(self.all_test_sets, self.tasks_id))
 
     next = __next__  # python2.x compatibility.
-    
+
+
 if __name__ == "__main__":
 
     # Create the dataset object
-    dataset = CifarSplit()
+    dataset = ICIFAR10()
 
     # Get the fixed test set
     test_set = dataset.get_full_testset()
@@ -147,4 +171,4 @@ if __name__ == "__main__":
         (test_x, test_y), t = test_batch
 
         print("test task: {}, x: {}, y: {}".format(t, test_x.shape,
-                                                test_y.shape))
+                                                   test_y.shape))

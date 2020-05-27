@@ -12,45 +12,46 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-"""
-
-This is the definition od the Mid-caffenet high resolution in Pythorch
-
-"""
+""" SynInt Usage Example"""
 
 # Python 2-3 compatible
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import torch.nn as nn
+import torch
 
+from avalanche.benchmarks import CMNIST
+from avalanche.extras.models import SimpleMLP
+from avalanche.training.strategies import SynInt, Naive
+from avalanche.evaluation import EvalProtocol
 
-class SimpleMLP(nn.Module):
+# load the model with PyTorch for example
+model = SimpleMLP()
 
-    def __init__(self, num_classes=10, input_size=28*28):
-        super(SimpleMLP, self).__init__()
+# load the benchmark as a python iterator object
+cdata = CMNIST(mode="perm", num_batch=10)
 
-        self.features = nn.Sequential(
-            nn.Linear(input_size, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-        )
-        self.classifier = nn.Linear(512, num_classes)
-        self._input_size = input_size
+# Eval Protocol
+evalp = EvalProtocol()
 
-    def forward(self, x):
-        x = x.contiguous()
-        x = x.view(x.size(0), self._input_size)
-        x = self.features(x)
-        x = self.classifier(x)
-        return x
+# adding the CL strategy
+device = torch.device("cpu")
+clmodel = SynInt(
+    model, eval_protocol=evalp, device=device, si_lambda=0.9
+)
 
+# getting full test set beforehand
+test_full = cdata.get_full_testset()
 
-if __name__ == "__main__":
+results = []
 
-    kwargs = {'num_classes': 10}
-    model = SimpleMLP(**kwargs)
+# loop over the training incremental batches
+for i, (x, y, t) in enumerate(cdata):
 
-    for name, module in model.named_parameters():
-        print(name)
+    # training over the batch
+    print("Batch {0}, task {1}".format(i, t))
+    clmodel.train(x, y, t)
+
+    # testing
+    results.append(clmodel.test(test_full))

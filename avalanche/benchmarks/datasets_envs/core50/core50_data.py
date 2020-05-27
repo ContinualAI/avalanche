@@ -7,9 +7,9 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 11-05-2020                                                             #
-# Author: Andrea Cossu                                                         #
-# E-mail: andrea.cossu@sns.it                                                  #
-# Website: andreacossu.github.io                                               #
+# Author: ContinualAI                                                          #
+# E-mail: contact@continualai.org                                              #
+# Website: continualai.org                                                     #
 ################################################################################
 
 import os

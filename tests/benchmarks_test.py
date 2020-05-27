@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import absolute_import
 
 import numpy as np
-from avalanche.benchmarks import CMNIST, CORE50, CImageNet
+from avalanche.benchmarks import CMNIST, CORE50, ICIFAR10
+from avalanche.benchmarks import CMNIST, CORE50, CImageNet, CTinyImageNet
 import torchvision.transforms as transforms
-
 
 if __name__ == "__main__":
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     mode = ['perm', 'split', 'rot']
 
     for m in mode:
-        cmnist = CMNIST(mode=m)
+        cmnist = CMNIST(mode=m, num_batch=5)
         cmnist.get_full_testset()
         cmnist.get_growing_testset()
 
@@ -42,9 +42,19 @@ if __name__ == "__main__":
             assert( type(y) == np.ndarray )
             assert( type(t) == int )
             break
+    ##################
+    ## ICIFAR10 TEST ##
+    ##################
 
+    icifar10 = ICIFAR10()
+    
+    icifar10.get_full_testset()
 
-
+    for x, y, t in icifar10:
+        assert (type(x) == np.ndarray)
+        assert (type(y) == np.ndarray)
+        assert (type(t) == int)
+        break
     ##################
     ## CORE 50 TEST ##
     ##################
@@ -80,9 +90,7 @@ if __name__ == "__main__":
             assert( type(y) == np.ndarray )
             assert( type(t) == int )
             break
-
-
-
+            
     ##################
     ## ImageNet TEST #
     ##################
@@ -103,3 +111,31 @@ if __name__ == "__main__":
 
         # use the data
         pass
+
+    ######################
+    ## TinyImageNet TEST #
+    ######################
+
+    ctiny = CTinyImageNet()
+    ctiny2 = CTinyImageNet(classes_per_task=[
+        ['n02788148', 'n02909870', 'n03706229'],
+        ['n06596364', 'n01768244', 'n02410509'],
+        ['n04487081', 'n03250847', 'n03255030']
+    ])
+
+    ctiny.get_full_testset()
+    ctiny.get_growing_testset()
+    ctiny2.get_full_testset()
+    ctiny2.get_growing_testset()
+
+    for x,y,t in ctiny:
+        assert( type(x) == np.ndarray )
+        assert( type(y) == np.ndarray )
+        assert( type(t) == int )
+        break
+
+    for x,y,t in ctiny2:
+        assert( type(x) == np.ndarray )
+        assert( type(y) == np.ndarray )
+        assert( type(t) == int )
+        break

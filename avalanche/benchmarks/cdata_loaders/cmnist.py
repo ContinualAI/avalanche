@@ -28,7 +28,7 @@ from avalanche.benchmarks.utils import remove_some_labels
 class CMNIST(object):
     """ Continuous MNIST benchmark data loader. """
 
-    def __init__(self, bp=None, num_batch=10, mode='perm', task_sep=True,
+    def __init__(self, bp=None, num_batch=5, mode='perm', task_sep=True,
                  eval_protocol=None):
 
         """" Initialize Object. mode={perm|split|rot}. """
