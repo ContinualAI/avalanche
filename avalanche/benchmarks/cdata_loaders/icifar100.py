@@ -23,8 +23,9 @@ from __future__ import absolute_import
 import logging
 import numpy as np
 
-from avalanche.benchmarks.datasets_envs.cifar import  remove_some_labels, \
+from avalanche.benchmarks.datasets_envs.cifar import remove_some_labels, \
     read_data_from_pickled
+
 
 class ICifar100(object):
     """ iCifar100 (from iCaRL paper) benchmark loader. """
@@ -117,7 +118,6 @@ class ICifar100(object):
 
         train_x, train_y = remove_some_labels(self.train_set, tr_labs2remove)
 
-
         # get ready for next iter
         self.iter += 1
 
@@ -170,4 +170,4 @@ if __name__ == "__main__":
         (test_x, test_y), t = test_batch
 
         print("test task: {}, x: {}, y: {}".format(t, test_x.shape,
-                                                test_y.shape))
+                                                   test_y.shape))

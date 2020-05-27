@@ -27,28 +27,32 @@ else:
 
 
 filename = [
-    ('core50_128x128.zip', 'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip'),
+    ('core50_128x128.zip',
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip'),
     ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
     ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
     ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
-    ('core50_imgs.npz', 'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
+    ('core50_imgs.npz',
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
 ]
 
+
 class CORE50_DATA(object):
-    '''
+    """
     CORE50 downloader.
-    '''
+    """
 
     def __init__(self, data_folder='data/'):
-        '''
+        """
         Args:
             data_folder (string): folder in which to download core50 dataset. 
-        '''
+        """
 
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
         else:
-            self.data_folder = os.path.join(os.path.dirname(__file__), data_folder)
+            self.data_folder = os.path.join(os.path.dirname(__file__),
+                                            data_folder)
 
         try:
             # Create target Directory for CORE50 data
@@ -61,8 +65,6 @@ class CORE50_DATA(object):
             self.download = False
             print("Directory ", self.data_folder, " already exists")
 
-
-
     def download_core50(self):
 
         for name in filename:
@@ -70,7 +72,8 @@ class CORE50_DATA(object):
             urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
 
             if name[1].endswith('.zip'):
-                with ZipFile( os.path.join(self.data_folder, name[0]), 'r') as zipf: 
+                with ZipFile(
+                        os.path.join(self.data_folder, name[0]), 'r') as zipf:
                     print('Extracting CORe50 images...') 
                     zipf.extractall(self.data_folder) 
                     print('Done!') 

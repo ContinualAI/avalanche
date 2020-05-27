@@ -88,11 +88,13 @@ class Dataset(Enum):
     ICIFAR10 = 'icifar10'
     CFASHION_MNIST = 'cfashionmnist'
 
+
 @unique
 class Net(Enum):
     MID_CAFFENET = 'mid_caffenet'
     CIFAR_SPLIT_NET = 'cifar_split_net'
     NIN = 'nin'
+
 
 @unique
 class EvalProtocol(Enum):

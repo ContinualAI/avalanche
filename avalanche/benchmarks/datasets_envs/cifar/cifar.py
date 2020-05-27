@@ -44,10 +44,10 @@ def read_data_from_png(params):
             with open(params['dpath'] + dir + '.npz', 'rb') as f:
                 npzfile = np.load(f)
                 if dir == 'train':
-                    train_data, train_labels = npzfile['imgs'], \
+                    train_data, train_labels = npzfile['imgs'],\
                                                npzfile['labels']
                 else:
-                    test_data, test_labels = npzfile['imgs'], \
+                    test_data, test_labels = npzfile['imgs'],\
                                              npzfile['labels']
         else:
             print('Extracting data from: ', params['dpath'] + dir)
@@ -185,8 +185,8 @@ if __name__ == '__main__':
     pixel_depth = 255
     seed = 0
 
-    train_set, test_set = get_merged_cifar10_and_100('data/cifar10/cifar-10-batches-py/',
-                                                     'data/cifar100/cifar-100-python/'
+    train_set, test_set = get_merged_cifar10_and_100(
+        'data/cifar10/cifar-10-batches-py/', 'data/cifar100/cifar-100-python/'
     )
 
     # split at convenience

@@ -73,11 +73,11 @@ class CfashionMNIST(object):
 
                 train_x, train_y = remove_some_labels(
                     self.train_set, [j for j in range(10)
-                                         if j not in [i * 2, i * 2 + 1]]
+                                     if j not in [i * 2, i * 2 + 1]]
                 )
                 test_x, test_y = remove_some_labels(
                     self.test_set, [j for j in range(10)
-                                        if j not in [i * 2, i * 2 + 1]]
+                                    if j not in [i * 2, i * 2 + 1]]
                 )
             else:
                 raise NotImplementedError()
@@ -139,4 +139,3 @@ if __name__ == "__main__":
         # You can later train with SGD indexing train_x and train_y properly.
 
         print("task {}: xsize: {}, ysize: {}".format(t, x.shape, y.shape))
-

@@ -21,6 +21,7 @@ from __future__ import absolute_import
 
 import numpy as np
 
+
 def remove_some_labels(dataset, labels_set, scale_labels=False):
     """ This method simply remove patterns with labels contained in
         the labels_set. """

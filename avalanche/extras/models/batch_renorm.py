@@ -17,11 +17,12 @@
 from torch.nn import Module
 import torch
 
+
 class BatchRenorm2D(Module):
 
-    def __init__(self, num_features,  gamma=None, beta=None,
+    def __init__(self, num_features, gamma=None, beta=None,
                  running_mean=None, running_var=None, eps=1e-05,
-                 momentum=0.01, r_d_max_inc_step = 0.0001, r_max=1.0,
+                 momentum=0.01, r_d_max_inc_step=0.0001, r_max=1.0,
                  d_max=0.0, max_r_max=3.0, max_d_max=5.0):
         super(BatchRenorm2D, self).__init__()
 
@@ -33,12 +34,12 @@ class BatchRenorm2D(Module):
             self.gamma = torch.nn.Parameter(
                 torch.ones((1, num_features, 1, 1)), requires_grad=True)
         else:
-            self.gamma = torch.nn.Parameter(gamma.view(1,-1, 1, 1))
+            self.gamma = torch.nn.Parameter(gamma.view(1, -1, 1, 1))
         if beta is None:
             self.beta = torch.nn.Parameter(
                 torch.zeros((1, num_features, 1, 1)), requires_grad=True)
         else:
-            self.beta = torch.nn.Parameter(beta.view(1,-1, 1, 1))
+            self.beta = torch.nn.Parameter(beta.view(1, -1, 1, 1))
 
         if running_mean is None:
             self.running_avg_mean = torch.ones(
@@ -46,8 +47,8 @@ class BatchRenorm2D(Module):
             self.running_avg_std = torch.zeros(
                 (1, num_features, 1, 1), requires_grad=False)
         else:
-            self.running_avg_mean =  running_mean.view(1,-1, 1, 1)
-            self.running_avg_std = torch.sqrt(running_var.view(1,-1, 1, 1))
+            self.running_avg_mean = running_mean.view(1, -1, 1, 1)
+            self.running_avg_std = torch.sqrt(running_var.view(1, -1, 1, 1))
 
         self.max_r_max = max_r_max
         self.max_d_max = max_d_max
@@ -62,7 +63,7 @@ class BatchRenorm2D(Module):
 
         device = self.gamma.device
 
-        batch_ch_mean = torch.mean(x, dim=(0,2,3), keepdim=True).to(device)
+        batch_ch_mean = torch.mean(x, dim=(0, 2, 3), keepdim=True).to(device)
         batch_ch_std = torch.sqrt(torch.var(
             x, dim=(0, 2, 3), keepdim=True, unbiased=False) + self.eps)
         batch_ch_std = batch_ch_std.to(device)
@@ -78,7 +79,7 @@ class BatchRenorm2D(Module):
                             self.running_avg_std, -self.d_max, self.d_max)\
                 .to(device).data.to(device)
 
-            x = ((x - batch_ch_mean) * r )/ batch_ch_std + d
+            x = ((x - batch_ch_mean) * r) / batch_ch_std + d
             x = self.gamma * x + self.beta
 
             if self.r_max < self.max_r_max:
@@ -98,4 +99,3 @@ class BatchRenorm2D(Module):
             x = self.gamma * x + self.beta
 
         return x
-
