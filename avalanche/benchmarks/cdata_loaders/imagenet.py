@@ -34,7 +34,9 @@ class CImageNet(object):
 
     Args:
         root (string): The path to load ImageNet dataset.
-        num_batch (int): The number of learning steps.
+        num_initial (int): The number of classes used for initial step.
+        num_batch (int): The number of learning steps. The initial step is
+        not counted. If num_initial > 0, num_batch will automatically plus 1.
         transform (torchvision.transforms): The transform to transfer PIL
         images to tensors.
 
@@ -46,15 +48,16 @@ class CImageNet(object):
         """" Initialize Object """
 
         imagenet = ImageNet(data_folder=root, download=False,
-                            sample_train=sample_train, sample_test=sample_test)
+                        sample_train=sample_train, sample_test=sample_test)
         imagenet_data = imagenet.get_data()
         self.train_set, self.test_set = imagenet_data[0], imagenet_data[1]
         num_classes = len(imagenet.get_classes())
         classes_shuffled = np.random.permutation(num_classes).tolist()
-        self.tasks = [classes_shuffled[:num_initial]]
-        classes_shuffled = classes_shuffled[num_initial:]
+        self.tasks = [classes_shuffled[:num_initial]] if num_initial>0 else []
+        classes_shuffled = classes_shuffled[num_initial:] if num_initial>0 \
+            else classes_shuffled
 
-        self.num_batch = num_batch
+        self.num_batch = num_batch + 1 if num_initial >0 else num_batch
         self.tasks += [classes_shuffled[ib::self.num_batch]
                       for ib in range(self.num_batch)]
         self.transform = transform
