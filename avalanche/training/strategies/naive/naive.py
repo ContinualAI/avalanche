@@ -56,7 +56,8 @@ class Naive(Strategy):
 
                     # here eventual zero-reinit
                     # weight_init.xavier_uniform(self.model.classifier.weight)
-                    # weight_init.uniform(self.model.classifier.weight, 0.0, 0.1)
+                    # weight_init.uniform(
+                    # self.model.classifier.weight, 0.0, 0.1)
 
     def before_iteration(self):
         pass

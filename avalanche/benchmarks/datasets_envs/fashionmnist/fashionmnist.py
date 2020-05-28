@@ -159,9 +159,8 @@ if __name__ == '__main__':
     perm_fmnist = fmnist.permute_fmnist(seed=0)
 
     # let's see some images
-    #print(mnist_data[0][0][0].shape)
-    #print(perm_mnist[0][0].shape)
-    #imgplot = plt.imshow(fmnist_data[0][0][300].squeeze(), cmap='gray')
+    # print(mnist_data[0][0][0].shape)
+    # print(perm_mnist[0][0].shape)
+    # imgplot = plt.imshow(fmnist_data[0][0][300].squeeze(), cmap='gray')
     # imgplot = plt.imshow(perm_fmnist[0][0], cmap='gray')
-    #plt.show()
-
+    # plt.show()

@@ -44,11 +44,12 @@ class AR1(Strategy):
                  eval_protocol=EvalProtocol(metrics=[ACC]), lr=0.001,
                  init_update_rate=0.01, inc_update_rate=0.00005, max_r_max=1.25,
                  max_d_max=0.5, inc_step=4.1e-05, rm_sz=1500, momentum=0.9,
-                 l2 = 0.0005, freeze_below_layer="lat_features.19.bn.beta",
+                 l2=0.0005, freeze_below_layer="lat_features.19.bn.beta",
                  latent_layer_num=19, ewc_lambda=0):
 
-        super(AR1, self).__init__(model, optimizer, criterion, mb_size, train_ep,
-                                  multi_head, device, preproc, eval_protocol)
+        super(AR1, self).__init__(model, optimizer, criterion, mb_size,
+                                  train_ep, multi_head, device, preproc,
+                                  eval_protocol)
 
         if optimizer is None:
             optimizer = torch.optim.SGD(
@@ -174,7 +175,8 @@ class AR1(Strategy):
                 else:
                     lat_mb_x = self.rm[0][it * n2inject: (it + 1) * n2inject]
                     lat_mb_y = self.rm[1][it * n2inject: (it + 1) * n2inject]
-                    y_mb = torch.cat((train_y[start:end], lat_mb_y), 0).to(self.device)
+                    y_mb = torch.cat((train_y[start:end],
+                                      lat_mb_y), 0).to(self.device)
                     lat_mb_x = lat_mb_x.to(self.device)
 
                 logits, lat_acts = self.model(
@@ -204,8 +206,7 @@ class AR1(Strategy):
                 if self.ewc_lambda != 0:
                     self.post_update(self.model, self.synData)
 
-                acc = correct_cnt.item() / \
-                      ((it + 1) * y_mb.size(0))
+                acc = correct_cnt.item() / ((it + 1) * y_mb.size(0))
                 ave_loss /= ((it + 1) * y_mb.size(0))
 
                 if it % 100 == 0:
@@ -254,7 +255,7 @@ class AR1(Strategy):
         for c, n in self.model.cur_j.items():
             self.model.past_j[c] += n
 
-        self.batch_processed +=1
+        self.batch_processed += 1
 
         return ave_loss, acc
 
