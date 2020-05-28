@@ -46,6 +46,7 @@ class CImageNet(object):
     def __init__(self, root='../data', num_initial = 500, num_batch=100,
                  sample_train=100, sample_test=10, transform=None):
         """" Initialize Object """
+        
 
         imagenet = ImageNet(data_folder=root, download=False,
                         sample_train=sample_train, sample_test=sample_test)
