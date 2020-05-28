@@ -1,7 +1,7 @@
 language: python
 
 python:
-  - "3.8"
+  - "3.7"
 
 install:
   # using anaconda
@@ -20,11 +20,17 @@ install:
   - conda info -a
   - conda env create -f environment.yml
   - conda activate avalanche-env
+  # install pycodestyle
+  - conda install -c conda-forge pycodestyle
+  # install pylint
+  - conda install -c anaconda pylint
   # install sphinx and sphinx theme
   - conda install -c anaconda sphinx
   - pip install sphinx_rtd_theme
 
 script:
+  - pycodestyle avalanche/
+  - pylint avalanche/ --exit-zero
   - python -m unittest
 
 after_success:
