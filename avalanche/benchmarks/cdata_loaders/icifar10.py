@@ -29,7 +29,8 @@ from avalanche.benchmarks.datasets_envs.cifar import remove_some_labels, \
 
 
 class ICIFAR10(object):
-    """ iCifar10 (from iCaRL paper) benchmark loader. give the path of the root_cifar10 data"""
+    """ iCifar10 (from iCaRL paper) benchmark loader.
+    give the path of the root_cifar10 data"""
 
     def __init__(self,
                  root_cifar10='',

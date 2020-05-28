@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import numpy as np
 import torch
 
+
 def consolidate_weights(model, cur_clas):
     """ Mean-shift for the target layer weights"""
 
@@ -40,9 +41,10 @@ def consolidate_weights(model, cur_clas):
                     wpast_j = np.sqrt(model.past_j[c] / model.cur_j[c])
                     # wpast_j = model.past_j[c] / model.cur_j[c]
                     model.saved_weights[c] = (model.saved_weights[c] * wpast_j
-                     + new_w) / (wpast_j + 1)
+                                              + new_w) / (wpast_j + 1)
                 else:
                     model.saved_weights[c] = new_w
+
 
 def set_consolidate_weights(model):
     """ set trained weights """
@@ -68,12 +70,14 @@ def reset_weights(model, cur_clas):
                     torch.from_numpy(model.saved_weights[c])
                 )
 
+
 def examples_per_class(train_y):
-    count = {i:0 for i in range(50)}
+    count = {i: 0 for i in range(50)}
     for y in train_y:
-        count[int(y)] +=1
+        count[int(y)] += 1
 
     return count
+
 
 def freeze_up_to(model, freeze_below_layer):
     for name, param in model.named_parameters():
@@ -82,5 +86,3 @@ def freeze_up_to(model, freeze_below_layer):
         print("Freezing parameter " + name)
         if name == freeze_below_layer:
             break
-
-

@@ -31,5 +31,3 @@ class TensorboardLogging(object):
 
         """
         self.writer = SummaryWriter(tb_logdir)
-
-

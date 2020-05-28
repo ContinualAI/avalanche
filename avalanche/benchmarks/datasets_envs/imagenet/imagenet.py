@@ -25,7 +25,6 @@ else:
     from urllib import urlretrieve
 
 
-
 class ImageNet(object):
     """ ImageNet dataset class
 
@@ -42,7 +41,6 @@ class ImageNet(object):
 
     def __init__(self, data_folder='../data', download=False, sample_train=100,
                  sample_test=10):
-
 
         if download is True:
             msg = ("The dataset is no longer publicly accessible. You need to "
@@ -83,17 +81,13 @@ class ImageNet(object):
             msg = ("There exist errors during dataset processing.")
             raise RuntimeError(msg)
 
-
-
     def get_classes(self):
 
         return self.classes
 
-
     def get_data(self):
 
         return [self.train_set, self.test_set]
-
 
 
 if __name__ == '__main__':
@@ -101,5 +95,4 @@ if __name__ == '__main__':
     imagenet = ImageNet(data_folder='/ssddata/ilsvrc-data/',
                         download=False, sample_train=100, sample_test=10)
     imagenet_data = imagenet.get_data()
-    print('%d classes are loaded.'%(len(imagenet_data[0])))
-
+    print('%d classes are loaded.' % (len(imagenet_data[0])))

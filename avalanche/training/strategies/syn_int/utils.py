@@ -24,6 +24,7 @@ from __future__ import absolute_import
 import numpy as np
 import torch
 
+
 def create_syn_data(model):
     size = 0
     print('Creating Syn data for Optimal params and their Fisher info')
@@ -49,7 +50,7 @@ def create_syn_data(model):
 def extract_weights(model, target):
 
     with torch.no_grad():
-        weights_vector= None
+        weights_vector = None
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
                 # print(name, param.flatten())
@@ -65,7 +66,7 @@ def extract_weights(model, target):
 def extract_grad(model, target):
     # Store the gradients into target
     with torch.no_grad():
-        grad_vector= None
+        grad_vector = None
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
                 # print(name, param.flatten())
@@ -127,5 +128,3 @@ def compute_ewc_loss(model, ewcData, lambd=0, device=None):
     ewcData = ewcData.to(device)
     loss = (lambd / 2) * torch.dot(ewcData[1], (weights_vector - ewcData[0])**2)
     return loss
-
-
