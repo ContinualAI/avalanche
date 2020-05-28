@@ -33,24 +33,32 @@ class CImageNet(object):
 
     Args:
         root (string): The path to load ImageNet dataset.
-        num_batch (int): The number of learning steps.
+        num_initial (int): The number of classes used for initial step.
+        num_batch (int): The number of learning steps. The initial step is
+        not counted. If num_initial > 0, num_batch will automatically plus 1.
         transform (torchvision.transforms): The transform to transfer PIL
         images to tensors.
 
     """
 
-    def __init__(self, root='../data', num_batch=100, sample_train=100,
-                 sample_test=10, transform=None):
+
+    def __init__(self, root='../data', num_initial = 500, num_batch=100,
+                 sample_train=100, sample_test=10, transform=None):
+
         """" Initialize Object """
 
         imagenet = ImageNet(data_folder=root, download=False,
-                            sample_train=sample_train, sample_test=sample_test)
+                        sample_train=sample_train, sample_test=sample_test)
         imagenet_data = imagenet.get_data()
         self.train_set, self.test_set = imagenet_data[0], imagenet_data[1]
         num_classes = len(imagenet.get_classes())
         classes_shuffled = np.random.permutation(num_classes).tolist()
-        self.num_batch = num_batch
-        self.tasks = [classes_shuffled[ib::self.num_batch]
+        self.tasks = [classes_shuffled[:num_initial]] if num_initial>0 else []
+        classes_shuffled = classes_shuffled[num_initial:] if num_initial>0 \
+            else classes_shuffled
+
+        self.num_batch = num_batch + 1 if num_initial >0 else num_batch
+        self.tasks += [classes_shuffled[ib::self.num_batch]
                       for ib in range(self.num_batch)]
         self.transform = transform
         self.iter = 0
@@ -139,13 +147,13 @@ if __name__ == "__main__":
 
     # Create the dataset object
     transform = transforms.Compose([transforms.Resize((224, 224)),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize(
-                                        mean=[0.485, 0.456, 0.406],
-                                        std=[0.229, 0.224, 0.225])])
-    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/', num_batch=100,
-                                sample_train=100, sample_test=10,
-                                transform=transform)
+            transforms.ToTensor(), transforms.Normalize(mean=
+                [0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/',
+            num_initial = 500, num_batch=100, sample_train=100,
+                sample_test=10, transform=transform)
+
+
 
     # Get the fixed test set
     full_testset = imagenet_loader.get_full_testset()
