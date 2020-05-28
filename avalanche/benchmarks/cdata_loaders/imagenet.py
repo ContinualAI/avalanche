@@ -28,7 +28,6 @@ import torchvision.transforms as transforms
 from avalanche.benchmarks.datasets_envs import ImageNet
 
 
-
 class CImageNet(object):
     """ ImageNet Data Loader class
 
@@ -45,8 +44,8 @@ class CImageNet(object):
 
     def __init__(self, root='../data', num_initial = 500, num_batch=100,
                  sample_train=100, sample_test=10, transform=None):
+
         """" Initialize Object """
-        
 
         imagenet = ImageNet(data_folder=root, download=False,
                         sample_train=sample_train, sample_test=sample_test)
@@ -63,8 +62,6 @@ class CImageNet(object):
                       for ib in range(self.num_batch)]
         self.transform = transform
         self.iter = 0
-
-
 
     def __iter__(self):
         return self
@@ -87,7 +84,6 @@ class CImageNet(object):
 
     next = __next__  # python2.x compatibility.
 
-
     def get_images(self, dataset):
         """
         Return images, labels according to the given dataset.
@@ -105,7 +101,7 @@ class CImageNet(object):
                 img = self.transform(img)
                 img = torch.unsqueeze(img, 0)
             except Exception:
-                print('Image loading error occurs: %s'%fname)
+                print('Image loading error occurs: %s' % fname)
                 continue
             images.append(img)
             labels.append(lab)
@@ -113,7 +109,6 @@ class CImageNet(object):
         labels = torch.tensor(labels, dtype=torch.long)
 
         return images, labels
-        
 
     def get_growing_testset(self):
         """
@@ -134,7 +129,6 @@ class CImageNet(object):
 
         return images, labels, self.iter
 
-
     def get_full_testset(self):
         """
         Return the test set (the same for each inc. batch).
@@ -149,8 +143,6 @@ class CImageNet(object):
         return [images, labels, self.iter]
 
 
-
-
 if __name__ == "__main__":
 
     # Create the dataset object
@@ -160,6 +152,7 @@ if __name__ == "__main__":
     imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/',
             num_initial = 500, num_batch=100, sample_train=100,
                 sample_test=10, transform=transform)
+
 
 
     # Get the fixed test set
