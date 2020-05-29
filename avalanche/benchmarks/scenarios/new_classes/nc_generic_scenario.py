@@ -14,9 +14,9 @@ from __future__ import annotations
 import torch
 from typing import Sequence, Any, List, Optional, Dict, Generic
 
-from .nc_definitions import DatasetPart, T_train_set_w_targets, \
+from ..generic_definitions import DatasetPart, T_train_set_w_targets, \
     T_test_set_w_targets
-from .nc_utils import make_transformation_subset
+from .nc_utils import make_nc_transformation_subset
 from avalanche.training.utils.transform_dataset import TransformationSubset, \
     DatasetWithTargets
 
@@ -45,33 +45,30 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
                  remap_class_indexes: bool = False):
         """
         Creates a NCGenericScenario instance given the training and test
-        Datasets and the number of batches/batches.
+        Datasets and the number of batches.
 
         By default, the number of classes will be automatically detected by
         looking at the training Dataset targets field. Classes will be
         uniformly distributed across the "n_batches" unless a per_task_classes
         argument is specified.
 
-        This scenario manager can be used easily manage transformations.
-        For an example of transformations, have a look at:
-        https://pytorch.org/docs/stable/torchvision/transforms.html
-
         The number of classes must be divisible without remainder by the number
         of batches. This also applies when the per_task_classes argument is not
         None.
 
         :param train_dataset: The training dataset. The dataset must contain a
-            "targets" field. For instance one can safely use Datasets from
+            "targets" field. For instance, one can safely use the datasets from
             the torchvision package.
         :param test_dataset: The test dataset. The dataset must contain a
-            "targets" field. For instance one can safely use Datasets from
+            "targets" field. For instance, one can safely use the datasets from
             the torchvision package.
-        :param n_batches: The number of batches/batches.
+        :param n_batches: The number of batches.
         :param shuffle: If True, the class order will be shuffled. Defaults to
             True.
         :param seed: If shuffle is True and seed is not None, the class order
             will be shuffled according to the seed. When None, the current
-            random number generator will be used. Defaults to None.
+            PyTorch random number generator state will be used.
+            Defaults to None.
         :param fixed_class_order: If not None, the class order to use (overrides
             the shuffle argument). Very useful for enhancing
             reproducibility. Defaults to None.
@@ -171,7 +168,7 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
                 # The dictionary contains a key (that is, a batch id) >=
                 # the number of requested batches... or < 0
                 raise ValueError(
-                    'Invalid batch id in per_task_classes parameter: '
+                    'Invalid batch id in per_batch_patterns parameter: '
                     'batch ids must be in range [0, n_batches)')
             if min(per_batch_classes.values()) < 0:
                 # One or more values (number of classes for each batch) < 0
@@ -182,7 +179,7 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
                 # The sum of dictionary values (n. of classes for each batch)
                 # >= the number of classes
                 raise ValueError('Insufficient number of classes: '
-                                 'per_task_classes parameter can\'t '
+                                 'per_batch_classes parameter can\'t '
                                  'be satisfied')
 
             # Remaining classes are equally distributed across remaining batches
@@ -301,7 +298,7 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         usually created automatically while iterating over an instance of
         :class:`NCGenericScenario`.
 
-        :param scenario: A reference to the global NC scenario
+        :param scenario: A reference to the NC scenario
         :param force_train_transformations: If True, train transformations will
             be applied to the test set too. The ``force_test_transformations``
             parameter can't be True at the same time. Defaults to False.
@@ -780,13 +777,13 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         dataset = self.scenario.train_dataset if is_train \
             else self.scenario.test_dataset
 
-        return make_transformation_subset(dataset,
-                                          patterns_transformation,
-                                          targets_transformation,
-                                          batch_classes,
-                                          bucket_classes=bucket_classes,
-                                          sort_classes=sort_classes,
-                                          sort_indexes=sort_indexes)
+        return make_nc_transformation_subset(dataset,
+                                             patterns_transformation,
+                                             targets_transformation,
+                                             batch_classes,
+                                             bucket_classes=bucket_classes,
+                                             sort_classes=sort_classes,
+                                             sort_indexes=sort_indexes)
 
     def __make_train_subset(self, batch_classes, bucket_classes: bool,
                             sort_classes: bool, sort_indexes: bool):

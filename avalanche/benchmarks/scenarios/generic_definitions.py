@@ -8,12 +8,10 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
-
 from enum import Enum
-from typing import List, TypeVar, Tuple
+from typing import TypeVar, Tuple, List
 
-from avalanche.training.utils.transform_dataset import IDatasetWithTargets, \
-    DatasetWithTargets
+from avalanche.training.utils import IDatasetWithTargets, DatasetWithTargets
 
 
 class DatasetPart(Enum):
@@ -35,9 +33,9 @@ T_train_set_w_targets = TypeVar('T_train_set_w_targets',
                                 bound=IDatasetWithTargets)
 T_test_set_w_targets = TypeVar('T_test_set_w_targets',
                                bound=IDatasetWithTargets)
-
 MTSingleSet = Tuple[DatasetWithTargets, int]
 MTMultipleSet = List[MTSingleSet]
 
-__all__ = ['T_train_set_w_targets', 'T_test_set_w_targets',
-           'DatasetPart', 'DatasetType', 'MTSingleSet', 'MTMultipleSet']
+
+__all__ = ['DatasetPart', 'DatasetType', 'T_train_set_w_targets',
+           'T_test_set_w_targets', 'MTSingleSet', 'MTMultipleSet']

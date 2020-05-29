@@ -10,27 +10,13 @@
 ################################################################################
 
 from collections import OrderedDict
-from typing import List, Iterable, Sequence, Dict, Any, Union
+from typing import List, Sequence, Dict, Any, Union
 
 import torch
-from torch import Tensor
 
 from avalanche.training.utils.transform_dataset import TransformationSubset, \
     IDatasetWithTargets
-
-
-def tensor_as_list(sequence) -> List:
-    # Numpy already returns the correct format
-    # Example: list(np.array([1, 2, 3])) returns [1, 2, 3]
-    #
-    # whereas: list(torch.tensor([1, 2, 3])) returns ->
-    # -> [tensor(1), tensor(2), tensor(3)], which is "bad"
-    if not isinstance(sequence, Iterable):
-        return [sequence]
-
-    if isinstance(sequence, Tensor):
-        return sequence.tolist()
-    return list(sequence)
+from avalanche.benchmarks.utils import tensor_as_list
 
 
 def _indexes_grouped_by_classes(sequence: Sequence[int],
@@ -151,12 +137,12 @@ def _indexes_from_set(sequence: Sequence[int],
                                          sort_indexes=sort_indexes)
 
 
-def make_transformation_subset(dataset: IDatasetWithTargets,
-                               transform: Any, target_transform: Any,
-                               classes: Union[None, Sequence[int]],
-                               bucket_classes: bool = False,
-                               sort_classes: bool = False,
-                               sort_indexes: bool = False) \
+def make_nc_transformation_subset(dataset: IDatasetWithTargets,
+                                  transform: Any, target_transform: Any,
+                                  classes: Union[None, Sequence[int]],
+                                  bucket_classes: bool = False,
+                                  sort_classes: bool = False,
+                                  sort_indexes: bool = False) \
         -> TransformationSubset:
     """
     Creates a subset given the list of classes the patterns should belong to.
@@ -190,4 +176,4 @@ def make_transformation_subset(dataset: IDatasetWithTargets,
                                 target_transform=target_transform)
 
 
-__all__ = ['tensor_as_list', 'make_transformation_subset']
+__all__ = ['make_nc_transformation_subset']

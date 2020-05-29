@@ -7,7 +7,7 @@ from avalanche.benchmarks.scenarios import \
     create_nc_multi_dataset_multi_task_scenario
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
-    make_transformation_subset
+    make_nc_transformation_subset
 
 
 class MultiTaskTests(unittest.TestCase):
@@ -87,16 +87,16 @@ class MultiTaskTests(unittest.TestCase):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
 
-        train_part1 = make_transformation_subset(
+        train_part1 = make_nc_transformation_subset(
             mnist_train, None, None, range(3))
-        train_part2 = make_transformation_subset(
+        train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10))
         train_part2 = TransformationSubset(
             train_part2, None, class_mapping=split_mapping)
 
-        test_part1 = make_transformation_subset(
+        test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3))
-        test_part2 = make_transformation_subset(
+        test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10))
         test_part2 = TransformationSubset(test_part2, None,
                                           class_mapping=split_mapping)

@@ -19,7 +19,11 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+from typing import List, Iterable
+
 import numpy as np
+from torch import Tensor
+
 
 def remove_some_labels(dataset, labels_set, scale_labels=False):
     """ This method simply remove patterns with labels contained in
@@ -50,3 +54,18 @@ def change_some_labels(dataset, labels_set, change_set):
         labels = np.put(labels, mask, change)
 
     return data, labels
+
+
+def tensor_as_list(sequence) -> List:
+    # Numpy: list(np.array([1, 2, 3])) returns [1, 2, 3]
+    # whereas: list(torch.tensor([1, 2, 3])) returns ->
+    # -> [tensor(1), tensor(2), tensor(3)]
+    #
+    # This is why we have to handle Tensor in a different way
+    if isinstance(sequence, list):
+        return sequence
+    if not isinstance(sequence, Iterable):
+        return [sequence]
+    if isinstance(sequence, Tensor):
+        return sequence.tolist()
+    return list(sequence)
