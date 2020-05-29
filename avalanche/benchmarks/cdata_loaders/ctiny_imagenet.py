@@ -29,7 +29,7 @@ class CTinyImageNet(object):
     """
 
     def __init__(self, root=None, num_tasks=5, num_classes_per_task=2,
-                classes_per_task=None, normalize=True):
+                 classes_per_task=None, normalize=True):
         """
         Args:
             :param string root: path in which to download data. None to use
@@ -69,8 +69,8 @@ class CTinyImageNet(object):
             try:
                 assert(type(classes_per_task) == list)
                 assert(all(
-                    [(type(el) == tuple or type(el) == list) 
-                    for el in classes_per_task ])
+                    [(type(el) == tuple or type(el) == list)
+                     for el in classes_per_task])
                 )
             except AssertionError:
                 logging.error("classes_per_task must be list of tuples.")
@@ -90,11 +90,10 @@ class CTinyImageNet(object):
             classes = list(range(200))
             random.shuffle(classes)
             self.classes_per_task = [ 
-                tuple(classes[i:i+num_classes_per_task]) \
-                for i in range(0, self.num_tasks*num_classes_per_task,\
-                    num_classes_per_task)
+                tuple(classes[i:i+num_classes_per_task])
+                for i in range(0, self.num_tasks*num_classes_per_task,
+                               num_classes_per_task)
                 ]
-
 
         self.tasks_id = list(range(self.num_tasks))
         self.iter = 0
@@ -150,12 +149,12 @@ class CTinyImageNet(object):
         return train_set, test_set
 
     def get_train_images(self, class_name):
-        train_img_folder = os.path.join(self.tiny_data.data_folder, \
-                'train', class_name, 'images')
+        train_img_folder = os.path.join(self.tiny_data.data_folder,
+                                        'train', class_name, 'images')
 
-        img_paths = [os.path.join(train_img_folder, f) 
-                for f in os.listdir(train_img_folder) 
-                if os.path.isfile(os.path.join(train_img_folder, f))]
+        img_paths = [os.path.join(train_img_folder, f)
+                     for f in os.listdir(train_img_folder)
+                     if os.path.isfile(os.path.join(train_img_folder, f))]
 
         # (batch_size, W, H, n_channels)
         train_X = self.load_images_from_paths(img_paths)
@@ -164,19 +163,20 @@ class CTinyImageNet(object):
 
     def get_test_images(self, class_name):
 
-        val_img_folder = os.path.join(self.tiny_data.data_folder, 'val', \
-            'images')
+        val_img_folder = os.path.join(self.tiny_data.data_folder, 'val',
+                                      'images')
 
         valid_names = []
         # filter validation images by class using appropriate file
         with open(os.path.join(
-            self.tiny_data.data_folder, 'val', 'val_annotations.txt'), 'r') \
-            as f:
+                self.tiny_data.data_folder,
+                'val',
+                'val_annotations.txt'), 'r') as f:
 
             reader = csv.reader(f, dialect='excel-tab')
-            for l in reader:
-                if l[1] == class_name:
-                    valid_names.append(l[0])
+            for ll in reader:
+                if ll[1] == class_name:
+                    valid_names.append(ll[0])
 
         img_paths = [os.path.join(val_img_folder, f) for f in valid_names]
         
@@ -188,7 +188,7 @@ class CTinyImageNet(object):
     def load_images_from_paths(self, paths):
 
         X = [np.array(Image.open(fname).convert('RGB'))
-                for fname in paths]
+             for fname in paths]
 
         # batch, channel, H, W
         X = np.moveaxis(np.stack(X), 3, 1)
@@ -197,7 +197,6 @@ class CTinyImageNet(object):
             X = X / 255
 
         return X
-
 
     def __iter__(self):
         return self

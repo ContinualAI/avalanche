@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from .metrics import ACC, CF, RAMU, CM, CPUUsage
+from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage
 import numpy as np
 from .tensorboard import TensorboardLogging
 
@@ -56,6 +56,8 @@ class EvalProtocol(object):
                 results[CM] = metric.compute(true_y, y_hat)
             elif isinstance(metric, CPUUsage):
                 results[CPUUsage] = metric.compute(train_t)
+            elif isinstance(metric, GPUUsage):
+                results[GPUUsage] = metric.compute(train_t)
             else:
                 raise ValueError("Unknown metric")
 
@@ -79,7 +81,7 @@ class EvalProtocol(object):
                 acc_scalars["task_"+str(t).zfill(3)] = acc_i
                 loss_scalars["task_"+str(t).zfill(3)] = ave_loss_i
                 for c in range(len(accs_i)):
-                    class_scalars["task_"+str(t).zfill(3)+"_class_"+ str(
+                    class_scalars["task_"+str(t).zfill(3)+"_class_" + str(
                         c).zfill(3)] = accs_i[c]
 
                     if t not in self.prev_acc_x_class:
@@ -126,7 +128,8 @@ class EvalProtocol(object):
                             cm_imgs = np.expand_dims(m_res[CM], axis=0)
                         else:
                             cm_imgs = np.concatenate((cm_imgs,
-                                 np.expand_dims(m_res[CM], axis=0)))
+                                                      np.expand_dims(m_res[CM],
+                                                                     axis=0)))
                     self.tb_logging.writer.add_images(
                         "Confusion_matrices", cm_imgs, step)
 

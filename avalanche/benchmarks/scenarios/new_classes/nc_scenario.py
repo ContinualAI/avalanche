@@ -79,7 +79,8 @@ class NCMultiTaskScenario(Generic[T_train_set_w_targets,
             for task_id in range(self.n_tasks):
                 n_classes_this_task = \
                     nc_generic_scenario.n_classes_per_batch[task_id]
-                self.classes_in_task.append(list(range(0, n_classes_this_task)))
+                self.classes_in_task.append(
+                    list(range(0, n_classes_this_task)))
         else:
             self.class_mapping = list(range(self.n_classes))
             self.classes_in_task = nc_generic_scenario.classes_in_batch
@@ -699,8 +700,8 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     future batches. Instances of this class are usually created when iterating
     over a :class:`NCSingleTaskScenario` instance.
 
-    It keeps a reference to that :class:`NCSingleTaskScenario` instance, which can be
-    used to retrieve additional info about the scenario.
+    It keeps a reference to that :class:`NCSingleTaskScenario` instance,
+    which can be used to retrieve additional info about the scenario.
     """
 
     def __init__(self,

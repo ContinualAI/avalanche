@@ -85,8 +85,8 @@ class SynInt(Strategy):
 
         loss = self.criterion(logits, y_mb)
         loss += compute_ewc_loss(self.model, self.ewcData,
-                                     lambd=self.si_lambda,
-                                     device=self.device)
+                                 lambd=self.si_lambda,
+                                 device=self.device)
         return loss
 
     def before_iteration(self):
@@ -100,5 +100,3 @@ class SynInt(Strategy):
     def after_train(self):
 
         update_ewc_data(self.model, self.ewcData, self.synData, 0.001, 1)
-
-

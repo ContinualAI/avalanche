@@ -94,7 +94,8 @@ class CORE50(object):
                         .reshape(164866, 128, 128, 3)
 
             else:
-                with open(os.path.join(self.root, 'core50_imgs.npz'), 'rb') as f:
+                with open(
+                        os.path.join(self.root, 'core50_imgs.npz'), 'rb') as f:
                     npzfile = np.load(f)
                     self.x = npzfile['x']
                     print("Writing bin for fast reloading...")
@@ -276,7 +277,6 @@ class CORE50(object):
         return x
 
 
-
 if __name__ == "__main__":
 
     # Create the dataset object for example with the "NIC_v2 - 79 benchmark"
@@ -295,4 +295,3 @@ if __name__ == "__main__":
 
         # use the data
         pass
-

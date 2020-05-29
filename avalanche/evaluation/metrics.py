@@ -32,6 +32,55 @@ import PIL.Image
 from torchvision.transforms import ToTensor
 from sklearn.utils.multiclass import unique_labels
 import io
+import queue
+import subprocess
+import threading
+
+
+class GPUUsage:
+    """
+        GPU usage metric measured as average usage percentage over time.
+
+        :param gpu_id: GPU device ID
+        :param every: time delay (in seconds) between measurements
+    """
+    def __init__(self, gpu_id, every=10):
+        # 'nvidia-smi --loop=1 --query-gpu=utilization.gpu --format=csv'
+        cmd = ['nvidia-smi', f'--loop={every}', '--query-gpu=utilization.gpu',
+               '--format=csv', f'--id={gpu_id}']
+        # something long running
+        self.p = subprocess.Popen(cmd, bufsize=1, stdout=subprocess.PIPE)
+        self.lines_queue = queue.Queue()
+        self.read_thread = threading.Thread(target=GPUUsage.push_lines,
+                                            args=(self,), daemon=True)
+        self.read_thread.start()
+
+        self.n_measurements = 0
+        self.avg_usage = 0
+
+    def compute(self, t):
+        """
+        Compute CPU usage measured in seconds.
+
+        :param t: task id
+        :return: tuple (float): average GPU usage
+        """
+        while not self.lines_queue.empty():
+            line = self.lines_queue.get()
+            if line[0] == 'u':  # skip first line 'utilization.gpu [%]'
+                continue
+            usage = int(line.strip()[:-1])
+            self.n_measurements += 1
+            self.avg_usage += usage
+        print(f"Train Task {t} - average GPU usage: {self.avg_usage}%")
+
+    def push_lines(self):
+        while True:
+            line = self.p.stdout.readline()
+            self.lines_queue.put(line.decode('ascii'))
+
+    def close(self):
+        self.p.terminate()
 
 
 class CPUUsage:
@@ -63,8 +112,9 @@ class ACC(object):
         Args:
             y (tensor list): true labels for each mini-batch
             y_hat (tensor list): predicted labels for each mini-batch
-            num_class (int, optional): number of classes in the test_set (useful in
-            case the test_set does not cover all the classes in the train_set.
+            num_class (int, optional): number of classes in the test_set
+            (useful in case the test_set does not cover all the classes
+            in the train_set).
 
         Returns:
             acc (float): average accuracy for the test set
@@ -178,39 +228,36 @@ class DiskUsage(object):
         usage = psutil.disk_usage(self.path_to_monitor)
 
         total, used, free, percent = \
-                bytes2human(usage.total), \
-                bytes2human(usage.used), \
-                bytes2human(usage.free), \
-                usage.percent
+            bytes2human(usage.total), \
+            bytes2human(usage.used), \
+            bytes2human(usage.free), \
+            usage.percent
 
-        print("Disk usage for {:}"
-                .format(self.path_to_monitor))
+        print("Disk usage for {:}".format(self.path_to_monitor))
         print("Task {:} - disk percent: {:}%, \
                 disk total: {:}, \
                 disk used: {:}, \
                 disk free: {:}"
-                .format(t, percent, total, used, free))
+              .format(t, percent, total, used, free))
 
         if self.disk_io:
             io = psutil.disk_io_counters()
             read_count, write_count = \
-                        io.read_count, \
-                        io.write_count
+                io.read_count, \
+                io.write_count
             read_bytes, write_bytes = \
-                        bytes2human(io.read_bytes), \
-                        bytes2human(io.write_bytes)
+                bytes2human(io.read_bytes), \
+                bytes2human(io.write_bytes)
 
             print("Task {:} - read count: {:}, \
                 write count: {:}, \
                 bytes read: {:}, \
                 bytes written: {:}"
-                .format(t, read_count, write_count, \
-                    read_bytes, write_bytes))
+                  .format(t, read_count, write_count, read_bytes, write_bytes))
 
             return usage, io
 
         else:
-
             return usage
 
 
@@ -267,4 +314,3 @@ class CM(object):
         image = PIL.Image.open(buf)
         image = ToTensor()(image)
         return image
-

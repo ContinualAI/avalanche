@@ -52,7 +52,8 @@ def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
         if mask is not None:
             # we put an high negative number so that after softmax that prob
             # will be zero and not contribute to the loss
-            idx = (torch.tensor(mask, dtype=torch.float, device=device) == 0).nonzero()
+            idx = (torch.tensor(mask, dtype=torch.float,
+                                device=device) == 0).nonzero()
             idx = idx.view(idx.size(0))
             logits[:, idx] = -10e10
 
@@ -68,8 +69,8 @@ def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
             if pred == y.data[i]:
                 hits_per_class[int(pred)] += 1
 
-    accs = np.asarray(hits_per_class) / \
-           np.asarray(pattern_per_class).astype(float)
+    accs = np.asarray(hits_per_class) / np.asarray(pattern_per_class)\
+        .astype(float)
 
     acc = correct_cnt * 1.0 / test_y.size(0)
 
@@ -98,7 +99,8 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
         if mask is not None:
             # we put an high negative number so that after softmax that prob
             # will be zero and not contribute to the loss
-            idx = (torch.tensor(mask, dtype=torch.float, device=device) == 0).nonzero()
+            idx = (torch.tensor(mask, dtype=torch.float,
+                                device=device) == 0).nonzero()
             idx = idx.view(idx.size(0))
             logits[:, idx] = -10e10
 
@@ -190,6 +192,7 @@ def reset_classifier(model, val=0, std=None):
 
     set_classifier(model, weights, biases)
 
+
 def shuffle_in_unison(dataset, seed=None, in_place=False):
     """
     Shuffle two (or more) list in unison. It's important to shuffle the images
@@ -278,7 +281,7 @@ def compute_one_hot(train_y, class_count):
 
 
 def imagenet_batch_preproc(img_batch, rgb_swap=True, channel_first=True,
-                        avg_sub=True):
+                           avg_sub=True):
     """ Pre-process batch of PIL img for Imagenet pre-trained models with caffe.
         It may be need adjustements depending on the pre-trained model
         since it is training dependent. """

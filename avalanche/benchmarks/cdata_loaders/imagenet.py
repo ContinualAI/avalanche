@@ -28,21 +28,22 @@ import torchvision.transforms as transforms
 from avalanche.benchmarks.datasets_envs import ImageNet
 
 
-
 class CImageNet(object):
     """ ImageNet Data Loader class
 
     Args:
         root (string): The path to load ImageNet dataset.
-        num_batch (int): The number of learning steps.
+        num_initial (int): The number of classes used for initial step.
+        num_batch (int): The number of learning steps. The initial step is
+        not counted. If num_initial > 0, num_batch will automatically plus 1.
         transform (torchvision.transforms): The transform to transfer PIL
         images to tensors.
 
     """
 
+    def __init__(self, root='../data', num_initial=500, num_batch=100,
+                 sample_train=100, sample_test=10, transform=None):
 
-    def __init__(self, root='../data', num_batch=100, sample_train=100,
-                 sample_test=10, transform=None):
         """" Initialize Object """
 
         imagenet = ImageNet(data_folder=root, download=False,
@@ -51,13 +52,15 @@ class CImageNet(object):
         self.train_set, self.test_set = imagenet_data[0], imagenet_data[1]
         num_classes = len(imagenet.get_classes())
         classes_shuffled = np.random.permutation(num_classes).tolist()
-        self.num_batch = num_batch
-        self.tasks = [classes_shuffled[ib::self.num_batch]
-                      for ib in range(self.num_batch)]
+        self.tasks = [classes_shuffled[:num_initial]] if num_initial > 0 else []
+        classes_shuffled = classes_shuffled[num_initial:] if num_initial > 0 \
+            else classes_shuffled
+
+        self.num_batch = num_batch + 1 if num_initial > 0 else num_batch
+        self.tasks += [classes_shuffled[ib::self.num_batch] for ib in range(
+            self.num_batch)]
         self.transform = transform
         self.iter = 0
-
-
 
     def __iter__(self):
         return self
@@ -80,7 +83,6 @@ class CImageNet(object):
 
     next = __next__  # python2.x compatibility.
 
-
     def get_images(self, dataset):
         """
         Return images, labels according to the given dataset.
@@ -98,7 +100,7 @@ class CImageNet(object):
                 img = self.transform(img)
                 img = torch.unsqueeze(img, 0)
             except Exception:
-                print('Image loading error occurs: %s'%fname)
+                print('Image loading error occurs: %s' % fname)
                 continue
             images.append(img)
             labels.append(lab)
@@ -106,7 +108,6 @@ class CImageNet(object):
         labels = torch.tensor(labels, dtype=torch.long)
 
         return images, labels
-        
 
     def get_growing_testset(self):
         """
@@ -127,7 +128,6 @@ class CImageNet(object):
 
         return images, labels, self.iter
 
-
     def get_full_testset(self):
         """
         Return the test set (the same for each inc. batch).
@@ -142,17 +142,16 @@ class CImageNet(object):
         return [images, labels, self.iter]
 
 
-
-
 if __name__ == "__main__":
 
     # Create the dataset object
-    transform = transforms.Compose([transforms.Resize((224, 224)),
-            transforms.ToTensor(), transforms.Normalize(mean=
-                [0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/', num_batch=100,
-            sample_train=100, sample_test=10, transform=transform)
-
+    transform = transforms.Compose(
+        [transforms.Resize((224, 224)), transforms.ToTensor(),
+         transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                              std=[0.229, 0.224, 0.225])])
+    imagenet_loader = CImageNet(root='/ssddata/ilsvrc-data/', num_initial=500,
+                                num_batch=100, sample_train=100, sample_test=10,
+                                transform=transform)
 
     # Get the fixed test set
     full_testset = imagenet_loader.get_full_testset()
