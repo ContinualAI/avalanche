@@ -121,7 +121,7 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
 
         for unique_idx in range(len(unique_targets)):
             class_id = int(unique_targets[unique_idx])
-            class_count = (unique_count[unique_idx])
+            class_count = int(unique_count[unique_idx])
             self.n_patterns_per_class[class_id] = class_count
 
         # The number of patterns in each batch
@@ -244,11 +244,11 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                 next_idx_per_class = [0 for _ in range(self.n_classes)]
                 for batch_id in range(self.n_batches):
                     for class_id in range(self.n_classes):
-                        end_idx = next_idx_per_class[class_id] + \
-                            self.batch_structure[batch_id][class_id]
+                        start_idx = next_idx_per_class[class_id]
+                        n_patterns = self.batch_structure[batch_id][class_id]
+                        end_idx = start_idx + n_patterns
                         self.batch_patterns[batch_id].extend(
-                            classes_to_patterns_idx[class_id][
-                                next_idx_per_class:end_idx]
+                            classes_to_patterns_idx[class_id][start_idx:end_idx]
                         )
                         next_idx_per_class[class_id] = end_idx
             else:
@@ -341,6 +341,14 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
 
         self.n_patterns_per_batch = [len(self.batch_patterns[batch_id])
                                      for batch_id in range(self.n_batches)]
+
+        self.classes_in_batch = []
+        for batch_id in range(self.n_batches):
+            self.classes_in_batch.append([])
+            batch_s = self.batch_structure[batch_id]
+            for class_id, n_patterns_of_class in enumerate(batch_s):
+                if n_patterns_of_class > 0:
+                    self.classes_in_batch[batch_id].append(class_id)
 
         # Steal transforms from the datasets, that is, copy the reference to the
         # transformation functions, and set to None the fields in the

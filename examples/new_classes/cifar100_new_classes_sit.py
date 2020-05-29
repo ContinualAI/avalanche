@@ -90,7 +90,6 @@ nc_scenario = create_nc_single_dataset_sit_scenario(
 # hidden layer.
 model = SimpleMLP(num_classes=nc_scenario.n_classes, input_size=32*32*3)
 
-
 # The Evaluation Protocol will keep track of the performance metrics of the
 # Continual Learning strategy. You can specify the metrics to use. For instance,
 # in this example we keep track of the accuracy, catastrophic forgetting,
