@@ -20,9 +20,8 @@ class NISITTests(unittest.TestCase):
 
         self.assertEqual(5, ni_scenario.n_batches)
         self.assertEqual(10, ni_scenario.n_classes)
-        for batch_id in range(ni_scenario.n_batches):
-            self.assertEqual(ni_scenario.n_classes,
-                             len(ni_scenario.classes_in_batch[batch_id]))
+        for batch_id in range(5):
+            self.assertEqual(10, len(ni_scenario.classes_in_batch[batch_id]))
 
         unique_classes, unique_count = \
             torch.unique(torch.as_tensor(mnist_train.targets),
@@ -56,15 +55,11 @@ class NISITTests(unittest.TestCase):
 
         self.assertEqual(ni_scenario_reference.n_batches, ni_scenario.n_batches)
 
-        self.assertEqual(
-            ni_scenario_reference.batch_patterns,
-            ni_scenario.batch_patterns
-        )
+        self.assertEqual(ni_scenario_reference.batch_patterns,
+                         ni_scenario.batch_patterns)
 
-        self.assertEqual(
-            ni_scenario_reference.batch_structure,
-            ni_scenario.batch_structure
-        )
+        self.assertEqual(ni_scenario_reference.batch_structure,
+                         ni_scenario.batch_structure)
 
     def test_ni_sit_multi_dataset_merge(self):
         split_mapping = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
@@ -90,12 +85,11 @@ class NISITTests(unittest.TestCase):
 
         self.assertEqual(5, ni_scenario.n_batches)
         self.assertEqual(10, ni_scenario.n_classes)
-        for batch_id in range(ni_scenario.n_batches):
-            self.assertEqual(ni_scenario.n_classes,
-                             len(ni_scenario.classes_in_batch[batch_id]))
+        for batch_id in range(5):
+            self.assertEqual(10, len(ni_scenario.classes_in_batch[batch_id]))
 
         all_classes = set()
-        for batch_id in range(ni_scenario.n_batches):
+        for batch_id in range(5):
             all_classes.update(ni_scenario.classes_in_batch[batch_id])
 
         self.assertEqual(10, len(all_classes))

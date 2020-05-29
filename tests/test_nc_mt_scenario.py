@@ -20,7 +20,7 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(5, nc_scenario.n_tasks)
         self.assertEqual(10, nc_scenario.n_classes)
         for task_id in range(5):
-            self.assertEqual(len(nc_scenario.classes_in_task[task_id]), 2)
+            self.assertEqual(2, len(nc_scenario.classes_in_task[task_id]))
 
         all_classes = set()
         all_original_classes = set()
@@ -42,10 +42,10 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(5, nc_scenario.n_tasks)
         self.assertEqual(10, nc_scenario.n_classes)
         for task_id in range(5):
-            self.assertEqual(len(nc_scenario.classes_in_task[task_id]), 2)
+            self.assertEqual(2, len(nc_scenario.classes_in_task[task_id]))
 
         all_classes = set()
-        for task_id in range(5):
+        for task_id in range(nc_scenario.n_tasks):
             all_classes.update(nc_scenario.classes_in_task[task_id])
 
         self.assertEqual(10, len(all_classes))
@@ -101,8 +101,7 @@ class MultiTaskTests(unittest.TestCase):
         test_part2 = TransformationSubset(test_part2, None,
                                           class_mapping=split_mapping)
         nc_scenario = create_nc_multi_dataset_multi_task_scenario(
-            [train_part1, train_part2], [test_part1, test_part2],
-            seed=1234)
+            [train_part1, train_part2], [test_part1, test_part2], seed=1234)
 
         self.assertEqual(2, nc_scenario.n_tasks)
         self.assertEqual(10, nc_scenario.n_classes)
