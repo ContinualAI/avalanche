@@ -292,6 +292,8 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                         remaining_patterns.difference_update(selected_patterns)
                         next_idx_per_class[class_id] = end_idx
 
+                remaining_patterns = list(remaining_patterns)
+
                 # We have assigned the required min_class_patterns_in_batch,
                 # now we assign the remaining patterns
                 #
@@ -302,6 +304,7 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                         torch.randperm(len(remaining_patterns))
                     ].tolist()
                 else:
+                    remaining_patterns.sort()
                     patterns_order = remaining_patterns
                 targets_order = [train_dataset.targets[pattern_idx]
                                  for pattern_idx in patterns_order]
