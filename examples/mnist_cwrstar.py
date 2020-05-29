@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 import torch
-
+import pdb;pdb.set_trace()
 from avalanche.benchmarks import CMNIST
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import CWRStar, Naive

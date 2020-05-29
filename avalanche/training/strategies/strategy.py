@@ -108,6 +108,7 @@ class Strategy(object):
         # copy of the data if not strictly needed!
         train_x = torch.as_tensor(train_x, dtype=torch.float)
         train_y = torch.as_tensor(train_y, dtype=torch.long)
+        tic = time.time()
 
         for ep in range(self.train_ep):
             self.before_epoch()
@@ -157,6 +158,8 @@ class Strategy(object):
         self.after_train()
         self.batch_processed += 1
 
+        print("Training time",time.time()-tic)
+
         return ave_loss, acc
 
     def test(self, test_set, num_workers=8):
@@ -164,6 +167,7 @@ class Strategy(object):
 
         res = {}
         ave_loss = 0
+        tic = time.time()
 
         for dataset, t in test_set:
             # In this way dataset can be both a tuple (x, y) and a Dataset
@@ -225,6 +229,7 @@ class Strategy(object):
         self.eval_protocol.update_tb_test(res, self.batch_processed)
 
         self.after_test()
+        print("Testing time",time.time()-tic)
 
         return res
 

@@ -18,6 +18,7 @@
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
+import time
 
 # other imports
 import logging
@@ -98,8 +99,9 @@ class CMNIST(object):
 
         if self.iter == self.num_batch:
             raise StopIteration
-
+        tic = time.time()
         train_set = self.all_train_sets[self.iter]
+        print("Dataset loaded",time.time()-tic)
 
         # get ready for next iter
         self.iter += 1
