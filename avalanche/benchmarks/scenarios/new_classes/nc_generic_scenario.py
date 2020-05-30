@@ -14,15 +14,15 @@ from __future__ import annotations
 import torch
 from typing import Sequence, Any, List, Optional, Dict, Generic
 
-from ..generic_definitions import DatasetPart, T_train_set_w_targets, \
-    T_test_set_w_targets
+from ..generic_definitions import DatasetPart, TrainSetWithTargets, \
+    TestSetWithTargets
 from .nc_utils import make_nc_transformation_subset
 from avalanche.training.utils.transform_dataset import TransformationSubset, \
     DatasetWithTargets
 
 
-class NCGenericScenario(Generic[T_train_set_w_targets,
-                                T_test_set_w_targets]):
+class NCGenericScenario(Generic[TrainSetWithTargets,
+                                TestSetWithTargets]):
     """
     This class defines a "New Classes" scenario. It is used when creating both
     task-oriented and single-incremental-batches (a.k.a. task-free) as
@@ -36,8 +36,11 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
     :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
     :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
     """
-    def __init__(self, train_dataset: T_train_set_w_targets,
-                 test_dataset: T_test_set_w_targets,
+
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self, train_dataset: TrainSetWithTargets,
+                 test_dataset: TestSetWithTargets,
                  n_batches: int, shuffle: bool = True,
                  seed: Optional[int] = None,
                  fixed_class_order: Optional[Sequence[int]] = None,
@@ -95,9 +98,9 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
         """
 
         # A reference to the full training set
-        self.original_train_dataset: T_train_set_w_targets = train_dataset
+        self.original_train_dataset: TrainSetWithTargets = train_dataset
         # A reference to the full test set
-        self.original_test_dataset: T_test_set_w_targets = test_dataset
+        self.original_test_dataset: TestSetWithTargets = test_dataset
         # The number of batches
         self.n_batches: int = n_batches
         # The class order
@@ -272,11 +275,11 @@ class NCGenericScenario(Generic[T_train_set_w_targets,
         return self.n_batches
 
     def __getitem__(self, batch_idx) -> \
-            NCGenericBatchInfo[T_train_set_w_targets, T_test_set_w_targets]:
+            NCGenericBatchInfo[TrainSetWithTargets, TestSetWithTargets]:
         return NCGenericBatchInfo(self, current_batch=batch_idx)
 
 
-class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
+class NCGenericBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Classes" batch. It contains methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
@@ -287,8 +290,8 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     be used to retrieve data about the NC scenario.
     """
 
-    def __init__(self, scenario: NCGenericScenario[T_train_set_w_targets,
-                                                   T_test_set_w_targets],
+    def __init__(self, scenario: NCGenericScenario[TrainSetWithTargets,
+                                                   TestSetWithTargets],
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False,
@@ -316,8 +319,8 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         # The current batch ID
         self.current_batch: int = current_batch
         # The reference to the NCGenericScenario
-        self.scenario: NCGenericScenario[T_train_set_w_targets,
-                                         T_test_set_w_targets] = scenario
+        self.scenario: NCGenericScenario[TrainSetWithTargets,
+                                         TestSetWithTargets] = scenario
 
         self.force_train_transformations = force_train_transformations
         self.force_test_transformations = force_test_transformations
@@ -389,10 +392,9 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.__make_train_subset(self.classes_seen_so_far,
                                             bucket_classes, sort_classes,
                                             sort_indexes)
-        else:
-            return self.__make_train_subset(self.previous_classes,
-                                            bucket_classes, sort_classes,
-                                            sort_indexes)
+        return self.__make_train_subset(self.previous_classes,
+                                        bucket_classes, sort_classes,
+                                        sort_indexes)
 
     def complete_training_set(self, bucket_classes=False, sort_classes=False,
                               sort_indexes=False) -> DatasetWithTargets:
@@ -480,26 +482,25 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_training_set(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_set(include_current_batch=True,
                                                 bucket_classes=bucket_classes,
                                                 sort_classes=sort_classes,
                                                 sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_training_set(include_current_batch=False,
                                                 bucket_classes=bucket_classes,
                                                 sort_classes=sort_classes,
                                                 sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_training_set(bucket_classes=bucket_classes,
                                             sort_classes=sort_classes,
                                             sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_training_set(bucket_classes=bucket_classes,
                                               sort_classes=sort_classes,
                                               sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     # Test set utils
     def current_test_set(self, bucket_classes=False, sort_classes=False,
@@ -631,29 +632,28 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_test_set(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_set(include_current_batch=True,
                                             bucket_classes=bucket_classes,
                                             sort_classes=sort_classes,
                                             sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_test_set(include_current_batch=False,
                                             bucket_classes=bucket_classes,
                                             sort_classes=sort_classes,
                                             sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_test_set(bucket_classes=bucket_classes,
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_test_set(bucket_classes=bucket_classes,
                                           sort_classes=sort_classes,
                                           sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def disable_transformations(self) -> NCGenericBatchInfo[
-        T_train_set_w_targets, T_test_set_w_targets
+        TrainSetWithTargets, TestSetWithTargets
     ]:
         """
         Returns a new batch info instance in which transformations are disabled.
@@ -672,7 +672,7 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def enable_transformations(self) -> NCGenericBatchInfo[
-        T_train_set_w_targets, T_test_set_w_targets
+        TrainSetWithTargets, TestSetWithTargets
     ]:
         """
         Returns a new batch info instance in which transformations are enabled.
@@ -692,7 +692,7 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_train_transformations(self) -> NCGenericBatchInfo[
-        T_train_set_w_targets, T_test_set_w_targets
+        TrainSetWithTargets, TestSetWithTargets
     ]:
         """
         Returns a new batch info instance in which train transformations are
@@ -710,7 +710,7 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_test_transformations(self) -> NCGenericBatchInfo[
-        T_train_set_w_targets, T_test_set_w_targets
+        TrainSetWithTargets, TestSetWithTargets
     ]:
         """
         Returns a new batch info instance in which test transformations are
@@ -735,10 +735,9 @@ class NCGenericBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return [item for sublist in
                     self.scenario.classes_in_batch[batch_start:] for item in
                     sublist]
-        else:
-            return [item for sublist
-                    in self.scenario.classes_in_batch[batch_start:batch_end]
-                    for item in sublist]
+        return [item for sublist
+                in self.scenario.classes_in_batch[batch_start:batch_end]
+                for item in sublist]
 
     def _go_to_batch(self):
         if self.current_batch >= 0:

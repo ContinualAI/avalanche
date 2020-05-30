@@ -23,9 +23,8 @@ class NISITTests(unittest.TestCase):
         for batch_id in range(5):
             self.assertEqual(10, len(ni_scenario.classes_in_batch[batch_id]))
 
-        unique_classes, unique_count = \
-            torch.unique(torch.as_tensor(mnist_train.targets),
-                         return_counts=True)
+        _, unique_count = torch.unique(torch.as_tensor(mnist_train.targets),
+                                       return_counts=True)
 
         min_batch_size = torch.sum(unique_count // ni_scenario.n_batches).item()
         max_batch_size = min_batch_size + ni_scenario.n_classes

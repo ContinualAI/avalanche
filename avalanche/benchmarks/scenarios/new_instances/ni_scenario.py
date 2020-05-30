@@ -15,13 +15,13 @@ from typing import Optional, List, Generic, Any, Union, Tuple, Iterable, \
 import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    T_train_set_w_targets, T_test_set_w_targets, DatasetPart, MTSingleSet, \
+    TrainSetWithTargets, TestSetWithTargets, DatasetPart, MTSingleSet, \
     MTMultipleSet
 from avalanche.training.utils import TransformationSubset
 from .ni_utils import make_ni_transformation_subset
 
 
-class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
+class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Instance" Single Incremental Task scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -41,8 +41,8 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     """
 
     def __init__(
-            self, train_dataset: T_train_set_w_targets,
-            test_dataset: T_test_set_w_targets, n_batches: int,
+            self, train_dataset: TrainSetWithTargets,
+            test_dataset: TestSetWithTargets, n_batches: int,
             shuffle: bool = True, seed: Optional[int] = None,
             balance_batches: bool = False,
             min_class_patterns_in_batch: int = 0,
@@ -79,9 +79,9 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         """
 
         # A reference to the full training set
-        self.train_dataset: T_train_set_w_targets = train_dataset
+        self.train_dataset: TrainSetWithTargets = train_dataset
         # A reference to the full test set
-        self.test_dataset: T_test_set_w_targets = test_dataset
+        self.test_dataset: TestSetWithTargets = test_dataset
         # The number of batches
         self.n_batches: int = n_batches
         # Training patterns transformation (can be None)
@@ -382,11 +382,11 @@ class NIScenario(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         return self.n_batches
 
     def __getitem__(self, batch_idx) -> \
-            'NIBatchInfo[T_train_set_w_targets, T_test_set_w_targets]':
+            'NIBatchInfo[TrainSetWithTargets, TestSetWithTargets]':
         return NIBatchInfo(self, current_batch=batch_idx)
 
 
-class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
+class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Instances" batch. It defines methods to obtain the current,
     previous, cumulative and future training sets. The returned test
@@ -400,8 +400,8 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     It keeps a reference to that :class:`NIScenario` instance, which can be
     used to retrieve additional info about the scenario.
     """
-    def __init__(self, scenario: NIScenario[T_train_set_w_targets,
-                                            T_test_set_w_targets],
+    def __init__(self, scenario: NIScenario[TrainSetWithTargets,
+                                            TestSetWithTargets],
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False,
@@ -429,8 +429,8 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         # The current batch ID
         self.current_batch: int = current_batch
         # The reference to the NIScenario
-        self.scenario: NIScenario[T_train_set_w_targets,
-                                  T_test_set_w_targets] = scenario
+        self.scenario: NIScenario[TrainSetWithTargets,
+                                  TestSetWithTargets] = scenario
 
         self.force_train_transformations = force_train_transformations
         self.force_test_transformations = force_test_transformations
@@ -608,26 +608,25 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_training_set(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_batch=True,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_training_sets(include_current_batch=False,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_training_sets(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_training_sets(bucket_classes=bucket_classes,
                                                sort_classes=sort_classes,
                                                sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def current_test_set(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) \
@@ -766,30 +765,29 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_test_set(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_sets(include_current_batch=True,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_test_sets(include_current_batch=False,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_test_sets(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_test_sets(bucket_classes=bucket_classes,
                                            sort_classes=sort_classes,
                                            sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def disable_transformations(self) -> 'NIBatchInfo[' \
-                                         'T_train_set_w_targets, ' \
-                                         'T_test_set_w_targets]':
+                                         'TrainSetWithTargets, ' \
+                                         'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are disabled.
         The current instance is not affected. This is useful when there is a
@@ -807,8 +805,8 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def enable_transformations(self) -> 'NIBatchInfo[' \
-                                        'T_train_set_w_targets, ' \
-                                        'T_test_set_w_targets]':
+                                        'TrainSetWithTargets, ' \
+                                        'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are enabled.
         The current instance is not affected. When created the
@@ -826,8 +824,8 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_train_transformations(self) -> 'NIBatchInfo[' \
-                                            'T_train_set_w_targets, ' \
-                                            'T_test_set_w_targets]':
+                                            'TrainSetWithTargets, ' \
+                                            'TestSetWithTargets]':
         """
         Returns a new batch info instance in which train transformations are
         applied to both training and test sets. The current instance is not
@@ -844,8 +842,8 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_test_transformations(self) -> 'NIBatchInfo[' \
-                                           'T_train_set_w_targets, ' \
-                                           'T_test_set_w_targets]':
+                                           'TrainSetWithTargets, ' \
+                                           'TestSetWithTargets]':
         """
         Returns a new batch info instance in which test transformations are
         applied to both training and test sets. The current instance is
@@ -924,11 +922,11 @@ class NIBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                 targets_transformation, patterns_indexes,
                 bucket_classes=bucket_classes, sort_classes=sort_classes,
                 sort_indexes=sort_indexes)
-        else:
-            return make_ni_transformation_subset(
-                self.scenario.test_dataset, patterns_transformation,
-                targets_transformation, None, bucket_classes=bucket_classes,
-                sort_classes=sort_classes, sort_indexes=sort_indexes)
+
+        return make_ni_transformation_subset(
+            self.scenario.test_dataset, patterns_transformation,
+            targets_transformation, None, bucket_classes=bucket_classes,
+            sort_classes=sort_classes, sort_indexes=sort_indexes)
 
     def __make_subset(self, batches: Union[int, Iterable[int]],
                       is_train, bucket_classes: bool, sort_classes: bool,

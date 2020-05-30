@@ -29,13 +29,11 @@ class DatasetType(Enum):
     VALIDATION = 2  # Validation (or test) set
 
 
-T_train_set_w_targets = TypeVar('T_train_set_w_targets',
-                                bound=IDatasetWithTargets)
-T_test_set_w_targets = TypeVar('T_test_set_w_targets',
-                               bound=IDatasetWithTargets)
+TrainSetWithTargets = TypeVar('TrainSetWithTargets', bound=IDatasetWithTargets)
+TestSetWithTargets = TypeVar('TestSetWithTargets', bound=IDatasetWithTargets)
 MTSingleSet = Tuple[DatasetWithTargets, int]
 MTMultipleSet = List[MTSingleSet]
 
 
-__all__ = ['DatasetPart', 'DatasetType', 'T_train_set_w_targets',
-           'T_test_set_w_targets', 'MTSingleSet', 'MTMultipleSet']
+__all__ = ['DatasetPart', 'DatasetType', 'TrainSetWithTargets',
+           'TestSetWithTargets', 'MTSingleSet', 'MTMultipleSet']

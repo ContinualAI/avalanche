@@ -132,9 +132,9 @@ def _indexes_from_set(sequence: Sequence[int],
         return _indexes_grouped_by_classes(sequence, search_elements,
                                            sort_indexes=sort_indexes,
                                            sort_classes=sort_classes)
-    else:
-        return _indexes_without_grouping(sequence, search_elements,
-                                         sort_indexes=sort_indexes)
+
+    return _indexes_without_grouping(sequence, search_elements,
+                                     sort_indexes=sort_indexes)
 
 
 def make_nc_transformation_subset(dataset: IDatasetWithTargets,

@@ -92,16 +92,16 @@ def _indexes_from_set(targets: Sequence[int],
         return _indexes_grouped_by_classes(targets, patterns_indexes,
                                            sort_indexes=sort_indexes,
                                            sort_classes=sort_classes)
-    else:
-        if patterns_indexes is None:
-            return None
-        if not sort_indexes:
-            return tensor_as_list(patterns_indexes)
 
-        patterns_indexes = tensor_as_list(patterns_indexes)
-        result = list(patterns_indexes)
-        result.sort()
-        return result
+    if patterns_indexes is None:
+        return None
+    if not sort_indexes:
+        return tensor_as_list(patterns_indexes)
+
+    patterns_indexes = tensor_as_list(patterns_indexes)
+    result = list(patterns_indexes)
+    result.sort()
+    return result
 
 
 def make_ni_transformation_subset(dataset: IDatasetWithTargets,

@@ -74,13 +74,11 @@ def _manage_advanced_indexing(idx, single_element_getter, max_length):
         indexes_iterator = range(*idx.indices(max_length))
     elif isinstance(idx, int):
         indexes_iterator = [idx]
-    else:  # Should handle other types (ndarray, Tensor, Sequence, ...)
-        if hasattr(idx, 'shape') and \
-                len(getattr(idx, 'shape')) == 0:
-            # Manages 0-d ndarray / Tensor
-            indexes_iterator = [int(idx)]
-        else:
-            indexes_iterator = idx
+    elif hasattr(idx, 'shape') and len(getattr(idx, 'shape')) == 0:
+        # Manages 0-d ndarray / Tensor
+        indexes_iterator = [int(idx)]
+    else:
+        indexes_iterator = idx
 
     for single_idx in indexes_iterator:
         pattern, label = single_element_getter(single_idx)
@@ -94,14 +92,14 @@ def _manage_advanced_indexing(idx, single_element_getter, max_length):
 
     if len(patterns) == 1:
         return patterns[0], labels[0]
-    else:
-        labels_cat = torch.stack(labels)
-        patterns_cat = patterns
 
-        if treat_as_tensors:
-            patterns_cat = torch.stack(patterns)
+    labels_cat = torch.stack(labels)
+    patterns_cat = patterns
 
-        return patterns_cat, labels_cat
+    if treat_as_tensors:
+        patterns_cat = torch.stack(patterns)
+
+    return patterns_cat, labels_cat
 
 
 class TransformationDataset(DatasetWithTargets):
@@ -166,8 +164,8 @@ class LazyClassMapping(Sequence[int]):
 
         if self._mapping is not None:
             return self._mapping[self._targets[subset_idx]]
-        else:
-            return self._targets[subset_idx]
+
+        return self._targets[subset_idx]
 
     def __str__(self):
         return '[' + \
@@ -209,8 +207,8 @@ class TransformationSubset(DatasetWithTargets):
 
         if self.class_mapping is not None:
             return result[0], self.class_mapping[result[1]]
-        else:
-            return result
+
+        return result
 
 
 def find_correct_list(pattern_idx, list_sizes, max_size):

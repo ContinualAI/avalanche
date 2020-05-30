@@ -24,7 +24,6 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
-from torch.autograd import Variable
 
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,

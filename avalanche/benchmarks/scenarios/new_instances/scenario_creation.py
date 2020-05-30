@@ -92,7 +92,7 @@ def create_ni_multi_dataset_sit_scenario(
         raise ValueError('Train/test dataset lists must contain the '
                          'exact same number of datasets')
 
-    seq_train_dataset, seq_test_dataset, mapping = \
+    seq_train_dataset, seq_test_dataset, _ = \
         concat_datasets_sequentially(train_dataset_list, test_dataset_list)
 
     return NIScenario(seq_train_dataset, seq_test_dataset, n_batches,
