@@ -44,6 +44,7 @@ class EvalProtocol(object):
         """ Compute results based on accuracy """
 
         results = {}
+        #import pdb;pdb.set_trace()
 
         for metric in self.metrics:
             if isinstance(metric, ACC):
@@ -58,6 +59,8 @@ class EvalProtocol(object):
                 results[CPUUsage] = metric.compute(train_t)
             elif isinstance(metric, GPUUsage):
                 results[GPUUsage] = metric.compute(train_t)
+            elif isinstance(metric, DiskUsage):
+                results[DiskUsage] = metric.compute(train_t)
             else:
                 raise ValueError("Unknown metric")
 

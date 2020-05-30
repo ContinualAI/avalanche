@@ -99,9 +99,7 @@ class CMNIST(object):
 
         if self.iter == self.num_batch:
             raise StopIteration
-        tic = time.time()
         train_set = self.all_train_sets[self.iter]
-        print("Dataset loaded",time.time()-tic)
 
         # get ready for next iter
         self.iter += 1

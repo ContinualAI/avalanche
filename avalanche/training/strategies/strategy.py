@@ -19,14 +19,13 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import time
-
 from torch.utils.data import DataLoader, Dataset
 
-from avalanche.evaluation.metrics import ACC
+from avalanche.evaluation.metrics import *
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
+time = TimeUsage()
 
 
 def load_all_dataset(dataset: Dataset, num_workers: int = 0):
@@ -96,9 +95,10 @@ class Strategy(object):
     def train(self, x, y, t):
         self.x, self.y, self.t = x, y, t
         self.before_train()
+        time.start()
+
         self.cur_ep = 0
         self.cur_train_t = t
-
         train_x, train_y, it_x_ep = self.preproc_batch_data(x, y, t)
 
         correct_cnt, ave_loss = 0, 0
@@ -108,7 +108,6 @@ class Strategy(object):
         # copy of the data if not strictly needed!
         train_x = torch.as_tensor(train_x, dtype=torch.float)
         train_y = torch.as_tensor(train_y, dtype=torch.long)
-        tic = time.time()
 
         for ep in range(self.train_ep):
             self.before_epoch()
@@ -157,18 +156,16 @@ class Strategy(object):
 
         self.after_train()
         self.batch_processed += 1
-
-        print("Training time",time.time()-tic)
+        time.stop()
 
         return ave_loss, acc
 
     def test(self, test_set, num_workers=8):
         self.before_test()
+        time.start()
 
         res = {}
         ave_loss = 0
-        tic = time.time()
-
         for dataset, t in test_set:
             # In this way dataset can be both a tuple (x, y) and a Dataset
             if isinstance(dataset, Dataset):
@@ -229,8 +226,7 @@ class Strategy(object):
         self.eval_protocol.update_tb_test(res, self.batch_processed)
 
         self.after_test()
-        print("Testing time",time.time()-tic)
-
+        time.stop()
         return res
 
     def compute_loss(self, logits, y_mb):

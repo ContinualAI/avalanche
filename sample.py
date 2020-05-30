@@ -1,5 +1,5 @@
 from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.evaluation.metrics import * #ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
@@ -17,7 +17,7 @@ model = SimpleMLP()
 cdata = CMNIST()
 
 # Eval Protocol
-evalp = EvalProtocol()
+evalp = EvalProtocol(metrics=[ACC(),RAMU()])
 
 # adding the CL strategy
 clmodel = Naive(model, eval_protocol=evalp)
@@ -28,7 +28,6 @@ test_full = cdata.get_full_testset()
 results = []
 
 # loop over the training incremental batches
-tic = time.time()
 for i, (x, y, t) in enumerate(cdata):
 
     # training over the batch
@@ -40,6 +39,4 @@ for i, (x, y, t) in enumerate(cdata):
 
     # testing
     results.append(clmodel.test(test_full))
-print("code completed",time.time()-tic)
-
 writer.close()
