@@ -98,7 +98,6 @@ nc_scenario = create_nc_single_dataset_multi_task_scenario(
 output_units = nc_scenario.n_classes//nc_scenario.n_tasks
 model = SimpleMLP(num_classes=output_units)
 
-
 # The Evaluation Protocol will keep track of the performance metrics of the
 # Continual Learning strategy. You can specify the metrics to use. For instance,
 # in this example we keep track of the accuracy, catastrophic forgetting,

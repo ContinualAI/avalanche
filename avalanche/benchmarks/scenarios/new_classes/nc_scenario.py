@@ -11,22 +11,22 @@
 
 from typing import Tuple, Generic, List, Union, Sequence, Optional
 
-from .nc_definitions import T_train_set_w_targets, T_test_set_w_targets, \
-    DatasetPart, MTSingleSet, MTMultipleSet
-from .nc_utils import make_transformation_subset
+from ..generic_definitions import DatasetPart, TrainSetWithTargets, \
+    TestSetWithTargets, MTSingleSet, MTMultipleSet
+from .nc_utils import make_nc_transformation_subset
 from .nc_generic_scenario import NCGenericScenario, NCGenericBatchInfo
 from avalanche.training.utils.transform_dataset import TransformationSubset
 
 
-class NCMultiTaskScenario(Generic[T_train_set_w_targets,
-                                  T_test_set_w_targets]):
+class NCMultiTaskScenario(Generic[TrainSetWithTargets,
+                                  TestSetWithTargets]):
     """
     This class defines a "New Classes" multi task scenario based on a
     :class:`NCGenericScenario` instance. Once created, an instance of this
     class can be iterated in order to obtain the task sequence under
     the form of instances of :class:`NCTaskInfo`.
 
-    Instances of this class can be creating using the constructor directly.
+    Instances of this class can be created using the constructor directly.
     However, we recommend using facilities like:
     :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
     :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
@@ -38,8 +38,8 @@ class NCMultiTaskScenario(Generic[T_train_set_w_targets,
     (see: :class:`NCTaskInfo`).
     """
     def __init__(self,
-                 nc_generic_scenario: NCGenericScenario[T_train_set_w_targets,
-                                                        T_test_set_w_targets],
+                 nc_generic_scenario: NCGenericScenario[TrainSetWithTargets,
+                                                        TestSetWithTargets],
                  classes_ids_from_zero_in_each_task: bool = True):
         """
         Creates a NC multi task scenario given a :class:`NCGenericScenario`
@@ -52,8 +52,8 @@ class NCMultiTaskScenario(Generic[T_train_set_w_targets,
         """
         # nc_generic_scenario keeps a reference to the NCGenericScenario
         self.nc_generic_scenario: \
-            NCGenericScenario[T_train_set_w_targets,
-                              T_test_set_w_targets] = nc_generic_scenario
+            NCGenericScenario[TrainSetWithTargets,
+                              TestSetWithTargets] = nc_generic_scenario
 
         # n_tasks is the number of tasks for this scenario
         self.n_tasks: int = self.nc_generic_scenario.n_batches
@@ -91,48 +91,48 @@ class NCMultiTaskScenario(Generic[T_train_set_w_targets,
         return self.n_tasks
 
     def __getitem__(self, task_idx) -> 'NCTaskInfo[' \
-                                       'T_train_set_w_targets,' \
-                                       'T_test_set_w_targets]':
+                                       'TrainSetWithTargets,' \
+                                       'TestSetWithTargets]':
         return NCTaskInfo(self, self.nc_generic_scenario[task_idx],
                           current_task=task_idx)
 
 
-class NCTaskInfo(Generic[T_train_set_w_targets,
-                         T_test_set_w_targets]):
+class NCTaskInfo(Generic[TrainSetWithTargets,
+                         TestSetWithTargets]):
     """
     Defines a "New Classes" task. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
     fields that can be used to check which classes are in this, previous and
     future batches. Instances of this class are usually created when iterating
-    over the :class:`NCMultiDatasetMultiTaskScenario`.
+    over a :class:`NCMultiTaskScenario` instance.
 
-    It keeps a reference to that :class:`NCMultiDatasetMultiTaskScenario`
+    It keeps a reference to that :class:`NCMultiTaskScenario`
     instance, which can be used to retrieve additional info about the
     scenario.
     """
     def __init__(self,
                  nc_task_scenario:
-                 NCMultiTaskScenario[T_train_set_w_targets,
-                                     T_test_set_w_targets],
-                 sit_batch_info: NCGenericBatchInfo[T_train_set_w_targets,
-                                                    T_test_set_w_targets],
+                 NCMultiTaskScenario[TrainSetWithTargets,
+                                     TestSetWithTargets],
+                 sit_batch_info: NCGenericBatchInfo[TrainSetWithTargets,
+                                                    TestSetWithTargets],
                  current_task: int = -1):
         """
         Creates a NCMultiDatasetTaskInfo instance given the root scenario.
         Instances of this class are usually created automatically while
-        iterating over an instance of :class:`NCMultiDatasetMultiTaskScenario`.
+        iterating over an instance of :class:`NCMultiTaskScenario`.
         
         :param nc_task_scenario: The scenario
         :param sit_batch_info: The batch info
         :param current_task: The task ID
         """
-        self.scenario: NCMultiTaskScenario[T_train_set_w_targets,
-                                           T_test_set_w_targets] \
+        self.scenario: NCMultiTaskScenario[TrainSetWithTargets,
+                                           TestSetWithTargets] \
             = nc_task_scenario
 
         self.current_task: int = current_task
 
-        # Just wrap NCGenericGenericBatchInfo
+        # Just wrap NCGenericBatchInfo
         self._sit_batch_info = sit_batch_info
 
         # List of classes (original IDs) of current and previous batches,
@@ -179,7 +179,7 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
                                  bucket_classes=False, sort_classes=False,
                                  sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the cumulative training set
+        Gets the list of cumulative training sets
 
         :param include_current_task: If True, include the current task training
             set. Defaults to True.
@@ -206,7 +206,7 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
     def complete_training_sets(self, bucket_classes=False, sort_classes=False,
                                sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete training set
+        Gets the complete list of training sets
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -299,26 +299,25 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             return self.current_training_set(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_task=True,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_training_sets(include_current_task=False,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_training_sets(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_training_sets(bucket_classes=bucket_classes,
                                                sort_classes=sort_classes,
                                                sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def current_test_set(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) \
@@ -347,7 +346,7 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
                              bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the cumulative test set
+        Gets the list of cumulative test sets
 
         :param include_current_task: If True, include the current task training
             set. Defaults to True.
@@ -374,7 +373,7 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
     def complete_test_sets(self, bucket_classes=False, sort_classes=False,
                            sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete test set
+        Gets the complete list of test sets
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -464,30 +463,29 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             return self.current_test_set(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_sets(include_current_task=True,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_test_sets(include_current_task=False,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_test_sets(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_test_sets(bucket_classes=bucket_classes,
                                            sort_classes=sort_classes,
                                            sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def disable_transformations(self) -> 'NCTaskInfo[' \
-                                         'T_train_set_w_targets, ' \
-                                         'T_test_set_w_targets]':
+                                         'TrainSetWithTargets, ' \
+                                         'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are disabled.
         The current instance is not affected. This is useful when there is a
@@ -503,12 +501,12 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             current_task=self.current_task)
 
     def enable_transformations(self) -> 'NCTaskInfo[' \
-                                        'T_train_set_w_targets, ' \
-                                        'T_test_set_w_targets]':
+                                        'TrainSetWithTargets, ' \
+                                        'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are enabled.
         The current instance is not affected. When created the
-        NCGenericGenericBatchInfo instance already has transformations enabled.
+        NCGenericBatchInfo instance already has transformations enabled.
         This method can be used to re-enable transformations after a previous
         call to disable_transformations().
 
@@ -520,8 +518,8 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             current_task=self.current_task)
 
     def with_train_transformations(self) -> 'NCTaskInfo[' \
-                                            'T_train_set_w_targets, ' \
-                                            'T_test_set_w_targets]':
+                                            'TrainSetWithTargets, ' \
+                                            'TestSetWithTargets]':
         """
         Returns a new batch info instance in which train transformations are
         applied to both training and test sets. The current instance is not
@@ -535,8 +533,8 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             current_task=self.current_task)
 
     def with_test_transformations(self) -> 'NCTaskInfo[' \
-                                           'T_train_set_w_targets, ' \
-                                           'T_test_set_w_targets]':
+                                           'TrainSetWithTargets, ' \
+                                           'TestSetWithTargets]':
         """
         Returns a new batch info instance in which test transformations are
         applied to both training and test sets. The current instance is
@@ -585,7 +583,7 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
 
             dataset = TransformationSubset(
                 dataset, None, class_mapping=classes_mapping)
-            subset = make_transformation_subset(
+            subset = make_nc_transformation_subset(
                 dataset, None, None, list(range(self.scenario.n_classes)),
                 **kwargs)
 
@@ -617,11 +615,11 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
                 item for sublist in
                 self.scenario.original_classes_in_task[task_start:]
                 for item in sublist]
-        else:
-            return [
-                item for sublist in
-                self.scenario.original_classes_in_task[task_start:task_end]
-                for item in sublist]
+
+        return [
+            item for sublist in
+            self.scenario.original_classes_in_task[task_start:task_end]
+            for item in sublist]
 
     def _go_to_task(self):
         if self.current_task >= 0:
@@ -639,15 +637,15 @@ class NCTaskInfo(Generic[T_train_set_w_targets,
             self.future_classes = self.__get_tasks_classes(0)
 
 
-class NCSingleTaskScenario(Generic[T_train_set_w_targets,
-                                   T_test_set_w_targets]):
+class NCSingleTaskScenario(Generic[TrainSetWithTargets,
+                                   TestSetWithTargets]):
     """
     This class defines a "New Classes" Single Incremental Task scenario based
     on a :class:`NCGenericScenario` instance. Once created, an instance of this
     class can be iterated in order to obtain the batch sequence under
     the form of instances of :class:`NCBatchInfo`.
 
-    Instances of this class can be creating using the constructor directly.
+    Instances of this class can be created using the constructor directly.
     However, we recommend using facilities like:
     :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
     :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
@@ -659,8 +657,8 @@ class NCSingleTaskScenario(Generic[T_train_set_w_targets,
     (see: :class:`NCBatchInfo`).
     """
     def __init__(self,
-                 nc_generic_scenario: NCGenericScenario[T_train_set_w_targets,
-                                                        T_test_set_w_targets]):
+                 nc_generic_scenario: NCGenericScenario[TrainSetWithTargets,
+                                                        TestSetWithTargets]):
         """
         Creates a NC Single Incremental Task scenario given a
         :class:`NCGenericScenario` instance. That instance will be used as the
@@ -671,8 +669,8 @@ class NCSingleTaskScenario(Generic[T_train_set_w_targets,
         """
         # nc_generic_scenario keeps a reference to the NCGenericScenario
         self.nc_generic_scenario: \
-            NCGenericScenario[T_train_set_w_targets,
-                              T_test_set_w_targets] = nc_generic_scenario
+            NCGenericScenario[TrainSetWithTargets,
+                              TestSetWithTargets] = nc_generic_scenario
 
         # n_batches is the number of batches in this scenario
         self.n_batches: int = self.nc_generic_scenario.n_batches
@@ -686,19 +684,19 @@ class NCSingleTaskScenario(Generic[T_train_set_w_targets,
         return self.n_batches
 
     def __getitem__(self, batch_idx) -> 'NCBatchInfo[' \
-                                        'T_train_set_w_targets,' \
-                                        'T_test_set_w_targets]':
+                                        'TrainSetWithTargets,' \
+                                        'TestSetWithTargets]':
         return NCBatchInfo(self, self.nc_generic_scenario[batch_idx],
                            current_batch=batch_idx)
 
 
-class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
+class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Classes" batch. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
     fields that can be used to check which classes are in this, previous and
     future batches. Instances of this class are usually created when iterating
-    over the :class:`NCSingleTaskScenario`.
+    over a :class:`NCSingleTaskScenario` instance.
 
     It keeps a reference to that :class:`NCSingleTaskScenario` instance,
     which can be used to retrieve additional info about the scenario.
@@ -706,10 +704,10 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
 
     def __init__(self,
                  sit_scenario:
-                 NCSingleTaskScenario[T_train_set_w_targets,
-                                      T_test_set_w_targets],
-                 sit_batch_info: NCGenericBatchInfo[T_train_set_w_targets,
-                                                    T_test_set_w_targets],
+                 NCSingleTaskScenario[TrainSetWithTargets,
+                                      TestSetWithTargets],
+                 sit_batch_info: NCGenericBatchInfo[TrainSetWithTargets,
+                                                    TestSetWithTargets],
                  current_batch: int = -1):
         """
         Creates a NCBatchInfo instance given the root scenario. 
@@ -720,12 +718,12 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
         :param sit_batch_info: The batch info
         :param current_batch: The batch ID
         """
-        self.scenario: NCSingleTaskScenario[T_train_set_w_targets,
-                                            T_test_set_w_targets] = sit_scenario
+        self.scenario: NCSingleTaskScenario[TrainSetWithTargets,
+                                            TestSetWithTargets] = sit_scenario
 
         self.current_batch: int = current_batch
 
-        # Just wrap NCGenericGenericBatchInfo
+        # Just wrap NCGenericBatchInfo
         self._sit_batch_info = sit_batch_info
 
         # The list of classes in this batch
@@ -769,7 +767,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                                  bucket_classes=False, sort_classes=False,
                                  sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the cumulative training set
+        Gets the list of cumulative training sets
 
         :param include_current_batch: If True, include the current batch
             training set. Defaults to True.
@@ -796,7 +794,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     def complete_training_sets(self, bucket_classes=False, sort_classes=False,
                                sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete training set
+        Gets the complete list of training sets
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -819,7 +817,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                              sort_indexes=False) \
             -> MTMultipleSet:
         """
-        Gets the "future" training set. That is, a dataset made of training
+        Gets the "future" training sets. That is, datasets made of training
         patterns belonging to not-already-encountered classes.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
@@ -890,26 +888,25 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_training_set(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_batch=True,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_training_sets(include_current_batch=False,
                                                  bucket_classes=bucket_classes,
                                                  sort_classes=sort_classes,
                                                  sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_training_sets(bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_training_sets(bucket_classes=bucket_classes,
                                                sort_classes=sort_classes,
                                                sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def current_test_set(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) \
@@ -938,7 +935,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                              bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the cumulative test set
+        Gets the list of cumulative test sets
 
         :param include_current_batch: If True, include the current batch
             training set. Defaults to True.
@@ -965,7 +962,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     def complete_test_sets(self, bucket_classes=False, sort_classes=False,
                            sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete test set
+        Gets the complete list of test sets
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -987,7 +984,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
     def future_test_sets(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the "future" test set. That is, a dataset made of training patterns
+        Gets the "future" test sets. That is, datasets made of training patterns
         belonging to not-already-encountered classes.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
@@ -1056,30 +1053,29 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             return self.current_test_set(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.CUMULATIVE:
+        if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_sets(include_current_batch=True,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.OLD:
+        if dataset_part == DatasetPart.OLD:
             return self.cumulative_test_sets(include_current_batch=False,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.FUTURE:
+        if dataset_part == DatasetPart.FUTURE:
             return self.future_test_sets(bucket_classes=bucket_classes,
                                          sort_classes=sort_classes,
                                          sort_indexes=sort_indexes)
-        elif dataset_part == DatasetPart.COMPLETE:
+        if dataset_part == DatasetPart.COMPLETE:
             return self.complete_test_sets(bucket_classes=bucket_classes,
                                            sort_classes=sort_classes,
                                            sort_indexes=sort_indexes)
-        else:
-            raise ValueError('Unsupported dataset part')
+        raise ValueError('Unsupported dataset part')
 
     def disable_transformations(self) -> 'NCBatchInfo[' \
-                                         'T_train_set_w_targets, ' \
-                                         'T_test_set_w_targets]':
+                                         'TrainSetWithTargets, ' \
+                                         'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are disabled.
         The current instance is not affected. This is useful when there is a
@@ -1094,12 +1090,12 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def enable_transformations(self) -> 'NCBatchInfo[' \
-                                        'T_train_set_w_targets, ' \
-                                        'T_test_set_w_targets]':
+                                        'TrainSetWithTargets, ' \
+                                        'TestSetWithTargets]':
         """
         Returns a new batch info instance in which transformations are enabled.
         The current instance is not affected. When created the
-        NCGenericGenericBatchInfo instance already has transformations enabled.
+        NCGenericBatchInfo instance already has transformations enabled.
         This method can be used to re-enable transformations after a previous
         call to disable_transformations().
 
@@ -1110,8 +1106,8 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_train_transformations(self) -> 'NCBatchInfo[' \
-                                            'T_train_set_w_targets, ' \
-                                            'T_test_set_w_targets]':
+                                            'TrainSetWithTargets, ' \
+                                            'TestSetWithTargets]':
         """
         Returns a new batch info instance in which train transformations are
         applied to both training and test sets. The current instance is not
@@ -1125,8 +1121,8 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
             current_batch=self.current_batch)
 
     def with_test_transformations(self) -> 'NCBatchInfo[' \
-                                           'T_train_set_w_targets, ' \
-                                           'T_test_set_w_targets]':
+                                           'TrainSetWithTargets, ' \
+                                           'TestSetWithTargets]':
         """
         Returns a new batch info instance in which test transformations are
         applied to both training and test sets. The current instance is
@@ -1168,7 +1164,7 @@ class NCBatchInfo(Generic[T_train_set_w_targets, T_test_set_w_targets]):
                 dataset = self._sit_batch_info. \
                     batch_specific_test_set(batch_id, **kwargs)
 
-            subset = make_transformation_subset(
+            subset = make_nc_transformation_subset(
                 dataset, None, None, None, **kwargs)
 
             result.append((subset, 0))
