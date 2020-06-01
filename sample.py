@@ -17,7 +17,7 @@ model = SimpleMLP()
 cdata = CMNIST()
 
 # Eval Protocol
-evalp = EvalProtocol(metrics=[ACC(),RAMU()])
+evalp = EvalProtocol(metrics=[ACC(), TimeUsage()])
 
 # adding the CL strategy
 clmodel = Naive(model, eval_protocol=evalp)

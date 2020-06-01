@@ -25,8 +25,6 @@ from avalanche.evaluation.metrics import *
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
-time = TimeUsage()
-
 
 def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     """
@@ -95,7 +93,6 @@ class Strategy(object):
     def train(self, x, y, t):
         self.x, self.y, self.t = x, y, t
         self.before_train()
-        time.start()
 
         self.cur_ep = 0
         self.cur_train_t = t
@@ -156,14 +153,10 @@ class Strategy(object):
 
         self.after_train()
         self.batch_processed += 1
-        time.stop()
-
         return ave_loss, acc
 
     def test(self, test_set, num_workers=8):
         self.before_test()
-        time.start()
-
         res = {}
         ave_loss = 0
         for dataset, t in test_set:
@@ -226,7 +219,6 @@ class Strategy(object):
         self.eval_protocol.update_tb_test(res, self.batch_processed)
 
         self.after_test()
-        time.stop()
         return res
 
     def compute_loss(self, logits, y_mb):
