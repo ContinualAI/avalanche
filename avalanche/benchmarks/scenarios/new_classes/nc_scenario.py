@@ -11,8 +11,8 @@
 
 from typing import Tuple, Generic, List, Union, Sequence, Optional
 
-from ..generic_definitions import DatasetPart, TrainSetWithTargets, \
-    TestSetWithTargets, MTSingleSet, MTMultipleSet, IStepInfo
+from avalanche.benchmarks.scenarios.generic_definitions import DatasetPart,\
+    TrainSetWithTargets, TestSetWithTargets, MTSingleSet, MTMultipleSet
 from .nc_utils import make_nc_transformation_subset
 from .nc_generic_scenario import NCGenericScenario, NCGenericBatchInfo
 from avalanche.training.utils.transform_dataset import TransformationSubset
@@ -97,8 +97,7 @@ class NCMultiTaskScenario(Generic[TrainSetWithTargets,
                           current_task=task_idx)
 
 
-class NCTaskInfo(Generic[TrainSetWithTargets,
-                         TestSetWithTargets]):
+class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Classes" task. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
