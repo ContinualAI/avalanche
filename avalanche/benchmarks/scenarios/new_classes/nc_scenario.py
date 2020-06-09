@@ -472,7 +472,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             and the task label.
         """
         return self.task_specific_test_set(
-            step_id,  bucket_classes=bucket_classes, sort_classes=sort_classes,
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
             sort_indexes=sort_indexes)
 
     def task_specific_test_set(self, task_id: int, bucket_classes=False,
