@@ -3,3 +3,5 @@ __pycache__
 .idea/
 avalanche/benchmarks/datasets_envs/*/data
 *.py~
+data/
+logs/

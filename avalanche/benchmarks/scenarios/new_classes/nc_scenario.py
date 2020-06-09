@@ -12,7 +12,7 @@
 from typing import Tuple, Generic, List, Union, Sequence, Optional
 
 from ..generic_definitions import DatasetPart, TrainSetWithTargets, \
-    TestSetWithTargets, MTSingleSet, MTMultipleSet
+    TestSetWithTargets, MTSingleSet, MTMultipleSet, IStepInfo
 from .nc_utils import make_nc_transformation_subset
 from .nc_generic_scenario import NCGenericScenario, NCGenericBatchInfo
 from avalanche.training.utils.transform_dataset import TransformationSubset
@@ -131,6 +131,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
             = nc_task_scenario
 
         self.current_task: int = current_task
+        self.current_step: int = current_task
 
         # Just wrap NCGenericBatchInfo
         self._sit_batch_info = sit_batch_info
@@ -156,7 +157,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
     def current_training_set(self, bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTSingleSet:
         """
-        Gets the training set for the current task
+        Gets the training set for the current task.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -175,13 +176,15 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                                sort_classes=sort_classes,
                                                sort_indexes=sort_indexes)
 
-    def cumulative_training_sets(self, include_current_task: bool = True,
+    def cumulative_training_sets(self, include_current_step: bool = True,
                                  bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False) -> MTMultipleSet:
+                                 sort_indexes=False,
+                                 include_current_task: Optional[bool] = None) \
+            -> MTMultipleSet:
         """
-        Gets the list of cumulative training sets
+        Gets the list of cumulative training sets.
 
-        :param include_current_task: If True, include the current task training
+        :param include_current_step: If True, include the current task training
             set. Defaults to True.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -191,11 +194,16 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
             (ascending). If ``sort_classes`` and ``bucket_classes`` are both
             True, patterns will be sorted inside their groups.
             Defaults to False.
+        :param include_current_task: Alias for the ``include_current_step``
+            parameter. If not None, overrides ``include_current_step``.
 
         :returns: The cumulative training sets, as a list. Each element of the
             list is a tuple containing the Dataset and the task label.
         """
-        if include_current_task:
+        if include_current_task is not None:
+            include_current_step = include_current_task
+
+        if include_current_step:
             tasks = range(0, self.current_task+1)
         else:
             tasks = range(0, self.current_task)
@@ -206,7 +214,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
     def complete_training_sets(self, bucket_classes=False, sort_classes=False,
                                sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete list of training sets
+        Gets the complete list of training sets.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -250,6 +258,29 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)
 
+    def step_specific_training_set(self, step_id: int, bucket_classes=False,
+                                   sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the training set of a specific task, given its ID.
+
+        :param step_id: The ID of the task
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The required training set, as a tuple containing the Dataset
+            and the task label.
+        """
+        return self.task_specific_training_set(
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def task_specific_training_set(self, task_id: int,
                                    bucket_classes=False,
                                    sort_classes=False, sort_indexes=False) \
@@ -275,10 +306,9 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)[0]
 
-    def training_set_part(self, dataset_part: DatasetPart,
-                          bucket_classes=False, sort_classes=False,
-                          sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
+                          sort_classes=False, sort_indexes=False) \
+            -> MTMultipleSet:
         """
         Gets the training subset of a specific part of the scenario.
 
@@ -296,9 +326,9 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
             of the list is a tuple containing the Dataset and the task label.
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_training_set(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
+            return [self.current_training_set(bucket_classes=bucket_classes,
+                                              sort_classes=sort_classes,
+                                              sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_task=True,
                                                  bucket_classes=bucket_classes,
@@ -323,7 +353,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                          sort_indexes=False) \
             -> MTSingleSet:
         """
-        Gets the test set for the current batch
+        Gets the test set for the current batch.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -342,13 +372,15 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                            sort_classes=sort_classes,
                                            sort_indexes=sort_indexes)
 
-    def cumulative_test_sets(self, include_current_task: bool = True,
+    def cumulative_test_sets(self, include_current_step: bool = True,
                              bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTMultipleSet:
+                             sort_indexes=False,
+                             include_current_task: Optional[bool] = None) \
+            -> MTMultipleSet:
         """
-        Gets the list of cumulative test sets
+        Gets the list of cumulative test sets.
 
-        :param include_current_task: If True, include the current task training
+        :param include_current_step: If True, include the current task training
             set. Defaults to True.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -358,11 +390,16 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
             (ascending). If ``sort_classes`` and ``bucket_classes`` are both
             True, patterns will be sorted inside their groups.
             Defaults to False.
+        :param include_current_task: Alias for the ``include_current_step``
+            parameter. If not None, overrides ``include_current_step``.
 
         :returns: The cumulative test sets, as a list. Each element of the
             list is a tuple containing the Dataset and the task label.
         """
-        if include_current_task:
+        if include_current_task is not None:
+            include_current_step = include_current_task
+
+        if include_current_step:
             tasks = range(0, self.current_task + 1)
         else:
             tasks = range(0, self.current_task)
@@ -373,7 +410,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
     def complete_test_sets(self, bucket_classes=False, sort_classes=False,
                            sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete list of test sets
+        Gets the complete list of test sets.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -416,6 +453,29 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                        sort_classes=sort_classes,
                                        sort_indexes=sort_indexes)
 
+    def step_specific_test_set(self, step_id: int, bucket_classes=False,
+                               sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the test set of a specific batch, given its ID.
+
+        :param step_id: The ID of the batch
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The required test set, as a tuple containing the Dataset
+            and the task label.
+        """
+        return self.task_specific_test_set(
+            step_id,  bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def task_specific_test_set(self, task_id: int, bucket_classes=False,
                                sort_classes=False, sort_indexes=False) \
             -> MTSingleSet:
@@ -441,8 +501,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
                                        sort_indexes=sort_indexes)[0]
 
     def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+                      sort_classes=False, sort_indexes=False) -> MTMultipleSet:
         """
         Gets the test subset of a specific part of the scenario.
 
@@ -460,9 +519,9 @@ class NCTaskInfo(Generic[TrainSetWithTargets,
             of the list is a tuple containing the Dataset and the task label.
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_test_set(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
+            return [self.current_test_set(bucket_classes=bucket_classes,
+                                          sort_classes=sort_classes,
+                                          sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_sets(include_current_task=True,
                                              bucket_classes=bucket_classes,
@@ -722,6 +781,7 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                             TestSetWithTargets] = sit_scenario
 
         self.current_batch: int = current_batch
+        self.current_step: int = current_batch
 
         # Just wrap NCGenericBatchInfo
         self._sit_batch_info = sit_batch_info
@@ -744,7 +804,7 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def current_training_set(self, bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTSingleSet:
         """
-        Gets the training set for the current batch
+        Gets the training set for the current batch.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -763,13 +823,15 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                                 sort_classes=sort_classes,
                                                 sort_indexes=sort_indexes)
 
-    def cumulative_training_sets(self, include_current_batch: bool = True,
+    def cumulative_training_sets(self, include_current_step: bool = True,
                                  bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False) -> MTMultipleSet:
+                                 sort_indexes=False,
+                                 include_current_batch: Optional[bool] = None) \
+            -> MTMultipleSet:
         """
-        Gets the list of cumulative training sets
+        Gets the list of cumulative training sets.
 
-        :param include_current_batch: If True, include the current batch
+        :param include_current_step: If True, include the current batch
             training set. Defaults to True.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -779,11 +841,16 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             (ascending). If ``sort_classes`` and ``bucket_classes`` are both
             True, patterns will be sorted inside their groups.
             Defaults to False.
+        :param include_current_batch: Alias for the ``include_current_step``
+            parameter. If not None, overrides ``include_current_step``.
 
         :returns: The cumulative training sets, as a list. Each element of the
             list is a tuple containing the Dataset and the task label "0".
         """
-        if include_current_batch:
+        if include_current_batch is not None:
+            include_current_step = include_current_batch
+
+        if include_current_step:
             batches = range(0, self.current_batch + 1)
         else:
             batches = range(0, self.current_batch)
@@ -794,7 +861,7 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def complete_training_sets(self, bucket_classes=False, sort_classes=False,
                                sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete list of training sets
+        Gets the complete list of training sets.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -838,6 +905,29 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)
 
+    def step_specific_training_set(self, step_id: int, bucket_classes=False,
+                                   sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the training set of a specific batch, given its ID.
+
+        :param step_id: The ID of the batch
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The required training set, as a tuple containing the Dataset
+            and the task label "0".
+        """
+        return self.batch_specific_training_set(
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def batch_specific_training_set(self, batch_id: int,
                                     bucket_classes=False,
                                     sort_classes=False, sort_indexes=False) \
@@ -863,10 +953,9 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)[0]
 
-    def training_set_part(self, dataset_part: DatasetPart,
-                          bucket_classes=False, sort_classes=False,
-                          sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
+                          sort_classes=False, sort_indexes=False) \
+            -> MTMultipleSet:
         """
         Gets the training subset of a specific part of the scenario.
 
@@ -885,9 +974,9 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             "0".
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_training_set(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
+            return [self.current_training_set(bucket_classes=bucket_classes,
+                                              sort_classes=sort_classes,
+                                              sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_batch=True,
                                                  bucket_classes=bucket_classes,
@@ -912,7 +1001,7 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                          sort_indexes=False) \
             -> MTSingleSet:
         """
-        Gets the test set for the current batch
+        Gets the test set for the current batch.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -931,13 +1020,15 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                             sort_classes=sort_classes,
                                             sort_indexes=sort_indexes)
 
-    def cumulative_test_sets(self, include_current_batch: bool = True,
+    def cumulative_test_sets(self, include_current_step: bool = True,
                              bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTMultipleSet:
+                             sort_indexes=False,
+                             include_current_batch: Optional[bool] = None) -> \
+            MTMultipleSet:
         """
-        Gets the list of cumulative test sets
+        Gets the list of cumulative test sets.
 
-        :param include_current_batch: If True, include the current batch
+        :param include_current_step: If True, include the current batch
             training set. Defaults to True.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -947,11 +1038,16 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             (ascending). If ``sort_classes`` and ``bucket_classes`` are both
             True, patterns will be sorted inside their groups.
             Defaults to False.
+        :param include_current_batch: Alias for the ``include_current_step``
+            parameter. If not None, overrides ``include_current_step``.
 
         :returns: The cumulative test sets, as a list. Each element of the
             list is a tuple containing the Dataset and the task label "0".
         """
-        if include_current_batch:
+        if include_current_batch is not None:
+            include_current_step = include_current_batch
+
+        if include_current_step:
             batches = range(0, self.current_batch + 1)
         else:
             batches = range(0, self.current_batch)
@@ -1005,6 +1101,29 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                        sort_classes=sort_classes,
                                        sort_indexes=sort_indexes)
 
+    def step_specific_test_set(self, step_id: int, bucket_classes=False,
+                               sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the test set of a specific batch, given its ID.
+
+        :param step_id: The ID of the batch
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The required test set, as a tuple containing the Dataset
+            and the task label "0".
+        """
+        return self.batch_specific_test_set(
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def batch_specific_test_set(self, batch_id: int, bucket_classes=False,
                                 sort_classes=False, sort_indexes=False) \
             -> MTSingleSet:
@@ -1031,7 +1150,7 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
     def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
                       sort_classes=False, sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+            -> MTMultipleSet:
         """
         Gets the test subset of a specific part of the scenario.
 
@@ -1050,9 +1169,9 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             "0".
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_test_set(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
+            return [self.current_test_set(bucket_classes=bucket_classes,
+                                          sort_classes=sort_classes,
+                                          sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_test_sets(include_current_batch=True,
                                              bucket_classes=bucket_classes,
