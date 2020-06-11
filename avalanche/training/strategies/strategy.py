@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 from avalanche.evaluation.metrics import *
 from avalanche.evaluation.eval_protocol import EvalProtocol
