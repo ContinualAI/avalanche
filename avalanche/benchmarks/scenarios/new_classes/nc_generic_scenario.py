@@ -14,15 +14,14 @@ from __future__ import annotations
 import torch
 from typing import Sequence, Any, List, Optional, Dict, Generic
 
-from ..generic_definitions import DatasetPart, TrainSetWithTargets, \
-    TestSetWithTargets
+from avalanche.benchmarks.scenarios.generic_definitions import DatasetPart, \
+    TrainSetWithTargets, TestSetWithTargets
 from .nc_utils import make_nc_transformation_subset
 from avalanche.training.utils.transform_dataset import TransformationSubset, \
     DatasetWithTargets
 
 
-class NCGenericScenario(Generic[TrainSetWithTargets,
-                                TestSetWithTargets]):
+class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Classes" scenario. It is used when creating both
     task-oriented and single-incremental-batches (a.k.a. task-free) as

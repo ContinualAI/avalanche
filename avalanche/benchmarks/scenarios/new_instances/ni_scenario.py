@@ -428,6 +428,8 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
         # The current batch ID
         self.current_batch: int = current_batch
+        self.current_step: int = current_batch
+
         # The reference to the NIScenario
         self.scenario: NIScenario[TrainSetWithTargets,
                                   TestSetWithTargets] = scenario
@@ -464,7 +466,7 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def current_training_set(self, bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTSingleSet:
         """
-        Gets the training set for the current batch
+        Gets the training set for the current batch.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -483,13 +485,15 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                                 sort_classes=sort_classes,
                                                 sort_indexes=sort_indexes)
 
-    def cumulative_training_sets(self, include_current_batch: bool = True,
+    def cumulative_training_sets(self, include_current_step: bool = True,
                                  bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False) -> MTMultipleSet:
+                                 sort_indexes=False,
+                                 include_current_batch: Optional[bool] = None) \
+            -> MTMultipleSet:
         """
-        Gets the list of cumulative training sets
+        Gets the list of cumulative training sets.
 
-        :param include_current_batch: If True, include the current batch
+        :param include_current_step: If True, include the current batch
             training set. Defaults to True.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -499,11 +503,16 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             (ascending). If ``sort_classes`` and ``bucket_classes`` are both
             True, patterns will be sorted inside their groups.
             Defaults to False.
+        :param include_current_batch: Alias for the ``include_current_step``
+            parameter. If not None, overrides ``include_current_step``.
 
         :returns: The cumulative training sets, as a list. Each element of the
             list is a tuple containing the Dataset and the task label "0".
         """
-        if include_current_batch:
+        if include_current_batch is not None:
+            include_current_step = include_current_batch
+
+        if include_current_step:
             batches = range(0, self.current_batch + 1)
         else:
             batches = range(0, self.current_batch)
@@ -514,7 +523,7 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def complete_training_sets(self, bucket_classes=False, sort_classes=False,
                                sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete list of training sets
+        Gets the complete list of training sets.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -558,6 +567,29 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)
 
+    def step_specific_training_set(self, step_id: int, bucket_classes=False,
+                                   sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the training set of a specific batch, given its ID.
+
+        :param step_id: The ID of the batch.
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The required training set, as a tuple containing the Dataset
+            and the task label "0".
+        """
+        return self.batch_specific_training_set(
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def batch_specific_training_set(self, batch_id: int,
                                     bucket_classes=False,
                                     sort_classes=False, sort_indexes=False) \
@@ -583,14 +615,13 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                         sort_classes=sort_classes,
                                         sort_indexes=sort_indexes)[0]
 
-    def training_set_part(self, dataset_part: DatasetPart,
-                          bucket_classes=False, sort_classes=False,
-                          sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
+                          sort_classes=False, sort_indexes=False) \
+            -> MTMultipleSet:
         """
         Gets the training subset of a specific part of the scenario.
 
-        :param dataset_part: The part of the scenario
+        :param dataset_part: The part of the scenario.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
         :param sort_classes: If True (and ``bucket_classes`` is True), class
@@ -605,9 +636,9 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             "0".
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_training_set(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
+            return [self.current_training_set(bucket_classes=bucket_classes,
+                                              sort_classes=sort_classes,
+                                              sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
             return self.cumulative_training_sets(include_current_batch=True,
                                                  bucket_classes=bucket_classes,
@@ -629,10 +660,9 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
         raise ValueError('Unsupported dataset part')
 
     def current_test_set(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) \
-            -> MTSingleSet:
+                         sort_indexes=False) -> MTSingleSet:
         """
-        Gets the complete test set
+        Gets the complete test set.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -651,14 +681,14 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                             sort_classes=sort_classes,
                                             sort_indexes=sort_indexes)
 
-    def cumulative_test_sets(self, include_current_batch: bool = True,
+    def cumulative_test_sets(self, include_current_step: bool = True,
                              bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete test set
+        Gets the complete test set.
 
-        :param include_current_batch: ignored, kept for compatibility with
-            methods from the NC scenario.
+        :param include_current_step: ignored, kept for compatibility with
+            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
         :param sort_classes: If True (and ``bucket_classes`` is True), class
@@ -678,7 +708,7 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def complete_test_sets(self, bucket_classes=False, sort_classes=False,
                            sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete test set
+        Gets the complete test set.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -699,7 +729,7 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def future_test_sets(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the complete test set
+        Gets the complete test set.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
@@ -717,6 +747,30 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                        sort_classes=sort_classes,
                                        sort_indexes=sort_indexes)
 
+    def step_specific_test_set(self, step_id: int, bucket_classes=False,
+                               sort_classes=False, sort_indexes=False) \
+            -> MTSingleSet:
+        """
+        Gets the complete test set.
+
+        :param step_id: ignored, kept for compatibility with
+            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
+        :param bucket_classes: If True, dataset patterns will be grouped by
+            class. Defaults to False.
+        :param sort_classes: If True (and ``bucket_classes`` is True), class
+            groups will be sorted by class ID (ascending). Defaults to False.
+        :param sort_indexes: If True patterns will be ordered by their ID
+            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
+            True, patterns will be sorted inside their groups.
+            Defaults to False.
+
+        :returns: The complete test set, as a list containing one element:
+            a tuple containing the Dataset and the task label "0".
+        """
+        return self.batch_specific_test_set(
+            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
+            sort_indexes=sort_indexes)
+
     def batch_specific_test_set(self, batch_id: int, bucket_classes=False,
                                 sort_classes=False, sort_indexes=False) \
             -> MTSingleSet:
@@ -724,7 +778,7 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
         Gets the complete test set
 
         :param batch_id: ignored, kept for compatibility with
-            methods from the NC scenario.
+            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
         :param sort_classes: If True (and ``bucket_classes`` is True), class
@@ -742,13 +796,12 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                                        sort_indexes=sort_indexes)[0]
 
     def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) \
-            -> Union[MTSingleSet, MTMultipleSet]:
+                      sort_classes=False, sort_indexes=False) -> MTMultipleSet:
         """
-        GGets the complete test set
+        Gets the complete test set
 
         :param dataset_part: ignored, kept for compatibility with
-            methods from the NC scenario.
+            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
         :param bucket_classes: If True, dataset patterns will be grouped by
             class. Defaults to False.
         :param sort_classes: If True (and ``bucket_classes`` is True), class
@@ -762,16 +815,16 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             a tuple containing the Dataset and the task label "0".
         """
         if dataset_part == DatasetPart.CURRENT:
-            return self.current_test_set(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
+            return [self.current_test_set(bucket_classes=bucket_classes,
+                                          sort_classes=sort_classes,
+                                          sort_indexes=sort_indexes)]
         if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_test_sets(include_current_batch=True,
+            return self.cumulative_test_sets(include_current_step=True,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
         if dataset_part == DatasetPart.OLD:
-            return self.cumulative_test_sets(include_current_batch=False,
+            return self.cumulative_test_sets(include_current_step=False,
                                              bucket_classes=bucket_classes,
                                              sort_classes=sort_classes,
                                              sort_indexes=sort_indexes)
