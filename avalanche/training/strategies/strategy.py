@@ -26,6 +26,7 @@ from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
 
+
 def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     """
     Retrieves the contents of a whole dataset by using a DataLoader

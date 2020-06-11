@@ -44,8 +44,6 @@ class EvalProtocol(object):
         """ Compute results based on accuracy """
 
         results = {}
-        #import pdb;pdb.set_trace()
-
         for metric in self.metrics:
             if isinstance(metric, ACC):
                 results[ACC] = metric.compute(true_y, y_hat)

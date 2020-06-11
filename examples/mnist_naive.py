@@ -1,9 +1,8 @@
 from avalanche.benchmarks import CMNIST
-from avalanche.evaluation.metrics import * #ACC, CF, RAMU, CM
+from avalanche.evaluation.metrics import *
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-import time
 from torch.utils.tensorboard import SummaryWriter
 
 exp_name = "mnist_test"

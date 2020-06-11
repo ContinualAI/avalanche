@@ -20,15 +20,15 @@ from __future__ import division
 from __future__ import absolute_import
 
 import torch
-import pdb;pdb.set_trace()
 from avalanche.benchmarks import CMNIST
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import CWRStar, Naive
 from avalanche.evaluation import EvalProtocol
 
-strat = "naive" # "cwrstar"
+#  "cwrstar"
+strat = "naive"
 
-# load the model with PyTorch for example
+#  load the model with PyTorch for example
 model = SimpleMLP()
 
 # load the benchmark as a python iterator object
