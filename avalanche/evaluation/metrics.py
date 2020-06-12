@@ -309,7 +309,8 @@ class CM(object):
 
         buf = io.BytesIO()
         fig.savefig(buf, format='jpg', dpi=50)
-        # fig.savefig("temp.jpg", format='jpg')
+        plt.close()
+
         buf.seek(0)
         image = PIL.Image.open(buf)
         image = ToTensor()(image)
