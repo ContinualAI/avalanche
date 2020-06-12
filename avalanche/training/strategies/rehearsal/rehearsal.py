@@ -47,7 +47,8 @@ class Rehearsal(Strategy):
         :param preproc: preprocessing function.
         :param eval_protocol: avalanche evaluation protocol.
         :param rm_sz: rehearsal's memory size.
-        :param replace: whether new samples are added with or without replacement.
+        :param replace: whether new samples are added with or
+                        without replacement.
         """
         super(Rehearsal, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
