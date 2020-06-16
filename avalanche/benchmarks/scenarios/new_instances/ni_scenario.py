@@ -34,7 +34,7 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
     Being a Single Incremental Task scenario, the task label will always be "0".
     Also, consider that every method from :class:`NIBatchInfo` used to retrieve
-    parts of the test set (past, current, furure, cumulative) always return the
+    parts of the test set (past, current, future, cumulative) always return the
     complete test set. That is, they behave as the getter for the complete test
     set. These methods are left for compatibility with the ones found in the
     :class:`avalanche.benchmarks.scenarios.new_classes.NCBatchInfo` scenario.

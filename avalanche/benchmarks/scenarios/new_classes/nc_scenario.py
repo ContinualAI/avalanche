@@ -431,7 +431,7 @@ class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     def future_test_sets(self, bucket_classes=False, sort_classes=False,
                          sort_indexes=False) -> MTMultipleSet:
         """
-        Gets the "future" test set. That is, a dataset made of training patterns
+        Gets the "future" test set. That is, a dataset made of test patterns
         belonging to not-already-encountered classes.
 
         :param bucket_classes: If True, dataset patterns will be grouped by
