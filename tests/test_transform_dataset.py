@@ -1,5 +1,6 @@
 import unittest
 
+import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
@@ -9,13 +10,11 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.training.utils import TransformationDataset, TransformationSubset
 import random
 
-def pil_images_equal(a, b):
-    diff = ImageChops.difference(a, b)
 
-    if diff.getbbox():
-        return False
-    else:
-        return True
+def pil_images_equal(img_a, img_b):
+    diff = ImageChops.difference(img_a, img_b)
+
+    return not diff.getbbox()
 
 
 class TransformationDatasetTests(unittest.TestCase):
@@ -40,6 +39,7 @@ class TransformationDatasetTests(unittest.TestCase):
         x2, y2 = dataset[0]
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, Tensor)
+        self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2.item())
 
     def test_transform_dataset_composition(self):
@@ -68,6 +68,7 @@ class TransformationSubsetTests(unittest.TestCase):
         x2, y2 = dataset[0]
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, Tensor)
+        self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2.item())
 
     def test_transform_subset_composition(self):
@@ -120,7 +121,7 @@ class TransformationSubsetTests(unittest.TestCase):
 
         dataset = TransformationSubset(dataset, None, class_mapping=mapping)
 
-        x2, y2 = dataset[1000]
+        _, y2 = dataset[1000]
         self.assertEqual(y2, swap_y)
 
 

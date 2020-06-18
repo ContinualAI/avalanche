@@ -19,37 +19,13 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+import torch
 from torch.utils.data import Dataset
 
-from avalanche.evaluation.metrics import *
+from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation.eval_protocol import EvalProtocol
-from avalanche.training.utils import pad_data, shuffle_in_unison
-import torch
-
-
-def load_all_dataset(dataset: Dataset, num_workers: int = 0):
-    """
-    Retrieves the contents of a whole dataset by using a DataLoader
-
-    :param dataset: The dataset
-    :param num_workers: The number of workers the DataLoader should use.
-        Defaults to 0.
-    :return: The content of the whole Dataset
-    """
-    # DataLoader parallelism is batch-based. By using "len(dataset)/num_workers"
-    # as the batch size, num_workers [+1] batches will be loaded thus
-    # using the required number of workers.
-    batch_size = max(1, len(dataset) // num_workers)
-    loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
-                        num_workers=num_workers)
-    batches_x = []
-    batches_y = []
-    for batch_x, batch_y in loader:
-        batches_x.append(batch_x)
-        batches_y.append(batch_y)
-
-    x, y = torch.cat(batches_x), torch.cat(batches_y)
-    return x, y
+from avalanche.training.utils import pad_data, shuffle_in_unison, \
+    load_all_dataset
 
 
 class Strategy(object):

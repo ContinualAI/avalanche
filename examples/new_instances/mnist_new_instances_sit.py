@@ -27,32 +27,30 @@ from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-from avalanche.benchmarks.scenarios import NCBatchInfo, \
-    create_nc_single_dataset_sit_scenario
+from avalanche.benchmarks.scenarios import NIBatchInfo, \
+    create_ni_single_dataset_sit_scenario
 from mnist_example_utils import get_default_device
 
 
 def main():
     device = get_default_device()
 
-    # In this example we can see how we can handle a simple
-    # Single Incremental Task (a.k.a. Task-Free) scenario. For this example we
-    # use the MNIST Dataset without permutations. MNIST is a very popular
-    # dataset made of images each containing a single handwritten digit. This
-    # means that our dataset contains 10 classes. Here the goal is to learn to
-    # correctly classify new classes of digits without forgetting about
-    # previously encountered ones.
+    # In this example we can see how we can handle a New Instances scenario.
+    # In this scenario we have a single task made of multiple batches.
+    # Differently from the New Classes scenario, in NI each batch  may contain
+    # patterns of all known classes.
+    # For this example we use the MNIST dataset, which is a very popular dataset
+    # made of images each containing a single handwritten digit. This means that
+    # our dataset contains 10 classes. Here the goal is to improve the
+    # classification accuracy of already known classes of digits.
     #
-    # In this example the Naive strategy will be used, which doesn't help in
-    # mitigating the catastrophic forgetting that usually occurs in Continual
-    # Learning scenarios. So don't worry about the final accuracy metrics!
+    # In this example the Naive strategy will be used.
 
-    # First, let's define the number of batches in our scenario. The number of
-    # classes in our dataset must be divisible without reminder by this value.
-    # This means that for MNIST we can only use 1, 2, 5 or 10 as the number of
-    # batches.
+    # First, let's define the number of batches in our scenario. This can be any
+    # number greater than zero (and of course, less than the number of patterns
+    # contained in the training set).
 
-    n_batches = 5  # Note: can only be "1", "2", "5", or "10" for MNIST
+    n_batches = 10
 
     # Define the transformations. For the training patterns we run a RandomCrop
     # which will act as our data augmentation strategy. The crop is followed by
@@ -76,16 +74,26 @@ def main():
     mnist_test = MNIST('./data/mnist', train=False,
                        download=True, transform=test_transform)
 
-    # We can create our "New Classes" scenario by using the provided
-    # create_nc_single_dataset_sit_scenario. This function only requires:
+    # We can create our "New Instances" scenario by using the provided
+    # create_ni_single_dataset_sit_scenario. This function only requires:
     # - The training set
     # - The test set
     # - The number of batches
-    # We can also randomly shuffle the class order by providing a seed.
-    # Note that one can also define a fixed class order by using the
-    # fixed_class_order argument!
-    nc_scenario = create_nc_single_dataset_sit_scenario(
-        mnist_train, mnist_test, n_batches, shuffle=True, seed=1234)
+    # We can also randomly shuffle the pattern order by providing a seed.
+    # Note that one can also define a fixed assignment of patterns to batches by
+    # using the fixed_batch_assignment argument!
+    #
+    # Here we create a scenario with balanced batches by setting the
+    # balance_batches parameter to True. This means that patterns of every class
+    # will be equally distributed across all batches. When False, patterns will
+    # be randomly shuffled with no guarantee about classes distribution in
+    # batches. In this last case, you may also find it useful to specify a
+    # minimum number of patterns that batches have to contain from avery class
+    # by setting the min_class_patterns_in_batch parameter to a value greater
+    # than zero.
+    ni_scenario = create_ni_single_dataset_sit_scenario(
+        mnist_train, mnist_test, n_batches, shuffle=True, seed=1234,
+        balance_batches=True)
 
     # Here we create an instance of the network architecture we want to use.
     # For this example we use a "SimpleMLP", which is a simple net with one
@@ -93,20 +101,20 @@ def main():
     #
     # When creating the model, we must pass the number of classes contained in
     # our dataset. Instead of passing "10" directly, we can use the n_classes
-    # field of our nc_scenario to get the overall number of classes. This  will
+    # field of our ni_scenario to get the overall number of classes. This will
     # allow us to change MNIST with any other another dataset with a different
     # number of classes!
-    model = SimpleMLP(num_classes=nc_scenario.n_classes)
+    model = SimpleMLP(num_classes=ni_scenario.n_classes)
 
     # The Evaluation Protocol will keep track of the performance metrics of the
     # Continual Learning strategy. You can specify the metrics to use. For
     # instance, in this example we keep track of the accuracy, catastrophic
-    # forgetting, RAM usage values. You can also keep track of complex
+    # forgetting and RAM usage values. You can also keep track of complex
     # performance metrics, like the Confusion Matrix! Those will be logged to
     # TensorBoard.
     evalp = EvalProtocol(
-        metrics=[ACC(num_class=nc_scenario.n_classes),  # Accuracy metric
-                 CF(num_class=nc_scenario.n_classes),  # Catastrophic forgetting
+        metrics=[ACC(num_class=ni_scenario.n_classes),  # Accuracy metric
+                 CF(num_class=ni_scenario.n_classes),  # Catastrophic forgetting
                  RAMU(),  # Ram usage
                  CM()],  # Confusion matrix
         tb_logdir='../logs/mnist_test_sit'
@@ -115,29 +123,32 @@ def main():
     # Here we create an instance of our CL strategy. Naive is a very simple
     # strategy that doesn't really try to mitigate Catastrophic Forgetting.
     # However, it's excellent when toying around with Avalanche for the first
-    # time, as it is very fast.
+    # time, as it is very fast. In particular, in NI scenarios Naive is not that
+    # bad.
     clmodel = Naive(model, eval_protocol=evalp, device=device)
 
-    # Let's start looking at the nc_scenario API. First, print the classes
-    # contained in each batch. We can use classes_in_batch to obtain the list of
-    # classes in each batch. You can obtain a different class order by changing
-    # the seed passed to create_nc_single_dataset_sit_scenario.
+    # Let's start looking at the ni_scenario API. It's very similar to the one
+    # of the New Classes counterpart (we recommend looking at examples of NC).
+    # First, print the classes contained in each batch. We can use
+    # classes_in_batch to obtain the list of classes in each batch. Consider
+    # that we are running a balanced scenario, so at least one pattern from all
+    # classes will be contained in every batch.
     print('Batch order:')
-    for batch_idx, batch_classes in enumerate(nc_scenario.classes_in_batch):
+    for batch_idx, batch_classes in enumerate(ni_scenario.classes_in_batch):
         print('Batch {}, classes = {}'.format(batch_idx, batch_classes))
 
     print('Starting experiment...')
 
     results = []  # Results will contain the metrics values for each batch
-    batch_info: NCBatchInfo  # Define the batch_info as an NCBatchInfo instance
+    batch_info: NIBatchInfo  # Define the batch_info as an NIBatchInfo instance
 
     # Loop over the training incremental batches
-    # For each batch, an instance of NCBatchInfo is obtained.
+    # For each batch, an instance of NIBatchInfo is obtained.
     # This instance exposes a lot of useful information about the current batch
     # as well as methods to obtain current / past / future batch datasets!
 
     # batch_info: IStepInfo
-    # In fact, NCBatchInfo instances are also instances of IStepInfo, which is
+    # In fact, NIBatchInfo instances are also instances of IStepInfo, which is
     # the more general interface that is shared by both "New Classes" and
     # "New Instances" scenarios (no matter if multi-task or single-task).
     # Being more general, this interface defines only fields and methods shared
@@ -146,7 +157,7 @@ def main():
     # interface.
 
     # Let's see how it looks in practice:
-    for batch_info in nc_scenario:
+    for batch_info in ni_scenario:
         # We can use current_batch to obtain the batch ID.
         # Note: you can also keep track of the current batch ID by using
         # enumerate in the for loop!
@@ -158,7 +169,7 @@ def main():
 
         # classes_in_this_batch contains the list of classes in this batch
         # This is way easier than using
-        # nc_scenario.classes_in_batch[batch_info.current_batch]
+        # ni_scenario.classes_in_batch[batch_info.current_batch]
         print('Classes in this batch:', batch_info.classes_in_this_batch)
 
         # batch_info can be used to access the list of previously
@@ -211,20 +222,21 @@ def main():
         clmodel.train_using_dataset(current_training_set, num_workers=4)
         print('Training completed')
 
-        # batch_info exposes useful test set related functions, too. As with
-        # their training counterparts, the methods used to retrieve the
-        # cumulative, past, complete and future test sets will return a list of
-        # tuple, with each tuple containing (Dataset, task_label). Methods used
-        # to retrieve the current or a specific batch test set will just return
-        # a tuple with the same format.
+        # batch_info the same test set related functions found in the NC
+        # scenario. For every training set related function, a test set
+        # counterpart exist. However, the methods used to retrieve the current,
+        # cumulative, past, future and batch specific test sets will all return
+        # the complete test set. That is, they behave like
+        # batch_info.complete_test_sets(). These methods were kept with
+        # compatibility with the NC counterpart.
         #
-        # The following methods will return a list of tuples
-        # (Dataset, task_label):
+        # The following methods will return a list with a single tuple
+        # (Dataset, task_label) which is the full test set:
         #
         # cumulative_test_sets = batch_info.cumulative_test_sets()
         #
         # past_test_sets = batch_info.cumulative_test_sets(
-        #    include_current_batch=False)
+        #     include_current_batch=False)
         #
         # future_test_sets = batch_info.future_test_sets()
         #
@@ -238,17 +250,11 @@ def main():
         #
         # current_test_set = batch_info.current_test_set()
 
-        # Let's test on the complete test set!
         # The test method of our clmodel expects a list of tuples
         # (Dataset, task_label). """Fortunately""",
         # batch_info.complete_test_sets() is exactly what are we looking for.
         # We can just feed the test function with its return value and wait for
         # results.
-        #
-        # Note: Beware that, if you'll ever want to test on a single batch,
-        # you'll have to wrap the tuple returned by
-        # batch_info.current_test_set() or batch_info.batch_specific_test_set(x)
-        # inside a list by creating a [(Dataset, task_label)] object.
         complete_test_set = batch_info.complete_test_sets()
 
         print('Computing accuracy on the whole test set')
