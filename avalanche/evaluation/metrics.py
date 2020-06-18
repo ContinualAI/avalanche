@@ -309,7 +309,7 @@ class CM(object):
 
         buf = io.BytesIO()
         fig.savefig(buf, format='jpg', dpi=50)
-        plt.close()
+        plt.close(fig)
 
         buf.seek(0)
         image = PIL.Image.open(buf)
