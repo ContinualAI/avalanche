@@ -70,9 +70,9 @@ class Strategy(object):
     def train(self, x, y, t):
         self.x, self.y, self.t = x, y, t
         self.before_train()
+
         self.cur_ep = 0
         self.cur_train_t = t
-
         train_x, train_y, it_x_ep = self.preproc_batch_data(x, y, t)
 
         correct_cnt, ave_loss = 0, 0
@@ -130,15 +130,12 @@ class Strategy(object):
 
         self.after_train()
         self.batch_processed += 1
-
         return ave_loss, acc
 
     def test(self, test_set, num_workers=8):
         self.before_test()
-
         res = {}
         ave_loss = 0
-
         for dataset, t in test_set:
             # In this way dataset can be both a tuple (x, y) and a Dataset
             if isinstance(dataset, Dataset):
@@ -199,7 +196,6 @@ class Strategy(object):
         self.eval_protocol.update_tb_test(res, self.batch_processed)
 
         self.after_test()
-
         return res
 
     def compute_loss(self, logits, y_mb):
