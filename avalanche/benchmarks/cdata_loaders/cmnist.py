@@ -98,7 +98,6 @@ class CMNIST(object):
 
         if self.iter == self.num_batch:
             raise StopIteration
-
         train_set = self.all_train_sets[self.iter]
 
         # get ready for next iter
