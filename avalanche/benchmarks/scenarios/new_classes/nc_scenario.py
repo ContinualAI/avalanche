@@ -9,17 +9,24 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Tuple, Generic, List, Union, Sequence, Optional
+from typing import Generic, List
 
-from avalanche.benchmarks.scenarios.generic_definitions import DatasetPart,\
-    TrainSetWithTargets, TestSetWithTargets, MTSingleSet, MTMultipleSet
-from .nc_utils import make_nc_transformation_subset
-from .nc_generic_scenario import NCGenericScenario, NCGenericBatchInfo
+from avalanche.benchmarks.scenarios.generic_definitions import \
+    TrainSetWithTargets, TestSetWithTargets, MTSingleSet
+from .nc_generic_scenario import NCGenericScenario
 from avalanche.training.utils.transform_dataset import TransformationSubset
+from avalanche.benchmarks.scenarios.general_cl_scenario import \
+    GenericCLScenario, GenericStepInfo
+from avalanche.benchmarks.utils import grouped_and_ordered_indexes
 
 
-class NCMultiTaskScenario(Generic[TrainSetWithTargets,
-                                  TestSetWithTargets]):
+# TODO: implement reproducibility_data constructors parameter
+# TODO: implement get_reproducibility_data methods
+
+
+class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
+                                            TestSetWithTargets],
+                          Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Classes" multi task scenario based on a
     :class:`NCGenericScenario` instance. Once created, an instance of this
@@ -87,17 +94,22 @@ class NCMultiTaskScenario(Generic[TrainSetWithTargets,
 
         self.original_classes_in_task = nc_generic_scenario.classes_in_batch
 
-    def __len__(self) -> int:
-        return self.n_tasks
+        super(NCMultiTaskScenario, self).__init__(
+            self.nc_generic_scenario.train_dataset,
+            self.nc_generic_scenario.test_dataset,
+            self.nc_generic_scenario.train_steps_patterns_assignment,
+            self.nc_generic_scenario.test_steps_patterns_assignment,
+            list(range(self.n_tasks)))
 
-    def __getitem__(self, task_idx) -> 'NCTaskInfo[' \
-                                       'TrainSetWithTargets,' \
-                                       'TestSetWithTargets]':
-        return NCTaskInfo(self, self.nc_generic_scenario[task_idx],
-                          current_task=task_idx)
+    def __getitem__(self, task_id) -> 'NCTaskInfo[' \
+                                      'TrainSetWithTargets, ' \
+                                      'TestSetWithTargets]':
+        return NCTaskInfo(self, task_id)
 
 
-class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
+                                                     TestSetWithTargets]],
+                 Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Classes" task. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
@@ -110,34 +122,40 @@ class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     scenario.
     """
     def __init__(self,
-                 nc_task_scenario:
-                 NCMultiTaskScenario[TrainSetWithTargets,
-                                     TestSetWithTargets],
-                 sit_batch_info: NCGenericBatchInfo[TrainSetWithTargets,
-                                                    TestSetWithTargets],
-                 current_task: int = -1):
+                 scenario: NCMultiTaskScenario[TrainSetWithTargets,
+                                               TestSetWithTargets],
+                 current_task: int,
+                 force_train_transformations: bool = False,
+                 force_test_transformations: bool = False,
+                 are_transformations_disabled: bool = False):
         """
         Creates a NCMultiDatasetTaskInfo instance given the root scenario.
         Instances of this class are usually created automatically while
         iterating over an instance of :class:`NCMultiTaskScenario`.
         
-        :param nc_task_scenario: The scenario
-        :param sit_batch_info: The batch info
+        :param scenario: A reference to the NC scenario
         :param current_task: The task ID
+        :param force_train_transformations: If True, train transformations will
+            be applied to the test set too. The ``force_test_transformations``
+            parameter can't be True at the same time. Defaults to False.
+        :param force_test_transformations: If True, test transformations will be
+            applied to the training set too. The ``force_train_transformations``
+            parameter can't be True at the same time. Defaults to False.
+        :param are_transformations_disabled: If True, transformations are
+            disabled. That is, patterns and targets will be returned as
+            outputted by  the original training and test Datasets. Overrides
+            ``force_train_transformations`` and ``force_test_transformations``.
+            Defaults to False.
         """
-        self.scenario: NCMultiTaskScenario[TrainSetWithTargets,
-                                           TestSetWithTargets] \
-            = nc_task_scenario
+
+        super(NCTaskInfo, self).__init__(
+            scenario, current_task,
+            force_train_transformations=force_train_transformations,
+            force_test_transformations=force_test_transformations,
+            are_transformations_disabled=are_transformations_disabled,
+            transformation_step_factory=NCTaskInfo)
 
         self.current_task: int = current_task
-        self.current_step: int = current_task
-
-        # Just wrap NCGenericBatchInfo
-        self._sit_batch_info = sit_batch_info
-
-        # List of classes (original IDs) of current and previous batches,
-        # in their encounter order
-        self.classes_seen_so_far: List[int] = []
 
         # The list of classes (original IDs) in this task
         self.classes_in_this_task: List[int] = []
@@ -146,557 +164,39 @@ class NCTaskInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
         # in their encounter order
         self.previous_classes: List[int] = []
 
+        # List of classes (original IDs) of current and previous batches,
+        # in their encounter order
+        self.classes_seen_so_far: List[int] = []
+
         # The list of classes (original IDs) of next batches,
         # in their encounter order
         self.future_classes: List[int] = []
 
-        # _go_to_batch initializes the above lists
+        # _go_to_task initializes the above lists
         self._go_to_task()
 
-    def current_training_set(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTSingleSet:
-        """
-        Gets the training set for the current task.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current task training set, as a tuple containing the
-            Dataset and the task label.
-        """
-        return self.task_specific_training_set(self.current_task,
-                                               bucket_classes=bucket_classes,
-                                               sort_classes=sort_classes,
-                                               sort_indexes=sort_indexes)
-
-    def cumulative_training_sets(self, include_current_step: bool = True,
-                                 bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False,
-                                 include_current_task: Optional[bool] = None) \
-            -> MTMultipleSet:
-        """
-        Gets the list of cumulative training sets.
-
-        :param include_current_step: If True, include the current task training
-            set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param include_current_task: Alias for the ``include_current_step``
-            parameter. If not None, overrides ``include_current_step``.
-
-        :returns: The cumulative training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        if include_current_task is not None:
-            include_current_step = include_current_task
-
-        if include_current_step:
-            tasks = range(0, self.current_task+1)
-        else:
-            tasks = range(0, self.current_task)
-        return self.__make_train_subset(tasks, bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def complete_training_sets(self, bucket_classes=False, sort_classes=False,
-                               sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of training sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the training sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label.
-        """
-        return self.__make_train_subset(list(range(0, self.scenario.n_tasks)),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def future_training_sets(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the "future" training set. That is, a dataset made of training
-        patterns belonging to not-already-encountered classes.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        return self.__make_train_subset(range(self.current_task+1,
-                                              self.scenario.n_tasks),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def step_specific_training_set(self, step_id: int, bucket_classes=False,
-                                   sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific task, given its ID.
-
-        :param step_id: The ID of the task
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self.task_specific_training_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def task_specific_training_set(self, task_id: int,
-                                   bucket_classes=False,
-                                   sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific task, given its ID.
-
-        :param task_id: The ID of the task
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self.__make_train_subset(task_id,
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)[0]
-
-    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                          sort_classes=False, sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the training subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The training sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_training_set(bucket_classes=bucket_classes,
-                                              sort_classes=sort_classes,
-                                              sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_training_sets(include_current_task=True,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_training_sets(include_current_task=False,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_training_sets(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_training_sets(bucket_classes=bucket_classes,
-                                               sort_classes=sort_classes,
-                                               sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def current_test_set(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set for the current batch.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current test sets, as a tuple containing the Dataset and
-            the task label.
-        """
-        return self.task_specific_test_set(self.current_task,
-                                           bucket_classes=bucket_classes,
-                                           sort_classes=sort_classes,
-                                           sort_indexes=sort_indexes)
-
-    def cumulative_test_sets(self, include_current_step: bool = True,
-                             bucket_classes=False, sort_classes=False,
-                             sort_indexes=False,
-                             include_current_task: Optional[bool] = None) \
-            -> MTMultipleSet:
-        """
-        Gets the list of cumulative test sets.
-
-        :param include_current_step: If True, include the current task training
-            set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param include_current_task: Alias for the ``include_current_step``
-            parameter. If not None, overrides ``include_current_step``.
-
-        :returns: The cumulative test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        if include_current_task is not None:
-            include_current_step = include_current_task
-
-        if include_current_step:
-            tasks = range(0, self.current_task + 1)
-        else:
-            tasks = range(0, self.current_task)
-        return self.__make_test_subset(tasks, bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def complete_test_sets(self, bucket_classes=False, sort_classes=False,
-                           sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of test sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the test sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label.
-        """
-        return self.__make_test_subset(list(range(0, self.scenario.n_tasks)),
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def future_test_sets(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the "future" test set. That is, a dataset made of test patterns
-        belonging to not-already-encountered classes.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        return self.__make_test_subset(range(self.current_task + 1,
-                                             self.scenario.n_tasks),
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def step_specific_test_set(self, step_id: int, bucket_classes=False,
-                               sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set of a specific batch, given its ID.
-
-        :param step_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self.task_specific_test_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def task_specific_test_set(self, task_id: int, bucket_classes=False,
-                               sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set of a specific batch, given its ID.
-
-        :param task_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self.__make_test_subset(task_id,
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)[0]
-
-    def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the test subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The test sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_test_set(bucket_classes=bucket_classes,
-                                          sort_classes=sort_classes,
-                                          sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_test_sets(include_current_task=True,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_test_sets(include_current_task=False,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_test_sets(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_test_sets(bucket_classes=bucket_classes,
-                                           sort_classes=sort_classes,
-                                           sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def disable_transformations(self) -> 'NCTaskInfo[' \
-                                         'TrainSetWithTargets, ' \
-                                         'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are disabled.
-        The current instance is not affected. This is useful when there is a
-        need to access raw data. Can be used when picking and storing
-        rehearsal/replay patterns.
-
-        :returns: A new NCTaskInfo in which transformations are
-            disabled.
-        """
-
-        return NCTaskInfo(
-            self.scenario, self._sit_batch_info.disable_transformations(),
-            current_task=self.current_task)
-
-    def enable_transformations(self) -> 'NCTaskInfo[' \
-                                        'TrainSetWithTargets, ' \
-                                        'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are enabled.
-        The current instance is not affected. When created the
-        NCGenericBatchInfo instance already has transformations enabled.
-        This method can be used to re-enable transformations after a previous
-        call to disable_transformations().
-
-        :returns: A new NCTaskInfo in which transformations are
-            enabled.
-        """
-        return NCTaskInfo(
-            self.scenario, self._sit_batch_info.enable_transformations(),
-            current_task=self.current_task)
-
-    def with_train_transformations(self) -> 'NCTaskInfo[' \
-                                            'TrainSetWithTargets, ' \
-                                            'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which train transformations are
-        applied to both training and test sets. The current instance is not
-        affected.
-
-        :returns: A new NCTaskInfo in which train transformations
-            are applied to both training and test sets.
-        """
-        return NCTaskInfo(
-            self.scenario, self._sit_batch_info.with_train_transformations(),
-            current_task=self.current_task)
-
-    def with_test_transformations(self) -> 'NCTaskInfo[' \
-                                           'TrainSetWithTargets, ' \
-                                           'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which test transformations are
-        applied to both training and test sets. The current instance is
-        not affected. This is useful to get the accuracy on the training set
-        without considering the usual training data augmentations.
-
-        :returns: A new NCTaskInfo in which test transformations
-            are applied to both training and test sets.
-        """
-        return NCTaskInfo(
-            self.scenario, self._sit_batch_info.with_test_transformations(),
-            current_task=self.current_task)
-    
-    def __make_subset(self, tasks: Union[int, Sequence[int]],
-                      is_train: bool, **kwargs):
-        """
-        Given the batches IDs list and the dataset type (train or test),
-        returns a list of tuples (dataset, task_label) in order specified by the
-        batches parameter.
-
-        When running a single incremental task scenario, the "batches" parameter
-        will be considered as defining the "batch" IDs (not the batches ones).
-
-        :param tasks: The list of batches IDs. Can be a single int.
-        :param is_train: when True, training sets will be returned. When False,
-            test sets will be returned.
-
-        :returns: A list of tuples each containing 2 elements: the dataset and
-            the corresponding task label. Note that, when running a single
-            incremental task scenario, the second element of the tuple(s) will
-            always be "0".
-        """
-        if isinstance(tasks, int):  # Required single task
-            return self.__make_subset([tasks], is_train, **kwargs)
-
-        classes_mapping = self.scenario.class_mapping
-        result: List[Tuple[TransformationSubset, int]] = []
-
-        for task_id in tasks:
-            if is_train:
-                dataset = self._sit_batch_info. \
-                    batch_specific_training_set(task_id, **kwargs)
-            else:
-                dataset = self._sit_batch_info. \
-                    batch_specific_test_set(task_id, **kwargs)
-
-            dataset = TransformationSubset(
-                dataset, None, class_mapping=classes_mapping)
-            subset = make_nc_transformation_subset(
-                dataset, None, None, list(range(self.scenario.n_classes)),
-                **kwargs)
-
-            result.append((subset, task_id))
-
-        return result
-        
-    def __make_train_subset(self, tasks: Union[int, Sequence[int]], **kwargs):
-        return self.__make_subset(tasks, True, **kwargs)
-
-    def __make_test_subset(self, tasks: Union[int, Sequence[int]], **kwargs):
-        return self.__make_subset(tasks, False, **kwargs)
-
-    def __get_tasks_classes(self, task_start: int,
-                            task_end: Optional[int] = None) -> List[int]:
-        """
-        Gets a list of classes contained int the given batches. The batches are
-        defined by range. This means that only the classes in range
-        [batch_start, batch_end) will be included.
-
-        :param task_start: The starting task ID
-        :param task_end: The final task ID. Can be None.
-
-        :returns: The classes contained in the required task range.
-        """
-        # Ref: https://stackoverflow.com/a/952952
-        if task_end is None:
-            return [
-                item for sublist in
-                self.scenario.original_classes_in_task[task_start:]
-                for item in sublist]
-
-        return [
-            item for sublist in
-            self.scenario.original_classes_in_task[task_start:task_end]
-            for item in sublist]
+    def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
+        subset, t = super()._make_subset(is_train, step)
+
+        subset = TransformationSubset(
+            subset, None, class_mapping=self.scenario.class_mapping)
+
+        return TransformationSubset(
+            subset,
+            grouped_and_ordered_indexes(
+                subset.targets, None,
+                **kwargs)), t
 
     def _go_to_task(self):
-        if self.current_task >= 0:
-            self.classes_in_this_task = self.scenario.original_classes_in_task[
-                self.current_task]
-            self.previous_classes = self.__get_tasks_classes(
-                0, self.current_task)
-            self.classes_seen_so_far = \
-                self.previous_classes + self.classes_in_this_task
-            self.future_classes = self.__get_tasks_classes(self.current_task)
-        else:
-            self.classes_in_this_task = []
-            self.previous_classes = []
-            self.classes_seen_so_far = []
-            self.future_classes = self.__get_tasks_classes(0)
+        class_split = self.scenario.nc_generic_scenario.get_class_split(
+            self.current_task)
+        self.classes_in_this_task, self.previous_classes, self.\
+            classes_seen_so_far, self.future_classes = class_split
 
 
-class NCSingleTaskScenario(Generic[TrainSetWithTargets,
-                                   TestSetWithTargets]):
+class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
+                                             TestSetWithTargets],
+                           Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Classes" Single Incremental Task scenario based
     on a :class:`NCGenericScenario` instance. Once created, an instance of this
@@ -738,17 +238,22 @@ class NCSingleTaskScenario(Generic[TrainSetWithTargets,
         self.n_classes: int = self.nc_generic_scenario.n_classes
         self.classes_in_batch = nc_generic_scenario.classes_in_batch
 
-    def __len__(self) -> int:
-        return self.n_batches
+        super(NCSingleTaskScenario, self).__init__(
+            self.nc_generic_scenario.train_dataset,
+            self.nc_generic_scenario.test_dataset,
+            self.nc_generic_scenario.train_steps_patterns_assignment,
+            self.nc_generic_scenario.test_steps_patterns_assignment,
+            [0] * self.n_batches)
 
-    def __getitem__(self, batch_idx) -> 'NCBatchInfo[' \
-                                        'TrainSetWithTargets,' \
-                                        'TestSetWithTargets]':
-        return NCBatchInfo(self, self.nc_generic_scenario[batch_idx],
-                           current_batch=batch_idx)
+    def __getitem__(self, batch_id) -> 'NCBatchInfo[' \
+                                       'TrainSetWithTargets,' \
+                                       'TestSetWithTargets]':
+        return NCBatchInfo(self, batch_id)
 
 
-class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NCBatchInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
+                                                      TestSetWithTargets]],
+                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Classes" batch. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
@@ -761,539 +266,64 @@ class NCBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
 
     def __init__(self,
-                 sit_scenario:
-                 NCSingleTaskScenario[TrainSetWithTargets,
-                                      TestSetWithTargets],
-                 sit_batch_info: NCGenericBatchInfo[TrainSetWithTargets,
-                                                    TestSetWithTargets],
-                 current_batch: int = -1):
+                 scenario: NCSingleTaskScenario[TrainSetWithTargets,
+                                                TestSetWithTargets],
+                 current_batch: int,
+                 force_train_transformations: bool = False,
+                 force_test_transformations: bool = False,
+                 are_transformations_disabled: bool = False):
         """
         Creates a NCBatchInfo instance given the root scenario. 
         Instances of this class are usually created automatically while 
         iterating over an instance of :class:`NCSingleTaskScenario`.
 
-        :param sit_scenario: The scenario
-        :param sit_batch_info: The batch info
+        :param scenario: A reference to the NC scenario
         :param current_batch: The batch ID
+        :param force_train_transformations: If True, train transformations will
+            be applied to the test set too. The ``force_test_transformations``
+            parameter can't be True at the same time. Defaults to False.
+        :param force_test_transformations: If True, test transformations will be
+            applied to the training set too. The ``force_train_transformations``
+            parameter can't be True at the same time. Defaults to False.
+        :param are_transformations_disabled: If True, transformations are
+            disabled. That is, patterns and targets will be returned as
+            outputted by  the original training and test Datasets. Overrides
+            ``force_train_transformations`` and ``force_test_transformations``.
+            Defaults to False.
         """
-        self.scenario: NCSingleTaskScenario[TrainSetWithTargets,
-                                            TestSetWithTargets] = sit_scenario
+
+        super(NCBatchInfo, self).__init__(
+            scenario, current_batch,
+            force_train_transformations=force_train_transformations,
+            force_test_transformations=force_test_transformations,
+            are_transformations_disabled=are_transformations_disabled,
+            transformation_step_factory=NCBatchInfo)
 
         self.current_batch: int = current_batch
-        self.current_step: int = current_batch
-
-        # Just wrap NCGenericBatchInfo
-        self._sit_batch_info = sit_batch_info
 
         # The list of classes in this batch
-        self.classes_in_this_batch = sit_batch_info.classes_in_this_batch
+        self.classes_in_this_batch: List[int] = []
 
         # The list of classes in previous batches,
         # in their encounter order
-        self.previous_classes = sit_batch_info.previous_classes
+        self.previous_classes: List[int] = []
 
         # List of classes of current and previous batches,
         # in their encounter order
-        self.classes_seen_so_far = sit_batch_info.classes_seen_so_far
+        self.classes_seen_so_far: List[int] = []
 
         # The list of classes of next batches,
         # in their encounter order
-        self.future_classes = sit_batch_info.future_classes
+        self.future_classes: List[int] = []
 
-    def current_training_set(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTSingleSet:
-        """
-        Gets the training set for the current batch.
+        # _go_to_batch initializes the above lists
+        self._go_to_batch()
 
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current batch training set, as a tuple containing the
-            Dataset and the task label "0".
-        """
-        return self.batch_specific_training_set(self.current_batch,
-                                                bucket_classes=bucket_classes,
-                                                sort_classes=sort_classes,
-                                                sort_indexes=sort_indexes)
-
-    def cumulative_training_sets(self, include_current_step: bool = True,
-                                 bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False,
-                                 include_current_batch: Optional[bool] = None) \
-            -> MTMultipleSet:
-        """
-        Gets the list of cumulative training sets.
-
-        :param include_current_step: If True, include the current batch
-            training set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param include_current_batch: Alias for the ``include_current_step``
-            parameter. If not None, overrides ``include_current_step``.
-
-        :returns: The cumulative training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        if include_current_batch is not None:
-            include_current_step = include_current_batch
-
-        if include_current_step:
-            batches = range(0, self.current_batch + 1)
-        else:
-            batches = range(0, self.current_batch)
-        return self.__make_train_subset(batches, bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def complete_training_sets(self, bucket_classes=False, sort_classes=False,
-                               sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of training sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the training sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_train_subset(list(range(0, self.scenario.n_batches)),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def future_training_sets(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the "future" training sets. That is, datasets made of training
-        patterns belonging to not-already-encountered classes.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_train_subset(range(self.current_batch + 1,
-                                              self.scenario.n_batches),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def step_specific_training_set(self, step_id: int, bucket_classes=False,
-                                   sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific batch, given its ID.
-
-        :param step_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.batch_specific_training_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def batch_specific_training_set(self, batch_id: int,
-                                    bucket_classes=False,
-                                    sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific batch, given its ID.
-
-        :param batch_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.__make_train_subset(batch_id,
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)[0]
-
-    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                          sort_classes=False, sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the training subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The training sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label
-            "0".
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_training_set(bucket_classes=bucket_classes,
-                                              sort_classes=sort_classes,
-                                              sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_training_sets(include_current_batch=True,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_training_sets(include_current_batch=False,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_training_sets(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_training_sets(bucket_classes=bucket_classes,
-                                               sort_classes=sort_classes,
-                                               sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def current_test_set(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set for the current batch.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current test sets, as a tuple containing the Dataset and
-            the task label "0".
-        """
-        return self.batch_specific_test_set(self.current_batch,
-                                            bucket_classes=bucket_classes,
-                                            sort_classes=sort_classes,
-                                            sort_indexes=sort_indexes)
-
-    def cumulative_test_sets(self, include_current_step: bool = True,
-                             bucket_classes=False, sort_classes=False,
-                             sort_indexes=False,
-                             include_current_batch: Optional[bool] = None) -> \
-            MTMultipleSet:
-        """
-        Gets the list of cumulative test sets.
-
-        :param include_current_step: If True, include the current batch
-            training set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param include_current_batch: Alias for the ``include_current_step``
-            parameter. If not None, overrides ``include_current_step``.
-
-        :returns: The cumulative test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        if include_current_batch is not None:
-            include_current_step = include_current_batch
-
-        if include_current_step:
-            batches = range(0, self.current_batch + 1)
-        else:
-            batches = range(0, self.current_batch)
-        return self.__make_test_subset(batches, bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def complete_test_sets(self, bucket_classes=False, sort_classes=False,
-                           sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of test sets
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the test sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(list(range(0, self.scenario.n_batches)),
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def future_test_sets(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the "future" test sets. That is, datasets made of training patterns
-        belonging to not-already-encountered classes.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(range(self.current_batch + 1,
-                                             self.scenario.n_batches),
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def step_specific_test_set(self, step_id: int, bucket_classes=False,
-                               sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set of a specific batch, given its ID.
-
-        :param step_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.batch_specific_test_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def batch_specific_test_set(self, batch_id: int, bucket_classes=False,
-                                sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set of a specific batch, given its ID.
-
-        :param batch_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.__make_test_subset(batch_id,
-                                       bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)[0]
-
-    def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the test subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The test sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label
-            "0".
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_test_set(bucket_classes=bucket_classes,
-                                          sort_classes=sort_classes,
-                                          sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_test_sets(include_current_batch=True,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_test_sets(include_current_batch=False,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_test_sets(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_test_sets(bucket_classes=bucket_classes,
-                                           sort_classes=sort_classes,
-                                           sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def disable_transformations(self) -> 'NCBatchInfo[' \
-                                         'TrainSetWithTargets, ' \
-                                         'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are disabled.
-        The current instance is not affected. This is useful when there is a
-        need to access raw data. Can be used when picking and storing
-        rehearsal/replay patterns.
-
-        :returns: A new NCBatchInfo in which transformations are disabled.
-        """
-
-        return NCBatchInfo(
-            self.scenario, self._sit_batch_info.disable_transformations(),
-            current_batch=self.current_batch)
-
-    def enable_transformations(self) -> 'NCBatchInfo[' \
-                                        'TrainSetWithTargets, ' \
-                                        'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are enabled.
-        The current instance is not affected. When created the
-        NCGenericBatchInfo instance already has transformations enabled.
-        This method can be used to re-enable transformations after a previous
-        call to disable_transformations().
-
-        :returns: A new NCBatchInfo in which transformations are enabled.
-        """
-        return NCBatchInfo(
-            self.scenario, self._sit_batch_info.enable_transformations(),
-            current_batch=self.current_batch)
-
-    def with_train_transformations(self) -> 'NCBatchInfo[' \
-                                            'TrainSetWithTargets, ' \
-                                            'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which train transformations are
-        applied to both training and test sets. The current instance is not
-        affected.
-
-        :returns: A new NCBatchInfo in which train transformations
-            are applied to both training and test sets.
-        """
-        return NCBatchInfo(
-            self.scenario, self._sit_batch_info.with_train_transformations(),
-            current_batch=self.current_batch)
-
-    def with_test_transformations(self) -> 'NCBatchInfo[' \
-                                           'TrainSetWithTargets, ' \
-                                           'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which test transformations are
-        applied to both training and test sets. The current instance is
-        not affected. This is useful to get the accuracy on the training set
-        without considering the usual training data augmentations.
-
-        :returns: A new NCBatchInfo in which test transformations
-            are applied to both training and test sets.
-        """
-        return NCBatchInfo(
-            self.scenario, self._sit_batch_info.with_test_transformations(),
-            current_batch=self.current_batch)
-
-    def __make_subset(self, batches: Union[int, Sequence[int]],
-                      is_train: bool, **kwargs):
-        """
-        Given the batches IDs list and the dataset type (train or test),
-        returns a list of tuples (dataset, task_label "0") in the order
-        specified by the batches parameter.
-
-        :param batches: The list of batches IDs. Can be a single int.
-        :param is_train: when True, training sets will be returned. When False,
-            test sets will be returned.
-
-        :returns: A list of tuples each containing 2 elements: the dataset and
-            the corresponding task label (always "0", as this is a SIT
-            scenario).
-        """
-        if isinstance(batches, int):  # Required single batch
-            return self.__make_subset([batches], is_train, **kwargs)
-
-        result: List[Tuple[TransformationSubset, int]] = []
-
-        for batch_id in batches:
-            if is_train:
-                dataset = self._sit_batch_info. \
-                    batch_specific_training_set(batch_id, **kwargs)
-            else:
-                dataset = self._sit_batch_info. \
-                    batch_specific_test_set(batch_id, **kwargs)
-
-            subset = make_nc_transformation_subset(
-                dataset, None, None, None, **kwargs)
-
-            result.append((subset, 0))
-
-        return result
-
-    def __make_train_subset(self, batches: Union[int, Sequence[int]], **kwargs):
-        return self.__make_subset(batches, True, **kwargs)
-
-    def __make_test_subset(self, batches: Union[int, Sequence[int]], **kwargs):
-        return self.__make_subset(batches, False, **kwargs)
+    def _go_to_batch(self):
+        class_split = self.scenario.nc_generic_scenario.get_class_split(
+            self.current_batch)
+        self.classes_in_this_task, self.previous_classes, self.\
+            classes_seen_so_far, self.future_classes = class_split
 
 
 __all__ = ['NCMultiTaskScenario', 'NCTaskInfo',
