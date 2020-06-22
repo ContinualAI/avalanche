@@ -1,6 +1,7 @@
 from collections import Sequence
 
-from training.utils import IDatasetWithTargets, ConcatDatasetWithTargets
+from avalanche.training.utils import IDatasetWithTargets,\
+    ConcatDatasetWithTargets
 from .generic_cl_scenario import GenericCLScenario
 
 

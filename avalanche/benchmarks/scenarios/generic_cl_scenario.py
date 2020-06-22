@@ -124,7 +124,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             self.return_complete_test_set_only = \
                 reproducibility_data['complete_test_only']
 
-        self.n_steps = len(self.train_steps_patterns_assignment)
+        self.n_steps: int = len(self.train_steps_patterns_assignment)
 
         if self.return_complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
