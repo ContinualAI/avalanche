@@ -25,116 +25,118 @@ import os.path
 
 
 def default_loader(path):
-	"""
-	Sets the default image loader for the Pytorch Dataset.
+    """
+    Sets the default image loader for the Pytorch Dataset.
 
-	:param path: relative or absolute path of the file to load.
+    :param path: relative or absolute path of the file to load.
 
-	:returns: Returns the image as a RGB PIL image.
-	"""
-	return Image.open(path).convert('RGB')
+    :returns: Returns the image as a RGB PIL image.
+    """
+    return Image.open(path).convert('RGB')
 
 
 def default_flist_reader(flist, root):
-	"""
-	This reader reads a filelist and return a list of paths.
+    """
+    This reader reads a filelist and return a list of paths.
 
-	:param flist: path of the flislist to read. The flist format should be:
-		impath label\nimpath label\n ...(same to caffe's filelist)
+    :param flist: path of the flislist to read. The flist format should be:
+        impath label\nimpath label\n ...(same to caffe's filelist)
+    :param root: root where the actual files are stored.
 
-	:returns: Returns a list of paths (the examples to be loaded).
-	"""
+    :returns: Returns a list of paths (the examples to be loaded).
+    """
 
-	imlist = []
-	with open(flist, 'r') as rf:
-		for line in rf.readlines():
-			impath, imlabel = line.strip().split()
-			imlist.append( (os.path.join(root, impath), int(imlabel)) )
-					
-	return imlist
+    imlist = []
+    with open(flist, 'r') as rf:
+        for line in rf.readlines():
+            impath, imlabel = line.strip().split()
+            imlist.append((os.path.join(root, impath), int(imlabel)))
+
+    return imlist
 
 
 class FilelistDataset(data.Dataset):
-	"""
-	This class extends the basic Pytorch Dataset class to handle filelists as
-	main data source.
-	"""
+    """
+    This class extends the basic Pytorch Dataset class to handle filelists as
+    main data source.
+    """
 
-	def __init__(self, root, flist, transform=None, target_transform=None,
-			flist_reader=default_flist_reader, loader=default_loader):
-		"""
-		This reader reads a filelist and return a list of paths.
+    def __init__(self, root, flist, transform=None, target_transform=None,
+                 flist_reader=default_flist_reader, loader=default_loader):
+        """
+        This reader reads a filelist and return a list of paths.
 
-		:param root: root path where the data to load are stored.
-		:param flist: path of the flislist to read. The flist format should be:
-			impath label\nimpath label\n ...(same to caffe's filelist)
-		:param transform: eventual transformation to add to the input data (x)
-		:param transform: eventual transformation to add to the targets (y)
-		:param root: root path where the data to load are stored.
-		:param flist_reader: loader function to use (for the filelists) given
-			path.
-		:param loader: loader function to use (for the real data) given path.
-		"""
+        :param root: root path where the data to load are stored.
+        :param flist: path of the flislist to read. The flist format should be:
+            impath label\nimpath label\n ...(same to caffe's filelist)
+        :param transform: eventual transformation to add to the input data (x)
+        :param transform: eventual transformation to add to the targets (y)
+        :param root: root path where the data to load are stored.
+        :param flist_reader: loader function to use (for the filelists) given
+            path.
+        :param loader: loader function to use (for the real data) given path.
+        """
 
-		self.root = root
-		self.imgs = flist_reader(flist, root)
-		self.targets = [img_data[1] for img_data in self.imgs]
-		self.transform = transform
-		self.target_transform = target_transform
-		self.loader = loader
+        self.root = root
+        self.imgs = flist_reader(flist, root)
+        self.targets = [img_data[1] for img_data in self.imgs]
+        self.transform = transform
+        self.target_transform = target_transform
+        self.loader = loader
 
-	def __getitem__(self, index):
-		"""
-		Returns next element in the dataset given the current index.
+    def __getitem__(self, index):
+        """
+        Returns next element in the dataset given the current index.
 
-		:param index: index of the data to get.
-		:return: loaded item.
-		"""
+        :param index: index of the data to get.
+        :return: loaded item.
+        """
 
-		impath, target = self.imgs[index]
-		img = self.loader(os.path.join(self.root,impath))
-		if self.transform is not None:
-			img = self.transform(img)
-		if self.target_transform is not None:
-			target = self.target_transform(target)
-		
-		return img, target
+        impath, target = self.imgs[index]
+        img = self.loader(os.path.join(self.root, impath))
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
 
-	def __len__(self):
-		"""
-		Returns the total number of elements in the dataset.
+        return img, target
 
-		:return: Total number of dataset items.
-		"""
+    def __len__(self):
+        """
+        Returns the total number of elements in the dataset.
 
-		return len(self.imgs)
+        :return: Total number of dataset items.
+        """
 
-def datasets_from_filelists(root, train_filelists, test_fielists):
-	"""
-	This reader reads a filelist and return a list of paths.
+        return len(self.imgs)
 
-	:param root: root path where the data to load are stored.
-	:param train_filelists: list of paths to train filelists. The flist format
-		should be: impath label\nimpath label\n ...(same to caffe's filelist)
-	:param test_filelists: list of paths to test filelists. It can be also a
-		single path when the datasets is the same for each batch.
-	:return: list of tuples (train dataset, test dataset) for each train
-		filelist in the list.
-	"""
 
-	inc_datasets = []
+def datasets_from_filelists(root, train_filelists, test_filelists):
+    """
+    This reader reads a filelist and return a list of paths.
 
-	if not isinstance(test_fielists, list):
-		list_test_filelist = []
-		for i in range(len(train_filelists)):
-			list_test_filelist.append(test_fielists)
-		test_fielists = list_test_filelist
+    :param root: root path where the data to load are stored.
+    :param train_filelists: list of paths to train filelists. The flist format
+        should be: impath label\nimpath label\n ...(same to caffe's filelist)
+    :param test_filelists: list of paths to test filelists. It can be also a
+        single path when the datasets is the same for each batch.
 
-	for tr_flist, te_flist in zip(train_filelists, test_fielists):
-		tr_dataset = FilelistDataset(root, tr_flist)
-		te_dataset = FilelistDataset(root, te_flist)
+    :return: list of tuples (train dataset, test dataset) for each train
+        filelist in the list.
+    """
 
-		inc_datasets.append((tr_dataset, te_dataset))
+    inc_datasets = []
 
-	return inc_datasets
+    if not isinstance(test_filelists, list):
+        list_test_filelist = []
+        for i in range(len(train_filelists)):
+            list_test_filelist.append(test_filelists)
+        test_filelists = list_test_filelist
 
+    for tr_flist, te_flist in zip(train_filelists, test_filelists):
+        tr_dataset = FilelistDataset(root, tr_flist)
+        te_dataset = FilelistDataset(root, te_flist)
+
+        inc_datasets.append((tr_dataset, te_dataset))
+
+    return inc_datasets
