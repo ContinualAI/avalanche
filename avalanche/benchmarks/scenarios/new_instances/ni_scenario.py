@@ -113,7 +113,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
 
         if reproducibility_data is not None:
             super(NIScenario, self).__init__(
-                train_dataset, test_dataset,  [], [], [],
+                train_dataset, test_dataset, [], [], [],
                 reproducibility_data=reproducibility_data)
             n_batches = self.n_steps
 
