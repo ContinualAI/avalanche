@@ -9,19 +9,15 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Generic, List
+from typing import Generic, List, Optional, Dict, Any
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets, MTSingleSet
 from .nc_generic_scenario import NCGenericScenario
 from avalanche.training.utils.transform_dataset import TransformationSubset
-from avalanche.benchmarks.scenarios.general_cl_scenario import \
+from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericStepInfo
 from avalanche.benchmarks.utils import grouped_and_ordered_indexes
-
-
-# TODO: implement reproducibility_data constructors parameter
-# TODO: implement get_reproducibility_data methods
 
 
 class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
@@ -47,7 +43,8 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
     def __init__(self,
                  nc_generic_scenario: NCGenericScenario[TrainSetWithTargets,
                                                         TestSetWithTargets],
-                 classes_ids_from_zero_in_each_task: bool = True):
+                 classes_ids_from_zero_in_each_task: bool = True,
+                 reproducibility_data: Optional[Dict[str, Any]] = None):
         """
         Creates a NC multi task scenario given a :class:`NCGenericScenario`
         instance. That instance will be used as the batches factory.
@@ -56,6 +53,15 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
             used to populate this scenario.
         :param classes_ids_from_zero_in_each_task: If True, class ids will be
             mapped to range [0, n_classes) for each task. Defaults to True.
+        :param reproducibility_data: If not None, overrides all the other
+            scenario definition options. This is usually a dictionary containing
+            data used to reproduce a specific experiment. One can use the
+            ``get_reproducibility_data`` method to get (and even distribute)
+            the experiment setup so that it can be loaded by passing it as this
+            parameter. In this way one can be sure that the same specific
+            experimental setup is being used (for reproducibility purposes).
+            Beware that, in order to reproduce an experiment, the same train and
+            test datasets must be used. Defaults to None.
         """
         # nc_generic_scenario keeps a reference to the NCGenericScenario
         self.nc_generic_scenario: \
@@ -69,8 +75,13 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
         # (copied from the nc_generic_scenario instance for easier access)
         self.n_classes: int = self.nc_generic_scenario.n_classes
 
-        self.classes_ids_from_zero_in_each_task: bool = \
-            classes_ids_from_zero_in_each_task
+        self.classes_ids_from_zero_in_each_task: bool
+        if reproducibility_data:
+            self.classes_ids_from_zero_in_each_task = \
+                reproducibility_data['classes_ids_from_zero_in_each_task']
+        else:
+            self.classes_ids_from_zero_in_each_task = \
+                classes_ids_from_zero_in_each_task
 
         self.class_mapping = [-1 for _ in range(self.n_classes)]
 
@@ -105,6 +116,16 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
                                       'TrainSetWithTargets, ' \
                                       'TestSetWithTargets]':
         return NCTaskInfo(self, task_id)
+
+    def get_reproducibility_data(self) -> Dict[str, Any]:
+        rep_data = super().get_reproducibility_data()
+        gen_data = self.nc_generic_scenario.get_reproducibility_data()
+
+        rep_data['classes_ids_from_zero_in_each_task'] = \
+            bool(self.classes_ids_from_zero_in_each_task)
+
+        # See: https://stackoverflow.com/a/26853961
+        return {**rep_data, **gen_data}
 
 
 class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
@@ -249,6 +270,13 @@ class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
                                        'TrainSetWithTargets,' \
                                        'TestSetWithTargets]':
         return NCBatchInfo(self, batch_id)
+
+    def get_reproducibility_data(self) -> Dict[str, Any]:
+        rep_data = super().get_reproducibility_data()
+        gen_data = self.nc_generic_scenario.get_reproducibility_data()
+
+        # See: https://stackoverflow.com/a/26853961
+        return {**rep_data, **gen_data}
 
 
 class NCBatchInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,

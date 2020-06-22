@@ -9,19 +9,36 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Optional, List, Generic, Sequence
+from typing import Optional, List, Generic, Sequence, Dict, Any
 
 import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets
-from avalanche.training.utils import TransformationSubset
-from avalanche.benchmarks.scenarios.general_cl_scenario import \
+from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
+from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericStepInfo
 
 
-# TODO: implement reproducibility_data constructor parameter
-# TODO: implement get_reproducibility_data method
+def _batch_structure_from_assignment(dataset: IDatasetWithTargets,
+                                     assignment: Sequence[Sequence[int]],
+                                     n_classes: int):
+    n_batches = len(assignment)
+    batch_structure = [[0 for _ in range(n_classes)]
+                       for _ in range(n_batches)]
+
+    for batch_id in range(n_batches):
+        batch_targets = [dataset.targets[pattern_idx]
+                         for pattern_idx in
+                         assignment[batch_id]]
+        cls_ids, cls_counts = torch.unique(torch.as_tensor(
+            batch_targets), return_counts=True)
+
+        for unique_idx in range(len(cls_ids)):
+            batch_structure[batch_id][int(cls_ids[unique_idx])] += \
+                int(cls_counts[unique_idx])
+
+    return batch_structure
 
 
 class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
@@ -51,7 +68,8 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
             shuffle: bool = True, seed: Optional[int] = None,
             balance_batches: bool = False,
             min_class_patterns_in_batch: int = 0,
-            fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None):
+            fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None,
+            reproducibility_data: Optional[Dict[str, Any]] = None):
         """
         Creates a NIScenario instance given the training and test Datasets and
         the number of batches.
@@ -81,7 +99,23 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
             is a list that contains the indexes of patterns belonging to that
             batch. Overrides the ``shuffle``, ``balance_batches`` and
             ``min_class_patterns_in_batch`` parameters.
+        :param reproducibility_data: If not None, overrides all the other
+            scenario definition options, including ``fixed_batch_assignment``.
+            This is usually a dictionary containing data used to
+            reproduce a specific experiment. One can use the
+            ``get_reproducibility_data`` method to get (and even distribute)
+            the experiment setup so that it can be loaded by passing it as this
+            parameter. In this way one can be sure that the same specific
+            experimental setup is being used (for reproducibility purposes).
+            Beware that, in order to reproduce an experiment, the same train and
+            test datasets must be used. Defaults to None.
         """
+
+        if reproducibility_data is not None:
+            super(NIScenario, self).__init__(
+                train_dataset, test_dataset,  [], [], [],
+                reproducibility_data=reproducibility_data)
+            n_batches = self.n_steps
 
         # The number of batches
         self.n_batches: int = n_batches
@@ -90,7 +124,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
             raise ValueError('Invalid number of batches (n_batches parameter): '
                              'must be greater than 0')
 
-        if min_class_patterns_in_batch < 0:
+        if min_class_patterns_in_batch < 0 and reproducibility_data is None:
             raise ValueError('Invalid min_class_patterns_in_batch parameter: '
                              'must be greater than or equal to 0')
 
@@ -125,25 +159,20 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
         # batch_patterns contains, for each batch, the list of patterns
         # assigned to that batch (as indexes of elements from the training set)
 
-        if fixed_batch_assignment:
-            # fixed_patterns_assignment is the user provided batch_patterns
-            # all we have to do is populate remaining fields of the class!
+        if reproducibility_data or fixed_batch_assignment:
+            # fixed_patterns_assignment/reproducibility_data is the user
+            # provided pattern assignment. All we have to do is populate
+            # remaining fields of the class!
             # n_patterns_per_batch is filled later based on batch_structure
             # so we only need to fill batch_structure.
-            batch_patterns = fixed_batch_assignment
-            self.batch_structure = [[0 for _ in range(self.n_classes)]
-                                    for _ in range(self.n_batches)]
 
-            for batch_id in range(self.n_batches):
-                batch_targets = [train_dataset.targets[pattern_idx]
-                                 for pattern_idx in
-                                 batch_patterns[batch_id]]
-                cls_ids, cls_counts = torch.unique(torch.as_tensor(
-                    batch_targets), return_counts=True)
-
-                for unique_idx in range(len(cls_ids)):
-                    self.batch_structure[batch_id][int(cls_ids[unique_idx])] +=\
-                        int(cls_counts[unique_idx])
+            if reproducibility_data:
+                batch_patterns = self.train_steps_patterns_assignment
+            else:
+                batch_patterns = fixed_batch_assignment
+            self.batch_structure = _batch_structure_from_assignment(
+                train_dataset, batch_patterns, self.n_classes
+            )
         else:
             # All batches will all contain the same amount of patterns
             # The amount of patterns doesn't need to be divisible without
@@ -351,6 +380,11 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
 
     def __getitem__(self, batch_id):
         return NIBatchInfo(self, batch_id)
+
+    def get_reproducibility_data(self) -> Dict[str, Any]:
+        # In fact, the only data required for reproducibility of a NI Scenario
+        # is the one already included in the GenericCLScenario!
+        return super().get_reproducibility_data()
 
 
 class NIBatchInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,

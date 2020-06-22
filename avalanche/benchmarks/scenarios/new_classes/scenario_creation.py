@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Sequence, Optional, Dict, List, Union
+from typing import Sequence, Optional, Dict, List, Union, Any
 
 import torch
 
@@ -26,7 +26,9 @@ def create_nc_single_dataset_sit_scenario(
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         per_batch_classes: Optional[Dict[int, int]] = None,
-        remap_class_ids: bool = False) -> NCSingleTaskScenario:
+        remap_class_ids: bool = False,
+        reproducibility_data: Optional[Dict[str, Any]] = None) -> \
+        NCSingleTaskScenario:
     """
     Creates a "New Classes - Single Incremental Task" scenario given a couple
     of train and test datasets.
@@ -61,6 +63,15 @@ def create_nc_single_dataset_sit_scenario(
         be mapped to "1", class "11" to "2" and so on. This is very
         useful when drawing confusion matrices and when dealing with
         algorithms with dynamic head expansion. Defaults to False.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options. This is usually a dictionary containing
+        data used to reproduce a specific experiment. One can use the
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same train and
+        test datasets must be used. Defaults to None.
 
     :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
         SIT scenario.
@@ -71,7 +82,8 @@ def create_nc_single_dataset_sit_scenario(
         n_batches=n_batches, shuffle=shuffle, seed=seed,
         fixed_class_order=fixed_class_order,
         per_batch_classes=per_batch_classes,
-        remap_class_indexes=remap_class_ids)
+        remap_class_indexes=remap_class_ids,
+        reproducibility_data=reproducibility_data)
 
     return NCSingleTaskScenario(base_scenario)
 
@@ -83,7 +95,8 @@ def create_nc_single_dataset_multi_task_scenario(
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         per_task_classes: Optional[Dict[int, int]] = None,
-        classes_ids_from_zero_in_each_task: bool = True) \
+        classes_ids_from_zero_in_each_task: bool = True,
+        reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NCMultiTaskScenario:
     """
     Creates a "New Classes - Multi Task" scenario given a couple
@@ -114,6 +127,15 @@ def create_nc_single_dataset_multi_task_scenario(
         be mapped to range [0, n_classes_in_task) for each task. If False,
         each class will keep its original ID as defined in the input
         datasets. Defaults to True.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options. This is usually a dictionary containing
+        data used to reproduce a specific experiment. One can use the
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same train and
+        test datasets must be used. Defaults to None.
 
     :returns: A :class:`NCMultiTaskScenario` instance.
     """
@@ -123,11 +145,13 @@ def create_nc_single_dataset_multi_task_scenario(
         n_batches=n_tasks, shuffle=shuffle, seed=seed,
         fixed_class_order=fixed_class_order,
         per_batch_classes=per_task_classes,
-        remap_class_indexes=False)
+        remap_class_indexes=False,
+        reproducibility_data=reproducibility_data)
 
     return NCMultiTaskScenario(
         base_scenario,
-        classes_ids_from_zero_in_each_task=classes_ids_from_zero_in_each_task)
+        classes_ids_from_zero_in_each_task=classes_ids_from_zero_in_each_task,
+        reproducibility_data=reproducibility_data)
 
 
 def _one_dataset_per_batch_class_order(
@@ -170,7 +194,9 @@ def create_nc_multi_dataset_sit_scenario(
         n_batches: int, shuffle: bool = True,
         seed: Optional[int] = None,
         per_batch_classes: Optional[Dict[int, int]] = None,
-        one_dataset_per_batch: bool = False) \
+        one_dataset_per_batch: bool = False,
+        reproducibility_data: Optional[Dict[str, Any]] = None
+        ) \
         -> NCSingleTaskScenario:
     """
     Creates a "New Classes - Single Incremental Task" scenario given a list of
@@ -198,6 +224,16 @@ def create_nc_multi_dataset_sit_scenario(
     :param one_dataset_per_batch: If True, each dataset will be treated as a
         batch. Mutually exclusive with the per_task_classes parameter.
         Overrides the n_batches parameter.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options. This is usually a dictionary containing
+        data used to reproduce a specific experiment. One can use the
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same train
+        dataset, test dataset and ``one_dataset_per_batch`` parameter must be
+        used. Defaults to None.
 
     :returns: A :class:`NCMultiTaskScenario` instance initialized for the
         the SIT scenario.
@@ -234,7 +270,8 @@ def create_nc_multi_dataset_sit_scenario(
         seq_train_dataset, seq_test_dataset,
         n_batches=n_batches, shuffle=shuffle, seed=seed,
         fixed_class_order=fixed_class_order,
-        per_batch_classes=per_batch_classes)
+        per_batch_classes=per_batch_classes,
+        reproducibility_data=reproducibility_data)
 
     return NCSingleTaskScenario(base_scenario)
 
@@ -243,7 +280,8 @@ def create_nc_multi_dataset_multi_task_scenario(
         train_dataset_list: Sequence[IDatasetWithTargets],
         test_dataset_list: Sequence[IDatasetWithTargets],
         shuffle: bool = True, seed: Optional[int] = None,
-        classes_ids_from_zero_in_each_task: bool = True) \
+        classes_ids_from_zero_in_each_task: bool = True,
+        reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NCMultiTaskScenario:
     """
     Creates a "New Classes - Multi Task" scenario given a list of
@@ -271,6 +309,15 @@ def create_nc_multi_dataset_multi_task_scenario(
         [0, n_classes_in_dataset2) while classes in dataset3 will appear
         as having IDs in range [n_classes_in_dataset2,
         n_classes_in_dataset2+n_classes_in_dataset3) and so on.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options. This is usually a dictionary containing
+        data used to reproduce a specific experiment. One can use the
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same train and
+        test datasets must be used. Defaults to None.
 
     :Returns: A :class:`NCMultiTaskScenario` instance.
     """
@@ -297,11 +344,13 @@ def create_nc_multi_dataset_multi_task_scenario(
     base_scenario = NCGenericScenario(
         seq_train_dataset, seq_test_dataset,
         n_batches=len(train_dataset_list), shuffle=False, seed=None,
-        fixed_class_order=fixed_class_order, per_batch_classes=classes_per_task)
+        fixed_class_order=fixed_class_order, per_batch_classes=classes_per_task,
+        reproducibility_data=reproducibility_data)
 
     return NCMultiTaskScenario(
         base_scenario,
-        classes_ids_from_zero_in_each_task=classes_ids_from_zero_in_each_task)
+        classes_ids_from_zero_in_each_task=classes_ids_from_zero_in_each_task,
+        reproducibility_data=reproducibility_data)
 
 
 __all__ = ['create_nc_single_dataset_sit_scenario',

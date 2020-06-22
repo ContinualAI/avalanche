@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Sequence, Optional
+from typing import Sequence, Optional, Dict, Any
 
 from avalanche.training.utils.transform_dataset import IDatasetWithTargets, \
     concat_datasets_sequentially
@@ -23,7 +23,8 @@ def create_ni_single_dataset_sit_scenario(
         seed: Optional[int] = None,
         balance_batches: bool = False,
         min_class_patterns_in_batch: int = 0,
-        fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None) -> \
+        fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None,
+        reproducibility_data: Optional[Dict[str, Any]] = None) -> \
         NIScenario:
     """
     Creates a "New Instances - Single Incremental Task" scenario given a couple
@@ -47,6 +48,16 @@ def create_ni_single_dataset_sit_scenario(
         is a list that contains the indexes of patterns belonging to that
         batch. Overrides the ``shuffle``, ``balance_batches`` and
         ``min_class_patterns_in_batch`` parameters.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options, including ``fixed_batch_assignment``.
+        This is usually a dictionary containing data used to
+        reproduce a specific experiment. One can use the scenario's
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same train and
+        test datasets must be used. Defaults to None.
 
     :returns: A :class:`NIScenario` instance.
     """
@@ -55,7 +66,8 @@ def create_ni_single_dataset_sit_scenario(
                       shuffle=shuffle, seed=seed,
                       balance_batches=balance_batches,
                       min_class_patterns_in_batch=min_class_patterns_in_batch,
-                      fixed_batch_assignment=fixed_batch_assignment)
+                      fixed_batch_assignment=fixed_batch_assignment,
+                      reproducibility_data=reproducibility_data)
 
 
 def create_ni_multi_dataset_sit_scenario(
@@ -64,7 +76,8 @@ def create_ni_multi_dataset_sit_scenario(
         n_batches: int, shuffle: bool = True,
         seed: Optional[int] = None,
         balance_batches: bool = False,
-        min_class_patterns_in_batch: int = 0) -> NIScenario:
+        min_class_patterns_in_batch: int = 0,
+        reproducibility_data: Optional[Dict[str, Any]] = None) -> NIScenario:
     """
     Creates a "New Instances - Single Incremental Task" scenario given a list of
     datasets and the number of batches. The datasets will be merged together.
@@ -85,6 +98,16 @@ def create_ni_multi_dataset_sit_scenario(
         every class that must be assigned to every batch. Compatible with
         the ``balance_batches`` parameter. An exception will be raised if
         this constraint can't be satisfied. Defaults to 0.
+    :param reproducibility_data: If not None, overrides all the other
+        scenario definition options, including ``fixed_batch_assignment``.
+        This is usually a dictionary containing data used to
+        reproduce a specific experiment. One can use the scenario's
+        ``get_reproducibility_data`` method to get (and even distribute)
+        the experiment setup so that it can be loaded by passing it as this
+        parameter. In this way one can be sure that the same specific
+        experimental setup is being used (for reproducibility purposes).
+        Beware that, in order to reproduce an experiment, the same
+        train and test datasets list must be used. Defaults to None.
 
     :returns: A :class:`NIScenario` instance.
     """
@@ -98,7 +121,8 @@ def create_ni_multi_dataset_sit_scenario(
     return NIScenario(seq_train_dataset, seq_test_dataset, n_batches,
                       shuffle=shuffle, seed=seed,
                       balance_batches=balance_batches,
-                      min_class_patterns_in_batch=min_class_patterns_in_batch)
+                      min_class_patterns_in_batch=min_class_patterns_in_batch,
+                      reproducibility_data=reproducibility_data)
 
 
 __all__ = ['create_ni_single_dataset_sit_scenario',

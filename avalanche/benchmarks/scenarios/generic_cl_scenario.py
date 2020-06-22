@@ -56,8 +56,10 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             :class:`GenericStepInfo` instances. This also means that the
             ``test_steps_patterns_assignment`` parameter can be a single element
             or even an empty list (in which case, the full set defined by
-            the ``test_dataset`` parameter will be returned). Defaults to False,
-            which means that ```train_steps_patterns_assignment`` and
+            the ``test_dataset`` parameter will be returned). The returned
+            task label for the complete test set will be the first element
+            of the ``task_labels`` parameter. Defaults to False, which means
+            that ```train_steps_patterns_assignment`` and
             ``test_steps_patterns_assignment`` parameters must describe an equal
             amount of steps.
         :param reproducibility_data: If not None, overrides the
@@ -69,7 +71,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             parameter. In this way one can be sure that the same specific
             experimental setup is being used (for reproducibility purposes).
             Beware that, in order to reproduce an experiment, the same train and
-            test datasets must be used.
+            test datasets must be used. Defaults to None.
         """
         self.train_dataset: TrainSetWithTargets = train_dataset
         self.test_dataset: TestSetWithTargets = test_dataset
@@ -109,7 +111,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
         self.train_steps_patterns_assignment: Sequence[Sequence[int]] = \
             train_steps_patterns_assignment
-        self.test_steps_patterns_assignment:  Sequence[Sequence[int]] = \
+        self.test_steps_patterns_assignment: Sequence[Sequence[int]] = \
             test_steps_patterns_assignment
         self.task_labels: Sequence[int] = task_labels
         self.return_complete_test_set_only: bool = \
@@ -122,6 +124,8 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             self.return_complete_test_set_only = \
                 reproducibility_data['complete_test_only']
 
+        self.n_steps = len(self.train_steps_patterns_assignment)
+
         if self.return_complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
                 raise ValueError(
@@ -132,6 +136,10 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                 len(self.test_steps_patterns_assignment):
             raise ValueError('There must be the same amount of train and '
                              'test steps')
+
+        if len(self.train_steps_patterns_assignment) != len(self.task_labels):
+            raise ValueError('There must be the same number of train steps'
+                             'and task labels')
 
     def __len__(self) -> int:
         """
@@ -175,7 +183,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             test_steps.append(list(test_step))
         return {'train': train_steps, 'test': test_steps,
                 'task_labels': list(self.task_labels),
-                'complete_test_only': bool(self.test_steps_patterns_assignment)}
+                'complete_test_only': bool(self.return_complete_test_set_only)}
 
 
 class AbstractStepInfo(ABC, Generic[TBaseScenario]):
@@ -676,3 +684,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
             return [self._make_subset(False, 0, **kwargs)]
 
         return super()._make_test_subsets(steps, **kwargs)
+
+
+__all__ = ['GenericStepInfo', 'GenericCLScenario', 'AbstractStepInfo',
+           'TBaseScenario', 'TStepInfo', 'TGenericCLScenario']
