@@ -1,6 +1,6 @@
-from collections import Sequence
+from typing import Sequence
 
-from avalanche.training.utils import IDatasetWithTargets,\
+from avalanche.training.utils import IDatasetWithTargets, \
     ConcatDatasetWithTargets
 from .generic_cl_scenario import GenericCLScenario
 
