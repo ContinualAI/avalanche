@@ -80,8 +80,10 @@ class FilelistDataset(data.Dataset):
             path.
         :param loader: loader function to use (for the real data) given path.
         """
+
         root = str(root)  # Manages Path objects
         flist = str(flist)  # Manages Path objects
+
         self.root = root
         self.imgs = flist_reader(flist, root)
         self.targets = [img_data[1] for img_data in self.imgs]
@@ -131,6 +133,7 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
         Alternatively, test_filelists can be the path (str) to the complete test
         set filelist. If False, train_filelists and test_filelists must contain
         the same amount of filelists paths. Defaults to False.
+
     :return: list of tuples (train dataset, test dataset) for each train
         filelist in the list.
     """
