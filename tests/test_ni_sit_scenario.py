@@ -46,7 +46,8 @@ class NISITTests(unittest.TestCase):
         ni_scenario_reference = create_ni_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        reference_assignment = ni_scenario_reference.batch_patterns
+        reference_assignment = ni_scenario_reference.\
+            train_steps_patterns_assignment
 
         ni_scenario = create_ni_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=4321,
@@ -54,8 +55,27 @@ class NISITTests(unittest.TestCase):
 
         self.assertEqual(ni_scenario_reference.n_batches, ni_scenario.n_batches)
 
-        self.assertEqual(ni_scenario_reference.batch_patterns,
-                         ni_scenario.batch_patterns)
+        self.assertEqual(ni_scenario_reference.train_steps_patterns_assignment,
+                         ni_scenario.train_steps_patterns_assignment)
+
+        self.assertEqual(ni_scenario_reference.batch_structure,
+                         ni_scenario.batch_structure)
+
+    def test_ni_sit_single_dataset_reproducibility_data(self):
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        ni_scenario_reference = create_ni_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+
+        rep_data = ni_scenario_reference.get_reproducibility_data()
+
+        ni_scenario = create_ni_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 0, reproducibility_data=rep_data)
+
+        self.assertEqual(ni_scenario_reference.n_batches, ni_scenario.n_batches)
+
+        self.assertEqual(ni_scenario_reference.train_steps_patterns_assignment,
+                         ni_scenario.train_steps_patterns_assignment)
 
         self.assertEqual(ni_scenario_reference.batch_structure,
                          ni_scenario.batch_structure)

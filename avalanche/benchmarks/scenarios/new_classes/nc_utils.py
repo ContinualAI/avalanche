@@ -50,9 +50,14 @@ def _indexes_grouped_by_classes(sequence: Sequence[int],
     for search_element in search_elements:
         result_per_class[search_element] = []
 
+    # Set based "in" operator is **much** faster that its list counterpart!
+    search_elements_set = set()
+    if search_elements is not None:
+        search_elements_set = set(search_elements)
+
     # Stores each pattern index in the appropriate class list
     for idx, element in enumerate(sequence):
-        if search_elements is None or element in search_elements:
+        if search_elements is None or element in search_elements_set:
             result_per_class[element].append(idx)
 
     # Concatenate all the pattern indexes
@@ -87,6 +92,8 @@ def _indexes_without_grouping(sequence: Sequence[int],
     if search_elements is None:
         result = list(sequence)
     else:
+        # Set based "in" operator is **much** faster that its list counterpart!
+        search_elements = set(search_elements)
         result = []
         for idx, element in enumerate(sequence):
             if element in search_elements:

@@ -64,6 +64,22 @@ class MultiTaskTests(unittest.TestCase):
 
         self.assertEqual(order, all_classes)
 
+    def test_mt_single_dataset_reproducibility_data(self):
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario_ref = create_nc_single_dataset_multi_task_scenario(
+            mnist_train, mnist_test, 5, shuffle=True, seed=5678)
+
+        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+            mnist_train, mnist_test, -1,
+            reproducibility_data=nc_scenario_ref.get_reproducibility_data())
+
+        self.assertEqual(nc_scenario_ref.train_steps_patterns_assignment,
+                         nc_scenario.train_steps_patterns_assignment)
+
+        self.assertEqual(nc_scenario_ref.test_steps_patterns_assignment,
+                         nc_scenario.test_steps_patterns_assignment)
+
     def test_mt_single_dataset_task_size(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)

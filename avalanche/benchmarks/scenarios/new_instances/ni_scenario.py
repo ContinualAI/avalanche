@@ -9,19 +9,41 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Optional, List, Generic, Any, Union, Tuple, Iterable, \
-    Sequence
+from typing import Optional, List, Generic, Sequence, Dict, Any
 
 import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSetWithTargets, TestSetWithTargets, DatasetPart, MTSingleSet, \
-    MTMultipleSet
-from avalanche.training.utils import TransformationSubset
-from .ni_utils import make_ni_transformation_subset
+    TrainSetWithTargets, TestSetWithTargets
+from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
+from avalanche.benchmarks.scenarios.generic_cl_scenario import \
+    GenericCLScenario, GenericStepInfo
 
 
-class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
+def _batch_structure_from_assignment(dataset: IDatasetWithTargets,
+                                     assignment: Sequence[Sequence[int]],
+                                     n_classes: int):
+    n_batches = len(assignment)
+    batch_structure = [[0 for _ in range(n_classes)]
+                       for _ in range(n_batches)]
+
+    for batch_id in range(n_batches):
+        batch_targets = [dataset.targets[pattern_idx]
+                         for pattern_idx in
+                         assignment[batch_id]]
+        cls_ids, cls_counts = torch.unique(torch.as_tensor(
+            batch_targets), return_counts=True)
+
+        for unique_idx in range(len(cls_ids)):
+            batch_structure[batch_id][int(cls_ids[unique_idx])] += \
+                int(cls_counts[unique_idx])
+
+    return batch_structure
+
+
+class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
+                 Generic[TrainSetWithTargets, TestSetWithTargets]):
+
     """
     This class defines a "New Instance" Single Incremental Task scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -34,7 +56,7 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
     Being a Single Incremental Task scenario, the task label will always be "0".
     Also, consider that every method from :class:`NIBatchInfo` used to retrieve
-    parts of the test set (past, current, furure, cumulative) always return the
+    parts of the test set (past, current, future, cumulative) always return the
     complete test set. That is, they behave as the getter for the complete test
     set. These methods are left for compatibility with the ones found in the
     :class:`avalanche.benchmarks.scenarios.new_classes.NCBatchInfo` scenario.
@@ -46,7 +68,8 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             shuffle: bool = True, seed: Optional[int] = None,
             balance_batches: bool = False,
             min_class_patterns_in_batch: int = 0,
-            fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None):
+            fixed_batch_assignment: Optional[Sequence[Sequence[int]]] = None,
+            reproducibility_data: Optional[Dict[str, Any]] = None):
         """
         Creates a NIScenario instance given the training and test Datasets and
         the number of batches.
@@ -76,28 +99,32 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             is a list that contains the indexes of patterns belonging to that
             batch. Overrides the ``shuffle``, ``balance_batches`` and
             ``min_class_patterns_in_batch`` parameters.
+        :param reproducibility_data: If not None, overrides all the other
+            scenario definition options, including ``fixed_batch_assignment``.
+            This is usually a dictionary containing data used to
+            reproduce a specific experiment. One can use the
+            ``get_reproducibility_data`` method to get (and even distribute)
+            the experiment setup so that it can be loaded by passing it as this
+            parameter. In this way one can be sure that the same specific
+            experimental setup is being used (for reproducibility purposes).
+            Beware that, in order to reproduce an experiment, the same train and
+            test datasets must be used. Defaults to None.
         """
 
-        # A reference to the full training set
-        self.train_dataset: TrainSetWithTargets = train_dataset
-        # A reference to the full test set
-        self.test_dataset: TestSetWithTargets = test_dataset
+        if reproducibility_data is not None:
+            super(NIScenario, self).__init__(
+                train_dataset, test_dataset, [], [], [],
+                reproducibility_data=reproducibility_data)
+            n_batches = self.n_steps
+
         # The number of batches
         self.n_batches: int = n_batches
-        # Training patterns transformation (can be None)
-        self.train_transform: Any = None
-        # Training targets transformation (can be None)
-        self.train_target_transform: Any = None
-        # Test patterns transformation (can be None)
-        self.test_transform: Any = None
-        # Test targets transformation (can be None)
-        self.test_target_transform: Any = None
 
         if n_batches < 1:
             raise ValueError('Invalid number of batches (n_batches parameter): '
                              'must be greater than 0')
 
-        if min_class_patterns_in_batch < 0:
+        if min_class_patterns_in_batch < 0 and reproducibility_data is None:
             raise ValueError('Invalid min_class_patterns_in_batch parameter: '
                              'must be greater than or equal to 0')
 
@@ -131,27 +158,21 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
         self.batch_structure: List[List[int]] = []
         # batch_patterns contains, for each batch, the list of patterns
         # assigned to that batch (as indexes of elements from the training set)
-        self.batch_patterns: List[List[int]] = []
 
-        if fixed_batch_assignment:
-            # fixed_patterns_assignment is the user provided self.batch_patterns
-            # all we have to do is populate remaining fields of the class!
+        if reproducibility_data or fixed_batch_assignment:
+            # fixed_patterns_assignment/reproducibility_data is the user
+            # provided pattern assignment. All we have to do is populate
+            # remaining fields of the class!
             # n_patterns_per_batch is filled later based on batch_structure
             # so we only need to fill batch_structure.
-            self.batch_patterns = fixed_batch_assignment
-            self.batch_structure = [[0 for _ in range(self.n_classes)]
-                                    for _ in range(self.n_batches)]
 
-            for batch_id in range(self.n_batches):
-                batch_targets = [train_dataset.targets[pattern_idx]
-                                 for pattern_idx in
-                                 self.batch_patterns[batch_id]]
-                cls_ids, cls_counts = torch.unique(torch.as_tensor(
-                    batch_targets), return_counts=True)
-
-                for unique_idx in range(len(cls_ids)):
-                    self.batch_structure[batch_id][int(cls_ids[unique_idx])] +=\
-                        int(cls_counts[unique_idx])
+            if reproducibility_data:
+                batch_patterns = self.train_steps_patterns_assignment
+            else:
+                batch_patterns = fixed_batch_assignment
+            self.batch_structure = _batch_structure_from_assignment(
+                train_dataset, batch_patterns, self.n_classes
+            )
         else:
             # All batches will all contain the same amount of patterns
             # The amount of patterns doesn't need to be divisible without
@@ -240,14 +261,14 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                 # For each batch we assign exactly
                 # self.batch_structure[batch_id][class_id] patterns of
                 # class "class_id"
-                self.batch_patterns = [[] for _ in range(self.n_batches)]
+                batch_patterns = [[] for _ in range(self.n_batches)]
                 next_idx_per_class = [0 for _ in range(self.n_classes)]
                 for batch_id in range(self.n_batches):
                     for class_id in range(self.n_classes):
                         start_idx = next_idx_per_class[class_id]
                         n_patterns = self.batch_structure[batch_id][class_id]
                         end_idx = start_idx + n_patterns
-                        self.batch_patterns[batch_id].extend(
+                        batch_patterns[batch_id].extend(
                             classes_to_patterns_idx[class_id][start_idx:end_idx]
                         )
                         next_idx_per_class[class_id] = end_idx
@@ -267,7 +288,7 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                 # assign the remaining patterns to each batch.
 
                 # First, initialize batch_patterns and batch_structure
-                self.batch_patterns = [[] for _ in range(self.n_batches)]
+                batch_patterns = [[] for _ in range(self.n_batches)]
                 self.batch_structure = [[0 for _ in range(self.n_classes)]
                                         for _ in range(self.n_batches)]
 
@@ -286,7 +307,7 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                         end_idx = next_idx + min_class_patterns_in_batch
                         selected_patterns = \
                             classes_to_patterns_idx[next_idx:end_idx]
-                        self.batch_patterns[batch_id].extend(selected_patterns)
+                        batch_patterns[batch_id].extend(selected_patterns)
                         self.batch_structure[batch_id][class_id] += \
                             min_class_patterns_in_batch
                         remaining_patterns.difference_update(selected_patterns)
@@ -314,7 +335,7 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                 prev_idx = 0
                 for batch_id in range(self.n_batches):
                     next_idx = prev_idx + avg_batch_size
-                    self.batch_patterns[batch_id].extend(
+                    batch_patterns[batch_id].extend(
                         patterns_order[prev_idx:next_idx])
                     cls_ids, cls_counts = torch.unique(torch.as_tensor(
                         targets_order[prev_idx:next_idx]), return_counts=True)
@@ -337,12 +358,12 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                     for batch_id in assignment_of_remaining_patterns:
                         pattern_idx = patterns_order[prev_idx]
                         pattern_target = targets_order[prev_idx]
-                        self.batch_patterns[batch_id].append(pattern_idx)
+                        batch_patterns[batch_id].append(pattern_idx)
 
                         self.batch_structure[batch_id][pattern_target] += 1
                         prev_idx += 1
 
-        self.n_patterns_per_batch = [len(self.batch_patterns[batch_id])
+        self.n_patterns_per_batch = [len(batch_patterns[batch_id])
                                      for batch_id in range(self.n_batches)]
 
         self.classes_in_batch = []
@@ -352,41 +373,23 @@ class NIScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             for class_id, n_patterns_of_class in enumerate(batch_s):
                 if n_patterns_of_class > 0:
                     self.classes_in_batch[batch_id].append(class_id)
+        super(NIScenario, self).__init__(
+            train_dataset, test_dataset, batch_patterns, [],
+            task_labels=[0] * self.n_batches,
+            return_complete_test_set_only=True)
 
-        # Steal transforms from the datasets, that is, copy the reference to the
-        # transformation functions, and set to None the fields in the
-        # respective Dataset instances. This will allow us to disable
-        # transformations (useful while managing rehearsal) or even apply test
-        # transforms to train patterns (useful when if testing on the training
-        # sets, as test transforms usually don't contain data augmentation
-        # transforms)
-        if hasattr(train_dataset, 'transform') and \
-                train_dataset.transform is not None:
-            self.train_transform = train_dataset.transform
-            train_dataset.transform = None
-        if hasattr(train_dataset, 'target_transform') and \
-                train_dataset.target_transform is not None:
-            self.train_target_transform = train_dataset.target_transform
-            train_dataset.target_transform = None
+    def __getitem__(self, batch_id):
+        return NIBatchInfo(self, batch_id)
 
-        if hasattr(test_dataset, 'transform') and \
-                test_dataset.transform is not None:
-            self.test_transform = test_dataset.transform
-            test_dataset.transform = None
-        if hasattr(test_dataset, 'target_transform') and \
-                test_dataset.target_transform is not None:
-            self.test_target_transform = test_dataset.target_transform
-            test_dataset.target_transform = None
-
-    def __len__(self) -> int:
-        return self.n_batches
-
-    def __getitem__(self, batch_idx) -> \
-            'NIBatchInfo[TrainSetWithTargets, TestSetWithTargets]':
-        return NIBatchInfo(self, current_batch=batch_idx)
+    def get_reproducibility_data(self) -> Dict[str, Any]:
+        # In fact, the only data required for reproducibility of a NI Scenario
+        # is the one already included in the GenericCLScenario!
+        return super().get_reproducibility_data()
 
 
-class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NIBatchInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,
+                                             TestSetWithTargets]],
+                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     Defines a "New Instances" batch. It defines methods to obtain the current,
     previous, cumulative and future training sets. The returned test
@@ -402,16 +405,17 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     def __init__(self, scenario: NIScenario[TrainSetWithTargets,
                                             TestSetWithTargets],
+                 current_batch: int,
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
-                 are_transformations_disabled: bool = False,
-                 current_batch: int = -1):
+                 are_transformations_disabled: bool = False):
         """
         Creates a NCBatchInfo instance given the root scenario.
         Instances of this class are usually created automatically while
         iterating over an instance of :class:`NCSingleTaskScenario`.
 
         :param scenario: A reference to the NI scenario
+        :param current_batch: Defines the current batch ID.
         :param force_train_transformations: If True, train transformations will
             be applied to the test set too. The ``force_test_transformations``
             parameter can't be True at the same time. Defaults to False.
@@ -423,26 +427,16 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
             outputted by  the original training and test Datasets. Overrides
             ``force_train_transformations`` and ``force_test_transformations``.
             Defaults to False.
-        :param current_batch: Defines the current batch ID. Defaults to -1.
         """
+        super(NIBatchInfo, self).__init__(
+            scenario, current_batch,
+            force_train_transformations=force_train_transformations,
+            force_test_transformations=force_test_transformations,
+            are_transformations_disabled=are_transformations_disabled,
+            transformation_step_factory=NIBatchInfo)
 
         # The current batch ID
         self.current_batch: int = current_batch
-        self.current_step: int = current_batch
-
-        # The reference to the NIScenario
-        self.scenario: NIScenario[TrainSetWithTargets,
-                                  TestSetWithTargets] = scenario
-
-        self.force_train_transformations = force_train_transformations
-        self.force_test_transformations = force_test_transformations
-        self.are_transformations_disabled = are_transformations_disabled
-
-        # are_transformations_disabled can be True without constraints
-        if self.force_test_transformations and self.force_train_transformations:
-            raise ValueError(
-                'Error in force_train/test_transformations arguments.'
-                'Can\'t be both True.')
 
         # List of classes of current and previous batches
         # Being a NI Scenario, will probably equal to the full set of classes
@@ -462,456 +456,6 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
         # _go_to_batch initializes the above lists
         self._go_to_batch()
-
-    def current_training_set(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTSingleSet:
-        """
-        Gets the training set for the current batch.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current batch training set, as a tuple containing the
-            Dataset and the task label "0".
-        """
-        return self.batch_specific_training_set(self.current_batch,
-                                                bucket_classes=bucket_classes,
-                                                sort_classes=sort_classes,
-                                                sort_indexes=sort_indexes)
-
-    def cumulative_training_sets(self, include_current_step: bool = True,
-                                 bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False,
-                                 include_current_batch: Optional[bool] = None) \
-            -> MTMultipleSet:
-        """
-        Gets the list of cumulative training sets.
-
-        :param include_current_step: If True, include the current batch
-            training set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param include_current_batch: Alias for the ``include_current_step``
-            parameter. If not None, overrides ``include_current_step``.
-
-        :returns: The cumulative training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        if include_current_batch is not None:
-            include_current_step = include_current_batch
-
-        if include_current_step:
-            batches = range(0, self.current_batch + 1)
-        else:
-            batches = range(0, self.current_batch)
-        return self.__make_train_subset(batches, bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def complete_training_sets(self, bucket_classes=False, sort_classes=False,
-                               sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of training sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the training sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_train_subset(list(range(0, self.scenario.n_batches)),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def future_training_sets(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the "future" training sets. That is, datasets made of training
-        patterns belonging to not-already-encountered batches.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_train_subset(range(self.current_batch + 1,
-                                              self.scenario.n_batches),
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)
-
-    def step_specific_training_set(self, step_id: int, bucket_classes=False,
-                                   sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific batch, given its ID.
-
-        :param step_id: The ID of the batch.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.batch_specific_training_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def batch_specific_training_set(self, batch_id: int,
-                                    bucket_classes=False,
-                                    sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific batch, given its ID.
-
-        :param batch_id: The ID of the batch
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label "0".
-        """
-        return self.__make_train_subset(batch_id,
-                                        bucket_classes=bucket_classes,
-                                        sort_classes=sort_classes,
-                                        sort_indexes=sort_indexes)[0]
-
-    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                          sort_classes=False, sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the training subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The training sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label
-            "0".
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_training_set(bucket_classes=bucket_classes,
-                                              sort_classes=sort_classes,
-                                              sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_training_sets(include_current_batch=True,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_training_sets(include_current_batch=False,
-                                                 bucket_classes=bucket_classes,
-                                                 sort_classes=sort_classes,
-                                                 sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_training_sets(bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_training_sets(bucket_classes=bucket_classes,
-                                               sort_classes=sort_classes,
-                                               sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def current_test_set(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTSingleSet:
-        """
-        Gets the complete test set.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a tuple containing the Dataset and
-            the task label "0".
-        """
-        return self.batch_specific_test_set(self.current_batch,
-                                            bucket_classes=bucket_classes,
-                                            sort_classes=sort_classes,
-                                            sort_indexes=sort_indexes)
-
-    def cumulative_test_sets(self, include_current_step: bool = True,
-                             bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete test set.
-
-        :param include_current_step: ignored, kept for compatibility with
-            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def complete_test_sets(self, bucket_classes=False, sort_classes=False,
-                           sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete test set.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test sets, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def future_test_sets(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete test set.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)
-
-    def step_specific_test_set(self, step_id: int, bucket_classes=False,
-                               sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the complete test set.
-
-        :param step_id: ignored, kept for compatibility with
-            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        return self.batch_specific_test_set(
-            step_id, bucket_classes=bucket_classes, sort_classes=sort_classes,
-            sort_indexes=sort_indexes)
-
-    def batch_specific_test_set(self, batch_id: int, bucket_classes=False,
-                                sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the complete test set
-
-        :param batch_id: ignored, kept for compatibility with
-            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        return self.__make_test_subset(bucket_classes=bucket_classes,
-                                       sort_classes=sort_classes,
-                                       sort_indexes=sort_indexes)[0]
-
-    def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete test set
-
-        :param dataset_part: ignored, kept for compatibility with
-            methods from :class:`avalanche.benchmarks.scenarios.IStepInfo`.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The complete test set, as a list containing one element:
-            a tuple containing the Dataset and the task label "0".
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_test_set(bucket_classes=bucket_classes,
-                                          sort_classes=sort_classes,
-                                          sort_indexes=sort_indexes)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_test_sets(include_current_step=True,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_test_sets(include_current_step=False,
-                                             bucket_classes=bucket_classes,
-                                             sort_classes=sort_classes,
-                                             sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_test_sets(bucket_classes=bucket_classes,
-                                         sort_classes=sort_classes,
-                                         sort_indexes=sort_indexes)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_test_sets(bucket_classes=bucket_classes,
-                                           sort_classes=sort_classes,
-                                           sort_indexes=sort_indexes)
-        raise ValueError('Unsupported dataset part')
-
-    def disable_transformations(self) -> 'NIBatchInfo[' \
-                                         'TrainSetWithTargets, ' \
-                                         'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are disabled.
-        The current instance is not affected. This is useful when there is a
-        need to access raw data. Can be used when picking and storing
-        rehearsal/replay patterns.
-
-        :returns: A new NIBatchInfo in which transformations are disabled.
-        """
-
-        return NIBatchInfo(
-            self.scenario,
-            force_train_transformations=self.force_train_transformations,
-            force_test_transformations=self.force_test_transformations,
-            are_transformations_disabled=True,
-            current_batch=self.current_batch)
-
-    def enable_transformations(self) -> 'NIBatchInfo[' \
-                                        'TrainSetWithTargets, ' \
-                                        'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which transformations are enabled.
-        The current instance is not affected. When created the
-        NIBatchInfo instance already has transformations enabled.
-        This method can be used to re-enable transformations after a previous
-        call to disable_transformations().
-
-        :returns: A new NIBatchInfo in which transformations are enabled.
-        """
-        return NIBatchInfo(
-            self.scenario,
-            force_train_transformations=self.force_train_transformations,
-            force_test_transformations=self.force_test_transformations,
-            are_transformations_disabled=False,
-            current_batch=self.current_batch)
-
-    def with_train_transformations(self) -> 'NIBatchInfo[' \
-                                            'TrainSetWithTargets, ' \
-                                            'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which train transformations are
-        applied to both training and test sets. The current instance is not
-        affected.
-
-        :returns: A new NIBatchInfo in which train transformations
-            are applied to both training and test sets.
-        """
-        return NIBatchInfo(
-            self.scenario,
-            force_train_transformations=True,
-            force_test_transformations=False,
-            are_transformations_disabled=self.are_transformations_disabled,
-            current_batch=self.current_batch)
-
-    def with_test_transformations(self) -> 'NIBatchInfo[' \
-                                           'TrainSetWithTargets, ' \
-                                           'TestSetWithTargets]':
-        """
-        Returns a new batch info instance in which test transformations are
-        applied to both training and test sets. The current instance is
-        not affected. This is useful to get the accuracy on the training set
-        without considering the usual training data augmentations.
-
-        :returns: A new NIBatchInfo in which test transformations
-            are applied to both training and test sets.
-        """
-        return NIBatchInfo(
-            self.scenario,
-            force_train_transformations=False,
-            force_test_transformations=True,
-            are_transformations_disabled=self.are_transformations_disabled,
-            current_batch=self.current_batch)
 
     def _go_to_batch(self):
         if self.current_batch < 0:
@@ -947,84 +491,6 @@ class NIBatchInfo(Generic[TrainSetWithTargets, TestSetWithTargets]):
                 if class_count > 0:
                     class_set_future_batches.add(class_id)
         self.future_classes = list(class_set_future_batches)
-
-    def __make_single_subset(self, batch: int, is_train: bool,
-                             bucket_classes: bool, sort_classes: bool,
-                             sort_indexes: bool):
-        if self.are_transformations_disabled:
-            patterns_transformation = None
-            targets_transformation = None
-        elif self.force_test_transformations:
-            patterns_transformation = \
-                self.scenario.test_transform
-            targets_transformation = \
-                self.scenario.test_target_transform
-        else:
-            patterns_transformation = \
-                self.scenario.train_transform if is_train \
-                else self.scenario.test_transform
-            targets_transformation = \
-                self.scenario.train_target_transform if is_train \
-                else self.scenario.test_target_transform
-
-        if is_train:
-            patterns_indexes = self.scenario.batch_patterns[batch]
-
-            return make_ni_transformation_subset(
-                self.scenario.train_dataset, patterns_transformation,
-                targets_transformation, patterns_indexes,
-                bucket_classes=bucket_classes, sort_classes=sort_classes,
-                sort_indexes=sort_indexes)
-
-        return make_ni_transformation_subset(
-            self.scenario.test_dataset, patterns_transformation,
-            targets_transformation, None, bucket_classes=bucket_classes,
-            sort_classes=sort_classes, sort_indexes=sort_indexes)
-
-    def __make_subset(self, batches: Union[int, Iterable[int]],
-                      is_train, bucket_classes: bool, sort_classes: bool,
-                      sort_indexes: bool) -> MTMultipleSet:
-        """
-        Given the batches IDs list and the dataset type (train or test),
-        returns a list of tuples (dataset, task_label "0") in the order
-        specified by the batches parameter.
-
-        :param batches: The list of batches IDs. Can be a single int.
-        :param is_train: when True, training sets will be returned. When False,
-            test sets will be returned.
-
-        :returns: A list of tuples each containing 2 elements: the dataset and
-            the corresponding task label (always "0", as this is a SIT
-            scenario).
-        """
-
-        if isinstance(batches, int):  # Required single batch
-            return [(self.__make_single_subset(
-                batches, is_train, bucket_classes=bucket_classes,
-                sort_classes=sort_classes, sort_indexes=sort_indexes), 0)]
-
-        result: List[Tuple[TransformationSubset, int]] = []
-
-        for batch_id in batches:
-            dataset = self.__make_single_subset(
-                batch_id, is_train, bucket_classes=bucket_classes,
-                sort_classes=sort_classes, sort_indexes=sort_indexes)
-
-            result.append((dataset, 0))
-
-        return result
-
-    def __make_train_subset(self, batches, bucket_classes: bool,
-                            sort_classes: bool, sort_indexes: bool):
-        return self.__make_subset(
-            batches, True, bucket_classes=bucket_classes,
-            sort_classes=sort_classes, sort_indexes=sort_indexes)
-
-    def __make_test_subset(self, bucket_classes: bool,
-                           sort_classes: bool, sort_indexes: bool):
-        return [(self.__make_single_subset(
-            0, False, bucket_classes=bucket_classes,
-            sort_classes=sort_classes, sort_indexes=sort_indexes), 0)]
 
 
 __all__ = ['NIScenario', 'NIBatchInfo']

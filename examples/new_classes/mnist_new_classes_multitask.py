@@ -29,7 +29,7 @@ from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
 from avalanche.benchmarks.scenarios import NCTaskInfo, \
     create_nc_single_dataset_multi_task_scenario
-from mnist_example_utils import get_default_device
+from example_utils import get_default_device
 
 
 def main():
