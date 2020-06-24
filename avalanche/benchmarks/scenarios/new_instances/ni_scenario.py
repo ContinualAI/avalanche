@@ -379,7 +379,9 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
             return_complete_test_set_only=True)
 
     def __getitem__(self, batch_id):
-        return NIBatchInfo(self, batch_id)
+        if batch_id < len(self):
+            return NIBatchInfo(self, batch_id)
+        raise IndexError('Batch ID out of bounds' + str(int(batch_id)))
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         # In fact, the only data required for reproducibility of a NI Scenario
