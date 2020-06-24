@@ -80,8 +80,10 @@ class FilelistDataset(data.Dataset):
             path.
         :param loader: loader function to use (for the real data) given path.
         """
+
         root = str(root)  # Manages Path objects
         flist = str(flist)  # Manages Path objects
+
         self.root = root
         self.imgs = flist_reader(flist, root)
         self.targets = [img_data[1] for img_data in self.imgs]
