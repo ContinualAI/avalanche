@@ -14,17 +14,19 @@ def create_multi_dataset_generic_scenario(
         complete_test_set_only: bool = False) -> GenericCLScenario:
     """
     Creates a generic scenario given a list of datasets and the respective task
-    labels. Each training dataset will be considered a separate training step.
-    Contents of the datasets will not be changed, including the targets.
+    labels. Each training dataset will be considered as a separate training
+    step. Contents of the datasets will not be changed, including the targets.
 
-    This helper method may be useful when loading the datasets from a set of
-    fixed filelist. In its base form, this function accepts a list of test
-    datsets that must contain the same amount of datasets of the training list.
+    When loading the datasets from a set of fixed filelist, consider using
+    the :func:`create_generic_scenario_from_filelists` helper method instead.
+
+    In its base form, this function accepts a list of test datsets that must
+    contain the same amount of datasets of the training list.
     Those pairs are then used to create the "past", "cumulative"
     (a.k.a. growing) and "future" test sets. However, in certain Continual
     Learning scenarios only the concept of "complete" test set makes sense. In
-    that case, the ``complete_test_set_only`` should be set to True.
-    See the parameter description for more info.
+    that case, the ``complete_test_set_only`` should be set to True (see the
+    parameter description for more info).
 
     :param train_dataset_list: A list of training datasets.
     :param test_dataset_list: A list of test datasets.
@@ -101,8 +103,8 @@ def create_generic_scenario_from_filelists(
     Those pairs of datasets are then used to create the "past", "cumulative"
     (a.k.a. growing) and "future" test sets. However, in certain Continual
     Learning scenarios only the concept of "complete" test set makes sense. In
-    that case, the ``complete_test_set_only`` should be set to True.
-    See the parameter description for more info.
+    that case, the ``complete_test_set_only`` should be set to True (see the
+    parameter description for more info).
 
     This helper functions is the best shot when loading Caffe-style dataset
     based on filelists.
