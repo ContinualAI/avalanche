@@ -159,10 +159,10 @@ def create_generic_scenario_from_filelists(
 
 
 def create_generic_scenario_from_tensors(
-        train_datasets_x: Sequence[Tensor],
-        train_datasets_y: Sequence[Sequence[SupportsInt]],
-        test_datasets_x: Sequence[Tensor],
-        test_datasets_y: Sequence[Sequence[SupportsInt]],
+        train_data_x: Sequence[Tensor],
+        train_data_y: Sequence[Sequence[SupportsInt]],
+        test_data_x: Sequence[Tensor],
+        test_data_y: Sequence[Sequence[SupportsInt]],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
@@ -184,14 +184,14 @@ def create_generic_scenario_from_tensors(
     ``complete_test_set_only`` should be set to True (see the parameter
     description for more info).
 
-    :param train_datasets_x: A list of Tensors (one per step) containing the
+    :param train_data_x: A list of Tensors (one per step) containing the
         patterns of the training sets.
-    :param train_datasets_y: A list of Tensors or int lists containing the
+    :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_datasets_x: A list of Tensors (one per step) containing the
+    :param test_data_x: A list of Tensors (one per step) containing the
         patterns of the test sets.
-    :param test_datasets_y: A list of Tensors or int lists containing the
+    :param test_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
     :param task_labels: A list of task labels. Must contain the same amount of
@@ -217,12 +217,12 @@ def create_generic_scenario_from_tensors(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    if len(train_datasets_x) != len(train_datasets_y):
-        raise ValueError('train_datasets_x and train_datasets_y must contain'
+    if len(train_data_x) != len(train_data_y):
+        raise ValueError('train_data_x and train_data_y must contain'
                          'the same amount of elements')
 
-    if len(test_datasets_x) != len(test_datasets_y):
-        raise ValueError('test_datasets_x and test_datasets_y must contain'
+    if len(test_data_x) != len(test_data_y):
+        raise ValueError('test_data_x and test_data_y must contain'
                          'the same amount of elements')
 
     train_datasets = [
@@ -230,14 +230,14 @@ def create_generic_scenario_from_tensors(
             dataset_x, dataset_y, transform=train_transform,
             target_transform=train_target_transform)
         for dataset_x, dataset_y in
-        zip(train_datasets_x, train_datasets_y)]
+        zip(train_data_x, train_data_y)]
 
     test_datasets = [
         TransformationTensorDataset(
             dataset_x, dataset_y, transform=test_transform,
             target_transform=test_target_transform)
         for dataset_x, dataset_y in
-        zip(test_datasets_x, test_datasets_y)]
+        zip(test_data_x, test_data_y)]
 
     return create_multi_dataset_generic_scenario(
         train_datasets, test_datasets, task_labels,
