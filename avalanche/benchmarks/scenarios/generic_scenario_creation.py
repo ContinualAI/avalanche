@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Sequence, Union, SupportsInt
+from typing import Sequence, Union, SupportsInt, Any
 
 from torch import Tensor
 
@@ -159,9 +159,9 @@ def create_generic_scenario_from_filelists(
 
 
 def create_generic_scenario_from_tensors(
-        train_data_x: Sequence[Tensor],
+        train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Sequence[Tensor],
+        test_data_x: Sequence[Any],
         test_data_y: Sequence[Sequence[SupportsInt]],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
