@@ -10,7 +10,7 @@
 ################################################################################
 
 from typing import List, Any, Iterable, Sequence, Union, Optional, TypeVar, \
-    Protocol
+    Protocol, SupportsInt
 
 import torch
 from torch import Tensor
@@ -364,6 +364,66 @@ def concat_datasets_sequentially(
         new_class_ids_per_dataset
 
 
+class LazyTargetsConversion(Sequence[int]):
+    """
+    Defines a lazy conversion of targets defined in some other format.
+    """
+
+    def __init__(self, targets: Sequence[SupportsInt]):
+        self._targets = targets
+
+    def __len__(self):
+        return len(self._targets)
+
+    def __getitem__(self, item_idx) -> int:
+        return int(self._targets[item_idx])
+
+    def __str__(self):
+        return '[' + \
+               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
+               ']'
+
+
+class TransformationTensorDataset(DatasetWithTargets):
+    """
+    A Dataset that wraps existing ndarrays, Tensors, lists... to provide
+    basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
+    this Dataset also supports transformations, basic slicing and advanced
+    indexing and the targets field.
+    """
+
+    def __init__(self, dataset_x: Sequence[Any],
+                 dataset_y: Sequence[SupportsInt],
+                 transform=None, target_transform=None):
+        super().__init__()
+
+        if len(dataset_x) != len(dataset_y):
+            raise ValueError('dataset_x and dataset_y must contain the same '
+                             'amount of elements')
+        self.transform = transform
+        self.target_transform = target_transform
+        self.dataset_x = dataset_x
+        self.dataset_y = dataset_y
+        self.targets = LazyTargetsConversion(dataset_y)
+
+    def __getitem__(self, idx):
+        return _manage_advanced_indexing(idx, self.__get_single_item,
+                                         len(self.dataset_x))
+
+    def __len__(self) -> int:
+        return len(self.dataset_x)
+
+    def __get_single_item(self, idx: int):
+        pattern, label = self.dataset_x[idx], self.targets[idx]
+        if self.transform is not None:
+            pattern = self.transform(pattern)
+
+        if self.target_transform is not None:
+            label = self.target_transform(label)
+        return pattern, label
+
+
 __all__ = ['IDataset', 'IDatasetWithTargets', 'DatasetWithTargets',
            'TransformationDataset', 'TransformationSubset',
-           'ConcatDatasetWithTargets', 'concat_datasets_sequentially']
+           'ConcatDatasetWithTargets', 'concat_datasets_sequentially',
+           'TransformationTensorDataset']

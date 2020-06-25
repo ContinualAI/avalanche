@@ -157,7 +157,9 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
 
         :return: The step instance associated to the given step ID.
         """
-        return GenericStepInfo(self, step_id)
+        if step_id < len(self):
+            return GenericStepInfo(self, step_id)
+        raise IndexError('Step ID out of bounds' + str(int(step_id)))
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         """
