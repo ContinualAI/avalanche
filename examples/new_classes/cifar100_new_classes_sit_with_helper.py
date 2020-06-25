@@ -20,12 +20,14 @@ from __future__ import division
 from __future__ import absolute_import
 
 from avalanche.benchmarks.scenarios import NCBatchInfo
+from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
+    NCSingleTaskScenario
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
 from avalanche.benchmarks.new_cdata_loaders.icifar100 import \
-    create_single_task_cifar100
+    create_cifar100_benchmark
 from example_utils import get_default_device
 
 
@@ -48,7 +50,7 @@ def main():
     # can only use 1, 2, 5 or 10, 25 and 50 as the number of incremental
     # batches.
 
-    n_incremental_batches = 10
+    n_incremental_batches = 25
 
     # We can create our CIFAR100 "New Classes" scenario with 10 incremental
     # batches and one pretrain batch with half of the classes by using the
@@ -56,18 +58,22 @@ def main():
     #
     # Using the function is really straightforward: we have to pass the
     # number of incremental batches, if we want a "pretrain" batch 0 before the
-    # incremental batches that contains half of the classes, and a seed to
-    # initialize the random number generator (used for example to shuffle the
-    # classes. Another paramenter not used in this example is fixed_class_order,
+    # incremental batches that contains half of the classes, if we want to
+    # the task ID (so we want to create a MT scenario) or we don't want the
+    # tasks ids, so we are in a SIT scenario, and a seed to initialize the
+    # random number generator (used for example to shuffle the classes.
+    # Another paramenter not used in this example is fixed_class_order,
     # which can be used when we want to enforce a particular order of the
     # classes and not shuffle them randomly. The fixed_class_order paramenter
     # is a list on class labels (integers).
     # The helper function below download the cifar100 dataset (if not present
     # in the machine) and apply a standard transformation to both test and
     # training data.
-    nc_scenario = create_single_task_cifar100(
-        incremental_batches=n_incremental_batches,
+    nc_scenario: NCSingleTaskScenario
+    nc_scenario = create_cifar100_benchmark(
+        incremental_steps=n_incremental_batches,
         first_batch_with_half_classes=True,
+        return_task_id=False,
         seed=1234
     )
 
