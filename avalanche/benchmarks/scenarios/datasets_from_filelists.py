@@ -148,15 +148,19 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
         filelist in the list.
     """
 
-    if complete_test_set_only and not (isinstance(test_filelists, str) or
-                                       isinstance(test_filelists, Path)):
-        if len(test_filelists) > 1:
-            raise ValueError(
-                'When complete_test_set_only is True, test_filelists must be a '
-                'str, Path or a list with a single element describing the path '
-                'to the complete test set.')
-        test_filelists = test_filelists[0]
-    if not complete_test_set_only:
+    if complete_test_set_only:
+        if not (isinstance(test_filelists, str) or
+                isinstance(test_filelists, Path)):
+            if len(test_filelists) > 1:
+                raise ValueError(
+                    'When complete_test_set_only is True, test_filelists must be a '
+                    'str, Path or a list with a single element describing the path '
+                    'to the complete test set.')
+            else:
+                test_filelists = test_filelists[0]
+        else:
+            test_filelists = [test_filelists]
+    else:
         if len(test_filelists) != len(train_filelists):
             raise ValueError(
                 'When complete_test_set_only is False, test_filelists and '
