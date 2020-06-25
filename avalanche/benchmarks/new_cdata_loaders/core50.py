@@ -44,6 +44,7 @@ scen2dirs = {
     'nicv2_391': "NIC_v2_391/"
 }
 
+
 def CORe50(root=None, scenario="nicv2_391", run=0):
     """ CORe50 continual scenario generator
 
@@ -91,6 +92,7 @@ def CORe50(root=None, scenario="nicv2_391", run=0):
 
     return scenario_obj
 
+
 if __name__ == "__main__":
 
     # this below can be taken as a usage example or a simple test script
@@ -108,11 +110,3 @@ if __name__ == "__main__":
             print(x.shape)
             print(y.shape)
         sys.exit(0)
-
-
-
-
-
-
-
-
