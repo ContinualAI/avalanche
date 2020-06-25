@@ -117,6 +117,9 @@ def main():
         # Let's get the current training set
         current_training_set = batch_info.current_training_set()
         training_dataset, t = current_training_set
+        s = set()
+        s.update(current_training_set[0].targets)
+        print(s)
 
         # Execute a training step
         print('Task {} batch {} -> train'.format(t, batch_info.current_batch))
@@ -126,10 +129,10 @@ def main():
         print('Training completed')
 
         # Test on the complete test set
-        # complete_test_set = batch_info.complete_test_sets()
+        complete_test_set = batch_info.complete_test_sets()
 
         print('Computing accuracy on the whole test set')
-        # results.append(clmodel.test(complete_test_set, num_workers=4))
+        results.append(clmodel.test(complete_test_set, num_workers=4))
 
 
 if __name__ == '__main__':
