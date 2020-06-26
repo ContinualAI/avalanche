@@ -21,12 +21,28 @@ from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario
 
+_default_cifar10_train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465),
+                             (0.2023, 0.1994, 0.2010))
+    ])
+
+_default_cifar10_test_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2023, 0.1994, 0.2010))
+])
+
 
 def create_cifar10_benchmark(incremental_steps: int,
                              first_batch_with_half_classes: bool = False,
                              return_task_id=False,
                              seed: Optional[int] = None,
-                             fixed_class_order: Optional[Sequence[int]] = None
+                             fixed_class_order: Optional[Sequence[int]] = None,
+                             train_transform=_default_cifar10_train_transform,
+                             test_transform=_default_cifar10_test_transform
                              ):
     """
     Creates a CL scenario using the CIFAR10 dataset.
@@ -58,13 +74,25 @@ def create_cifar10_benchmark(incremental_steps: int,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default train transformation
+        will be used.
+    :param test_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default test transformation
+        will be used.
 
     :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
         MT scenario using CIFAR10 if the parameter ``return_task_id`` is True,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR10 otherwise.
     """
-    cifar_train, cifar_test = __download_cifar10()
+    cifar_train, cifar_test = _download_cifar10(train_trasform, test_transform)
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
@@ -86,23 +114,9 @@ def create_cifar10_benchmark(incremental_steps: int,
         )
 
 
-def __download_cifar10():
-    train_transform = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
-    ])
-
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
-    ])
-
+def _download_cifar10(train_transformation, test_transformation):
     cifar_train = CIFAR10('./data/cifar10', train=True,
-                          download=True, transform=train_transform)
+                          download=True, transform=train_transformation)
     cifar_test = CIFAR10('./data/cifar10', train=False,
-                         download=True, transform=test_transform)
+                         download=True, transform=test_transformation)
     return cifar_train, cifar_test
