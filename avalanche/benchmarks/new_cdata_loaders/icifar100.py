@@ -20,8 +20,6 @@ from torchvision.datasets import CIFAR100
 from torchvision import transforms
 from avalanche.benchmarks.scenarios.new_classes.nc_generic_scenario \
     import NCGenericScenario
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario \
-    import NCMultiTaskScenario, NCSingleTaskScenario
 from avalanche.training.utils.transform_dataset import \
     concat_datasets_sequentially
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
