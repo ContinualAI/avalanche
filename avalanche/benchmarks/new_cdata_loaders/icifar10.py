@@ -92,7 +92,8 @@ def create_cifar10_benchmark(incremental_steps: int,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR10 otherwise.
     """
-    cifar_train, cifar_test = _download_cifar10(train_trasform, test_transform)
+    cifar_train, cifar_test = _get_cifar10_dataset(train_transform,
+                                                   test_transform)
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
@@ -114,7 +115,7 @@ def create_cifar10_benchmark(incremental_steps: int,
         )
 
 
-def _download_cifar10(train_transformation, test_transformation):
+def _get_cifar10_dataset(train_transformation, test_transformation):
     cifar_train = CIFAR10('./data/cifar10', train=True,
                           download=True, transform=train_transformation)
     cifar_test = CIFAR10('./data/cifar10', train=False,

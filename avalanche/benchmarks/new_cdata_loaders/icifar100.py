@@ -27,7 +27,7 @@ from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_multi_task_scenario
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCSingleTaskScenario
-from avalanche.benchmarks.new_cdata_loaders.icifar10 import _download_cifar10
+from avalanche.benchmarks.new_cdata_loaders.icifar10 import _get_cifar10_dataset
 
 
 _default_cifar100_train_transform = transforms.Compose([
@@ -101,8 +101,8 @@ def create_cifar100_benchmark(incremental_steps: int,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR100 otherwise.
     """
-    cifar_train, cifar_test = _download_cifar100(train_transform,
-                                                 test_transform)
+    cifar_train, cifar_test = _get_cifar100_dataset(train_transform,
+                                                    test_transform)
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
@@ -168,10 +168,10 @@ def create_cifar100_with_cifar10_pretrain_benchmark(
         incremental training.  
     """
 
-    cifar10_train, cifar10_test = _download_cifar10(train_transform,
-                                                    test_transform)
-    cifar100_train, cifar100_test = _download_cifar100(train_transform,
+    cifar10_train, cifar10_test = _get_cifar10_dataset(train_transform,
                                                        test_transform)
+    cifar100_train, cifar100_test = _get_cifar100_dataset(train_transform,
+                                                          test_transform)
     cifar_10_100_train, cifar_10_100_test, _ = concat_datasets_sequentially(
         [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
     )
@@ -199,9 +199,9 @@ def create_cifar100_with_cifar10_pretrain_benchmark(
     return NCSingleTaskScenario(base_scenario)
 
 
-def _download_cifar100(train_transformation, test_transformation):
-    cifar_train = CIFAR100('./data/cifar10', train=True,
+def _get_cifar100_dataset(train_transformation, test_transformation):
+    cifar_train = CIFAR100('./data/cifar100', train=True,
                            download=True, transform=train_transformation)
-    cifar_test = CIFAR100('./data/cifar10', train=False,
+    cifar_test = CIFAR100('./data/cifar100', train=False,
                           download=True, transform=test_transformation)
     return cifar_train, cifar_test
