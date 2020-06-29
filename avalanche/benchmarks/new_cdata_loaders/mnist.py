@@ -20,11 +20,16 @@ from __future__ import absolute_import
 
 from typing import Optional, Sequence
 
+import numpy as np
+import torch
 from torchvision.datasets import MNIST
 from torchvision import transforms
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario
+    create_nc_single_dataset_multi_task_scenario, \
+    create_nc_multi_dataset_multi_task_scenario
+from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
+    NCMultiTaskScenario
 
 
 _default_mnist_train_transform = transforms.Compose([
@@ -103,6 +108,81 @@ def create_split_mnist_benchmark(
             seed=seed,
             fixed_class_order=fixed_class_order,
         )
+
+
+def create_permuted_mnist_benchmark(
+        incremental_steps: int,
+        seed: Optional[int] = None,
+        train_transform=_default_mnist_train_transform,
+        test_transform=_default_mnist_test_transform) -> NCMultiTaskScenario:
+
+    """
+    This helper create a permuted MNIST scenario: where a given number of random
+    pixel permutations is used to permute the MNIST images in
+    `incremental_steps` different manners, creating an equal number of tasks.
+    Each task is composed of all the original MNIST 10 classes, but the pixel
+    in the images are permuted in different ways in every task.
+    If the dataset is not present in the computer the method automatically
+    download it and store the data in the data folder.
+
+    :param incremental_steps: The number of incremental tasks in the current
+        scenario. It indicates how many different permutations of the MNIST
+        dataset have to be created.
+        The value of this parameter should be a divisor of 10.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
+    :param train_transform: The transformation to apply to the training data
+        before the random permutation, e.g. a random crop, a normalization or a
+        concatenation of different transformations (see torchvision.transform
+        documentation for a comprehensive list of possible transformations).
+        If no transformation is passed, the default train transformation
+        will be used.
+    :param test_transform: The transformation to apply to the test data
+        before the random permutation, e.g. a random crop, a normalization or a
+        concatenation of different transformations (see torchvision.transform
+        documentation for a comprehensive list of possible transformations).
+        If no transformation is passed, the default test transformation
+        will be used.
+
+    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
+        MT permuted MNIST scenario.
+    """
+
+    list_train_dataset = []
+    list_test_dataset = []
+    rng_permute = np.random.RandomState(seed)
+
+    # for every incremental step
+    for _ in range(incremental_steps):
+        # choose a random permutation of the pixels in the image
+        idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
+            torch.int64)
+
+        # add the permutation to the default dataset transformation
+        train_transform_list = train_transform.transforms.copy()
+        train_transform_list.append(
+            transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
+        )
+        new_train_transform = transforms.Compose(train_transform_list)
+
+        test_transform_list = test_transform.transforms.copy()
+        test_transform_list.append(
+            transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
+        )
+        new_test_transform = transforms.Compose(train_transform_list)
+
+        # get the datasets with the constructed transformation
+        permuted_train, permuted_test = _get_mnist_dataset(new_train_transform,
+                                                           new_test_transform)
+        list_train_dataset.append(permuted_train)
+        list_test_dataset.append(permuted_test)
+
+    return create_nc_multi_dataset_multi_task_scenario(
+        train_dataset_list=list_train_dataset,
+        test_dataset_list=list_test_dataset,
+        shuffle=False,
+        classes_ids_from_zero_in_each_task=True
+    )
 
 
 def _get_mnist_dataset(train_transformation, test_transformation):
