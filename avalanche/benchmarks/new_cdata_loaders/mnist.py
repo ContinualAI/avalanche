@@ -169,13 +169,109 @@ def create_permuted_mnist_benchmark(
         test_transform_list.append(
             transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
         )
-        new_test_transform = transforms.Compose(train_transform_list)
+        new_test_transform = transforms.Compose(test_transform_list)
 
         # get the datasets with the constructed transformation
         permuted_train, permuted_test = _get_mnist_dataset(new_train_transform,
                                                            new_test_transform)
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
+
+    return create_nc_multi_dataset_multi_task_scenario(
+        train_dataset_list=list_train_dataset,
+        test_dataset_list=list_test_dataset,
+        shuffle=False,
+        classes_ids_from_zero_in_each_task=True
+    )
+
+
+def create_rotated_mnist_benchmark(
+        incremental_steps: int,
+        seed: Optional[int] = None,
+        rotations_list: Optional[Sequence[int]] = None,
+        train_transform=_default_mnist_train_transform,
+        test_transform=_default_mnist_test_transform) -> NCMultiTaskScenario:
+
+    """
+    This helper create a rotated MNIST scenario: where a given number of random
+    rotations are used to rotate the MNIST images in
+    `incremental_steps` different manners, creating an equal number of tasks.
+    Each task is composed of all the original MNIST 10 classes, but the images
+    are rotated in differet ways and using different values in every task.
+    If the dataset is not present in the computer the method automatically
+    download it and store the data in the data folder.
+
+    :param incremental_steps: The number of incremental tasks in the current
+        scenario. It indicates how many different rotations of the MNIST
+        dataset have to be created.
+        The value of this parameter should be a divisor of 10.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
+    :param rotations_list: A list of rotations values in degrees (from -180 to
+        180) used to define the rotations. The rotation specified in position
+        0 of the list will be applieed to the task 0, the rotation specified in
+        position 1 will be applyed to task 1 and so on.
+        If None, value of ``seed`` will be used to define the rotations.
+        If non-None, ``seed`` parameter will be ignored.
+        Defaults to None.
+    :param train_transform: The transformation to apply to the training data
+        after the random rotation, e.g. a random crop, a normalization or a
+        concatenation of different transformations (see torchvision.transform
+        documentation for a comprehensive list of possible transformations).
+        If no transformation is passed, the default train transformation
+        will be used.
+    :param test_transform: The transformation to apply to the test data
+        after the random rotation, e.g. a random crop, a normalization or a
+        concatenation of different transformations (see torchvision.transform
+        documentation for a comprehensive list of possible transformations).
+        If no transformation is passed, the default test transformation
+        will be used.
+
+    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
+        MT rotated MNIST scenario.
+    """
+
+    assert len(rotations_list) == incremental_steps, "The number of rotations" \
+                                                     " should match the number"\
+                                                     " of incremental steps."
+    assert all(-180 <= rotations_list[i] <= 180
+               for i in range(len(rotations_list))), "The value of a rotation" \
+                                                     " should be between -180" \
+                                                     " and 180 degrees."
+
+    list_train_dataset = []
+    list_test_dataset = []
+    rng_rotate = np.random.RandomState(seed)
+
+    # for every incremental step
+    for step in range(incremental_steps):
+        if rotations_list is not None:
+            rotation_angle = rotations_list[step]
+        else:
+            # choose a random rotation of the pixels in the image
+            rotation_angle = rng_rotate.randint(-180, 181)
+
+        # add the rotation to the default dataset transformation in position
+        # 0, since it works on images and not tensors.
+        train_transform_list = train_transform.transforms.copy()
+        train_transform_list.insert(
+            0,
+            transforms.RandomRotation(degrees=(rotation_angle, rotation_angle))
+        )
+        new_train_transform = transforms.Compose(train_transform_list)
+
+        test_transform_list = test_transform.transforms.copy()
+        test_transform_list.insert(
+            0,
+            transforms.RandomRotation(degrees=(rotation_angle, rotation_angle))
+        )
+        new_test_transform = transforms.Compose(test_transform_list)
+
+        # get the datasets with the constructed transformation
+        rotated_train, rotated_test = _get_mnist_dataset(new_train_transform,
+                                                         new_test_transform)
+        list_train_dataset.append(rotated_train)
+        list_test_dataset.append(rotated_test)
 
     return create_nc_multi_dataset_multi_task_scenario(
         train_dataset_list=list_train_dataset,
