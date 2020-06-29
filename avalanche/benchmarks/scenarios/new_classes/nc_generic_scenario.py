@@ -122,14 +122,11 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
         self.class_mapping: List[int] = []
 
         # The classes order (original class IDs)
-        self.classes_order_original_ids: List[int]
-        if reproducibility_data:
-            self.classes_order_original_ids = \
-                reproducibility_data['classes_order_original_ids']
-        else:
-            self.classes_order_original_ids = torch.unique(
-                torch.as_tensor(train_dataset.targets),
-                sorted=True).tolist()
+        self.classes_order_original_ids: List[int] = torch.unique(
+            torch.as_tensor(train_dataset.targets),
+            sorted=True).tolist()
+        all_dataset_classes = len(self.classes_order_original_ids)
+
         # A list that, for each batch (identified by its index/ID),
         # stores the number of classes assigned to that batch
         self.n_classes_per_batch: List[int] = []
@@ -154,9 +151,15 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
         # the class order will be the one encountered
         # By looking at the train_dataset targets field
         if reproducibility_data:
-            pass  # Already set
+            self.classes_order_original_ids = \
+                reproducibility_data['classes_order_original_ids']
         elif fixed_class_order is not None:
             # User defined class order -> just use it
+            if len(set(self.classes_order_original_ids).union(
+                    set(fixed_class_order))) != \
+                    len(self.classes_order_original_ids):
+                raise ValueError('Invalid classes defined in fixed_class_order')
+
             self.classes_order_original_ids = list(fixed_class_order)
         elif shuffle:
             # No user defined class order.
@@ -253,9 +256,12 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             self.class_mapping = list(range(0, self.n_classes))
         else:
             self.classes_order = list(range(0, self.n_classes))
-            self.class_mapping = [
-                self.classes_order_original_ids.index(class_id)
-                for class_id in range(self.n_classes)]
+            self.class_mapping = [-1] * all_dataset_classes
+            for class_id in range(self.n_classes):
+                if class_id in self.classes_order_original_ids:
+                    self.class_mapping[class_id] = \
+                        self.classes_order_original_ids.index(class_id)
+
         self.train_dataset = TransformationSubset(
             train_dataset, None, class_mapping=self.class_mapping)
         self.test_dataset = TransformationSubset(

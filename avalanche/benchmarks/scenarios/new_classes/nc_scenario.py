@@ -83,7 +83,9 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
             self.classes_ids_from_zero_in_each_task = \
                 classes_ids_from_zero_in_each_task
 
-        self.class_mapping = [-1 for _ in range(self.n_classes)]
+        max_class_id = max(nc_generic_scenario.classes_order)
+        n_original_classes = max_class_id + 1
+        self.class_mapping = [-1 for _ in range(n_original_classes)]
 
         if classes_ids_from_zero_in_each_task:
             for task_id in range(self.n_tasks):
@@ -100,7 +102,7 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
                 self.classes_in_task.append(
                     list(range(0, n_classes_this_task)))
         else:
-            self.class_mapping = list(range(self.n_classes))
+            self.class_mapping = list(range(n_original_classes))
             self.classes_in_task = nc_generic_scenario.classes_in_batch
 
         self.original_classes_in_task = nc_generic_scenario.classes_in_batch
