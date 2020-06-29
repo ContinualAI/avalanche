@@ -159,9 +159,13 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(2, nc_scenario.n_tasks)
         self.assertEqual(10, nc_scenario.n_classes)
 
+        step_classes = []
+
         all_classes = set()
-        for task_id in range(2):
+        for task_id, task_info in enumerate(nc_scenario):
+            self.assertLessEqual(task_id, 1)
             all_classes.update(nc_scenario.classes_in_task[task_id])
+            step_classes.append(task_info.classes_in_this_task)
 
         self.assertEqual(7, len(all_classes))
 
@@ -170,6 +174,12 @@ class MultiTaskTests(unittest.TestCase):
              nc_scenario.classes_in_task[1] == list(range(0, 7))) or
             (nc_scenario.classes_in_task[0] == list(range(0, 7)) and
              nc_scenario.classes_in_task[1] == [0, 1, 2]))
+
+        step_classes_ref1 = [list(range(3)), list(range(7))]
+        step_classes_ref2 = [list(range(7)), list(range(3))]
+
+        self.assertTrue(step_classes == step_classes_ref1 or
+                        step_classes == step_classes_ref2)
 
 
 if __name__ == '__main__':
