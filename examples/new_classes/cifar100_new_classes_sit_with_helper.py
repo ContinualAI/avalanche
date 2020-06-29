@@ -125,7 +125,7 @@ def main():
         print('Task {} batch {} -> train'.format(t, batch_info.current_batch))
         print('This batch contains', len(training_dataset), 'patterns')
 
-        # clmodel.train_using_dataset(current_training_set, num_workers=4)
+        clmodel.train_using_dataset(current_training_set, num_workers=4)
         print('Training completed')
 
         # Test on the complete test set
