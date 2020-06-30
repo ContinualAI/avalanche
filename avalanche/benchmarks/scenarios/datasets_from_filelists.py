@@ -119,7 +119,9 @@ class FilelistDataset(data.Dataset):
 
 
 def datasets_from_filelists(root, train_filelists, test_filelists,
-                            complete_test_set_only=False):
+                            complete_test_set_only=False,
+                            train_transform=None, train_target_transform=None,
+                            test_transform=None, test_target_transform=None):
     """
     This reader reads a filelist and return a list of paths.
 
@@ -133,28 +135,44 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
         Alternatively, test_filelists can be the path (str) to the complete test
         set filelist. If False, train_filelists and test_filelists must contain
         the same amount of filelists paths. Defaults to False.
+    :param train_transform: The transformation to apply to training patterns.
+        Defaults to None.
+    :param train_target_transform: The transformation to apply to training
+        patterns targets. Defaults to None.
+    :param test_transform: The transformation to apply to test patterns.
+        Defaults to None.
+    :param test_target_transform: The transformation to apply to test
+        patterns targets. Defaults to None.
 
     :return: list of tuples (train dataset, test dataset) for each train
         filelist in the list.
     """
 
-    if complete_test_set_only and not (isinstance(test_filelists, str) or
-                                       isinstance(test_filelists, Path)):
-        if len(test_filelists) > 1:
-            raise ValueError(
-                'When complete_test_set_only is True, test_filelists must be a '
-                'str, Path or a list with a single element describing the path '
-                'to the complete test set.')
-        test_filelists = test_filelists[0]
-    if not complete_test_set_only:
+    if complete_test_set_only:
+        if not (isinstance(test_filelists, str) or
+                isinstance(test_filelists, Path)):
+            if len(test_filelists) > 1:
+                raise ValueError(
+                    'When complete_test_set_only is True, test_filelists must '
+                    'be a str, Path or a list with a single element describing '
+                    'the path to the complete test set.')
+            else:
+                test_filelists = test_filelists[0]
+        else:
+            test_filelists = [test_filelists]
+    else:
         if len(test_filelists) != len(train_filelists):
             raise ValueError(
                 'When complete_test_set_only is False, test_filelists and '
                 'train_filelists must contain the same number of elements.')
 
     train_inc_datasets = \
-        [FilelistDataset(root, tr_flist) for tr_flist in train_filelists]
+        [FilelistDataset(root, tr_flist, transform=train_transform,
+                         target_transform=train_target_transform)
+         for tr_flist in train_filelists]
     test_inc_datasets = \
-        [FilelistDataset(root, te_flist) for te_flist in test_filelists]
+        [FilelistDataset(root, te_flist, transform=test_transform,
+                         target_transform=test_target_transform)
+         for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets

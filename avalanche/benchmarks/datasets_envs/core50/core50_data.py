@@ -33,7 +33,11 @@ filename = [
     ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
     ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
     ('core50_imgs.npz',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz'),
+    ('batches_filelists.zip',
+     'https://vlomonaco.github.io/core50/data/batches_filelists.zip'),
+    ('batches_filelists_NICv2.zip',  
+     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip')
 ]
 
 

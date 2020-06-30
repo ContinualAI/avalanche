@@ -42,6 +42,39 @@ class SITTests(unittest.TestCase):
 
         self.assertEqual(order, all_classes)
 
+    def test_sit_single_dataset_fixed_order_subset(self):
+        order = [2, 3, 5, 8, 9, 1, 4, 6]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 4, fixed_class_order=order)
+
+        self.assertEqual(4, len(nc_scenario.classes_in_batch))
+
+        all_classes = []
+        for batch_id in range(4):
+            self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
+            all_classes.extend(nc_scenario.classes_in_batch[batch_id])
+
+        self.assertEqual(order, all_classes)
+
+    def test_sit_single_dataset_remap_indexes(self):
+        order = [2, 3, 5, 8, 9, 1, 4, 6]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 4, fixed_class_order=order,
+            remap_class_ids=True)
+
+        self.assertEqual(4, len(nc_scenario.classes_in_batch))
+
+        all_classes = []
+        for batch_id in range(4):
+            self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
+            all_classes.extend(nc_scenario.classes_in_batch[batch_id])
+
+        self.assertEqual(list(range(8)), all_classes)
+
     def test_sit_single_dataset_reproducibility_data(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)

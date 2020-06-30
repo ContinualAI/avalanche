@@ -64,6 +64,43 @@ class MultiTaskTests(unittest.TestCase):
 
         self.assertEqual(order, all_classes)
 
+    def test_sit_single_dataset_fixed_order_subset(self):
+        order = [2, 5, 7, 8, 9, 0, 1, 4]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+            mnist_train, mnist_test, 4, fixed_class_order=order)
+
+        self.assertEqual(4, len(nc_scenario.classes_in_task))
+
+        all_classes = []
+        for task_id in range(4):
+            self.assertEqual(2, len(nc_scenario.classes_in_task[task_id]))
+            self.assertEqual(order[task_id*2:(task_id+1)*2],
+                             nc_scenario.original_classes_in_task[task_id])
+            all_classes.extend(nc_scenario.classes_in_task[task_id])
+
+        self.assertEqual([0, 1] * 4, all_classes)
+
+    def test_sit_single_dataset_fixed_subset_no_remap_idx(self):
+        order = [2, 5, 7, 8, 9, 0, 1, 4]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+            mnist_train, mnist_test, 2, fixed_class_order=order,
+            classes_ids_from_zero_in_each_task=False)
+
+        self.assertEqual(2, len(nc_scenario.classes_in_task))
+
+        all_classes = []
+        for task_id in range(2):
+            self.assertEqual(4, len(nc_scenario.classes_in_task[task_id]))
+            self.assertEqual(order[task_id*4:(task_id+1)*4],
+                             nc_scenario.original_classes_in_task[task_id])
+            all_classes.extend(nc_scenario.classes_in_task[task_id])
+
+        self.assertEqual(order, all_classes)
+
     def test_mt_single_dataset_reproducibility_data(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
@@ -122,9 +159,13 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(2, nc_scenario.n_tasks)
         self.assertEqual(10, nc_scenario.n_classes)
 
+        step_classes = []
+
         all_classes = set()
-        for task_id in range(2):
+        for task_id, task_info in enumerate(nc_scenario):
+            self.assertLessEqual(task_id, 1)
             all_classes.update(nc_scenario.classes_in_task[task_id])
+            step_classes.append(task_info.classes_in_this_task)
 
         self.assertEqual(7, len(all_classes))
 
@@ -133,6 +174,12 @@ class MultiTaskTests(unittest.TestCase):
              nc_scenario.classes_in_task[1] == list(range(0, 7))) or
             (nc_scenario.classes_in_task[0] == list(range(0, 7)) and
              nc_scenario.classes_in_task[1] == [0, 1, 2]))
+
+        step_classes_ref1 = [list(range(3)), list(range(7))]
+        step_classes_ref2 = [list(range(7)), list(range(3))]
+
+        self.assertTrue(step_classes == step_classes_ref1 or
+                        step_classes == step_classes_ref2)
 
 
 if __name__ == '__main__':

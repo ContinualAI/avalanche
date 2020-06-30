@@ -83,9 +83,11 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
             self.classes_ids_from_zero_in_each_task = \
                 classes_ids_from_zero_in_each_task
 
-        self.class_mapping = [-1 for _ in range(self.n_classes)]
+        max_class_id = max(nc_generic_scenario.classes_order)
+        n_original_classes = max_class_id + 1
+        self.class_mapping = [-1 for _ in range(n_original_classes)]
 
-        if classes_ids_from_zero_in_each_task:
+        if self.classes_ids_from_zero_in_each_task:
             for task_id in range(self.n_tasks):
                 original_classes_ids = \
                     nc_generic_scenario.classes_in_batch[task_id]
@@ -100,7 +102,7 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
                 self.classes_in_task.append(
                     list(range(0, n_classes_this_task)))
         else:
-            self.class_mapping = list(range(self.n_classes))
+            self.class_mapping = list(range(n_original_classes))
             self.classes_in_task = nc_generic_scenario.classes_in_batch
 
         self.original_classes_in_task = nc_generic_scenario.classes_in_batch
@@ -115,7 +117,9 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
     def __getitem__(self, task_id) -> 'NCTaskInfo[' \
                                       'TrainSetWithTargets, ' \
                                       'TestSetWithTargets]':
-        return NCTaskInfo(self, task_id)
+        if task_id < len(self):
+            return NCTaskInfo(self, task_id)
+        raise IndexError('Task ID out of bounds' + str(int(task_id)))
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         rep_data = super().get_reproducibility_data()
@@ -126,6 +130,49 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
 
         # See: https://stackoverflow.com/a/26853961
         return {**rep_data, **gen_data}
+
+    def classes_in_task_range(self, task_start: int,
+                              task_end: Optional[int] = None) -> List[int]:
+        """
+        Gets a list of classes contained int the given tasks. The tasks are
+        defined by range. This means that only the classes in range
+        [task_start, task_end) will be included.
+
+        :param task_start: The starting task ID
+        :param task_end: The final task ID. Can be None, which means that all
+            the remaining tasks will be taken.
+
+        :returns: The classes contained in the required task range.
+        """
+        # Ref: https://stackoverflow.com/a/952952
+        if task_end is None:
+            return [
+                item for sublist in
+                self.classes_in_task[task_start:]
+                for item in sublist]
+
+        return [
+            item for sublist in
+            self.classes_in_task[task_start:task_end]
+            for item in sublist]
+
+    def get_class_split(self, task_id):
+        if task_id >= 0:
+            classes_in_this_task = \
+                self.classes_in_task[task_id]
+            previous_classes = self.classes_in_task_range(0, task_id)
+            classes_seen_so_far = \
+                previous_classes + classes_in_this_task
+            future_classes = self.classes_in_task_range(task_id + 1)
+        else:
+            classes_in_this_task = []
+            previous_classes = []
+            classes_seen_so_far = []
+            future_classes = self.classes_in_task_range(0)
+
+        # Without explicit tuple parenthesis, PEP8 E127 occurs
+        return (classes_in_this_task, previous_classes, classes_seen_so_far,
+                future_classes)
 
 
 class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
@@ -209,8 +256,7 @@ class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
                 **kwargs)), t
 
     def _go_to_task(self):
-        class_split = self.scenario.nc_generic_scenario.get_class_split(
-            self.current_task)
+        class_split = self.scenario.get_class_split(self.current_task)
         self.classes_in_this_task, self.previous_classes, self.\
             classes_seen_so_far, self.future_classes = class_split
 
@@ -269,7 +315,9 @@ class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
     def __getitem__(self, batch_id) -> 'NCBatchInfo[' \
                                        'TrainSetWithTargets,' \
                                        'TestSetWithTargets]':
-        return NCBatchInfo(self, batch_id)
+        if batch_id < len(self):
+            return NCBatchInfo(self, batch_id)
+        raise IndexError('Batch ID out of bounds' + str(int(batch_id)))
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         rep_data = super().get_reproducibility_data()
@@ -350,7 +398,7 @@ class NCBatchInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
     def _go_to_batch(self):
         class_split = self.scenario.nc_generic_scenario.get_class_split(
             self.current_batch)
-        self.classes_in_this_task, self.previous_classes, self.\
+        self.classes_in_this_batch, self.previous_classes, self.\
             classes_seen_so_far, self.future_classes = class_split
 
 

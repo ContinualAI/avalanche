@@ -318,7 +318,10 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     # DataLoader parallelism is batch-based. By using "len(dataset)/num_workers"
     # as the batch size, num_workers [+1] batches will be loaded thus
     # using the required number of workers.
-    batch_size = max(1, len(dataset) // num_workers)
+    if num_workers > 0:
+        batch_size = max(1, len(dataset) // num_workers)
+    else:
+        batch_size = len(dataset)
     loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
                         num_workers=num_workers)
     batches_x = []
