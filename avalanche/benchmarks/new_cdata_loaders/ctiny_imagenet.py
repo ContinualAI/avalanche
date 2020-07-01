@@ -32,6 +32,7 @@ _default_test_transform = transforms.Compose([
                          (0.2023, 0.1994, 0.2010))
 ])
 
+
 def CTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
                   fixed_class_order=None,
                   train_transform=_default_train_transform,
@@ -91,6 +92,3 @@ def CTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
             seed=seed,
             fixed_class_order=fixed_class_order
         )
-
-
-
