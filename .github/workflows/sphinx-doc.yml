@@ -16,6 +16,13 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+      - name: install conda dependencies
+        run: |
+          conda env create -f environment.yml
+          conda activate avalanche-env
       - uses: ammaraskar/sphinx-action@master
         with:
           pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
