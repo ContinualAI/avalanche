@@ -22,7 +22,7 @@ jobs:
       - name: install conda dependencies
         run: |
           conda env create -f environment.yml
-          conda activate avalanche-env
+          source activate avalanche-env
       - uses: ammaraskar/sphinx-action@master
         with:
           pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
