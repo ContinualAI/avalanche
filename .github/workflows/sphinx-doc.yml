@@ -30,5 +30,6 @@ jobs:
           conda list
       - name: compile documentation
         run: |
+          conda list
           sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
           sphinx-build -b dirhtml docs/ doc_html/
