@@ -26,7 +26,8 @@ jobs:
       - name: install sphinx
         run: |
           conda install -c anaconda sphinx
-          pip install sphinx_rtd_theme
+          conda install -c anaconda sphinx_rtd_theme
+          conda list
       - name: compile documentation
         run: |
           sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
