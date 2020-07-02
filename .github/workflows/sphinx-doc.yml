@@ -22,9 +22,9 @@ jobs:
       - name: install conda dependencies
         run: |
           conda env create -f environment.yml
-          source activate avalanche-env
       - name: install sphinx
         run: |
+          source activate avalanche-env
           conda install -c anaconda sphinx
           conda install -c anaconda sphinx_rtd_theme
           conda list
