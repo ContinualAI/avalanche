@@ -30,5 +30,4 @@ jobs:
       - name: compile documentation
         run: |
           sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
-          cd docs
-          make html
+          sphinx-build -b dirhtml docs/ doc_html/
