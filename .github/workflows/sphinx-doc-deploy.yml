@@ -16,8 +16,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ammaraskar/sphinx-action@master
         with:
-          pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ src/"
-          build-command: "make html"
+          pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
+          build-command: "sphinx-build -b dirhtml docs/ doc_html/"
           docs-folder: "docs/"
       - name: Clone gh-pages branch
         uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
           token: ${{ secrets.TOKEN_AUTH}}
       - name: commit to gh pages
         run: |
-          cp -r docs/_build/html/. gh-pages/
+          cp -r doc_html/. gh-pages/
           cd gh-pages
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}

@@ -1,4 +1,4 @@
-name: sphinx compilation and deploynment
+name: sphinx compilation
 
 on:
   push:
@@ -12,13 +12,12 @@ jobs:
   build:
     name: build_sphinx_doc
     runs-on: ubuntu-latest
-    if: github.repository == 'vlomonaco/avalanche'
     steps:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ammaraskar/sphinx-action@master
         with:
-          pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ src/"
-          build-command: "make html"
+          pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
+          build-command: "sphinx-build -b dirhtml docs/ doc_html/"
           docs-folder: "docs/"
