@@ -19,5 +19,5 @@ jobs:
       - uses: ammaraskar/sphinx-action@master
         with:
           pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
-          build-command: "sphinx-build -b dirhtml docs/ doc_html/"
+          build-command: "make html"
           docs-folder: "docs/"
