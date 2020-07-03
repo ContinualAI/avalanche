@@ -60,7 +60,6 @@ def CORe50(root=None, scenario="nicv2_391", run=0):
         iterated.
     """
 
-
     assert (0 <= run <= 9), "Pre-defined run of CORe50 are only 10. Indicate " \
                             "a number between 0 and 9."
     assert (scenario in nbatch.keys()), "The selected scenario is note " \
