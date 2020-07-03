@@ -21,7 +21,7 @@ from __future__ import absolute_import
 
 # other imports
 import logging
-from avalanche.benchmarks.datasets_envs import fashionMNIST
+from avalanche.benchmarks.datasets_envs import FashionMNIST
 from avalanche.benchmarks.utils import remove_some_labels
 
 
@@ -47,9 +47,9 @@ class CfashionMNIST(object):
         self.log = logging.getLogger('mylogger')
 
         if self.bp is None:
-            self.fmnist = fashionMNIST()
+            self.fmnist = FashionMNIST()
         else:
-            self.fmnist = fashionMNIST(data_loc=bp)
+            self.fmnist = FashionMNIST(data_loc=bp)
 
         self.train_set, self.test_set = self.fmnist.get_data()
 
