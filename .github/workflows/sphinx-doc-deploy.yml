@@ -14,11 +14,22 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: ammaraskar/sphinx-action@master
+      - uses: s-weigand/setup-conda@v1
         with:
-          pre-build-command: "sphinx-apidoc -f -d 4 -o docs/api/ avalanche/"
-          build-command: "sphinx-build -b dirhtml docs/ doc_html/"
-          docs-folder: "docs/"
+          activate-conda: false
+      - name: install conda dependencies
+        run: |
+          conda env create -f environment.yml
+      - name: install sphinx
+        run: |
+          source activate avalanche-env
+          conda install -c anaconda sphinx
+          conda install -c anaconda sphinx_rtd_theme
+      - name: compile documentation
+        run: |
+          source activate avalanche-env
+          sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
+          sphinx-build -b dirhtml docs/ doc_html/
       - name: Clone gh-pages branch
         uses: actions/checkout@v2
         with:

@@ -27,10 +27,8 @@ jobs:
           source activate avalanche-env
           conda install -c anaconda sphinx
           conda install -c anaconda sphinx_rtd_theme
-          conda list
       - name: compile documentation
         run: |
           source activate avalanche-env
-          conda list
           sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
           sphinx-build -b dirhtml docs/ doc_html/
