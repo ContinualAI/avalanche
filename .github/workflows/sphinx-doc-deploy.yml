@@ -33,7 +33,7 @@ jobs:
       - name: Clone gh-pages branch
         uses: actions/checkout@v2
         with:
-          repository: 'volomonaco/avalanche'
+          repository: 'vlomonaco/avalanche'
           ref: 'gh-pages'
           path: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
