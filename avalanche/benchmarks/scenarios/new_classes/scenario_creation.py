@@ -292,12 +292,11 @@ def create_nc_multi_dataset_multi_task_scenario(
     Note: train_dataset_list and test_dataset_list must have the same number of
     datasets.
 
-    Args:
     :param train_dataset_list: A list of training datasets
     :param test_dataset_list: A list of test datasets
     :param shuffle: If True, task order will be shuffled. Defaults to True.
-    :param seed: A valid int used to initialize the random number generator. Can
-        be None.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
     :param classes_ids_from_zero_in_each_task: If True, original class IDs will
         be kept as is, that is, in range [0, n_classes_in_task) for each task.
         If False, each class ID will be remapped so that each class ID will
@@ -319,7 +318,7 @@ def create_nc_multi_dataset_multi_task_scenario(
         Beware that, in order to reproduce an experiment, the same train and
         test datasets must be used. Defaults to None.
 
-    :Returns: A :class:`NCMultiTaskScenario` instance.
+    :return: A :class:`NCMultiTaskScenario` instance.
     """
     if len(train_dataset_list) != len(test_dataset_list):
         raise ValueError('Train/test dataset lists must contain the '

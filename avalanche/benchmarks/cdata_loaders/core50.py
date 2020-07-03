@@ -29,7 +29,7 @@ from avalanche.benchmarks.datasets_envs import CORE50_DATA
 
 
 class CORE50(object):
-    """ CORe50 Data Loader calss
+    """ CORe50 Data Loader class
 
     Args:
         root (string): None to download dataset in default folder.
@@ -43,8 +43,6 @@ class CORE50(object):
         scenario (string, optional): One of the three scenarios of the CORe50
             benchmark ``ni``, ``nc``, ``nic``, `nicv2_79`,``nicv2_196`` and
              ``nicv2_391``.
-        train (bool, optional): If True, creates the dataset from the training
-            set, otherwise creates from test set.
         cumul (bool, optional): If True the cumulative scenario is assumed, the
             incremental scenario otherwise. Practically speaking ``cumul=True``
             means that for batch=i also batch=0,...i-1 will be added to the
@@ -55,6 +53,7 @@ class CORE50(object):
             from 0 to max-batch - 1. Remember that for the ``ni``, ``nc`` and
             ``nic`` we have respectively 8, 9 and 79 incremental batches. If
             ``train=False`` this parameter will be ignored.
+
     """
 
     nbatch = {
@@ -68,7 +67,7 @@ class CORE50(object):
 
     def __init__(self, root=None, preload=True, scenario='ni', cumul=False,
                  run=0, start_batch=0, task_sep=False):
-        """" Initialize Object """
+        """ Initialize Object """
 
         # download dataset and set current data folder
         if root is None:

@@ -113,6 +113,7 @@ class TinyImagenet(Dataset):
     def load_data(self, train=True):
         """
         Load all images paths and targets.
+
         :param bool train: True for loading the training set, False for the
             test set.
         :return: train_set, test_set: (train_X_paths, train_y).
