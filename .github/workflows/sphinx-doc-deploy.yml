@@ -39,7 +39,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: commit to gh pages
         run: |
-          cp -r docs/_build/html/. gh-pages/
+          cp -r doc_html/. gh-pages/
           cd gh-pages
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
