@@ -198,14 +198,13 @@ def shuffle_in_unison(dataset, seed=None, in_place=False):
     Shuffle two (or more) list in unison. It's important to shuffle the images
     and the labels maintaining their correspondence.
 
-        Args:
-            dataset (list): list of shuffle with the same order.
-            seed (int): set of fixed Cifar parameters.
-            in_place (bool): if we want to shuffle the same data or we want
-                             to return a new shuffled dataset.
-        Returns:
-            list: train and test sets composed of images and labels, if in_place
-                  is set to False.
+    :args dataset: list of shuffle with the same order.
+    :args seed: set of fixed Cifar parameters.
+    :args in_place: if we want to shuffle the same data or we want
+                     to return a new shuffled dataset.
+
+    :return: train and test sets composed of images and labels, if in_place
+        is set to False.
     """
 
     if seed:

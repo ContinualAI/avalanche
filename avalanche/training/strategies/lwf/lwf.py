@@ -47,9 +47,9 @@ class LearningWithoutForgetting(Strategy):
 
         paper: https://arxiv.org/abs/1606.09282
         original implementation (Matlab):
-            https://github.com/lizhitwo/LearningWithoutForgetting
+        https://github.com/lizhitwo/LearningWithoutForgetting
         reference implementation (pytorch):
-            https://github.com/arunmallya/packnet/blob/master/src/lwf.py
+        https://github.com/arunmallya/packnet/blob/master/src/lwf.py
 
         :param model: pytorch basic model.
         :param classes_per_task: number of classes for each task.

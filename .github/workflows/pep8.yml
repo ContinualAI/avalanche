@@ -1,0 +1,30 @@
+name: pycodestyle checking
+# This workflow is triggered on pushes to the repository.
+on: [push, pull_request]
+
+jobs:
+  check:
+    name: check_pep_8
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - uses: ricardochaves/python-lint@v1.1.0
+        with:
+          python-root-list: "avalanche/"
+          use-pylint: false
+          use-pycodestyle: true
+          use-flake8: false
+          use-black: false
+          use-mypy: false
+          use-isort: false
+          extra-pylint-options: ""
+          extra-pycodestyle-options: ""
+          extra-flake8-options: ""
+          extra-black-options: ""
+          extra-mypy-options: ""
+          extra-isort-options: ""
