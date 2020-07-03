@@ -36,7 +36,7 @@ jobs:
           repository: 'volomonaco/avalanche'
           ref: 'gh-pages'
           path: 'gh-pages'
-          token: ${{ secrets.TOKEN_AUTH}}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: commit to gh pages
         run: |
           cp -r docs/_build/html/. gh-pages/
