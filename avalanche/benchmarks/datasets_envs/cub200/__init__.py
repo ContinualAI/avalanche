@@ -1,0 +1,1 @@
+from .cub200 import CUB200_DATA, CUB200_EXTENDED_DATA
