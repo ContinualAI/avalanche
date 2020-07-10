@@ -35,6 +35,7 @@ import io
 import queue
 import subprocess
 import threading
+import time
 
 
 class GPUUsage:
@@ -44,6 +45,7 @@ class GPUUsage:
         :param gpu_id: GPU device ID
         :param every: time delay (in seconds) between measurements
     """
+
     def __init__(self, gpu_id, every=10):
         # 'nvidia-smi --loop=1 --query-gpu=utilization.gpu --format=csv'
         cmd = ['nvidia-smi', f'--loop={every}', '--query-gpu=utilization.gpu',
@@ -309,8 +311,23 @@ class CM(object):
 
         buf = io.BytesIO()
         fig.savefig(buf, format='jpg', dpi=50)
-        # fig.savefig("temp.jpg", format='jpg')
+        plt.close(fig)
+
         buf.seek(0)
         image = PIL.Image.open(buf)
         image = ToTensor()(image)
         return image
+
+
+class TimeUsage:
+
+    """
+        Time usage metric measured in seconds.
+    """
+
+    def __init__(self):
+        self._start_time = time.perf_counter()
+
+    def compute(self, t):
+        elapsed_time = time.perf_counter() - self._start_time
+        print(f"Elapsed time: {elapsed_time:0.4f} seconds")

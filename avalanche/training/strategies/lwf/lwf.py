@@ -22,10 +22,8 @@ from __future__ import absolute_import
 from avalanche.training.strategies.strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
 import torch.nn.functional as F
-import numpy as np
 import copy
 
 
@@ -45,8 +43,7 @@ class LearningWithoutForgetting(Strategy):
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC()])):
-        """
-        Learning without Forgetting Strategy.
+        """ Learning without Forgetting Strategy.
 
         paper: https://arxiv.org/abs/1606.09282
         original implementation (Matlab):
@@ -54,14 +51,21 @@ class LearningWithoutForgetting(Strategy):
         reference implementation (pytorch):
         https://github.com/arunmallya/packnet/blob/master/src/lwf.py
 
-        Args:
-            classes_per_task:
-            alpha: distillation loss coefficient.
-            Can be an integer or a list of values (one for each task).
-            distillation_loss_T: distillation loss temperature
-            warmup_epochs: number of warmup epochs training only
+        :param model: pytorch basic model.
+        :param classes_per_task: number of classes for each task.
+        :param alpha: distillation loss coefficient.
+        :param distillation_loss_T: distillation loss temperature.
+        :param warmup_epochs: number of warmup epochs training only
             the new parameters.
+        :param optimizer: pytorch optimizer.
+        :param criterion: pytorch optimization criterion.
+        :param mb_size: mini-batch size for SGD.
+        :param train_ep: training epochs for each task/batch.
+        :param device: device on which to run the script.
+        :param preproc: preprocessing function.
+        :param eval_protocol: avalanche evaluation protocol.
         """
+
         super(LearningWithoutForgetting, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head=False,
             device=device, preproc=preproc, eval_protocol=eval_protocol

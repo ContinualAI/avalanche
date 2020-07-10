@@ -1,14 +1,12 @@
 import unittest
 
-from PIL.Image import Image
 from torchvision.datasets import MNIST
-from torchvision.transforms import transforms, RandomCrop, ToTensor
 
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_sit_scenario, create_nc_multi_dataset_sit_scenario
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
-    make_transformation_subset
+    make_nc_transformation_subset
 
 
 class SITTests(unittest.TestCase):
@@ -22,8 +20,8 @@ class SITTests(unittest.TestCase):
 
         self.assertEqual(5, nc_scenario.n_batches)
         self.assertEqual(10, nc_scenario.n_classes)
-        for batch_id in range(5):
-            self.assertEqual(len(nc_scenario.classes_in_batch[batch_id]), 2)
+        for batch_id in range(nc_scenario.n_batches):
+            self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
@@ -36,14 +34,62 @@ class SITTests(unittest.TestCase):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
         nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5,
-            fixed_class_order=order)
+            mnist_train, mnist_test, 5, fixed_class_order=order)
 
         all_classes = []
         for batch_id in range(5):
             all_classes.extend(nc_scenario.classes_in_batch[batch_id])
 
         self.assertEqual(order, all_classes)
+
+    def test_sit_single_dataset_fixed_order_subset(self):
+        order = [2, 3, 5, 8, 9, 1, 4, 6]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 4, fixed_class_order=order)
+
+        self.assertEqual(4, len(nc_scenario.classes_in_batch))
+
+        all_classes = []
+        for batch_id in range(4):
+            self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
+            all_classes.extend(nc_scenario.classes_in_batch[batch_id])
+
+        self.assertEqual(order, all_classes)
+
+    def test_sit_single_dataset_remap_indexes(self):
+        order = [2, 3, 5, 8, 9, 1, 4, 6]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 4, fixed_class_order=order,
+            remap_class_ids=True)
+
+        self.assertEqual(4, len(nc_scenario.classes_in_batch))
+
+        all_classes = []
+        for batch_id in range(4):
+            self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
+            all_classes.extend(nc_scenario.classes_in_batch[batch_id])
+
+        self.assertEqual(list(range(8)), all_classes)
+
+    def test_sit_single_dataset_reproducibility_data(self):
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        nc_scenario_ref = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 5, shuffle=True, seed=5678)
+
+        nc_scenario = create_nc_single_dataset_sit_scenario(
+            mnist_train, mnist_test, -1,
+            reproducibility_data=nc_scenario_ref.get_reproducibility_data())
+
+        self.assertEqual(nc_scenario_ref.train_steps_patterns_assignment,
+                         nc_scenario.train_steps_patterns_assignment)
+
+        self.assertEqual(nc_scenario_ref.test_steps_patterns_assignment,
+                         nc_scenario.test_steps_patterns_assignment)
 
     def test_sit_single_dataset_batch_size(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
@@ -68,16 +114,16 @@ class SITTests(unittest.TestCase):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
 
-        train_part1 = make_transformation_subset(
+        train_part1 = make_nc_transformation_subset(
             mnist_train, None, None, range(3))
-        train_part2 = make_transformation_subset(
+        train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10))
         train_part2 = TransformationSubset(
             train_part2, None, class_mapping=split_mapping)
 
-        test_part1 = make_transformation_subset(
+        test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3))
-        test_part2 = make_transformation_subset(
+        test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10))
         test_part2 = TransformationSubset(test_part2, None,
                                           class_mapping=split_mapping)
@@ -105,16 +151,16 @@ class SITTests(unittest.TestCase):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
 
-        train_part1 = make_transformation_subset(
+        train_part1 = make_nc_transformation_subset(
             mnist_train, None, None, range(5))
-        train_part2 = make_transformation_subset(
+        train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10))
         train_part2 = TransformationSubset(
             train_part2, None, class_mapping=split_mapping)
 
-        test_part1 = make_transformation_subset(
+        test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(5))
-        test_part2 = make_transformation_subset(
+        test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(5, 10))
         test_part2 = TransformationSubset(test_part2, None,
                                           class_mapping=split_mapping)
@@ -122,8 +168,8 @@ class SITTests(unittest.TestCase):
             [train_part1, train_part2], [test_part1, test_part2], 5,
             shuffle=True, seed=1234)
 
-        self.assertEqual(nc_scenario.n_batches, 5)
-        self.assertEqual(nc_scenario.n_classes, 10)
+        self.assertEqual(5, nc_scenario.n_batches)
+        self.assertEqual(10, nc_scenario.n_classes)
         for batch_id in range(5):
             self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
 

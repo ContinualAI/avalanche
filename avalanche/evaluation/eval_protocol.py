@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage
+from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage, DiskUsage, TimeUsage
 import numpy as np
 from .tensorboard import TensorboardLogging
 
@@ -44,7 +44,6 @@ class EvalProtocol(object):
         """ Compute results based on accuracy """
 
         results = {}
-
         for metric in self.metrics:
             if isinstance(metric, ACC):
                 results[ACC] = metric.compute(true_y, y_hat)
@@ -58,6 +57,10 @@ class EvalProtocol(object):
                 results[CPUUsage] = metric.compute(train_t)
             elif isinstance(metric, GPUUsage):
                 results[GPUUsage] = metric.compute(train_t)
+            elif isinstance(metric, DiskUsage):
+                results[DiskUsage] = metric.compute(train_t)
+            elif isinstance(metric, TimeUsage):
+                results[TimeUsage] = metric.compute(train_t)
             else:
                 raise ValueError("Unknown metric")
 

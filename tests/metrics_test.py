@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 import numpy as np
-from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM
+from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM, TimeUsage
 
 
 if __name__ == '__main__':
@@ -31,21 +31,22 @@ if __name__ == '__main__':
         'cf': CF(),
         'ramu': RAMU(),
         'disk': DiskUsage(),
-        'disk_io': DiskUsage(disk_io = True),
-        'cm': CM()
+        'disk_io': DiskUsage(disk_io=True),
+        'cm': CM(),
+        'time': TimeUsage()
     }
 
     n_tasks = 3
 
     for t in range(n_tasks):
 
-        y = np.random.randint(low=0, high=10, size=(20,1))
+        y = np.random.randint(low=0, high=10, size=(20, 1))
         y_hat = np.random.randint(low=0, high=10, size=(20, 1))
 
         for name, metric in metrics.items():
             if name in ['acc', 'cm']:
                 metric.compute(y, y_hat)
-            elif name in ['disk', 'disk_io', 'ramu']:
+            elif name in ['disk', 'disk_io', 'ramu', 'time']:
                 metric.compute(t)
             elif name in ['cf']:
                 metric.compute(y, y_hat, t, t)

@@ -113,9 +113,9 @@ class CTinyImageNet(object):
     def load_classes(self, classes):
         """
         Load images and targets corresponding to a set of classes
-        Args:
-            classes: tuple containing classes ids
-        
+
+        :param classes: tuple containing classes ids
+
         :return: train_set, test_set: (train_X,train_y), (test_X,test_y)
         """
         

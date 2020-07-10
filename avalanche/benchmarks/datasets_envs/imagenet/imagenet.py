@@ -92,7 +92,7 @@ class ImageNet(object):
 
 if __name__ == '__main__':
 
-    imagenet = ImageNet(data_folder='/ssddata/ilsvrc-data/',
-                        download=False, sample_train=100, sample_test=10)
+    imagenet = ImageNet(data_folder='/ssddata/ilsvrc-data/', download=False,
+                        sample_train=100, sample_test=10)
     imagenet_data = imagenet.get_data()
     print('%d classes are loaded.' % (len(imagenet_data[0])))

@@ -44,7 +44,7 @@ filename = [
 ]
 
 
-class fashionMNIST(object):
+class FashionMNIST(object):
 
     """MNIST static dataset and basic utilities"""
 
@@ -152,7 +152,7 @@ class fashionMNIST(object):
 if __name__ == '__main__':
 
     # np.set_printoptions(threshold=np.nan)
-    fmnist = fashionMNIST()
+    fmnist = FashionMNIST()
 
     # try permutation
     fmnist_data = fmnist.get_data()

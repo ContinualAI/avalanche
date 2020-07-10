@@ -29,16 +29,27 @@ import copy
 
 
 class Rehearsal(Strategy):
-    """
-    Naive Strategy: PyTorch implementation.
-    """
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
                  train_ep=2, multi_head=False, device=None, preproc=None,
                  eval_protocol=EvalProtocol(metrics=[ACC]), rm_sz=1500,
                  replace=True):
+        """ Basic rehearsal Strategy.
 
+        :param model: pytorch basic model.
+        :param optimizer: pytorch optimizer.
+        :param criterion: pytorch optimization criterion.
+        :param int mb_size: mini-batch size for SGD.
+        :param int train_ep: training epochs for each task/batch
+        :param multi_head: multi-head or not.
+        :param device: device on which to run the script.
+        :param preproc: preprocessing function.
+        :param eval_protocol: avalanche evaluation protocol.
+        :param rm_sz: rehearsal's memory size.
+        :param replace: whether new samples are added with or
+                        without replacement.
+        """
         super(Rehearsal, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
             device, preproc, eval_protocol

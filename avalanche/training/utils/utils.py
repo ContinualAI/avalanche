@@ -24,7 +24,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
-from torch.autograd import Variable
+from torch.utils.data import Dataset, DataLoader
 
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
@@ -198,14 +198,13 @@ def shuffle_in_unison(dataset, seed=None, in_place=False):
     Shuffle two (or more) list in unison. It's important to shuffle the images
     and the labels maintaining their correspondence.
 
-        Args:
-            dataset (list): list of shuffle with the same order.
-            seed (int): set of fixed Cifar parameters.
-            in_place (bool): if we want to shuffle the same data or we want
-                             to return a new shuffled dataset.
-        Returns:
-            list: train and test sets composed of images and labels, if in_place
-                  is set to False.
+    :args dataset: list of shuffle with the same order.
+    :args seed: set of fixed Cifar parameters.
+    :args in_place: if we want to shuffle the same data or we want
+                     to return a new shuffled dataset.
+
+    :return: train and test sets composed of images and labels, if in_place
+        is set to False.
     """
 
     if seed:
@@ -304,3 +303,31 @@ def imagenet_batch_preproc(img_batch, rgb_swap=True, channel_first=True,
         img_batch = np.transpose(img_batch, (0, 3, 1, 2))
 
     return img_batch
+
+
+def load_all_dataset(dataset: Dataset, num_workers: int = 0):
+    """
+    Retrieves the contents of a whole dataset by using a DataLoader
+
+    :param dataset: The dataset
+    :param num_workers: The number of workers the DataLoader should use.
+        Defaults to 0.
+    :return: The content of the whole Dataset
+    """
+    # DataLoader parallelism is batch-based. By using "len(dataset)/num_workers"
+    # as the batch size, num_workers [+1] batches will be loaded thus
+    # using the required number of workers.
+    if num_workers > 0:
+        batch_size = max(1, len(dataset) // num_workers)
+    else:
+        batch_size = len(dataset)
+    loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
+                        num_workers=num_workers)
+    batches_x = []
+    batches_y = []
+    for batch_x, batch_y in loader:
+        batches_x.append(batch_x)
+        batches_y.append(batch_y)
+
+    x, y = torch.cat(batches_x), torch.cat(batches_y)
+    return x, y

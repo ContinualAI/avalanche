@@ -10,27 +10,13 @@
 ################################################################################
 
 from collections import OrderedDict
-from typing import List, Iterable, Sequence, Dict, Any, Union
+from typing import List, Sequence, Dict, Any, Union
 
 import torch
-from torch import Tensor
 
 from avalanche.training.utils.transform_dataset import TransformationSubset, \
     IDatasetWithTargets
-
-
-def tensor_as_list(sequence) -> List:
-    # Numpy already returns the correct format
-    # Example: list(np.array([1, 2, 3])) returns [1, 2, 3]
-    #
-    # whereas: list(torch.tensor([1, 2, 3])) returns ->
-    # -> [tensor(1), tensor(2), tensor(3)], which is "bad"
-    if not isinstance(sequence, Iterable):
-        return [sequence]
-
-    if isinstance(sequence, Tensor):
-        return sequence.tolist()
-    return list(sequence)
+from avalanche.benchmarks.utils import tensor_as_list
 
 
 def _indexes_grouped_by_classes(sequence: Sequence[int],
@@ -64,9 +50,14 @@ def _indexes_grouped_by_classes(sequence: Sequence[int],
     for search_element in search_elements:
         result_per_class[search_element] = []
 
+    # Set based "in" operator is **much** faster that its list counterpart!
+    search_elements_set = set()
+    if search_elements is not None:
+        search_elements_set = set(search_elements)
+
     # Stores each pattern index in the appropriate class list
     for idx, element in enumerate(sequence):
-        if search_elements is None or element in search_elements:
+        if search_elements is None or element in search_elements_set:
             result_per_class[element].append(idx)
 
     # Concatenate all the pattern indexes
@@ -101,6 +92,8 @@ def _indexes_without_grouping(sequence: Sequence[int],
     if search_elements is None:
         result = list(sequence)
     else:
+        # Set based "in" operator is **much** faster that its list counterpart!
+        search_elements = set(search_elements)
         result = []
         for idx, element in enumerate(sequence):
             if element in search_elements:
@@ -146,17 +139,17 @@ def _indexes_from_set(sequence: Sequence[int],
         return _indexes_grouped_by_classes(sequence, search_elements,
                                            sort_indexes=sort_indexes,
                                            sort_classes=sort_classes)
-    else:
-        return _indexes_without_grouping(sequence, search_elements,
-                                         sort_indexes=sort_indexes)
+
+    return _indexes_without_grouping(sequence, search_elements,
+                                     sort_indexes=sort_indexes)
 
 
-def make_transformation_subset(dataset: IDatasetWithTargets,
-                               transform: Any, target_transform: Any,
-                               classes: Union[None, Sequence[int]],
-                               bucket_classes: bool = False,
-                               sort_classes: bool = False,
-                               sort_indexes: bool = False) \
+def make_nc_transformation_subset(dataset: IDatasetWithTargets,
+                                  transform: Any, target_transform: Any,
+                                  classes: Union[None, Sequence[int]],
+                                  bucket_classes: bool = False,
+                                  sort_classes: bool = False,
+                                  sort_indexes: bool = False) \
         -> TransformationSubset:
     """
     Creates a subset given the list of classes the patterns should belong to.
@@ -190,4 +183,4 @@ def make_transformation_subset(dataset: IDatasetWithTargets,
                                 target_transform=target_transform)
 
 
-__all__ = ['tensor_as_list', 'make_transformation_subset']
+__all__ = ['make_nc_transformation_subset']
