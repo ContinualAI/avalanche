@@ -122,12 +122,14 @@ for i, (x, y, t) in enumerate(cdata):
     results.append(clmodel.test(test_full))
 ```
 
-# How to contribute
+
+How to contribute
+----------------
 1. Join the slack channel and fork the project
 2. Find an open issue (or create your own) and assign yourself to it. Please try to prioritize exisitng issues, particulalry those labeled as critical. 
 3. Hack away. 
 4. When you're finished with your issue, or partial commit, submit a pull request for the repo. Please however, *do not merge with the main branch*, as a repository admin will check and merge your code. 
-5. Close your issue. 
+5. Close your issue, and then assign yourself to a new one.  
 
 ### Some notes on contributing
 * Communication is key. Ask questions, post issues, and meet the team. 
