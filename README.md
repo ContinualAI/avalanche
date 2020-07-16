@@ -130,6 +130,7 @@ for i, (x, y, t) in enumerate(cdata):
 5. Close your issue. 
 
 ### Some notes on contributing
+* Communication is key. Ask questions, post issues, and meet the team. 
 * Try to focus on a single issue at a time
 * Use PEP8 coding style
 * respect the 80 columns limit
