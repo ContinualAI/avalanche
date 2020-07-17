@@ -6,22 +6,18 @@
 Welcome to Avalanche's documentation!
 =====================================
 
-.. .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
 Welcome to Avalanche documentation!
 Avalanche is great!
 
-API
-==================
-Know what you’re looking for & just need API details? View our auto-generated API documentation:
 
-.. toctree::
-    :maxdepth: 3
+..  toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-    api/avalanche
+   intro
+   getting_started
+   tutorials
+   api/avalanche
 
 Indices and tables
 ==================
