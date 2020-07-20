@@ -18,7 +18,7 @@ class SITTests(unittest.TestCase):
         nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        self.assertEqual(20, nc_scenario.n_batches)
+        self.assertEqual(5, nc_scenario.n_batches)
         self.assertEqual(10, nc_scenario.n_classes)
         for batch_id in range(nc_scenario.n_batches):
             self.assertEqual(2, len(nc_scenario.classes_in_batch[batch_id]))
