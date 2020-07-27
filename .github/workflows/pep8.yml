@@ -1,4 +1,4 @@
-name: pycodestyle checking
+name: PEP8 checking
 # This workflow is triggered on pushes to the repository.
 on: [push, pull_request]
 

@@ -1,4 +1,4 @@
-name: sphinx compilation and deploynment
+name: documentation compilation and deploynment
 
 on:
   push:

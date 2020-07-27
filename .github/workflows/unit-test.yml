@@ -1,10 +1,10 @@
-name: documentation compilation
+name: unit test
 
 on: [push, pull_request]
 
 jobs:
   build:
-    name: build_sphinx_doc
+    name: unit test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -16,13 +16,7 @@ jobs:
       - name: install conda dependencies
         run: |
           conda env create -f environment.yml
-      - name: install sphinx
+      - name: testing the software
         run: |
           source activate avalanche-env
-          conda install -c anaconda sphinx
-          conda install -c anaconda sphinx_rtd_theme
-      - name: compile documentation
-        run: |
-          source activate avalanche-env
-          sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
-          sphinx-build -b dirhtml docs/ doc_html/
+          python -m unittest
