@@ -162,7 +162,6 @@ def _one_dataset_per_batch_class_order(
     same batch together. Each batch is defined by a different entry in the
     class_list_per_batch parameter.
 
-    Args:
     :param class_list_per_batch: A list of class lists, one for each batch
     :param shuffle: If True, the batch order will be shuffled. If False,
         this function will return the concatenation of lists from the
@@ -292,7 +291,6 @@ def create_nc_multi_dataset_multi_task_scenario(
     Note: train_dataset_list and test_dataset_list must have the same number of
     datasets.
 
-    Args:
     :param train_dataset_list: A list of training datasets
     :param test_dataset_list: A list of test datasets
     :param shuffle: If True, task order will be shuffled. Defaults to True.

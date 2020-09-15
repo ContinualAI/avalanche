@@ -34,9 +34,6 @@ TestSetWithTargets = TypeVar('TestSetWithTargets', bound=IDatasetWithTargets)
 MTSingleSet = Tuple[DatasetWithTargets, int]
 MTMultipleSet = List[MTSingleSet]
 
-# https://www.python.org/dev/peps/pep-0544/#self-types-in-protocols
-TStepInfo = TypeVar('TStepInfo', bound='IStepInfo')
-
 
 @runtime_checkable
 class IStepInfo(Protocol):
@@ -59,6 +56,9 @@ class IStepInfo(Protocol):
     # The current step. This is usually an incremental, 0-indexed, value used to
     # keep track of the current batch/task.
     current_step: int
+
+    # The overall amount of steps in the scenario
+    n_steps: int
 
     def current_training_set(self, bucket_classes=False, sort_classes=False,
                              sort_indexes=False) -> MTSingleSet:
@@ -312,7 +312,7 @@ class IStepInfo(Protocol):
         """
         ...
 
-    def disable_transformations(self: TStepInfo) -> TStepInfo:
+    def disable_transformations(self: 'TStepInfo') -> 'TStepInfo':
         """
         Returns a new step info instance in which transformations are disabled.
         The current instance is not affected. This is useful when there is a
@@ -323,7 +323,7 @@ class IStepInfo(Protocol):
         """
         ...
 
-    def enable_transformations(self: TStepInfo) -> TStepInfo:
+    def enable_transformations(self: 'TStepInfo') -> 'TStepInfo':
         """
         Returns a new step info instance in which transformations are enabled.
         The current instance is not affected. When created the ``IStepInfo``
@@ -335,7 +335,7 @@ class IStepInfo(Protocol):
         """
         ...
 
-    def with_train_transformations(self: TStepInfo) -> TStepInfo:
+    def with_train_transformations(self: 'TStepInfo') -> 'TStepInfo':
         """
         Returns a new step info instance in which train transformations are
         applied to both training and test sets. The current instance is not
@@ -346,7 +346,7 @@ class IStepInfo(Protocol):
         """
         ...
 
-    def with_test_transformations(self: TStepInfo) -> TStepInfo:
+    def with_test_transformations(self: 'TStepInfo') -> 'TStepInfo':
         """
         Returns a new step info instance in which test transformations are
         applied to both training and test sets. The current instance is
@@ -357,6 +357,10 @@ class IStepInfo(Protocol):
             to both training and test sets.
         """
         ...
+
+
+# https://www.python.org/dev/peps/pep-0544/#self-types-in-protocols
+TStepInfo = TypeVar('TStepInfo', bound=IStepInfo)
 
 
 __all__ = ['DatasetPart', 'DatasetType', 'TrainSetWithTargets',

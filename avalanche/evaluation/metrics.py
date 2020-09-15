@@ -272,17 +272,17 @@ class CM(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat, normalize=False):
+        y = np.concatenate(y)
+        y_hat = np.concatenate(y_hat)
+
         num_class = self.num_class
         if self.num_class is None:
             num_class = int(np.max(y) + 1)
 
         cmap = plt.cm.Blues
 
-        y = np.concatenate(y)
-        y_hat = np.concatenate(y_hat)
-
         # Compute confusion matrix
-        cm = confusion_matrix(y, y_hat)
+        cm = confusion_matrix(y, y_hat, labels=list(range(num_class)))
         # Only use the labels that appear in the data
         classes = [str(i) for i in range(num_class)]
         if normalize:
