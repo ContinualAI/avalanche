@@ -56,8 +56,8 @@ def CORe50(root=None, scenario="nicv2_391", run=0):
     :param run: number of run for the scenario. Batch ordering change based
         on this parameter (a number between 0 and 9).
 
-    :return: it returns a :class:`GenericCLScenario` instance that can be
-    iterated.
+    :returns: it returns a :class:`GenericCLScenario` instance that can be
+        iterated.
     """
 
     assert (0 <= run <= 9), "Pre-defined run of CORe50 are only 10. Indicate " \

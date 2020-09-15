@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 import numpy as np
-from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM
+from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM, TimeUsage
 
 
 if __name__ == '__main__':
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         'ramu': RAMU(),
         'disk': DiskUsage(),
         'disk_io': DiskUsage(disk_io=True),
-        'cm': CM()
+        'cm': CM(),
         'time': TimeUsage()
     }
 

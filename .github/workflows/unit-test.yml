@@ -1,0 +1,22 @@
+name: unit test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: unit test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+      - name: install conda dependencies
+        run: |
+          conda env create -f environment.yml
+      - name: testing the software
+        run: |
+          source activate avalanche-env
+          python -m unittest

@@ -1,0 +1,28 @@
+name: documentation compilation
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: build_sphinx_doc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+      - name: install conda dependencies
+        run: |
+          conda env create -f environment.yml
+      - name: install sphinx
+        run: |
+          source activate avalanche-env
+          conda install -c anaconda sphinx
+          conda install -c anaconda sphinx_rtd_theme
+      - name: compile documentation
+        run: |
+          source activate avalanche-env
+          sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
+          sphinx-build -b dirhtml docs/ doc_html/

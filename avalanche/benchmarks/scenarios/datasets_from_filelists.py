@@ -42,7 +42,7 @@ def default_flist_reader(flist, root):
     This reader reads a filelist and return a list of paths.
 
     :param flist: path of the flislist to read. The flist format should be:
-        impath label\nimpath label\n ...(same to caffe's filelist)
+        impath label, impath label,  ...(same to caffe's filelist)
     :param root: path to the dataset root. Each file defined in the file list
         will be searched in <root>/<impath>.
 
@@ -74,7 +74,8 @@ class FilelistDataset(data.Dataset):
         :param flist: path of the flislist to read. The flist format should be:
             impath label\nimpath label\n ...(same to caffe's filelist)
         :param transform: eventual transformation to add to the input data (x)
-        :param transform: eventual transformation to add to the targets (y)
+        :param target_transform: eventual transformation to add to the targets
+            (y)
         :param root: root path where the data to load are stored.
         :param flist_reader: loader function to use (for the filelists) given
             path.
@@ -127,7 +128,7 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
 
     :param root: root path where the data to load are stored.
     :param train_filelists: list of paths to train filelists. The flist format
-        should be: impath label\nimpath label\n ...(same to caffe's filelist)
+        should be: impath label, impath label, ...(same to caffe's filelist)
     :param test_filelists: list of paths to test filelists. It can be also a
         single path when the datasets is the same for each batch.
     :param complete_test_set_only: if True, test_filelists must contain

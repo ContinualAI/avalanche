@@ -173,7 +173,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
         and then merge their custom data before returning it.
 
         :return: A dictionary containing the data needed to reproduce the
-        experiment.
+            experiment.
         """
         train_steps = []
         for train_step_id in range(len(self.train_steps_patterns_assignment)):

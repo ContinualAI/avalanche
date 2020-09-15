@@ -1,0 +1,55 @@
+name: documentation compilation and deploynment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: build_sphinx_doc
+    runs-on: ubuntu-latest
+    if: github.repository == 'vlomonaco/avalanche'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: s-weigand/setup-conda@v1
+        with:
+          activate-conda: false
+      - name: install conda dependencies
+        run: |
+          conda env create -f environment.yml
+      - name: install sphinx
+        run: |
+          source activate avalanche-env
+          conda install -c anaconda sphinx
+          conda install -c anaconda sphinx_rtd_theme
+      - name: compile documentation
+        run: |
+          source activate avalanche-env
+          sphinx-apidoc -f -d 4 -o docs/api/ avalanche/
+          sphinx-build -b dirhtml docs/ doc_html/
+      - name: Clone gh-pages branch
+        uses: actions/checkout@v2
+        with:
+          repository: 'vlomonaco/avalanche'
+          ref: 'gh-pages'
+          path: 'gh-pages'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: commit to gh pages
+        run: |
+          cp -r doc_html/. gh-pages/
+          cd gh-pages
+          git config --local user.email ${{ secrets.EMAIL }}
+          git config --local user.name ${{ secrets.NAME }}
+          git add .
+          git commit -m "Update documentation" -a || true
+          # The above command will fail if no changes were present, so we ignore
+          # that.
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
+          directory: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
