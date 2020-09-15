@@ -175,7 +175,7 @@ def make_strategy_part_decorator(flow_field: str):
                         # Actually call the submodule function
                         try:
                             getattr(submodule, f.__name__)(**kwargs_submodule)
-                        except:
+                        except Exception as _:
                             t, v, tb = sys.exc_info()
                             flow.signal_internal_traceback(tb)
                             raise
@@ -199,7 +199,7 @@ def make_strategy_part_decorator(flow_field: str):
                 try:
                     ret = _execute_part_call(f, pos_arguments, namespace,
                                              flow)
-                except:
+                except Exception as _:
                     t, v, tb = sys.exc_info()
                     flow.signal_internal_traceback(tb)
                     raise
@@ -354,7 +354,7 @@ def _execute_part_call(part, positional_arguments: Sequence[Any],
     # Part execution
     try:
         part_result = part(*positional_arguments, **selected_parameters)
-    except:
+    except Exception as _:
         t, v, tb = sys.exc_info()
         strategy_flow.signal_internal_traceback(tb)
         raise
@@ -440,7 +440,7 @@ class FlowGroup:
                 # namespace updates
                 try:
                     last_result = part(*args, **kwargs)
-                except:
+                except Exception as _:
                     t, v, tb = sys.exc_info()
                     # Don't worry, the traceback will at least contain one
                     # trace of the previous line (the call to self.root_group of
@@ -751,7 +751,7 @@ class StrategyFlow:
         self.namespace_dict['strategy'] = self.self_ref
         try:
             result = self.root_group(**kwargs)
-        except:
+        except Exception as _:
             t, v, tb = sys.exc_info()
             # This cleans up the traceback so that decorators and internal
             # procedures don't appear!

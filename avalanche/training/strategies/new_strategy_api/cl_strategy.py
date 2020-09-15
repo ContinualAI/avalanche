@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from avalanche.benchmarks.scenarios.generic_definitions import DatasetPart, \
     IStepInfo
 
-from .strategy_flow import TrainingFlow, TestingFlow,  FlowGroup, StrategyFlow
+from .strategy_flow import TrainingFlow, TestingFlow, FlowGroup, StrategyFlow
 
 
 # TODO: better implementation of flow listeners
