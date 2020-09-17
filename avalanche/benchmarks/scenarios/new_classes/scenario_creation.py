@@ -162,7 +162,6 @@ def _one_dataset_per_batch_class_order(
     same batch together. Each batch is defined by a different entry in the
     class_list_per_batch parameter.
 
-    Args:
     :param class_list_per_batch: A list of class lists, one for each batch
     :param shuffle: If True, the batch order will be shuffled. If False,
         this function will return the concatenation of lists from the
