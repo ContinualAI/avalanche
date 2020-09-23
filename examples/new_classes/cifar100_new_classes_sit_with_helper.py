@@ -26,7 +26,7 @@ from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-from avalanche.benchmarks.new_cdata_loaders.icifar100 import \
+from avalanche.benchmarks.classic.ccifar100 import \
     create_cifar100_benchmark
 from example_utils import get_default_device
 

@@ -28,7 +28,7 @@ from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-from avalanche.benchmarks.new_cdata_loaders.mnist import \
+from avalanche.benchmarks.classic.cmnist import \
     create_permuted_mnist_benchmark
 from example_utils import get_default_device
 

@@ -1,1 +1,0 @@
-from .imagenet import ImageNet

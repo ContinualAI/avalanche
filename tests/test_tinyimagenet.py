@@ -16,7 +16,7 @@
 
 import unittest
 
-from avalanche.benchmarks.new_cdata_loaders import CTinyImageNet
+from avalanche.benchmarks.classic import CTinyImageNet
 from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 
 

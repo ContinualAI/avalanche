@@ -12,7 +12,7 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-from avalanche.benchmarks.new_datasets_envs import TinyImagenet
+from avalanche.benchmarks.datasets_envs import TinyImagenet
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario
@@ -33,7 +33,7 @@ _default_test_transform = transforms.Compose([
 ])
 
 
-def CTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
+def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
                   fixed_class_order=None,
                   train_transform=_default_train_transform,
                   test_transform=_default_test_transform):

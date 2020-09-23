@@ -1,13 +1,16 @@
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
-# Copyrights licensed under the CC BY 4.0 License.                             #
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 24-06-2020                                                             #
-# Author(s): Gabriele Graffieti                                                #
+# Author(s): Gabriele Graffieti, Vincenzo Lomonaco                             #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: wwww.continualai.org                                                #
 ################################################################################
+
+""" This module implements an high-level function to create the classic
+Fashion MNIST split CL scenario. """
 
 # Python 2-3 compatible
 from __future__ import print_function
@@ -15,18 +18,18 @@ from __future__ import division
 from __future__ import absolute_import
 
 from typing import Sequence, Optional
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario
 
 _default_cifar10_train_transform = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2023, 0.1994, 0.2010))
 ])
 
 _default_cifar10_test_transform = transforms.Compose([
@@ -36,16 +39,16 @@ _default_cifar10_test_transform = transforms.Compose([
 ])
 
 
-def create_cifar10_benchmark(incremental_steps: int,
-                             first_batch_with_half_classes: bool = False,
-                             return_task_id=False,
-                             seed: Optional[int] = None,
-                             fixed_class_order: Optional[Sequence[int]] = None,
-                             train_transform=_default_cifar10_train_transform,
-                             test_transform=_default_cifar10_test_transform
-                             ):
+def SplitFMNIST(incremental_steps: int,
+                first_batch_with_half_classes: bool = False,
+                return_task_id=False,
+                seed: Optional[int] = None,
+                fixed_class_order: Optional[Sequence[int]] = None,
+                train_transform=_default_cifar10_train_transform,
+                test_transform=_default_cifar10_test_transform
+                ):
     """
-    Creates a CL scenario using the CIFAR10 dataset.
+    Creates a CL scenario using the Fashion MNIST dataset.
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
@@ -92,8 +95,8 @@ def create_cifar10_benchmark(incremental_steps: int,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR10 otherwise.
     """
-    cifar_train, cifar_test = _get_cifar10_dataset(train_transform,
-                                                   test_transform)
+    cifar_train, cifar_test = _get_fmnist_dataset(train_transform,
+                                                  test_transform)
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
@@ -115,9 +118,17 @@ def create_cifar10_benchmark(incremental_steps: int,
         )
 
 
-def _get_cifar10_dataset(train_transformation, test_transformation):
-    cifar_train = CIFAR10('./data/cifar10', train=True,
-                          download=True, transform=train_transformation)
-    cifar_test = CIFAR10('./data/cifar10', train=False,
-                         download=True, transform=test_transformation)
-    return cifar_train, cifar_test
+def _get_fmnist_dataset(train_transformation, test_transformation):
+    train_set = FashionMNIST('./data/fmnist', train=True,
+                             download=True, transform=train_transformation)
+    test_set = FashionMNIST('./data/fmnist', train=False,
+                            download=True, transform=test_transformation)
+    return train_set, test_set
+
+
+if __name__ == "__main__":
+
+    nc_scenario = create_fmnist_benchmark(incremental_steps=10)
+
+    for i, batch in enumerate(nc_scenario):
+        print(i, batch)

@@ -43,7 +43,7 @@ _default_mnist_test_transform = transforms.Compose([
 ])
 
 
-def create_split_mnist_benchmark(
+def SplitMNIST(
         incremental_steps: int,
         return_task_id=False,
         seed: Optional[int] = None,
@@ -110,7 +110,7 @@ def create_split_mnist_benchmark(
         )
 
 
-def create_permuted_mnist_benchmark(
+def PermutedMNIST(
         incremental_steps: int,
         seed: Optional[int] = None,
         train_transform=_default_mnist_train_transform,
@@ -185,7 +185,7 @@ def create_permuted_mnist_benchmark(
     )
 
 
-def create_rotated_mnist_benchmark(
+def RotatedMNIST(
         incremental_steps: int,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
@@ -197,7 +197,7 @@ def create_rotated_mnist_benchmark(
     rotations are used to rotate the MNIST images in
     `incremental_steps` different manners, creating an equal number of tasks.
     Each task is composed of all the original MNIST 10 classes, but the images
-    are rotated in differet ways and using different values in every task.
+    are rotated in different ways and using different values in every task.
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 

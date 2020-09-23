@@ -27,32 +27,31 @@ from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_multi_task_scenario
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCSingleTaskScenario
-from avalanche.benchmarks.new_cdata_loaders.icifar10 import _get_cifar10_dataset
-
+from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
 
 _default_cifar100_train_transform = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2023, 0.1994, 0.2010))
 ])
 
 _default_cifar100_test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2023, 0.1994, 0.2010))
 ])
 
 
-def create_cifar100_benchmark(incremental_steps: int,
-                              first_batch_with_half_classes: bool = False,
-                              return_task_id=False,
-                              seed: Optional[int] = None,
-                              fixed_class_order: Optional[Sequence[int]] = None,
-                              train_transform=_default_cifar100_train_transform,
-                              test_transform=_default_cifar100_test_transform
-                              ):
+def SplitCIFAR100(incremental_steps: int,
+                  first_batch_with_half_classes: bool = False,
+                  return_task_id=False,
+                  seed: Optional[int] = None,
+                  fixed_class_order: Optional[Sequence[int]] = None,
+                  train_transform=_default_cifar100_train_transform,
+                  test_transform=_default_cifar100_test_transform
+                  ):
     """
     Creates a CL scenario using the CIFAR100 dataset.
     If the dataset is not present in the computer the method automatically
@@ -131,7 +130,6 @@ def create_cifar100_with_cifar10_pretrain_benchmark(
         train_transform=_default_cifar100_train_transform,
         test_transform=_default_cifar100_test_transform) \
         -> NCSingleTaskScenario:
-
     """
     Creates a Single Incremental Task (SIT) scenario using the CIFAR100 dataset,
     with a pretrain first batch using CIFAR10.
