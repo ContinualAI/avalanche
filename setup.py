@@ -36,7 +36,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'typing-extensions'
+        'typing-extensions',
         'psutil',
         'torch',
         'torchvision',
