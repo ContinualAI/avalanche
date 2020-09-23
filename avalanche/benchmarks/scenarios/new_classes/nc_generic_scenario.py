@@ -9,8 +9,6 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from __future__ import annotations
-
 import torch
 from typing import Sequence, List, Optional, Dict, Generic, Any
 

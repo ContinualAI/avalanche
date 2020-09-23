@@ -9,8 +9,13 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import List, Any, Iterable, Sequence, Union, Optional, TypeVar, \
-    Protocol, SupportsInt
+try:
+    from typing import List, Any, Iterable, Sequence, Union, Optional, TypeVar,\
+        Protocol, SupportsInt
+except ImportError:
+    from typing import List, Any, Iterable, Sequence, Union, Optional, TypeVar,\
+        SupportsInt
+    from typing_extensions import Protocol
 
 import torch
 from torch import Tensor

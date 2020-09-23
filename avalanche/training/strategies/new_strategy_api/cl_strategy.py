@@ -12,7 +12,12 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Protocol, List
+
+try:
+    from typing import Protocol, List
+except ImportError:
+    from typing import List
+    from typing_extensions import Protocol
 
 from torch.utils.data import DataLoader
 
