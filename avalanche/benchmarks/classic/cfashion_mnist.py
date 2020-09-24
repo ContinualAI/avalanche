@@ -128,7 +128,7 @@ def _get_fmnist_dataset(train_transformation, test_transformation):
 
 if __name__ == "__main__":
 
-    nc_scenario = create_fmnist_benchmark(incremental_steps=10)
+    nc_scenario = SplitFMNIST(incremental_steps=10)
 
     for i, batch in enumerate(nc_scenario):
         print(i, batch)
