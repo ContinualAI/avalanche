@@ -16,14 +16,14 @@
 
 import unittest
 
-from avalanche.benchmarks.classic import CTinyImageNet
+from avalanche.benchmarks.classic import SplitTinyImageNet
 from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 
 
 class TinyImagenetTest(unittest.TestCase):
     def test_tinyimagenet_default_loader(self):
 
-        scenario = CTinyImageNet()
+        scenario = SplitTinyImageNet()
         for task_info in scenario:
             self.assertIsInstance(task_info, IStepInfo)
 

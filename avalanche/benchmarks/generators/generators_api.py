@@ -39,7 +39,7 @@ def NCScenario(
         test_dataset: Union[
             Sequence[IDatasetWithTargets], IDatasetWithTargets],
         n_steps: int,
-        multi_task: bool =True,
+        multi_task: bool = True,
         shuffle: bool = True,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
