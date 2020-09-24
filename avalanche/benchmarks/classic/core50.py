@@ -21,7 +21,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from avalanche.benchmarks.datasets_envs import CORE50_DATA
+from avalanche.benchmarks.datasets import CORE50_DATA
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_filelists
 from torchvision import transforms
@@ -50,7 +50,7 @@ def CORe50(root=None, scenario="nicv2_391", run=0):
 
     :param root: Path indicating where to store the dataset and related
         metadata. By default they will be stored in
-        avalanche/datasets_envs/core50/data/.
+        avalanche/datasets/core50/data/.
     :param scenario: CORe50 main scanario. I can be chosen between 'ni', 'nc',
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
     :param run: number of run for the scenario. Batch ordering change based

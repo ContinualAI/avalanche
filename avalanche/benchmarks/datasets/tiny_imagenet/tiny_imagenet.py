@@ -36,7 +36,7 @@ filename = ('tiny-imagenet-200.zip',
 
 
 class TinyImagenet(Dataset):
-    """Tiny Imagenet Pytorch Dataset """
+    """Tiny Imagenet Pytorch Dataset"""
 
     def __init__(self, data_folder='data', train=True, transform=ToTensor(),
                  target_transform=None, download=True):

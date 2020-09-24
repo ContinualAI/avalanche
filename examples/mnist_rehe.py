@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from avalanche.benchmarks import CMNIST
+from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Rehearsal
@@ -30,7 +30,7 @@ import torch
 model = SimpleMLP()
 
 # load the benchmark as a python iterator object
-cdata = CMNIST()
+cdata = SplitMNIST()
 
 # Eval Protocol
 evalp = EvalProtocol(metrics=[ACC()], tb_logdir='../logs/mnist_test')

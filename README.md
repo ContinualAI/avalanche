@@ -36,7 +36,7 @@ Project Structure
          stands for Continual Data Loader. These data loaders should respect the
           same API and are basically iterators providing new batch/task data
            on demand.
-        - [datasets_envs](avalanche/benchmarks/datasets_envs): Since there
+        - [datasets](avalanche/benchmarks/datasets): Since there
          may be multiple CData Loaders (i.e. settings/scenarios) for the same
           orginal dataset, in this directory we maintain all the basic
            utilities functions and classes relative to each dataset/environment.

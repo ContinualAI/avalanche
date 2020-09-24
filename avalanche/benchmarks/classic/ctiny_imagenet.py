@@ -12,7 +12,7 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-from avalanche.benchmarks.datasets_envs import TinyImagenet
+from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario
@@ -34,9 +34,9 @@ _default_test_transform = transforms.Compose([
 
 
 def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
-                  fixed_class_order=None,
-                  train_transform=_default_train_transform,
-                  test_transform=_default_test_transform):
+                      fixed_class_order=None,
+                      train_transform=_default_train_transform,
+                      test_transform=_default_test_transform):
     """
     Creates a CL scenario using the Tiny ImageNet dataset.
     If the dataset is not present in the computer the method automatically
