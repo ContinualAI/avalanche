@@ -28,9 +28,8 @@ from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-from avalanche.benchmarks.classic.cmnist import \
-    create_permuted_mnist_benchmark
-from example_utils import get_default_device
+from avalanche.benchmarks.classic import PermutedMNIST
+from .example_utils import get_default_device
 
 
 def main():
@@ -65,7 +64,7 @@ def main():
     # test_transform. In these fields the permutation should not be specified,
     # since it will be added directly by the helper.
     nc_scenario: NCMultiTaskScenario
-    nc_scenario = create_permuted_mnist_benchmark(
+    nc_scenario = PermutedMNIST(
         incremental_steps=n_incremental_tasks,
         seed=1234,
     )

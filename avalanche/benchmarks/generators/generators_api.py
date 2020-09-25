@@ -295,7 +295,7 @@ def DatasetScenario(
     )
 
 
-def FilelistDataset(
+def FilelistScenario(
         root: Union[str, Path],
         train_file_lists: Sequence[Union[str, Path]],
         test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
@@ -434,5 +434,5 @@ def TensorScenario(
     )
 
 
-__all__ = ['NCScenario', 'NIScenario', 'DatasetScenario', 'FilelistDataset',
+__all__ = ['NCScenario', 'NIScenario', 'DatasetScenario', 'FilelistScenario',
            'TensorScenario']
