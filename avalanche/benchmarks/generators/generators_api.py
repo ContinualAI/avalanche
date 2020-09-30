@@ -26,7 +26,7 @@ from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.scenarios.generic_cl_scenario import GenericCLScenario
 from avalanche.training.utils import IDatasetWithTargets
 
-""" In this module the high-level scenario generators are listed. They are 
+""" In this module the high-level benchmark generators are listed. They are 
 based on the methods already implemented in the "scenario" module. For the 
 specific generators we have:"New Classes" (NC) and "New Classes and Instances" (
 NIC); For the  generic ones: FilelistScenario, TensorScenario, DatasetScenario.
@@ -233,8 +233,8 @@ def NIScenario(
         )
     else:
         scenario = create_ni_single_dataset_sit_scenario(
-            train_dataset_list=train_dataset,
-            test_dataset_list=test_dataset,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
             n_batches=n_batches,
             shuffle=shuffle,
             seed=seed,
