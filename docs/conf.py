@@ -51,7 +51,8 @@ release = u'0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    # 'sphinx.ext.autodoc',
+    'autoapi.extension',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
@@ -88,8 +89,21 @@ exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
 pygments_style = None
 
 # include __init__ in the class documentation
-autoclass_content = "both"
+autoclass_content = "class"
 
+# autoapi options
+autoapi_dirs = ['../avalanche']
+autoapi_options = [
+    'members',
+    'undoc-members',
+    'private-members',
+    'show-inheritance',
+    # 'show-inheritance-diagram',
+    'show-module-summary',
+    'special-members',
+    'imported-members'
+]
+autoapi_python_class_content = 'both'
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -108,6 +122,9 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# custom css
+html_style = 'css/mystyle.css'
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
