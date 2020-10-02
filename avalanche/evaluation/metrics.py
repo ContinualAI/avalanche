@@ -19,6 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+import torch
 import numpy as np
 import os
 import psutil
@@ -30,7 +31,6 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import PIL.Image
 from torchvision.transforms import ToTensor
-from sklearn.utils.multiclass import unique_labels
 import io
 import queue
 import subprocess
@@ -51,7 +51,11 @@ class GPUUsage:
         cmd = ['nvidia-smi', f'--loop={every}', '--query-gpu=utilization.gpu',
                '--format=csv', f'--id={gpu_id}']
         # something long running
-        self.p = subprocess.Popen(cmd, bufsize=1, stdout=subprocess.PIPE)
+        try:
+            self.p = subprocess.Popen(cmd, bufsize=1, stdout=subprocess.PIPE)
+        except NotADirectoryError:
+            print('No GPU available: nvidia-smi command not found.')
+
         self.lines_queue = queue.Queue()
         self.read_thread = threading.Thread(target=GPUUsage.push_lines,
                                             args=(self,), daemon=True)
@@ -65,7 +69,7 @@ class GPUUsage:
         Compute CPU usage measured in seconds.
 
         :param t: task id
-        :return: tuple (float): average GPU usage
+        :return: float: average GPU usage
         """
         while not self.lines_queue.empty():
             line = self.lines_queue.get()
@@ -74,7 +78,12 @@ class GPUUsage:
             usage = int(line.strip()[:-1])
             self.n_measurements += 1
             self.avg_usage += usage
+
+        if self.n_measurements > 0:
+            self.avg_usage /= float(self.n_measurements)
         print(f"Train Task {t} - average GPU usage: {self.avg_usage}%")
+
+        return self.avg_usage
 
     def push_lines(self):
         while True:
@@ -111,35 +120,43 @@ class ACC(object):
         """
         Accuracy metrics should be called for each test set
 
-        Args:
-            y (tensor list): true labels for each mini-batch
-            y_hat (tensor list): predicted labels for each mini-batch
-            num_class (int, optional): number of classes in the test_set
+        :param num_class (int, optional): number of classes in the test_set
             (useful in case the test_set does not cover all the classes
             in the train_set).
-
-        Returns:
-            acc (float): average accuracy for the test set
-            accs (float list): accuracy for each class in the training set
         """
+
         self.num_class = num_class
 
     def compute(self, y, y_hat):
-        num_class = self.num_class
+        """
+        :param y (tensor list or tensor): true labels for each mini-batch
+        :param y_hat (tensor list or tensor): predicted labels for each mini-batch
+
+        :return acc (float): average accuracy for the test set
+        :return accs (float list): accuracy for each class in the training set            
+        """
+        
+        assert type(y) == type(y_hat), "Predicted and target labels must be \
+                both list (of tensors) or tensors"
+        
+        # manage list of tensors by default
+        if not (isinstance(y, list) or isinstance(y, tuple)):
+            y = [y]
+            y_hat = [y_hat]
+
         if self.num_class is None:
-            num_class = int(np.max(y) + 1)
+            num_class = int(max([torch.max(el).item() + 1 for el in y]))
         else:
             num_class = self.num_class
+
         hits_per_class = [0] * num_class
         pattern_per_class = [0] * num_class
 
-        correct_cnt = 0
+        correct_cnt = 0.
 
         for true_y, y_pred in zip(y, y_hat):
-
-            for item1, item2 in zip(y_pred, true_y):
-                if item1 == item2:
-                    correct_cnt += 1
+            
+            correct_cnt += (true_y == y_pred).sum().float()
 
             for label in true_y:
                 pattern_per_class[int(label)] += 1
@@ -157,8 +174,9 @@ class ACC(object):
         # Also, those elements will be 0 instead of NaN
         np.divide(hits_per_class, pattern_per_class,
                   where=pattern_per_class != 0, out=accs)
+        accs = torch.from_numpy(accs)
 
-        acc = correct_cnt / (y_hat[0].shape[0] * len(y_hat))
+        acc = correct_cnt / float(y_hat[0].size(0) * len(y_hat))
 
         return acc, accs
 
@@ -174,6 +192,10 @@ class CF(object):
         self.acc_metric = ACC(num_class=num_class)
 
     def compute(self, y, y_hat, train_t, test_t):
+        """
+        :param y (tensor list or tensor): true labels for each mini-batch
+        :param y_hat (tensor list or tensor): predicted labels for each mini-batch
+        """
 
         acc, accs = self.acc_metric.compute(y, y_hat)
         if train_t not in self.best_acc.keys() and train_t == test_t:
@@ -212,21 +234,26 @@ class DiskUsage(object):
 
     def __init__(self, path_to_monitor=None, disk_io=False):
         """
-        Args:
-            path_to_monitor (string): a valid path to folder.
+        :param path_to_monitor (string): a valid path to folder.
                 If None, the current working directory is used.
-            disk_io: True to enable monitoring of I/O operations on disk.
+        :param disk_io: True to enable monitoring of I/O operations on disk.
                 WARNING: Reports are system-wide, grouping all disks.
         """
 
         if path_to_monitor is not None:
             self.path_to_monitor = path_to_monitor
         else:
-            self.path_to_monitor = os.getcwd()   
+            self.path_to_monitor = os.getcwd()
 
         self.disk_io = disk_io
 
     def compute(self, t):
+        """
+        :param t: task id
+
+        :return usage, io (tuple): io is None if disk_io is False
+        """
+
         usage = psutil.disk_usage(self.path_to_monitor)
 
         total, used, free, percent = \
@@ -256,11 +283,10 @@ class DiskUsage(object):
                 bytes read: {:}, \
                 bytes written: {:}"
                   .format(t, read_count, write_count, read_bytes, write_bytes))
-
-            return usage, io
-
         else:
-            return usage
+            io = None
+
+        return usage, io
 
 
 class CM(object):
@@ -272,17 +298,25 @@ class CM(object):
         self.num_class = num_class
 
     def compute(self, y, y_hat, normalize=False):
-        y = np.concatenate(y)
-        y_hat = np.concatenate(y_hat)
+        """
+        :param y (tensor): true labels 
+        :param y_hat (tensor): predicted labels
+        """
+
+        assert not (isinstance(y, list) or isinstance(y, tuple)), \
+                "Predicted and target labels must be both tensors"
+        assert not (isinstance(y_hat, list) or isinstance(y_hat, tuple)), \
+                "Predicted and target labels must be both tensors"        
+
 
         num_class = self.num_class
         if self.num_class is None:
-            num_class = int(np.max(y) + 1)
+            num_class = int(torch.max(y).item() + 1)
 
         cmap = plt.cm.Blues
 
         # Compute confusion matrix
-        cm = confusion_matrix(y, y_hat, labels=list(range(num_class)))
+        cm = confusion_matrix(y.numpy(), y_hat.numpy(), labels=list(range(num_class)))
         # Only use the labels that appear in the data
         classes = [str(i) for i in range(num_class)]
         if normalize:

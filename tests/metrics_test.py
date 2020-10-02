@@ -20,8 +20,9 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-import numpy as np
-from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM, TimeUsage
+import torch
+from avalanche.evaluation.metrics import ACC, CF, RAMU, DiskUsage, CM, \
+        TimeUsage, GPUUsage, CPUUsage
 
 
 if __name__ == '__main__':
@@ -33,20 +34,33 @@ if __name__ == '__main__':
         'disk': DiskUsage(),
         'disk_io': DiskUsage(disk_io=True),
         'cm': CM(),
-        'time': TimeUsage()
+        'time': TimeUsage(),
+        'gpu': GPUUsage(gpu_id=0),
+        'cpu': CPUUsage()
     }
 
     n_tasks = 3
 
     for t in range(n_tasks):
 
-        y = np.random.randint(low=0, high=10, size=(20, 1))
-        y_hat = np.random.randint(low=0, high=10, size=(20, 1))
+        tensors = ( 
+            torch.randint(low=0, high=10, size=(20, 1)),
+            torch.randint(low=0, high=10, size=(20, 1))
+        )
 
-        for name, metric in metrics.items():
-            if name in ['acc', 'cm']:
-                metric.compute(y, y_hat)
-            elif name in ['disk', 'disk_io', 'ramu', 'time']:
-                metric.compute(t)
-            elif name in ['cf']:
-                metric.compute(y, y_hat, t, t)
+        tensors_list = (
+            [torch.randint(low=0, high=10, size=(20, 1)) for _ in range(3)],
+            [torch.randint(low=0, high=10, size=(20, 1)) for _ in range(3)]
+        )
+
+        for y, y_hat in [tensors, tensors_list]:
+            for name, metric in metrics.items():
+                if name in ['acc', 'cm']:
+                    # cm does not support list of tensors                    
+                    if name == 'cm' and isinstance(y, list):
+                        y, y_hat = y[0], y_hat[0]
+                    metric.compute(y, y_hat)
+                elif name in ['disk', 'disk_io', 'ramu', 'time', 'cpu', 'gpu']:
+                    metric.compute(t)
+                elif name in ['cf']:
+                    metric.compute(y, y_hat, t, t)
