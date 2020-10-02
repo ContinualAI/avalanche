@@ -56,9 +56,6 @@ if __name__ == '__main__':
         for y, y_hat in [tensors, tensors_list]:
             for name, metric in metrics.items():
                 if name in ['acc', 'cm']:
-                    # cm does not support list of tensors                    
-                    if name == 'cm' and isinstance(y, list):
-                        y, y_hat = y[0], y_hat[0]
                     metric.compute(y, y_hat)
                 elif name in ['disk', 'disk_io', 'ramu', 'time', 'cpu', 'gpu']:
                     metric.compute(t)

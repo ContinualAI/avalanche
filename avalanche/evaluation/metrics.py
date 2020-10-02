@@ -299,24 +299,33 @@ class CM(object):
 
     def compute(self, y, y_hat, normalize=False):
         """
-        :param y (tensor): true labels 
-        :param y_hat (tensor): predicted labels
+        :param y (tensor or tensors list): true labels for each minibatch
+        :param y_hat (tensor or tensors list): predicted labels for each minibatch
         """
 
-        assert not (isinstance(y, list) or isinstance(y, tuple)), \
-                "Predicted and target labels must be both tensors"
-        assert not (isinstance(y_hat, list) or isinstance(y_hat, tuple)), \
-                "Predicted and target labels must be both tensors"        
+        assert type(y) == type(y_hat), "Predicted and target labels must be \
+                both list (of tensors) or tensors"
+        
+        # manage list of tensors by default
+        if not (isinstance(y, list) or isinstance(y, tuple)):
+            y = [y]
+            y_hat = [y_hat]
 
 
-        num_class = self.num_class
         if self.num_class is None:
-            num_class = int(torch.max(y).item() + 1)
+            num_class = int(max([torch.max(el).item() + 1 for el in y]))    
+        else:
+            num_class = self.num_class
 
         cmap = plt.cm.Blues
 
-        # Compute confusion matrix
-        cm = confusion_matrix(y.numpy(), y_hat.numpy(), labels=list(range(num_class)))
+        cm = np.zeros((num_class, num_class))
+        for i, (el, el_hat) in enumerate(zip(y, y_hat)):
+            # Compute confusion matrix
+            cm += confusion_matrix(
+                el.numpy(), el_hat.numpy(), 
+                labels=list(range(num_class)))                
+
         # Only use the labels that appear in the data
         classes = [str(i) for i in range(num_class)]
         if normalize:
