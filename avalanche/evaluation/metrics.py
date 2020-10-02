@@ -22,8 +22,7 @@ from __future__ import absolute_import
 import numpy as np
 import os
 import psutil
-from psutil._common import bytes2human
-
+from .utils import bytes2human
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
