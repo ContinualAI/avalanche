@@ -54,7 +54,7 @@ class GPUUsage:
         try:
             self.p = subprocess.Popen(cmd, bufsize=1, stdout=subprocess.PIPE)
         except NotADirectoryError:
-            print('No GPU available: nvidia-smi command not found.')
+            raise ValueError('No GPU available: nvidia-smi command not found.')
 
         self.lines_queue = queue.Queue()
         self.read_thread = threading.Thread(target=GPUUsage.push_lines,
