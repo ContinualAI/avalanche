@@ -3,25 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Avalanche's documentation!
+Welcome to Avalanche's API documentation!
 =====================================
-
-Welcome to Avalanche documentation!
-Avalanche is great!
 
 
 ..  toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 4
+   :caption: Avalanche API:
 
-   intro
-   getting_started
-   tutorials
    api/avalanche
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
