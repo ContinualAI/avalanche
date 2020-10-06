@@ -129,7 +129,8 @@ class ACC(object):
     def compute(self, y, y_hat):
         """
         :param y (tensor list or tensor): true labels for each mini-batch
-        :param y_hat (tensor list or tensor): predicted labels for each mini-batch
+        :param y_hat (tensor list or tensor): predicted labels for each
+            mini-batch
 
         :return acc (float): average accuracy for the test set
         :return accs (float list): accuracy for each class in the training set            
@@ -193,7 +194,8 @@ class CF(object):
     def compute(self, y, y_hat, train_t, test_t):
         """
         :param y (tensor list or tensor): true labels for each mini-batch
-        :param y_hat (tensor list or tensor): predicted labels for each mini-batch
+        :param y_hat (tensor list or tensor): predicted labels for each
+            mini-batch
         """
 
         acc, accs = self.acc_metric.compute(y, y_hat)
@@ -299,7 +301,8 @@ class CM(object):
     def compute(self, y, y_hat, normalize=False):
         """
         :param y (tensor or tensors list): true labels for each minibatch
-        :param y_hat (tensor or tensors list): predicted labels for each minibatch
+        :param y_hat (tensor or tensors list): predicted labels for each
+            minibatch
         """
 
         assert type(y) == type(y_hat), "Predicted and target labels must be \
@@ -309,7 +312,6 @@ class CM(object):
         if not (isinstance(y, list) or isinstance(y, tuple)):
             y = [y]
             y_hat = [y_hat]
-
 
         if self.num_class is None:
             num_class = int(max([torch.max(el).item() + 1 for el in y]))    
