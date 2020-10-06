@@ -364,8 +364,8 @@ def FilelistScenario(
 def TensorScenario(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Sequence[Any],
-        test_data_y: Sequence[Sequence[SupportsInt]],
+        test_data_x: Union[Any, Sequence[Any]],
+        test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
@@ -392,9 +392,9 @@ def TensorScenario(
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A list of Tensors (one per step) containing the
+    :param test_data_x: A Tensor or a list of Tensors (one per step) containing the
         patterns of the test sets.
-    :param test_data_y: A list of Tensors or int lists containing the
+    :param test_data_y: A Tensor or a list of Tensors or int lists containing the
         labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
     :param task_labels: A list of task labels. Must contain the same amount of
