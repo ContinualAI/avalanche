@@ -26,7 +26,7 @@ from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.scenarios.generic_cl_scenario import GenericCLScenario
 from avalanche.training.utils import IDatasetWithTargets
 
-""" In this module the high-level scenario generators are listed. They are 
+""" In this module the high-level benchmark generators are listed. They are 
 based on the methods already implemented in the "scenario" module. For the 
 specific generators we have:"New Classes" (NC) and "New Classes and Instances" (
 NIC); For the  generic ones: FilelistScenario, TensorScenario, DatasetScenario.
@@ -233,8 +233,8 @@ def NIScenario(
         )
     else:
         scenario = create_ni_single_dataset_sit_scenario(
-            train_dataset_list=train_dataset,
-            test_dataset_list=test_dataset,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
             n_batches=n_batches,
             shuffle=shuffle,
             seed=seed,
@@ -364,8 +364,8 @@ def FilelistScenario(
 def TensorScenario(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Sequence[Any],
-        test_data_y: Sequence[Sequence[SupportsInt]],
+        test_data_x: Union[Any, Sequence[Any]],
+        test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
@@ -392,10 +392,10 @@ def TensorScenario(
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A list of Tensors (one per step) containing the
-        patterns of the test sets.
-    :param test_data_y: A list of Tensors or int lists containing the
-        labels of the patterns of the test sets. Must contain the same
+    :param test_data_x: A Tensor or a list of Tensors (one per step) containing
+        the patterns of the test sets.
+    :param test_data_y: A Tensor or a list of Tensors or int lists containing
+        the labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_datasets_x`` parameter. For

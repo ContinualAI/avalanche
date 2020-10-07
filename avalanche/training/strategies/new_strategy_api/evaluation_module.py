@@ -207,8 +207,8 @@ class EvaluationModule(StrategySkeleton):
             return
 
         _, predicted_labels = torch.max(test_logits, 1)
-        self._test_true_y.append(test_mb_y.numpy())
-        self._test_predicted_y.append(predicted_labels.numpy())
+        self._test_true_y.append(test_mb_y)
+        self._test_predicted_y.append(predicted_labels)
 
         self._test_average_loss += test_loss.item()
 

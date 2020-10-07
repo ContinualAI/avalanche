@@ -161,8 +161,8 @@ def create_generic_scenario_from_filelists(
 def create_generic_scenario_from_tensors(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Sequence[Any],
-        test_data_y: Sequence[Sequence[SupportsInt]],
+        test_data_x: Union[Any, Sequence[Any]],
+        test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
@@ -189,10 +189,10 @@ def create_generic_scenario_from_tensors(
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A list of Tensors (one per step) containing the
-        patterns of the test sets.
-    :param test_data_y: A list of Tensors or int lists containing the
-        labels of the patterns of the test sets. Must contain the same
+    :param test_data_x: A Tensor or a list of Tensors (one per step) containing
+        the patterns of the test sets.
+    :param test_data_y: A Tensor or a list of Tensors or int lists containing
+        the labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_datasets_x`` parameter. For
@@ -219,11 +219,19 @@ def create_generic_scenario_from_tensors(
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError('train_data_x and train_data_y must contain'
-                         'the same amount of elements')
+                         ' the same amount of elements')
 
-    if len(test_data_x) != len(test_data_y):
-        raise ValueError('test_data_x and test_data_y must contain'
-                         'the same amount of elements')
+    if type(test_data_x) != type(test_data_y):
+        raise ValueError('test_data_x and test_data_y must be of'
+                         ' the same type')
+
+    if isinstance(test_data_x, Tensor):
+        test_data_x = [test_data_x]
+        test_data_y = [test_data_y]
+    else:
+        if len(test_data_x) != len(test_data_y):
+            raise ValueError('test_data_x and test_data_y must contain'
+                             ' the same amount of elements')
 
     train_datasets = [
         TransformationTensorDataset(

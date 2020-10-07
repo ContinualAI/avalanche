@@ -5,3 +5,4 @@ avalanche/benchmarks/datasets/*/data
 *.py~
 data/
 logs/
+*.pyc

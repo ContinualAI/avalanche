@@ -1,0 +1,14 @@
+@import 'theme.css';
+
+
+.wy-nav-content {
+    max-width: 100%;
+}
+
+div.document {
+    max-width: 1000px;
+}
+
+code.py.docutils {
+    color: #3080B9;
+}
