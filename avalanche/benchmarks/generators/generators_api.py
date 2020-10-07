@@ -392,10 +392,10 @@ def TensorScenario(
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A Tensor or a list of Tensors (one per step) containing the
-        patterns of the test sets.
-    :param test_data_y: A Tensor or a list of Tensors or int lists containing the
-        labels of the patterns of the test sets. Must contain the same
+    :param test_data_x: A Tensor or a list of Tensors (one per step) containing
+        the patterns of the test sets.
+    :param test_data_y: A Tensor or a list of Tensors or int lists containing
+        the labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_datasets_x`` parameter. For
