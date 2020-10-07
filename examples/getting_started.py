@@ -21,7 +21,7 @@ from __future__ import absolute_import
 
 import torch
 
-from avalanche.benchmarks import CMNIST
+from avalanche.benchmarks import SplitMNIST
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
@@ -31,7 +31,7 @@ from avalanche.evaluation import EvalProtocol
 model = SimpleMLP()
 
 # load the benchmark as a python iterator object
-cdata = CMNIST(mode="split", num_batch=5)
+cdata = SplitMNIST(incremental_steps=10)
 
 # Eval Protocol
 evalp = EvalProtocol(
