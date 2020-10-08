@@ -100,8 +100,8 @@ class StrategySkeleton(IStrategy):
         """
         Creates a strategy skeleton instance.
         """
-        # submodules will keep track of the list of submodules
-        self.submodules: List['StrategySkeleton'] = []
+        # plugins will keep track of the list of plugins
+        self.plugins: List['StrategySkeleton'] = []
 
         # Define empty training and testing flows
         self.training_flow: StrategyFlow = StrategyFlow(
@@ -142,16 +142,16 @@ class StrategySkeleton(IStrategy):
         """
         return self.testing_flow.is_running()
 
-    def add_module(self, submodule: 'StrategySkeleton'):
+    def add_plugin(self, plugin: 'StrategySkeleton'):
         """
-        Adds a submodule to this strategy.
+        Adds a plugin to this strategy.
 
-        :param submodule: The submodule to add.
+        :param plugin: The plugin to add.
         :return: None
         """
-        self.submodules.append(submodule)
-        self.training_flow.add_strategy_module(submodule)
-        self.testing_flow.add_strategy_module(submodule)
+        self.plugins.append(plugin)
+        self.training_flow.add_strategy_plugin(plugin)
+        self.testing_flow.add_strategy_plugin(plugin)
 
 
 class StrategyTemplate(StrategySkeleton):

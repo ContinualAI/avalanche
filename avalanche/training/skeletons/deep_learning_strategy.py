@@ -20,7 +20,7 @@ from torch.nn import Linear, Module
 from avalanche.benchmarks.scenarios import TStepInfo, IStepInfo, DatasetPart
 from avalanche.evaluation import EvalProtocol
 from .cl_strategy import StrategyTemplate
-from .evaluation_module import EvaluationModule
+from avalanche.training.plugins.evaluation_plugin import EvaluationPlugin
 from .strategy_flow import TrainingFlow, TestingFlow
 
 
@@ -199,9 +199,9 @@ class DeepLearningStrategy(StrategyTemplate):
         self.test_mb_size = test_mb_size
         self.device = device
 
-        # Evaluation module
-        self.evaluation_module = EvaluationModule()
-        self.add_module(self.evaluation_module)
+        # Evaluation plugin
+        self.evaluation_plugin = EvaluationPlugin()
+        self.add_plugin(self.evaluation_plugin)
         self.evaluation_protocol = evaluation_protocol
 
     @TrainingFlow
@@ -693,7 +693,7 @@ class DeepLearningStrategy(StrategyTemplate):
         """
         super(DeepLearningStrategy, self).train(step_info, **kwargs)
         if self.evaluation_protocol is not None:
-            return self.evaluation_module.get_train_result()
+            return self.evaluation_plugin.get_train_result()
 
     def test(self, step_info: TStepInfo, test_part: DatasetPart, **kwargs):
         """
@@ -720,7 +720,7 @@ class DeepLearningStrategy(StrategyTemplate):
         """
         super(DeepLearningStrategy, self).test(step_info, test_part, **kwargs)
         if self.evaluation_protocol is not None:
-            return self.evaluation_module.get_test_result()
+            return self.evaluation_plugin.get_test_result()
 
 
 class MTDeepLearningStrategy(DeepLearningStrategy):

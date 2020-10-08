@@ -19,10 +19,10 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from ..strategy import Strategy
+from avalanche.training.deprecated.strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.training.strategies.cwr_star.utils import freeze_up_to, \
+from avalanche.training.deprecated.cwr_star.utils import freeze_up_to, \
     examples_per_class, reset_weights, consolidate_weights,  \
     set_consolidate_weights
 import torch

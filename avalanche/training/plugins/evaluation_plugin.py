@@ -21,20 +21,20 @@ from torch import Tensor
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation import EvalProtocol
-from .cl_strategy import StrategySkeleton
-from .strategy_flow import TrainingFlow, TestingFlow
+from avalanche.training.skeletons.cl_strategy import StrategySkeleton
+from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
 
 
-class EvaluationModule(StrategySkeleton):
+class EvaluationPlugin(StrategySkeleton):
     """
-    An evaluation module that can be plugged in a strategy.
+    An evaluation plugin that can be plugged in a strategy.
 
-    Instances of this class should be used as strategy submodules.
+    Instances of this class should be used as strategy plugins.
 
-    This module obtains relevant data from the training and testing loops of the
+    This plugin obtains relevant data from the training and testing loops of the
     main strategy by using the integrated callbacks systems.
 
-    Internally, the evaluation module tries to use the "evaluation_protocol"
+    Internally, the evaluation plugin tries to use the "evaluation_protocol"
     namespace value. If found and not None, the evaluation protocol
     (usually an instance of :class:`EvalProtocol`), is used to compute the
     required metrics. The "evaluation_protocol" is usually a field of the main
@@ -263,7 +263,7 @@ class EvaluationModule(StrategySkeleton):
             str_warning += ', '
         str_warning = str_warning[:-2]
         str_warning += ' must be in the global namespace for the evaluation ' \
-                       'module to work'
+                       'plugin to work'
         warnings.warn(str_warning)
 
     @staticmethod
@@ -271,4 +271,4 @@ class EvaluationModule(StrategySkeleton):
         warnings.warn('No evaluation protocol has been set')
 
 
-__all__ = ['EvaluationModule']
+__all__ = ['EvaluationPlugin']

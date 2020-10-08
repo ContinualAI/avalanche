@@ -32,7 +32,7 @@ from avalanche.benchmarks.scenarios import DatasetPart, \
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies.new_strategy_api.cl_naive import Naive
+from avalanche.training.strategies import Naive
 
 
 def main():

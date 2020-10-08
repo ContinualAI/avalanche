@@ -19,7 +19,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from ..strategy import Strategy
+from avalanche.training.deprecated.strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from .utils import create_syn_data, init_batch, compute_ewc_loss, pre_update,\

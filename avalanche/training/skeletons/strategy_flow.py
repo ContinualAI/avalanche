@@ -155,26 +155,26 @@ def make_strategy_part_decorator(flow_field: str):
             # (parameter names), but it will be the exact same parameter!
             pos_kw_and_kwargs = {**pos_kw_arguments, **kwargs}
 
-            # Check if we have to call submodules functions
-            if not flow.is_submodule_flow():
-                kwargs_submodule = dict(pos_kw_and_kwargs)
-                kwargs_submodule.pop('self', None)
+            # Check if we have to call plugins functions
+            if not flow.is_plugin_flow():
+                kwargs_plugin = dict(pos_kw_and_kwargs)
+                kwargs_plugin.pop('self', None)
 
                 # We are in the root flow. This means that the function is
                 # being called on the main strategy object. Before calling
                 # the actual function we have to execute the methods with
-                # the same name found in submodules.
-                for submodule in flow.get_strategy_submodules():
+                # the same name found in plugins.
+                for plugin in flow.get_strategy_plugins():
                     # First, check if the field with the same name is
-                    # actually a submodule's method. Any other callables
+                    # actually a plugin's method. Any other callables
                     # are ok too.
-                    submodule_callback = getattr(submodule, f.__name__, None)
-                    if callable(submodule_callback) and _is_func_decorated(
-                            submodule_callback,
+                    plugin_callback = getattr(plugin, f.__name__, None)
+                    if callable(plugin_callback) and _is_func_decorated(
+                            plugin_callback,
                             check_flow=flow.flow_name):
-                        # Actually call the submodule function
+                        # Actually call the plugin function
                         try:
-                            getattr(submodule, f.__name__)(**kwargs_submodule)
+                            getattr(plugin, f.__name__)(**kwargs_plugin)
                         except Exception as _:
                             t, v, tb = sys.exc_info()
                             flow.signal_internal_traceback(tb)
@@ -581,7 +581,7 @@ class StrategyFlow:
     testing flow must be annotated with the @TestingFlow decorator. A method
     can be annotated with more than a flow decorator at the same time.
 
-    Each strategy can also define submodules. Submodules are commonly used to
+    Each strategy can also define plugins. Plugins are commonly used to
     modularize common reusable Continual Learning patterns such as multi-head
     management, rehearsal (a.k.a. replay), distillation, ... or even to attach
     the desired metrics system (accuracy, time, ram usage, confusion matrices,
@@ -605,11 +605,11 @@ class StrategyFlow:
         results. These values are stored and used for parameter injection and,
         like the arguments passed to the flow, they are discarded after each
         flow execution. Those values form the "results namespace". The good part
-        of it is that this namespace is shared with submodules, which makes it
+        of it is that this namespace is shared with plugins, which makes it
         easier to modularize some common behaviours. When a part publishes a
         result, values with the same name found in the first group are
         discarded;
-        - third, fields of the strategy class or any of its attached submodules
+        - third, fields of the strategy class or any of its attached plugins
         are searched for. This is called "self namespace". It goes without
         saying, those are the only namespace values that are persisted across
         different flow executions. Fields starting with "_" are not considered.
@@ -630,7 +630,7 @@ class StrategyFlow:
         Creates a flow group.
 
         :param self_ref: The reference to the object this flow belongs to. This
-            is usually the the strategy (or the submodule) object.
+            is usually the the strategy (or the plugin) object.
         :param flow_name: The name of the flow.
         :param root_group_name: The name of the root group.
         """
@@ -769,9 +769,9 @@ class StrategyFlow:
 
         :return: True if this flow is running, False otherwise.
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.is_running()
-        # If the submodules field is not found, return []
+        # If the plugins field is not found, return []
         return self._running
 
     def add_part_change_listener(self, part_change_listener):
@@ -798,28 +798,28 @@ class StrategyFlow:
                 part_change_listener)
         self.flow_listeners.remove(part_change_listener)
 
-    def add_strategy_module(self, module):
+    def add_strategy_plugin(self, plugin):
         """
-        Adds a submodule to the strategy.
+        Adds a plugin to the strategy.
 
-        This will check the submodule for a flow with the same name. If a flow
+        This will check the plugin for a flow with the same name. If a flow
         with the same name can't be found, an exception is raised. The flow
-        found in the submodule is then instrumented to consider this instance as
+        found in the plugin is then instrumented to consider this instance as
         the root flow.
 
-        :param module: The added submodule.
+        :param plugin: The added plugin.
         :return: None
         """
-        if not hasattr(module, self.flow_name):
+        if not hasattr(plugin, self.flow_name):
             raise ValueError('Can\'t find flow with name', self.flow_name)
-        getattr(module, self.flow_name).set_root_flow(self)
+        getattr(plugin, self.flow_name).set_root_flow(self)
 
     def set_root_flow(self, root_flow):
         """
         Sets the root flow.
 
         When a root flow is set, the current flow will delegate any operation
-        to the root flow. This usually happens in submodules, where the root
+        to the root flow. This usually happens in plugins, where the root
         flow is the strategy one.
 
         :param root_flow: The root flow.
@@ -828,24 +828,24 @@ class StrategyFlow:
         self.root_flow = root_flow
         self.namespace_dict = dict()
 
-    def get_strategy_submodules(self):
+    def get_strategy_plugins(self):
         """
-        Returns a list of strategy submodules.
+        Returns a list of strategy plugins.
 
-        :return: A list of submodules.
+        :return: A list of plugins.
         """
-        if self.is_submodule_flow():
-            return self.root_flow.get_strategy_submodules()
-        # If the submodules field is not found, return []
-        return getattr(self.self_ref, 'submodules', [])
+        if self.is_plugin_flow():
+            return self.root_flow.get_strategy_plugins()
+        # If the plugins field is not found, return []
+        return getattr(self.self_ref, 'plugins', [])
 
-    def is_submodule_flow(self):
+    def is_plugin_flow(self):
         """
-        Checks if this is a flow belonging to a submodule.
+        Checks if this is a flow belonging to a plugin.
 
         That is, this returns True if a root flow is set.
 
-        :return: True if this is a submodule flow, False if it's the main
+        :return: True if this is a plugin flow, False if it's the main
             strategy object flow.
         """
         return self.root_flow is not None
@@ -853,17 +853,17 @@ class StrategyFlow:
     def extract_self_namespace(self):
         """
         Extracts the "self namespace" from the strategy object and any of its
-        submodules. The namespace is then usually searched for when injecting
+        plugins. The namespace is then usually searched for when injecting
         parameter values of the parts.
 
         Simply put, the "self namespace" is the collection of class fields
-        belonging to the strategy object and any of its submodules. Fields
+        belonging to the strategy object and any of its plugins. Fields
         starting with and underscore "_" will be ignored. For more info, refer
         to the class documentation.
 
         :return: A dictionary containing the self namespace.
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.extract_self_namespace()
         return self._extract_self_data()
 
@@ -873,7 +873,7 @@ class StrategyFlow:
         for when injecting parameter values of the parts.
 
         The results namespace is the namespace containing all the results
-        published from any part of the strategy or its submodules. This
+        published from any part of the strategy or its plugins. This
         namespace is cleaned up after each flow execution.
 
         For a result to be stored in the "results namespace", the part must
@@ -883,7 +883,7 @@ class StrategyFlow:
 
         :return: A dictionary containing the results namespace.
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.get_results_namespace()
         return self.namespace_dict
 
@@ -900,7 +900,7 @@ class StrategyFlow:
             results namespace.
         :return: None
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.update_results_namespace(update_dict)
         self._update_namespace_using_return_value(update_dict)
 
@@ -937,7 +937,7 @@ class StrategyFlow:
         :return: The "arguments namespace". That is, a dictionary of keyword
             arguments form previous (stack) part calls.
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.get_flattened_kwargs()
 
         kwargs_dict = dict()
@@ -955,7 +955,7 @@ class StrategyFlow:
         :param args_dict: The keyword arguments.
         :return: None
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.push_kwargs(args_dict)
 
         args_dict = dict(args_dict)
@@ -972,7 +972,7 @@ class StrategyFlow:
 
         :return: None
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.pop_kwargs()
         self.kwargs_stack.pop()
 
@@ -986,7 +986,7 @@ class StrategyFlow:
         :param tb: The traceback object to be ignored.
         :return: None
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow.signal_internal_traceback(tb)
         self.internal_tracebacks.add(tb)
 
@@ -998,7 +998,7 @@ class StrategyFlow:
             results namespace.
         :return: The new results namespace.
         """
-        if self.is_submodule_flow():
+        if self.is_plugin_flow():
             return self.root_flow._update_namespace_using_return_value(
                 update_dict)
 
@@ -1038,17 +1038,17 @@ class StrategyFlow:
 
     def _extract_self_data(self):
         """
-        Extract all fields from the strategy and any submodule.
+        Extract all fields from the strategy and any plugin.
 
-        Fields from the main strategy object take precedence over submodules
+        Fields from the main strategy object take precedence over plugins
         ones.
 
-        :return: A list of fields from the strategy and its submodules.
+        :return: A list of fields from the strategy and its plugins.
         """
         self_namespace = dict()
-        if hasattr(self.self_ref, 'submodules'):
-            for submodule in self.self_ref.submodules:
-                flow: 'StrategyFlow' = getattr(submodule, self.flow_name)
+        if hasattr(self.self_ref, 'plugins'):
+            for plugin in self.self_ref.plugins:
+                flow: 'StrategyFlow' = getattr(plugin, self.flow_name)
                 self_namespace = _merge_state_data(
                     self_namespace, flow._extract_self_data())
 

@@ -23,8 +23,9 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 from avalanche.evaluation import EvalProtocol
-from .deep_learning_strategy import MTDeepLearningStrategy
-from .strategy_flow import TrainingFlow, TestingFlow
+from avalanche.training.skeletons.deep_learning_strategy import \
+    MTDeepLearningStrategy
+from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
 
 
 class Naive(MTDeepLearningStrategy):
@@ -36,6 +37,7 @@ class Naive(MTDeepLearningStrategy):
     Naive is easy to set up and its results are commonly used to show the worst
     performing baseline.
     """
+
     def __init__(self, model: Module, classifier_field: str,
                  optimizer: Optimizer, criterion: Module,
                  train_mb_size: int = 1, train_epochs: int = 1,

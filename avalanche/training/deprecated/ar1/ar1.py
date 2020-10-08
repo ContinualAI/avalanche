@@ -19,11 +19,11 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from ..strategy import Strategy
+from avalanche.training.deprecated.strategy import Strategy
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models.mobilenetv1 import MobilenetV1
-from avalanche.training.strategies.ar1.utils import replace_bn_with_brn, \
+from avalanche.training.deprecated.ar1.utils import replace_bn_with_brn, \
     create_syn_data, init_batch, freeze_up_to, change_brn_pars, \
     examples_per_class, reset_weights, pre_update, compute_ewc_loss, \
     consolidate_weights, update_ewc_data, set_consolidate_weights
