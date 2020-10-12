@@ -17,7 +17,7 @@ from __future__ import division
 # Python 2-3 compatible
 from __future__ import print_function
 
-from typing import Optional
+from typing import Optional, Sequence
 
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -26,6 +26,7 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.training.skeletons.deep_learning_strategy import \
     MTDeepLearningStrategy
 from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
+from avalanche.training.skeletons.deep_learning_strategy import StrategySkeleton
 
 
 class Naive(MTDeepLearningStrategy):
@@ -42,7 +43,8 @@ class Naive(MTDeepLearningStrategy):
                  optimizer: Optimizer, criterion: Module,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
-                 evaluation_protocol: Optional[EvalProtocol] = None):
+                 evaluation_protocol: Optional[EvalProtocol] = None,
+                 plugins: Optional[Sequence[StrategySkeleton]] = None):
         """
         Creates an instance of the Naive strategy.
 
@@ -56,11 +58,13 @@ class Naive(MTDeepLearningStrategy):
         :param test_mb_size: The test minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param evaluation_protocol: The evaluation protocol. Defaults to None.
+        :param plugins: Plugins to be added. Defaults to None.
         """
         super(Naive, self).__init__(
             model, classifier_field, train_mb_size=train_mb_size,
             train_epochs=train_epochs, test_mb_size=test_mb_size,
-            evaluation_protocol=evaluation_protocol, device=device)
+            evaluation_protocol=evaluation_protocol, device=device,
+            plugins=plugins)
 
         self.optimizer = optimizer
         self.criterion = criterion

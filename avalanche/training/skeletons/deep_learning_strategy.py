@@ -12,14 +12,14 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Sequence
 
 import torch
 from torch.nn import Linear, Module
 
 from avalanche.benchmarks.scenarios import TStepInfo, IStepInfo, DatasetPart
 from avalanche.evaluation import EvalProtocol
-from .cl_strategy import StrategyTemplate
+from .cl_strategy import StrategyTemplate, StrategySkeleton
 from avalanche.training.plugins.evaluation_plugin import EvaluationPlugin
 from .strategy_flow import TrainingFlow, TestingFlow
 
@@ -64,7 +64,8 @@ class DeepLearningStrategy(StrategyTemplate):
     """
     def __init__(self, train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device=None,
-                 evaluation_protocol: Optional[EvalProtocol] = None):
+                 evaluation_protocol: Optional[EvalProtocol] = None,
+                 plugins: Optional[Sequence[StrategySkeleton]] = None):
         """
         Creates a new instance of DeepLearningStrategy.
 
@@ -81,6 +82,9 @@ class DeepLearningStrategy(StrategyTemplate):
         :param device: The device to use. Defaults to None (cpu).
         :param evaluation_protocol: The evaluation protocol used to compute
             the relevant metrics. Defaults to None.
+        :param plugins: Additional plugin other to be added to the Strategy.
+        Keep in mind that the EvaluationPlugin is always added by default,
+        do not add it again here. Defaults to None.
         """
         super(DeepLearningStrategy, self).__init__()
 
@@ -203,6 +207,11 @@ class DeepLearningStrategy(StrategyTemplate):
         self.evaluation_plugin = EvaluationPlugin()
         self.add_plugin(self.evaluation_plugin)
         self.evaluation_protocol = evaluation_protocol
+
+        # Additional plugins
+        if plugins:
+            for plugin in plugins:
+                self.add_plugin(plugin)
 
     @TrainingFlow
     def training_epoch(self):
@@ -756,7 +765,8 @@ class MTDeepLearningStrategy(DeepLearningStrategy):
     """
     def __init__(self, model: Module, classifier_field: str = 'classifier',
                  keep_initial_layer=False, train_mb_size=1, train_epochs=1,
-                 test_mb_size=None, evaluation_protocol=None, device=None):
+                 test_mb_size=None, evaluation_protocol=None, device=None,
+                 plugins=None):
         """
         Creates a new MTDeepLearningStrategy instance.
 
@@ -788,11 +798,12 @@ class MTDeepLearningStrategy(DeepLearningStrategy):
         :param device: The device to use. Defaults to None (cpu).
         :param evaluation_protocol: The evaluation protocol used to compute
             the relevant metrics. Defaults to None.
+        :param plugins: Plugins to be added.
         """
         super(MTDeepLearningStrategy, self).__init__(
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             test_mb_size=test_mb_size, evaluation_protocol=evaluation_protocol,
-            device=device)
+            device=device, plugins=plugins)
 
         if not hasattr(model, classifier_field):
             raise ValueError('The model has no field named ' + classifier_field)

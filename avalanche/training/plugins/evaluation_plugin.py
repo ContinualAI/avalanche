@@ -142,7 +142,7 @@ class EvaluationPlugin(StrategySkeleton):
 
         if iteration % 100 == 0:
             print(
-                '[Evaluation] ==>>> it: {}, avg. loss: {:.6f}, '
+                '[Training] ==>>> it: {}, avg. loss: {:.6f}, '
                 'running train acc: {:.3f}'.format(
                     iteration, self._training_average_loss,
                     self._training_accuracy))

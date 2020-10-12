@@ -248,6 +248,7 @@ class StrategyTemplate(StrategySkeleton):
         """
         train_dataset = step_info.current_training_set()[0]
         self.update_namespace(train_dataset=train_dataset)
+        self.update_namespace(step_id=step_info.current_step)
         return train_dataset
 
     @TrainingFlow
