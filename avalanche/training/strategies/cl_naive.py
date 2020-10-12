@@ -23,10 +23,10 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 from avalanche.evaluation import EvalProtocol
-from avalanche.training.skeletons.deep_learning_strategy import \
+from avalanche.training.template.deep_learning_strategy import \
     MTDeepLearningStrategy
 from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
-from avalanche.training.skeletons.deep_learning_strategy import StrategySkeleton
+from avalanche.training.template.deep_learning_strategy import StrategySkeleton
 
 
 class Naive(MTDeepLearningStrategy):

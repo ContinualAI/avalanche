@@ -19,9 +19,9 @@ from torch.nn import Linear, Module
 
 from avalanche.benchmarks.scenarios import TStepInfo, IStepInfo, DatasetPart
 from avalanche.evaluation import EvalProtocol
-from .cl_strategy import StrategyTemplate, StrategySkeleton
+from avalanche.training.skeletons import StrategyTemplate, StrategySkeleton
 from avalanche.training.plugins.evaluation_plugin import EvaluationPlugin
-from .strategy_flow import TrainingFlow, TestingFlow
+from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
 
 
 class DeepLearningStrategy(StrategyTemplate):

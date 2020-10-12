@@ -21,7 +21,7 @@ from torch import Tensor
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation import EvalProtocol
-from avalanche.training.skeletons.cl_strategy import StrategySkeleton
+from avalanche.training.skeletons import StrategySkeleton
 from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
 
 
