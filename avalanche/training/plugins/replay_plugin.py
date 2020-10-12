@@ -64,7 +64,6 @@ class ReplayPlugin(StrategySkeleton):
         rm_add = next(iter(data_loader))
         rm_add = TensorDataset(rm_add[0], rm_add[1])
         self.update_namespace(rm_add=rm_add)
-        print("RM ADD =", len(rm_add.tensors[0]))
 
         if step_id > 0:
             # We update the train_dataset concatenating the external memory.
@@ -85,13 +84,9 @@ class ReplayPlugin(StrategySkeleton):
         else:
             idxs_2_replace = torch.randperm(
                 len(ext_mem.tensors[0]))[:len(rm_add.tensors[0])]
-            print("ID 2 replace: {}, len: {}".format(
-                idxs_2_replace, idxs_2_replace.size(0)))
             for j, idx in enumerate(idxs_2_replace):
                 ext_mem.tensors[0][idx] = rm_add.tensors[0][j]
                 ext_mem.tensors[1][idx] = rm_add.tensors[1][j]
-
-        print("ext_mem sz = ", len(ext_mem.tensors[0]))
         self.ext_mem = ext_mem
 
 
