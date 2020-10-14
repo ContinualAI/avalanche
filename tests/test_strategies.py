@@ -24,53 +24,53 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_multi_task_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.strategies import Naive
-from avalanche.training.plugins import ReplayPlugin, CumulativePlugin
+from avalanche.training.strategies import Naive, Cumulative
+from avalanche.training.plugins import ReplayPlugin
 
 device = 'cpu'
 
 class StrategyTest(unittest.TestCase):
 
-    def test_naive(self):
-        model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_multi_task_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+    # def test_naive(self):
+    #     model = SimpleMLP()
+    #     optimizer = SGD(model.parameters(), lr=1e-3)
+    #     criterion = CrossEntropyLoss()
+    #     mnist_train, mnist_test = self.load_dataset()
+    #     nc_scenario = create_nc_single_dataset_multi_task_scenario(
+    #         mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
+    #     eval_protocol = EvalProtocol(
+    #         metrics=[
+    #             ACC(num_class=nc_scenario.n_classes)
+    #         ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
-                evaluation_protocol=eval_protocol, train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device)
+    #     strategy = Naive(model, 'classifier', optimizer, criterion,
+    #             evaluation_protocol=eval_protocol, train_mb_size=100, 
+    #             train_epochs=4, test_mb_size=100, device=device)
 
-        self.run_strategy(nc_scenario, strategy)
+    #     self.run_strategy(nc_scenario, strategy)
 
 
-    def test_replay(self):
-        model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_multi_task_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+    # def test_replay(self):
+    #     model = SimpleMLP()
+    #     optimizer = SGD(model.parameters(), lr=1e-3)
+    #     criterion = CrossEntropyLoss()
+    #     mnist_train, mnist_test = self.load_dataset()
+    #     nc_scenario = create_nc_single_dataset_multi_task_scenario(
+    #         mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
+    #     eval_protocol = EvalProtocol(
+    #         metrics=[
+    #             ACC(num_class=nc_scenario.n_classes)
+    #         ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
-                evaluation_protocol=eval_protocol,
-                train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device,
-                plugins=[ReplayPlugin(mem_size=10)])
+    #     strategy = Naive(model, 'classifier', optimizer, criterion,
+    #             evaluation_protocol=eval_protocol,
+    #             train_mb_size=100, 
+    #             train_epochs=4, test_mb_size=100, device=device,
+    #             plugins=[ReplayPlugin(mem_size=10)])
 
-        self.run_strategy(nc_scenario, strategy)
+    #     self.run_strategy(nc_scenario, strategy)
 
 
     def test_cumulative(self):
@@ -86,11 +86,10 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        strategy = Cumulative(model, 'classifier', optimizer, criterion,
                 train_mb_size=100, 
                 evaluation_protocol=eval_protocol,
-                train_epochs=4, test_mb_size=100, device=device,
-                plugins=[CumulativePlugin()])
+                train_epochs=4, test_mb_size=100, device=device)
 
         self.run_strategy(nc_scenario, strategy)
 
