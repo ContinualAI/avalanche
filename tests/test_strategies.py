@@ -23,7 +23,7 @@ from avalanche.extras.models import SimpleMLP
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
-    create_nc_single_dataset_multi_task_scenario, DatasetPart, NCBatchInfo
+    create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
 from avalanche.training.strategies import Naive, Cumulative
 from avalanche.training.plugins import ReplayPlugin
 
@@ -36,7 +36,7 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+        nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
@@ -56,7 +56,7 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+        nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
@@ -78,7 +78,7 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_multi_task_scenario(
+        nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
