@@ -20,7 +20,7 @@ from __future__ import print_function
 from typing import Optional, Sequence
 
 from torch.nn import Module
-from torch.optim.optimizer import Optimizer
+from torch.optim import Optimizer
 
 from avalanche.evaluation import EvalProtocol
 from avalanche.training.templates.deep_learning_strategy import \
