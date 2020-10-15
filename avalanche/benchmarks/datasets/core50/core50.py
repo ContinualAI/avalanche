@@ -34,8 +34,8 @@ def pil_loader(path):
 class CORe50(Dataset):
     """ CORe50 Pytorch Dataset """
 
-    def __init__(self, root=expanduser("~")+"/.avalanche/data/core50/", train=True,
-                 transform=ToTensor(), target_transform=None,
+    def __init__(self, root=expanduser("~")+"/.avalanche/data/core50/",
+                 train=True, transform=ToTensor(), target_transform=None,
                  loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
