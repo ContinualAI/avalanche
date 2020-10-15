@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-name: avalanche-env
+name: avalanche-dev-env
 channels:
 - pytorch
 - vlomonaco

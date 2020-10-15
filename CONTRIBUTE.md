@@ -33,6 +33,14 @@ We welcome your pull requests.
 2. Create or Assign an existing to yourself.
 3. Make a pull request
 
+## Install Avalanche in Development Mode:
+
+```bash
+git clone https://github.com/vlomonaco/avalanche.git
+cd avalanche
+conda env create -f environment-dev.yml
+conda activate avalanche-dev-env
+
 ## The following rules should be respected
 * Do no push commits directly to the master
 * I will merge your PRs into the master
