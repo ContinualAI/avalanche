@@ -91,7 +91,7 @@ results = []
 batch_info: NCBatchInfo
 for batch_info in nc_scenario:
     print("Start of step ", batch_info.current_step)
-
+W
     cl_strategy.train(batch_info, num_workers=4)
     print('Training completed')
 
