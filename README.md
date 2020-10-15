@@ -104,4 +104,4 @@ for batch_info in nc_scenario:
 How to contribute
 ----------------
 
-Check the [CONTRIBUTE.md](CONTRIBUTE.md)file.
+Check the [CONTRIBUTE.md](CONTRIBUTE.md) file.
