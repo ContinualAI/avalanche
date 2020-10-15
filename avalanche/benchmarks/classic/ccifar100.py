@@ -124,7 +124,7 @@ def SplitCIFAR100(incremental_steps: int,
         )
 
 
-def SplitCifar110(
+def SplitCIFAR110(
         incremental_steps: int,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
