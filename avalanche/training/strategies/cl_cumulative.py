@@ -29,6 +29,7 @@ from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 from avalanche.training.utils import ConcatDatasetWithTargets
 from avalanche.training.skeletons import StrategySkeleton
 
+
 class Cumulative(Naive):
     """
     A Cumulative strategy in which, at each step (or task), the model
@@ -44,10 +45,9 @@ class Cumulative(Naive):
                  evaluation_protocol: Optional[EvalProtocol] = None,
                  plugins: Optional[Sequence[StrategySkeleton]] = None):
 
-        super(Cumulative, self).__init__(model, classifier_field,
-                optimizer, criterion, train_mb_size, train_epochs,
-                test_mb_size, device, evaluation_protocol, plugins)
-
+        super(Cumulative, self).__init__(
+            model, classifier_field, optimizer, criterion, train_mb_size,
+            train_epochs, test_mb_size, device, evaluation_protocol, plugins)
 
     @TrainingFlow
     def make_train_dataset(self, step_info: IStepInfo):
@@ -66,7 +66,7 @@ class Cumulative(Naive):
         train_dataset = step_info.cumulative_training_sets()
         
         train_dataset = ConcatDatasetWithTargets(
-            [ el[0] for el in train_dataset ]
+            [el[0] for el in train_dataset]
         )
 
         self.update_namespace(train_dataset=train_dataset)

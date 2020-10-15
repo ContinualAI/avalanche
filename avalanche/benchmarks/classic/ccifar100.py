@@ -123,7 +123,7 @@ def SplitCIFAR100(incremental_steps: int,
         )
 
 
-def create_cifar100_with_cifar10_pretrain_benchmark(
+def SplitCifar110(
         incremental_steps: int,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
