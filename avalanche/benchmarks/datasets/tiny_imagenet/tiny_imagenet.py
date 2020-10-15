@@ -18,6 +18,7 @@ import csv
 import os
 import sys
 from zipfile import ZipFile
+from os.path import expanduser
 from torch.utils.data import Dataset
 from PIL import Image
 from torchvision.transforms import ToTensor
@@ -30,7 +31,6 @@ else:
     # might be around one day
     from urllib import urlretrieve
 
-
 filename = ('tiny-imagenet-200.zip',
             'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
 
@@ -38,7 +38,9 @@ filename = ('tiny-imagenet-200.zip',
 class TinyImagenet(Dataset):
     """Tiny Imagenet Pytorch Dataset"""
 
-    def __init__(self, data_folder='data', train=True, transform=ToTensor(),
+    def __init__(self, data_folder=expanduser("~") +
+                 "/.avalanche/data/tinyimagenet/",
+                 train=True, transform=ToTensor(),
                  target_transform=None, download=True):
         """
         Args:
@@ -167,7 +169,7 @@ class TinyImagenet(Dataset):
         valid_names = []
         # filter validation images by class using appropriate file
         with open(
-            os.path.join(self.data_folder, 'val', 'val_annotations.txt'),
+                os.path.join(self.data_folder, 'val', 'val_annotations.txt'),
                 'r') as f:
 
             reader = csv.reader(f, dialect='excel-tab')

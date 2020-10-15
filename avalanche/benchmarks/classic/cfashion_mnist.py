@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 from typing import Sequence, Optional
+from os.path import expanduser
 from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
@@ -119,9 +120,11 @@ def SplitFMNIST(incremental_steps: int,
 
 
 def _get_fmnist_dataset(train_transformation, test_transformation):
-    train_set = FashionMNIST('./data/fmnist', train=True,
+    train_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
+                             train=True,
                              download=True, transform=train_transformation)
-    test_set = FashionMNIST('./data/fmnist', train=False,
+    test_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
+                            train=False,
                             download=True, transform=test_transformation)
     return train_set, test_set
 

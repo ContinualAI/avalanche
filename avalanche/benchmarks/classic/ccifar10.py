@@ -15,6 +15,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 from typing import Sequence, Optional
+from os.path import expanduser
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
@@ -116,8 +117,10 @@ def SplitCIFAR10(incremental_steps: int,
 
 
 def _get_cifar10_dataset(train_transformation, test_transformation):
-    cifar_train = CIFAR10('./data/cifar10', train=True,
+    cifar_train = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
+                          train=True,
                           download=True, transform=train_transformation)
-    cifar_test = CIFAR10('./data/cifar10', train=False,
+    cifar_test = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
+                         train=False,
                          download=True, transform=test_transformation)
     return cifar_train, cifar_test

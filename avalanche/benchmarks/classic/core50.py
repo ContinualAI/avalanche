@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from avalanche.benchmarks.datasets import CORE50_DATA
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_filelists
-from torchvision import transforms
+from os.path import expanduser
 
 nbatch = {
     'ni': 8,
@@ -45,7 +45,8 @@ scen2dirs = {
 }
 
 
-def CORe50(root=None, scenario="nicv2_391", run=0):
+def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
+           scenario="nicv2_391", run=0):
     """ CORe50 continual scenario generator
 
     :param root: Path indicating where to store the dataset and related
@@ -99,6 +100,7 @@ if __name__ == "__main__":
     import sys
     from torch.utils.data import DataLoader
     from torchvision import transforms
+
     scenario = CORe50(scenario="nicv2_79")
     for i, batch in enumerate(scenario):
         print(i, batch)

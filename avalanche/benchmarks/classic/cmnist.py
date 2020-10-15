@@ -19,7 +19,7 @@ from __future__ import absolute_import
 
 
 from typing import Optional, Sequence
-
+from os.path import expanduser
 import numpy as np
 import torch
 from torchvision.datasets import MNIST
@@ -282,8 +282,10 @@ def RotatedMNIST(
 
 
 def _get_mnist_dataset(train_transformation, test_transformation):
-    mnist_train = MNIST(root="./data/MNIST", train=True,
+    mnist_train = MNIST(root=expanduser("~")+"/.avalanche/data/mnist/",
+                        train=True,
                         download=True, transform=train_transformation)
-    mnist_test = MNIST(root="./data/MNIST", train=False,
+    mnist_test = MNIST(root=expanduser("~")+"/.avalanche/data/mnist/",
+                       train=False,
                        download=True, transform=test_transformation)
     return mnist_train, mnist_test
