@@ -60,7 +60,7 @@ class CORE50_DATA(object):
 
         try:
             # Create target Directory for CORE50 data
-            os.mkdir(self.data_folder)
+            os.makedirs(self.data_folder)
             print("Directory ", self.data_folder, " Created ")
             self.download = True
             self.download_core50()
