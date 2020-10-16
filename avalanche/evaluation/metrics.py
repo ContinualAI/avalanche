@@ -51,7 +51,8 @@ class MAC:
     def compute(self, model, dummy_input):
         for mod in model.modules():
             if self.is_recognized_module(mod):
-                foo = lambda a, b, c: self.update_compute_cost(a, b, c)
+                def foo(a, b, c):
+                    return self.update_compute_cost(a, b, c)
                 handle = mod.register_forward_hook(foo)
                 self.hooks.append(handle)
 
