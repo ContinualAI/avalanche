@@ -37,6 +37,47 @@ import threading
 import time
 
 
+class MAC:
+    """
+        Multiply-and-accumulate metric. Approximately measure the computational
+        cost of a model in a hardware-independent way by computing the number
+        of multiplications. Currently supports only Linear or Conv2d modules.
+        Other operations are ignored.
+    """
+    def __init__(self):
+        self.hooks = []
+        self._compute_cost = 0
+
+    def compute(self, model, dummy_input):
+        for mod in model.modules():
+            if self.is_recognized_module(mod):
+                foo = lambda a, b, c: self.update_compute_cost(a, b, c)
+                handle = mod.register_forward_hook(foo)
+                self.hooks.append(handle)
+
+        self._compute_cost = 0
+        model(dummy_input)  # trigger forward hooks
+
+        for handle in self.hooks:
+            handle.remove()
+        self.hooks = []
+        return self._compute_cost
+
+    def update_compute_cost(self, module, input, output):
+        modname = module.__class__.__name__
+        if modname == 'Linear':
+            self._compute_cost += input[0].shape[1] * output.shape[1]
+        elif modname == 'Conv2d':
+            n, cout, hout, wout = output.shape  # Batch, Channels, Height, Width
+            ksize = module.kernel_size[0] * module.kernel_size[1]
+            self._compute_cost += cout * hout * wout * (ksize)
+        print(self._compute_cost)
+
+    def is_recognized_module(self, mod):
+        modname = mod.__class__.__name__
+        return modname == 'Linear' or modname == 'Conv2d'
+
+
 class GPUUsage:
     """
         GPU usage metric measured as average usage percentage over time.
