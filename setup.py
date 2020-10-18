@@ -35,4 +35,15 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    install_requires=[
+        'typing-extensions',
+        'psutil',
+        'torch',
+        'torchvision',
+        'tensorboard',
+        'scikit-learn',
+        'matplotlib',
+        'numpy',
+        'pytorchcv'
+    ]
 )

@@ -16,7 +16,7 @@
 
 import unittest
 
-from avalanche.benchmarks.new_cdata_loaders import CORe50
+from avalanche.benchmarks.classic import CORe50
 from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 
 

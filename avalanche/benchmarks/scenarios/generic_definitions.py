@@ -8,8 +8,13 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+
 from enum import Enum
-from typing import TypeVar, Tuple, List, Protocol, runtime_checkable
+try:
+    from typing import TypeVar, Tuple, List, Protocol, runtime_checkable
+except ImportError:
+    from typing import TypeVar, Tuple, List
+    from typing_extensions import Protocol, runtime_checkable
 
 from avalanche.training.utils import IDatasetWithTargets, DatasetWithTargets
 

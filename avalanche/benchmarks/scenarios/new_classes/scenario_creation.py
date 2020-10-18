@@ -22,7 +22,8 @@ from .nc_scenario import NCMultiTaskScenario, NCSingleTaskScenario
 def create_nc_single_dataset_sit_scenario(
         train_dataset: IDatasetWithTargets,
         test_dataset: IDatasetWithTargets,
-        n_batches: int, shuffle: bool = True,
+        n_batches: int,
+        shuffle: bool = True,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         per_batch_classes: Optional[Dict[int, int]] = None,
@@ -79,7 +80,9 @@ def create_nc_single_dataset_sit_scenario(
 
     base_scenario = NCGenericScenario(
         train_dataset, test_dataset,
-        n_batches=n_batches, shuffle=shuffle, seed=seed,
+        n_batches=n_batches,
+        shuffle=shuffle,
+        seed=seed,
         fixed_class_order=fixed_class_order,
         per_batch_classes=per_batch_classes,
         remap_class_indexes=remap_class_ids,
@@ -91,7 +94,8 @@ def create_nc_single_dataset_sit_scenario(
 def create_nc_single_dataset_multi_task_scenario(
         train_dataset: IDatasetWithTargets,
         test_dataset: IDatasetWithTargets,
-        n_tasks: int, shuffle: bool = True,
+        n_tasks: int,
+        shuffle: bool = True,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         per_task_classes: Optional[Dict[int, int]] = None,
@@ -190,7 +194,8 @@ def _one_dataset_per_batch_class_order(
 def create_nc_multi_dataset_sit_scenario(
         train_dataset_list: Sequence[IDatasetWithTargets],
         test_dataset_list: Sequence[IDatasetWithTargets],
-        n_batches: int, shuffle: bool = True,
+        n_batches: int,
+        shuffle: bool = True,
         seed: Optional[int] = None,
         per_batch_classes: Optional[Dict[int, int]] = None,
         one_dataset_per_batch: bool = False,

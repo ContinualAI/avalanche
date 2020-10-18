@@ -15,7 +15,7 @@ channels:
 - vlomonaco
 dependencies:
 - psutil
-- python=3.8
+- python>=3.6
 - pytorch::pytorch
 - pytorch::torchvision
 - tensorboard

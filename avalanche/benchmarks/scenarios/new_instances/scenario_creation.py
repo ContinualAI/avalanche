@@ -73,7 +73,8 @@ def create_ni_single_dataset_sit_scenario(
 def create_ni_multi_dataset_sit_scenario(
         train_dataset_list: Sequence[IDatasetWithTargets],
         test_dataset_list: Sequence[IDatasetWithTargets],
-        n_batches: int, shuffle: bool = True,
+        n_batches: int,
+        shuffle: bool = True,
         seed: Optional[int] = None,
         balance_batches: bool = False,
         min_class_patterns_in_batch: int = 0,

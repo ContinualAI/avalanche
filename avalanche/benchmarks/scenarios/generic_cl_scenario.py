@@ -138,7 +138,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
                              'test steps')
 
         if len(self.train_steps_patterns_assignment) != len(self.task_labels):
-            raise ValueError('There must be the same number of train steps'
+            raise ValueError('There must be the same number of train steps '
                              'and task labels')
 
     def __len__(self) -> int:

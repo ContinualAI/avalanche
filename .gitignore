@@ -1,7 +1,8 @@
 .vscode/
 __pycache__
 .idea/
-avalanche/benchmarks/datasets_envs/*/data
+avalanche/benchmarks/datasets/*/data
 *.py~
 data/
 logs/
+*.pyc

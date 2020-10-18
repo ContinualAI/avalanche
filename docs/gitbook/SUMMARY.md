@@ -1,0 +1,40 @@
+# Table of contents
+
+* [Avalanche: an End-to-End Framework for Continual Learning Research](README.md)
+
+## Getting Started <a id="getting-started-1"></a>
+
+* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
+
+## From Zero to Hero Tutorial
+
+* [1. How to Install](from-zero-to-hero-tutorial/1.-how-to-install.md)
+* [2. Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
+* [3. Training](from-zero-to-hero-tutorial/3.-training.md)
+* [4. Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
+* [5. Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
+* [6. Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
+
+## Code Documentation
+
+* [Avalanche API](https://vlomonaco.github.io/avalanche)
+
+## How to Contribute
+
+* [Guidelines](how-to-contribute/guidelines.md)
+
+## Questions and Issues
+
+* [Ask Your Question](questions-and-issues/ask-your-question.md)
+* [Add Your Issue](questions-and-issues/add-your-issue.md)
+* [Request a Feature](questions-and-issues/request-a-feature.md)
+
+## About Us <a id="contacts-and-links"></a>
+
+---
+
+* [The Team](the-team.md)
+* [Join Us!](join-us.md)
+* [Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU)
+* [Email](mailto:contact@continualai.org)
+
