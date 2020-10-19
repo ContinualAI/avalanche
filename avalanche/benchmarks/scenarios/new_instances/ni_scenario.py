@@ -41,7 +41,8 @@ def _batch_structure_from_assignment(dataset: IDatasetWithTargets,
     return batch_structure
 
 
-class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
+class NIScenario(GenericCLScenario[TrainSetWithTargets,
+                                   TestSetWithTargets, 'NIBatchInfo'],
                  Generic[TrainSetWithTargets, TestSetWithTargets]):
 
     """
@@ -376,12 +377,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets, TestSetWithTargets],
         super(NIScenario, self).__init__(
             train_dataset, test_dataset, batch_patterns, [],
             task_labels=[0] * self.n_batches,
-            return_complete_test_set_only=True)
-
-    def __getitem__(self, batch_id):
-        if batch_id < len(self):
-            return NIBatchInfo(self, batch_id)
-        raise IndexError('Batch ID out of bounds' + str(int(batch_id)))
+            return_complete_test_set_only=True, step_factory=NIBatchInfo)
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         # In fact, the only data required for reproducibility of a NI Scenario

@@ -8,6 +8,7 @@ from avalanche.benchmarks.scenarios import \
 from avalanche.training.utils import TransformationSubset, torch
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
+from avalanche.benchmarks.scenarios.generic_cl_scenario import ScenarioSlice
 
 
 class NISITTests(unittest.TestCase):
@@ -112,6 +113,28 @@ class NISITTests(unittest.TestCase):
             all_classes.update(ni_scenario.classes_in_batch[batch_id])
 
         self.assertEqual(10, len(all_classes))
+
+    def test_ni_sit_slicing(self):
+        mnist_train = MNIST(
+            './data/mnist', train=True, download=True)
+        mnist_test = MNIST(
+            './data/mnist', train=False, download=True)
+        nc_scenario = create_ni_single_dataset_sit_scenario(
+            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+
+        step_info: NIBatchInfo
+        for batch_id, step_info in enumerate(nc_scenario):
+            self.assertEqual(batch_id, step_info.current_step)
+            self.assertIsInstance(step_info, NIBatchInfo)
+
+        iterable_slice = [3, 4, 1]
+        sliced_scenario = nc_scenario[iterable_slice]
+        self.assertIsInstance(sliced_scenario, ScenarioSlice)
+        self.assertEqual(len(iterable_slice), len(sliced_scenario))
+
+        for batch_id, step_info in enumerate(sliced_scenario):
+            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertIsInstance(step_info, NIBatchInfo)
 
 
 if __name__ == '__main__':
