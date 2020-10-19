@@ -55,14 +55,14 @@ class CORe50(Dataset):
 
         print("Loading paths...")
         with open(os.path.join(root, 'paths.pkl'), 'rb') as f:
-            self.paths = pkl.load(f)
+            self.train_test_paths = pkl.load(f)
 
         print("Loading labels...")
         with open(os.path.join(root, 'labels.pkl'), 'rb') as f:
             self.all_targets = pkl.load(f)
-            self.targets = []
-            for i in range(nbatch):
-                self.targets += self.all_targets[scen][run][i]
+            self.train_test_targets = []
+            for i in range(nbatch + 1):
+                self.train_test_targets += self.all_targets[scen][run][i]
 
         print("Loading LUP...")
         with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
@@ -74,6 +74,14 @@ class CORe50(Dataset):
                 self.idx_list += self.LUP[scen][run][i]
         else:
             self.idx_list = self.LUP[scen][run][-1]
+
+        self.paths = []
+        self.targets = []
+
+        for idx in self.idx_list:
+            self.paths.append(self.train_test_paths[idx])
+            self.targets.append(self.train_test_targets[idx])
+
 
     def __getitem__(self, index):
         """
@@ -88,7 +96,7 @@ class CORe50(Dataset):
         target = self.targets[index]
         img = self.loader(
             os.path.join(
-                self.root, "core50_128x128", self.paths[self.idx_list[index]]
+                self.root, "core50_128x128", self.paths[index]
             )
         )
         if self.transform is not None:
@@ -112,6 +120,9 @@ if __name__ == "__main__":
     import torch
 
     train_data = CORe50()
+    test_data = CORe50(train=False)
+    print("train size: ", len(train_data))
+    print("Test size: ", len(test_data))
     dataloader = DataLoader(train_data, batch_size=1)
 
     for batch_data in dataloader:
