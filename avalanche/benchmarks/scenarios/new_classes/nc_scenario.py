@@ -21,7 +21,7 @@ from avalanche.benchmarks.utils import grouped_and_ordered_indexes
 
 
 class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
-                                            TestSetWithTargets],
+                                            TestSetWithTargets, 'NCTaskInfo'],
                           Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Classes" multi task scenario based on a
@@ -112,14 +112,7 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
             self.nc_generic_scenario.test_dataset,
             self.nc_generic_scenario.train_steps_patterns_assignment,
             self.nc_generic_scenario.test_steps_patterns_assignment,
-            list(range(self.n_tasks)))
-
-    def __getitem__(self, task_id) -> 'NCTaskInfo[' \
-                                      'TrainSetWithTargets, ' \
-                                      'TestSetWithTargets]':
-        if task_id < len(self):
-            return NCTaskInfo(self, task_id)
-        raise IndexError('Task ID out of bounds' + str(int(task_id)))
+            list(range(self.n_tasks)), step_factory=NCTaskInfo)
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         rep_data = super().get_reproducibility_data()
@@ -262,7 +255,7 @@ class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
 
 
 class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
-                                             TestSetWithTargets],
+                                             TestSetWithTargets, 'NCBatchInfo'],
                            Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
     This class defines a "New Classes" Single Incremental Task scenario based
@@ -310,14 +303,7 @@ class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
             self.nc_generic_scenario.test_dataset,
             self.nc_generic_scenario.train_steps_patterns_assignment,
             self.nc_generic_scenario.test_steps_patterns_assignment,
-            [0] * self.n_batches)
-
-    def __getitem__(self, batch_id) -> 'NCBatchInfo[' \
-                                       'TrainSetWithTargets,' \
-                                       'TestSetWithTargets]':
-        if batch_id < len(self):
-            return NCBatchInfo(self, batch_id)
-        raise IndexError('Batch ID out of bounds' + str(int(batch_id)))
+            [0] * self.n_batches, step_factory=NCBatchInfo)
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         rep_data = super().get_reproducibility_data()
