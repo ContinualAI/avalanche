@@ -15,10 +15,12 @@
 import copy
 
 import torch
-from torch.utils.data import DataLoader, ConcatDataset, TensorDataset
+from torch.utils.data import DataLoader, ConcatDataset, TensorDataset, \
+    random_split
 
 from avalanche.training.skeletons.cl_strategy import StrategySkeleton
 from avalanche.training.skeletons.strategy_flow import TrainingFlow
+from avalanche.training.utils import ConcatDatasetWithTargets
 
 
 class ReplayPlugin(StrategySkeleton):
@@ -56,13 +58,11 @@ class ReplayPlugin(StrategySkeleton):
         # how many patterns to save for next iter
         h = min(self.mem_size // (step_id + 1), len(train_dataset))
 
-        # We recover it as a mini-batch from the shuffled dataset
-        # and we publish it in the namespace
-        data_loader = DataLoader(
-            train_dataset, batch_size=h, shuffle=True
+        # We recover it using the random_split method and getting rid of the
+        # second split.
+        rm_add, _ = random_split(
+            train_dataset, [h, len(train_dataset) - h]
         )
-        rm_add = next(iter(data_loader))
-        rm_add = TensorDataset(rm_add[0], rm_add[1])
         self.update_namespace(rm_add=rm_add)
 
         if step_id > 0:
@@ -82,11 +82,10 @@ class ReplayPlugin(StrategySkeleton):
         if step_id == 0:
             ext_mem = copy.deepcopy(rm_add)
         else:
-            idxs_2_replace = torch.randperm(
-                len(ext_mem.tensors[0]))[:len(rm_add.tensors[0])]
-            for j, idx in enumerate(idxs_2_replace):
-                ext_mem.tensors[0][idx] = rm_add.tensors[0][j]
-                ext_mem.tensors[1][idx] = rm_add.tensors[1][j]
+            _, saved_part = random_split(
+                ext_mem, [len(rm_add), len(ext_mem)-len(rm_add)]
+            )
+            ext_mem = ConcatDataset([saved_part, rm_add])
         self.ext_mem = ext_mem
 
 
