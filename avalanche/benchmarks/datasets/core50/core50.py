@@ -82,7 +82,6 @@ class CORe50(Dataset):
             self.paths.append(self.train_test_paths[idx])
             self.targets.append(self.train_test_targets[idx])
 
-
     def __getitem__(self, index):
         """
         Args:
