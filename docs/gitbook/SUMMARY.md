@@ -5,8 +5,7 @@
 ## 📌 Getting Started <a id="getting-started-1"></a>
 
 * [Why Avalanche?](getting-started-1/why-avalanche.md)
-* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes/README.md)
-  * [test](getting-started-1/learn-avalanche-in-5-minutes/test.md)
+* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
 
 ## Examples
 
