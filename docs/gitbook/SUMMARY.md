@@ -2,11 +2,11 @@
 
 * [Avalanche: an End-to-End Framework for Continual Learning Research](README.md)
 
-## Getting Started <a id="getting-started-1"></a>
+## 📌 Getting Started <a id="getting-started-1"></a>
 
 * [Why Avalanche?](getting-started-1/why-avalanche.md)
-* [Why Avalanche?](getting-started-1/why-avalanche-1.md)
-* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
+* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes/README.md)
+  * [test](getting-started-1/learn-avalanche-in-5-minutes/test.md)
 
 ## Examples
 
@@ -20,8 +20,9 @@
 * [2. Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
 * [3. Training](from-zero-to-hero-tutorial/3.-training.md)
 * [4. Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
+* [6. Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
 * [5. Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
-* [6. Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
+* [7. Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
 
 ## Code Documentation
 
