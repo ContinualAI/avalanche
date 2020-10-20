@@ -4,6 +4,7 @@
 
 ## Getting Started <a id="getting-started-1"></a>
 
+* [Why Avalanche?](getting-started-1/why-avalanche.md)
 * [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
 
 ## From Zero to Hero Tutorial
@@ -31,10 +32,8 @@
 
 ## About Us <a id="contacts-and-links"></a>
 
----
-
-* [The Team](the-team.md)
-* [Join Us!](join-us.md)
+* [The Team](contacts-and-links/the-team.md)
+* [Join Us!](contacts-and-links/join-us.md)
 * [Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU)
 * [Email](mailto:contact@continualai.org)
 
