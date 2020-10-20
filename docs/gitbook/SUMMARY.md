@@ -5,7 +5,14 @@
 ## Getting Started <a id="getting-started-1"></a>
 
 * [Why Avalanche?](getting-started-1/why-avalanche.md)
+* [Why Avalanche?](getting-started-1/why-avalanche-1.md)
 * [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
+
+## Examples
+
+* [Benchmarks](examples/benchmarks.md)
+* [Training](examples/training.md)
+* [Evaluation](examples/evaluation.md)
 
 ## From Zero to Hero Tutorial
 

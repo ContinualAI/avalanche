@@ -75,5 +75,5 @@ _Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**
 
 The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Research \(CLAIR\)**_](https://www.continualai.org/research/)_._ We are always looking for new _awesome members_, so check out our official website if you want to learn more about us and our activities.
 
-
+Learn more about the [_**Avalanche Team**_](contacts-and-links/the-team.md) _****and all the people who made it great!_
 
