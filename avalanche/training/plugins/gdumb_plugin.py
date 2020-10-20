@@ -17,8 +17,6 @@ from __future__ import division
 # Python 2-3 compatible
 from __future__ import print_function
 
-import copy
-
 import torch
 from torch.utils.data import TensorDataset
 
