@@ -76,7 +76,7 @@ def NCScenario(
         the class order. If non-None, shuffle and seed parameters will be
         ignored. Defaults to None.
     :param per_step_classes: not available with multiple train-test
-        datasets``multi_task`` is set to True. Is not None, a dictionary
+        datasets and ``multi_task`` is set to True. Is not None, a dictionary
         whose keys are (0-indexed) task IDs and their values are the number
         of classes to include in the respective batches. The dictionary doesn't
         have to contain a key for each task! All the remaining batches
