@@ -109,6 +109,7 @@ def SplitImageNet(root,
             multi_task=False
         )
 
+
 if __name__ == "__main__":
 
     scenario = SplitImageNet("/home/admin/data/imagenet/2012")
