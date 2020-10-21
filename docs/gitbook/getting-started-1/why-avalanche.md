@@ -14,7 +14,7 @@ We hope _Avalanche_ may trigger the same _positive reinforcement loop_ within ou
 
 {% embed url="https://www.youtube.com/watch?v=UNaYpBpRJOY" caption="Avalanche Anthem by Bring Me The Horizon" %}
 
-## The Avalanche Advantage
+## The Avalanche Advantage 💪
 
 Avalanche has several advantages:
 
