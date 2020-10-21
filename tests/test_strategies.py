@@ -96,11 +96,11 @@ class StrategyTest(unittest.TestCase):
 
     def test_gdumb(self):
         model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-3)
+        optimizer = SGD(model.parameters(), lr=1e-2)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
         nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+            mnist_train, mnist_test, 5, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
@@ -108,12 +108,26 @@ class StrategyTest(unittest.TestCase):
             ])
 
         strategy = Naive(model, 'classifier', optimizer, criterion,
-                train_mb_size=16, 
+                train_mb_size=64,
                 evaluation_protocol=eval_protocol,
-                train_epochs=4, test_mb_size=100, device=device,
-                plugins=[GDumbPlugin(500)])
+                train_epochs=10, test_mb_size=100, device=device,
+                plugins=[GDumbPlugin(2000)])
 
-        self.run_strategy(nc_scenario, strategy)
+        print('Starting experiment...')
+        results = []
+        batch_info: NCBatchInfo
+        for batch_info in nc_scenario:
+            print("Start of step ", batch_info.current_step)
+
+            # retrain from scratch each step
+            strategy.model = SimpleMLP()
+            strategy.optimizer = SGD(strategy.model.parameters(), lr=1e-2)
+            strategy.train(batch_info, num_workers=4)
+            print('Training completed')
+
+            print('Computing accuracy on the whole test set')
+            results.append(strategy.test(batch_info, DatasetPart.COMPLETE,
+                                            num_workers=4))
 
 
     def load_dataset(self):
@@ -123,6 +137,7 @@ class StrategyTest(unittest.TestCase):
         mnist_test = MNIST('./data/mnist', train=False, download=True,
                 transform=Compose([ToTensor()]))
         return mnist_train, mnist_test
+
 
     def run_strategy(self, scenario, cl_strategy):
 
