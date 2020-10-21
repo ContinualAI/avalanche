@@ -13,9 +13,7 @@ Building something together 👪 is _fun_ and _fulfilling_ 🎈. Joining our tea
 
 No matter your research or coding expertise level you may have, we believe anyone has her own strengths that can help us build a wonderful tool, being _passion_ and _time_ the fundamental ingredients_._
 
-So, don't hesistate to contact [our team](the-team.md) to learn more about how you can help! Do it now! 😊
+So, don't hesistate to contact [our team](the-team.md) to learn more about how you can help. Do it now! 😊
 
-![](../.gitbook/assets/join-us-were-5c07f9.jpg)
-
-
+![](../.gitbook/assets/join-us-you-5cae9e.jpg)
 

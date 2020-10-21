@@ -39,7 +39,7 @@
 
 ## 👪 About Us <a id="contacts-and-links"></a>
 
-* [The Team](contacts-and-links/the-team.md)
+* [The People](contacts-and-links/the-team.md)
 * [Join Us!](contacts-and-links/join-us.md)
 * [Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU)
 * [Email](mailto:contact@continualai.org)
