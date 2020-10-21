@@ -19,8 +19,8 @@
 * [2. Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
 * [3. Training](from-zero-to-hero-tutorial/3.-training.md)
 * [4. Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
-* [6. Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
-* [5. Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
+* [5. Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
+* [6. Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
 * [7. Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
 
 ## 💻 Code Documentation

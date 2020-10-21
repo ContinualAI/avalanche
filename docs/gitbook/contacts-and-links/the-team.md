@@ -29,7 +29,8 @@ _Avalanche_ is a large community effort. It is only fair to list here all the pe
 
 _Avalanche_ is a great tool also thanks to its many users. Here we list some research groups using _Avalanche_ for their continual learning research:
 
-* \*\*\*\*[**Davide Maltoni's Group**](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwitwZqWycXsAhWFnVwKHfbyCTMQFjAAegQIAhAC&url=http%3A%2F%2Fbiolab.csr.unibo.it%2F&usg=AOvVaw1QHRTQ0tLFtskz3T5OuEwB) ****\(University of Bologna\)
+* \*\*\*\*[**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(Director: Davide Maltoni, University of Bologna\)
+*  [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) \(Director: Alessio Micheli, University of Pisa\)
 
 ## 📫 Contacts 
 

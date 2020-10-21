@@ -69,7 +69,7 @@ for batch_info in nc_scenario:
 
 ## 🚦 Getting Started
 
-We know that learning a new tool may be may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.  
+We know that learning a new tool may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.  
   
 For example, you may start with our _5-minutes_ guide that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
