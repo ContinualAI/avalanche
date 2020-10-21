@@ -67,7 +67,17 @@ for batch_info in nc_scenario:
     results.append(cl_strategy.test(batch_info)
 ```
 
-## Maintained by ContinualAI Research
+## 🚦 Getting Started
+
+We know that learning a new tool may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.  
+  
+For example, you may start with our _5-minutes_ guide that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
+
+We have also prepared for you a large set of _examples & snippets_ you can plug-in directly into your code and play with:
+
+Having completed these two sections, you will already feel with superpowers ⚡, this is why we have also created an in-depth tutorial that will cover all the aspect of Avalanche in details and make you a true Continual Learner! 👨‍🎓️
+
+## 🗂️ Maintained by ContinualAI Research
 
 ![](.gitbook/assets/continualai_research_logo.png)
 
