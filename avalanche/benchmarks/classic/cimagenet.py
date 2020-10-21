@@ -19,16 +19,21 @@ from avalanche.benchmarks.generators import NCScenario
 
 from torchvision import transforms
 
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+
 _default_train_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    normalize
 ])
 
 _default_test_transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
+    normalize
 ])
 
 
@@ -80,7 +85,7 @@ def SplitImageNet(root,
         CIFAR10 otherwise.
         """
 
-    train_set = ImageNet(root, solit="train", transform=train_transform)
+    train_set = ImageNet(root, split="train", transform=train_transform)
     test_set = ImageNet(root, split="val", transform=test_transform)
 
     if classes_first_batch is not None:
@@ -112,8 +117,8 @@ def SplitImageNet(root,
 
 if __name__ == "__main__":
 
-    scenario = SplitImageNet("/home/admin/data/imagenet/2012")
+    scenario = SplitImageNet("/ssd2/datasets/imagenet/")
     for step in scenario:
         print("step: ", step.current_step)
-        print("classes number: ", len(step.classes_in_this_task))
-        print("classes: ", step.classes_in_this_task)
+        print("classes number: ", len(step.classes_in_this_batch))
+        print("classes: ", step.classes_in_this_batch)
