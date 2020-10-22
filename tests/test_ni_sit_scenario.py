@@ -4,11 +4,10 @@ from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios import \
     create_ni_single_dataset_sit_scenario, NIBatchInfo, \
-    create_ni_multi_dataset_sit_scenario
+    create_ni_multi_dataset_sit_scenario, NIScenario
 from avalanche.training.utils import TransformationSubset, torch
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
-from avalanche.benchmarks.scenarios.generic_cl_scenario import ScenarioSlice
 
 
 class NISITTests(unittest.TestCase):
@@ -129,11 +128,12 @@ class NISITTests(unittest.TestCase):
 
         iterable_slice = [3, 4, 1]
         sliced_scenario = nc_scenario[iterable_slice]
-        self.assertIsInstance(sliced_scenario, ScenarioSlice)
+        self.assertIsInstance(sliced_scenario, NIScenario)
         self.assertEqual(len(iterable_slice), len(sliced_scenario))
 
         for batch_id, step_info in enumerate(sliced_scenario):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_batch)
             self.assertIsInstance(step_info, NIBatchInfo)
 
 
