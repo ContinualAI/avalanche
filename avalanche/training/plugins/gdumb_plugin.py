@@ -7,7 +7,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-06-2020                                                              #
-# Author(s): Andrea Cossu                                                #
+# Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
@@ -45,7 +45,8 @@ class GDumbPlugin(StrategySkeleton):
 
         self.mem_size = mem_size
         self.ext_mem = None
-        self.counter = defaultdict(int) # count occurrences for each class
+        # count occurrences for each class
+        self.counter = defaultdict(int)
 
     @TrainingFlow
     def adapt_train_dataset(self, step_id, train_dataset):
@@ -64,7 +65,8 @@ class GDumbPlugin(StrategySkeleton):
             target_value = target.item()
             
             if self.counter == {}:
-                patterns_per_class = 1 # any positive (>0) number is ok
+                # any positive (>0) number is ok
+                patterns_per_class = 1
             else:
                 patterns_per_class = int(
                     self.mem_size / len(self.counter.keys())
@@ -99,10 +101,11 @@ class GDumbPlugin(StrategySkeleton):
                 self.ext_mem = TensorDataset(memx, memy)
             else:
                 self.ext_mem = TensorDataset(
-                        torch.cat( [memx, self.ext_mem.tensors[0]], dim=0),
-                        torch.cat( [memy, self.ext_mem.tensors[1]], dim=0)
+                    torch.cat([memx, self.ext_mem.tensors[0]], dim=0),
+                    torch.cat([memy, self.ext_mem.tensors[1]], dim=0)
                 )
 
         self.update_namespace(train_dataset=self.ext_mem)
+
 
 __all__ = ['GDumbPlugin']

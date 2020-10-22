@@ -5,7 +5,7 @@ from torch import Tensor
 
 from avalanche.training.utils import IDatasetWithTargets, \
     ConcatDatasetWithTargets, TransformationTensorDataset
-from .datasets_from_filelists import datasets_from_filelists
+from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 
 
