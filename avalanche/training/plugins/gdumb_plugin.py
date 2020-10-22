@@ -73,23 +73,23 @@ class GDumbPlugin(StrategySkeleton):
                     )
 
             if target_value not in self.counter or \
-               self.counter[target_value] < patterns_per_class:
-                    # full memory, remove item from most represented class
-                    if sum(self.counter.values()) >= self.mem_size: 
-                        to_remove = max(self.counter, key=self.counter.get)
-                        for j in range(len(self.ext_mem.tensors[1])):
-                            if self.ext_mem.tensors[1][j].item() == to_remove:
-                                self.ext_mem.tensors[0][j] = pattern
-                                self.ext_mem.tensors[1][j] = target
-                                break
-                        self.counter[to_remove] -= 1
+                    self.counter[target_value] < patterns_per_class:
+                # full memory, remove item from most represented class
+                if sum(self.counter.values()) >= self.mem_size:
+                    to_remove = max(self.counter, key=self.counter.get)
+                    for j in range(len(self.ext_mem.tensors[1])):
+                        if self.ext_mem.tensors[1][j].item() == to_remove:
+                            self.ext_mem.tensors[0][j] = pattern
+                            self.ext_mem.tensors[1][j] = target
+                            break
+                    self.counter[to_remove] -= 1
 
-                    # memory not full, just add the new pattern
-                    else:
-                        ext_mem[0].append(pattern)
-                        ext_mem[1].append(target.unsqueeze(0))
+                # memory not full, just add the new pattern
+                else:
+                    ext_mem[0].append(pattern)
+                    ext_mem[1].append(target.unsqueeze(0))
                     
-                    self.counter[target_value] += 1
+                self.counter[target_value] += 1
 
         # concatenate previous memory with newly added patterns.
         # when ext_mem[0] == [] the memory (self.ext_mem) is full and patterns 
