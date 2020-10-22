@@ -14,13 +14,10 @@
 
 import copy
 
-import torch
-from torch.utils.data import DataLoader, ConcatDataset, TensorDataset, \
-    random_split
+from torch.utils.data import ConcatDataset, random_split
 
 from avalanche.training.skeletons.cl_strategy import StrategySkeleton
 from avalanche.training.skeletons.strategy_flow import TrainingFlow
-from avalanche.training.utils import ConcatDatasetWithTargets
 
 
 class ReplayPlugin(StrategySkeleton):
