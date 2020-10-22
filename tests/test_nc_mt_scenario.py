@@ -4,11 +4,10 @@ from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_multi_task_scenario, \
-    create_nc_multi_dataset_multi_task_scenario, NCTaskInfo
+    create_nc_multi_dataset_multi_task_scenario, NCTaskInfo, NCMultiTaskScenario
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
-from avalanche.benchmarks.scenarios.generic_cl_scenario import ScenarioSlice
 
 
 class MultiTaskTests(unittest.TestCase):
@@ -197,11 +196,12 @@ class MultiTaskTests(unittest.TestCase):
 
         iterable_slice = [3, 4, 1]
         sliced_scenario = nc_scenario[iterable_slice]
-        self.assertIsInstance(sliced_scenario, ScenarioSlice)
+        self.assertIsInstance(sliced_scenario, NCMultiTaskScenario)
         self.assertEqual(len(iterable_slice), len(sliced_scenario))
 
         for batch_id, step_info in enumerate(sliced_scenario):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_task)
             self.assertIsInstance(step_info, NCTaskInfo)
 
 
