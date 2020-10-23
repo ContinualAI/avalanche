@@ -23,8 +23,10 @@ dependencies:
 - scikit-learn
 - matplotlib
 - numpy
-- vlomonaco::pytorchcv
 - conda-forge::pycodestyle
 - sphinx
 - sphinx_rtd_theme
 - conda-forge::sphinx-autoapi
+- pip
+- pip:
+    - pytorchcv
