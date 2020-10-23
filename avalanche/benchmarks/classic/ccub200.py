@@ -30,6 +30,7 @@ _default_test_transform = transforms.Compose([
                          (0.2023, 0.1994, 0.2010))
 ])
 
+
 def SplitCUB200(root,
                 incremental_steps=11,
                 classes_first_batch=100,
