@@ -24,8 +24,8 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.strategies import Naive, Cumulative
-from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
+#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
 
 device = 'cpu'
 
@@ -64,11 +64,12 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        strategy = Replay(model, 'classifier', optimizer, criterion,
+                mem_size=200,
                 evaluation_protocol=eval_protocol,
                 train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device,
-                plugins=[ReplayPlugin(mem_size=10)])
+                train_epochs=4, test_mb_size=100, device=device, plugins=None
+                )
 
         self.run_strategy(nc_scenario, strategy)
 
@@ -107,11 +108,12 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        strategy = GDumb(model, 'classifier', optimizer, criterion,
+                mem_size=2000,
                 train_mb_size=64,
                 evaluation_protocol=eval_protocol,
                 train_epochs=10, test_mb_size=100, device=device,
-                plugins=[GDumbPlugin(2000)])
+                plugins=None)
 
         print('Starting experiment...')
         results = []
