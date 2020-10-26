@@ -19,11 +19,14 @@ from __future__ import print_function
 
 from typing import Optional, Sequence
 
+import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import GDumbPlugin
+
+from avalanche.training.skeletons import TrainingFlow
 
 from avalanche.evaluation import EvalProtocol
 from avalanche.training.skeletons import StrategySkeleton
@@ -40,7 +43,8 @@ class GDumb(Naive):
 
     def __init__(self, model: Module, classifier_field: str,
                  optimizer: Optimizer, criterion: Module,
-                 mem_size: int,
+                 mem_size: int, reinit_model_before_step: bool = True,
+                 reinit_function: object = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  evaluation_protocol: Optional[EvalProtocol] = None,
@@ -54,6 +58,12 @@ class GDumb(Naive):
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
         :param mem_size: Replay memory size
+        :param reinit_model_before_step: if True, model will be reinitialized 
+            before each step according to `reinit_function` or uniformly if
+            `reinit_function` is not provided. Default True.
+        :param reinit_function: a function which takes as input the model 
+            and return the model with weights initialized.
+            Used only if `reinit_model_before_step` is True. Default None.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param test_mb_size: The test minibatch size. Defaults to 1.
@@ -72,6 +82,31 @@ class GDumb(Naive):
         super(GDumb, self).__init__(
             model, classifier_field, optimizer, criterion, train_mb_size,
             train_epochs, test_mb_size, device, evaluation_protocol, plugins)
+
+        self.reinit_model_before_step = reinit_model_before_step
+        self.reinit_function = reinit_function
+
+
+    @TrainingFlow
+    def before_training(self):
+        """
+        Reinitialize model before each step, if needed.
+        """
+
+        if self.reinit_model_before_step:
+            if self.reinit_function is not None:
+                self.reinit_function(self.model)
+            else:
+                self._init_weights()
+
+
+    def _init_weights(self):
+        """
+        Default init function
+        """
+        with torch.no_grad():
+            for p in self.model.parameters():
+                torch.nn.init.uniform_(p, -0.1, 0.1)
 
 
 __all__ = ['GDumb']

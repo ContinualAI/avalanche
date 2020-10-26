@@ -14,6 +14,8 @@
 
 import unittest
 
+import torch
+
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Compose
 from torch.optim import SGD
@@ -108,8 +110,14 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
+        def reinit(m):
+            with torch.no_grad():
+                for p in m.parameters():
+                    torch.nn.init.uniform_(p, -1, 1)
+
         strategy = GDumb(model, 'classifier', optimizer, criterion,
-                mem_size=2000,
+                mem_size=2000, reinit_model_before_step=True,
+                reinit_function=reinit, # None to use default init function
                 train_mb_size=64,
                 evaluation_protocol=eval_protocol,
                 train_epochs=10, test_mb_size=100, device=device,
