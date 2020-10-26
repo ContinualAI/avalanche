@@ -177,6 +177,8 @@ class StrategyTemplate(StrategySkeleton):
         Creates and instance of the Strategy Template.
         """
         super().__init__()
+        self.training_step_id = -1
+
         # Define training phase template
 
         # In fact, the "to_group" argument already defaults to root_group
@@ -248,7 +250,6 @@ class StrategyTemplate(StrategySkeleton):
         """
         train_dataset = step_info.current_training_set()[0]
         self.update_namespace(train_dataset=train_dataset)
-        self.update_namespace(step_id=step_info.current_step)
         return train_dataset
 
     @TrainingFlow
@@ -411,6 +412,7 @@ class StrategyTemplate(StrategySkeleton):
     def train(self, step_info: IStepInfo, **kwargs):
         if self.is_testing() or self.is_training():
             raise RuntimeError('Another flow is running')
+        self.training_step_id += 1
         return self.training_flow(step_info=step_info, **kwargs)
 
     def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):

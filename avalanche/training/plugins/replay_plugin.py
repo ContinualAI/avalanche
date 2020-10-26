@@ -42,7 +42,7 @@ class ReplayPlugin(StrategySkeleton):
         self.ext_mem = None
 
     @TrainingFlow
-    def adapt_train_dataset(self, step_id, train_dataset, ext_mem):
+    def adapt_train_dataset(self, training_step_id, train_dataset, ext_mem):
         """ Before training we make sure to publish in the namespace a copy
             of :mem_size: randomly selected patterns to be used for replay
             in the next batch and we expand the current training set to
@@ -53,7 +53,7 @@ class ReplayPlugin(StrategySkeleton):
         rm_add = None
 
         # how many patterns to save for next iter
-        h = min(self.mem_size // (step_id + 1), len(train_dataset))
+        h = min(self.mem_size // (training_step_id + 1), len(train_dataset))
 
         # We recover it using the random_split method and getting rid of the
         # second split.
@@ -62,7 +62,7 @@ class ReplayPlugin(StrategySkeleton):
         )
         self.update_namespace(rm_add=rm_add)
 
-        if step_id > 0:
+        if training_step_id > 0:
             # We update the train_dataset concatenating the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.
@@ -70,13 +70,13 @@ class ReplayPlugin(StrategySkeleton):
             self.update_namespace(train_dataset=train_dataset)
 
     @TrainingFlow
-    def after_training(self, step_id, rm_add):
+    def after_training(self, training_step_id, rm_add):
         """ After training we update the external memory with the patterns of
          the current training batch/task. """
 
         # replace patterns in random memory
         ext_mem = self.ext_mem
-        if step_id == 0:
+        if training_step_id == 0:
             ext_mem = copy.deepcopy(rm_add)
         else:
             _, saved_part = random_split(
