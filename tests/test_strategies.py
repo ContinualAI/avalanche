@@ -66,8 +66,14 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
+        def reinit(m):
+            with torch.no_grad():
+                for p in m.parameters():
+                    torch.nn.init.uniform_(p, -1, -1)
+
         strategy = Replay(model, 'classifier', optimizer, criterion,
-                mem_size=200,
+                mem_size=200, reinit_model_before_step=True,
+                reinit_function=reinit, # None to use default init function
                 evaluation_protocol=eval_protocol,
                 train_mb_size=100, 
                 train_epochs=4, test_mb_size=100, device=device, plugins=None
@@ -123,22 +129,8 @@ class StrategyTest(unittest.TestCase):
                 train_epochs=10, test_mb_size=100, device=device,
                 plugins=None)
 
-        print('Starting experiment...')
-        results = []
-        batch_info: NCBatchInfo
-        for batch_info in nc_scenario:
-            print("Start of step ", batch_info.current_step)
-
-            # retrain from scratch each step
-            strategy.model = SimpleMLP()
-            strategy.optimizer = SGD(strategy.model.parameters(), lr=1e-2)
-            strategy.train(batch_info, num_workers=4)
-            print('Training completed')
-
-            print('Computing accuracy on the whole test set')
-            results.append(strategy.test(batch_info, DatasetPart.COMPLETE,
-                                            num_workers=4))
-
+        self.run_strategy(nc_scenario, strategy)
+    
 
     def load_dataset(self):
 
