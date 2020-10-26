@@ -14,6 +14,8 @@
 
 import unittest
 
+import torch
+
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Compose
 from torch.optim import SGD
@@ -24,8 +26,8 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.strategies import Naive, Cumulative
-from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
+#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
 
 device = 'cpu'
 
@@ -64,11 +66,18 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        def reinit(m):
+            with torch.no_grad():
+                for p in m.parameters():
+                    torch.nn.init.uniform_(p, -1, -1)
+
+        strategy = Replay(model, 'classifier', optimizer, criterion,
+                mem_size=200, reinit_model_before_step=True,
+                reinit_function=reinit, # None to use default init function
                 evaluation_protocol=eval_protocol,
                 train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device,
-                plugins=[ReplayPlugin(mem_size=10)])
+                train_epochs=4, test_mb_size=100, device=device, plugins=None
+                )
 
         self.run_strategy(nc_scenario, strategy)
 
@@ -107,28 +116,21 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        def reinit(m):
+            with torch.no_grad():
+                for p in m.parameters():
+                    torch.nn.init.uniform_(p, -1, 1)
+
+        strategy = GDumb(model, 'classifier', optimizer, criterion,
+                mem_size=2000, reinit_model_before_step=True,
+                reinit_function=reinit, # None to use default init function
                 train_mb_size=64,
                 evaluation_protocol=eval_protocol,
                 train_epochs=10, test_mb_size=100, device=device,
-                plugins=[GDumbPlugin(2000)])
+                plugins=None)
 
-        print('Starting experiment...')
-        results = []
-        batch_info: NCBatchInfo
-        for batch_info in nc_scenario:
-            print("Start of step ", batch_info.current_step)
-
-            # retrain from scratch each step
-            strategy.model = SimpleMLP()
-            strategy.optimizer = SGD(strategy.model.parameters(), lr=1e-2)
-            strategy.train(batch_info, num_workers=4)
-            print('Training completed')
-
-            print('Computing accuracy on the whole test set')
-            results.append(strategy.test(batch_info, DatasetPart.COMPLETE,
-                                            num_workers=4))
-
+        self.run_strategy(nc_scenario, strategy)
+    
 
     def load_dataset(self):
 
