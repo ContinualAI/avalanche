@@ -70,7 +70,6 @@ class Cumulative(Naive):
         )
 
         self.update_namespace(train_dataset=train_dataset)
-        self.update_namespace(step_id=step_info.current_step)
         return train_dataset
 
 

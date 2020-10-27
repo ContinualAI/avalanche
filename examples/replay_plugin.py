@@ -87,7 +87,7 @@ def main():
     results = []
     batch_info: NCBatchInfo
     for batch_info in nc_scenario:
-        print("Start of step ", batch_info.current_step)
+        print("Start of step ", cl_strategy.training_step_id)
 
         cl_strategy.train(batch_info, num_workers=4)
         print('Training completed')
@@ -95,6 +95,7 @@ def main():
         print('Computing accuracy on the whole test set')
         results.append(cl_strategy.test(batch_info, DatasetPart.COMPLETE,
                                         num_workers=4))
+
 
 if __name__ == '__main__':
     main()

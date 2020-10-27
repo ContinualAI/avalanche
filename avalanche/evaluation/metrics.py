@@ -39,16 +39,25 @@ import time
 
 class MAC:
     """
-        Multiply-and-accumulate metric. Approximately measure the computational
-        cost of a model in a hardware-independent way by computing the number
-        of multiplications. Currently supports only Linear or Conv2d modules.
-        Other operations are ignored.
+        Multiply-and-accumulate metric. Provides a lower bound of the 
+        computational cost of a model in a hardware-independent way by 
+        computing the number of multiplications. Currently supports only 
+        Linear or Conv2d modules. Other operations are ignored.
     """
     def __init__(self):
         self.hooks = []
         self._compute_cost = 0
 
     def compute(self, model, dummy_input):
+        """
+        Computes the MAC metric.
+
+        :param model: current model.
+        :param dummy_input: A tensor of the correct size to feed as input 
+            to model.
+        :return: MAC metric.
+        """
+
         for mod in model.modules():
             if self.is_recognized_module(mod):
                 def foo(a, b, c):
