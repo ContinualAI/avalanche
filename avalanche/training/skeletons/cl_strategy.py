@@ -177,7 +177,7 @@ class StrategyTemplate(StrategySkeleton):
         Creates and instance of the Strategy Template.
         """
         super().__init__()
-        self.training_step_id = -1
+        self.training_step_id = 0
 
         # Define training phase template
 
@@ -412,8 +412,9 @@ class StrategyTemplate(StrategySkeleton):
     def train(self, step_info: IStepInfo, **kwargs):
         if self.is_testing() or self.is_training():
             raise RuntimeError('Another flow is running')
+        res = self.training_flow(step_info=step_info, **kwargs)
         self.training_step_id += 1
-        return self.training_flow(step_info=step_info, **kwargs)
+        return res
 
     def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):
         if self.is_testing() or self.is_training():
