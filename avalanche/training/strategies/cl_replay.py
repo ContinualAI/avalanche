@@ -83,7 +83,6 @@ class Replay(Naive):
         self.reinit_model_before_step = reinit_model_before_step
         self.reinit_function = reinit_function
 
-
     @TrainingFlow
     def before_training(self):
         """
@@ -95,7 +94,6 @@ class Replay(Naive):
                 self.reinit_function(self.model)
             else:
                 self._init_weights()
-
 
     def _init_weights(self):
         """
