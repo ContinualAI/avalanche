@@ -6,7 +6,7 @@ description: A Brief Introduction to Avalanche
 
 **Avalanche** was born within [ContinualAI](https://www.continualai.org/) with a clear goal in mind:
 
-> #### _Pushing research in Continual Learning to the next level, providing a shared and collaborative codebase for fast prototyping, training and evaluation of continual learning algorithms._
+> #### _Pushing research in Continual Learning to the next level, providing a shared and collaborative codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms._
 
 As a powerful _avalanche_, a _Continual Learning_ agent _incrementally_ _improves_ its knowledge and skills over time, learning how to interact with the external world. 
 
