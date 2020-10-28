@@ -49,7 +49,7 @@ class GDumbPlugin(StrategySkeleton):
         self.counter = defaultdict(int)
 
     @TrainingFlow
-    def adapt_train_dataset(self, step_id, train_dataset):
+    def adapt_train_dataset(self, training_step_id, train_dataset):
         """ Before training we make sure to organize the memory following
             GDumb approach and updating the dataset accordingly.
         """
