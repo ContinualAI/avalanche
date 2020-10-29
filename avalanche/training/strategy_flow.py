@@ -8,51 +8,38 @@ class StrategyFlow:
         self.train_epochs = train_epochs
         self.plugins = []
 
-        self.current_train_dataset = None
-        self.current_train_dataloader = None
-        self.current_test_dataset = None
-        self.current_test_dataloader = None
+        # Flow state variables
+        self.step_id = None
+        self.current_data = None
+        self.current_dataloader = None
 
     def train(self, step_info: IStepInfo, **kwargs):
-        # BeforeTraining
         self.before_training(**kwargs)
-        self.make_train_dataset(step_info, **kwargs)
+        self.current_data = step_info.current_training_set()[0]
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
-        # ModelTraining
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
-            # TrainingLoop
             self.training_epoch(**kwargs)
-
             self.after_training_epoch(**kwargs)
-        # TrainingModelAdaptation
 
-        # AfterTraining
         self.after_training(**kwargs)
 
     def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):
-        # BeforeTesting
-        self.set_initial_test_step_id(step_info, test_part)
+        self._set_initial_test_step_id(step_info, test_part)
         self.before_testing(**kwargs)
 
-        # MultiTestLoop: loop over steps
-        while self.has_testing_steps_left(step_info):
-            self.before_step_testing(**kwargs)
-            # TestingModelAdaptation -- empty
-            self.make_test_dataset(**kwargs)
+        while self._has_testing_steps_left(step_info):
+            self.before_testing_step(**kwargs)
+            self.current_data = step_info.step_specific_test_set(self.step_id)[0]
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 
-            # ModelTesting
             self.before_testing_epoch(**kwargs)
-            # TestingEpoch
             self.testing_epoch(**kwargs)
-
             self.after_testing_epoch(**kwargs)
-            self.after_step_testing(**kwargs)
 
             self.step_id += 1  # equivalent to self.next_testing_step
 
@@ -62,16 +49,12 @@ class StrategyFlow:
     def before_training(self, **kwargs):
         [p.before_training(**kwargs) for p in self.plugins]
 
-    def make_train_dataset(self, step_info: IStepInfo, **kwargs):
-        self.current_train_dataset = step_info.current_training_set()[0]
-
-    def make_train_dataloader(self, num_workers=0,
-                              train_mb_size=1, **kwargs):
-        self.current_train_data_loader = DataLoader(self.current_train_dataset,
+    def make_train_dataloader(self, num_workers=0, train_mb_size=1, **kwargs):
+        self.current_dataloader = DataLoader(self.current_data,
             num_workers=num_workers, batch_size=train_mb_size)
 
-    def set_initial_test_step_id(self, step_info: IStepInfo,
-                                 dataset_part: DatasetPart = None):
+    def _set_initial_test_step_id(self, step_info: IStepInfo,
+                                  dataset_part: DatasetPart = None):
         # TODO: if we remove DatasetPart this may become unnecessary
         self.step_id = -1
         if dataset_part is None:
@@ -88,8 +71,9 @@ class StrategyFlow:
         if self.step_id < 0:
             raise ValueError('Invalid dataset part')
 
-    def has_testing_steps_left(self, step_info: IStepInfo,
-                               test_part: DatasetPart = None):
+    def _has_testing_steps_left(self, step_info: IStepInfo,
+                                test_part: DatasetPart = None):
+        # TODO: if we remove DatasetPart this may become unnecessary
         step_id = self.step_id
         if test_part is None:
             test_part = DatasetPart.COMPLETE
@@ -107,11 +91,8 @@ class StrategyFlow:
 
         raise ValueError('Invalid dataset part')
 
-    def make_test_dataset(self, step_info: IStepInfo, step_id: int):
-        self.current_test_dataset = step_info.step_specific_test_set(step_id)[0]
-
     def make_test_dataloader(self, num_workers=0, test_mb_size=1):
-        self.currrent_test_data_loader = DataLoader(self.current_test_dataset,
+        self.current_dataloader = DataLoader(self.current_data,
               num_workers=num_workers, batch_size=test_mb_size)
 
     def adapt_train_dataset(self, **kwargs):
@@ -128,12 +109,14 @@ class StrategyFlow:
 
     def after_training(self, **kwargs):
         [p.after_training(**kwargs) for p in self.plugins]
+        self.current_data = None
+        self.current_loader = None
 
     def before_testing(self, **kwargs):
         [p.before_testing(**kwargs) for p in self.plugins]
 
-    def before_step_testing(self, **kwargs):
-        [p.before_step_testing(**kwargs) for p in self.plugins]
+    def before_testing_step(self, **kwargs):
+        [p.before_testing_step(**kwargs) for p in self.plugins]
 
     def adapt_test_dataset(self, **kwargs):
         [p.adapt_test_dataset(**kwargs) for p in self.plugins]
@@ -147,8 +130,8 @@ class StrategyFlow:
     def after_testing_epoch(self, **kwargs):
         [p.after_testing_epoch(**kwargs) for p in self.plugins]
 
-    def after_step_testing(self, **kwargs):
-        [p.after_step_testing(**kwargs) for p in self.plugins]
-
     def after_testing(self, **kwargs):
         [p.after_testing(**kwargs) for p in self.plugins]
+        self.step_id = None
+        self.current_data = None
+        self.current_dataloader = None
