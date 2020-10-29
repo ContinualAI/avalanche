@@ -64,9 +64,9 @@ def create_ni_single_dataset_sit_scenario(
 
     return NIScenario(train_dataset, test_dataset, n_batches,
                       shuffle=shuffle, seed=seed,
-                      balance_batches=balance_batches,
-                      min_class_patterns_in_batch=min_class_patterns_in_batch,
-                      fixed_batch_assignment=fixed_batch_assignment,
+                      balance_steps=balance_batches,
+                      min_class_patterns_in_step=min_class_patterns_in_batch,
+                      fixed_step_assignment=fixed_batch_assignment,
                       reproducibility_data=reproducibility_data)
 
 
@@ -121,8 +121,8 @@ def create_ni_multi_dataset_sit_scenario(
 
     return NIScenario(seq_train_dataset, seq_test_dataset, n_batches,
                       shuffle=shuffle, seed=seed,
-                      balance_batches=balance_batches,
-                      min_class_patterns_in_batch=min_class_patterns_in_batch,
+                      balance_steps=balance_batches,
+                      min_class_patterns_in_step=min_class_patterns_in_batch,
                       reproducibility_data=reproducibility_data)
 
 

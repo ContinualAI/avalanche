@@ -164,12 +164,12 @@ def _one_dataset_per_batch_class_order(
     """
     Utility function that shuffles the class order by keeping classes from the
     same batch together. Each batch is defined by a different entry in the
-    class_list_per_batch parameter.
+    class_list_per_step parameter.
 
     :param class_list_per_batch: A list of class lists, one for each batch
     :param shuffle: If True, the batch order will be shuffled. If False,
         this function will return the concatenation of lists from the
-        class_list_per_batch parameter.
+        class_list_per_step parameter.
     :param seed: If not None, an integer used to initialize the random
         number generator.
 
@@ -336,8 +336,8 @@ def create_nc_multi_dataset_multi_task_scenario(
 
     # We can't just shuffle the class order because each dataset is a task:
     # doing so will result in having classes of different batches mixed
-    # together. Use the _one_dataset_per_batch_class_order utility to get a
-    # shuffled task order. _one_dataset_per_batch_class_order doesn't shuffle
+    # together. Use the _one_dataset_per_step_class_order utility to get a
+    # shuffled task order. _one_dataset_per_step_class_order doesn't shuffle
     # the task internal class order. That is, this utility is suitable when
     # dealing with Multi Task scenarios, not Multi Incremental Task ones!
     fixed_class_order, classes_per_task = _one_dataset_per_batch_class_order(

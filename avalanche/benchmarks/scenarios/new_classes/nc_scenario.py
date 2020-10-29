@@ -294,7 +294,7 @@ class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
         self.n_batches: int = self.nc_generic_scenario.n_batches
 
         # n_classes is the overall number of classes (copied from the
-        # nc_generic_scenario instance for easier access, like classes_in_batch)
+        # nc_generic_scenario instance for easier access, like classes_in_step)
         self.n_classes: int = self.nc_generic_scenario.n_classes
         self.classes_in_batch = nc_generic_scenario.classes_in_batch
 
@@ -378,7 +378,7 @@ class NCBatchInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
         # in their encounter order
         self.future_classes: List[int] = []
 
-        # _go_to_batch initializes the above lists
+        # _get_classes_timeline initializes the above lists
         self._go_to_batch()
 
     def _go_to_batch(self):

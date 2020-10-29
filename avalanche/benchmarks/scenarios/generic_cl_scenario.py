@@ -1,5 +1,5 @@
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List
+    Dict, Any, Iterable, List, Set
 from abc import ABC, abstractmethod
 import copy
 
@@ -84,10 +84,21 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             used.
         """
         self.train_dataset: TrainSetWithTargets = train_dataset
+        """ The original training set """
+
         self.test_dataset: TestSetWithTargets = test_dataset
+        """ The original test set """
+
+        # TODO: doc
         self.train_steps_patterns_assignment: Sequence[Sequence[int]]
+
+        # TODO: doc
         self.test_steps_patterns_assignment: Sequence[Sequence[int]]
+
         self.task_labels: Sequence[int] = task_labels
+        """ The task label of each step """
+
+        # TODO: make protected
         self.step_factory: Callable[[TGenericCLScenario, int], TStepInfo]
 
         if step_factory is None:
@@ -132,6 +143,8 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.test_steps_patterns_assignment: Sequence[Sequence[int]] = \
             test_steps_patterns_assignment
         self.task_labels: Sequence[int] = task_labels
+
+        # TODO: rename (remove return_) and doc
         self.return_complete_test_set_only: bool = \
             bool(return_complete_test_set_only)
 
@@ -143,6 +156,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
                 reproducibility_data['complete_test_only']
 
         self.n_steps: int = len(self.train_steps_patterns_assignment)
+        """  The number of steps """
 
         if self.return_complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
@@ -260,6 +274,10 @@ class AbstractStepInfo(ABC, Generic[TBaseScenario]):
 
     def __init__(
             self, scenario: TBaseScenario, current_step: int, n_steps: int,
+            classes_in_this_step: Sequence[int],
+            previous_classes: Sequence[int],
+            classes_seen_so_far: Sequence[int],
+            future_classes: Optional[Sequence[int]],
             train_transform: Optional[Callable] = None,
             train_target_transform: Optional[Callable] = None,
             test_transform: Optional[Callable] = None,
@@ -320,6 +338,18 @@ class AbstractStepInfo(ABC, Generic[TBaseScenario]):
         self.force_train_transformations: bool = force_train_transformations
         self.force_test_transformations: bool = force_test_transformations
         self.are_transformations_disabled: bool = are_transformations_disabled
+
+        self.classes_in_this_step: Sequence[int] = classes_in_this_step
+        """ The list of classes in this step """
+
+        self.previous_classes: Sequence[int] = previous_classes
+        """ The list of classes in previous steps """
+
+        self.classes_seen_so_far: Sequence[int] = classes_seen_so_far
+        """ List of classes of current and previous steps """
+
+        self.future_classes: Optional[Sequence[int]] = future_classes
+        """ The list of classes of next steps """
 
     @abstractmethod
     def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
@@ -594,10 +624,14 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
 
     def __init__(self, scenario: TGenericCLScenario,
                  current_step: int,
+                 classes_in_this_step: Sequence[int],
+                 previous_classes: Sequence[int],
+                 classes_seen_so_far: Sequence[int],
+                 future_classes: Optional[Sequence[int]],
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False,
-                 transformation_step_factory: Optional[Callable] = None):
+                 transformation_step_factory: Optional[Callable] = None,):
         """
         Creates an instance of a generic step info given the base generic
         scenario and the current step ID and transformations
@@ -618,10 +652,11 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
             Defaults to False.
         """
         super(GenericStepInfo, self).__init__(
-            scenario, current_step, len(scenario), scenario.train_transform,
-            scenario.train_target_transform, scenario.test_transform,
-            scenario.test_target_transform, force_train_transformations,
-            force_test_transformations,
+            scenario, current_step, len(scenario), classes_in_this_step,
+            previous_classes, classes_seen_so_far, future_classes,
+            scenario.train_transform, scenario.train_target_transform,
+            scenario.test_transform, scenario.test_target_transform,
+            force_train_transformations, force_test_transformations,
             are_transformations_disabled)
 
         self.transformation_step_factory = transformation_step_factory

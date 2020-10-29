@@ -119,7 +119,7 @@ def main():
     clmodel = Naive(model, eval_protocol=evalp, device=device)
 
     # Let's start looking at the nc_scenario API. First, print the classes
-    # contained in each batch. We can use classes_in_batch to obtain the list of
+    # contained in each batch. We can use classes_in_step to obtain the list of
     # classes in each batch. You can obtain a different class order by changing
     # the seed passed to create_nc_single_dataset_sit_scenario.
     print('Batch order:')
@@ -158,7 +158,7 @@ def main():
 
         # classes_in_this_batch contains the list of classes in this batch
         # This is way easier than using
-        # nc_scenario.classes_in_batch[batch_info.current_batch]
+        # nc_scenario.classes_in_step[batch_info.current_batch]
         print('Classes in this batch:', batch_info.classes_in_this_batch)
 
         # batch_info can be used to access the list of previously

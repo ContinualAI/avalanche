@@ -115,7 +115,7 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             self.n_batches = n_batches
         # The class order
         self.classes_order: List[int] = []
-        # class_mapping stores the class_list_per_batch such that
+        # class_mapping stores the class_list_per_step such that
         # mapped_class_id = class_mapping[original_class_id]
         self.class_mapping: List[int] = []
 
@@ -244,8 +244,8 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
             self.n_classes_per_batch = \
                 [self.n_classes // self.n_batches] * self.n_batches
 
-        # Before populating the classes_in_batch list,
-        # define the correct class IDs class_list_per_batch.
+        # Before populating the classes_in_step list,
+        # define the correct class IDs class_list_per_step.
         if reproducibility_data:
             self.classes_order = reproducibility_data['classes_order']
             self.class_mapping = reproducibility_data['class_mapping']
@@ -265,8 +265,8 @@ class NCGenericScenario(Generic[TrainSetWithTargets, TestSetWithTargets]):
         self.test_dataset = TransformationSubset(
             test_dataset, None, class_mapping=self.class_mapping)
 
-        # Populate the classes_in_batch list
-        # "classes_in_batch[batch_id]": list of class IDs assigned
+        # Populate the classes_in_step list
+        # "classes_in_step[batch_id]": list of class IDs assigned
         # to batch "batch_id"
         for batch_id in range(self.n_batches):
             classes_start_idx = sum(self.n_classes_per_batch[:batch_id])
