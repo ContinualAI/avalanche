@@ -32,7 +32,131 @@ Check out _how you code changes_ when you start using _Avalanche_! 👇
 {% tabs %}
 {% tab title="Without Avalanche" %}
 ```python
-# Fill here...
+import torch
+from torch.nn import CrossEntropyLoss
+from torch.optim import SGD
+from torchvision import transforms
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor, RandomCrop
+
+# Config
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+n_tasks = 5
+n_classes = 10
+train_ep = 2
+mb_size = 32
+
+# model
+class SimpleMLP(nn.Module):
+
+    def __init__(self, num_classes=10, input_size=28*28):
+        super(SimpleMLP, self).__init__()
+
+        self.features = nn.Sequential(
+            nn.Linear(input_size, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+        )
+        self.classifier = nn.Linear(512, num_classes)
+        self._input_size = input_size
+
+    def forward(self, x):
+        x = x.contiguous()
+        x = x.view(x.size(0), self._input_size)
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+model = SimpleMLP(num_classes=n_classes)
+
+# CL Benchmark Creation
+list_train_dataset = []
+list_test_dataset = []
+rng_permute = np.random.RandomState(seed)
+train_transform = transforms.Compose([
+    RandomCrop(28, padding=4),
+    ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+test_transform = transforms.Compose([
+    ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+
+# for every incremental step
+for _ in range(n_tasks):
+    # choose a random permutation of the pixels in the image
+    idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)
+
+    # add the permutation to the default dataset transformation
+    train_transform_list = train_transform.transforms.copy()
+    train_transform_list.append(
+        transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
+    )
+    new_train_transform = transforms.Compose(train_transform_list)
+
+    test_transform_list = test_transform.transforms.copy()
+    test_transform_list.append(
+        transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
+    )
+    new_test_transform = transforms.Compose(test_transform_list)
+
+    # get the datasets with the constructed transformation
+    permuted_train = MNIST(root='./data/mnist',
+                           download=True, transform=train_transformation)
+    permuted_test = MNIST(root='./data/mnist',
+                    train=False,
+                    download=True, transform=test_transformation)
+    list_train_dataset.append(permuted_train)
+    list_test_dataset.append(permuted_test)
+
+# Train
+optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+criterion = CrossEntropyLoss()
+
+for task_id, train_dataset in enumerate(list_train_dataset):
+
+    train_data_loader = DataLoader(
+        train_dataset, num_workers=num_workers, batch_size=train_mb_size)
+    
+    for ep in range(train_ep):
+        for iteration, (train_mb_x, train_mb_y) in enumerate(train_data_loader):
+            optimizer.zero_grad()
+            train_mb_x = train_mb_x.to(device)
+            train_mb_y = train_mb_y.to(device)
+
+            # Forward
+            logits = model(train_mb_x)
+            # Loss
+            loss = criterion(logits, train_mb_y)
+            # Backward
+            loss.backward()
+            # Update
+            optimizer.step()
+
+# Test
+acc_results = []
+for task_id, test_dataset in enumerate(list_test_dataset):
+    
+    train_data_loader = DataLoader(
+        train_dataset, num_workers=num_workers, batch_size=train_mb_size)
+    
+    correct = 0
+    for iteration, (test_mb_x, test_mb_y) in enumerate(test_data_loader):
+
+        # Move mini-batch data to device
+        test_mb_x = test_mb_x.to(device)
+        test_mb_y = test_mb_y.to(device)
+
+        # Forward
+        test_logits = model(test_mb_x)
+
+        # Loss
+        test_loss = criterion(test_logits, test_mb_y)
+
+        # compute acc
+        correct += (test_mb_y.eq(test_logits.long())).sum()
+    
+    acc_results.append(len(test_dataset)/correct)
 ```
 {% endtab %}
 
@@ -41,51 +165,39 @@ Check out _how you code changes_ when you start using _Avalanche_! 👇
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop
 
-from avalanche.benchmarks.scenarios import DatasetPart, \
-    create_nc_single_dataset_sit_scenario, NCBatchInfo
+from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies.new_strategy_api.cl_naive import Naive
+from avalanche.training.strategies import Naive
 
+# Config
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+n_tasks = 5
+n_classes = 10
+train_ep = 2
+mb_size = 32
 
-mnist_train = MNIST('./data/mnist', train=True, download=True)
-mnist_test = MNIST('./data/mnist', train=False, download=True)
-    
-nc_scenario = NCScenario(mnist_train, mnist_test, n_batches, shuffle=True, seed=1234)
+# model
+model = SimpleMLP(num_classes=n_classes)
 
-# Create your model
-model = SimpleMLP(num_classes=nc_scenario.n_classes)
+# CL Benchmark Creation
+perm_mnist = PermutedMNIST(n_tasks),
 
-# Define the Evaluation Protocol
-evaluation_protocol = EvalProtocol(
-    metrics=[ACC(num_class=nc_scenario.n_classes),  # Accuracy metric
-             CF(num_class=nc_scenario.n_classes),  # Catastrophic forgetting
-             RAMU(),  # Ram usage
-             CM()],  # Confusion matrix
-    tb_logdir='../logs/mnist_test_sit'
-)
-
-# Creat your Strategy (Naive)
+# Train & Test
+optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+criterion = CrossEntropyLoss()
+evaluation_protocol = EvalProtocol(metrics=[ACC(n_classes)]
 cl_strategy = Naive(
     model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-    evaluation_protocol=evaluation_protocol
-)
+    CrossEntropyLoss(), train_mb_size=mb_size, train_epochs=train_ep,
+    test_mb_size=mb_size, evaluation_protocol=evaluation_protocol, device=device)
 
-# Training loop
-print('Starting experiment...')
 results = []
-
-for batch_info in nc_scenario:
-    print("Start of step ", batch_info.current_step)
-
-    cl_strategy.train(batch_info)
-    results.append(cl_strategy.test(batch_info)
+for task in perm_mnist:
+    cl_strategy.train(task, num_workers=4)
+    results.append(cl_strategy.test(task))
 ```
 {% endtab %}
 {% endtabs %}
