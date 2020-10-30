@@ -114,6 +114,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
 
         if reproducibility_data is not None:
             super(NIScenario, self).__init__(
+                train_dataset, test_dataset,
                 train_dataset, test_dataset, [], [], [],
                 reproducibility_data=reproducibility_data)
             n_steps = self.n_steps
@@ -372,6 +373,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
                 if n_patterns_of_class > 0:
                     self.classes_in_step[step_id].append(class_id)
         super(NIScenario, self).__init__(
+            train_dataset, test_dataset,
             train_dataset, test_dataset, step_patterns, [],
             task_labels=[0] * n_steps,
             return_complete_test_set_only=True, step_factory=NIStepInfo)

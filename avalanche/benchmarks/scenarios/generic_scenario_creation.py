@@ -87,6 +87,7 @@ def create_multi_dataset_generic_scenario(
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.
     return GenericCLScenario(
+        concat_train_dataset, concat_test_dataset,
         concat_train_dataset, concat_test_dataset, train_structure,
         test_structure, task_labels,
         return_complete_test_set_only=complete_test_set_only)

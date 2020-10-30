@@ -12,16 +12,13 @@
 from typing import Sequence, Optional, Dict, SupportsInt, Union, Any
 from pathlib import Path
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
-    create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario, \
-    create_nc_multi_dataset_sit_scenario, \
-    create_nc_multi_dataset_multi_task_scenario
+    create_nc_single_dataset_scenario, create_nc_multi_dataset_scenario
 from avalanche.benchmarks.scenarios.new_instances.scenario_creation import \
     create_ni_multi_dataset_sit_scenario, \
     create_ni_single_dataset_sit_scenario
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
-    NCMultiTaskScenario, NCSingleTaskScenario
+from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
+    NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.scenarios.generic_cl_scenario import GenericCLScenario
 from avalanche.training.utils import IDatasetWithTargets
@@ -39,16 +36,17 @@ def NCScenario(
         test_dataset: Union[
             Sequence[IDatasetWithTargets], IDatasetWithTargets],
         n_steps: int,
-        multi_task: bool = True,
+        *,
+        task_labels: bool = True,
         shuffle: bool = True,
         seed: Optional[int] = None,
-        fixed_class_order: Optional[Sequence[int]] = None,
-        per_step_classes: Optional[Dict[int, int]] = None,
-        classes_ids_from_zero: bool = True,
+        fixed_class_order: Sequence[int] = None,
+        per_step_classes: Dict[int, int] = None,
+        class_ids_from_zero_from_first_step: bool = False,
+        class_ids_from_zero_in_each_step: bool = True,
         remap_class_ids: bool = False,
-        one_dataset_per_batch: bool = False,
-        reproducibility_data: Optional[Dict[str, Any]] = None) \
-        -> Union[NCMultiTaskScenario, NCSingleTaskScenario]:
+        one_dataset_per_step: bool = None,
+        reproducibility_data: Dict[str, Any] = None) -> NCScenario:
 
     """
     This method is the high-level specific scenario generator for the
@@ -65,7 +63,7 @@ def NCScenario(
     :param n_steps: The number of batches or tasks. This is not used in the
         case of multiple train/test datasets and when ``multi_task`` is set to
         True.
-    :param multi_task: True if the scenario is Multi-Task, False if it is a
+    :param task_labels: True if the scenario is Multi-Task, False if it is a
         Single-Incremental-Task scenario.
     :param shuffle: If True, class order will be shuffled.
     :param seed: A valid int used to initialize the random number generator.
@@ -87,7 +85,18 @@ def NCScenario(
         distributing remaining classes across remaining batches,
         just pass the "{0: 50}" dictionary as the per_task_classes
         parameter. Defaults to None.
-    :param classes_ids_from_zero: This parametes is valid
+    :param class_ids_from_zero_from_first_step: If True, original class IDs
+        will be remapped so that they will appear as having an ascending
+        order. For instance, if the resulting class order after shuffling
+        (or defined by fixed_class_order) is [23, 34, 11, 7, 6, ...] and
+        class_ids_from_zero_from_first_step is True, then all the patterns
+        belonging to class 23 will appear as belonging to class "0",
+        class "34" will be mapped to "1", class "11" to "2" and so on.
+        This is very useful when drawing confusion matrices and when dealing
+        with algorithms with dynamic head expansion. Defaults to False.
+        Mutually exclusive with the ``class_ids_from_zero_in_each_step``
+        parameter.
+    :param class_ids_from_zero_in_each_step: This parametes is valid
         only when ``multi_task`` is set to True. If True, original class IDs
         will be mapped to range [0, n_classes_in_task) for each step. If False,
         each class will keep its original ID as defined in the input
@@ -102,7 +111,7 @@ def NCScenario(
         class "34" will be mapped to "1", class "11" to "2" and so on. This
         is very useful when drawing confusion matrices and when dealing with
         algorithms with dynamic head expansion. Defaults to False.
-    :param one_dataset_per_batch: available only when multile train-test
+    :param one_dataset_per_step: available only when multile train-test
         datasets are provided and ``multi_task`` is set to False. If True, each
         dataset will be treated as a batch. Mutually exclusive with the
         per_task_classes parameter. Overrides the n_batches parameter.
@@ -121,29 +130,28 @@ def NCScenario(
     """
 
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
-        # we are in multi-datasets setting
-        if multi_task:
-            scenario = create_nc_multi_dataset_multi_task_scenario(
-                train_dataset_list=train_dataset,
-                test_dataset_list=test_dataset,
-                shuffle=shuffle,
-                seed=seed,
-                classes_ids_from_zero_in_each_task=classes_ids_from_zero,
-                reproducibility_data=reproducibility_data
-            )
-        else:
-            scenario = create_nc_multi_dataset_sit_scenario(
-                train_dataset_list=train_dataset,
-                test_dataset_list=test_dataset,
-                n_batches=n_steps, shuffle=shuffle,
-                seed=seed, per_batch_classes=per_step_classes,
-                one_dataset_per_batch=one_dataset_per_batch,
-                reproducibility_data=reproducibility_data
-            )
+        # Multi-dataset setting
+        if one_dataset_per_step is None:
+            one_dataset_per_step = task_labels
 
+        scenario = create_nc_multi_dataset_scenario(
+            train_dataset_list=train_dataset,
+            test_dataset_list=test_dataset,
+            n_steps=n_steps,
+            task_labels=task_labels,
+            shuffle=shuffle,
+            seed=seed,
+            fixed_class_order=fixed_class_order,
+            per_step_classes=per_step_classes,
+            class_ids_from_zero_from_first_step=
+            class_ids_from_zero_from_first_step,
+            class_ids_from_zero_in_each_step=
+            class_ids_from_zero_in_each_step,
+            one_dataset_per_step=one_dataset_per_step,
+            reproducibility_data=reproducibility_data)
     else:
         # we are working with a single input dataset
-        if multi_task:
+        if task_labels:
             scenario = create_nc_single_dataset_multi_task_scenario(
                 train_dataset=train_dataset,
                 test_dataset=test_dataset,
@@ -151,7 +159,7 @@ def NCScenario(
                 seed=seed,
                 fixed_class_order=fixed_class_order,
                 per_task_classes=per_step_classes,
-                classes_ids_from_zero_in_each_task=classes_ids_from_zero,
+                classes_ids_from_zero_in_each_task=class_ids_from_zero_in_each_step,
                 reproducibility_data=reproducibility_data
             )
         else:

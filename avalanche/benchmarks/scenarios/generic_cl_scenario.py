@@ -30,7 +30,10 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
     of assignment: each step is defined by a list of patterns (identified by
     their indexes) contained in that step.
     """
-    def __init__(self: TGenericCLScenario, train_dataset: TrainSetWithTargets,
+    def __init__(self: TGenericCLScenario,
+                 original_train_dataset: TrainSetWithTargets,
+                 original_test_dataset: TestSetWithTargets,
+                 train_dataset: TrainSetWithTargets,
                  test_dataset: TestSetWithTargets,
                  train_steps_patterns_assignment: Sequence[Sequence[int]],
                  test_steps_patterns_assignment: Sequence[Sequence[int]],
@@ -67,7 +70,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             ``test_steps_patterns_assignment`` parameters must describe an equal
             amount of steps.
         :param reproducibility_data: If not None, overrides the
-            ``train/test_steps_patterns_assignment` and ``task_labels``
+            ``train/test_steps_patterns_assignment`` and ``task_labels``
             parameters. This is usually a dictionary containing data used to
             reproduce a specific experiment. One can use the
             ``get_reproducibility_data`` method to get (and even distribute)
@@ -83,30 +86,36 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             which means that the :class:`GenericStepInfo` constructor will be
             used.
         """
+
+        self.original_train_dataset: TrainSetWithTargets = \
+            original_train_dataset
+        """ The original training set. """
+
+        self.original_test_dataset: TestSetWithTargets = original_test_dataset
+        """ The original test set. """
+
         self.train_dataset: TrainSetWithTargets = train_dataset
-        """ The original training set """
+        """ The training set used to generate the incremental steps. """
 
         self.test_dataset: TestSetWithTargets = test_dataset
-        """ The original test set """
+        """ The test set used to generate the incremental steps. """
 
-        # TODO: doc
         self.train_steps_patterns_assignment: Sequence[Sequence[int]]
+        """ A list containing which training patterns are assigned to each step.
+        Patterns are identified by their id w.r.t. the dataset found in the 
+        train_dataset field. """
 
-        # TODO: doc
         self.test_steps_patterns_assignment: Sequence[Sequence[int]]
+        """ A list containing which test patterns are assigned to each step.
+        Patterns are identified by their id w.r.t. the dataset found in the 
+        test_dataset field """
 
         self.task_labels: Sequence[int] = task_labels
-        """ The task label of each step """
-
-        # TODO: make protected
-        self.step_factory: Callable[[TGenericCLScenario, int], TStepInfo]
-
-        if step_factory is None:
-            self.step_factory = GenericStepInfo
-        else:
-            self.step_factory = step_factory
+        """ The task label of each step. """
 
         self.slice_ids: Optional[List[int]] = None
+        """ Describes which steps are contained in the current scenario slice. 
+        Can be None, which means that this object is the original scenario. """
 
         # Steal transforms from the datasets, that is, copy the reference to the
         # transformation functions, and set to None the fields in the
@@ -156,7 +165,13 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
                 reproducibility_data['complete_test_only']
 
         self.n_steps: int = len(self.train_steps_patterns_assignment)
-        """  The number of steps """
+        """  The number of incremental steps this scenario is made of. """
+
+        if step_factory is None:
+            step_factory = GenericStepInfo
+
+        self._step_factory: Callable[[TGenericCLScenario, int], TStepInfo] = \
+            step_factory
 
         if self.return_complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
@@ -200,9 +215,9 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         if isinstance(step_idx, int):
             if step_idx < len(self):
                 if self.slice_ids is None:
-                    return self.step_factory(self, step_idx)
+                    return self._step_factory(self, step_idx)
                 else:
-                    return self.step_factory(self, self.slice_ids[step_idx])
+                    return self._step_factory(self, self.slice_ids[step_idx])
             raise IndexError('Step index out of bounds' + str(int(step_idx)))
         else:
             return self._create_slice(step_idx)

@@ -2,12 +2,12 @@ import unittest
 
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.scenarios.new_classes_unified import \
+from avalanche.benchmarks.scenarios.new_classes import \
     create_nc_single_dataset_scenario, \
     create_nc_multi_dataset_scenario, \
-    NCUnifiedStepInfo, NCScenarioUnified
+    NCStepInfo, NCScenario
 from avalanche.training.utils import TransformationSubset
-from avalanche.benchmarks.scenarios.new_classes_unified.nc_utils import \
+from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 
 
@@ -189,19 +189,19 @@ class SITTests(unittest.TestCase):
         nc_scenario = create_nc_single_dataset_scenario(
             mnist_train, mnist_test, 5, False, shuffle=True, seed=1234)
 
-        step_info: NCUnifiedStepInfo
+        step_info: NCStepInfo
         for batch_id, step_info in enumerate(nc_scenario):
             self.assertEqual(batch_id, step_info.current_step)
-            self.assertIsInstance(step_info, NCUnifiedStepInfo)
+            self.assertIsInstance(step_info, NCStepInfo)
 
         iterable_slice = [3, 4, 1]
         sliced_scenario = nc_scenario[iterable_slice]
-        self.assertIsInstance(sliced_scenario, NCScenarioUnified)
+        self.assertIsInstance(sliced_scenario, NCScenario)
         self.assertEqual(len(iterable_slice), len(sliced_scenario))
 
         for batch_id, step_info in enumerate(sliced_scenario):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
-            self.assertIsInstance(step_info, NCUnifiedStepInfo)
+            self.assertIsInstance(step_info, NCStepInfo)
 
 
 if __name__ == '__main__':

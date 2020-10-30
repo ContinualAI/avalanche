@@ -20,26 +20,20 @@ from avalanche.benchmarks.scenarios.generic_cl_scenario import \
 from benchmarks.utils import grouped_and_ordered_indexes
 
 
-class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
-                                          TestSetWithTargets,
-                                          'NCUnifiedStepInfo'],
-                        Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NCScenario(GenericCLScenario[TrainSetWithTargets,
+                                   TestSetWithTargets,
+                                   'NCStepInfo'],
+                 Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    # TODO: adapt doc (and helpers SIT vs MT)
-    This class defines a "New Classes" scenario. It is used when creating both
-    task-oriented and single-incremental-task (a.k.a. task-free) scenarios as
-    it doesn't make any difference between them. Once created, an instance
+    This class defines a "New Classes" scenario. Once created, an instance
     of this class can be iterated in order to obtain the step sequence
-    under the form of instances of :class:`NCUnifiedStepInfo`.
+    under the form of instances of :class:`NCStepInfo`.
 
     This class can be used directly. However, we recommend using facilities like
-    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
-    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
-    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
-    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
+    :func:`.scenario_creation.create_nc_single_dataset_scenario` and
+    :func:`.scenario_creation.create_nc_multi_dataset_scenario`.
     """
 
-    # pylint: disable=too-many-instance-attributes
     def __init__(self, train_dataset: TrainSetWithTargets,
                  test_dataset: TestSetWithTargets,
                  n_steps: int,
@@ -52,25 +46,24 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
                  class_ids_from_zero_in_each_step: bool = False,
                  reproducibility_data: Optional[Dict[str, Any]] = None):
         """
-        # TODO: adapt doc
-        Creates a NCGenericScenario instance given the training and test
+        Creates a ``NCGenericScenario`` instance given the training and test
         Datasets and the number of steps.
 
         By default, the number of classes will be automatically detected by
-        looking at the training Dataset targets field. Classes will be
-        uniformly distributed across the "n_steps" unless a per_step_classes
+        looking at the training Dataset ``targets`` field. Classes will be
+        uniformly distributed across ``n_steps`` unless a ``per_step_classes``
         argument is specified.
 
         The number of classes must be divisible without remainder by the number
-        of steps. This also applies when the per_step_classes argument is not
-        None.
+        of steps. This also applies when the ``per_step_classes`` argument is
+        not None.
 
         :param train_dataset: The training dataset. The dataset must contain a
-            "targets" field. For instance, one can safely use the datasets from
-            the torchvision package.
+            ``targets`` field. For instance, one can safely use the datasets
+            from the torchvision package.
         :param test_dataset: The test dataset. The dataset must contain a
-            "targets" field. For instance, one can safely use the datasets from
-            the torchvision package.
+            ``targets`` field. For instance, one can safely use the datasets
+            from the torchvision package.
         :param n_steps: The number of steps.
         :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
@@ -103,12 +96,12 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
             class "34" will be mapped to "1", class "11" to "2" and so on.
             This is very useful when drawing confusion matrices and when dealing
             with algorithms with dynamic head expansion. Defaults to False.
-            Mutually exclusive with the class_ids_from_zero_in_each_step
+            Mutually exclusive with the ``class_ids_from_zero_in_each_step``
             parameter.
         :param class_ids_from_zero_in_each_step: If True, original class IDs
             will be mapped to range [0, n_classes_in_step) for each step.
             Defaults to False. Mutually exclusive with the
-            class_ids_from_zero_from_first_step parameter.
+            ``class_ids_from_zero_from_first_step parameter``.
         :param reproducibility_data: If not None, overrides all the other
             scenario definition options. This is usually a dictionary containing
             data used to reproduce a specific experiment. One can use the
@@ -125,7 +118,6 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
                              'class_ids_from_zero_from_first_step and '
                              'class_ids_from_zero_in_each_step set at the '
                              'same time')
-        # TODO: adapt comments
         if reproducibility_data:
             n_steps = reproducibility_data['n_steps']
 
@@ -134,31 +126,36 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
                              'must be greater than 0')
 
         self.classes_order: List[int] = []
-        """ Stores the class order (remapped class IDs) """
+        """ Stores the class order (remapped class IDs). """
 
         self.classes_order_original_ids: List[int] = torch.unique(
             torch.as_tensor(train_dataset.targets),
-            sorted=True).tolist()  # TODO: remove in favour of class_mapping?
+            sorted=True).tolist()
         """ Stores the class order (original class IDs) """
 
         n_original_classes = max(self.classes_order_original_ids) + 1
 
         self.class_mapping: List[int] = []
         """ class_mapping stores the class mapping so that
-        mapped_class_id = class_mapping[original_class_id] """
+        mapped_class_id = class_mapping[original_class_id]. """
 
         self.n_classes_per_step: List[int] = []
         """ A list that, for each step (identified by its index/ID),
-            stores the number of classes assigned to that step """
+            stores the number of classes assigned to that step. """
 
         self.classes_in_step: List[List[int]] = []
         """ A list that, for each step (identified by its index/ID),
             stores a list of the (optionally remapped) IDs of classes assigned 
-            to that step """
+            to that step. """
+
+        self.original_classes_in_step: List[List[int]] = []
+        """ A list that, for each step (identified by its index/ID),
+            stores a list of the original IDs of classes assigned 
+            to that step. """
 
         self.class_ids_from_zero_from_first_step: bool = \
             class_ids_from_zero_from_first_step
-        """ If True the class IDs have been remapped to start from zero """
+        """ If True the class IDs have been remapped to start from zero. """
 
         self.class_ids_from_zero_in_each_step: bool = \
             class_ids_from_zero_in_each_step
@@ -289,7 +286,7 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
             self.classes_order = []
             self.class_mapping = [-1] * n_original_classes
             next_class_idx = 0
-            for step_id, step_n_classes in self.n_classes_per_step:
+            for step_id, step_n_classes in enumerate(self.n_classes_per_step):
                 self.classes_order += list(range(step_n_classes))
                 for step_class_idx in range(step_n_classes):
                     original_class_position = next_class_idx + step_class_idx
@@ -303,14 +300,18 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
             self.classes_order = self.classes_order_original_ids
             self.class_mapping = list(range(0, n_original_classes))
 
-        self.train_dataset = TransformationSubset(
+        original_training_dataset = train_dataset
+        original_test_dataset = test_dataset
+        train_dataset = TransformationSubset(
             train_dataset, None, class_mapping=self.class_mapping)
-        self.test_dataset = TransformationSubset(
+        test_dataset = TransformationSubset(
             test_dataset, None, class_mapping=self.class_mapping)
 
-        # Populate the classes_in_step list
-        # "classes_in_step[step_id]": list of class IDs assigned
+        # Populate the classes_in_step and original_classes_in_step lists
+        # "classes_in_step[step_id]": list of (remapped) class IDs assigned
         # to step "step_id"
+        # "original_classes_in_step[step_id]": list of original class IDs
+        # assigned to step "step_id"
         for step_id in range(n_steps):
             classes_start_idx = sum(self.n_classes_per_step[:step_id])
             classes_end_idx = classes_start_idx + self.n_classes_per_step[
@@ -318,6 +319,9 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
 
             self.classes_in_step.append(
                 self.classes_order[classes_start_idx:classes_end_idx])
+            self.original_classes_in_step.append(
+                self.classes_order_original_ids[classes_start_idx:
+                                                classes_end_idx])
 
         # Finally, create the step -> patterns assignment.
         # In order to do this, we don't load all the patterns
@@ -327,12 +331,12 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
         for step_id in range(n_steps):
             selected_classes = set(self.classes_in_step[step_id])
             selected_indexes_train = []
-            for idx, element in enumerate(self.train_dataset.targets):
+            for idx, element in enumerate(train_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_train.append(idx)
 
             selected_indexes_test = []
-            for idx, element in enumerate(self.test_dataset.targets):
+            for idx, element in enumerate(test_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_test.append(idx)
 
@@ -345,12 +349,14 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
         else:
             task_ids = [0] * n_steps
 
-        super(NCScenarioUnified, self).__init__(
+        super(NCScenario, self).__init__(
+            original_training_dataset,
+            original_test_dataset,
             train_dataset,
             test_dataset,
             train_steps_patterns_assignment,
             test_steps_patterns_assignment,
-            task_ids, step_factory=NCUnifiedStepInfo)
+            task_ids, step_factory=NCStepInfo)
 
     def get_reproducibility_data(self):
         reproducibility_data = {
@@ -372,7 +378,7 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
         defined by range. This means that only the classes in range
         [step_start, step_end) will be included.
 
-        :param step_start: The starting step ID
+        :param step_start: The starting step ID.
         :param step_end: The final step ID. Can be None, which means that all
             the remaining steps will be taken.
 
@@ -409,37 +415,33 @@ class NCScenarioUnified(GenericCLScenario[TrainSetWithTargets,
                 future_classes)
 
 
-class NCUnifiedStepInfo(GenericStepInfo[NCScenarioUnified[TrainSetWithTargets,
-                                                          TestSetWithTargets]],
-                        Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
+                                            TestSetWithTargets]],
+                 Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    # TODO: adapt doc
     Defines a "New Classes" step. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
     fields that can be used to check which classes are in this, previous and
     future steps. Instances of this class are usually created when iterating
-    over a :class:`NCScenarioUnified` instance.
+    over a :class:`NCScenario` instance.
 
-    It keeps a reference to that :class:`NCScenarioUnified`
-    instance, which can be used to retrieve additional info about the
-    scenario.
+    It keeps a reference to that :class:`NCScenario` instance, which can be used
+    to retrieve additional info about the scenario.
     """
-
     def __init__(self,
-                 scenario: NCScenarioUnified[TrainSetWithTargets,
-                                             TestSetWithTargets],
+                 scenario: NCScenario[TrainSetWithTargets,
+                                      TestSetWithTargets],
                  current_step: int,
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False):
         """
-        # TODO: adapt doc
-        Creates a NCUnifiedStepInfo instance given the root scenario.
+        Creates a ``NCStepInfo`` instance given the root scenario.
         Instances of this class are usually created automatically while
-        iterating over an instance of :class:`NCScenarioUnified`.
+        iterating over an instance of :class:`NCScenario`.
 
-        :param scenario: A reference to the NC scenario
-        :param current_step: The step ID
+        :param scenario: A reference to the NC scenario.
+        :param current_step: The step ID.
         :param force_train_transformations: If True, train transformations will
             be applied to the test set too. The ``force_test_transformations``
             parameter can't be True at the same time. Defaults to False.
@@ -457,13 +459,13 @@ class NCUnifiedStepInfo(GenericStepInfo[NCScenarioUnified[TrainSetWithTargets,
         (classes_in_this_step, previous_classes, classes_seen_so_far,
          future_classes) = class_split
 
-        super(NCUnifiedStepInfo, self).__init__(
+        super(NCStepInfo, self).__init__(
             scenario, current_step, classes_in_this_step, previous_classes,
             classes_seen_so_far, future_classes,
             force_train_transformations=force_train_transformations,
             force_test_transformations=force_test_transformations,
             are_transformations_disabled=are_transformations_disabled,
-            transformation_step_factory=NCUnifiedStepInfo)
+            transformation_step_factory=NCStepInfo)
 
     def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
         subset, t = super()._make_subset(is_train, step)
@@ -478,4 +480,4 @@ class NCUnifiedStepInfo(GenericStepInfo[NCScenarioUnified[TrainSetWithTargets,
                 **kwargs)), t
 
 
-__all__ = ['NCScenarioUnified', 'NCUnifiedStepInfo']
+__all__ = ['NCScenario', 'NCStepInfo']

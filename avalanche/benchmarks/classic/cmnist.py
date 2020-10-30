@@ -28,7 +28,7 @@ from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario, \
     create_nc_multi_dataset_multi_task_scenario
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
+from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
     NCMultiTaskScenario
 
 
@@ -119,7 +119,7 @@ def PermutedMNIST(
     """
     This helper create a permuted MNIST scenario: where a given number of random
     pixel permutations is used to permute the MNIST images in
-    `incremental_steps` different manners, creating an equal number of tasks.
+    ``incremental_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original MNIST 10 classes, but the pixel
     in the images are permuted in different ways in every task.
     If the dataset is not present in the computer the method automatically
@@ -195,7 +195,7 @@ def RotatedMNIST(
     """
     This helper create a rotated MNIST scenario: where a given number of random
     rotations are used to rotate the MNIST images in
-    `incremental_steps` different manners, creating an equal number of tasks.
+    ``incremental_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original MNIST 10 classes, but the images
     are rotated in different ways and using different values in every task.
     If the dataset is not present in the computer the method automatically

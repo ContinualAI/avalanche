@@ -26,7 +26,7 @@ from avalanche.training.utils.transform_dataset import \
 from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
     create_nc_single_dataset_sit_scenario, \
     create_nc_single_dataset_multi_task_scenario
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
+from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
     NCSingleTaskScenario
 from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
 

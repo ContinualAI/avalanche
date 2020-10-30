@@ -104,7 +104,7 @@ ni_scenario = NIScenario(
 
 nc_scenario = NCScenario(
     mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
-    multi_task=False
+    task_labels=False
 )
 ```
 

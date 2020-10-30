@@ -101,7 +101,7 @@ def SplitImageNet(root,
             per_step_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            multi_task=True
+            task_labels=True
         )
     else:
         return NCScenario(
@@ -111,7 +111,7 @@ def SplitImageNet(root,
             per_step_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            multi_task=False
+            task_labels=False
         )
 
 
