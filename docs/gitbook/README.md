@@ -10,14 +10,13 @@ description: Powered by ContinualAI
 
 Avalanche can help _Continual Learning_ researchers in several ways:
 
-* _Shared, easy-to-use & coherent codebase_
-* _Writing less code, prototype faster & introduce less bugs_
+* _Write less code, prototype faster & reduce errors_
 * _Improve reproducibility_
 * _Improve modularity and reusability_
-* _Increased efficiency & portability_
+* _Increase code efficiency & portability_
 * _Augment impact and usability of your research products_
 
-The framework is than split in three main modules:
+The framework is organized in three main modules:
 
 * **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
@@ -30,6 +29,47 @@ Let's make it together 👫 a wonderful ride! 🎈
 Check out _how you code changes_ when you start using _Avalanche_! 👇
 
 {% tabs %}
+{% tab title="With Avalanche" %}
+```python
+import torch
+from torch.nn import CrossEntropyLoss
+from torch.optim import SGD
+
+from avalanche.benchmarks.classic import PermutedMNIST
+from avalanche.evaluation import EvalProtocol
+from avalanche.evaluation.metrics import ACC
+from avalanche.extras.models import SimpleMLP
+from avalanche.training.strategies import Naive
+
+# Config
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+n_tasks = 5
+n_classes = 10
+train_ep = 2
+mb_size = 32
+
+# model
+model = SimpleMLP(num_classes=n_classes)
+
+# CL Benchmark Creation
+perm_mnist = PermutedMNIST(n_tasks),
+
+# Train & Test
+optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+criterion = CrossEntropyLoss()
+evaluation_protocol = EvalProtocol(metrics=[ACC(n_classes)]
+cl_strategy = Naive(
+    model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
+    CrossEntropyLoss(), train_mb_size=mb_size, train_epochs=train_ep,
+    test_mb_size=mb_size, evaluation_protocol=evaluation_protocol, device=device)
+
+results = []
+for task in perm_mnist:
+    cl_strategy.train(task, num_workers=4)
+    results.append(cl_strategy.test(task))
+```
+{% endtab %}
+
 {% tab title="Without Avalanche" %}
 ```python
 import torch
@@ -157,47 +197,6 @@ for task_id, test_dataset in enumerate(list_test_dataset):
         correct += (test_mb_y.eq(test_logits.long())).sum()
     
     acc_results.append(len(test_dataset)/correct)
-```
-{% endtab %}
-
-{% tab title="With Avalanche" %}
-```python
-import torch
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
-
-from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive
-
-# Config
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-n_tasks = 5
-n_classes = 10
-train_ep = 2
-mb_size = 32
-
-# model
-model = SimpleMLP(num_classes=n_classes)
-
-# CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_tasks),
-
-# Train & Test
-optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
-criterion = CrossEntropyLoss()
-evaluation_protocol = EvalProtocol(metrics=[ACC(n_classes)]
-cl_strategy = Naive(
-    model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=mb_size, train_epochs=train_ep,
-    test_mb_size=mb_size, evaluation_protocol=evaluation_protocol, device=device)
-
-results = []
-for task in perm_mnist:
-    cl_strategy.train(task, num_workers=4)
-    results.append(cl_strategy.test(task))
 ```
 {% endtab %}
 {% endtabs %}
