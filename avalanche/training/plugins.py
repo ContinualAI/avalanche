@@ -55,19 +55,19 @@ class StrategyPlugin:
     def after_training(self, strategy, **kwargs):
         pass
 
-    def before_testing(self, strategy, **kwargs):
+    def before_test(self, strategy, **kwargs):
         pass
 
     def adapt_test_dataset(self, strategy, **kwargs):
         pass
 
-    def before_testing_step(self, strategy, **kwargs):
+    def before_test_step(self, strategy, **kwargs):
         pass
 
-    def after_testing_step(self, strategy, **kwargs):
+    def after_test_step(self, strategy, **kwargs):
         pass
 
-    def after_testing(self, strategy, **kwargs):
+    def after_test(self, strategy, **kwargs):
         pass
 
     def before_test_iteration(self, strategy, **kwargs):
@@ -308,7 +308,7 @@ class EvaluationPlugin(StrategyPlugin):
                 self._training_total_iterations, torch.unique(train_mb_y),
                 self._train_current_task_id)
 
-    def before_testing_step(self, strategy, **kwargs):
+    def before_test_step(self, strategy, **kwargs):
         step_info = strategy.step_info
         step_id = strategy.step_id
 
@@ -328,7 +328,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._test_predicted_y.append(predicted_labels)
         self._test_average_loss += strategy.loss.item()
 
-    def after_testing_step(self, strategy, **kwargs):
+    def after_test_step(self, strategy, **kwargs):
         evaluation_protocol = strategy.evaluation_protocol
         self._test_average_loss /= self._test_dataset_size
 
@@ -343,7 +343,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._test_protocol_results[self._test_current_task_id] = \
             (self._test_average_loss, acc, accs, results)
 
-    def after_testing(self, strategy, **kwargs):
+    def after_test(self, strategy, **kwargs):
         strategy.evaluation_protocol.update_tb_test(
             self._test_protocol_results,
             strategy.step_info.current_step)

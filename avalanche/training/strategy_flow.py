@@ -64,18 +64,18 @@ class StrategyFlow:
         self.model.eval()
         self.model.to(self.device)
 
-        self.before_testing(**kwargs)
-        while self._has_testing_steps_left(step_info):
+        self.before_test(**kwargs)
+        while self._has_test_steps_left(step_info):
             self.current_data = step_info.step_specific_test_set(self.step_id)[0]
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 
-            self.before_testing_step(**kwargs)
-            self.testing_epoch(**kwargs)
-            self.after_testing_step(**kwargs)
+            self.before_test_step(**kwargs)
+            self.test_epoch(**kwargs)
+            self.after_test_step(**kwargs)
 
             self.step_id += 1
-        self.after_testing(**kwargs)
+        self.after_test(**kwargs)
 
         if self.evaluation_protocol is not None:
             return self.evaluation_plugin.get_test_result()
@@ -106,8 +106,8 @@ class StrategyFlow:
         if self.step_id < 0:
             raise ValueError('Invalid dataset part')
 
-    def _has_testing_steps_left(self, step_info: IStepInfo,
-                                test_part: DatasetPart = None):
+    def _has_test_steps_left(self, step_info: IStepInfo,
+                             test_part: DatasetPart = None):
         # TODO: if we remove DatasetPart this may become unnecessary
         step_id = self.step_id
         if test_part is None:
@@ -213,19 +213,19 @@ class StrategyFlow:
         self.loss = None
         self.logits = None
 
-    def before_testing(self, **kwargs):
+    def before_test(self, **kwargs):
         for p in self.plugins:
-            p.before_testing(self, **kwargs)
+            p.before_test(self, **kwargs)
 
-    def before_testing_step(self, **kwargs):
+    def before_test_step(self, **kwargs):
         for p in self.plugins:
-            p.before_testing_step(self, **kwargs)
+            p.before_test_step(self, **kwargs)
 
     def adapt_test_dataset(self, **kwargs):
         for p in self.plugins:
             p.adapt_test_dataset(self, **kwargs)
 
-    def testing_epoch(self, **kwargs):
+    def test_epoch(self, **kwargs):
         for self.mb_it, (self.mb_x, self.mb_y) in enumerate(self.current_dataloader):
             self.before_test_iteration(**kwargs)
 
@@ -239,13 +239,13 @@ class StrategyFlow:
 
             self.after_test_iteration(**kwargs)
 
-    def after_testing_step(self, **kwargs):
+    def after_test_step(self, **kwargs):
         for p in self.plugins:
-            p.after_testing_step(self, **kwargs)
+            p.after_test_step(self, **kwargs)
 
-    def after_testing(self, **kwargs):
+    def after_test(self, **kwargs):
         for p in self.plugins:
-            p.after_testing(self, **kwargs)
+            p.after_test(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
         self.step_id = None
         self.step_info = None
