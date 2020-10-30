@@ -29,7 +29,7 @@ class EvaluationPlugin(StrategySkeleton):
     """
     An evaluation plugin that can be plugged in a strategy.
 
-    Instances of this class should be used as strategy plugins.
+    Instances of this class should be used as strategy old_plugins.
 
     This plugin obtains relevant data from the training and testing loops of the
     main strategy by using the integrated callbacks systems.

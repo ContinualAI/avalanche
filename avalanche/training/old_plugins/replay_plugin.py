@@ -24,7 +24,7 @@ class ReplayPlugin(StrategySkeleton):
     """
     An experience replay plugin that can be plugged in a strategy.
 
-    Instances of this class should be used as strategy plugins.
+    Instances of this class should be used as strategy old_plugins.
 
     This simply handles an external memory filled with randomly selected
     patterns and implements the "adapt_train_dataset" callback to add them to
