@@ -26,8 +26,8 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
-#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.old_strategies import Naive, Cumulative, Replay, GDumb
+#from avalanche.training.old_plugins import ReplayPlugin, GDumbPlugin
 
 device = 'cpu'
 
