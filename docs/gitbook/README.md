@@ -13,7 +13,7 @@ Avalanche can help _Continual Learning_ researchers in several ways:
 * _Write less code, prototype faster & reduce errors_
 * _Improve reproducibility_
 * _Improve modularity and reusability_
-* _Increase code efficiency & portability_
+* _Increase code efficiency, scalability & portability_
 * _Augment impact and usability of your research products_
 
 The framework is organized in three main modules:
