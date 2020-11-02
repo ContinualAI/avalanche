@@ -12,8 +12,25 @@ from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 class BaseStrategy:
     def __init__(self, model: Module, criterion, optimizer: Optimizer,
                  evaluation_protocol: EvalProtocol, train_mb_size: int = 1,
-                 train_epochs: int = 1, test_mb_size: int = 'cpu', device=None,
+                 train_epochs: int = 1, test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
+        """
+        BaseStrategy is the super class of all continual learning strategies.
+        It implements a basic training loop and callback system that can be
+        customized by child strategies. Additionally, it supports plugins,
+        a mechanisms to augment existing strategies with additional
+        behavior (e.g. a memory buffer for replay).
+
+        :param model: PyTorch model.
+        :param criterion: loss function.
+        :param optimizer: PyTorch optimizer.
+        :param evaluation_protocol: evaluation plugin.
+        :param train_mb_size: mini-batch size for training.
+        :param train_epochs: number of training epochs.
+        :param test_mb_size: mini-batch size for test.
+        :param device: PyTorch device to run the model.
+        :param plugins: (optional) list of StrategyPlugins.
+        """
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -38,6 +55,13 @@ class BaseStrategy:
         self.logits = None
 
     def train(self, step_info: IStepInfo, **kwargs):
+        """
+        Training loop.
+
+        :param step_info: CL step information.
+        :param kwargs: custom arguments.
+        :return: train results from the evalution plugin.
+        """
         self.step_info = step_info
         self.model.train()
         self.model.to(self.device)
@@ -56,6 +80,14 @@ class BaseStrategy:
         return self.evaluation_plugin.get_train_result()
 
     def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):
+        """
+        Test the current model on a series of steps, as defined by test_part.
+
+        :param step_info: CL step information.
+        :param test_part: determines which steps to test on.
+        :param kwargs: custom arguments.
+        :return: evaluation plugin test results.
+        """
         self._set_initial_test_step_id(step_info, test_part)
         self.step_info = step_info
         self.model.eval()
@@ -76,15 +108,29 @@ class BaseStrategy:
         return self.evaluation_plugin.get_test_result()
 
     def before_training(self, **kwargs):
+        """
+        Called  after the dataset and data loader creation and
+        before the training loop.
+        """
         for p in self.plugins:
             p.before_training(self, **kwargs)
 
     def make_train_dataloader(self, num_workers=0, **kwargs):
+        """
+        Called after the dataset instantiation. Initialize the data loader.
+        :param num_workers:
+        """
         self.current_dataloader = DataLoader(self.current_data,
             num_workers=num_workers, batch_size=self.train_mb_size)
 
     def _set_initial_test_step_id(self, step_info: IStepInfo,
                                   dataset_part: DatasetPart = None):
+        """
+        Initialize self.step_id for the test loop.
+        :param step_info:
+        :param dataset_part:
+        :return:
+        """
         # TODO: if we remove DatasetPart this may become unnecessary
         self.step_id = -1
         if dataset_part is None:
@@ -103,6 +149,12 @@ class BaseStrategy:
 
     def _has_test_steps_left(self, step_info: IStepInfo,
                              test_part: DatasetPart = None):
+        """
+        Check if the next CL step must be tested.
+        :param step_info:
+        :param test_part:
+        :return:
+        """
         # TODO: if we remove DatasetPart this may become unnecessary
         step_id = self.step_id
         if test_part is None:
@@ -122,18 +174,40 @@ class BaseStrategy:
         raise ValueError('Invalid dataset part')
 
     def make_test_dataloader(self, num_workers=0, **kwargs):
+        """
+        Initialize the test data loader.
+        :param num_workers:
+        :param kwargs:
+        :return:
+        """
         self.current_dataloader = DataLoader(self.current_data,
               num_workers=num_workers, batch_size=self.test_mb_size)
 
     def adapt_train_dataset(self, **kwargs):
+        """
+        Called after the dataset initialization and before the
+        dataloader initialization. Allows to customize the dataset.
+        :param kwargs:
+        :return:
+        """
         for p in self.plugins:
             p.adapt_train_dataset(self, **kwargs)
 
     def before_training_epoch(self, **kwargs):
+        """
+        Called at the beginning of a new training epoch.
+        :param kwargs:
+        :return:
+        """
         for p in self.plugins:
             p.before_training_epoch(self, **kwargs)
 
     def training_epoch(self, **kwargs):
+        """
+        Training epoch.
+        :param kwargs:
+        :return:
+        """
         for self.mb_it, (self.mb_x, self.mb_y) in enumerate(self.current_dataloader):
             self.before_training_iteration(**kwargs)
 

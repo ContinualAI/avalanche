@@ -11,6 +11,11 @@ from avalanche.evaluation.metrics import ACC
 
 
 class StrategyPlugin:
+    """
+    Base class for strategy plugins. Implements all the callbacks required
+    by the BaseStrategy with an empty function. Subclasses must override
+    the callbacks.
+    """
     def __init__(self):
         pass
 
@@ -346,6 +351,32 @@ class EvaluationPlugin(StrategyPlugin):
 class MultiHeadPlugin(StrategyPlugin):
     def __init__(self, model, classifier_field: str = 'classifier',
                  keep_initial_layer=False):
+        """
+        MultiHeadPlugin is a plugin that manages a multi-head readout for
+        multi-task scenarios. The plugin automatically set the correct
+        output head when the task changes and it adds new heads when a novel
+        task is encountered. Also works with Single-Incremental-Tasks
+        (a.k.a. task-free) to automatically handle the head expansion.
+
+        By default, a Linear (fully connected) layer is created
+        with as many output units as the number of classes in that task. This
+        behaviour can be changed by overriding the "create_task_layer" method.
+
+        By default, weights are initialized using the Linear class default
+        initialization. This behaviour can be changed by overriding the
+        "initialize_new_task_layer" method.
+
+        When dealing with a Single-Incremental-Task scenario, the final layer may
+        get dynamically expanded. By default, the initialization provided by the
+        Linear class is used and then weights of already existing classes are copied
+        (that  is, without adapting the weights of new classes). The user can
+        control how the new weights are initialized by overriding
+        "initialize_dynamically_expanded_head".
+
+        :param model: PyTorch model
+        :param classifier_field: field of the last layer of model.
+        :param keep_initial_layer: if True keeps the initial layer for task 0.
+        """
         super().__init__()
         if not hasattr(model, classifier_field):
             raise ValueError('The model has no field named ' + classifier_field)
