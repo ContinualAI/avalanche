@@ -4,11 +4,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.evaluation import EvalProtocol
-from avalanche.training.strategy_flow import StrategyFlow
+from avalanche.training.base_strategy import BaseStrategy
 from avalanche.training.plugins import StrategyPlugin
 
 
-class Naive(StrategyFlow):
+class Naive(BaseStrategy):
     """
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
@@ -19,10 +19,9 @@ class Naive(StrategyFlow):
     """
 
     def __init__(self, model: Module, criterion,
-                 optimizer: Optimizer,
+                 optimizer: Optimizer, evaluation_protocol: EvalProtocol,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
-                 evaluation_protocol: Optional[EvalProtocol] = None,
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
         """
         Creates an instance of the Naive strategy.
@@ -39,7 +38,6 @@ class Naive(StrategyFlow):
         """
         # TODO: ADD multi-head plugin
         super().__init__(
-            model, criterion, optimizer, train_mb_size=train_mb_size,
-            train_epochs=train_epochs, test_mb_size=test_mb_size,
-            evaluation_protocol=evaluation_protocol, device=device,
-            plugins=plugins)
+            model, criterion, optimizer, evaluation_protocol,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            test_mb_size=test_mb_size, device=device, plugins=plugins)
