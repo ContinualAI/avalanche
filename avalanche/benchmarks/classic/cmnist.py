@@ -24,13 +24,7 @@ import numpy as np
 import torch
 from torchvision.datasets import MNIST
 from torchvision import transforms
-from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
-    create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario, \
-    create_nc_multi_dataset_multi_task_scenario
-from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
-    NCMultiTaskScenario
-
+from avalanche.benchmarks import NCScenario, NCBenchmark
 
 _default_mnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -93,28 +87,29 @@ def SplitMNIST(
     mnist_train, mnist_test = _get_mnist_dataset(train_transform,
                                                  test_transform)
     if return_task_id:
-        return create_nc_single_dataset_multi_task_scenario(
+        return NCBenchmark(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_tasks=incremental_steps,
+            n_steps=incremental_steps,
+            task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-        )
+            class_ids_from_zero_in_each_step=True)
     else:
-        return create_nc_single_dataset_sit_scenario(
+        return NCBenchmark(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_batches=incremental_steps,
+            n_steps=incremental_steps,
+            task_labels=False,
             seed=seed,
-            fixed_class_order=fixed_class_order,
-        )
+            fixed_class_order=fixed_class_order)
 
 
 def PermutedMNIST(
         incremental_steps: int,
         seed: Optional[int] = None,
         train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform) -> NCMultiTaskScenario:
+        test_transform=_default_mnist_test_transform) -> NCScenario:
 
     """
     This helper create a permuted MNIST scenario: where a given number of random
@@ -177,12 +172,14 @@ def PermutedMNIST(
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
 
-    return create_nc_multi_dataset_multi_task_scenario(
-        train_dataset_list=list_train_dataset,
-        test_dataset_list=list_test_dataset,
+    return NCBenchmark(
+        list_train_dataset,
+        list_test_dataset,
+        n_steps=len(list_train_dataset),
+        task_labels=True,
         shuffle=False,
-        classes_ids_from_zero_in_each_task=True
-    )
+        class_ids_from_zero_in_each_step=True,
+        one_dataset_per_step=True)
 
 
 def RotatedMNIST(
@@ -190,7 +187,7 @@ def RotatedMNIST(
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform) -> NCMultiTaskScenario:
+        test_transform=_default_mnist_test_transform) -> NCScenario:
 
     """
     This helper create a rotated MNIST scenario: where a given number of random
@@ -273,12 +270,14 @@ def RotatedMNIST(
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
 
-    return create_nc_multi_dataset_multi_task_scenario(
-        train_dataset_list=list_train_dataset,
-        test_dataset_list=list_test_dataset,
+    return NCBenchmark(
+        list_train_dataset,
+        list_test_dataset,
+        n_steps=len(list_train_dataset),
+        task_labels=True,
         shuffle=False,
-        classes_ids_from_zero_in_each_task=True
-    )
+        class_ids_from_zero_in_each_step=True,
+        one_dataset_per_step=True)
 
 
 def _get_mnist_dataset(train_transformation, test_transformation):

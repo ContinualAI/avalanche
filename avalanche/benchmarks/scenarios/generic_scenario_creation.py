@@ -90,7 +90,7 @@ def create_multi_dataset_generic_scenario(
         concat_train_dataset, concat_test_dataset,
         concat_train_dataset, concat_test_dataset, train_structure,
         test_structure, task_labels,
-        return_complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only)
 
 
 def create_generic_scenario_from_filelists(

@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Optional, List, Generic, Sequence, Dict, Any
+from typing import Optional, List, Generic, Sequence, Dict, Any, Set
 
 import torch
 
@@ -43,30 +43,27 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
                                    TestSetWithTargets, 'NIStepInfo'],
                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    # TODO: adapt doc (helper functions)
-
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
     the step sequence under the form of instances of :class:`NIStepInfo`.
 
     Instances of this class can be created using the constructor directly.
-    However, we recommend using facilities like:
-    :func:`.scenario_creation.create_ni_single_dataset_sit_scenario` and
-    :func:`.scenario_creation.create_ni_multi_dataset_sit_scenario`.
+    However, we recommend using facilities like
+    :func:`avalanche.benchmarks.generators.NIBenchmark`.
 
-    # TODO: accept arbitrary task labels and adapt doc
-    Being a Single Incremental Task scenario, the task label will always be "0".
-    Also, consider that every method from :class:`NIStepInfo` used to retrieve
+    Consider that every method from :class:`NIStepInfo` used to retrieve
     parts of the test set (past, current, future, cumulative) always return the
     complete test set. That is, they behave as the getter for the complete test
-    set. These methods are left for compatibility with the ones found in the
-    :class:`avalanche.benchmarks.scenarios.new_classes.NCStepInfo` scenario.
+    set.
     """
 
     def __init__(
             self, train_dataset: TrainSetWithTargets,
-            test_dataset: TestSetWithTargets, n_steps: int,
-            shuffle: bool = True, seed: Optional[int] = None,
+            test_dataset: TestSetWithTargets,
+            n_steps: int,
+            task_labels: bool = False,
+            shuffle: bool = True,
+            seed: Optional[int] = None,
             balance_steps: bool = False,
             min_class_patterns_in_step: int = 0,
             fixed_step_assignment: Optional[Sequence[Sequence[int]]] = None,
@@ -82,6 +79,9 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
             "targets" field. For instance, one can safely use the datasets from
             the torchvision package.
         :param n_steps: The number of steps.
+        :param task_labels: If True, each step will have an ascending task
+            label. If False, the task label will be 0 for all the steps.
+            Defaults to False.
         :param shuffle: If True, the patterns order will be shuffled. Defaults
             to True.
         :param seed: If shuffle is True and seed is not None, the class order
@@ -98,7 +98,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
         :param fixed_step_assignment: If not None, the pattern assignment
             to use. It must be a list with an entry for each step. Each entry
             is a list that contains the indexes of patterns belonging to that
-            step. Overrides the ``shuffle``, ``balance_stepss`` and
+            step. Overrides the ``shuffle``, ``balance_steps`` and
             ``min_class_patterns_in_step`` parameters.
         :param reproducibility_data: If not None, overrides all the other
             scenario definition options, including ``fixed_step_assignment``.
@@ -112,12 +112,25 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
             test datasets must be used. Defaults to None.
         """
 
+        task_ids: List[int]
+        if task_labels:
+            task_ids = list(range(n_steps))
+        else:
+            task_ids = [0] * n_steps
+
         if reproducibility_data is not None:
             super(NIScenario, self).__init__(
                 train_dataset, test_dataset,
-                train_dataset, test_dataset, [], [], [],
-                reproducibility_data=reproducibility_data)
+                train_dataset, test_dataset,
+                [], [], task_ids,
+                complete_test_set_only=True,
+                reproducibility_data=reproducibility_data,
+                step_factory=NIStepInfo)
             n_steps = self.n_steps
+            if task_labels:
+                task_ids = list(range(n_steps))
+            else:
+                task_ids = [0] * n_steps
 
         if n_steps < 1:
             raise ValueError('Invalid number of steps (n_steps parameter): '
@@ -365,18 +378,26 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
         self.n_patterns_per_step = [len(step_patterns[step_id])
                                     for step_id in range(n_steps)]
 
-        self.classes_in_step = []
-        for step_id in range(n_steps):
-            self.classes_in_step.append([])
-            step_s = self.step_structure[step_id]
-            for class_id, n_patterns_of_class in enumerate(step_s):
-                if n_patterns_of_class > 0:
-                    self.classes_in_step[step_id].append(class_id)
+        self._classes_in_step = None  # Will be lazy initialized later
+
         super(NIScenario, self).__init__(
             train_dataset, test_dataset,
-            train_dataset, test_dataset, step_patterns, [],
-            task_labels=[0] * n_steps,
-            return_complete_test_set_only=True, step_factory=NIStepInfo)
+            train_dataset, test_dataset,
+            step_patterns, [], task_ids,
+            complete_test_set_only=True,
+            step_factory=NIStepInfo)
+
+    @property
+    def classes_in_step(self) -> Sequence[Set[int]]:
+        if self._classes_in_step is None:
+            self._classes_in_step = []
+            for step_id in range(self.n_steps):
+                self._classes_in_step.append(set())
+                step_s = self.step_structure[step_id]
+                for class_id, n_patterns_of_class in enumerate(step_s):
+                    if n_patterns_of_class > 0:
+                        self._classes_in_step[step_id].add(class_id)
+        return self._classes_in_step
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         # In fact, the only data required for reproducibility of a NI Scenario
@@ -406,7 +427,6 @@ class NIStepInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False):
         """
-        # TODO: adapt doc
         Creates a NCStepInfo instance given the root scenario.
         Instances of this class are usually created automatically while
         iterating over an instance of :class:`NIScenario`.
@@ -426,48 +446,12 @@ class NIStepInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,
             Defaults to False.
         """
 
-        (classes_in_this_step, previous_classes, classes_seen_so_far,
-         future_classes) = NIStepInfo._get_classes_timeline(scenario,
-                                                            current_step)
         super(NIStepInfo, self).__init__(
-            scenario, current_step, classes_in_this_step, previous_classes,
-            classes_seen_so_far, future_classes,
+            scenario, current_step,
             force_train_transformations=force_train_transformations,
             force_test_transformations=force_test_transformations,
             are_transformations_disabled=are_transformations_disabled,
             transformation_step_factory=NIStepInfo)
-
-    @staticmethod
-    def _get_classes_timeline(scenario: NIScenario, current_step: int):
-        class_set_this_step = set()
-        for class_id, class_count in enumerate(
-                scenario.step_structure[current_step]):
-            if class_count > 0:
-                class_set_this_step.add(class_id)
-
-        classes_in_this_step = list(class_set_this_step)
-
-        class_set_prev_steps = set()
-        for step_id in range(0, current_step):
-            for class_id, class_count in enumerate(
-                    scenario.step_structure[step_id]):
-                if class_count > 0:
-                    class_set_prev_steps.add(class_id)
-        previous_classes = list(class_set_prev_steps)
-
-        classes_seen_so_far = \
-            list(class_set_this_step.union(class_set_prev_steps))
-
-        class_set_future_steps = set()
-        for step_id in range(current_step, scenario.n_steps):
-            for class_id, class_count in enumerate(
-                    scenario.step_structure[step_id]):
-                if class_count > 0:
-                    class_set_future_steps.add(class_id)
-        future_classes = list(class_set_future_steps)
-
-        return classes_in_this_step, previous_classes, classes_seen_so_far,\
-               future_classes
 
 
 __all__ = ['NIScenario', 'NIStepInfo']

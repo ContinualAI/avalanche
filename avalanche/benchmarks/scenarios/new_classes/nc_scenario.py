@@ -10,14 +10,14 @@
 ################################################################################
 
 import torch
-from typing import Sequence, List, Optional, Dict, Generic, Any
+from typing import Sequence, List, Optional, Dict, Generic, Any, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets, MTSingleSet
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericStepInfo
-from benchmarks.utils import grouped_and_ordered_indexes
+from avalanche.benchmarks.utils import grouped_and_ordered_indexes
 
 
 class NCScenario(GenericCLScenario[TrainSetWithTargets,
@@ -30,8 +30,7 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
     under the form of instances of :class:`NCStepInfo`.
 
     This class can be used directly. However, we recommend using facilities like
-    :func:`.scenario_creation.create_nc_single_dataset_scenario` and
-    :func:`.scenario_creation.create_nc_multi_dataset_scenario`.
+    :func:`avalanche.benchmarks.generators.NCBenchmark`.
     """
 
     def __init__(self, train_dataset: TrainSetWithTargets,
@@ -143,12 +142,9 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
         """ A list that, for each step (identified by its index/ID),
             stores the number of classes assigned to that step. """
 
-        self.classes_in_step: List[List[int]] = []
-        """ A list that, for each step (identified by its index/ID),
-            stores a list of the (optionally remapped) IDs of classes assigned 
-            to that step. """
+        self._classes_in_step: List[Set[int]] = []
 
-        self.original_classes_in_step: List[List[int]] = []
+        self.original_classes_in_step: List[Set[int]] = []
         """ A list that, for each step (identified by its index/ID),
             stores a list of the original IDs of classes assigned 
             to that step. """
@@ -307,8 +303,8 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
         test_dataset = TransformationSubset(
             test_dataset, None, class_mapping=self.class_mapping)
 
-        # Populate the classes_in_step and original_classes_in_step lists
-        # "classes_in_step[step_id]": list of (remapped) class IDs assigned
+        # Populate the _classes_in_step and original_classes_in_step lists
+        # "_classes_in_step[step_id]": list of (remapped) class IDs assigned
         # to step "step_id"
         # "original_classes_in_step[step_id]": list of original class IDs
         # assigned to step "step_id"
@@ -317,11 +313,11 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
             classes_end_idx = classes_start_idx + self.n_classes_per_step[
                 step_id]
 
-            self.classes_in_step.append(
-                self.classes_order[classes_start_idx:classes_end_idx])
+            self._classes_in_step.append(
+                set(self.classes_order[classes_start_idx:classes_end_idx]))
             self.original_classes_in_step.append(
-                self.classes_order_original_ids[classes_start_idx:
-                                                classes_end_idx])
+                set(self.classes_order_original_ids[classes_start_idx:
+                                                    classes_end_idx]))
 
         # Finally, create the step -> patterns assignment.
         # In order to do this, we don't load all the patterns
@@ -329,7 +325,7 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
         train_steps_patterns_assignment = []
         test_steps_patterns_assignment = []
         for step_id in range(n_steps):
-            selected_classes = set(self.classes_in_step[step_id])
+            selected_classes = self._classes_in_step[step_id]
             selected_indexes_train = []
             for idx, element in enumerate(train_dataset.targets):
                 if element in selected_classes:
@@ -357,6 +353,10 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
             train_steps_patterns_assignment,
             test_steps_patterns_assignment,
             task_ids, step_factory=NCStepInfo)
+
+    @property
+    def classes_in_step(self) -> Sequence[Set[int]]:
+        return self._classes_in_step
 
     def get_reproducibility_data(self):
         reproducibility_data = {
@@ -395,24 +395,6 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
             item for sublist in
             self.classes_in_step[step_start:step_end]
             for item in sublist]
-
-    def get_class_split(self, step_id: int):
-        if step_id >= 0:
-            classes_in_this_step = \
-                self.classes_in_step[step_id]
-            previous_classes = self.classes_in_step_range(0, step_id)
-            classes_seen_so_far = \
-                previous_classes + classes_in_this_step
-            future_classes = self.classes_in_step_range(step_id + 1)
-        else:
-            classes_in_this_step = []
-            previous_classes = []
-            classes_seen_so_far = []
-            future_classes = self.classes_in_step_range(0)
-
-        # Without explicit tuple parenthesis, PEP8 E127 occurs
-        return (classes_in_this_step, previous_classes, classes_seen_so_far,
-                future_classes)
 
 
 class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
@@ -455,13 +437,8 @@ class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
             Defaults to False.
         """
 
-        class_split = scenario.get_class_split(current_step)
-        (classes_in_this_step, previous_classes, classes_seen_so_far,
-         future_classes) = class_split
-
         super(NCStepInfo, self).__init__(
-            scenario, current_step, classes_in_this_step, previous_classes,
-            classes_seen_so_far, future_classes,
+            scenario, current_step,
             force_train_transformations=force_train_transformations,
             force_test_transformations=force_test_transformations,
             are_transformations_disabled=are_transformations_disabled,

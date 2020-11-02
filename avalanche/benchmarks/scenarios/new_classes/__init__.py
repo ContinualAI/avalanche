@@ -1,2 +1,1 @@
-from .nc_benchmark import *
-from .scenario_creation import *
+from .nc_scenario import *

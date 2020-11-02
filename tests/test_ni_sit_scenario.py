@@ -1,22 +1,22 @@
 import unittest
 
+import torch
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.scenarios import \
-    create_ni_single_dataset_sit_scenario, NIStepInfo, \
-    create_ni_multi_dataset_sit_scenario, NIScenario
-from avalanche.training.utils import TransformationSubset, torch
+from avalanche.benchmarks.scenarios import NIStepInfo,  NIScenario
+from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
+from avalanche.benchmarks import NIBenchmark
 
 
 class NISITTests(unittest.TestCase):
     def test_ni_sit_single_dataset(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
-        ni_scenario = create_ni_single_dataset_sit_scenario(
+        ni_scenario = NIBenchmark(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234,
-            balance_batches=True)
+            balance_steps=True)
 
         self.assertEqual(5, ni_scenario.n_steps)
         self.assertEqual(10, ni_scenario.n_classes)
@@ -43,15 +43,15 @@ class NISITTests(unittest.TestCase):
     def test_ni_sit_single_dataset_fixed_assignment(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
-        ni_scenario_reference = create_ni_single_dataset_sit_scenario(
+        ni_scenario_reference = NIBenchmark(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         reference_assignment = ni_scenario_reference.\
             train_steps_patterns_assignment
 
-        ni_scenario = create_ni_single_dataset_sit_scenario(
+        ni_scenario = NIBenchmark(
             mnist_train, mnist_test, 5, shuffle=True, seed=4321,
-            fixed_batch_assignment=reference_assignment)
+            fixed_step_assignment=reference_assignment)
 
         self.assertEqual(ni_scenario_reference.n_steps, ni_scenario.n_steps)
 
@@ -64,12 +64,12 @@ class NISITTests(unittest.TestCase):
     def test_ni_sit_single_dataset_reproducibility_data(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
-        ni_scenario_reference = create_ni_single_dataset_sit_scenario(
+        ni_scenario_reference = NIBenchmark(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         rep_data = ni_scenario_reference.get_reproducibility_data()
 
-        ni_scenario = create_ni_single_dataset_sit_scenario(
+        ni_scenario = NIBenchmark(
             mnist_train, mnist_test, 0, reproducibility_data=rep_data)
 
         self.assertEqual(ni_scenario_reference.n_steps, ni_scenario.n_steps)
@@ -98,9 +98,9 @@ class NISITTests(unittest.TestCase):
             mnist_test, None, None, range(5, 10))
         test_part2 = TransformationSubset(test_part2, None,
                                           class_mapping=split_mapping)
-        ni_scenario = create_ni_multi_dataset_sit_scenario(
+        ni_scenario = NIBenchmark(
             [train_part1, train_part2], [test_part1, test_part2], 5,
-            shuffle=True, seed=1234, balance_batches=True)
+            shuffle=True, seed=1234, balance_steps=True)
 
         self.assertEqual(5, ni_scenario.n_steps)
         self.assertEqual(10, ni_scenario.n_classes)
@@ -118,7 +118,7 @@ class NISITTests(unittest.TestCase):
             './data/mnist', train=True, download=True)
         mnist_test = MNIST(
             './data/mnist', train=False, download=True)
-        nc_scenario = create_ni_single_dataset_sit_scenario(
+        nc_scenario = NIBenchmark(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         step_info: NIStepInfo

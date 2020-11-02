@@ -12,12 +12,9 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-from avalanche.benchmarks.datasets import TinyImagenet
-from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
-    create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario
-
 from torchvision import transforms
+from avalanche.benchmarks.datasets import TinyImagenet
+from avalanche.benchmarks.generators import NCBenchmark
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -78,17 +75,19 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
     test_set = TinyImagenet(train=False)
 
     if return_task_id:
-        return create_nc_single_dataset_multi_task_scenario(
+        return NCBenchmark(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_tasks=incremental_steps,
+            n_steps=incremental_steps,
+            task_labels=True,
+            seed=seed,
+            fixed_class_order=fixed_class_order,
+            class_ids_from_zero_in_each_step=True)
+    else:
+        return NCBenchmark(
+            train_dataset=train_set,
+            test_dataset=test_set,
+            n_steps=incremental_steps,
+            task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
-    else:
-        return create_nc_single_dataset_sit_scenario(
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_batches=incremental_steps,
-            seed=seed,
-            fixed_class_order=fixed_class_order
-        )
