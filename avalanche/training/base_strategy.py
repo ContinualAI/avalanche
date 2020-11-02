@@ -9,7 +9,7 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 
 
-class StrategyFlow:
+class BaseStrategy:
     def __init__(self, model: Module, criterion, optimizer: Optimizer,
                  evaluation_protocol: EvalProtocol, train_mb_size: int = 1,
                  train_epochs: int = 1, test_mb_size: int = 'cpu', device=None,
