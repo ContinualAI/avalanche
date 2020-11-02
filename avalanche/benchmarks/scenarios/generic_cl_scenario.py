@@ -879,6 +879,5 @@ class LazyClassesInSteps(Sequence[Set[int]]):
                ']'
 
 
-
 __all__ = ['GenericStepInfo', 'GenericCLScenario', 'AbstractStepInfo',
            'TBaseScenario', 'TStepInfo', 'TGenericCLScenario']
