@@ -10,9 +10,9 @@ from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 
 
 class StrategyFlow:
-    def __init__(self, model: Module, criterion, optimizer: Optimizer, train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = 'cpu', device=None,
-                 evaluation_protocol: Optional[EvalProtocol] = None,
+    def __init__(self, model: Module, criterion, optimizer: Optimizer,
+                 evaluation_protocol: EvalProtocol, train_mb_size: int = 1,
+                 train_epochs: int = 1, test_mb_size: int = 'cpu', device=None,
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
         self.model = model
         self.criterion = criterion
@@ -22,8 +22,7 @@ class StrategyFlow:
         self.test_mb_size = train_mb_size if test_mb_size is None else test_mb_size
         self.device = device
 
-        self.evaluation_plugin = EvaluationPlugin()
-        self.evaluation_protocol = evaluation_protocol
+        self.evaluation_plugin = EvaluationPlugin(evaluation_protocol)
         self.plugins = [] if plugins is None else plugins
         self.plugins.append(self.evaluation_plugin)
 
@@ -54,9 +53,7 @@ class StrategyFlow:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training(**kwargs)
-
-        if self.evaluation_protocol is not None:
-            return self.evaluation_plugin.get_train_result()
+        return self.evaluation_plugin.get_train_result()
 
     def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):
         self._set_initial_test_step_id(step_info, test_part)
@@ -76,9 +73,7 @@ class StrategyFlow:
 
             self.step_id += 1
         self.after_test(**kwargs)
-
-        if self.evaluation_protocol is not None:
-            return self.evaluation_plugin.get_test_result()
+        return self.evaluation_plugin.get_test_result()
 
     def before_training(self, **kwargs):
         for p in self.plugins:
