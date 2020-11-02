@@ -1,15 +1,13 @@
-import warnings
-from typing import Optional
 import copy
 from collections import defaultdict
+from typing import Optional, Dict, Any
 
 import torch
-from torch import Tensor
+from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation.metrics import ACC
-from avalanche.evaluation import EvalProtocol
 
 
 class StrategyPlugin:
@@ -231,14 +229,14 @@ class EvaluationPlugin(StrategyPlugin):
     An evaluation plugin that obtains relevant data from the
     training and testing loops of the strategy through callbacks.
 
-    Internally, the evaluation plugin tries to use the "evaluation_protocol"
-    namespace value. If found and not None, the evaluation protocol
-    (usually an instance of :class:`EvalProtocol`), is used to compute the
-    required metrics. The "evaluation_protocol" is usually a field of the main
-    strategy.
+    Internally, the evaluation plugin tries uses the "evaluation_protocol"
+    (an instance of :class:`EvalProtocol`), to compute the
+    required metrics. The "evaluation_protocol" is usually passed as argument
+    from the strategy.
     """
-    def __init__(self):
+    def __init__(self, evaluation_protocol):
         super().__init__()
+        self.evaluation_protocol = evaluation_protocol
 
         # Training
         self._training_dataset_size = None
@@ -248,10 +246,9 @@ class EvaluationPlugin(StrategyPlugin):
         self._training_total_iterations = 0
         self._train_current_task_id = None
 
-        # Testing
+        # Test
         self._test_dataset_size = None
         self._test_average_loss = 0
-        self._test_total_iterations = 0
         self._test_current_task_id = None
         self._test_true_y = None
         self._test_predicted_y = None
@@ -264,8 +261,7 @@ class EvaluationPlugin(StrategyPlugin):
         return self._test_protocol_results
 
     def before_training(self, strategy, **kwargs):
-        step_info = strategy.step_info
-        _, task_id = step_info.current_training_set()
+        _, task_id = strategy.step_info.current_training_set()
         self._training_dataset_size = None
         self._train_current_task_id = task_id
         self._training_accuracy = None
@@ -275,27 +271,28 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1
-        evaluation_protocol = strategy.evaluation_protocol
         epoch = strategy.epoch
         iteration = strategy.mb_it
         train_mb_y = strategy.mb_y
         logits = strategy.logits
         loss = strategy.loss
 
-        _, predicted_labels = torch.max(logits, 1)
-        correct_predictions = torch.eq(predicted_labels,
-                                       train_mb_y).sum().item()
-        self._training_correct_count += correct_predictions
-
-        torch.eq(predicted_labels, train_mb_y)
-
-        self._training_average_loss += loss.item()
+        # TODO: is this a bug?
         den = ((iteration + 1) * train_mb_y.shape[0] +
                epoch * self._training_dataset_size)
-        self._training_average_loss /= den
 
+        # Accuracy
+        _, predicted_labels = torch.max(logits, 1)
+        correct_predictions = torch.eq(predicted_labels, train_mb_y)\
+                                   .sum().item()
+        self._training_correct_count += correct_predictions
         self._training_accuracy = self._training_correct_count / den
 
+        # Loss
+        self._training_average_loss += loss.item()
+        self._training_average_loss /= den
+
+        # Logging
         if iteration % 100 == 0:
             print(
                 '[Training] ==>>> it: {}, avg. loss: {:.6f}, '
@@ -303,7 +300,7 @@ class EvaluationPlugin(StrategyPlugin):
                     iteration, self._training_average_loss,
                     self._training_accuracy))
 
-            evaluation_protocol.update_tb_train(
+            self.evaluation_protocol.update_tb_train(
                 self._training_average_loss, self._training_accuracy,
                 self._training_total_iterations, torch.unique(train_mb_y),
                 self._train_current_task_id)
@@ -321,18 +318,15 @@ class EvaluationPlugin(StrategyPlugin):
         self._test_predicted_y = []
 
     def after_test_iteration(self, strategy, **kwargs):
-        self._test_total_iterations += 1
-
         _, predicted_labels = torch.max(strategy.logits, 1)
         self._test_true_y.append(strategy.mb_y)
         self._test_predicted_y.append(predicted_labels)
         self._test_average_loss += strategy.loss.item()
 
     def after_test_step(self, strategy, **kwargs):
-        evaluation_protocol = strategy.evaluation_protocol
         self._test_average_loss /= self._test_dataset_size
 
-        results = evaluation_protocol.get_results(
+        results = self.evaluation_protocol.get_results(
             self._test_true_y, self._test_predicted_y,
             self._train_current_task_id, self._test_current_task_id)
         acc, accs = results[ACC]
@@ -344,6 +338,241 @@ class EvaluationPlugin(StrategyPlugin):
             (self._test_average_loss, acc, accs, results)
 
     def after_test(self, strategy, **kwargs):
-        strategy.evaluation_protocol.update_tb_test(
+        self.evaluation_protocol.update_tb_test(
             self._test_protocol_results,
             strategy.step_info.current_step)
+
+
+class MultiHeadPlugin(StrategyPlugin):
+    def __init__(self, model, classifier_field: str = 'classifier',
+                 keep_initial_layer=False):
+        super().__init__()
+        if not hasattr(model, classifier_field):
+            raise ValueError('The model has no field named ' + classifier_field)
+
+        self.model = model
+        self.classifier_field = classifier_field
+        self.task_layers: Dict[int, Any] = dict()
+
+        if keep_initial_layer:
+            self.task_layers[0] = getattr(model, classifier_field)
+
+    def before_training(self, strategy, **kwargs):
+        self.set_task_layer(strategy.model, strategy.step_info, strategy.step_id)
+
+    def before_test_step(self, strategy, **kwargs):
+        self.set_task_layer(strategy.model, strategy.step_info, strategy.step_id)
+
+    def set_task_layer(self, model: Module, classifier_field: str,
+                       step_info: IStepInfo, step_id: Optional[int] = None):
+        """
+        Sets the correct task layer.
+
+        This method is used by both training and testing flows. This is
+        particularly useful when testing on the complete test set, which usually
+        includes not already seen tasks.
+
+        By default a Linear layer is created for each task. More info can be
+        found at class level documentation.
+
+        :param model: The model to adapt.
+        :param classifier_field: The name of the layer (model class field) to
+            change.
+        :param step_info: The step info object.
+        :param step_id: The relevant step id. If None, the current training step
+            id is used.
+        :return: None
+        """
+        # TODO: better management of testing flow (especially head expansion)
+        # Main idea for the testing flow: just discard (not store) the layer for
+        # tasks that were not encountered during a training flow.
+        # Can use existing facilities to know if current flow is test or train!
+        # Also, do not expand layers during testing !OR! create a new expanded
+        # layer (which get discarded) by setting the weights of not already
+        # encountered classes to 0!
+        # --- end of dev comment ---
+
+        # TODO: move previous layer back to cpu (using .to(...))
+
+        if step_id is None:
+            step_id = step_info.current_step
+
+        training_info = step_info.step_specific_training_set(step_id)
+        testing_info = step_info.step_specific_test_set(step_id)
+
+        train_dataset, task_label = training_info
+        test_dataset, _ = testing_info
+
+        n_output_units = max(max(train_dataset.targets),
+                             max(test_dataset.targets)) + 1
+
+        if task_label not in self.task_layers:
+            task_layer = self.create_task_layer(
+                model, classifier_field, task_label=task_label,
+                n_output_units=n_output_units)
+            self.task_layers[task_label] = task_layer
+
+        self.task_layers[task_label] = \
+            self.expand_task_layer(model, classifier_field,
+                                   n_output_units, self.task_layers[task_label])
+
+        self.adapt_model_for_task(
+            model, classifier_field,
+            self.task_layers[task_label])
+
+    def create_task_layer(self, model: Module, classifier_field: str,
+                          n_output_units: int, previous_task_layer=None):
+        """
+        Creates a new task layer.
+
+        By default, this method will create a new :class:`Linear` layer with
+        n_output_units" output units. If  "previous_task_layer" is None,
+        the name of the classifier field is used to retrieve the amount of
+        input features.
+
+        This method will also be used to create a new layer when expanding
+        an existing task head.
+
+        This method can be overridden by the user so that a layer different
+        from :class:`Linear` can be created.
+
+        :param model: The model for which the layer will be created.
+        :param classifier_field: The name of the classifier field.
+        :param n_output_units: The number of output units.
+        :param previous_task_layer: If not None, the previously created layer
+             for the same task.
+        :return: The new layer.
+        """
+        if previous_task_layer is None:
+            current_task_layer: Linear = getattr(model, classifier_field)
+            in_features = current_task_layer.in_features
+            has_bias = current_task_layer.bias is not None
+        else:
+            in_features = previous_task_layer.in_features
+            has_bias = previous_task_layer.bias is not None
+
+        new_layer = Linear(in_features, n_output_units, bias=has_bias)
+        self.initialize_new_task_layer(new_layer)
+        return new_layer
+
+    def initialize_new_task_layer(self, new_layer: Module):
+        """
+        Initializes a new task layer.
+
+        This method should initialize the input layer. This usually is just a
+        weight initialization procedure, but more complex operations can be
+        done as well.
+
+        The input layer can be either a new layer created for a previously
+        unseen task or a layer created to expand an existing task layer. In the
+        latter case, the user can define a specific weight initialization
+        procedure for the expanded part of the head by overriding the
+        "initialize_dynamically_expanded_head" method.
+
+        By default, if no custom implementation is provided, no specific
+        initialization is done, which means that the default initialization
+        provided by the :class:`Linear` class is used.
+
+        :param new_layer: The new layer to adapt.
+        :return: None
+        """
+        pass
+
+    def initialize_dynamically_expanded_head(self, prev_task_layer,
+                                             new_task_layer):
+        """
+        Initializes head weights for enw classes.
+
+        This function is called by "adapt_task_layer" only.
+
+        Defaults to no-op, which uses the initialization provided
+        by "initialize_new_task_layer" (already called by "adapt_task_layer").
+
+        This method should initialize the weights for new classes. However,
+        if the strategy dictates it, this may be the perfect place to adapt
+        weights of previous classes, too.
+
+        :param prev_task_layer: New previous, not expanded, task layer.
+        :param new_task_layer: The new task layer, with weights from already
+            existing classes already set.
+        :return:
+        """
+        # Example implementation of zero-init:
+        # new_task_layer.weight[:prev_task_layer.out_features] = 0.0
+        pass
+
+    def adapt_task_layer(self, prev_task_layer, new_task_layer):
+        """
+        Adapts the task layer by copying previous weights to the new layer and
+        by calling "initialize_dynamically_expanded_head".
+
+        This method is called by "expand_task_layer" only if a new task layer
+        was created as the result of encountering a new class for that task.
+
+        :param prev_task_layer: The previous task later.
+        :param new_task_layer: The new task layer.
+        :return: None.
+        """
+        to_copy_units = min(prev_task_layer.out_features,
+                            new_task_layer.out_features)
+
+        # Weight copy
+        new_task_layer.weight[:to_copy_units] = \
+            prev_task_layer.weight[:to_copy_units]
+
+        # Bias copy
+        if prev_task_layer.bias is not None and new_task_layer.bias is not None:
+            new_task_layer.bias[:to_copy_units] = \
+                prev_task_layer.bias[:to_copy_units]
+
+        # Initializes the expanded part (and adapts existing weights)
+        self.initialize_dynamically_expanded_head(
+            prev_task_layer, new_task_layer)
+
+    def expand_task_layer(self, model: Module, classifier_field: str,
+                          min_n_output_units: int, task_layer):
+        """
+        Expands an existing task layer.
+
+        This method checks if the layer for a task should be expanded to
+        accommodate for "min_n_output_units" output units. If the task layer
+        already contains a sufficient amount of output units, no operations are
+        done and "task_layer" will be returned as-is.
+
+        If an expansion is needed, "create_task_layer" will be used to create
+        a new layer and then "adapt_task_layer" will be called to copy the
+        weights of already seen classes and to initialize the weights
+        for the expanded part of the layer.
+
+        :param model: The model.
+        :param classifier_field: The name of the field to adapt.
+        :param min_n_output_units: The number of required output units.
+        :param task_layer: The previous task layer.
+
+        :return: The new layer for the task.
+        """
+        # Expands (creates new) the fully connected layer
+        # then calls adapt_task_layer to copy existing weights +
+        # initialize the new weights
+        if task_layer.out_features >= min_n_output_units:
+            return task_layer
+
+        new_layer = self.create_task_layer(
+            model, classifier_field, min_n_output_units,
+            previous_task_layer=task_layer)
+
+        self.adapt_task_layer(task_layer, new_layer)
+        return new_layer
+
+    def adapt_model_for_task(self, model: Module, classifier_field: str,
+                             task_layer):
+        """
+        Sets the model classifier field for the given task layer
+        By default, just sets the model property with the name given by
+        the "classifier_field" parameter
+
+        :param model: The model to adapt.
+        :param classifier_field: The name of the classifier field.
+        :param task_layer: The layer to set.
+        """
+        setattr(model, classifier_field, task_layer)
