@@ -1,5 +1,5 @@
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List
+    Dict, Any, Iterable, List, Set
 from abc import ABC, abstractmethod
 import copy
 
@@ -30,12 +30,15 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
     of assignment: each step is defined by a list of patterns (identified by
     their indexes) contained in that step.
     """
-    def __init__(self: TGenericCLScenario, train_dataset: TrainSetWithTargets,
+    def __init__(self: TGenericCLScenario,
+                 original_train_dataset: TrainSetWithTargets,
+                 original_test_dataset: TestSetWithTargets,
+                 train_dataset: TrainSetWithTargets,
                  test_dataset: TestSetWithTargets,
                  train_steps_patterns_assignment: Sequence[Sequence[int]],
                  test_steps_patterns_assignment: Sequence[Sequence[int]],
                  task_labels: Sequence[int],
-                 return_complete_test_set_only: bool = False,
+                 complete_test_set_only: bool = False,
                  reproducibility_data: Optional[Dict[str, Any]] = None,
                  step_factory: Callable[[TGenericCLScenario, int],
                                         TStepInfo] = None):
@@ -55,7 +58,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             inside the test dataset.
         :param task_labels: The mapping from step IDs to task labels, usually
             as a list of integers.
-        :param return_complete_test_set_only: If True, only the complete test
+        :param complete_test_set_only: If True, only the complete test
             set will be returned from test set related methods of the linked
             :class:`GenericStepInfo` instances. This also means that the
             ``test_steps_patterns_assignment`` parameter can be a single element
@@ -67,7 +70,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             ``test_steps_patterns_assignment`` parameters must describe an equal
             amount of steps.
         :param reproducibility_data: If not None, overrides the
-            ``train/test_steps_patterns_assignment` and ``task_labels``
+            ``train/test_steps_patterns_assignment`` and ``task_labels``
             parameters. This is usually a dictionary containing data used to
             reproduce a specific experiment. One can use the
             ``get_reproducibility_data`` method to get (and even distribute)
@@ -83,19 +86,36 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             which means that the :class:`GenericStepInfo` constructor will be
             used.
         """
-        self.train_dataset: TrainSetWithTargets = train_dataset
-        self.test_dataset: TestSetWithTargets = test_dataset
-        self.train_steps_patterns_assignment: Sequence[Sequence[int]]
-        self.test_steps_patterns_assignment: Sequence[Sequence[int]]
-        self.task_labels: Sequence[int] = task_labels
-        self.step_factory: Callable[[TGenericCLScenario, int], TStepInfo]
 
-        if step_factory is None:
-            self.step_factory = GenericStepInfo
-        else:
-            self.step_factory = step_factory
+        self.original_train_dataset: TrainSetWithTargets = \
+            original_train_dataset
+        """ The original training set. """
+
+        self.original_test_dataset: TestSetWithTargets = original_test_dataset
+        """ The original test set. """
+
+        self.train_dataset: TrainSetWithTargets = train_dataset
+        """ The training set used to generate the incremental steps. """
+
+        self.test_dataset: TestSetWithTargets = test_dataset
+        """ The test set used to generate the incremental steps. """
+
+        self.train_steps_patterns_assignment: Sequence[Sequence[int]]
+        """ A list containing which training patterns are assigned to each step.
+        Patterns are identified by their id w.r.t. the dataset found in the 
+        train_dataset field. """
+
+        self.test_steps_patterns_assignment: Sequence[Sequence[int]]
+        """ A list containing which test patterns are assigned to each step.
+        Patterns are identified by their id w.r.t. the dataset found in the 
+        test_dataset field """
+
+        self.task_labels: Sequence[int] = task_labels
+        """ The task label of each step. """
 
         self.slice_ids: Optional[List[int]] = None
+        """ Describes which steps are contained in the current scenario slice. 
+        Can be None, which means that this object is the original scenario. """
 
         # Steal transforms from the datasets, that is, copy the reference to the
         # transformation functions, and set to None the fields in the
@@ -132,22 +152,31 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.test_steps_patterns_assignment: Sequence[Sequence[int]] = \
             test_steps_patterns_assignment
         self.task_labels: Sequence[int] = task_labels
-        self.return_complete_test_set_only: bool = \
-            bool(return_complete_test_set_only)
+
+        self.complete_test_set_only: bool = bool(complete_test_set_only)
+        """ If True, only the complete test set will be returned from step info
+        instances. """
 
         if reproducibility_data is not None:
             self.train_steps_patterns_assignment = reproducibility_data['train']
             self.test_steps_patterns_assignment = reproducibility_data['test']
             self.task_labels = reproducibility_data['task_labels']
-            self.return_complete_test_set_only = \
+            self.complete_test_set_only = \
                 reproducibility_data['complete_test_only']
 
         self.n_steps: int = len(self.train_steps_patterns_assignment)
+        """  The number of incremental steps this scenario is made of. """
 
-        if self.return_complete_test_set_only:
+        if step_factory is None:
+            step_factory = GenericStepInfo
+
+        self._step_factory: Callable[[TGenericCLScenario, int], TStepInfo] = \
+            step_factory
+
+        if self.complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
                 raise ValueError(
-                    'return_complete_test_set_only is True, but '
+                    'complete_test_set_only is True, but '
                     'test_steps_patterns_assignment contains more than one '
                     'element')
         elif len(self.train_steps_patterns_assignment) != \
@@ -186,9 +215,9 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         if isinstance(step_idx, int):
             if step_idx < len(self):
                 if self.slice_ids is None:
-                    return self.step_factory(self, step_idx)
+                    return self._step_factory(self, step_idx)
                 else:
-                    return self.step_factory(self, self.slice_ids[step_idx])
+                    return self._step_factory(self, self.slice_ids[step_idx])
             raise IndexError('Step index out of bounds' + str(int(step_idx)))
         else:
             return self._create_slice(step_idx)
@@ -217,7 +246,52 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             test_steps.append(list(test_step))
         return {'train': train_steps, 'test': test_steps,
                 'task_labels': list(self.task_labels),
-                'complete_test_only': bool(self.return_complete_test_set_only)}
+                'complete_test_only': bool(self.complete_test_set_only)}
+
+    def get_classes_timeline(self, current_step: int):
+        """
+        Returns the classes timeline for a this scenario.
+
+        Given a step ID, this method returns the classes in this step,
+        previously seen classes, the cumulative class list and a list
+        of classes that will be encountered in next steps.
+
+        :param current_step: The reference step ID.
+        :return: A tuple composed of four lists: the first list contains the
+            IDs of classes in this step, the second contains IDs of classes seen
+            in previous steps, the third returns a cumulative list of classes
+            (that is, the union of the first two list) while the last one
+            returns a list of classes that will be encountered in next steps.
+        """
+        train_dataset: TrainSetWithTargets
+        train_steps_patterns_assignment: Sequence[Sequence[int]]
+
+        class_set_current_step = self.classes_in_step[current_step]
+
+        classes_in_this_step = list(class_set_current_step)
+
+        class_set_prev_steps = set()
+        for step_id in range(0, current_step):
+            class_set_prev_steps.update(self.classes_in_step[step_id])
+        previous_classes = list(class_set_prev_steps)
+
+        classes_seen_so_far = \
+            list(class_set_current_step.union(class_set_prev_steps))
+
+        class_set_future_steps = set()
+        for step_id in range(current_step, self.n_steps):
+            class_set_prev_steps.update(self.classes_in_step[step_id])
+        future_classes = list(class_set_future_steps)
+
+        return (classes_in_this_step, previous_classes, classes_seen_so_far,
+                future_classes)
+
+    @property
+    def classes_in_step(self) -> Sequence[Set[int]]:
+        """ A list that, for each step (identified by its index/ID),
+        stores a set of the (optionally remapped) IDs of classes of patterns
+        assigned to that step. """
+        return LazyClassesInSteps(self)
 
     def _create_slice(self: TGenericCLScenario,
                       steps_slice: Union[int, slice, Iterable[int]]) \
@@ -260,6 +334,10 @@ class AbstractStepInfo(ABC, Generic[TBaseScenario]):
 
     def __init__(
             self, scenario: TBaseScenario, current_step: int, n_steps: int,
+            classes_in_this_step: Sequence[int],
+            previous_classes: Sequence[int],
+            classes_seen_so_far: Sequence[int],
+            future_classes: Optional[Sequence[int]],
             train_transform: Optional[Callable] = None,
             train_target_transform: Optional[Callable] = None,
             test_transform: Optional[Callable] = None,
@@ -320,6 +398,18 @@ class AbstractStepInfo(ABC, Generic[TBaseScenario]):
         self.force_train_transformations: bool = force_train_transformations
         self.force_test_transformations: bool = force_test_transformations
         self.are_transformations_disabled: bool = are_transformations_disabled
+
+        self.classes_in_this_step: Sequence[int] = classes_in_this_step
+        """ The list of classes in this step """
+
+        self.previous_classes: Sequence[int] = previous_classes
+        """ The list of classes in previous steps """
+
+        self.classes_seen_so_far: Sequence[int] = classes_seen_so_far
+        """ List of classes of current and previous steps """
+
+        self.future_classes: Optional[Sequence[int]] = future_classes
+        """ The list of classes of next steps """
 
     @abstractmethod
     def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
@@ -617,11 +707,16 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
             ``force_train_transformations`` and ``force_test_transformations``.
             Defaults to False.
         """
+
+        (classes_in_this_step, previous_classes, classes_seen_so_far,
+         future_classes) = scenario.get_classes_timeline(current_step)
+
         super(GenericStepInfo, self).__init__(
-            scenario, current_step, len(scenario), scenario.train_transform,
-            scenario.train_target_transform, scenario.test_transform,
-            scenario.test_target_transform, force_train_transformations,
-            force_test_transformations,
+            scenario, current_step, len(scenario), classes_in_this_step,
+            previous_classes, classes_seen_so_far, future_classes,
+            scenario.train_transform, scenario.train_target_transform,
+            scenario.test_transform, scenario.test_target_transform,
+            force_train_transformations, force_test_transformations,
             are_transformations_disabled)
 
         self.transformation_step_factory = transformation_step_factory
@@ -680,7 +775,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
         else:
             dataset = self.scenario.test_dataset
             if len(self.scenario.test_steps_patterns_assignment) == 0:
-                # self.scenario.return_complete_test_set_only is True (otherwise
+                # self.scenario.complete_test_set_only is True (otherwise
                 # test_steps_patterns_assignment couldn't be empty)
                 # This means we have to return the entire test_dataset as-is.
                 patterns_indexes = None
@@ -735,7 +830,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
     def _make_test_subsets(self, steps: Union[int, Sequence[int]], **kwargs) \
             -> Union[MTMultipleSet]:
 
-        if self.scenario.return_complete_test_set_only:
+        if self.scenario.complete_test_set_only:
             return [self._make_subset(False, 0, **kwargs)]
 
         return super()._make_test_subsets(steps, **kwargs)
@@ -764,6 +859,24 @@ def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
         raise ValueError('Step index out of range: ' + str(min(steps_list)))
 
     return steps_list
+
+
+class LazyClassesInSteps(Sequence[Set[int]]):
+    def __init__(self, scenario: GenericCLScenario):
+        self._scenario = scenario
+
+    def __len__(self):
+        return len(self._scenario)
+
+    def __getitem__(self, step_id) -> Set[int]:
+        return set(
+            [self._scenario.train_dataset.targets[pattern_idx] for pattern_idx
+             in self._scenario.train_steps_patterns_assignment[step_id]])
+
+    def __str__(self):
+        return '[' + \
+               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
+               ']'
 
 
 __all__ = ['GenericStepInfo', 'GenericCLScenario', 'AbstractStepInfo',

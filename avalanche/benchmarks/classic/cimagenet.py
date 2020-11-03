@@ -12,10 +12,9 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-import sys
 
 from avalanche.benchmarks.datasets import ImageNet
-from avalanche.benchmarks.generators import NCScenario
+from avalanche.benchmarks import NCBenchmark
 
 from torchvision import transforms
 
@@ -94,25 +93,24 @@ def SplitImageNet(root,
         per_step_classes = None
 
     if return_task_id:
-        return NCScenario(
+        return NCBenchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_steps=incremental_steps,
+            task_labels=True,
             per_step_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            multi_task=True
-        )
+            class_ids_from_zero_in_each_step=True)
     else:
-        return NCScenario(
+        return NCBenchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_steps=incremental_steps,
+            task_labels=False,
             per_step_classes=per_step_classes,
             seed=seed,
-            fixed_class_order=fixed_class_order,
-            multi_task=False
-        )
+            fixed_class_order=fixed_class_order)
 
 
 if __name__ == "__main__":

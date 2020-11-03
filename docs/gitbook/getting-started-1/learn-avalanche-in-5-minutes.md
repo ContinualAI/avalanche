@@ -79,7 +79,7 @@ for step in perm_mnist:
     print("Start of task ", step.current_task)
     print('Classes in this task:', step.classes_in_this_task)
 
-    # Here's what you can do with the NIBatchInfo object
+    # Here's what you can do with the NIStepInfo object
     current_training_set = step.current_training_set()
     training_dataset, t = current_training_set
     print('Task {} batch {} -> train'.format(t, step.current_task))
@@ -98,13 +98,13 @@ The _specific_ scenario generators are useful when starting from one or multiple
 from avalanche.benchmarks.generators import NIScenario, NCScenario
 
 ni_scenario = NIScenario(
-    mnist_train, mnist_test, n_batches=10, shuffle=True, seed=1234,
-    balance_batches=True
+    mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
+    balance_steps=True
 )
 
 nc_scenario = NCScenario(
     mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
-    multi_task=False
+    task_labels=False
 )
 ```
 

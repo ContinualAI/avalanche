@@ -24,10 +24,12 @@ from torch.nn import CrossEntropyLoss
 from avalanche.extras.models import SimpleMLP
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.benchmarks.scenarios import \
-    create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
+from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
+from avalanche.benchmarks import NCBenchmark, NCStepInfo
+
 #from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+
 
 device = 'cpu'
 
@@ -38,8 +40,9 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        nc_scenario = NCBenchmark(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
@@ -58,8 +61,9 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        nc_scenario = NCBenchmark(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
@@ -87,8 +91,9 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        nc_scenario = NCBenchmark(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
@@ -108,8 +113,8 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-2)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, seed=1234)
+        nc_scenario = NCBenchmark(
+            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
@@ -145,7 +150,7 @@ class StrategyTest(unittest.TestCase):
 
         print('Starting experiment...')
         results = []
-        batch_info: NCBatchInfo
+        batch_info: NCStepInfo
         for batch_info in scenario:
             print("Start of step ", batch_info.current_step)
 

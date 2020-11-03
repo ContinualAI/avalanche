@@ -22,7 +22,7 @@ from __future__ import absolute_import
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from avalanche.benchmarks.scenarios import NCTaskInfo
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
+from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
     NCMultiTaskScenario
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP

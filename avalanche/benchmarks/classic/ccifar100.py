@@ -19,16 +19,10 @@ from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR100
 from torchvision import transforms
-from avalanche.benchmarks.scenarios.new_classes.nc_generic_scenario \
-    import NCGenericScenario
 from avalanche.training.utils.transform_dataset import \
     concat_datasets_sequentially
-from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
-    create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
-    NCSingleTaskScenario
 from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
+from avalanche.benchmarks import NCBenchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -51,8 +45,7 @@ def SplitCIFAR100(incremental_steps: int,
                   seed: Optional[int] = None,
                   fixed_class_order: Optional[Sequence[int]] = None,
                   train_transform=_default_cifar100_train_transform,
-                  test_transform=_default_cifar100_test_transform
-                  ):
+                  test_transform=_default_cifar100_test_transform):
     """
     Creates a CL scenario using the CIFAR100 dataset.
     If the dataset is not present in the computer the method automatically
@@ -106,22 +99,24 @@ def SplitCIFAR100(incremental_steps: int,
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
-        return create_nc_single_dataset_multi_task_scenario(
+        return NCBenchmark(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_tasks=total_steps,
+            n_steps=total_steps,
+            task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_task_classes={0: 50} if first_batch_with_half_classes else None)
+            per_step_classes={0: 50} if first_batch_with_half_classes else None,
+            class_ids_from_zero_in_each_step=True)
     else:
-        return create_nc_single_dataset_sit_scenario(
+        return NCBenchmark(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_batches=total_steps,
+            n_steps=total_steps,
+            task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_batch_classes={0: 50} if first_batch_with_half_classes else None
-        )
+            per_step_classes={0: 50} if first_batch_with_half_classes else None)
 
 
 def SplitCIFAR110(
@@ -130,7 +125,7 @@ def SplitCIFAR110(
         fixed_class_order: Optional[Sequence[int]] = None,
         train_transform=_default_cifar100_train_transform,
         test_transform=_default_cifar100_test_transform) \
-        -> NCSingleTaskScenario:
+        -> NCScenario:
     """
     Creates a Single Incremental Task (SIT) scenario using the CIFAR100 dataset,
     with a pretrain first batch using CIFAR10.
@@ -187,15 +182,14 @@ def SplitCIFAR110(
         cifar_100_class_order = random.sample(range(10, 110), 100)
         class_order.extend(cifar_100_class_order)
 
-    base_scenario = NCGenericScenario(
+    return NCBenchmark(
         cifar_10_100_train, cifar_10_100_test,
-        n_batches=incremental_steps + 1,
+        n_steps=incremental_steps + 1,
+        task_labels=False,
         shuffle=False,
         seed=None,
         fixed_class_order=class_order,
-        per_batch_classes={0: 10})
-
-    return NCSingleTaskScenario(base_scenario)
+        per_step_classes={0: 10})
 
 
 def _get_cifar100_dataset(train_transformation, test_transformation):

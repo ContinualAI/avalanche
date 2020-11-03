@@ -27,7 +27,7 @@ from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
-from avalanche.benchmarks.scenarios import NIBatchInfo, \
+from avalanche.benchmarks.scenarios import NIStepInfo, \
     create_ni_single_dataset_sit_scenario
 from .example_utils import get_default_device
 
@@ -130,25 +130,25 @@ def main():
     # Let's start looking at the ni_scenario API. It's very similar to the one
     # of the New Classes counterpart (we recommend looking at examples of NC).
     # First, print the classes contained in each batch. We can use
-    # classes_in_batch to obtain the list of classes in each batch. Consider
+    # classes_in_step to obtain the list of classes in each batch. Consider
     # that we are running a balanced scenario, so at least one pattern from all
     # classes will be contained in every batch.
     print('Batch order:')
-    for batch_idx, batch_classes in enumerate(ni_scenario.classes_in_batch):
+    for batch_idx, batch_classes in enumerate(ni_scenario.classes_in_step):
         print('Batch {}, classes = {}'.format(batch_idx, batch_classes))
 
     print('Starting experiment...')
 
     results = []  # Results will contain the metrics values for each batch
-    batch_info: NIBatchInfo  # Define the batch_info as an NIBatchInfo instance
+    batch_info: NIStepInfo  # Define the batch_info as an NIStepInfo instance
 
     # Loop over the training incremental batches
-    # For each batch, an instance of NIBatchInfo is obtained.
+    # For each batch, an instance of NIStepInfo is obtained.
     # This instance exposes a lot of useful information about the current batch
     # as well as methods to obtain current / past / future batch datasets!
 
     # batch_info: IStepInfo
-    # In fact, NIBatchInfo instances are also instances of IStepInfo, which is
+    # In fact, NIStepInfo instances are also instances of IStepInfo, which is
     # the more general interface that is shared by both "New Classes" and
     # "New Instances" scenarios (no matter if multi-task or single-task).
     # Being more general, this interface defines only fields and methods shared
@@ -169,7 +169,7 @@ def main():
 
         # classes_in_this_batch contains the list of classes in this batch
         # This is way easier than using
-        # ni_scenario.classes_in_batch[batch_info.current_batch]
+        # ni_scenario.classes_in_step[batch_info.current_batch]
         print('Classes in this batch:', batch_info.classes_in_this_batch)
 
         # batch_info can be used to access the list of previously
