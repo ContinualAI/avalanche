@@ -52,7 +52,7 @@ mb_size = 32
 model = SimpleMLP(num_classes=n_classes)
 
 # CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_tasks),
+perm_mnist = PermutedMNIST(n_tasks)
 
 # Train & Test
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
