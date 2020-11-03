@@ -9,8 +9,8 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 > #### What are the **three pillars** of any respectful continual learning research project?
 
 * **Benchmarks**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
-* **Training**: _\*\*_Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
-* **Evaluation**: _\*\*Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
+* **Training**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
+* **Evaluation**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
 
 > #### _With Avalanche, you can find all these three fundamental pieces together and more, in a single and coherent codabase._
 
