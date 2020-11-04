@@ -28,9 +28,6 @@ from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
 from avalanche.benchmarks import NCBenchmark, NCStepInfo
 
-#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
-
-
 device = 'cpu'
 
 class StrategyTest(unittest.TestCase):
