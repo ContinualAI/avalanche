@@ -81,19 +81,20 @@ class GDumbPlugin(StrategySkeleton):
                 else:   
                     # memory not full: add new pattern
                     if self.ext_mem is None:
-                        self.ext_mem = TensorDataset(pattern, target.unsqueeze(0))
+                        self.ext_mem = TensorDataset(
+                            pattern, target.unsqueeze(0))
                     else:
                         self.ext_mem = TensorDataset(
                             torch.cat([
-                                pattern, 
+                                pattern,
                                 self.ext_mem.tensors[0]], dim=0),
+
                             torch.cat([
-                                target.unsqueeze(0), 
+                                target.unsqueeze(0),
                                 self.ext_mem.tensors[1]], dim=0)
-                    )
+                        )
  
                 self.counter[target_value] += 1
-
 
         self.update_namespace(train_dataset=self.ext_mem)
 
