@@ -54,12 +54,6 @@ class GDumbPlugin(StrategySkeleton):
             GDumb approach and updating the dataset accordingly.
         """
 
-        # helper memory to store new patterns when memory is not full
-        # this is necessary since it is not possible to concatenate
-        # patterns into an existing TensorDataset 
-        # (dataset.tensors[0] does not support item assignment)
-        ext_mem = [[], []]
-
         # for each pattern, add it to the memory or not
         for i, (pattern, target) in enumerate(train_dataset):
             target_value = target.item()
@@ -74,7 +68,8 @@ class GDumbPlugin(StrategySkeleton):
 
             if target_value not in self.counter or \
                     self.counter[target_value] < patterns_per_class:
-                # full memory, remove item from most represented class
+                # full memory: replace item from most represented class
+                # with current pattern
                 if sum(self.counter.values()) >= self.mem_size:
                     to_remove = max(self.counter, key=self.counter.get)
                     for j in range(len(self.ext_mem.tensors[1])):
@@ -83,27 +78,23 @@ class GDumbPlugin(StrategySkeleton):
                             self.ext_mem.tensors[1][j] = target
                             break
                     self.counter[to_remove] -= 1
+                else:   
+                    # memory not full: add new pattern
+                    if self.ext_mem is None:
+                        self.ext_mem = TensorDataset(
+                            pattern, target.unsqueeze(0))
+                    else:
+                        self.ext_mem = TensorDataset(
+                            torch.cat([
+                                pattern,
+                                self.ext_mem.tensors[0]], dim=0),
 
-                # memory not full, just add the new pattern
-                else:
-                    ext_mem[0].append(pattern)
-                    ext_mem[1].append(target.unsqueeze(0))
-                    
+                            torch.cat([
+                                target.unsqueeze(0),
+                                self.ext_mem.tensors[1]], dim=0)
+                        )
+ 
                 self.counter[target_value] += 1
-
-        # concatenate previous memory with newly added patterns.
-        # when ext_mem[0] == [] the memory (self.ext_mem) is full and patterns 
-        # are inserted into self.ext_mem directly
-        if len(ext_mem[0]) > 0:
-            memx = torch.cat(ext_mem[0], dim=0)
-            memy = torch.cat(ext_mem[1], dim=0)            
-            if self.ext_mem is None:
-                self.ext_mem = TensorDataset(memx, memy)
-            else:
-                self.ext_mem = TensorDataset(
-                    torch.cat([memx, self.ext_mem.tensors[0]], dim=0),
-                    torch.cat([memy, self.ext_mem.tensors[1]], dim=0)
-                )
 
         self.update_namespace(train_dataset=self.ext_mem)
 

@@ -28,10 +28,8 @@ from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
 from avalanche.benchmarks import NCBenchmark, NCStepInfo
 
-#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
-
-
 device = 'cpu'
+
 
 class StrategyTest(unittest.TestCase):
 
@@ -49,12 +47,12 @@ class StrategyTest(unittest.TestCase):
                 ACC(num_class=nc_scenario.n_classes)
             ])
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
+        strategy = Naive(
+                model, 'classifier', optimizer, criterion,
                 evaluation_protocol=eval_protocol, train_mb_size=100, 
                 train_epochs=4, test_mb_size=100, device=device)
 
         self.run_strategy(nc_scenario, strategy)
-
 
     def test_replay(self):
         model = SimpleMLP()
@@ -75,16 +73,16 @@ class StrategyTest(unittest.TestCase):
                 for p in m.parameters():
                     torch.nn.init.uniform_(p, -1, -1)
 
-        strategy = Replay(model, 'classifier', optimizer, criterion,
-                mem_size=200, reinit_model_before_step=True,
-                reinit_function=reinit, # None to use default init function
-                evaluation_protocol=eval_protocol,
-                train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device, plugins=None
-                )
+        strategy = Replay(
+                    model, 'classifier', optimizer, criterion,
+                    mem_size=200, reinit_model_before_step=True,
+                    reinit_function=reinit,  # None to use default init function
+                    evaluation_protocol=eval_protocol,
+                    train_mb_size=100, 
+                    train_epochs=4, test_mb_size=100, device=device, 
+                    plugins=None)
 
         self.run_strategy(nc_scenario, strategy)
-
 
     def test_cumulative(self):
         model = SimpleMLP()
@@ -96,17 +94,15 @@ class StrategyTest(unittest.TestCase):
             shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
+                metrics=[ACC(num_class=nc_scenario.n_classes)])
 
-        strategy = Cumulative(model, 'classifier', optimizer, criterion,
+        strategy = Cumulative(
+                model, 'classifier', optimizer, criterion,
                 train_mb_size=100, 
                 evaluation_protocol=eval_protocol,
                 train_epochs=4, test_mb_size=100, device=device)
 
         self.run_strategy(nc_scenario, strategy)
-
 
     def test_gdumb(self):
         model = SimpleMLP()
@@ -126,25 +122,27 @@ class StrategyTest(unittest.TestCase):
                 for p in m.parameters():
                     torch.nn.init.uniform_(p, -1, 1)
 
-        strategy = GDumb(model, 'classifier', optimizer, criterion,
+        strategy = GDumb(
+                model, 'classifier', optimizer, criterion,
                 mem_size=2000, reinit_model_before_step=True,
-                reinit_function=reinit, # None to use default init function
+                reinit_function=reinit,  # None to use default init function
                 train_mb_size=64,
                 evaluation_protocol=eval_protocol,
                 train_epochs=10, test_mb_size=100, device=device,
                 plugins=None)
 
         self.run_strategy(nc_scenario, strategy)
-    
 
     def load_dataset(self):
 
-        mnist_train = MNIST('./data/mnist', train=True, download=True, 
-                transform=Compose([ToTensor()]))
-        mnist_test = MNIST('./data/mnist', train=False, download=True,
-                transform=Compose([ToTensor()]))
-        return mnist_train, mnist_test
+        mnist_train = MNIST(
+            './data/mnist', train=True, download=True, 
+            transform=Compose([ToTensor()]))
 
+        mnist_test = MNIST(
+            './data/mnist', train=False, download=True,
+            transform=Compose([ToTensor()]))
+        return mnist_train, mnist_test
 
     def run_strategy(self, scenario, cl_strategy):
 
