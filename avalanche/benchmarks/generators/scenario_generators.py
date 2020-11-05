@@ -12,7 +12,7 @@
 """ In this module the high-level benchmark generators are listed. They are
 based on the methods already implemented in the "scenario" module. For the
 specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
-the generic ones: FilelistScenario, TensorScenario, DatasetScenario.
+the generic ones: filelist_scenario, tensor_scenario, dataset_scenario.
 """
 
 from pathlib import Path
@@ -29,7 +29,7 @@ from avalanche.training.utils import IDatasetWithTargets, \
     concat_datasets_sequentially
 
 
-def NCBenchmark(
+def nc_scenario(
         train_dataset: Union[
             Sequence[IDatasetWithTargets], IDatasetWithTargets],
         test_dataset: Union[
@@ -176,7 +176,7 @@ def NCBenchmark(
                       reproducibility_data)
 
 
-def NIBenchmark(
+def ni_scenario(
         train_dataset: Union[
             Sequence[IDatasetWithTargets], IDatasetWithTargets],
         test_dataset: Union[
@@ -264,7 +264,7 @@ def NIBenchmark(
         reproducibility_data=reproducibility_data)
 
 
-def DatasetScenario(
+def dataset_scenario(
         train_dataset_list: Sequence[IDatasetWithTargets],
         test_dataset_list: Sequence[IDatasetWithTargets],
         task_labels: Sequence[int],
@@ -312,7 +312,7 @@ def DatasetScenario(
     )
 
 
-def FilelistScenario(
+def filelist_scenario(
         root: Union[str, Path],
         train_file_lists: Sequence[Union[str, Path]],
         test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
@@ -378,7 +378,7 @@ def FilelistScenario(
     )
 
 
-def TensorScenario(
+def tensor_scenario(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
         test_data_x: Union[Any, Sequence[Any]],
@@ -484,5 +484,5 @@ def _one_dataset_per_step_class_order(
     return fixed_class_order, classes_per_step
 
 
-__all__ = ['NCBenchmark', 'NIBenchmark', 'DatasetScenario', 'FilelistScenario',
-           'TensorScenario']
+__all__ = ['nc_scenario', 'ni_scenario', 'dataset_scenario',
+           'filelist_scenario', 'tensor_scenario']

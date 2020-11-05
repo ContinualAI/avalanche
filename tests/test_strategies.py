@@ -26,7 +26,7 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
-from avalanche.benchmarks import NCBenchmark, NCStepInfo
+from avalanche.benchmarks import nc_scenario, NCStepInfo
 
 device = 'cpu'
 
@@ -38,13 +38,13 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False,
             shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
-                ACC(num_class=nc_scenario.n_classes)
+                ACC(num_class=my_nc_scenario.n_classes)
             ])
 
         strategy = Naive(
@@ -52,20 +52,20 @@ class StrategyTest(unittest.TestCase):
                 evaluation_protocol=eval_protocol, train_mb_size=100, 
                 train_epochs=4, test_mb_size=100, device=device)
 
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False,
             shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
-                ACC(num_class=nc_scenario.n_classes)
+                ACC(num_class=my_nc_scenario.n_classes)
             ])
 
         def reinit(m):
@@ -82,19 +82,19 @@ class StrategyTest(unittest.TestCase):
                     train_epochs=4, test_mb_size=100, device=device, 
                     plugins=None)
 
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_cumulative(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False,
             shuffle=True, seed=1234)
 
         eval_protocol = EvalProtocol(
-                metrics=[ACC(num_class=nc_scenario.n_classes)])
+                metrics=[ACC(num_class=my_nc_scenario.n_classes)])
 
         strategy = Cumulative(
                 model, 'classifier', optimizer, criterion,
@@ -102,19 +102,19 @@ class StrategyTest(unittest.TestCase):
                 evaluation_protocol=eval_protocol,
                 train_epochs=4, test_mb_size=100, device=device)
 
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_gdumb(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-2)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 
         eval_protocol = EvalProtocol(
             metrics=[
-                ACC(num_class=nc_scenario.n_classes)
+                ACC(num_class=my_nc_scenario.n_classes)
             ])
 
         def reinit(m):
@@ -131,7 +131,7 @@ class StrategyTest(unittest.TestCase):
                 train_epochs=10, test_mb_size=100, device=device,
                 plugins=None)
 
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def load_dataset(self):
 

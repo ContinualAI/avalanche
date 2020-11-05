@@ -14,7 +14,7 @@
 
 
 from avalanche.benchmarks.datasets import ImageNet
-from avalanche.benchmarks import NCBenchmark
+from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
@@ -93,7 +93,7 @@ def SplitImageNet(root,
         per_step_classes = None
 
     if return_task_id:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
             n_steps=incremental_steps,
@@ -103,7 +103,7 @@ def SplitImageNet(root,
             fixed_class_order=fixed_class_order,
             class_ids_from_zero_in_each_step=True)
     else:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
             n_steps=incremental_steps,
