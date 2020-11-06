@@ -2,6 +2,7 @@ import copy
 from collections import defaultdict
 from typing import Optional, Dict, Any
 
+import numpy as np
 import torch
 from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
@@ -607,3 +608,104 @@ class MultiHeadPlugin(StrategyPlugin):
         :param task_layer: The layer to set.
         """
         setattr(model, classifier_field, task_layer)
+
+
+class CWRStarPlugin(StrategyPlugin):
+
+    def __init__(self, model, second_last_layer_name, num_classes=50):
+        """ CWR* Strategy.
+
+        :param model: trained model
+        :param second_last_layer_name: name of the second to last layer.
+        :param num_classes: total number of classes
+        """
+        super().__init__()
+        self.model = model
+        self.second_last_layer_name = second_last_layer_name
+        self.num_classes = num_classes
+
+        # Model setup
+        self.model.saved_weights = {}
+        self.model.past_j = {i: 0 for i in range(self.num_classes)}
+        self.model.cur_j = {i: 0 for i in range(self.num_classes)}
+
+        # to be updated
+        self.cur_class = None
+
+        # State
+        self.batch_processed = 0
+
+    def after_training(self, strategy, **kwargs):
+        CWRStarPlugin.consolidate_weights(self.model, self.cur_class)
+        self.batch_processed += 1
+
+    def before_training(self, strategy, **kwargs):
+        if self.batch_processed == 1:
+            self.freeze_lower_layers()
+
+        # Count current classes and number of samples for each of them.
+        count = {i: 0 for i in range(self.num_classes)}
+        self.curr_classes = set()
+        for _, (_, mb_y) in enumerate(strategy.current_dataloader):
+            self.curr_classes = self.curr_classes + set(mb_y)
+            for y in mb_y:
+                count[int(y)] += 1
+        self.cur_class = [int(o) for o in self.curr_classes]
+
+        self.model.cur_j = count
+        CWRStarPlugin.reset_weights(self.model, self.cur_class)
+
+    def before_test(self, strategy, **kwargs):
+        CWRStarPlugin.set_consolidate_weights(self.model)
+
+    @staticmethod
+    def consolidate_weights(model, cur_clas):
+        """ Mean-shift for the target layer weights"""
+
+        with torch.no_grad():
+
+            globavg = np.average(model.classifier.weight.detach()
+                                 .cpu().numpy()[cur_clas])
+            for c in cur_clas:
+                w = model.classifier.weight.detach().cpu().numpy()[c]
+
+                if c in cur_clas:
+                    new_w = w - globavg
+                    if c in model.saved_weights.keys():
+                        wpast_j = np.sqrt(model.past_j[c] / model.cur_j[c])
+                        # wpast_j = model.past_j[c] / model.cur_j[c]
+                        model.saved_weights[c] = (model.saved_weights[c] * wpast_j
+                                                  + new_w) / (wpast_j + 1)
+                    else:
+                        model.saved_weights[c] = new_w
+
+    @staticmethod
+    def set_consolidate_weights(model):
+        """ set trained weights """
+
+        with torch.no_grad():
+            for c, w in model.saved_weights.items():
+                model.classifier.weight[c].copy_(
+                    torch.from_numpy(model.saved_weights[c])
+                )
+
+    @staticmethod
+    def reset_weights(model, cur_clas):
+        """ reset weights"""
+        with torch.no_grad():
+            model.classifier.weight.fill_(0.0)
+            for c, w in model.saved_weights.items():
+                if c in cur_clas:
+                    model.classifier.weight[c].copy_(
+                        torch.from_numpy(model.saved_weights[c])
+                    )
+
+    def freeze_lower_layers(self):
+        for name, param in self.model.named_parameters():
+            # tells whether we want to use gradients for a given parameter
+            param.requires_grad = False
+            print("Freezing parameter " + name)
+            if name == self.second_last_layer_name:
+                break
+
+
