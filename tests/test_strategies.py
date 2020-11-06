@@ -26,8 +26,9 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.benchmarks.scenarios import \
     create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.old_strategies import Naive, Cumulative, Replay, GDumb
-#from avalanche.training.old_plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
+from avalanche.training.plugins import EvaluationPlugin
+
 
 device = 'cpu'
 
@@ -41,14 +42,14 @@ class StrategyTest(unittest.TestCase):
         nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        eval_protocol = EvalProtocol(
+        eval_protocol = EvaluationPlugin(EvalProtocol(
             metrics=[
                 ACC(num_class=nc_scenario.n_classes)
-            ])
+            ]))
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
-                evaluation_protocol=eval_protocol, train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device)
+        strategy = Naive(model, optimizer, criterion, eval_protocol,
+                train_mb_size=100, train_epochs=4, test_mb_size=100,
+                device=device)
 
         self.run_strategy(nc_scenario, strategy)
 
@@ -61,10 +62,10 @@ class StrategyTest(unittest.TestCase):
         nc_scenario = create_nc_single_dataset_sit_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        eval_protocol = EvalProtocol(
+        eval_protocol = EvaluationPlugin(EvalProtocol(
             metrics=[
                 ACC(num_class=nc_scenario.n_classes)
-            ])
+            ]))
 
         def reinit(m):
             with torch.no_grad():

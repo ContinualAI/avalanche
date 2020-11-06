@@ -18,8 +18,8 @@ class Naive(BaseStrategy):
     performing baseline.
     """
 
-    def __init__(self, model: Module, criterion,
-                 optimizer: Optimizer, evaluation_protocol: EvalProtocol,
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 evaluation_protocol: Optional[EvalProtocol] = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
@@ -29,14 +29,13 @@ class Naive(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
+        :param evaluation_protocol: The evaluation plugin.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param test_mb_size: The test minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
-        :param evaluation_protocol: The evaluation protocol. Defaults to None.
         :param plugins: Plugins to be added. Defaults to None.
         """
-        # TODO: ADD multi-head plugin
         super().__init__(
             model, criterion, optimizer, evaluation_protocol,
             train_mb_size=train_mb_size, train_epochs=train_epochs,

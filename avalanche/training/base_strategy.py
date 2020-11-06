@@ -5,13 +5,13 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo, DatasetPart
-from avalanche.evaluation import EvalProtocol
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.evaluation.eval_protocol import EvalProtocol
 
 
 class BaseStrategy:
-    def __init__(self, model: Module, criterion, optimizer: Optimizer,
-                 evaluation_protocol: EvalProtocol, train_mb_size: int = 1,
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 evaluation_protocol: Optional[EvalProtocol] = None, train_mb_size: int = 1,
                  train_epochs: int = 1, test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
         """
@@ -22,8 +22,8 @@ class BaseStrategy:
         behavior (e.g. a memory buffer for replay).
 
         :param model: PyTorch model.
-        :param criterion: loss function.
         :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
         :param evaluation_protocol: evaluation plugin.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
@@ -39,7 +39,10 @@ class BaseStrategy:
         self.test_mb_size = train_mb_size if test_mb_size is None else test_mb_size
         self.device = device
 
-        self.evaluation_plugin = EvaluationPlugin(evaluation_protocol)
+        if evaluation_protocol is None:
+            self.evaluation_plugin = EvaluationPlugin(EvalProtocol())
+        else:
+            self.evaluation_plugin = EvaluationPlugin(evaluation_protocol)
         self.plugins = [] if plugins is None else plugins
         self.plugins.append(self.evaluation_plugin)
 
