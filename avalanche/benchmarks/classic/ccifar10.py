@@ -18,9 +18,8 @@ from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
-from avalanche.benchmarks.scenarios.new_classes.scenario_creation import \
-    create_nc_single_dataset_sit_scenario, \
-    create_nc_single_dataset_multi_task_scenario
+
+from avalanche.benchmarks import nc_scenario
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -98,21 +97,24 @@ def SplitCIFAR10(incremental_steps: int,
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
-        return create_nc_single_dataset_multi_task_scenario(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_tasks=total_steps,
+            n_steps=total_steps,
+            task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_task_classes={0: 5} if first_batch_with_half_classes else None)
+            per_step_classes={0: 5} if first_batch_with_half_classes else None,
+            class_ids_from_zero_in_each_step=True)
     else:
-        return create_nc_single_dataset_sit_scenario(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_batches=total_steps,
+            n_steps=total_steps,
+            task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_batch_classes={0: 5} if first_batch_with_half_classes else None
+            per_step_classes={0: 5} if first_batch_with_half_classes else None
         )
 
 

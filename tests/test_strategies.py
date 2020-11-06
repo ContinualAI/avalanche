@@ -24,10 +24,9 @@ from torch.nn import CrossEntropyLoss
 from avalanche.extras.models import SimpleMLP
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.benchmarks.scenarios import \
-    create_nc_single_dataset_sit_scenario, DatasetPart, NCBatchInfo
-from avalanche.training.strategies import Naive, MTNaive, CWRStar, Replay
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.benchmarks.scenarios import DatasetPart
+from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb, MTNaive, CWRStar
+from avalanche.benchmarks import nc_scenario, NCStepInfo
 
 
 class StrategyTest(unittest.TestCase):
@@ -37,59 +36,64 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         strategy = Naive(model, optimizer, criterion)
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_mtnaive(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         strategy = MTNaive(model, optimizer, criterion)
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_cwrstar(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
         strategy = CWRStar(model, optimizer, criterion, 'features')
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 
         strategy = Replay(model, optimizer, criterion, mem_size=200)
-        self.run_strategy(nc_scenario, strategy)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def load_dataset(self):
 
-        mnist_train = MNIST('./data/mnist', train=True, download=True, 
-                transform=Compose([ToTensor()]))
-        mnist_test = MNIST('./data/mnist', train=False, download=True,
-                transform=Compose([ToTensor()]))
-        return mnist_train, mnist_test
+        mnist_train = MNIST(
+            './data/mnist', train=True, download=True, 
+            transform=Compose([ToTensor()]))
 
+        mnist_test = MNIST(
+            './data/mnist', train=False, download=True,
+            transform=Compose([ToTensor()]))
+        return mnist_train, mnist_test
 
     def run_strategy(self, scenario, cl_strategy):
 
         print('Starting experiment...')
         results = []
-        batch_info: NCBatchInfo
+        batch_info: NCStepInfo
         for batch_info in scenario:
             print("Start of step ", batch_info.current_step)
 

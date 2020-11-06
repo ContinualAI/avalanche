@@ -113,8 +113,8 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
         loss.backward()
         optimizer.step()
 
-        acc = correct_cnt / ((it+1) * y.size(0))
-        ave_loss /= ((it+1) * y.size(0))
+        acc = correct_cnt / ((it + 1) * y.size(0))
+        ave_loss /= ((it + 1) * y.size(0))
 
         if it % 10 == 0:
             print(
@@ -331,3 +331,19 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
 
     x, y = torch.cat(batches_x), torch.cat(batches_y)
     return x, y
+
+
+__all__ = ['get_accuracy',
+           'train_net',
+           'preprocess_imgs',
+           'maybe_cuda',
+           'change_lr',
+           'set_classifier',
+           'reset_classifier',
+           'shuffle_in_unison',
+           'softmax',
+           'count_lines',
+           'pad_data',
+           'compute_one_hot',
+           'imagenet_batch_preproc',
+           'load_all_dataset']
