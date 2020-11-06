@@ -124,7 +124,8 @@ class BaseStrategy:
         :param num_workers:
         """
         self.current_dataloader = DataLoader(self.current_data,
-            num_workers=num_workers, batch_size=self.train_mb_size)
+            num_workers=num_workers, batch_size=self.train_mb_size,
+             shuffle=True)
 
     def _set_initial_test_step_id(self, step_info: IStepInfo,
                                   dataset_part: DatasetPart = None):
