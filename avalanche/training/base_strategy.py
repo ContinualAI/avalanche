@@ -344,3 +344,5 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_test_iteration(self, **kwargs)
 
+
+__all__ = ['BaseStrategy']

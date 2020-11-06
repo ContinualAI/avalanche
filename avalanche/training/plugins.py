@@ -709,3 +709,5 @@ class CWRStarPlugin(StrategyPlugin):
                 break
 
 
+__all__ = ['StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
+           'EvaluationPlugin', 'MultiHeadPlugin', 'CWRStarPlugin']
