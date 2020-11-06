@@ -38,7 +38,7 @@ _default_test_transform = transforms.Compose([
 
 def SplitImageNet(root,
                   incremental_steps=10,
-                  classes_first_batch=None,
+                  per_step_classes=None,
                   return_task_id=False,
                   seed=0,
                   fixed_class_order=None,
@@ -52,8 +52,17 @@ def SplitImageNet(root,
     :param root: Base path where Imagenet data are stored.
     :param incremental_steps: The number of incremental steps in the current
         scenario.
-    :param classes_first_batch: Number of classes in the first batch.
-    Usually this is set to 500. Default to None.
+    :param per_step_classes: Is not None, a dictionary whose keys are
+        (0-indexed) step IDs and their values are the number of classes
+        to include in the respective steps. The dictionary doesn't
+        have to contain a key for each step! All the remaining steps
+        will contain an equal amount of the remaining classes. The
+        remaining number of classes must be divisible without remainder
+        by the remaining number of steps. For instance,
+        if you want to include 50 classes in the first step
+        while equally distributing remaining classes across remaining
+        steps, just pass the "{0: 50}" dictionary as the
+        per_step_classes parameter. Defaults to None.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -86,11 +95,6 @@ def SplitImageNet(root,
 
     train_set = ImageNet(root, split="train", transform=train_transform)
     test_set = ImageNet(root, split="val", transform=test_transform)
-
-    if classes_first_batch is not None:
-        per_step_classes = {0: classes_first_batch}
-    else:
-        per_step_classes = None
 
     if return_task_id:
         return nc_scenario(
