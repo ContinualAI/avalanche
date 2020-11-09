@@ -95,9 +95,9 @@ class ReplayPlugin(StrategyPlugin):
     patterns and implements the "adapt_train_dataset" callback to add them to
     the training set.
 
-    The :mem_size: attribute controls the number of patterns to be stored in the
-    external memory. We assume the training set contains at least :mem_size:
-    data points.
+    The :mem_size: attribute controls the number of patterns to be stored in 
+    the external memory. We assume the training set contains at least 
+    :mem_size: data points.
     """
     def __init__(self, mem_size=200):
         super().__init__()
@@ -411,7 +411,8 @@ class CWRStarPlugin(StrategyPlugin):
                     if c in model.saved_weights.keys():
                         wpast_j = np.sqrt(model.past_j[c] / model.cur_j[c])
                         # wpast_j = model.past_j[c] / model.cur_j[c]
-                        model.saved_weights[c] = (model.saved_weights[c] * wpast_j
+                        model.saved_weights[c] = (model.saved_weights[c] * 
+                                                  wpast_j
                                                   + new_w) / (wpast_j + 1)
                     else:
                         model.saved_weights[c] = new_w

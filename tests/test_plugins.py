@@ -97,7 +97,7 @@ class FlowTests(unittest.TestCase):
             metrics=[ACC(num_class=scenario.n_classes)])
 
         plug = MockPlugin()
-        strategy = Naive(model, criterion, optimizer, eval_protocol,
+        strategy = Naive(model, optimizer, criterion, eval_protocol,
             train_mb_size=100, train_epochs=1, test_mb_size=100,
             device='cpu', plugins=[plug]
         )
