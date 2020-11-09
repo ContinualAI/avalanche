@@ -11,8 +11,9 @@ from avalanche.evaluation.eval_protocol import EvalProtocol
 
 class BaseStrategy:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 evaluation_protocol: Optional[EvalProtocol] = None, train_mb_size: int = 1,
-                 train_epochs: int = 1, test_mb_size: int = 1, device='cpu',
+                 evaluation_protocol: Optional[EvalProtocol] = None,
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
         """
         BaseStrategy is the super class of all continual learning strategies.
@@ -36,7 +37,8 @@ class BaseStrategy:
         self.optimizer = optimizer
         self.train_epochs = train_epochs
         self.train_mb_size = train_mb_size
-        self.test_mb_size = train_mb_size if test_mb_size is None else test_mb_size
+        self.test_mb_size = train_mb_size if test_mb_size is None \
+            else test_mb_size
         self.device = device
 
         if evaluation_protocol is None:
@@ -98,7 +100,8 @@ class BaseStrategy:
 
         self.before_test(**kwargs)
         while self._has_test_steps_left(step_info):
-            self.current_data = step_info.step_specific_test_set(self.step_id)[0]
+            self.current_data = step_info.step_specific_test_set(
+                self.step_id)[0]
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 
@@ -212,7 +215,8 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for self.mb_it, (self.mb_x, self.mb_y) in enumerate(self.current_dataloader):
+        for self.mb_it, (self.mb_x, self.mb_y) in \
+                enumerate(self.current_dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
@@ -299,7 +303,8 @@ class BaseStrategy:
             p.adapt_test_dataset(self, **kwargs)
 
     def test_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y) in enumerate(self.current_dataloader):
+        for self.mb_it, (self.mb_x, self.mb_y) in \
+                enumerate(self.current_dataloader):
             self.before_test_iteration(**kwargs)
 
             self.mb_x = self.mb_x.to(self.device)

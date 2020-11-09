@@ -2,7 +2,7 @@ import unittest
 
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from avalanche.benchmarks import create_nc_single_dataset_sit_scenario
+from avalanche.benchmarks import nc_scenario
 from avalanche.benchmarks.datasets import MNIST
 from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.evaluation.eval_protocol import EvalProtocol
@@ -115,10 +115,12 @@ class FlowTests(unittest.TestCase):
             ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
-        mnist_train = MNIST('./data/mnist', train=True, download=True, transform=train_transform)
-        mnist_test = MNIST('./data/mnist', train=False, download=True, transform=test_transform)
-        scenario = create_nc_single_dataset_sit_scenario(
-            mnist_train, mnist_test, 5, shuffle=True, seed=1234)
+        mnist_train = MNIST('./data/mnist', train=True, download=True,
+                            transform=train_transform)
+        mnist_test = MNIST('./data/mnist', train=False, download=True,
+                           transform=test_transform)
+        scenario = nc_scenario(mnist_train, mnist_test, 5, task_labels=False,
+                               shuffle=True, seed=1234)
         return scenario
 
 
