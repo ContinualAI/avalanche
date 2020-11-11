@@ -29,7 +29,7 @@ _Avalanche_ is a large community effort. It is only fair to list here all the pe
 
 _Avalanche_ is a great tool also thanks to its many users. Here we list some research groups using _Avalanche_ for their continual learning research:
 
-* \*\*\*\*[**ContinualAI Research**](https://www.continualai.org/research/) ****\(Director: Vincenzo Lomonaco\)
+* \*\*\*\*[**ContinualAI Lab**](https://www.continualai.org/lab/) ****\(Director: Vincenzo Lomonaco\)
 * \*\*\*\*[**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(Director: Davide Maltoni, University of Bologna\)
 * [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) \(Director: Alessio Micheli, University of Pisa\)
 * \*\*\*\*[**Italian Association for Machine Learning**](https://iaml.it/) ****\(President: Simone Scardapane,  Sapienza University\)
