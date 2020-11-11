@@ -211,13 +211,13 @@ We have also prepared for you a large set of _**examples & snippets**_ you can p
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
 
-## 🗂️ Maintained by ContinualAI Research
+## 🗂️ Maintained by ContinualAI Lab
 
-![](.gitbook/assets/continualai_research_logo.png)
+![](.gitbook/assets/continualai_lab_logo.png)
 
 _Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organziation and the largest open community on Continual Learning for AI_. __
 
-The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Research \(CLAIR\)**_](https://www.continualai.org/research/)_._ We are always looking for new _awesome members_, so check out our official website if you want to learn more about us and our activities.
+The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/)_._ We are always looking for new _awesome members_, so check out our official website if you want to learn more about us and our activities.
 
 Learn more about the [_**Avalanche Team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
 

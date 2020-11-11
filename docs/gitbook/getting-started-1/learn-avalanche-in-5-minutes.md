@@ -110,9 +110,9 @@ nc_scenario = NCScenario(
 
 Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned SIT-NI, SIT-NC or MT-NC scenarios, you can always use our **generic generators**:
 
-* **filelist_scenario**
-* **dataset_scenario**
-* **tensor_scenario**
+* **filelist\_scenario**
+* **dataset\_scenario**
+* **tensor\_scenario**
 
 ```python
 from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario, \
