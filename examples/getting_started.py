@@ -27,8 +27,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
-from avalanche.benchmarks.scenarios import DatasetPart, \
-    create_nc_single_dataset_sit_scenario, NCBatchInfo
+from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP
@@ -58,17 +57,17 @@ def main():
                         download=True, transform=train_transform)
     mnist_test = MNIST('./data/mnist', train=False,
                        download=True, transform=test_transform)
-    nc_scenario = create_nc_single_dataset_sit_scenario(
-        mnist_train, mnist_test, n_batches, shuffle=True, seed=1234)
+    scenario = nc_scenario(
+        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=nc_scenario.n_classes)
+    model = SimpleMLP(num_classes=scenario.n_classes)
 
     # DEFINE THE EVALUATION PROTOCOL
     evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=nc_scenario.n_classes),  # Accuracy metric
-                 CF(num_class=nc_scenario.n_classes),  # Catastrophic forgetting
+        metrics=[ACC(num_class=scenario.n_classes),  # Accuracy metric
+                 CF(num_class=scenario.n_classes),  # Catastrophic forgetting
                  RAMU(),  # Ram usage
                  CM()],  # Confusion matrix
         tb_logdir='../logs/mnist_test_sit')
@@ -82,16 +81,14 @@ def main():
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    batch_info: NCBatchInfo
-    for batch_info in nc_scenario:
+    for batch_info in scenario:
         print("Start of step ", batch_info.current_step)
 
         cl_strategy.train(batch_info, num_workers=4)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(batch_info, DatasetPart.COMPLETE,
-                                        num_workers=4))
+        results.append(cl_strategy.test(scenario, num_workers=4))
 
 
 if __name__ == '__main__':

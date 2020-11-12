@@ -8,7 +8,7 @@ from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras import SimpleMLP
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
 from avalanche.training.strategies import Naive
 from torchvision import transforms
 from torchvision.transforms import ToTensor, RandomCrop
@@ -87,8 +87,10 @@ class MockPlugin(StrategyPlugin):
         self.activated[21] = True
 
 
-class FlowTests(unittest.TestCase):
+class PluginTests(unittest.TestCase):
     def test_callback_reachability(self):
+        # Check that all the callbacks are called during
+        # training and test loops.
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
@@ -102,8 +104,42 @@ class FlowTests(unittest.TestCase):
             device='cpu', plugins=[plug]
         )
         strategy.train(scenario[0], num_workers=4)
-        strategy.test(scenario[0], DatasetPart.CURRENT, num_workers=4)
+        strategy.test([scenario[0]], num_workers=4)
         assert all(plug.activated)
+
+    def test_multihead_optimizer_update(self):
+        # Check if the optimizer is updated correctly
+        # when heads are created and updated.
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        scenario = self.create_scenario()
+
+        plug = MultiHeadPlugin(model, 'classifier')
+        strategy = Naive(model, optimizer, criterion,
+            train_mb_size=100, train_epochs=1, test_mb_size=100,
+            device='cpu', plugins=[plug]
+        )
+
+        # head creation
+        strategy.train(scenario[0])
+        w_ptr = model.classifier.weight.data_ptr()
+        b_ptr = model.classifier.bias.data_ptr()
+        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
+                           for w in group['params']]
+        assert w_ptr in opt_params_ptrs
+        assert b_ptr in opt_params_ptrs
+
+        # head update
+        strategy.train(scenario[4])
+        w_ptr_new = model.classifier.weight.data_ptr()
+        b_ptr_new = model.classifier.bias.data_ptr()
+        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
+                           for w in group['params']]
+        assert w_ptr not in opt_params_ptrs
+        assert b_ptr not in opt_params_ptrs
+        assert w_ptr_new in opt_params_ptrs
+        assert b_ptr_new in opt_params_ptrs
 
     def create_scenario(self):
         train_transform = transforms.Compose([
@@ -120,7 +156,7 @@ class FlowTests(unittest.TestCase):
         mnist_test = MNIST('./data/mnist', train=False, download=True,
                            transform=test_transform)
         scenario = nc_scenario(mnist_train, mnist_test, 5, task_labels=False,
-                               shuffle=True, seed=1234)
+                               shuffle=False, seed=1234)
         return scenario
 
 

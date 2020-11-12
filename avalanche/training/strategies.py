@@ -111,4 +111,4 @@ class Replay(BaseStrategy):
             test_mb_size=test_mb_size, device=device, plugins=plugins)
 
 
-__all__ = ['Naive', 'CWRStar']
+__all__ = ['Naive', 'CWRStar', 'Replay']
