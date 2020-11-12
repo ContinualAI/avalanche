@@ -464,11 +464,11 @@ class MultiHeadPlugin(StrategyPlugin):
         initialization. This behaviour can be changed by overriding the
         "initialize_new_task_layer" method.
 
-        When dealing with a Single-Incremental-Task scenario, the final layer may
-        get dynamically expanded. By default, the initialization provided by the
-        Linear class is used and then weights of already existing classes are copied
-        (that  is, without adapting the weights of new classes). The user can
-        control how the new weights are initialized by overriding
+        When dealing with a Single-Incremental-Task scenario, the final layer
+        may get dynamically expanded. By default, the initialization provided by
+        the Linear class is used and then weights of already existing classes
+        are copied (that  is, without adapting the weights of new classes).
+        The user can control how the new weights are initialized by overriding
         "initialize_dynamically_expanded_head".
 
         :param model: PyTorch model
