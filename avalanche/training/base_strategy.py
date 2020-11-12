@@ -61,6 +61,14 @@ class BaseStrategy:
         self.logits = None
 
     def update_optimizer(self, old_params, new_params, reset_state=True):
+        """ Update the optimizer by substituting old_params with new_params.
+
+        :param old_params: List of old trainable parameters.
+        :param new_params: List of new trainable parameters.
+        :param reset_state: Wheter to reset the optimizer's state.
+            Defaults to True.
+        :return:
+        """
         for old_p, new_p in zip(old_params, new_params):
             found = False
             # iterate over group and params for each group.
@@ -82,6 +90,10 @@ class BaseStrategy:
             self.optimizer.state = defaultdict(dict)
 
     def add_new_params_to_optimizer(self, new_params):
+        """ Add new parameters to the trainable parameters.
+
+        :param new_params: list of trainable parameters
+        """
         self.optimizer.add_param_group({'params': new_params})
 
     def train(self, step_info: IStepInfo, **kwargs):
