@@ -1,10 +1,11 @@
+from collections import defaultdict
 from typing import Optional, Sequence
 
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.scenarios import IStepInfo, DatasetPart
+from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.evaluation.eval_protocol import EvalProtocol
 
@@ -19,7 +20,7 @@ class BaseStrategy:
         BaseStrategy is the super class of all continual learning strategies.
         It implements a basic training loop and callback system that can be
         customized by child strategies. Additionally, it supports plugins,
-        a mechanisms to augment existing strategies with additional
+        a mechanism to augment existing strategies with additional
         behavior (e.g. a memory buffer for replay).
 
         :param model: PyTorch model.
@@ -59,6 +60,30 @@ class BaseStrategy:
         self.loss = None
         self.logits = None
 
+    def update_optimizer(self, old_params, new_params, reset_state=True):
+        for old_p, new_p in zip(old_params, new_params):
+            found = False
+            # iterate over group and params for each group.
+            for group in self.optimizer.param_groups:
+                for i, curr_p in enumerate(group['params']):
+                    if hash(curr_p) == hash(old_p):
+                        # update parameter reference
+                        group['params'][i] = new_p
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                raise Exception(f"Parameter {old_params} not found in the "
+                                f"current optimizer.")
+        if reset_state:
+            # State contains parameter-specific information.
+            # We reset it because the model is (probably) changed.
+            self.optimizer.state = defaultdict(dict)
+
+    def add_new_params_to_optimizer(self, new_params):
+        self.optimizer.add_param_group({'params': new_params})
+
     def train(self, step_info: IStepInfo, **kwargs):
         """
         Training loop.
@@ -84,7 +109,7 @@ class BaseStrategy:
         self.after_training(**kwargs)
         return self.evaluation_plugin.get_train_result()
 
-    def test(self, step_info: IStepInfo, test_part: DatasetPart, **kwargs):
+    def test(self, step_list: Sequence[IStepInfo], **kwargs):
         """
         Test the current model on a series of steps, as defined by test_part.
 
@@ -93,15 +118,15 @@ class BaseStrategy:
         :param kwargs: custom arguments.
         :return: evaluation plugin test results.
         """
-        self._set_initial_test_step_id(step_info, test_part)
-        self.step_info = step_info
         self.model.eval()
         self.model.to(self.device)
 
         self.before_test(**kwargs)
-        while self._has_test_steps_left(step_info):
-            self.current_data = step_info.step_specific_test_set(
-                self.step_id)[0]
+        for step_info in step_list:
+            self.step_info = step_info
+            self.step_id = step_info.current_step
+
+            self.current_data = step_info.current_test_set()[0]
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 
@@ -109,7 +134,6 @@ class BaseStrategy:
             self.test_epoch(**kwargs)
             self.after_test_step(**kwargs)
 
-            self.step_id += 1
         self.after_test(**kwargs)
         return self.evaluation_plugin.get_test_result()
 
@@ -130,56 +154,6 @@ class BaseStrategy:
                                              num_workers=num_workers, 
                                              batch_size=self.train_mb_size,
                                              shuffle=True)
-
-    def _set_initial_test_step_id(self, step_info: IStepInfo,
-                                  dataset_part: DatasetPart = None):
-        """
-        Initialize self.step_id for the test loop.
-        :param step_info:
-        :param dataset_part:
-        :return:
-        """
-        # TODO: if we remove DatasetPart this may become unnecessary
-        self.step_id = -1
-        if dataset_part is None:
-            dataset_part = DatasetPart.COMPLETE
-
-        if dataset_part == DatasetPart.CURRENT:
-            self.step_id = step_info.current_step
-        if dataset_part in [DatasetPart.CUMULATIVE, DatasetPart.OLD,
-                            DatasetPart.COMPLETE]:
-            self.step_id = 0
-        if dataset_part == DatasetPart.FUTURE:
-            self.step_id = step_info.current_step + 1
-
-        if self.step_id < 0:
-            raise ValueError('Invalid dataset part')
-
-    def _has_test_steps_left(self, step_info: IStepInfo,
-                             test_part: DatasetPart = None):
-        """
-        Check if the next CL step must be tested.
-        :param step_info:
-        :param test_part:
-        :return:
-        """
-        # TODO: if we remove DatasetPart this may become unnecessary
-        step_id = self.step_id
-        if test_part is None:
-            test_part = DatasetPart.COMPLETE
-
-        if test_part == DatasetPart.CURRENT:
-            return step_id == step_info.current_step
-        if test_part == DatasetPart.CUMULATIVE:
-            return step_id <= step_info.current_step
-        if test_part == DatasetPart.OLD:
-            return step_id < step_info.current_step
-        if test_part == DatasetPart.FUTURE:
-            return step_info.current_step < step_id < step_info.n_steps
-        if test_part == DatasetPart.COMPLETE:
-            return step_id < step_info.n_steps
-
-        raise ValueError('Invalid dataset part')
 
     def make_test_dataloader(self, num_workers=0, **kwargs):
         """

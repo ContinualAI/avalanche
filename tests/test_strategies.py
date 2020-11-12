@@ -22,9 +22,35 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
 from avalanche.extras.models import SimpleMLP
-from avalanche.benchmarks.scenarios import DatasetPart
 from avalanche.training.strategies import Naive, Replay, CWRStar
 from avalanche.benchmarks import nc_scenario, NCStepInfo
+
+
+class BaseStrategyTest(unittest.TestCase):
+
+    def _is_param_in_optimizer(self, param, optimizer):
+        for group in optimizer.param_groups:
+            for curr_p in group['params']:
+                if hash(curr_p) == hash(param):
+                    return True
+        return False
+
+    def test_optimizer_update(self):
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        strategy = Naive(model, optimizer, None)
+
+        # check add_param_group
+        p = torch.nn.Parameter(torch.zeros(10, 10))
+        strategy.add_new_params_to_optimizer(p)
+        assert self._is_param_in_optimizer(p, strategy.optimizer)
+
+        # check new_param is in optimizer
+        # check old_param is NOT in optimizer
+        p_new = torch.nn.Parameter(torch.zeros(10, 10))
+        strategy.update_optimizer([p], [p_new])
+        assert self._is_param_in_optimizer(p_new, strategy.optimizer)
+        assert not self._is_param_in_optimizer(p, strategy.optimizer)
 
 
 class StrategyTest(unittest.TestCase):
@@ -87,8 +113,7 @@ class StrategyTest(unittest.TestCase):
             print('Training completed')
 
             print('Computing accuracy on the current test set')
-            results.append(cl_strategy.test(batch_info, DatasetPart.CURRENT,
-                                            num_workers=4))
+            results.append(cl_strategy.test(scenario[:]))
 
 
 if __name__ == '__main__':
