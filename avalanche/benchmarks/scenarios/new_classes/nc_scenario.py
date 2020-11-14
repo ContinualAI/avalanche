@@ -9,50 +9,98 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Generic, List, Optional, Dict, Any
+import torch
+from typing import Sequence, List, Optional, Dict, Generic, Any, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets, MTSingleSet
-from .nc_generic_scenario import NCGenericScenario
-from avalanche.training.utils.transform_dataset import TransformationSubset
+from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericStepInfo
 from avalanche.benchmarks.utils import grouped_and_ordered_indexes
 
 
-class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
-                                            TestSetWithTargets, 'NCTaskInfo'],
-                          Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NCScenario(GenericCLScenario[TrainSetWithTargets,
+                                   TestSetWithTargets,
+                                   'NCStepInfo'],
+                 Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    This class defines a "New Classes" multi task scenario based on a
-    :class:`NCGenericScenario` instance. Once created, an instance of this
-    class can be iterated in order to obtain the task sequence under
-    the form of instances of :class:`NCTaskInfo`.
+    This class defines a "New Classes" scenario. Once created, an instance
+    of this class can be iterated in order to obtain the step sequence
+    under the form of instances of :class:`NCStepInfo`.
 
-    Instances of this class can be created using the constructor directly.
-    However, we recommend using facilities like:
-    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
-    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
-    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
-    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
-
-    This class acts as a wrapper for :class:`NCGenericScenario`, adding the
-    task label as the output to training/test set related functions
-    (see: :class:`NCTaskInfo`).
+    This class can be used directly. However, we recommend using facilities like
+    :func:`avalanche.benchmarks.generators.nc_scenario`.
     """
-    def __init__(self,
-                 nc_generic_scenario: NCGenericScenario[TrainSetWithTargets,
-                                                        TestSetWithTargets],
-                 classes_ids_from_zero_in_each_task: bool = True,
+
+    def __init__(self, train_dataset: TrainSetWithTargets,
+                 test_dataset: TestSetWithTargets,
+                 n_steps: int,
+                 task_labels: bool,
+                 shuffle: bool = True,
+                 seed: Optional[int] = None,
+                 fixed_class_order: Optional[Sequence[int]] = None,
+                 per_step_classes: Optional[Dict[int, int]] = None,
+                 class_ids_from_zero_from_first_step: bool = False,
+                 class_ids_from_zero_in_each_step: bool = False,
                  reproducibility_data: Optional[Dict[str, Any]] = None):
         """
-        Creates a NC multi task scenario given a :class:`NCGenericScenario`
-        instance. That instance will be used as the batches factory.
+        Creates a ``NCGenericScenario`` instance given the training and test
+        Datasets and the number of steps.
 
-        :param nc_generic_scenario: The :class:`NCGenericScenario` instance
-            used to populate this scenario.
-        :param classes_ids_from_zero_in_each_task: If True, class ids will be
-            mapped to range [0, n_classes) for each task. Defaults to True.
+        By default, the number of classes will be automatically detected by
+        looking at the training Dataset ``targets`` field. Classes will be
+        uniformly distributed across ``n_steps`` unless a ``per_step_classes``
+        argument is specified.
+
+        The number of classes must be divisible without remainder by the number
+        of steps. This also applies when the ``per_step_classes`` argument is
+        not None.
+
+        :param train_dataset: The training dataset. The dataset must contain a
+            ``targets`` field. For instance, one can safely use the datasets
+            from the torchvision package.
+        :param test_dataset: The test dataset. The dataset must contain a
+            ``targets`` field. For instance, one can safely use the datasets
+            from the torchvision package.
+        :param n_steps: The number of steps.
+        :param task_labels: If True, each step will have an ascending task
+            label. If False, the task label will be 0 for all the steps.
+        :param shuffle: If True, the class order will be shuffled. Defaults to
+            True.
+        :param seed: If shuffle is True and seed is not None, the class order
+            will be shuffled according to the seed. When None, the current
+            PyTorch random number generator state will be used.
+            Defaults to None.
+        :param fixed_class_order: If not None, the class order to use (overrides
+            the shuffle argument). Very useful for enhancing
+            reproducibility. Defaults to None.
+        :param per_step_classes: Is not None, a dictionary whose keys are
+            (0-indexed) step IDs and their values are the number of classes
+            to include in the respective steps. The dictionary doesn't
+            have to contain a key for each step! All the remaining steps
+            will contain an equal amount of the remaining classes. The
+            remaining number of classes must be divisible without remainder
+            by the remaining number of steps. For instance,
+            if you want to include 50 classes in the first step
+            while equally distributing remaining classes across remaining
+            steps, just pass the "{0: 50}" dictionary as the
+            per_step_classes parameter. Defaults to None.
+        :param class_ids_from_zero_from_first_step: If True, original class IDs
+            will be remapped so that they will appear as having an ascending
+            order. For instance, if the resulting class order after shuffling
+            (or defined by fixed_class_order) is [23, 34, 11, 7, 6, ...] and
+            class_ids_from_zero_from_first_step is True, then all the patterns
+            belonging to class 23 will appear as belonging to class "0",
+            class "34" will be mapped to "1", class "11" to "2" and so on.
+            This is very useful when drawing confusion matrices and when dealing
+            with algorithms with dynamic head expansion. Defaults to False.
+            Mutually exclusive with the ``class_ids_from_zero_in_each_step``
+            parameter.
+        :param class_ids_from_zero_in_each_step: If True, original class IDs
+            will be mapped to range [0, n_classes_in_step) for each step.
+            Defaults to False. Mutually exclusive with the
+            ``class_ids_from_zero_from_first_step parameter``.
         :param reproducibility_data: If not None, overrides all the other
             scenario definition options. This is usually a dictionary containing
             data used to reproduce a specific experiment. One can use the
@@ -63,139 +111,319 @@ class NCMultiTaskScenario(GenericCLScenario[TrainSetWithTargets,
             Beware that, in order to reproduce an experiment, the same train and
             test datasets must be used. Defaults to None.
         """
-        # nc_generic_scenario keeps a reference to the NCGenericScenario
-        self.nc_generic_scenario: \
-            NCGenericScenario[TrainSetWithTargets,
-                              TestSetWithTargets] = nc_generic_scenario
-
-        # n_tasks is the number of tasks for this scenario
-        self.n_tasks: int = self.nc_generic_scenario.n_batches
-
-        # n_classes is the overall number of classes
-        # (copied from the nc_generic_scenario instance for easier access)
-        self.n_classes: int = self.nc_generic_scenario.n_classes
-
-        self.classes_ids_from_zero_in_each_task: bool
+        if class_ids_from_zero_from_first_step and \
+                class_ids_from_zero_in_each_step:
+            raise ValueError('Invalid mutually exclusive options '
+                             'class_ids_from_zero_from_first_step and '
+                             'class_ids_from_zero_in_each_step set at the '
+                             'same time')
         if reproducibility_data:
-            self.classes_ids_from_zero_in_each_task = \
-                reproducibility_data['classes_ids_from_zero_in_each_task']
+            n_steps = reproducibility_data['n_steps']
+
+        if n_steps < 1:
+            raise ValueError('Invalid number of steps (n_steps parameter): '
+                             'must be greater than 0')
+
+        self.classes_order: List[int] = []
+        """ Stores the class order (remapped class IDs). """
+
+        self.classes_order_original_ids: List[int] = torch.unique(
+            torch.as_tensor(train_dataset.targets),
+            sorted=True).tolist()
+        """ Stores the class order (original class IDs) """
+
+        n_original_classes = max(self.classes_order_original_ids) + 1
+
+        self.class_mapping: List[int] = []
+        """ class_mapping stores the class mapping so that
+        mapped_class_id = class_mapping[original_class_id]. """
+
+        self.n_classes_per_step: List[int] = []
+        """ A list that, for each step (identified by its index/ID),
+            stores the number of classes assigned to that step. """
+
+        self._classes_in_step: List[Set[int]] = []
+
+        self.original_classes_in_step: List[Set[int]] = []
+        """ A list that, for each step (identified by its index/ID),
+            stores a list of the original IDs of classes assigned 
+            to that step. """
+
+        self.class_ids_from_zero_from_first_step: bool = \
+            class_ids_from_zero_from_first_step
+        """ If True the class IDs have been remapped to start from zero. """
+
+        self.class_ids_from_zero_in_each_step: bool = \
+            class_ids_from_zero_in_each_step
+        """ If True the class IDs have been remapped to start from zero in 
+        each step """
+
+        # Note: if fixed_class_order is None and shuffle is False,
+        # the class order will be the one encountered
+        # By looking at the train_dataset targets field
+        if reproducibility_data:
+            self.classes_order_original_ids = \
+                reproducibility_data['classes_order_original_ids']
+            self.class_ids_from_zero_from_first_step = \
+                reproducibility_data['class_ids_from_zero_from_first_step']
+            self.class_ids_from_zero_in_each_step = \
+                reproducibility_data['class_ids_from_zero_in_each_step']
+        elif fixed_class_order is not None:
+            # User defined class order -> just use it
+            if len(set(self.classes_order_original_ids).union(
+                    set(fixed_class_order))) != \
+                    len(self.classes_order_original_ids):
+                raise ValueError('Invalid classes defined in fixed_class_order')
+
+            self.classes_order_original_ids = list(fixed_class_order)
+        elif shuffle:
+            # No user defined class order.
+            # If a seed is defined, set the random number generator seed.
+            # If no seed has been defined, use the actual
+            # random number generator state.
+            # Finally, shuffle the class list to obtain a random classes
+            # order
+            if seed is not None:
+                torch.random.manual_seed(seed)
+            self.classes_order_original_ids = \
+                torch.as_tensor(self.classes_order_original_ids)[
+                    torch.randperm(len(self.classes_order_original_ids))
+                ].tolist()
+
+        self.n_classes: int = len(self.classes_order_original_ids)
+        """ The number of classes """
+
+        if reproducibility_data:
+            self.n_classes_per_step = \
+                reproducibility_data['n_classes_per_step']
+        elif per_step_classes is not None:
+            # per_step_classes is a user-defined dictionary that defines
+            # the number of classes to include in some (or all) steps.
+            # Remaining classes are equally distributed across the other steps
+            #
+            # Format of per_step_classes dictionary:
+            #   - key = step id
+            #   - value = number of classes for this step
+
+            if max(per_step_classes.keys()) >= n_steps or min(
+                    per_step_classes.keys()) < 0:
+                # The dictionary contains a key (that is, a step id) >=
+                # the number of requested steps... or < 0
+                raise ValueError(
+                    'Invalid step id in per_step_classes parameter: '
+                    'step ids must be in range [0, n_steps)')
+            if min(per_step_classes.values()) < 0:
+                # One or more values (number of classes for each step) < 0
+                raise ValueError('Wrong number of classes defined for one or '
+                                 'more steps: must be a non-negative value')
+
+            if sum(per_step_classes.values()) > self.n_classes:
+                # The sum of dictionary values (n. of classes for each step)
+                # >= the number of classes
+                raise ValueError('Insufficient number of classes: '
+                                 'per_step_classes parameter can\'t '
+                                 'be satisfied')
+
+            # Remaining classes are equally distributed across remaining steps
+            # This amount of classes must be be divisible without remainder by
+            # the number of remaining steps
+            remaining_steps = n_steps - len(per_step_classes)
+            if remaining_steps > 0 and (self.n_classes - sum(
+                    per_step_classes.values())) % remaining_steps > 0:
+                raise ValueError('Invalid number of steps: remaining classes '
+                                 'cannot be divided by n_steps')
+
+            # default_per_step_classes is the default amount of classes
+            # for the remaining steps
+            if remaining_steps > 0:
+                default_per_step_classes = (self.n_classes - sum(
+                    per_step_classes.values())) // remaining_steps
+            else:
+                default_per_step_classes = 0
+
+            # Initialize the self.n_classes_per_step list using
+            # "default_per_step_classes" as the default
+            # amount of classes per step. Then, loop through the
+            # per_step_classes dictionary to set the customized,
+            # user defined, classes for the required steps.
+            self.n_classes_per_step = \
+                [default_per_step_classes] * n_steps
+            for step_id in per_step_classes:
+                self.n_classes_per_step[step_id] = per_step_classes[step_id]
         else:
-            self.classes_ids_from_zero_in_each_task = \
-                classes_ids_from_zero_in_each_task
+            # Classes will be equally distributed across the steps
+            # The amount of classes must be be divisible without remainder
+            # by the number of steps
+            if self.n_classes % n_steps > 0:
+                raise ValueError(
+                    'Invalid number of steps: classes contained in dataset '
+                    'cannot be divided by n_steps')
+            self.n_classes_per_step = \
+                [self.n_classes // n_steps] * n_steps
 
-        max_class_id = max(nc_generic_scenario.classes_order)
-        n_original_classes = max_class_id + 1
-        self.class_mapping = [-1 for _ in range(n_original_classes)]
-
-        if self.classes_ids_from_zero_in_each_task:
-            for task_id in range(self.n_tasks):
-                original_classes_ids = \
-                    nc_generic_scenario.classes_in_batch[task_id]
-                for mapped_class_id, original_id in \
-                        enumerate(original_classes_ids):
-                    self.class_mapping[original_id] = mapped_class_id
-
-            self.classes_in_task = []
-            for task_id in range(self.n_tasks):
-                n_classes_this_task = \
-                    nc_generic_scenario.n_classes_per_batch[task_id]
-                self.classes_in_task.append(
-                    list(range(0, n_classes_this_task)))
+        # Before populating the classes_in_step list,
+        # define the remapped class IDs.
+        if reproducibility_data:
+            # Method 0: use reproducibility data
+            self.classes_order = reproducibility_data['classes_order']
+            self.class_mapping = reproducibility_data['class_mapping']
+        elif self.class_ids_from_zero_from_first_step:
+            # Method 1: remap class IDs so that they appear in ascending order
+            # over all steps
+            self.classes_order = list(range(0, self.n_classes))
+            self.class_mapping = [-1] * n_original_classes
+            for class_id in range(self.n_classes):
+                if class_id in self.classes_order_original_ids:
+                    self.class_mapping[class_id] = \
+                        self.classes_order_original_ids.index(class_id)
+        elif self.class_ids_from_zero_in_each_step:
+            # Method 2: remap class IDs so that they appear in range [0, N] in
+            # each step
+            self.classes_order = []
+            self.class_mapping = [-1] * n_original_classes
+            next_class_idx = 0
+            for step_id, step_n_classes in enumerate(self.n_classes_per_step):
+                self.classes_order += list(range(step_n_classes))
+                for step_class_idx in range(step_n_classes):
+                    original_class_position = next_class_idx + step_class_idx
+                    original_class_id = self.classes_order_original_ids[
+                        original_class_position]
+                    self.class_mapping[original_class_id] = step_class_idx
+                next_class_idx += step_n_classes
         else:
-            self.class_mapping = list(range(n_original_classes))
-            self.classes_in_task = nc_generic_scenario.classes_in_batch
+            # Method 3: no remapping of any kind
+            # remapped_id = class_mapping[class_id] -> class_id == remapped_id
+            self.classes_order = self.classes_order_original_ids
+            self.class_mapping = list(range(0, n_original_classes))
 
-        self.original_classes_in_task = nc_generic_scenario.classes_in_batch
+        original_training_dataset = train_dataset
+        original_test_dataset = test_dataset
+        train_dataset = TransformationSubset(
+            train_dataset, None, class_mapping=self.class_mapping)
+        test_dataset = TransformationSubset(
+            test_dataset, None, class_mapping=self.class_mapping)
 
-        super(NCMultiTaskScenario, self).__init__(
-            self.nc_generic_scenario.train_dataset,
-            self.nc_generic_scenario.test_dataset,
-            self.nc_generic_scenario.train_steps_patterns_assignment,
-            self.nc_generic_scenario.test_steps_patterns_assignment,
-            list(range(self.n_tasks)), step_factory=NCTaskInfo)
+        # Populate the _classes_in_step and original_classes_in_step lists
+        # "_classes_in_step[step_id]": list of (remapped) class IDs assigned
+        # to step "step_id"
+        # "original_classes_in_step[step_id]": list of original class IDs
+        # assigned to step "step_id"
+        for step_id in range(n_steps):
+            classes_start_idx = sum(self.n_classes_per_step[:step_id])
+            classes_end_idx = classes_start_idx + self.n_classes_per_step[
+                step_id]
 
-    def get_reproducibility_data(self) -> Dict[str, Any]:
-        rep_data = super().get_reproducibility_data()
-        gen_data = self.nc_generic_scenario.get_reproducibility_data()
+            self._classes_in_step.append(
+                set(self.classes_order[classes_start_idx:classes_end_idx]))
+            self.original_classes_in_step.append(
+                set(self.classes_order_original_ids[classes_start_idx:
+                                                    classes_end_idx]))
 
-        rep_data['classes_ids_from_zero_in_each_task'] = \
-            bool(self.classes_ids_from_zero_in_each_task)
+        # Finally, create the step -> patterns assignment.
+        # In order to do this, we don't load all the patterns
+        # instead we use the targets field.
+        train_steps_patterns_assignment = []
+        test_steps_patterns_assignment = []
+        for step_id in range(n_steps):
+            selected_classes = self._classes_in_step[step_id]
+            selected_indexes_train = []
+            for idx, element in enumerate(train_dataset.targets):
+                if element in selected_classes:
+                    selected_indexes_train.append(idx)
 
-        # See: https://stackoverflow.com/a/26853961
-        return {**rep_data, **gen_data}
+            selected_indexes_test = []
+            for idx, element in enumerate(test_dataset.targets):
+                if element in selected_classes:
+                    selected_indexes_test.append(idx)
 
-    def classes_in_task_range(self, task_start: int,
-                              task_end: Optional[int] = None) -> List[int]:
+            train_steps_patterns_assignment.append(selected_indexes_train)
+            test_steps_patterns_assignment.append(selected_indexes_test)
+
+        task_ids: List[int]
+        if task_labels:
+            task_ids = list(range(n_steps))
+        else:
+            task_ids = [0] * n_steps
+
+        super(NCScenario, self).__init__(
+            original_training_dataset,
+            original_test_dataset,
+            train_dataset,
+            test_dataset,
+            train_steps_patterns_assignment,
+            test_steps_patterns_assignment,
+            task_ids, step_factory=NCStepInfo)
+
+    @property
+    def classes_in_step(self) -> Sequence[Set[int]]:
+        return self._classes_in_step
+
+    def get_reproducibility_data(self):
+        reproducibility_data = {
+            'class_mapping': self.class_mapping,
+            'n_classes_per_step': self.n_classes_per_step,
+            'class_ids_from_zero_from_first_step': bool(
+                self.class_ids_from_zero_from_first_step),
+            'class_ids_from_zero_in_each_step': bool(
+                self.class_ids_from_zero_in_each_step),
+            'classes_order': self.classes_order,
+            'classes_order_original_ids': self.classes_order_original_ids,
+            'n_steps': int(self.n_steps)}
+        return reproducibility_data
+
+    def classes_in_step_range(self, step_start: int,
+                              step_end: Optional[int] = None) -> List[int]:
         """
-        Gets a list of classes contained int the given tasks. The tasks are
+        Gets a list of classes contained in the given steps. The steps are
         defined by range. This means that only the classes in range
-        [task_start, task_end) will be included.
+        [step_start, step_end) will be included.
 
-        :param task_start: The starting task ID
-        :param task_end: The final task ID. Can be None, which means that all
-            the remaining tasks will be taken.
+        :param step_start: The starting step ID.
+        :param step_end: The final step ID. Can be None, which means that all
+            the remaining steps will be taken.
 
-        :returns: The classes contained in the required task range.
+        :returns: The classes contained in the required step range.
         """
         # Ref: https://stackoverflow.com/a/952952
-        if task_end is None:
+        if step_end is None:
             return [
                 item for sublist in
-                self.classes_in_task[task_start:]
+                self.classes_in_step[step_start:]
                 for item in sublist]
 
         return [
             item for sublist in
-            self.classes_in_task[task_start:task_end]
+            self.classes_in_step[step_start:step_end]
             for item in sublist]
 
-    def get_class_split(self, task_id):
-        if task_id >= 0:
-            classes_in_this_task = \
-                self.classes_in_task[task_id]
-            previous_classes = self.classes_in_task_range(0, task_id)
-            classes_seen_so_far = \
-                previous_classes + classes_in_this_task
-            future_classes = self.classes_in_task_range(task_id + 1)
-        else:
-            classes_in_this_task = []
-            previous_classes = []
-            classes_seen_so_far = []
-            future_classes = self.classes_in_task_range(0)
 
-        # Without explicit tuple parenthesis, PEP8 E127 occurs
-        return (classes_in_this_task, previous_classes, classes_seen_so_far,
-                future_classes)
-
-
-class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
-                                                     TestSetWithTargets]],
+class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
+                                            TestSetWithTargets]],
                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    Defines a "New Classes" task. It defines methods to obtain the current,
+    Defines a "New Classes" step. It defines methods to obtain the current,
     previous, cumulative and future training and test sets. It also defines
     fields that can be used to check which classes are in this, previous and
-    future batches. Instances of this class are usually created when iterating
-    over a :class:`NCMultiTaskScenario` instance.
+    future steps. Instances of this class are usually created when iterating
+    over a :class:`NCScenario` instance.
 
-    It keeps a reference to that :class:`NCMultiTaskScenario`
-    instance, which can be used to retrieve additional info about the
-    scenario.
+    It keeps a reference to that :class:`NCScenario` instance, which can be used
+    to retrieve additional info about the scenario.
     """
     def __init__(self,
-                 scenario: NCMultiTaskScenario[TrainSetWithTargets,
-                                               TestSetWithTargets],
-                 current_task: int,
+                 scenario: NCScenario[TrainSetWithTargets,
+                                      TestSetWithTargets],
+                 current_step: int,
                  force_train_transformations: bool = False,
                  force_test_transformations: bool = False,
                  are_transformations_disabled: bool = False):
         """
-        Creates a NCMultiDatasetTaskInfo instance given the root scenario.
+        Creates a ``NCStepInfo`` instance given the root scenario.
         Instances of this class are usually created automatically while
-        iterating over an instance of :class:`NCMultiTaskScenario`.
-        
-        :param scenario: A reference to the NC scenario
-        :param current_task: The task ID
+        iterating over an instance of :class:`NCScenario`.
+
+        :param scenario: A reference to the NC scenario.
+        :param current_step: The step ID.
         :param force_train_transformations: If True, train transformations will
             be applied to the test set too. The ``force_test_transformations``
             parameter can't be True at the same time. Defaults to False.
@@ -209,32 +437,12 @@ class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
             Defaults to False.
         """
 
-        super(NCTaskInfo, self).__init__(
-            scenario, current_task,
+        super(NCStepInfo, self).__init__(
+            scenario, current_step,
             force_train_transformations=force_train_transformations,
             force_test_transformations=force_test_transformations,
             are_transformations_disabled=are_transformations_disabled,
-            transformation_step_factory=NCTaskInfo)
-
-        self.current_task: int = current_task
-
-        # The list of classes (original IDs) in this task
-        self.classes_in_this_task: List[int] = []
-
-        # The list of classes (original IDs) in previous batches,
-        # in their encounter order
-        self.previous_classes: List[int] = []
-
-        # List of classes (original IDs) of current and previous batches,
-        # in their encounter order
-        self.classes_seen_so_far: List[int] = []
-
-        # The list of classes (original IDs) of next batches,
-        # in their encounter order
-        self.future_classes: List[int] = []
-
-        # _go_to_task initializes the above lists
-        self._go_to_task()
+            transformation_step_factory=NCStepInfo)
 
     def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
         subset, t = super()._make_subset(is_train, step)
@@ -248,145 +456,5 @@ class NCTaskInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
                 subset.targets, None,
                 **kwargs)), t
 
-    def _go_to_task(self):
-        class_split = self.scenario.get_class_split(self.current_task)
-        self.classes_in_this_task, self.previous_classes, self.\
-            classes_seen_so_far, self.future_classes = class_split
 
-
-class NCSingleTaskScenario(GenericCLScenario[TrainSetWithTargets,
-                                             TestSetWithTargets, 'NCBatchInfo'],
-                           Generic[TrainSetWithTargets, TestSetWithTargets]):
-    """
-    This class defines a "New Classes" Single Incremental Task scenario based
-    on a :class:`NCGenericScenario` instance. Once created, an instance of this
-    class can be iterated in order to obtain the batch sequence under
-    the form of instances of :class:`NCBatchInfo`.
-
-    Instances of this class can be created using the constructor directly.
-    However, we recommend using facilities like:
-    :func:`.scenario_creation.create_nc_single_dataset_sit_scenario`,
-    :func:`.scenario_creation.create_nc_single_dataset_multi_task_scenario`,
-    :func:`.scenario_creation.create_nc_multi_dataset_sit_scenario` and
-    :func:`.scenario_creation.create_nc_multi_dataset_multi_task_scenario`.
-
-    This class acts as a wrapper for :class:`NCGenericScenario`, adding the
-    task label (always "0") as the output to training/test set related functions
-    (see: :class:`NCBatchInfo`).
-    """
-    def __init__(self,
-                 nc_generic_scenario: NCGenericScenario[TrainSetWithTargets,
-                                                        TestSetWithTargets]):
-        """
-        Creates a NC Single Incremental Task scenario given a
-        :class:`NCGenericScenario` instance. That instance will be used as the
-        batches factory.
-
-        :param nc_generic_scenario: The :class:`NCGenericScenario` instance
-            used to populate this scenario.
-        """
-        # nc_generic_scenario keeps a reference to the NCGenericScenario
-        self.nc_generic_scenario: \
-            NCGenericScenario[TrainSetWithTargets,
-                              TestSetWithTargets] = nc_generic_scenario
-
-        # n_batches is the number of batches in this scenario
-        self.n_batches: int = self.nc_generic_scenario.n_batches
-
-        # n_classes is the overall number of classes (copied from the
-        # nc_generic_scenario instance for easier access, like classes_in_batch)
-        self.n_classes: int = self.nc_generic_scenario.n_classes
-        self.classes_in_batch = nc_generic_scenario.classes_in_batch
-
-        super(NCSingleTaskScenario, self).__init__(
-            self.nc_generic_scenario.train_dataset,
-            self.nc_generic_scenario.test_dataset,
-            self.nc_generic_scenario.train_steps_patterns_assignment,
-            self.nc_generic_scenario.test_steps_patterns_assignment,
-            [0] * self.n_batches, step_factory=NCBatchInfo)
-
-    def get_reproducibility_data(self) -> Dict[str, Any]:
-        rep_data = super().get_reproducibility_data()
-        gen_data = self.nc_generic_scenario.get_reproducibility_data()
-
-        # See: https://stackoverflow.com/a/26853961
-        return {**rep_data, **gen_data}
-
-
-class NCBatchInfo(GenericStepInfo[NCMultiTaskScenario[TrainSetWithTargets,
-                                                      TestSetWithTargets]],
-                  Generic[TrainSetWithTargets, TestSetWithTargets]):
-    """
-    Defines a "New Classes" batch. It defines methods to obtain the current,
-    previous, cumulative and future training and test sets. It also defines
-    fields that can be used to check which classes are in this, previous and
-    future batches. Instances of this class are usually created when iterating
-    over a :class:`NCSingleTaskScenario` instance.
-
-    It keeps a reference to that :class:`NCSingleTaskScenario` instance,
-    which can be used to retrieve additional info about the scenario.
-    """
-
-    def __init__(self,
-                 scenario: NCSingleTaskScenario[TrainSetWithTargets,
-                                                TestSetWithTargets],
-                 current_batch: int,
-                 force_train_transformations: bool = False,
-                 force_test_transformations: bool = False,
-                 are_transformations_disabled: bool = False):
-        """
-        Creates a NCBatchInfo instance given the root scenario. 
-        Instances of this class are usually created automatically while 
-        iterating over an instance of :class:`NCSingleTaskScenario`.
-
-        :param scenario: A reference to the NC scenario
-        :param current_batch: The batch ID
-        :param force_train_transformations: If True, train transformations will
-            be applied to the test set too. The ``force_test_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param force_test_transformations: If True, test transformations will be
-            applied to the training set too. The ``force_train_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param are_transformations_disabled: If True, transformations are
-            disabled. That is, patterns and targets will be returned as
-            outputted by  the original training and test Datasets. Overrides
-            ``force_train_transformations`` and ``force_test_transformations``.
-            Defaults to False.
-        """
-
-        super(NCBatchInfo, self).__init__(
-            scenario, current_batch,
-            force_train_transformations=force_train_transformations,
-            force_test_transformations=force_test_transformations,
-            are_transformations_disabled=are_transformations_disabled,
-            transformation_step_factory=NCBatchInfo)
-
-        self.current_batch: int = current_batch
-
-        # The list of classes in this batch
-        self.classes_in_this_batch: List[int] = []
-
-        # The list of classes in previous batches,
-        # in their encounter order
-        self.previous_classes: List[int] = []
-
-        # List of classes of current and previous batches,
-        # in their encounter order
-        self.classes_seen_so_far: List[int] = []
-
-        # The list of classes of next batches,
-        # in their encounter order
-        self.future_classes: List[int] = []
-
-        # _go_to_batch initializes the above lists
-        self._go_to_batch()
-
-    def _go_to_batch(self):
-        class_split = self.scenario.nc_generic_scenario.get_class_split(
-            self.current_batch)
-        self.classes_in_this_batch, self.previous_classes, self.\
-            classes_seen_so_far, self.future_classes = class_split
-
-
-__all__ = ['NCMultiTaskScenario', 'NCTaskInfo',
-           'NCSingleTaskScenario', 'NCBatchInfo']
+__all__ = ['NCScenario', 'NCStepInfo']

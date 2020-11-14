@@ -5,7 +5,7 @@ from torch import Tensor
 
 from avalanche.training.utils import IDatasetWithTargets, \
     ConcatDatasetWithTargets, TransformationTensorDataset
-from .datasets_from_filelists import datasets_from_filelists
+from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 
 
@@ -87,9 +87,10 @@ def create_multi_dataset_generic_scenario(
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.
     return GenericCLScenario(
+        concat_train_dataset, concat_test_dataset,
         concat_train_dataset, concat_test_dataset, train_structure,
         test_structure, task_labels,
-        return_complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only)
 
 
 def create_generic_scenario_from_filelists(

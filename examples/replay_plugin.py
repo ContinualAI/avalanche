@@ -75,9 +75,8 @@ def main():
         tb_logdir='../logs/mnist_test_sit')
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
-    cl_strategy = Naive(
-        model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
-        CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
+    cl_strategy = Naive(model, CrossEntropyLoss(), SGD(model.parameters(), lr=0.001, momentum=0.9),
+        train_mb_size=100, train_epochs=4, test_mb_size=100,
         evaluation_protocol=evaluation_protocol, device=device,
         plugins=[ReplayPlugin(mem_size=10000)]
     )
@@ -87,7 +86,7 @@ def main():
     results = []
     batch_info: NCBatchInfo
     for batch_info in nc_scenario:
-        print("Start of step ", batch_info.current_step)
+        # print("Start of step ", cl_strategy.training_step_id)
 
         cl_strategy.train(batch_info, num_workers=4)
         print('Training completed')
@@ -95,6 +94,7 @@ def main():
         print('Computing accuracy on the whole test set')
         results.append(cl_strategy.test(batch_info, DatasetPart.COMPLETE,
                                         num_workers=4))
+
 
 if __name__ == '__main__':
     main()

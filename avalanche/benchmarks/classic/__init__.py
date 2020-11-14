@@ -4,3 +4,5 @@ from .ccifar10 import *
 from .ccifar100 import *
 from .cmnist import *
 from .cfashion_mnist import *
+from .cimagenet import *
+from .ccub200 import *

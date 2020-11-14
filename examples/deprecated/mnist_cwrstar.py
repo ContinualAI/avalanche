@@ -22,7 +22,7 @@ from __future__ import absolute_import
 import torch
 from avalanche.benchmarks import CMNIST
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import CWRStar, Naive
+from avalanche.training.strategies import CWRStarPlugin, Naive
 from avalanche.evaluation import EvalProtocol
 
 #  "cwrstar"
@@ -41,7 +41,7 @@ evalp = EvalProtocol()
 device = torch.device("cpu")
 
 if strat == "cwrstar":
-    clmodel = CWRStar(
+    clmodel = CWRStarPlugin(
         model, eval_protocol=evalp, device=device,
         second_last_layer_name="features.0.bias"
     )

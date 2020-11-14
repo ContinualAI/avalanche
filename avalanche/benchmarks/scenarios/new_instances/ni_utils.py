@@ -83,8 +83,8 @@ def _indexes_from_set(targets: Sequence[int],
         bucketing by class, patterns will be sorted inside their buckets.
         Defaults to False.
 
-    :returns: The list of pattern indexes sorted according to the `
-        `bucket_classes``, ``sort_classes`` and ``sort_indexes`` parameters or
+    :returns: The list of pattern indexes sorted according to the
+        ``bucket_classes``, ``sort_classes`` and ``sort_indexes`` parameters or
         None if the patterns_indexes is None and the whole dataset can be taken
         using the existing patterns order.
     """

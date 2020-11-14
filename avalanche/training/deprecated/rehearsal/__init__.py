@@ -1,1 +1,0 @@
-from .rehearsal import Rehearsal

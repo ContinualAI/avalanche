@@ -22,4 +22,6 @@ dependencies:
 - scikit-learn
 - matplotlib
 - numpy
-- vlomonaco::pytorchcv
+- pip
+- pip:
+    - pytorchcv

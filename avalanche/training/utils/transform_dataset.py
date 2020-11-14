@@ -140,13 +140,13 @@ class TransformationDataset(DatasetWithTargets):
 
 class LazyClassMapping(Sequence[int]):
     """
-    Defines a lazy targets class_list_per_batch.
+    Defines a lazy targets class_list_per_step.
 
     This class is used when in need of lazy populating a targets field whose
     elements need to be filtered out (when subsetting, see
     :class:`torch.utils.data.Subset`) and/or transformed (based on some
-    class_list_per_batch). This will allow for a more efficient memory usage as
-    the class_list_per_batch is done on the fly instead of actually allocating a
+    class_list_per_step). This will allow for a more efficient memory usage as
+    the class_list_per_step is done on the fly instead of actually allocating a
     new list.
     """
     def __init__(self, targets: Sequence[int],

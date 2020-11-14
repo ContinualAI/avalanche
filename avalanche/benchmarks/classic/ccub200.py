@@ -12,38 +12,34 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-
-from avalanche.benchmarks.datasets import ImageNet
+from avalanche.benchmarks.datasets import CUB200
 from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-
 _default_train_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465),
+                             (0.2023, 0.1994, 0.2010))
 ])
 
 _default_test_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
     transforms.ToTensor(),
-    normalize
+    transforms.Normalize((0.4914, 0.4822, 0.4465),
+                         (0.2023, 0.1994, 0.2010))
 ])
 
 
-def SplitImageNet(root,
-                  incremental_steps=10,
-                  per_step_classes=None,
-                  return_task_id=False,
-                  seed=0,
-                  fixed_class_order=None,
-                  train_transform=_default_train_transform,
-                  test_transform=_default_test_transform):
+def SplitCUB200(root,
+                incremental_steps=11,
+                classes_first_batch=100,
+                return_task_id=False,
+                seed=0,
+                fixed_class_order=None,
+                shuffle=False,
+                train_transform=_default_train_transform,
+                test_transform=_default_test_transform):
     """
     Creates a CL scenario using the Tiny ImageNet dataset.
     If the dataset is not present in the computer the method automatically
@@ -52,17 +48,8 @@ def SplitImageNet(root,
     :param root: Base path where Imagenet data are stored.
     :param incremental_steps: The number of incremental steps in the current
         scenario.
-    :param per_step_classes: Is not None, a dictionary whose keys are
-        (0-indexed) step IDs and their values are the number of classes
-        to include in the respective steps. The dictionary doesn't
-        have to contain a key for each step! All the remaining steps
-        will contain an equal amount of the remaining classes. The
-        remaining number of classes must be divisible without remainder
-        by the remaining number of steps. For instance,
-        if you want to include 50 classes in the first step
-        while equally distributing remaining classes across remaining
-        steps, just pass the "{0: 50}" dictionary as the
-        per_step_classes parameter. Defaults to None.
+    :param classes_first_batch: Number of classes in the first batch.
+    Usually this is set to 500. Default to None.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -74,6 +61,8 @@ def SplitImageNet(root,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental steps is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -93,8 +82,13 @@ def SplitImageNet(root,
         CIFAR10 otherwise.
         """
 
-    train_set = ImageNet(root, split="train", transform=train_transform)
-    test_set = ImageNet(root, split="val", transform=test_transform)
+    train_set = CUB200(root, train=True, transform=train_transform)
+    test_set = CUB200(root, train=False, transform=test_transform)
+
+    if classes_first_batch is not None:
+        per_step_classes = {0: classes_first_batch}
+    else:
+        per_step_classes = None
 
     if return_task_id:
         return nc_scenario(
@@ -105,7 +99,8 @@ def SplitImageNet(root,
             per_step_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_step=True)
+            shuffle=shuffle,
+            one_dataset_per_step=True)
     else:
         return nc_scenario(
             train_dataset=train_set,
@@ -114,12 +109,13 @@ def SplitImageNet(root,
             task_labels=False,
             per_step_classes=per_step_classes,
             seed=seed,
-            fixed_class_order=fixed_class_order)
+            fixed_class_order=fixed_class_order,
+            shuffle=shuffle)
 
 
 if __name__ == "__main__":
 
-    scenario = SplitImageNet("/ssd2/datasets/imagenet/")
+    scenario = SplitCUB200("~/.avalanche/data/cub200/")
     for step in scenario:
         print("step: ", step.current_step)
         print("classes number: ", len(step.classes_in_this_batch))

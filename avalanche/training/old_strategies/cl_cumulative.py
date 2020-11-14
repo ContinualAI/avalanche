@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 
 from avalanche.evaluation import EvalProtocol
 from avalanche.training.skeletons import TrainingFlow
-from avalanche.training.strategies import Naive
+from avalanche.training.old_strategies import Naive
 from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 from avalanche.training.utils import ConcatDatasetWithTargets
 from avalanche.training.skeletons import StrategySkeleton
@@ -70,7 +70,6 @@ class Cumulative(Naive):
         )
 
         self.update_namespace(train_dataset=train_dataset)
-        self.update_namespace(step_id=step_info.current_step)
         return train_dataset
 
 
