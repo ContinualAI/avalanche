@@ -6,3 +6,4 @@ avalanche/benchmarks/datasets/*/data
 data/
 logs/
 *.pyc
+doc_html/*
