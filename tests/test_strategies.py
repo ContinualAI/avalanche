@@ -22,16 +22,36 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
 from avalanche.extras.models import SimpleMLP
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.benchmarks.scenarios import DatasetPart
-from avalanche.training.strategies import Naive, Cumulative, Replay, GDumb
-from avalanche.benchmarks import NCBenchmark, NCStepInfo
-
-#from avalanche.training.plugins import ReplayPlugin, GDumbPlugin
+from avalanche.training.strategies import Naive, Replay, CWRStar
+from avalanche.benchmarks import nc_scenario, NCStepInfo
 
 
-device = 'cpu'
+class BaseStrategyTest(unittest.TestCase):
+
+    def _is_param_in_optimizer(self, param, optimizer):
+        for group in optimizer.param_groups:
+            for curr_p in group['params']:
+                if hash(curr_p) == hash(param):
+                    return True
+        return False
+
+    def test_optimizer_update(self):
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        strategy = Naive(model, optimizer, None)
+
+        # check add_param_group
+        p = torch.nn.Parameter(torch.zeros(10, 10))
+        strategy.add_new_params_to_optimizer(p)
+        assert self._is_param_in_optimizer(p, strategy.optimizer)
+
+        # check new_param is in optimizer
+        # check old_param is NOT in optimizer
+        p_new = torch.nn.Parameter(torch.zeros(10, 10))
+        strategy.update_optimizer([p], [p_new])
+        assert self._is_param_in_optimizer(p_new, strategy.optimizer)
+        assert not self._is_param_in_optimizer(p, strategy.optimizer)
+
 
 class StrategyTest(unittest.TestCase):
 
@@ -40,114 +60,49 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False,
             shuffle=True, seed=1234)
 
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
+        strategy = Naive(model, optimizer, criterion, train_mb_size=64)
+        self.run_strategy(my_nc_scenario, strategy)
 
-        strategy = Naive(model, 'classifier', optimizer, criterion,
-                evaluation_protocol=eval_protocol, train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device)
+    def test_cwrstar(self):
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        mnist_train, mnist_test = self.load_dataset()
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False,
+            shuffle=True, seed=1234)
 
-        self.run_strategy(nc_scenario, strategy)
-
+        strategy = CWRStar(model, optimizer, criterion, 'features.0.bias',
+                           train_mb_size=64)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
-            mnist_train, mnist_test, 5, task_labels=False,
-            shuffle=True, seed=1234)
-
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
-
-        def reinit(m):
-            with torch.no_grad():
-                for p in m.parameters():
-                    torch.nn.init.uniform_(p, -1, -1)
-
-        strategy = Replay(model, 'classifier', optimizer, criterion,
-                mem_size=200, reinit_model_before_step=True,
-                reinit_function=reinit, # None to use default init function
-                evaluation_protocol=eval_protocol,
-                train_mb_size=100, 
-                train_epochs=4, test_mb_size=100, device=device, plugins=None
-                )
-
-        self.run_strategy(nc_scenario, strategy)
-
-
-    def test_cumulative(self):
-        model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
-            mnist_train, mnist_test, 5, task_labels=False,
-            shuffle=True, seed=1234)
-
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
-
-        strategy = Cumulative(model, 'classifier', optimizer, criterion,
-                train_mb_size=100, 
-                evaluation_protocol=eval_protocol,
-                train_epochs=4, test_mb_size=100, device=device)
-
-        self.run_strategy(nc_scenario, strategy)
-
-
-    def test_gdumb(self):
-        model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-2)
-        criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        nc_scenario = NCBenchmark(
+        my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 
-        eval_protocol = EvalProtocol(
-            metrics=[
-                ACC(num_class=nc_scenario.n_classes)
-            ])
-
-        def reinit(m):
-            with torch.no_grad():
-                for p in m.parameters():
-                    torch.nn.init.uniform_(p, -1, 1)
-
-        strategy = GDumb(model, 'classifier', optimizer, criterion,
-                mem_size=2000, reinit_model_before_step=True,
-                reinit_function=reinit, # None to use default init function
-                train_mb_size=64,
-                evaluation_protocol=eval_protocol,
-                train_epochs=10, test_mb_size=100, device=device,
-                plugins=None)
-
-        self.run_strategy(nc_scenario, strategy)
-    
+        strategy = Replay(model, optimizer, criterion,
+                          mem_size=200, train_mb_size=64)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def load_dataset(self):
+        mnist_train = MNIST(
+            './data/mnist', train=True, download=True, 
+            transform=Compose([ToTensor()]))
 
-        mnist_train = MNIST('./data/mnist', train=True, download=True, 
-                transform=Compose([ToTensor()]))
-        mnist_test = MNIST('./data/mnist', train=False, download=True,
-                transform=Compose([ToTensor()]))
+        mnist_test = MNIST(
+            './data/mnist', train=False, download=True,
+            transform=Compose([ToTensor()]))
         return mnist_train, mnist_test
 
-
     def run_strategy(self, scenario, cl_strategy):
-
         print('Starting experiment...')
         results = []
         batch_info: NCStepInfo
@@ -157,9 +112,8 @@ class StrategyTest(unittest.TestCase):
             cl_strategy.train(batch_info, num_workers=4)
             print('Training completed')
 
-            print('Computing accuracy on the whole test set')
-            results.append(cl_strategy.test(batch_info, DatasetPart.COMPLETE,
-                                            num_workers=4))
+            print('Computing accuracy on the current test set')
+            results.append(cl_strategy.test(scenario[:]))
 
 
 if __name__ == '__main__':

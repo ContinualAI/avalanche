@@ -22,7 +22,7 @@ from torchvision import transforms
 from avalanche.training.utils.transform_dataset import \
     concat_datasets_sequentially
 from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
-from avalanche.benchmarks import NCBenchmark, NCScenario
+from avalanche.benchmarks import nc_scenario, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -99,7 +99,7 @@ def SplitCIFAR100(incremental_steps: int,
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,
@@ -109,7 +109,7 @@ def SplitCIFAR100(incremental_steps: int,
             per_step_classes={0: 50} if first_batch_with_half_classes else None,
             class_ids_from_zero_in_each_step=True)
     else:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,
@@ -182,7 +182,7 @@ def SplitCIFAR110(
         cifar_100_class_order = random.sample(range(10, 110), 100)
         class_order.extend(cifar_100_class_order)
 
-    return NCBenchmark(
+    return nc_scenario(
         cifar_10_100_train, cifar_10_100_test,
         n_steps=incremental_steps + 1,
         task_labels=False,

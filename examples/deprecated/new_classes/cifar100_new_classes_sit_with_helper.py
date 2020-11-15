@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 from avalanche.benchmarks.scenarios import NCBatchInfo
-from avalanche.benchmarks.scenarios.new_classes.nc_benchmark import \
+from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCSingleTaskScenario
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleMLP

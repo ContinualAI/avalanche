@@ -19,7 +19,7 @@ from os.path import expanduser
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
-from avalanche.benchmarks import NCBenchmark
+from avalanche.benchmarks import nc_scenario
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -97,7 +97,7 @@ def SplitCIFAR10(incremental_steps: int,
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,
@@ -107,7 +107,7 @@ def SplitCIFAR10(incremental_steps: int,
             per_step_classes={0: 5} if first_batch_with_half_classes else None,
             class_ids_from_zero_in_each_step=True)
     else:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,

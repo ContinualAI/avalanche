@@ -49,7 +49,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
 
     Instances of this class can be created using the constructor directly.
     However, we recommend using facilities like
-    :func:`avalanche.benchmarks.generators.NIBenchmark`.
+    :func:`avalanche.benchmarks.generators.ni_scenario`.
 
     Consider that every method from :class:`NIStepInfo` used to retrieve
     parts of the test set (past, current, future, cumulative) always return the

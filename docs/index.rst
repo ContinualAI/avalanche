@@ -5,7 +5,7 @@
 
 Welcome to Avalanche's API documentation!
 =====================================
-| This is the complete Avalanche's API documentation.  
+| This is the complete Avalanche's API documentation.  For examples and tutorials check out the main `avalanche website <https://www.continualai.org/>`_.
 | Go to API Reference for a complete overview of all the modules and packages, or go one of the main subpackage below for detailed information on the package content.
 
 

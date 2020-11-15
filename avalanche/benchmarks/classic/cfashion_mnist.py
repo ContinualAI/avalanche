@@ -22,7 +22,7 @@ from os.path import expanduser
 from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
-from avalanche.benchmarks import NCBenchmark
+from avalanche.benchmarks import nc_scenario
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -100,7 +100,7 @@ def SplitFMNIST(incremental_steps: int,
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,
@@ -109,7 +109,7 @@ def SplitFMNIST(incremental_steps: int,
             fixed_class_order=fixed_class_order,
             per_step_classes={0: 5} if first_batch_with_half_classes else None)
     else:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_steps=total_steps,

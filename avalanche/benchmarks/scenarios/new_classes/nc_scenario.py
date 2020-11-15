@@ -30,7 +30,7 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
     under the form of instances of :class:`NCStepInfo`.
 
     This class can be used directly. However, we recommend using facilities like
-    :func:`avalanche.benchmarks.generators.NCBenchmark`.
+    :func:`avalanche.benchmarks.generators.nc_scenario`.
     """
 
     def __init__(self, train_dataset: TrainSetWithTargets,

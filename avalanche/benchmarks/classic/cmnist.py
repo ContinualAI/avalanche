@@ -24,7 +24,7 @@ import numpy as np
 import torch
 from torchvision.datasets import MNIST
 from torchvision import transforms
-from avalanche.benchmarks import NCScenario, NCBenchmark
+from avalanche.benchmarks import NCScenario, nc_scenario
 
 _default_mnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -87,7 +87,7 @@ def SplitMNIST(
     mnist_train, mnist_test = _get_mnist_dataset(train_transform,
                                                  test_transform)
     if return_task_id:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
             n_steps=incremental_steps,
@@ -96,7 +96,7 @@ def SplitMNIST(
             fixed_class_order=fixed_class_order,
             class_ids_from_zero_in_each_step=True)
     else:
-        return NCBenchmark(
+        return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
             n_steps=incremental_steps,
@@ -172,7 +172,7 @@ def PermutedMNIST(
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
 
-    return NCBenchmark(
+    return nc_scenario(
         list_train_dataset,
         list_test_dataset,
         n_steps=len(list_train_dataset),
@@ -270,7 +270,7 @@ def RotatedMNIST(
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
 
-    return NCBenchmark(
+    return nc_scenario(
         list_train_dataset,
         list_test_dataset,
         n_steps=len(list_train_dataset),
