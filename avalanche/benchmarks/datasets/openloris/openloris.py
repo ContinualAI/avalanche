@@ -7,7 +7,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 11-11-2020                                                             #
-# Author: ContinualAI                                                  #
+# Author: ContinualAI                                                          #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
@@ -15,11 +15,13 @@
 """ Tiny-Imagenet Pytorch Dataset """
 
 import os
-from torch.utils.data import Dataset
-from torchvision.transforms import ToTensor
-from PIL import Image
 import pickle as pkl
 from os.path import expanduser
+
+from PIL import Image
+from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor
+
 from avalanche.benchmarks.datasets.openloris import OPENLORIS_DATA
 
 
@@ -34,7 +36,7 @@ def pil_loader(path):
 class OpenLORIS(Dataset):
     """ OpenLORIS Pytorch Dataset """
 
-    def __init__(self, root=expanduser("~")+"/.avalanche/data/openloris/",
+    def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/",
                  train=True, transform=ToTensor(), target_transform=None,
                  loader=pil_loader, download=True):
 

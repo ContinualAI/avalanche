@@ -39,7 +39,8 @@ filename = [
      '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H')
 ]
 
-#11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF
+
+# 11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF
 
 
 class OPENLORIS_DATA(object):
@@ -75,7 +76,8 @@ class OPENLORIS_DATA(object):
         for name in filename:
             print("Downloading " + name[1] + "...")
             gdd.download_file_from_google_drive(file_id=name[1],
-                                                dest_path=os.path.join(self.data_folder, name[0]))
+                                                dest_path=os.path.join(
+                                                    self.data_folder, name[0]))
             if name[1].endswith('.zip'):
                 with ZipFile(
                         os.path.join(self.data_folder, name[0]), 'r') as zipf:
