@@ -429,9 +429,8 @@ class AbstractStepInfo(IStepInfo[TScenario, TScenarioStream], ABC):
             classes_seen_so_far: Sequence[int],
             future_classes: Optional[Sequence[int]]):
         """
-        Creates an instance of the abstract step info given the base scenario,
-        the current step ID, the overall number of steps, transformations and
-        transformations flags.
+        Creates an instance of the abstract step info given the scenario stream,
+        the current step ID and data about the classes timeline.
 
         :param origin_stream: The stream from which this step was obtained.
         :param current_step: The current step ID, as an integer.
