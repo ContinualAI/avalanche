@@ -108,7 +108,7 @@ class BaseStrategy:
         self.model.train()
         self.model.to(self.device)
 
-        self.current_data = step_info.current_training_set()[0]
+        self.current_data = step_info.dataset
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
@@ -138,7 +138,7 @@ class BaseStrategy:
             self.step_info = step_info
             self.step_id = step_info.current_step
 
-            self.current_data = step_info.current_test_set()[0]
+            self.current_data = step_info.dataset
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 

@@ -103,8 +103,8 @@ class PluginTests(unittest.TestCase):
             train_mb_size=100, train_epochs=1, test_mb_size=100,
             device='cpu', plugins=[plug]
         )
-        strategy.train(scenario[0], num_workers=4)
-        strategy.test([scenario[0]], num_workers=4)
+        strategy.train(scenario.train_stream[0], num_workers=4)
+        strategy.test([scenario.test_stream[0]], num_workers=4)
         assert all(plug.activated)
 
     def test_multihead_optimizer_update(self):
@@ -122,7 +122,7 @@ class PluginTests(unittest.TestCase):
         )
 
         # head creation
-        strategy.train(scenario[0])
+        strategy.train(scenario.train_stream[0])
         w_ptr = model.classifier.weight.data_ptr()
         b_ptr = model.classifier.bias.data_ptr()
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
@@ -131,7 +131,7 @@ class PluginTests(unittest.TestCase):
         assert b_ptr in opt_params_ptrs
 
         # head update
-        strategy.train(scenario[4])
+        strategy.train(scenario.train_stream[4])
         w_ptr_new = model.classifier.weight.data_ptr()
         b_ptr_new = model.classifier.bias.data_ptr()
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
