@@ -17,7 +17,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             mnist_train, mnist_test, 5, task_labels=True,
             class_ids_from_zero_in_each_step=True)
 
-        for task_info in my_nc_scenario:
+        for task_info in my_nc_scenario.train_stream:
+            self.assertIsInstance(task_info, IStepInfo)
+
+        for task_info in my_nc_scenario.test_stream:
             self.assertIsInstance(task_info, IStepInfo)
 
     def test_nc_sit_type(self):
@@ -26,7 +29,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False)
 
-        for batch_info in my_nc_scenario:
+        for batch_info in my_nc_scenario.train_stream:
+            self.assertIsInstance(batch_info, IStepInfo)
+
+        for batch_info in my_nc_scenario.test_stream:
             self.assertIsInstance(batch_info, IStepInfo)
 
     def test_ni_sit_type(self):
@@ -35,7 +41,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         my_nc_scenario = ni_scenario(
             mnist_train, mnist_test, 5)
 
-        for batch_info in my_nc_scenario:
+        for batch_info in my_nc_scenario.train_stream:
+            self.assertIsInstance(batch_info, IStepInfo)
+
+        for batch_info in my_nc_scenario.test_stream:
             self.assertIsInstance(batch_info, IStepInfo)
 
     def test_tensor_scenario_type(self):
@@ -49,7 +58,7 @@ class ScenariosTypeChecksTests(unittest.TestCase):
                     tensor_scenario(
                         train_data_x=[torch.randn(2, 3)
                                       for _ in range(n_steps)],
-                        train_data_y=[torch.zeros(2) for i in range(n_steps)],
+                        train_data_y=[torch.zeros(2) for _ in range(n_steps)],
                         test_data_x=tdx,
                         test_data_y=tdy,
                         task_labels=[0]*n_steps,

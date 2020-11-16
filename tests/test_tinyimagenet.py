@@ -24,7 +24,10 @@ class TinyImagenetTest(unittest.TestCase):
     def test_tinyimagenet_default_loader(self):
 
         scenario = SplitTinyImageNet()
-        for task_info in scenario:
+        for task_info in scenario.train_stream:
+            self.assertIsInstance(task_info, IStepInfo)
+
+        for task_info in scenario.test_stream:
             self.assertIsInstance(task_info, IStepInfo)
 
 

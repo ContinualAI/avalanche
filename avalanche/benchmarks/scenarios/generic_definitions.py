@@ -8,15 +8,16 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
-
+from abc import abstractmethod
 from enum import Enum
 try:
-    from typing import TypeVar, Tuple, List, Protocol, runtime_checkable
+    from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
+        Sequence, Any, Union, Iterable, Generic
 except ImportError:
-    from typing import TypeVar, Tuple, List
-    from typing_extensions import Protocol, runtime_checkable
+    from typing_extensions import TypeVar, Tuple, List, Protocol, \
+        runtime_checkable, Sequence, Any, Union, Iterable, Generic
 
-from avalanche.training.utils import IDatasetWithTargets, DatasetWithTargets
+from avalanche.training.utils import IDatasetWithTargets, TransformationDataset
 
 
 class DatasetPart(Enum):
@@ -36,12 +37,13 @@ class DatasetType(Enum):
 
 TrainSetWithTargets = TypeVar('TrainSetWithTargets', bound=IDatasetWithTargets)
 TestSetWithTargets = TypeVar('TestSetWithTargets', bound=IDatasetWithTargets)
-MTSingleSet = Tuple[DatasetWithTargets, int]
-MTMultipleSet = List[MTSingleSet]
+TScenario = TypeVar('TScenario')
+TStepInfo = TypeVar('TStepInfo', bound='IStepInfo')
+TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
 
 
 @runtime_checkable
-class IStepInfo(Protocol):
+class IStepInfo(Protocol[TScenario, TScenarioStream]):
     """
     Definition of a learning step. A learning step contains a set of patterns
     which has become available at a particular time instant. The content and
@@ -58,316 +60,83 @@ class IStepInfo(Protocol):
     composed by patterns from different tasks.
     """
 
-    # The current step. This is usually an incremental, 0-indexed, value used to
-    # keep track of the current batch/task.
+    origin_stream: TScenarioStream
+    """
+    A reference to the original stream from which this step was obtained.
+    """
+
+    scenario: TScenario
+    """
+    A reference to the scenario.
+    """
+
     current_step: int
-
-    # The overall amount of steps in the scenario
-    n_steps: int
-
-    def current_training_set(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTSingleSet:
+    """
+    The current step. This is an incremental, 0-indexed, value used to
+    keep track of the position of current step in the original stream.
+    
+    Beware that this value only describes the step position in the original
+    stream and may be unrelated to the order in which the strategy will
+    receive steps
+    """
+    @property
+    @abstractmethod
+    def dataset(self) -> TransformationDataset:
         """
-        Gets the training set for the current step (batch/task).
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current step training set, as a tuple containing the
-            Dataset and the task label. For SIT scenarios, the task label
-            will always be 0.
+        The dataset containing the patterns available in this step.
         """
         ...
 
-    def cumulative_training_sets(self, include_current_step: bool = True,
-                                 bucket_classes=False, sort_classes=False,
-                                 sort_indexes=False) -> MTMultipleSet:
+    @property
+    @abstractmethod
+    def task_label(self) -> int:
         """
-        Gets the list of cumulative training sets.
-
-        :param include_current_step: If True, include the current step
-            training set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The cumulative training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label. For SIT
-            scenarios, the task label will always be 0.
-        """
-        ...
-
-    def complete_training_sets(self, bucket_classes=False, sort_classes=False,
-                               sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of training sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the training sets, as a list. Each element of the list is
-            a tuple containing the Dataset and the task label. For SIT
-            scenarios, the task label will always be 0.
-        """
-        ...
-
-    def future_training_sets(self, bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the "future" training sets. That is, datasets of future steps.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future training sets, as a list. Each element of the list
-            is a tuple containing the Dataset and the task label. For SIT
-            scenarios, the task label will always be 0.
-        """
-        ...
-
-    def step_specific_training_set(self, step_id: int, bucket_classes=False,
-                                   sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the training set of a specific step (batch/task), given its ID.
-
-        :param step_id: The ID of the step.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label. For SIT scenarios, the task label will always
-            be 0.
-        """
-        ...
-
-    def training_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                          sort_classes=False, sort_indexes=False) \
-            -> MTMultipleSet:
-        """
-        Gets the training subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The training set of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-            For SIT scenarios, the task label will always be 0.
-        """
-        ...
-
-    def current_test_set(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTSingleSet:
-        """
-        Gets the test set for the current step (batch/task).
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The current test set, as a tuple containing the Dataset and
-            the task label. For SIT scenarios, the task label will always be 0.
-        """
-        ...
-
-    def cumulative_test_sets(self, include_current_step: bool = True,
-                             bucket_classes=False, sort_classes=False,
-                             sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the list of cumulative test sets (batch/task).
-
-        :param include_current_step: If True, include the current step
-            training set. Defaults to True.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The cumulative test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label. For SIT
-            scenarios, the task label will always be 0.
-        """
-        ...
-
-    def complete_test_sets(self, bucket_classes=False, sort_classes=False,
-                           sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the complete list of test sets.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: All the test sets, as a list. Each element of the list is a
-            tuple containing the Dataset and the task label. For SIT scenarios,
-            the task label will always be 0.
-        """
-        ...
-
-    def future_test_sets(self, bucket_classes=False, sort_classes=False,
-                         sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the "future" test sets. That is, datasets of future steps.
-
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The future test sets, as a list. Each element of the list is a
-            tuple containing the Dataset and the task label. For SIT scenarios,
-            the task label will always be 0.
-        """
-        ...
-
-    def step_specific_test_set(self, step_id: int, bucket_classes=False,
-                               sort_classes=False, sort_indexes=False) \
-            -> MTSingleSet:
-        """
-        Gets the test set of a specific step (batch/task), given its ID.
-
-        :param step_id: The ID of the step (batch/task).
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label. For SIT scenarios, the task label will always
-            be 0.
-        """
-        ...
-
-    def test_set_part(self, dataset_part: DatasetPart, bucket_classes=False,
-                      sort_classes=False, sort_indexes=False) -> MTMultipleSet:
-        """
-        Gets the test subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-
-        :returns: The test sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-            For SIT scenarios, the task label will always be 0.
-        """
-        ...
-
-    def disable_transformations(self: 'TStepInfo') -> 'TStepInfo':
-        """
-        Returns a new step info instance in which transformations are disabled.
-        The current instance is not affected. This is useful when there is a
-        need to access raw data. Can be used when picking and storing
-        rehearsal/replay patterns.
-
-        :returns: A new ``IStepInfo`` in which transformations are disabled.
-        """
-        ...
-
-    def enable_transformations(self: 'TStepInfo') -> 'TStepInfo':
-        """
-        Returns a new step info instance in which transformations are enabled.
-        The current instance is not affected. When created the ``IStepInfo``
-        instance already has transformations enabled. This method can be used to
-        re-enable transformations after a previous call to
-        ``disable_transformations()``.
-
-        :returns: A new ``IStepInfo`` in which transformations are enabled.
-        """
-        ...
-
-    def with_train_transformations(self: 'TStepInfo') -> 'TStepInfo':
-        """
-        Returns a new step info instance in which train transformations are
-        applied to both training and test sets. The current instance is not
-        affected.
-
-        :returns: A new ``IStepInfo`` in which train transformations are applied
-            to both training and test sets.
-        """
-        ...
-
-    def with_test_transformations(self: 'TStepInfo') -> 'TStepInfo':
-        """
-        Returns a new step info instance in which test transformations are
-        applied to both training and test sets. The current instance is
-        not affected. This is useful to get the accuracy on the training set
-        without considering the usual training data augmentations.
-
-        :returns: A new ``IStepInfo`` in which test transformations are applied
-            to both training and test sets.
+        The task label. This value will never have value "None". However,
+        for scenarios that don't produce task labels a placeholder value like 0
+        is usually set.
         """
         ...
 
 
-# https://www.python.org/dev/peps/pep-0544/#self-types-in-protocols
-TStepInfo = TypeVar('TStepInfo', bound=IStepInfo)
+class IScenarioStream(Protocol[TScenario, TStepInfo]):
+    """
+    A scenario stream describes a sequence of incremental steps. Steps are
+    described as :class:`IStepInfo` instances. They contain a set of patterns
+    which has become available at a particular time instant along with any
+    optional, scenario specific, metadata.
+
+    Most scenario expose two different streams: the training stream and the test
+    stream.
+    """
+
+    name: str
+    """
+    The name of the stream.
+    """
+
+    scenario: TScenario
+    """
+    A reference to the scenario this stream belongs to.
+    """
+
+    def __getitem__(self: TScenarioStream,
+                    step_idx: Union[int, slice, Iterable[int]]) \
+            -> Union[TStepInfo, TScenarioStream]:
+        """
+        Gets a step given its step index (or a stream slice given the step
+        order).
+
+        :param step_idx: An int describing the step index or an iterable/slice
+            object describing a slice of this stream.
+        :return: The step instance associated to the given step index or
+            a sliced stream instance.
+        """
+        ...
+
+    def __len__(self) -> int:
+        ...
 
 
 __all__ = ['DatasetPart', 'DatasetType', 'TrainSetWithTargets',
-           'TestSetWithTargets', 'MTSingleSet', 'MTMultipleSet',
-           'IStepInfo', 'TStepInfo']
+           'TestSetWithTargets', 'IStepInfo', 'TStepInfo', 'TScenario',
+           'IScenarioStream', 'TScenarioStream']

@@ -140,13 +140,15 @@ class TransformationTensorDatasetTests(unittest.TestCase):
             dataset_train_x, dataset_train_y, dataset_test_x, dataset_test_y,
             [0] * 5)
 
-        self.assertEqual(5, len(cl_scenario))
+        self.assertEqual(5, len(cl_scenario.train_stream))
+        self.assertEqual(5, len(cl_scenario.test_stream))
+        self.assertEqual(5, cl_scenario.n_steps)
 
-        for step_id, step in enumerate(cl_scenario):
+        for step_id in range(cl_scenario.n_steps):
             scenario_train_x, scenario_train_y = \
-                load_all_dataset(step.current_training_set()[0])
+                load_all_dataset(cl_scenario.train_stream[step_id].dataset)
             scenario_test_x, scenario_test_y = \
-                load_all_dataset(step.current_test_set()[0])
+                load_all_dataset(cl_scenario.test_stream[step_id].dataset)
 
             self.assertTrue(torch.all(torch.eq(
                 dataset_train_x[step_id],
@@ -156,8 +158,8 @@ class TransformationTensorDatasetTests(unittest.TestCase):
                 scenario_train_y)))
             self.assertSequenceEqual(
                 dataset_train_y[step_id].tolist(),
-                step.current_training_set()[0].targets)
-            self.assertEqual(0, step.current_training_set()[1])  # Task label
+                cl_scenario.train_stream[step_id].dataset.targets)
+            self.assertEqual(0, cl_scenario.train_stream[step_id].task_label)
 
             self.assertTrue(torch.all(torch.eq(
                 dataset_test_x[step_id],
@@ -167,8 +169,8 @@ class TransformationTensorDatasetTests(unittest.TestCase):
                 scenario_test_y)))
             self.assertSequenceEqual(
                 dataset_test_y[step_id].tolist(),
-                step.current_test_set()[0].targets)
-            self.assertEqual(0, step.current_test_set()[1])  # Task label
+                cl_scenario.test_stream[step_id].dataset.targets)
+            self.assertEqual(0, cl_scenario.test_stream[step_id].task_label)
 
     def test_tensor_dataset_helper_list_y(self):
         dataset_train_x = [torch.rand(50, 32, 32) for _ in range(5)]
@@ -183,13 +185,15 @@ class TransformationTensorDatasetTests(unittest.TestCase):
             dataset_train_x, dataset_train_y, dataset_test_x, dataset_test_y,
             [0] * 5)
 
-        self.assertEqual(5, len(cl_scenario))
+        self.assertEqual(5, len(cl_scenario.train_stream))
+        self.assertEqual(5, len(cl_scenario.test_stream))
+        self.assertEqual(5, cl_scenario.n_steps)
 
-        for step_id, step in enumerate(cl_scenario):
+        for step_id in range(cl_scenario.n_steps):
             scenario_train_x, scenario_train_y = \
-                load_all_dataset(step.current_training_set()[0])
+                load_all_dataset(cl_scenario.train_stream[step_id].dataset)
             scenario_test_x, scenario_test_y = \
-                load_all_dataset(step.current_test_set()[0])
+                load_all_dataset(cl_scenario.test_stream[step_id].dataset)
 
             self.assertTrue(torch.all(torch.eq(
                 dataset_train_x[step_id],
@@ -199,8 +203,8 @@ class TransformationTensorDatasetTests(unittest.TestCase):
                 scenario_train_y.tolist())
             self.assertSequenceEqual(
                 dataset_train_y[step_id],
-                step.current_training_set()[0].targets)
-            self.assertEqual(0, step.current_training_set()[1])  # Task label
+                cl_scenario.train_stream[step_id].dataset.targets)
+            self.assertEqual(0, cl_scenario.train_stream[step_id].task_label)
 
             self.assertTrue(torch.all(torch.eq(
                 dataset_test_x[step_id],
@@ -210,8 +214,8 @@ class TransformationTensorDatasetTests(unittest.TestCase):
                 scenario_test_y.tolist())
             self.assertSequenceEqual(
                 dataset_test_y[step_id],
-                step.current_test_set()[0].targets)
-            self.assertEqual(0, step.current_test_set()[1])  # Task label
+                cl_scenario.test_stream[step_id].dataset.targets)
+            self.assertEqual(0, cl_scenario.test_stream[step_id].task_label)
 
 
 if __name__ == '__main__':

@@ -13,11 +13,10 @@ import torch
 from typing import Sequence, List, Optional, Dict, Generic, Any, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSetWithTargets, TestSetWithTargets, MTSingleSet
+    TrainSetWithTargets, TestSetWithTargets
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
-    GenericCLScenario, GenericStepInfo
-from avalanche.benchmarks.utils import grouped_and_ordered_indexes
+    GenericCLScenario, GenericScenarioStream, GenericStepInfo
 
 
 class NCScenario(GenericCLScenario[TrainSetWithTargets,
@@ -398,63 +397,38 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
 
 
 class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
-                                            TestSetWithTargets]],
+                                            TestSetWithTargets],
+                                 GenericScenarioStream[
+                                     'NCStepInfo',
+                                     NCScenario[TrainSetWithTargets,
+                                                TestSetWithTargets]]],
                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    Defines a "New Classes" step. It defines methods to obtain the current,
-    previous, cumulative and future training and test sets. It also defines
-    fields that can be used to check which classes are in this, previous and
-    future steps. Instances of this class are usually created when iterating
-    over a :class:`NCScenario` instance.
-
-    It keeps a reference to that :class:`NCScenario` instance, which can be used
-    to retrieve additional info about the scenario.
+    Defines a "New Classes" step. It defines fields to obtain the current
+    dataset and the associated task label. It also keeps a reference to the
+    stream from which this step was taken.
     """
     def __init__(self,
-                 scenario: NCScenario[TrainSetWithTargets,
-                                      TestSetWithTargets],
-                 current_step: int,
-                 force_train_transformations: bool = False,
-                 force_test_transformations: bool = False,
-                 are_transformations_disabled: bool = False):
+                 origin_stream: GenericScenarioStream[
+                     'NCStepInfo', NCScenario[TrainSetWithTargets,
+                                              TestSetWithTargets]],
+                 current_step: int):
         """
-        Creates a ``NCStepInfo`` instance given the root scenario.
-        Instances of this class are usually created automatically while
-        iterating over an instance of :class:`NCScenario`.
+        Creates a ``NCStepInfo`` instance given the stream from this
+        step was taken and and the current step ID.
 
-        :param scenario: A reference to the NC scenario.
-        :param current_step: The step ID.
-        :param force_train_transformations: If True, train transformations will
-            be applied to the test set too. The ``force_test_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param force_test_transformations: If True, test transformations will be
-            applied to the training set too. The ``force_train_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param are_transformations_disabled: If True, transformations are
-            disabled. That is, patterns and targets will be returned as
-            outputted by  the original training and test Datasets. Overrides
-            ``force_train_transformations`` and ``force_test_transformations``.
-            Defaults to False.
+        :param origin_stream: The stream from which this step was obtained.
+        :param current_step: The current step ID, as an integer.
         """
-
         super(NCStepInfo, self).__init__(
-            scenario, current_step,
-            force_train_transformations=force_train_transformations,
-            force_test_transformations=force_test_transformations,
-            are_transformations_disabled=are_transformations_disabled,
-            transformation_step_factory=NCStepInfo)
+            origin_stream, current_step)
 
-    def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
-        subset, t = super()._make_subset(is_train, step)
-
-        subset = TransformationSubset(
-            subset, None, class_mapping=self.scenario.class_mapping)
+    @property
+    def dataset(self):
+        dataset = GenericStepInfo.dataset.fget(self)
 
         return TransformationSubset(
-            subset,
-            grouped_and_ordered_indexes(
-                subset.targets, None,
-                **kwargs)), t
+            dataset, None, class_mapping=self.scenario.class_mapping)
 
 
 __all__ = ['NCScenario', 'NCStepInfo']

@@ -17,7 +17,7 @@ from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets
 from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
-    GenericCLScenario, GenericStepInfo
+    GenericCLScenario, GenericScenarioStream, GenericStepInfo
 
 
 def _step_structure_from_assignment(dataset: IDatasetWithTargets,
@@ -204,7 +204,8 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
             # First, get the patterns indexes for each class
             targets_as_tensor = torch.as_tensor(train_dataset.targets)
             classes_to_patterns_idx = [
-                (targets_as_tensor == class_id).nonzero().view(-1).tolist()
+                torch.nonzero(
+                    torch.eq(targets_as_tensor, class_id)).view(-1).tolist()
                 for class_id in range(self.n_classes)
             ]
 
@@ -215,7 +216,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
                     ].tolist() for cls_patterns in classes_to_patterns_idx
                 ]
 
-            # Here we assign patterns to each steo. Two different strategies
+            # Here we assign patterns to each step. Two different strategies
             # are required in order to manage the balance_steps parameter.
             if balance_steps:
                 # If balance_steps is True we have to make sure that patterns
@@ -406,52 +407,30 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
 
 
 class NIStepInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,
-                                            TestSetWithTargets]],
+                                            TestSetWithTargets],
+                                 GenericScenarioStream[
+                                     'NIStepInfo',
+                                     NIScenario[TrainSetWithTargets,
+                                                TestSetWithTargets]]],
                  Generic[TrainSetWithTargets, TestSetWithTargets]):
     """
-    Defines a "New Instances" step. It defines methods to obtain the current,
-    previous, cumulative and future training sets. The returned test
-    set is always the complete one (methods used to get previous, cumulative and
-    future sets simply return the complete one). It also defines fields that can
-    be used to check which classes are in this, previous and
-    future steps. Instances of this class are usually created when iterating
-    over a :class:`NIScenario` instance.
-
-    It keeps a reference to that :class:`NIScenario` instance, which can be
-    used to retrieve additional info about the scenario.
+    Defines a "New Instances" step. It defines fields to obtain the current
+    dataset and the associated task label. It also keeps a reference to the
+    stream from which this step was taken.
     """
-    def __init__(self, scenario: NIScenario[TrainSetWithTargets,
-                                            TestSetWithTargets],
-                 current_step: int,
-                 force_train_transformations: bool = False,
-                 force_test_transformations: bool = False,
-                 are_transformations_disabled: bool = False):
+    def __init__(self, origin_stream: GenericScenarioStream[
+                     'NIStepInfo', NIScenario[TrainSetWithTargets,
+                                              TestSetWithTargets]],
+                 current_step: int):
         """
-        Creates a NCStepInfo instance given the root scenario.
-        Instances of this class are usually created automatically while
-        iterating over an instance of :class:`NIScenario`.
+        Creates a ``NIStepInfo`` instance given the stream from this
+        step was taken and and the current step ID.
 
-        :param scenario: A reference to the NI scenario
-        :param current_step: Defines the current step ID.
-        :param force_train_transformations: If True, train transformations will
-            be applied to the test set too. The ``force_test_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param force_test_transformations: If True, test transformations will be
-            applied to the training set too. The ``force_train_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param are_transformations_disabled: If True, transformations are
-            disabled. That is, patterns and targets will be returned as
-            outputted by  the original training and test Datasets. Overrides
-            ``force_train_transformations`` and ``force_test_transformations``.
-            Defaults to False.
+        :param origin_stream: The stream from which this step was obtained.
+        :param current_step: The current step ID, as an integer.
         """
-
         super(NIStepInfo, self).__init__(
-            scenario, current_step,
-            force_train_transformations=force_train_transformations,
-            force_test_transformations=force_test_transformations,
-            are_transformations_disabled=are_transformations_disabled,
-            transformation_step_factory=NIStepInfo)
+            origin_stream, current_step)
 
 
 __all__ = ['NIScenario', 'NIStepInfo']

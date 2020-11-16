@@ -1,20 +1,21 @@
+import copy
+from abc import ABC
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
     Dict, Any, Iterable, List, Set
-from abc import ABC, abstractmethod
-import copy
 
-from avalanche.benchmarks.scenarios.generic_definitions import MTSingleSet, \
-    MTMultipleSet, DatasetPart, TrainSetWithTargets, TestSetWithTargets
-from avalanche.training.utils import TransformationSubset
-from avalanche.benchmarks.utils import grouped_and_ordered_indexes
+from avalanche.benchmarks.scenarios.generic_definitions import \
+    TrainSetWithTargets, TestSetWithTargets, \
+    TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario
+from avalanche.training.utils import TransformationDataset, TransformationSubset
 
-TBaseScenario = TypeVar('TBaseScenario')
-TStepInfo = TypeVar('TStepInfo')
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
+TGenericStepInfo = TypeVar('TGenericStepInfo', bound='GenericStepInfo')
+TGenericScenarioStream = TypeVar('TGenericScenarioStream',
+                                 bound='GenericScenarioStream')
 
 
 class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
-                        TStepInfo]):
+                                TStepInfo]):
     """
     Base implementation of a Continual Learning scenario. A Continual Learning
     scenario is defined by a sequence of steps (batches or tasks depending on
@@ -40,7 +41,7 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
                  task_labels: Sequence[int],
                  complete_test_set_only: bool = False,
                  reproducibility_data: Optional[Dict[str, Any]] = None,
-                 step_factory: Callable[[TGenericCLScenario, int],
+                 step_factory: Callable[['GenericScenarioStream', int],
                                         TStepInfo] = None):
         """
         Creates an instance of a Continual Learning scenario.
@@ -113,10 +114,6 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.task_labels: Sequence[int] = task_labels
         """ The task label of each step. """
 
-        self.slice_ids: Optional[List[int]] = None
-        """ Describes which steps are contained in the current scenario slice. 
-        Can be None, which means that this object is the original scenario. """
-
         # Steal transforms from the datasets, that is, copy the reference to the
         # transformation functions, and set to None the fields in the
         # respective Dataset instances. This will allow us to disable
@@ -154,8 +151,14 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.task_labels: Sequence[int] = task_labels
 
         self.complete_test_set_only: bool = bool(complete_test_set_only)
-        """ If True, only the complete test set will be returned from step info
-        instances. """
+        """
+        If True, only the complete test set will be returned from step info
+        instances.
+        
+        This flag is usually set to true in scenarios where having one separate
+        test set aligned to each training step is impossible or doesn't make
+        sense from a semantic point of view.
+        """
 
         if reproducibility_data is not None:
             self.train_steps_patterns_assignment = reproducibility_data['train']
@@ -170,8 +173,8 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         if step_factory is None:
             step_factory = GenericStepInfo
 
-        self._step_factory: Callable[[TGenericCLScenario, int], TStepInfo] = \
-            step_factory
+        self.step_factory: Callable[[TGenericScenarioStream, int],
+                                    TStepInfo] = step_factory
 
         if self.complete_test_set_only:
             if len(self.test_steps_patterns_assignment) > 1:
@@ -188,39 +191,24 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             raise ValueError('There must be the same number of train steps '
                              'and task labels')
 
-    def __len__(self) -> int:
+        self.train_stream: GenericScenarioStream[
+            TStepInfo, TGenericCLScenario] = GenericScenarioStream('train',
+                                                                   self)
         """
-        Gets the number of steps this scenario it's made of.
-
-        :return: The number of steps in this scenario.
+        The stream used to obtain the training steps. This stream can be sliced
+        in order to obtain a subset of this stream.
         """
-        if self.slice_ids is None:
-            return len(self.train_steps_patterns_assignment)
-        else:
-            return len(self.slice_ids)
 
-    def __getitem__(self: TGenericCLScenario,
-                    step_idx: Union[int, slice, Iterable[int]]) -> \
-            Union[TGenericCLScenario, TStepInfo]:
+        self.test_stream: GenericScenarioStream[
+            TStepInfo, TGenericCLScenario] = GenericScenarioStream('test',
+                                                                   self)
         """
-        Gets a step given its step index (or a scenario slice given the step
-        order).
-
-        :param step_idx: An int describing the step index or an iterable/slice
-            object describing a slice of this scenario.
-
-        :return: The step instance associated to the given step index or
-            a sliced scenario instance (see parameter step_idx).
+        The stream used to obtain the test steps. This stream can be sliced
+        in order to obtain a subset of this stream.
+        
+        Beware that, in certain scenarios, this stream may contain a single
+        element. Check the ``complete_test_set_only`` field for more details.
         """
-        if isinstance(step_idx, int):
-            if step_idx < len(self):
-                if self.slice_ids is None:
-                    return self._step_factory(self, step_idx)
-                else:
-                    return self._step_factory(self, self.slice_ids[step_idx])
-            raise IndexError('Step index out of bounds' + str(int(step_idx)))
-        else:
-            return self._create_slice(step_idx)
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         """
@@ -293,547 +281,101 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         assigned to that step. """
         return LazyClassesInSteps(self)
 
-    def _create_slice(self: TGenericCLScenario,
-                      steps_slice: Union[int, slice, Iterable[int]]) \
-            -> TGenericCLScenario:
-        """
-        Creates a sliced version of this scenario.
 
-        In its base version, a shallow copy of this scenario is created and
+class GenericScenarioStream(Generic[TStepInfo, TGenericCLScenario],
+                            IScenarioStream[TGenericCLScenario, TStepInfo],
+                            Sequence[TStepInfo]):
+
+    def __init__(self: TGenericScenarioStream,
+                 name: str,
+                 scenario: TGenericCLScenario,
+                 *,
+                 slice_ids: List[int] = None):
+        self.slice_ids: Optional[List[int]] = slice_ids
+        """
+        Describes which steps are contained in the current stream slice. 
+        Can be None, which means that this object is the original stream. """
+
+        self.name: str = name
+        self.scenario = scenario
+
+    def __len__(self) -> int:
+        """
+        Gets the number of steps this scenario it's made of.
+
+        :return: The number of steps in this scenario.
+        """
+        if self.slice_ids is None:
+            if self.name == 'train':
+                return len(self.scenario.train_steps_patterns_assignment)
+            elif self.scenario.complete_test_set_only:
+                return 1
+            else:
+                return len(self.scenario.test_steps_patterns_assignment)
+        else:
+            return len(self.slice_ids)
+
+    def __getitem__(self, step_idx: Union[int, slice, Iterable[int]]) -> \
+            Union[TStepInfo, TScenarioStream]:
+        """
+        Gets a step given its step index (or a stream slice given the step
+        order).
+
+        :param step_idx: An int describing the step index or an iterable/slice
+            object describing a slice of this stream.
+
+        :return: The step instance associated to the given step index or
+            a sliced stream instance.
+        """
+        if isinstance(step_idx, int):
+            if step_idx < len(self):
+                if self.slice_ids is None:
+                    return self.scenario.step_factory(self, step_idx)
+                else:
+                    return self.scenario.step_factory(self,
+                                                      self.slice_ids[step_idx])
+            raise IndexError('Step index out of bounds' + str(int(step_idx)))
+        else:
+            return self._create_slice(step_idx)
+
+    def _create_slice(self: TGenericScenarioStream,
+                      steps_slice: Union[int, slice, Iterable[int]]) \
+            -> TScenarioStream:
+        """
+        Creates a sliced version of this stream.
+
+        In its base version, a shallow copy of this stream is created and
         then its ``slice_ids`` field is adapted.
 
         :param steps_slice: The slice to use.
-        :return: A sliced version of this scenario.
+        :return: A sliced version of this stream.
         """
-        scenario_copy = copy.copy(self)
+        stream_copy = copy.copy(self)
         slice_steps = _get_slice_ids(steps_slice, len(self))
 
         if self.slice_ids is None:
-            scenario_copy.slice_ids = slice_steps
+            stream_copy.slice_ids = slice_steps
         else:
-            scenario_copy.slice_ids = [self.slice_ids[x] for x in slice_steps]
-        return scenario_copy
+            stream_copy.slice_ids = [self.slice_ids[x] for x in slice_steps]
+        return stream_copy
 
 
-class AbstractStepInfo(ABC, Generic[TBaseScenario]):
-    """
-    Definition of a learning step. A learning step contains a set of patterns
-    which has become available at a particular time instant. The content and
-    size of a Step is defined by the specific benchmark that creates the
-    step instance.
+class LazyClassesInSteps(Sequence[Set[int]]):
+    def __init__(self, scenario: GenericCLScenario):
+        self._scenario = scenario
 
-    For instance, a step of a New Classes scenario will contain all patterns
-    belonging to a subset of classes of the original training set. A step of a
-    New Instance scenario will contain patterns from previously seen classes.
+    def __len__(self):
+        return len(self._scenario.train_stream)
 
-    Steps of  Single Incremental Task (a.k.a. task-free) scenarios are usually
-    called "batches" while in Multi Task scenarios a Step is usually associated
-    to a "task". Finally, in a Multi Incremental Task scenario the Step may be
-    composed by patterns from different tasks.
-    """
+    def __getitem__(self, step_id) -> Set[int]:
+        return set(
+            [self._scenario.train_dataset.targets[pattern_idx] for pattern_idx
+             in self._scenario.train_steps_patterns_assignment[step_id]])
 
-    def __init__(
-            self, scenario: TBaseScenario, current_step: int, n_steps: int,
-            classes_in_this_step: Sequence[int],
-            previous_classes: Sequence[int],
-            classes_seen_so_far: Sequence[int],
-            future_classes: Optional[Sequence[int]],
-            train_transform: Optional[Callable] = None,
-            train_target_transform: Optional[Callable] = None,
-            test_transform: Optional[Callable] = None,
-            test_target_transform: Optional[Callable] = None,
-            force_train_transformations: bool = False,
-            force_test_transformations: bool = False,
-            are_transformations_disabled: bool = False):
-        """
-        Creates an instance of the abstract step info given the base scenario,
-        the current step ID, the overall number of steps, transformations and
-        transformations flags.
-
-        :param scenario: The base scenario.
-        :param current_step: The current step, as an integer.
-        :param n_steps: The overall number of steps in the base scenario.
-        :param train_transform: The train transformation. Can be None.
-        :param train_target_transform: The train targets transformation.
-            Can be None.
-        :param test_transform: The test transformation. Can be None.
-        :param test_target_transform: The test targets transformation.
-            Can be None.
-        :param force_train_transformations: If True, train transformations will
-            be applied to the test set too. The ``force_test_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param force_test_transformations: If True, test transformations will be
-            applied to the training set too. The ``force_train_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param are_transformations_disabled: If True, transformations are
-            disabled. That is, patterns and targets will be returned as
-            outputted by  the original training and test Datasets. Overrides
-            ``force_train_transformations`` and ``force_test_transformations``.
-            Defaults to False.
-        """
-
-        if force_test_transformations and force_train_transformations:
-            raise ValueError(
-                'Error in force_train/test_transformations arguments.'
-                'Can\'t be both True.')
-
-        # scenario keeps a reference to the base scenario
-        self.scenario: TBaseScenario = scenario
-
-        # current_step is usually an incremental, 0-indexed, value used to
-        # keep track of the current batch/task.
-        self.current_step: int = current_step
-
-        # n_steps is the overall amount of steps in the scenario
-        self.n_steps: int = n_steps
-
-        # Transformations are kept here so that the "enable" / "disable"
-        # and "force train"/"force test" transformations-related methods can be
-        # implemented
-        self.train_transform: Optional[Callable] = train_transform
-        self.test_transform: Optional[Callable] = test_transform
-        self.train_target_transform: Optional[Callable] = train_target_transform
-        self.test_target_transform: Optional[Callable] = test_target_transform
-
-        self.force_train_transformations: bool = force_train_transformations
-        self.force_test_transformations: bool = force_test_transformations
-        self.are_transformations_disabled: bool = are_transformations_disabled
-
-        self.classes_in_this_step: Sequence[int] = classes_in_this_step
-        """ The list of classes in this step """
-
-        self.previous_classes: Sequence[int] = previous_classes
-        """ The list of classes in previous steps """
-
-        self.classes_seen_so_far: Sequence[int] = classes_seen_so_far
-        """ List of classes of current and previous steps """
-
-        self.future_classes: Optional[Sequence[int]] = future_classes
-        """ The list of classes of next steps """
-
-    @abstractmethod
-    def _make_subset(self, is_train: bool, step: int, **kwargs) -> MTSingleSet:
-        """
-        Returns the train/test dataset given the step ID.
-
-        :param is_train: If True, the training subset is returned. If False,
-            the test subset will be returned instead.
-        :param step: The step ID.
-        :param kwargs: Other scenario-specific arguments. Subclasses may define
-            some utility options.
-        :return: The required train/test dataset.
-        """
-        pass
-
-    @abstractmethod
-    def disable_transformations(self) -> 'AbstractStepInfo[TBaseScenario]':
-        """
-        Returns a new step info instance in which transformations are disabled.
-        The current instance is not affected. This is useful when there is a
-        need to access raw data. Can be used when picking and storing
-        rehearsal/replay patterns.
-
-        :returns: A new step info in which transformations are disabled.
-        """
-        pass
-
-    @abstractmethod
-    def enable_transformations(self) -> 'AbstractStepInfo[TBaseScenario]':
-        """
-        Returns a new step info instance in which transformations are enabled.
-        The current instance is not affected. When created, the step instance
-        already has transformations enabled. This method can be used to
-        re-enable transformations after a previous call to
-        disable_transformations().
-
-        :returns: A new step info in which transformations are enabled.
-        """
-        pass
-
-    @abstractmethod
-    def with_train_transformations(self) -> 'AbstractStepInfo[TBaseScenario]':
-        """
-        Returns a new step info instance in which train transformations are
-        applied to both training and test sets. The current instance is not
-        affected.
-
-        :returns: A new step info in which train transformations are applied to
-            both training and test sets.
-        """
-        pass
-
-    @abstractmethod
-    def with_test_transformations(self) -> 'AbstractStepInfo[TBaseScenario]':
-        """
-        Returns a new step info instance in which test transformations are
-        applied to both training and test sets. The current instance is
-        not affected. This is useful to get the accuracy on the training set
-        without considering the usual training data augmentations.
-
-        :returns: A new step info in which test transformations are applied to
-            both training and test sets.
-        """
-        pass
-
-    def current_training_set(self, **kwargs) -> MTSingleSet:
-        """
-        Gets the training set for the current step.
-
-        :returns: The current step training set, as a tuple containing the
-            Dataset and the task label.
-        """
-        return self.step_specific_training_set(self.current_step, **kwargs)
-
-    def cumulative_training_sets(self, include_current_step: bool = True,
-                                 **kwargs) -> MTMultipleSet:
-        """
-        Gets the list of cumulative training sets.
-
-        :param include_current_step: If True, include the current step training
-            set. Defaults to True.
-
-        :returns: The cumulative training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        if include_current_step:
-            steps = range(0, self.current_step + 1)
-        else:
-            steps = range(0, self.current_step)
-        return self._make_train_subsets(steps, **kwargs)
-
-    def complete_training_sets(self, **kwargs) -> MTMultipleSet:
-        """
-        Gets the complete list of training sets.
-
-        :returns: All the training sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label.
-        """
-        return self._make_train_subsets(
-            list(range(0, self.n_steps)), **kwargs)
-
-    def future_training_sets(self, **kwargs) -> MTMultipleSet:
-        """
-        Gets the "future" training set. That is, a dataset made of training
-        patterns belonging to not-already-encountered steps.
-
-        :returns: The future training sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        return self._make_train_subsets(
-            range(self.current_step + 1, self.n_steps), **kwargs)
-
-    def step_specific_training_set(self, step_id: int, **kwargs) -> MTSingleSet:
-        """
-        Gets the training set of a specific step, given its ID.
-
-        :param step_id: The ID of the step.
-
-        :returns: The required training set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self._make_train_subsets(step_id, **kwargs)[0]
-
-    def training_set_part(self, dataset_part: DatasetPart, **kwargs) \
-            -> MTMultipleSet:
-        """
-        Gets the training subset of a specific part of the scenario.
-
-        :returns: The training sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_training_set(**kwargs)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_training_sets(
-                include_current_step=True, **kwargs)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_training_sets(
-                include_current_step=False, **kwargs)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_training_sets(**kwargs)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_training_sets(**kwargs)
-        raise ValueError('Unsupported dataset part')
-
-    def current_test_set(self, **kwargs) \
-            -> MTSingleSet:
-        """
-        Gets the test set for the current step.
-
-        :returns: The current test sets, as a tuple containing the Dataset and
-            the task label.
-        """
-        return self.step_specific_test_set(self.current_step, **kwargs)
-
-    def cumulative_test_sets(self, include_current_step: bool = True,
-                             **kwargs) -> MTMultipleSet:
-        """
-        Gets the list of cumulative test sets.
-
-        :param include_current_step: If True, include the current step training
-            set. Defaults to True.
-
-        :returns: The cumulative test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-
-        if include_current_step:
-            steps = range(0, self.current_step + 1)
-        else:
-            steps = range(0, self.current_step)
-        return self._make_test_subsets(steps, **kwargs)
-
-    def complete_test_sets(self, **kwargs) -> MTMultipleSet:
-        """
-        Gets the complete list of test sets.
-
-        :returns: All the test sets, as a list. Each element of
-            the list is a tuple containing the Dataset and the task label.
-        """
-        return self._make_test_subsets(list(range(0, self.n_steps)), **kwargs)
-
-    def future_test_sets(self, **kwargs) -> MTMultipleSet:
-        """
-        Gets the "future" test set. That is, a dataset made of test patterns
-        belonging to not-already-encountered steps.
-
-        :returns: The future test sets, as a list. Each element of the
-            list is a tuple containing the Dataset and the task label.
-        """
-        return self._make_test_subsets(
-            range(self.current_step + 1, self.n_steps), **kwargs)
-
-    def step_specific_test_set(self, step_id: int, **kwargs) -> MTSingleSet:
-        """
-        Gets the test set of a specific step, given its ID.
-
-        :param step_id: The ID of the step.
-
-        :returns: The required test set, as a tuple containing the Dataset
-            and the task label.
-        """
-        return self._make_test_subsets(step_id, **kwargs)[0]
-
-    def test_set_part(self, dataset_part: DatasetPart,
-                      **kwargs) -> MTMultipleSet:
-        """
-        Gets the test subset of a specific part of the scenario.
-
-        :param dataset_part: The part of the scenario.
-
-        :returns: The test sets of the desired part, as a list. Each element
-            of the list is a tuple containing the Dataset and the task label.
-        """
-        if dataset_part == DatasetPart.CURRENT:
-            return [self.current_test_set(**kwargs)]
-        if dataset_part == DatasetPart.CUMULATIVE:
-            return self.cumulative_test_sets(
-                include_current_step=True, **kwargs)
-        if dataset_part == DatasetPart.OLD:
-            return self.cumulative_test_sets(
-                include_current_step=False, **kwargs)
-        if dataset_part == DatasetPart.FUTURE:
-            return self.future_test_sets(**kwargs)
-        if dataset_part == DatasetPart.COMPLETE:
-            return self.complete_test_sets(**kwargs)
-        raise ValueError('Unsupported dataset part')
-
-    def _make_train_subsets(self, steps: Union[int, Sequence[int]], **kwargs) \
-            -> Union[MTMultipleSet]:
-        """
-        Internal utility used to aggregate results from ``_make_subset``.
-
-        :param steps: A list of step IDs whose training dataset must be fetched.
-            Can also be a single step ID (as an integer).
-        :param kwargs: Other ``_make_subset`` specific options.
-        :return: A list of tuples. Each tuples contains the dataset and task
-            label for that step (relative to the order defined in the steps
-            parameter).
-        """
-        if isinstance(steps, int):  # Required single step
-            return [self._make_subset(True, steps, **kwargs)]
-        return [self._make_subset(True, step, **kwargs) for step in steps]
-
-    def _make_test_subsets(self, steps: Union[int, Sequence[int]], **kwargs) \
-            -> Union[MTMultipleSet]:
-        """
-        Internal utility used to aggregate results from ``_make_subset``.
-
-        :param steps: A list of step IDs whose test dataset must be fetched.
-            Can also be a single step ID (as an integer).
-        :param kwargs: Other ``_make_subset`` specific options.
-        :return: A list of tuples. Each tuples contains the dataset and task
-            label for that step (relative to the order defined in the steps
-            parameter).
-        """
-        if isinstance(steps, int):  # Required single step
-            return [self._make_subset(False, steps, **kwargs)]
-        return [self._make_subset(False, step, **kwargs) for step in steps]
-
-
-class GenericStepInfo(AbstractStepInfo[TGenericCLScenario]):
-    """
-    Definition of a learning step based on a :class:`GenericCLScenario`
-    instance.
-
-    This step implementation uses the generic step-patterns assignment defined
-    in the :class:`GenericCLScenario` instance. Instances of this class are
-    usually obtained as the output of the iteration of the base scenario
-    instance.
-    """
-
-    def __init__(self, scenario: TGenericCLScenario,
-                 current_step: int,
-                 force_train_transformations: bool = False,
-                 force_test_transformations: bool = False,
-                 are_transformations_disabled: bool = False,
-                 transformation_step_factory: Optional[Callable] = None):
-        """
-        Creates an instance of a generic step info given the base generic
-        scenario and the current step ID and transformations
-        flags.
-
-        :param scenario: The base generic scenario.
-        :param current_step: The current step, as an integer.
-        :param force_train_transformations: If True, train transformations will
-            be applied to the test set too. The ``force_test_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param force_test_transformations: If True, test transformations will be
-            applied to the training set too. The ``force_train_transformations``
-            parameter can't be True at the same time. Defaults to False.
-        :param are_transformations_disabled: If True, transformations are
-            disabled. That is, patterns and targets will be returned as
-            outputted by  the original training and test Datasets. Overrides
-            ``force_train_transformations`` and ``force_test_transformations``.
-            Defaults to False.
-        """
-
-        (classes_in_this_step, previous_classes, classes_seen_so_far,
-         future_classes) = scenario.get_classes_timeline(current_step)
-
-        super(GenericStepInfo, self).__init__(
-            scenario, current_step, len(scenario), classes_in_this_step,
-            previous_classes, classes_seen_so_far, future_classes,
-            scenario.train_transform, scenario.train_target_transform,
-            scenario.test_transform, scenario.test_target_transform,
-            force_train_transformations, force_test_transformations,
-            are_transformations_disabled)
-
-        self.transformation_step_factory = transformation_step_factory
-        if transformation_step_factory is None:
-            self.transformation_step_factory = GenericStepInfo
-
-    def _get_task_label(self, step: int):
-        """
-        Returns the task label given the step ID.
-
-        :param step: The step ID.
-
-        :return: The task label of the step.
-        """
-        return self.scenario.task_labels[step]
-
-    def _make_subset(self, is_train: bool, step: int,
-                     bucket_classes=False, sort_classes=False,
-                     sort_indexes=False, **kwargs) -> MTSingleSet:
-        """
-        Returns the train/test dataset given the step ID.
-
-        :param is_train: If True, the training subset is returned. If False,
-            the test subset will be returned instead.
-        :param step: The step ID.
-        :param bucket_classes: If True, dataset patterns will be grouped by
-            class. Defaults to False.
-        :param sort_classes: If True (and ``bucket_classes`` is True), class
-            groups will be sorted by class ID (ascending). Defaults to False.
-        :param sort_indexes: If True patterns will be ordered by their ID
-            (ascending). If ``sort_classes`` and ``bucket_classes`` are both
-            True, patterns will be sorted inside their groups.
-            Defaults to False.
-        :param kwargs: Other scenario-specific arguments. Subclasses may define
-            some utility options.
-        :return: The required train/test dataset.
-        """
-        if self.are_transformations_disabled:
-            patterns_transformation = None
-            targets_transformation = None
-        elif self.force_test_transformations:
-            patterns_transformation = \
-                self.test_transform
-            targets_transformation = \
-                self.test_target_transform
-        else:
-            patterns_transformation = self.train_transform if is_train \
-                else self.test_transform
-            targets_transformation = self.train_target_transform if is_train \
-                else self.test_target_transform
-
-        if is_train:
-            dataset = self.scenario.train_dataset
-            patterns_indexes = \
-                self.scenario.train_steps_patterns_assignment[step]
-        else:
-            dataset = self.scenario.test_dataset
-            if len(self.scenario.test_steps_patterns_assignment) == 0:
-                # self.scenario.complete_test_set_only is True (otherwise
-                # test_steps_patterns_assignment couldn't be empty)
-                # This means we have to return the entire test_dataset as-is.
-                patterns_indexes = None
-            else:
-                patterns_indexes = \
-                    self.scenario.test_steps_patterns_assignment[step]
-
-        return TransformationSubset(
-            dataset,
-            grouped_and_ordered_indexes(
-                dataset.targets, patterns_indexes,
-                bucket_classes=bucket_classes,
-                sort_classes=sort_classes,
-                sort_indexes=sort_indexes),
-            transform=patterns_transformation,
-            target_transform=targets_transformation), self._get_task_label(step)
-
-    def disable_transformations(self) -> \
-            'GenericStepInfo[GenericCLScenario[TrainSetWithTargets, ' \
-            'TestSetWithTargets]]':
-        return self.transformation_step_factory(
-            self.scenario, self.current_step,
-            self.force_train_transformations,
-            self.force_test_transformations, True
-        )
-
-    def enable_transformations(self) -> \
-            'GenericStepInfo[GenericCLScenario[TrainSetWithTargets, ' \
-            'TestSetWithTargets]]':
-        return self.transformation_step_factory(
-            self.scenario, self.current_step,
-            self.force_train_transformations,
-            self.force_test_transformations, False
-        )
-
-    def with_train_transformations(self) -> \
-            'GenericStepInfo[GenericCLScenario[TrainSetWithTargets, ' \
-            'TestSetWithTargets]]':
-        return self.transformation_step_factory(
-            self.scenario, self.current_step, True,
-            False, self.are_transformations_disabled
-        )
-
-    def with_test_transformations(self) -> \
-            'GenericStepInfo[GenericCLScenario[TrainSetWithTargets, ' \
-            'TestSetWithTargets]]':
-        return self.transformation_step_factory(
-            self.scenario, self.current_step, False,
-            True, self.are_transformations_disabled
-        )
-
-    def _make_test_subsets(self, steps: Union[int, Sequence[int]], **kwargs) \
-            -> Union[MTMultipleSet]:
-
-        if self.scenario.complete_test_set_only:
-            return [self._make_subset(False, 0, **kwargs)]
-
-        return super()._make_test_subsets(steps, **kwargs)
+    def __str__(self):
+        return '[' + \
+               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
+               ']'
 
 
 def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
@@ -853,31 +395,148 @@ def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
 
     # Check step id(s) boundaries
     if max(steps_list) >= sliceable_len:
-        raise ValueError('Step index out of range: ' + str(max(steps_list)))
+        raise IndexError('Step index out of range: ' + str(max(steps_list)))
 
     if min(steps_list) < 0:
-        raise ValueError('Step index out of range: ' + str(min(steps_list)))
+        raise IndexError('Step index out of range: ' + str(min(steps_list)))
 
     return steps_list
 
 
-class LazyClassesInSteps(Sequence[Set[int]]):
-    def __init__(self, scenario: GenericCLScenario):
-        self._scenario = scenario
+class AbstractStepInfo(IStepInfo[TScenario, TScenarioStream], ABC):
+    """
+    Definition of a learning step. A learning step contains a set of patterns
+    which has become available at a particular time instant. The content and
+    size of a Step is defined by the specific benchmark that creates the
+    step instance.
 
-    def __len__(self):
-        return len(self._scenario)
+    For instance, a step of a New Classes scenario will contain all patterns
+    belonging to a subset of classes of the original training set. A step of a
+    New Instance scenario will contain patterns from previously seen classes.
 
-    def __getitem__(self, step_id) -> Set[int]:
-        return set(
-            [self._scenario.train_dataset.targets[pattern_idx] for pattern_idx
-             in self._scenario.train_steps_patterns_assignment[step_id]])
+    Steps of  Single Incremental Task (a.k.a. task-free) scenarios are usually
+    called "batches" while in Multi Task scenarios a Step is usually associated
+    to a "task". Finally, in a Multi Incremental Task scenario the Step may be
+    composed by patterns from different tasks.
+    """
 
-    def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+    def __init__(
+            self: TStepInfo,
+            origin_stream: TScenarioStream,
+            current_step: int,
+            classes_in_this_step: Sequence[int],
+            previous_classes: Sequence[int],
+            classes_seen_so_far: Sequence[int],
+            future_classes: Optional[Sequence[int]]):
+        """
+        Creates an instance of the abstract step info given the base scenario,
+        the current step ID, the overall number of steps, transformations and
+        transformations flags.
+
+        :param origin_stream: The stream from which this step was obtained.
+        :param current_step: The current step ID, as an integer.
+        :param classes_in_this_step: The list of classes in this step.
+        :param previous_classes: The list of classes in previous steps.
+        :param classes_seen_so_far: List of classes of current and previous
+            steps.
+        :param future_classes: The list of classes of next steps.
+        """
+
+        self.origin_stream: TScenarioStream = origin_stream
+
+        # scenario keeps a reference to the base scenario
+        self.scenario: TScenario = origin_stream.scenario
+
+        # current_step is usually an incremental, 0-indexed, value used to
+        # keep track of the current batch/task.
+        self.current_step: int = current_step
+
+        self.classes_in_this_step: Sequence[int] = classes_in_this_step
+        """ The list of classes in this step """
+
+        self.previous_classes: Sequence[int] = previous_classes
+        """ The list of classes in previous steps """
+
+        self.classes_seen_so_far: Sequence[int] = classes_seen_so_far
+        """ List of classes of current and previous steps """
+
+        self.future_classes: Optional[Sequence[int]] = future_classes
+        """ The list of classes of next steps """
 
 
-__all__ = ['GenericStepInfo', 'GenericCLScenario', 'AbstractStepInfo',
-           'TBaseScenario', 'TStepInfo', 'TGenericCLScenario']
+class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
+                                       GenericScenarioStream[
+                                           TGenericStepInfo,
+                                           TGenericCLScenario]]):
+    """
+    Definition of a learning step based on a :class:`GenericCLScenario`
+    instance.
+
+    This step implementation uses the generic step-patterns assignment defined
+    in the :class:`GenericCLScenario` instance. Instances of this class are
+    usually obtained from a scenario stream.
+    """
+
+    def __init__(self: TGenericStepInfo,
+                 origin_stream: GenericScenarioStream[TGenericStepInfo,
+                                                      TGenericCLScenario],
+                 current_step: int):
+        """
+        Creates an instance of a generic step info given the stream from this
+        step was taken and and the current step ID.
+
+        :param origin_stream: The stream from which this step was obtained.
+        :param current_step: The current step ID, as an integer.
+        """
+
+        (classes_in_this_step, previous_classes, classes_seen_so_far,
+         future_classes) = origin_stream.scenario.get_classes_timeline(
+            current_step)
+
+        super(GenericStepInfo, self).__init__(
+            origin_stream, current_step, classes_in_this_step,
+            previous_classes, classes_seen_so_far, future_classes)
+
+    def _get_task_label(self, step: int):
+        """
+        Returns the task label given the step ID.
+
+        :param step: The step ID.
+
+        :return: The task label of the step.
+        """
+        return self.scenario.task_labels[step]
+
+    @property
+    def dataset(self) -> TransformationDataset:
+        if self._is_train():
+            dataset = self.scenario.train_dataset
+            patterns_indexes = \
+                self.scenario.train_steps_patterns_assignment[self.current_step]
+        else:
+            dataset = self.scenario.test_dataset
+            if self.scenario.complete_test_set_only:
+                patterns_indexes = None
+            else:
+                patterns_indexes = self.scenario.test_steps_patterns_assignment[
+                    self.current_step]
+
+        # TODO: solve transformation issue
+        return TransformationSubset(dataset, patterns_indexes)
+
+    @property
+    def task_label(self) -> int:
+        if self._is_train():
+            return self.scenario.task_labels[self.current_step]
+        else:
+            if self.scenario.complete_test_set_only:
+                return self.scenario.task_labels[0]
+            else:
+                return self.scenario.task_labels[self.current_step]
+
+    def _is_train(self):
+        return self.origin_stream.name == 'train'
+
+
+__all__ = ['TGenericCLScenario', 'GenericCLScenario', 'GenericScenarioStream',
+           'GenericStepInfo', 'AbstractStepInfo']
