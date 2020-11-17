@@ -2,11 +2,11 @@ import unittest
 
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.scenarios.new_classes import NCStepInfo, NCScenario
+from avalanche.benchmarks.scenarios.new_classes import NCStepInfo
 from avalanche.training.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_scenario, GenericScenarioStream
 
 
 class SITTests(unittest.TestCase):
@@ -195,16 +195,30 @@ class SITTests(unittest.TestCase):
             seed=1234)
 
         step_info: NCStepInfo
-        for batch_id, step_info in enumerate(my_nc_scenario):
+        for batch_id, step_info in enumerate(my_nc_scenario.train_stream):
+            self.assertEqual(batch_id, step_info.current_step)
+            self.assertIsInstance(step_info, NCStepInfo)
+
+        for batch_id, step_info in enumerate(my_nc_scenario.test_stream):
             self.assertEqual(batch_id, step_info.current_step)
             self.assertIsInstance(step_info, NCStepInfo)
 
         iterable_slice = [3, 4, 1]
-        sliced_scenario = my_nc_scenario[iterable_slice]
-        self.assertIsInstance(sliced_scenario, NCScenario)
-        self.assertEqual(len(iterable_slice), len(sliced_scenario))
+        sliced_stream = my_nc_scenario.train_stream[iterable_slice]
+        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertEqual(len(iterable_slice), len(sliced_stream))
+        self.assertEqual('train', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_scenario):
+        for batch_id, step_info in enumerate(sliced_stream):
+            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertIsInstance(step_info, NCStepInfo)
+
+        sliced_stream = my_nc_scenario.test_stream[iterable_slice]
+        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertEqual(len(iterable_slice), len(sliced_stream))
+        self.assertEqual('test', sliced_stream.name)
+
+        for batch_id, step_info in enumerate(sliced_stream):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
             self.assertIsInstance(step_info, NCStepInfo)
 

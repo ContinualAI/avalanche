@@ -105,15 +105,15 @@ class StrategyTest(unittest.TestCase):
     def run_strategy(self, scenario, cl_strategy):
         print('Starting experiment...')
         results = []
-        batch_info: NCStepInfo
-        for batch_info in scenario:
-            print("Start of step ", batch_info.current_step)
+        train_batch_info: NCStepInfo
+        for train_batch_info in scenario.train_stream:
+            print("Start of step ", train_batch_info.current_step)
 
-            cl_strategy.train(batch_info, num_workers=4)
+            cl_strategy.train(train_batch_info, num_workers=4)
             print('Training completed')
 
             print('Computing accuracy on the current test set')
-            results.append(cl_strategy.test(scenario[:]))
+            results.append(cl_strategy.test(scenario.test_stream[:]))
 
 
 if __name__ == '__main__':

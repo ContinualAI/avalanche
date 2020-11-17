@@ -264,7 +264,7 @@ class EvaluationPlugin(StrategyPlugin):
         return self._test_protocol_results
 
     def before_training(self, strategy, **kwargs):
-        _, task_id = strategy.step_info.current_training_set()
+        task_id = strategy.step_info.task_label
         self._training_dataset_size = None
         self._train_current_task_id = task_id
         self._training_accuracy = None
@@ -312,7 +312,7 @@ class EvaluationPlugin(StrategyPlugin):
         step_info = strategy.step_info
         step_id = strategy.step_id
 
-        _, task_id = step_info.step_specific_test_set(step_id)
+        task_id = step_info.scenario.test_stream[step_id].task_label
         self._test_protocol_results = dict()
         self._test_dataset_size = len(strategy.current_data)
         self._test_current_task_id = task_id
@@ -515,8 +515,17 @@ class MultiHeadPlugin(StrategyPlugin):
         # --- end of dev comment ---
 
         # compute max label
-        train_dataset, task_label = step_info.current_training_set()
-        test_dataset, _ = step_info.current_test_set()
+        step_id = step_info.current_step
+        train_step = step_info.scenario.train_stream[step_id]
+        # Scenarios may only contain a single complete test set
+        if len(step_info.scenario.test_stream) > 1:
+            test_step = step_info.scenario.test_stream[step_id]
+        else:
+            test_step = step_info.scenario.test_stream[0]
+        train_dataset = train_step.dataset
+        task_label = train_step.task_label
+        test_dataset = test_step.dataset
+
         n_output_units = max(max(train_dataset.targets),
                              max(test_dataset.targets)) + 1
 

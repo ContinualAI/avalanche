@@ -178,6 +178,7 @@ class LazyClassMapping(Sequence[int]):
                ']'
 
 
+# TODO: unify in TransformationDataset
 class TransformationSubset(DatasetWithTargets):
     """
     A Dataset that behaves like a pytorch :class:`torch.utils.data.Subset`,

@@ -275,7 +275,7 @@ def dataset_scenario(
     step. Contents of the datasets will not be changed, including the targets.
 
     When loading the datasets from a set of fixed filelist, consider using
-    the :func:`create_generic_scenario_from_filelists` helper method instead.
+    the :func:`filelist_scenario` helper method instead.
 
     In its base form, this function accepts a list of test datsets that must
     contain the same amount of datasets of the training list.
