@@ -10,7 +10,7 @@
 ################################################################################
 
 """ This module contains useful utility functions and classes to generate
-pytorch datasets based on fileists (Caffe style) """
+pytorch datasets based on filelists (Caffe style) """
 
 # Python 2-3 compatible
 from __future__ import print_function
