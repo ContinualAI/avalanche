@@ -273,7 +273,7 @@ class BaseStrategy:
         self.epoch = None
         self.step_info = None
         self.current_data = None
-        self.current_loader = None
+        self.current_dataloader = None
         self.mb_it = None
         self.mb_x, self.mb_y = None, None
         self.loss = None
