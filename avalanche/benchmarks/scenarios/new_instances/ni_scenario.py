@@ -15,8 +15,7 @@ import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets
-from avalanche.training.utils import TransformationSubset
-from training.utils.dataset_utils import IDatasetWithTargets
+from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
 

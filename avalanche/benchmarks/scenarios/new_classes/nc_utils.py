@@ -14,8 +14,7 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.training.utils.transform_dataset import TransformationSubset
-from training.utils.dataset_utils import IDatasetWithTargets
+from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
 from avalanche.benchmarks.utils import tensor_as_list
 
 
