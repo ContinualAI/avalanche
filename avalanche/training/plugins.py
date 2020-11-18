@@ -180,12 +180,6 @@ class GDumbPlugin(StrategyPlugin):
             GDumb approach and updating the dataset accordingly.
         """
 
-        # helper memory to store new patterns when memory is not full
-        # this is necessary since it is not possible to concatenate
-        # patterns into an existing TensorDataset
-        # (dataset.tensors[0] does not support item assignment)
-        ext_mem = [[], []]
-
         # for each pattern, add it to the memory or not
         for i, (pattern, target) in enumerate(strategy.current_data):
             target_value = target.item()
