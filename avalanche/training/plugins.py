@@ -510,29 +510,9 @@ class MultiHeadPlugin(StrategyPlugin):
         :param step_info: the step info object.
         :return: None
         """
-        # TODO: better management of testing flow (especially head expansion)
-        # Main idea for the testing flow: just discard (not store) the layer for
-        # tasks that were not encountered during a training flow.
-        # Can use existing facilities to know if current flow is test or train!
-        # Also, do not expand layers during testing !OR! create a new expanded
-        # layer (which get discarded) by setting the weights of not already
-        # encountered classes to 0!
-        # --- end of dev comment ---
 
-        # compute max label
-        step_id = step_info.current_step
-        train_step = step_info.scenario.train_stream[step_id]
-        # Scenarios may only contain a single complete test set
-        if len(step_info.scenario.test_stream) > 1:
-            test_step = step_info.scenario.test_stream[step_id]
-        else:
-            test_step = step_info.scenario.test_stream[0]
-        train_dataset = train_step.dataset
-        task_label = train_step.task_label
-        test_dataset = test_step.dataset
-
-        n_output_units = max(max(train_dataset.targets),
-                             max(test_dataset.targets)) + 1
+        task_label = step_info.task_label
+        n_output_units = max(step_info.dataset.targets) + 1
 
         if task_label not in self.task_layers:
             # create head for unseen tasks
