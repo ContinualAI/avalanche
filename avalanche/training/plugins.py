@@ -17,6 +17,7 @@ class StrategyPlugin:
     by the BaseStrategy with an empty function. Subclasses must override
     the callbacks.
     """
+
     def __init__(self):
         pass
 
@@ -99,6 +100,7 @@ class ReplayPlugin(StrategyPlugin):
     the external memory. We assume the training set contains at least 
     :mem_size: data points.
     """
+
     def __init__(self, mem_size=200):
         super().__init__()
 
@@ -143,7 +145,7 @@ class ReplayPlugin(StrategyPlugin):
             ext_mem = copy.deepcopy(self.rm_add)
         else:
             _, saved_part = random_split(
-                ext_mem, [len(self.rm_add), len(ext_mem)-len(self.rm_add)]
+                ext_mem, [len(self.rm_add), len(ext_mem) - len(self.rm_add)]
             )
             ext_mem = ConcatDataset([saved_part, self.rm_add])
         self.ext_mem = ext_mem
@@ -208,7 +210,7 @@ class GDumbPlugin(StrategyPlugin):
                             self.ext_mem.tensors[1][j] = target
                             break
                     self.counter[to_remove] -= 1
-                else:   
+                else:
                     # memory not full: add new pattern
                     if self.ext_mem is None:
                         self.ext_mem = TensorDataset(
@@ -237,6 +239,7 @@ class EvaluationPlugin(StrategyPlugin):
     required metrics. The "evaluation_protocol" is usually passed as argument
     from the strategy.
     """
+
     def __init__(self, evaluation_protocol):
         super().__init__()
         self.evaluation_protocol = evaluation_protocol
@@ -291,11 +294,11 @@ class EvaluationPlugin(StrategyPlugin):
 
         # Accuracy
         _, predicted_labels = torch.max(logits, 1)
-        correct_predictions = torch.eq(predicted_labels, train_mb_y)\
-                                   .sum().item()
+        correct_predictions = torch.eq(predicted_labels, train_mb_y) \
+            .sum().item()
         self._training_correct_count += correct_predictions
         self._training_accuracy = self._training_correct_count / \
-                                  self._seen_samples
+            self._seen_samples
 
         # Loss
         self._total_loss += loss.item()
@@ -417,7 +420,7 @@ class CWRStarPlugin(StrategyPlugin):
                     if c in model.saved_weights.keys():
                         wpast_j = np.sqrt(model.past_j[c] / model.cur_j[c])
                         # wpast_j = model.past_j[c] / model.cur_j[c]
-                        model.saved_weights[c] = (model.saved_weights[c] * 
+                        model.saved_weights[c] = (model.saved_weights[c] *
                                                   wpast_j
                                                   + new_w) / (wpast_j + 1)
                     else:
