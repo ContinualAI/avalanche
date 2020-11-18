@@ -116,7 +116,9 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset so that they can't be changed anymore. This is usually done
         when using transformations to create derived datasets: in this way
         freezing the transformations will ensure that the user won't be able
-        to inadvertently change them.
+        to inadvertently change them by directly setting the transformations
+        field or by using the other transformations utility methods like
+        ``replace_transforms``.
 
         The current dataset will not be affected.
 
@@ -174,6 +176,39 @@ class TransformationDataset(DatasetWithTargets[T_co],
                     dataset_copy.target_transform, target_transform])
             else:
                 dataset_copy.target_transform = transform
+
+        return dataset_copy
+
+    def replace_transforms(
+            self: TTransformationDataset,
+            transform: Optional[Callable[[T_co], Any]],
+            target_transform: Optional[Callable[[int], int]]) -> \
+            TTransformationDataset:
+        """
+        Returns a new dataset with the existing transformations replaced with
+        the given ones.
+
+        If this dataset was created with ``chain_transformations`` set to True
+        and if the original dataset is an instance of
+        :class:`TransformationDataset`, then the transformations of the
+        original set will be overwritten as well. This operation will create a
+        copy of this dataset. The current dataset will not be affected.
+
+        Note that this function will not override frozen transformations. This
+        will also not affect transformations found in datasets that are not
+        instances of :class:`TransformationDataset`.
+
+        :return: A new dataset with the new transformations.
+        """
+
+        dataset_copy = self.__fork_dataset()
+        if self.chain_transformations and isinstance(dataset_copy.dataset,
+                                                     TransformationDataset):
+            dataset_copy.dataset = \
+                dataset_copy.dataset.replace_transforms(None, None)
+
+        dataset_copy.transform = transform
+        dataset_copy.target_transform = target_transform
 
         return dataset_copy
 

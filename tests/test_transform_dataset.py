@@ -347,6 +347,50 @@ class TransformationDatasetChainTests(unittest.TestCase):
         self.assertIsInstance(x4, Image)
         self.assertIsInstance(x5, Tensor)
 
+    def test_replace_transforms(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        x, _ = original_dataset[0]
+        dataset = TransformationDataset(original_dataset, transform=ToTensor())
+        x2, _ = dataset[0]
+        dataset_resetted = dataset.replace_transforms(None, None)
+        x3, _ = dataset_resetted[0]
+
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(x3, Image)
+
+        dataset_resetted.transform = ToTensor()
+
+        x4, _ = dataset_resetted[0]
+        self.assertIsInstance(x4, Tensor)
+
+        dataset_resetted.replace_transforms(None, None)
+
+        x5, _ = dataset_resetted[0]
+        self.assertIsInstance(x5, Tensor)
+
+    def test_transforms_replace_freeze_mix(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        x, _ = original_dataset[0]
+        dataset = TransformationDataset(original_dataset, transform=ToTensor())
+        x2, _ = dataset[0]
+        dataset_resetted = dataset.replace_transforms(None, None)
+        x3, _ = dataset_resetted[0]
+
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(x3, Image)
+
+        dataset_frozen = dataset.freeze_transforms()
+
+        x4, _ = dataset_frozen[0]
+        self.assertIsInstance(x4, Tensor)
+
+        dataset_frozen_resetted = dataset_frozen.replace_transforms(None, None)
+
+        x5, _ = dataset_frozen_resetted[0]
+        self.assertIsInstance(x4, Tensor)
+
 
 if __name__ == '__main__':
     unittest.main()
