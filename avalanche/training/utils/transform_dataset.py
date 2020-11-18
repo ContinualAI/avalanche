@@ -10,6 +10,8 @@
 ################################################################################
 import copy
 
+from torchvision.transforms import Compose
+
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
     SequenceDataset, ConcatDatasetWithTargets, SubsetWithTargets, \
@@ -73,7 +75,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         self.chain_transformations = chain_transformations
         """
         If True, will consider transformations found in the original dataset.
-        This means that the methods used to manipulate tranformations will
+        This means that the methods used to manipulate transformations will
         also be applied to the original dataset. This only applies is the 
         original dataset is an instance of TransformationDataset (or any
         subclass).
@@ -116,13 +118,12 @@ class TransformationDataset(DatasetWithTargets[T_co],
         freezing the transformations will ensure that the user won't be able
         to inadvertently change them.
 
+        The current dataset will not be affected.
+
         :return: A new dataset with the current transformations frozen.
         """
 
-        dataset_copy = copy.copy(self)
-        dataset_copy._frozen_transforms = list(dataset_copy._frozen_transforms)
-        dataset_copy._frozen_target_transforms = list(
-            dataset_copy._frozen_target_transforms)
+        dataset_copy = self.__fork_dataset()
 
         # First, freeze the transformations on the original dataset
         # This can be easily accomplished by breaking the transformations chain
@@ -140,6 +141,47 @@ class TransformationDataset(DatasetWithTargets[T_co],
             dataset_copy._frozen_target_transforms.append(
                 dataset_copy.target_transform)
             dataset_copy.target_transform = None
+
+        return dataset_copy
+
+    def add_transforms(
+            self: TTransformationDataset,
+            transform: Callable[[T_co], Any] = None,
+            target_transform: Callable[[int], int] = None) -> \
+            TTransformationDataset:
+        """
+        Returns a new dataset with the given transformations added to
+        the existing ones.
+
+        The given transformations will be added at the end of previous
+        transformations. The current dataset will not be affected.
+
+        :return: A new dataset with the added transformations.
+        """
+
+        dataset_copy = self.__fork_dataset()
+
+        if transform is not None:
+            if dataset_copy.transform is not None:
+                dataset_copy.transform = Compose([
+                    dataset_copy.transform, transform])
+            else:
+                dataset_copy.transform = transform
+
+        if target_transform is not None:
+            if dataset_copy.target_transform is not None:
+                dataset_copy.target_transform = Compose([
+                    dataset_copy.target_transform, target_transform])
+            else:
+                dataset_copy.target_transform = transform
+
+        return dataset_copy
+
+    def __fork_dataset(self):
+        dataset_copy = copy.copy(self)
+        dataset_copy._frozen_transforms = list(dataset_copy._frozen_transforms)
+        dataset_copy._frozen_target_transforms = list(
+            dataset_copy._frozen_target_transforms)
 
         return dataset_copy
 

@@ -118,7 +118,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertIsInstance(y2, int)
         self.assertEqual(y2, -1)
 
-    def test_transform_subset_indicies(self):
+    def test_transform_subset_indices(self):
         dataset = MNIST('./data/mnist', download=True)
         x, y = dataset[1000]
         x2, y2 = dataset[1007]
@@ -244,7 +244,7 @@ class TransformationTensorDatasetTests(unittest.TestCase):
             self.assertEqual(0, cl_scenario.test_stream[step_id].task_label)
 
 
-class TransformationDatasetTransformationsChainTests(unittest.TestCase):
+class TransformationDatasetChainTests(unittest.TestCase):
     def test_freeze_transforms(self):
         original_dataset = MNIST('./data/mnist', download=True)
         x, y = original_dataset[0]
@@ -301,6 +301,51 @@ class TransformationDatasetTransformationsChainTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         x2, _ = dataset_frozen[0]
         self.assertIsInstance(x2, Image)
+
+    def test_add_transforms(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        x, _ = original_dataset[0]
+        dataset = TransformationDataset(original_dataset, transform=ToTensor())
+        dataset_added = dataset.add_transforms(ToPILImage())
+        x2, _ = dataset[0]
+        x3, _ = dataset_added[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(x3, Image)
+
+    def test_add_transforms_chain(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        x, _ = original_dataset[0]
+        dataset = TransformationDataset(original_dataset, transform=ToTensor())
+        dataset_added = TransformationDataset(dataset, transform=ToPILImage())
+        x2, _ = dataset[0]
+        x3, _ = dataset_added[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(x3, Image)
+
+    def test_transforms_freeze_add_mix(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        x, _ = original_dataset[0]
+        dataset = TransformationDataset(original_dataset, transform=ToTensor())
+        dataset_frozen = dataset.freeze_transforms()
+        dataset_added = dataset_frozen.add_transforms(ToPILImage())
+
+        self.assertEqual(None, dataset_frozen.transform)
+
+        x2, _ = dataset[0]
+        x3, _ = dataset_added[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(x3, Image)
+
+        dataset_frozen = dataset_added.freeze_transforms()
+        dataset_added.transform = None
+
+        x4, _ = dataset_frozen[0]
+        x5, _ = dataset_added[0]
+        self.assertIsInstance(x4, Image)
+        self.assertIsInstance(x5, Tensor)
 
 
 if __name__ == '__main__':
