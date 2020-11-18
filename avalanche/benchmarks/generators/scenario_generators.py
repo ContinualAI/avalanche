@@ -25,7 +25,7 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.training.utils import IDatasetWithTargets, \
+from avalanche.training.utils.dataset_utils import IDatasetWithTargets, \
     concat_datasets_sequentially
 
 
@@ -274,10 +274,10 @@ def dataset_scenario(
     labels. Each training dataset will be considered as a separate training
     step. Contents of the datasets will not be changed, including the targets.
 
-    When loading the datasets from a set of fixed filelist, consider using
+    When loading the datasets from a set of fixed file lists, consider using
     the :func:`filelist_scenario` helper method instead.
 
-    In its base form, this function accepts a list of test datsets that must
+    In its base form, this function accepts a list of test datasets that must
     contain the same amount of datasets of the training list.
     Those pairs are then used to create the "past", "cumulative"
     (a.k.a. growing) and "future" test sets. However, in certain Continual

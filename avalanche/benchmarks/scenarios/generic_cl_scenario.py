@@ -6,7 +6,8 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets, \
     TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario
-from avalanche.training.utils import TransformationDataset, TransformationSubset
+from avalanche.training.utils import TransformationDataset, \
+    TransformationSubset, IDatasetWithTargets
 
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
 TGenericStepInfo = TypeVar('TGenericStepInfo', bound='GenericStepInfo')
@@ -34,8 +35,8 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
     def __init__(self: TGenericCLScenario,
                  original_train_dataset: TrainSetWithTargets,
                  original_test_dataset: TestSetWithTargets,
-                 train_dataset: TrainSetWithTargets,
-                 test_dataset: TestSetWithTargets,
+                 train_dataset: IDatasetWithTargets,
+                 test_dataset: IDatasetWithTargets,
                  train_steps_patterns_assignment: Sequence[Sequence[int]],
                  test_steps_patterns_assignment: Sequence[Sequence[int]],
                  task_labels: Sequence[int],
@@ -95,10 +96,10 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.original_test_dataset: TestSetWithTargets = original_test_dataset
         """ The original test set. """
 
-        self.train_dataset: TrainSetWithTargets = train_dataset
+        self.train_dataset: IDatasetWithTargets = train_dataset
         """ The training set used to generate the incremental steps. """
 
-        self.test_dataset: TestSetWithTargets = test_dataset
+        self.test_dataset: IDatasetWithTargets = test_dataset
         """ The test set used to generate the incremental steps. """
 
         self.train_steps_patterns_assignment: Sequence[Sequence[int]]
@@ -369,7 +370,8 @@ class LazyClassesInSteps(Sequence[Set[int]]):
 
     def __getitem__(self, step_id) -> Set[int]:
         return set(
-            [self._scenario.train_dataset.targets[pattern_idx] for pattern_idx
+            [int(self._scenario.train_dataset.targets[pattern_idx])
+             for pattern_idx
              in self._scenario.train_steps_patterns_assignment[step_id]])
 
     def __str__(self):

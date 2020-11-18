@@ -15,7 +15,8 @@ import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSetWithTargets, TestSetWithTargets
-from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
+from avalanche.training.utils import TransformationSubset
+from training.utils.dataset_utils import IDatasetWithTargets
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
 
@@ -27,7 +28,7 @@ def _step_structure_from_assignment(dataset: IDatasetWithTargets,
     step_structure = [[0 for _ in range(n_classes)] for _ in range(n_steps)]
 
     for step_id in range(n_steps):
-        step_targets = [dataset.targets[pattern_idx]
+        step_targets = [int(dataset.targets[pattern_idx])
                         for pattern_idx in assignment[step_id]]
         cls_ids, cls_counts = torch.unique(torch.as_tensor(
             step_targets), return_counts=True)
@@ -340,7 +341,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
                 else:
                     remaining_patterns.sort()
                     patterns_order = remaining_patterns
-                targets_order = [train_dataset.targets[pattern_idx]
+                targets_order = [int(train_dataset.targets[pattern_idx])
                                  for pattern_idx in patterns_order]
 
                 avg_step_size = len(patterns_order) // n_steps

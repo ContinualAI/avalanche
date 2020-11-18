@@ -3,8 +3,9 @@ from typing import Sequence, Union, SupportsInt, Any
 
 from torch import Tensor
 
-from avalanche.training.utils import IDatasetWithTargets, \
-    ConcatDatasetWithTargets, TransformationTensorDataset
+from avalanche.training.utils import TransformationTensorDataset
+from training.utils.dataset_utils import IDatasetWithTargets, \
+    ConcatDatasetWithTargets
 from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 

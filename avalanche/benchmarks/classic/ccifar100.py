@@ -19,8 +19,7 @@ from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR100
 from torchvision import transforms
-from avalanche.training.utils.transform_dataset import \
-    concat_datasets_sequentially
+from avalanche.training.utils import concat_datasets_sequentially
 from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
 from avalanche.benchmarks import nc_scenario, NCScenario
 

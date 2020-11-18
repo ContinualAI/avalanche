@@ -10,16 +10,16 @@
 ################################################################################
 
 from collections import OrderedDict
-from typing import List, Sequence, Dict, Any, Union
+from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.training.utils.transform_dataset import TransformationSubset, \
-    IDatasetWithTargets
+from avalanche.training.utils.transform_dataset import TransformationSubset
+from training.utils.dataset_utils import IDatasetWithTargets
 from avalanche.benchmarks.utils import tensor_as_list
 
 
-def _indexes_grouped_by_classes(targets: Sequence[int],
+def _indexes_grouped_by_classes(targets: Sequence[SupportsInt],
                                 patterns_indexes: Union[None, Sequence[int]],
                                 sort_indexes: bool = True,
                                 sort_classes: bool = True) \
@@ -62,7 +62,7 @@ def _indexes_grouped_by_classes(targets: Sequence[int],
     return result
 
 
-def _indexes_from_set(targets: Sequence[int],
+def _indexes_from_set(targets: Sequence[SupportsInt],
                       patterns_indexes: Union[None, Sequence[int]],
                       bucket_classes: bool = True, sort_classes: bool = False,
                       sort_indexes: bool = False) -> Union[List[int], None]:
