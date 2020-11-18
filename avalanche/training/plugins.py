@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 import numpy as np
 import torch
@@ -221,6 +221,8 @@ class GDumbPlugin(StrategyPlugin):
                         )
 
                 self.counter[target_value] += 1
+
+        strategy.current_data = self.ext_mem
 
 
 class EvaluationPlugin(StrategyPlugin):
