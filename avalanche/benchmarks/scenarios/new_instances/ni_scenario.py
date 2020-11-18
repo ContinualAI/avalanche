@@ -154,7 +154,8 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
             included_patterns = list()
             for step_def in fixed_step_assignment:
                 included_patterns.extend(step_def)
-            subset = TransformationSubset(train_dataset, included_patterns)
+            subset = TransformationSubset(train_dataset,
+                                          indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True)
 

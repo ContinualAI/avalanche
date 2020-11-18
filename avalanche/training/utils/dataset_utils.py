@@ -407,15 +407,13 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
         if not isinstance(pattern, Tensor):
             treat_as_tensors = False
 
-        label = torch.as_tensor(label)
-
         patterns.append(pattern)
         labels.append(label)
 
     if len(patterns) == 1:
         return patterns[0], labels[0]
 
-    labels_cat = torch.stack(labels)
+    labels_cat = torch.tensor(labels)
     patterns_cat = patterns
 
     if treat_as_tensors:

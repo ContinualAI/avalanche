@@ -298,9 +298,9 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
         original_training_dataset = train_dataset
         original_test_dataset = test_dataset
         train_dataset = TransformationSubset(
-            train_dataset, None, class_mapping=self.class_mapping)
+            train_dataset, class_mapping=self.class_mapping)
         test_dataset = TransformationSubset(
-            test_dataset, None, class_mapping=self.class_mapping)
+            test_dataset, class_mapping=self.class_mapping)
 
         # Populate the _classes_in_step and original_classes_in_step lists
         # "_classes_in_step[step_id]": list of (remapped) class IDs assigned
@@ -428,7 +428,7 @@ class NCStepInfo(GenericStepInfo[NCScenario[TrainSetWithTargets,
         dataset = GenericStepInfo.dataset.fget(self)
 
         return TransformationSubset(
-            dataset, None, class_mapping=self.scenario.class_mapping)
+            dataset, class_mapping=self.scenario.class_mapping)
 
 
 __all__ = ['NCScenario', 'NCStepInfo']

@@ -115,36 +115,6 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         self.task_labels: Sequence[int] = task_labels
         """ The task label of each step. """
 
-        # Steal transforms from the datasets, that is, copy the reference to the
-        # transformation functions, and set to None the fields in the
-        # respective Dataset instances. This will allow us to disable
-        # transformations (useful while managing rehearsal) or even apply test
-        # transforms to train patterns (useful when if testing on the training
-        # sets, as test transforms usually don't contain data augmentation
-        # transforms)
-        self.train_transform = None
-        self.train_target_transform = None
-        self.test_transform = None
-        self.test_target_transform = None
-
-        if hasattr(train_dataset, 'transform') and \
-                train_dataset.transform is not None:
-            self.train_transform = train_dataset.transform
-            train_dataset.transform = None
-        if hasattr(train_dataset, 'target_transform') and \
-                train_dataset.target_transform is not None:
-            self.train_target_transform = train_dataset.target_transform
-            train_dataset.target_transform = None
-
-        if hasattr(test_dataset, 'transform') and \
-                test_dataset.transform is not None:
-            self.test_transform = test_dataset.transform
-            test_dataset.transform = None
-        if hasattr(test_dataset, 'target_transform') and \
-                test_dataset.target_transform is not None:
-            self.test_target_transform = test_dataset.target_transform
-            test_dataset.target_transform = None
-
         self.train_steps_patterns_assignment: Sequence[Sequence[int]] = \
             train_steps_patterns_assignment
         self.test_steps_patterns_assignment: Sequence[Sequence[int]] = \
@@ -523,7 +493,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
                     self.current_step]
 
         # TODO: solve transformation issue
-        return TransformationSubset(dataset, patterns_indexes)
+        return TransformationSubset(dataset, indices=patterns_indexes)
 
     @property
     def task_label(self) -> int:

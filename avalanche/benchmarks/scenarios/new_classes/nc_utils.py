@@ -173,13 +173,14 @@ def make_nc_transformation_subset(dataset: IDatasetWithTargets,
         belonging to the given classes, in the order controlled by the
         ``bucket_classes``, ``sort_classes`` and ``sort_indexes`` parameters.
     """
-    return TransformationSubset(dataset,
-                                _indexes_from_set(dataset.targets, classes,
-                                                  bucket_classes=bucket_classes,
-                                                  sort_classes=sort_classes,
-                                                  sort_indexes=sort_indexes),
-                                transform=transform,
-                                target_transform=target_transform)
+    return TransformationSubset(
+        dataset,
+        indices=_indexes_from_set(dataset.targets, classes,
+                                  bucket_classes=bucket_classes,
+                                  sort_classes=sort_classes,
+                                  sort_indexes=sort_indexes),
+        transform=transform,
+        target_transform=target_transform)
 
 
 __all__ = ['make_nc_transformation_subset']

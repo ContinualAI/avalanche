@@ -8,6 +8,8 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+import copy
+
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
     SequenceDataset, ConcatDatasetWithTargets, SubsetWithTargets, \
@@ -23,6 +25,8 @@ except ImportError:
 
 T_co = TypeVar('T_co', covariant=True)
 TTransform_co = TypeVar('TTransform_co', covariant=True)
+TTransformationDataset = TypeVar('TTransformationDataset',
+                                 bound='TransformationDataset')
 
 
 class TransformationDataset(DatasetWithTargets[T_co],
@@ -31,9 +35,12 @@ class TransformationDataset(DatasetWithTargets[T_co],
     A Dataset that applies transformations before returning patterns/targets.
     Also, this Dataset supports slicing and advanced indexing.
     """
-    def __init__(self, dataset: IDatasetWithTargets[T_co],
+    def __init__(self,
+                 dataset: IDatasetWithTargets[T_co],
+                 *,
                  transform: Callable[[T_co], Any] = None,
-                 target_transform: Callable[[int], int] = None):
+                 target_transform: Callable[[int], int] = None,
+                 chain_transformations=True):
         """
         Creates a ``TransformationDataset`` instance.
 
@@ -63,6 +70,15 @@ class TransformationDataset(DatasetWithTargets[T_co],
         The original dataset.
         """
 
+        self.chain_transformations = chain_transformations
+        """
+        If True, will consider transformations found in the original dataset.
+        This means that the methods used to manipulate tranformations will
+        also be applied to the original dataset. This only applies is the 
+        original dataset is an instance of TransformationDataset (or any
+        subclass).
+        """
+
         # Here LazyTargetsConversion is needed because we can receive
         # a torchvision dataset (in which targets may be a Tensor instead of a
         # sequence if int).
@@ -72,6 +88,16 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset.
         """
 
+        self._frozen_transforms = []
+        """
+        A list containing frozen transformations.
+        """
+
+        self._frozen_target_transforms = []
+        """
+        A list containing frozen target transformations.
+        """
+
     def __getitem__(self, idx):
         return manage_advanced_indexing(idx, self.__get_single_item,
                                         len(self.dataset))
@@ -79,14 +105,69 @@ class TransformationDataset(DatasetWithTargets[T_co],
     def __len__(self):
         return len(self.dataset)
 
+    def freeze_transforms(self: TTransformationDataset) -> \
+            TTransformationDataset:
+        """
+        Returns a new dataset where the current transformations are frozen.
+
+        Frozen transformations will be permanently glued to the original
+        dataset so that they can't be changed anymore. This is usually done
+        when using transformations to create derived datasets: in this way
+        freezing the transformations will ensure that the user won't be able
+        to inadvertently change them.
+
+        :return: A new dataset with the current transformations frozen.
+        """
+
+        dataset_copy = copy.copy(self)
+        dataset_copy._frozen_transforms = list(dataset_copy._frozen_transforms)
+        dataset_copy._frozen_target_transforms = list(
+            dataset_copy._frozen_target_transforms)
+
+        # First, freeze the transformations on the original dataset
+        # This can be easily accomplished by breaking the transformations chain
+        # Note: this obviously works even when the original dataset is not
+        # a TransformationDataset instance.
+        dataset_copy.chain_transformations = False
+
+        # Then freeze the current transformations. Frozen transformations
+        # are saved in a separate list.
+        if dataset_copy.transform is not None:
+            dataset_copy._frozen_transforms.append(dataset_copy.transform)
+            dataset_copy.transform = None
+
+        if dataset_copy.target_transform is not None:
+            dataset_copy._frozen_target_transforms.append(
+                dataset_copy.target_transform)
+            dataset_copy.target_transform = None
+
+        return dataset_copy
+
     def __get_single_item(self, idx: int):
         pattern, label = self.dataset[idx]
+
+        pattern = self.__apply_transforms(pattern)
+        label = self.__apply_target_transforms(label)
+
+        return pattern, label
+
+    def __apply_transforms(self, pattern: T_co) -> T_co:
+        for frozen_transform in self._frozen_transforms:
+            pattern = frozen_transform(pattern)
+
         if self.transform is not None:
             pattern = self.transform(pattern)
 
+        return pattern
+
+    def __apply_target_transforms(self, label: int) -> int:
+        for frozen_target_transform in self._frozen_target_transforms:
+            label = frozen_target_transform(label)
+
         if self.target_transform is not None:
             label = self.target_transform(label)
-        return pattern, label
+
+        return label
 
 
 class TransformationSubset(TransformationDataset[T_co]):
@@ -95,10 +176,14 @@ class TransformationSubset(TransformationDataset[T_co]):
     This Dataset also supports transformations, slicing, advanced indexing,
     the targets field and class mapping.
     """
-    def __init__(self, dataset: IDatasetWithTargets[T_co],
+    def __init__(self,
+                 dataset: IDatasetWithTargets[T_co],
+                 *,
                  indices: Sequence[int] = None,
                  class_mapping: Sequence[int] = None,
-                 transform=None, target_transform=None):
+                 transform: Callable[[T_co], Any] = None,
+                 target_transform: Callable[[int], int] = None,
+                 chain_transformations: bool = True):
         """
         Creates a ``TransformationSubset`` instance.
 
@@ -115,7 +200,8 @@ class TransformationSubset(TransformationDataset[T_co]):
         subset = SubsetWithTargets(dataset, indices=indices,
                                    class_mapping=class_mapping)
         super().__init__(subset, transform=transform,
-                         target_transform=target_transform)
+                         target_transform=target_transform,
+                         chain_transformations=chain_transformations)
 
 
 class TransformationConcatDataset(TransformationDataset[T_co]):
@@ -124,8 +210,12 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
     transformations, slicing, advanced indexing and the targets field.
     """
-    def __init__(self, datasets: Sequence[IDatasetWithTargets[T_co]],
-                 transform=None, target_transform=None):
+    def __init__(self,
+                 datasets: Sequence[IDatasetWithTargets[T_co]],
+                 *,
+                 transform: Callable[[T_co], Any] = None,
+                 target_transform: Callable[[int], int] = None,
+                 chain_transformations: bool = True):
         """
         Creates a ``TransformationConcatDataset`` instance.
 
@@ -138,7 +228,8 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
         concat_dataset = ConcatDatasetWithTargets(datasets)
 
         super().__init__(concat_dataset, transform=transform,
-                         target_transform=target_transform)
+                         target_transform=target_transform,
+                         chain_transformations=chain_transformations)
 
 
 class TransformationTensorDataset(TransformationDataset[T_co]):
@@ -148,9 +239,13 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
     this Dataset also supports transformations, slicing, advanced indexing and
     the targets field.
     """
-    def __init__(self, dataset_x: Sequence[T_co],
+    def __init__(self,
+                 dataset_x: Sequence[T_co],
                  dataset_y: Sequence[SupportsInt],
-                 transform=None, target_transform=None):
+                 *,
+                 transform: Callable[[T_co], Any] = None,
+                 target_transform: Callable[[int], int] = None,
+                 chain_transformations: bool = True):
         """
         Creates a ``TransformationTensorDataset`` instance.
 
@@ -165,7 +260,8 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
         """
         super().__init__(SequenceDataset(dataset_x, dataset_y),
                          transform=transform,
-                         target_transform=target_transform)
+                         target_transform=target_transform,
+                         chain_transformations=chain_transformations)
 
 
 __all__ = ['TransformationDataset', 'TransformationSubset',
