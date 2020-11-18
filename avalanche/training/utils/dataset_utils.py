@@ -424,8 +424,9 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
     return patterns_cat, labels_cat
 
 
-__all__ = ['IDataset', 'IDatasetWithTargets',
-           'IDatasetWithIntTargets', 'DatasetWithTargets', 'LazyClassMapping',
-           'LazyConcatTargets', 'LazyTargetsConversion', 'SubsetWithTargets',
+__all__ = ['IDataset', 'IDatasetWithTargets', 'IDatasetWithIntTargets',
+           'DatasetWithTargets', 'LazyClassMapping', 'LazyConcatTargets',
+           'LazyTargetsConversion', 'SubsetWithTargets',
            'ConcatDatasetWithTargets', 'concat_datasets_sequentially',
-           'SequenceDataset', 'find_list_from_index', 'manage_advanced_indexing']
+           'SequenceDataset', 'find_list_from_index',
+           'manage_advanced_indexing']
