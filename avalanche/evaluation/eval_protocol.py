@@ -22,16 +22,31 @@ from __future__ import absolute_import
 from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage, DiskUsage, TimeUsage
 import numpy as np
 from .tensorboard import TensorboardLogging
+import logging
+import os
 
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC()], tb_logdir="../logs/test"):
+    def __init__(self, metrics=[ACC()], log_dir="../logs/",
+                 tb_logdir_name="tb_data"):
 
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        logger = logging.getLogger("avalanche")
+        logger.setLevel(logging.INFO)
+        logger.addHandler(logging.StreamHandler())
+        logger.addHandler(logging.FileHandler(
+            os.path.join(log_dir, 'logfile.log'))
+        )
+
+        self.log = logger
         self.metrics = []
         for metric in metrics:
             self.metrics.append(metric)
-        self.tb_logging = TensorboardLogging(tb_logdir=tb_logdir)
+        self.tb_logging = TensorboardLogging(
+            tb_logdir=os.path.join(log_dir, tb_logdir_name)
+        )
 
         # to be updated
         self.cur_acc = {}
@@ -81,8 +96,8 @@ class EvalProtocol(object):
             in_class_diff = []
 
             for t, (ave_loss_i, acc_i, accs_i, _) in res.items():
-                acc_scalars["task_"+str(t).zfill(3)] = acc_i
-                loss_scalars["task_"+str(t).zfill(3)] = ave_loss_i
+                acc_scalars["task_"+str(t).zfill(3)] = float(acc_i)
+                loss_scalars["task_"+str(t).zfill(3)] = float(ave_loss_i)
                 for c in range(len(accs_i)):
                     class_scalars["task_"+str(t).zfill(3)+"_class_" + str(
                         c).zfill(3)] = accs_i[c]

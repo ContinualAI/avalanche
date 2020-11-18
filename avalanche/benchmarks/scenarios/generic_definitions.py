@@ -14,8 +14,9 @@ try:
     from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
         Sequence, Any, Union, Iterable, Generic
 except ImportError:
-    from typing_extensions import TypeVar, Tuple, List, Protocol, \
-        runtime_checkable, Sequence, Any, Union, Iterable, Generic
+    from typing import TypeVar, Tuple, List, Sequence, Any, Union, Iterable, \
+        Generic
+    from typing_extensions import Protocol, runtime_checkable
 
 from avalanche.training.utils import IDatasetWithTargets, TransformationDataset
 
