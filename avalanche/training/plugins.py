@@ -241,16 +241,21 @@ class EvaluationPlugin(StrategyPlugin):
         super().__init__()
         self.evaluation_protocol = evaluation_protocol
 
+        # Private state variables
+        self._dataset_size = None
+        self._seen_samples = 0
+        self._total_loss = 0
+        self._average_loss = 0
+
         # Training
-        self._training_dataset_size = None
         self._training_accuracy = None
         self._training_correct_count = 0
         self._training_average_loss = 0
         self._training_total_iterations = 0
         self._train_current_task_id = None
+        self._train_seen_samples = 0
 
         # Test
-        self._test_dataset_size = None
         self._test_average_loss = 0
         self._test_current_task_id = None
         self._test_true_y = None
@@ -265,60 +270,59 @@ class EvaluationPlugin(StrategyPlugin):
 
     def before_training(self, strategy, **kwargs):
         task_id = strategy.step_info.task_label
-        self._training_dataset_size = None
         self._train_current_task_id = task_id
         self._training_accuracy = None
         self._training_correct_count = 0
-        self._training_average_loss = 0
-        self._training_dataset_size = len(strategy.current_data)
+        self._dataset_size = len(strategy.current_data)
+        self._seen_samples = 0
+        self._total_loss = 0
+        self._average_loss = 0
+        print("[Training on Task {}, Step {}]"
+              .format(self._test_current_task_id,
+                      strategy.step_info.current_step))
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1
-        epoch = strategy.epoch
         iteration = strategy.mb_it
         train_mb_y = strategy.mb_y
         logits = strategy.logits
         loss = strategy.loss
-
-        # TODO: is this a bug?
-        den = ((iteration + 1) * train_mb_y.shape[0] +
-               epoch * self._training_dataset_size)
+        self._seen_samples += train_mb_y.shape[0]
 
         # Accuracy
         _, predicted_labels = torch.max(logits, 1)
         correct_predictions = torch.eq(predicted_labels, train_mb_y)\
                                    .sum().item()
         self._training_correct_count += correct_predictions
-        self._training_accuracy = self._training_correct_count / den
+        self._training_accuracy = self._training_correct_count / self._seen_samples
 
         # Loss
-        self._training_average_loss += loss.item()
-        self._training_average_loss /= den
+        self._total_loss += loss.item()
+        self._average_loss = self._total_loss / self._seen_samples
 
         # Logging
         if iteration % 100 == 0:
             print(
                 '[Training] ==>>> it: {}, avg. loss: {:.6f}, '
                 'running train acc: {:.3f}'.format(
-                    iteration, self._training_average_loss,
+                    iteration, self._average_loss,
                     self._training_accuracy))
 
             self.evaluation_protocol.update_tb_train(
-                self._training_average_loss, self._training_accuracy,
+                self._average_loss, self._training_accuracy,
                 self._training_total_iterations, torch.unique(train_mb_y),
                 self._train_current_task_id)
 
     def before_test_step(self, strategy, **kwargs):
         step_info = strategy.step_info
-        step_id = strategy.step_id
 
-        task_id = step_info.scenario.test_stream[step_id].task_label
         self._test_protocol_results = dict()
-        self._test_dataset_size = len(strategy.current_data)
-        self._test_current_task_id = task_id
+        self._test_current_task_id = step_info.task_label
         self._test_average_loss = 0
         self._test_true_y = []
         self._test_predicted_y = []
+        self._dataset_size = len(strategy.current_data)
+        self._seen_samples = 0
 
     def after_test_iteration(self, strategy, **kwargs):
         _, predicted_labels = torch.max(strategy.logits, 1)
@@ -327,15 +331,17 @@ class EvaluationPlugin(StrategyPlugin):
         self._test_average_loss += strategy.loss.item()
 
     def after_test_step(self, strategy, **kwargs):
-        self._test_average_loss /= self._test_dataset_size
+        self._test_average_loss /= self._dataset_size
 
         results = self.evaluation_protocol.get_results(
             self._test_true_y, self._test_predicted_y,
             self._train_current_task_id, self._test_current_task_id)
         acc, accs = results[ACC]
 
-        print("[Evaluation] Task {0}: Avg Loss {1}; Avg Acc {2}"
-              .format(self._test_current_task_id, self._test_average_loss, acc))
+        print("[Evaluation] Task {}, Step {}: Avg Loss {:.6f}; Avg Acc {:.3f}"
+              .format(self._test_current_task_id,
+                      strategy.step_info.current_step,
+                      self._test_average_loss, acc))
 
         self._test_protocol_results[self._test_current_task_id] = \
             (self._test_average_loss, acc, accs, results)
@@ -374,7 +380,6 @@ class CWRStarPlugin(StrategyPlugin):
     def after_training(self, strategy, **kwargs):
         CWRStarPlugin.consolidate_weights(self.model, self.cur_class)
         self.batch_processed += 1
-        strategy.optimizer
 
     def before_training(self, strategy, **kwargs):
         if self.batch_processed == 1:
