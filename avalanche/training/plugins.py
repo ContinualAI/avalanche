@@ -294,7 +294,8 @@ class EvaluationPlugin(StrategyPlugin):
         correct_predictions = torch.eq(predicted_labels, train_mb_y)\
                                    .sum().item()
         self._training_correct_count += correct_predictions
-        self._training_accuracy = self._training_correct_count / self._seen_samples
+        self._training_accuracy = self._training_correct_count / \
+                                  self._seen_samples
 
         # Loss
         self._total_loss += loss.item()
