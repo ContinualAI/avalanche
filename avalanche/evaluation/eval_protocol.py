@@ -31,6 +31,8 @@ class EvalProtocol(object):
     def __init__(self, metrics=[ACC()], log_dir="../logs/",
                  tb_logdir_name="tb_data"):
 
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
         logger = logging.getLogger("avalanche")
         logger.setLevel(logging.INFO)
         logger.addHandler(logging.StreamHandler())
