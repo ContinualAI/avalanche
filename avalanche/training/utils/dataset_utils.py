@@ -1,6 +1,11 @@
 
-from typing import Protocol, Sequence, List, Any, Iterable, Union, Optional, \
-    SupportsInt, TypeVar, Tuple
+try:
+    from typing import Protocol, Sequence, List, Any, Iterable, Union, \
+        Optional, SupportsInt, TypeVar, Tuple
+except ImportError:
+    from typing import Sequence, List, Any, Iterable, Union, Optional, \
+         SupportsInt, TypeVar, Tuple
+    from typing_extensions import Protocol
 
 import torch
 from torch import Tensor

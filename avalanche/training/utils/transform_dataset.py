@@ -8,6 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
     SequenceDataset, ConcatDatasetWithTargets, SubsetWithTargets, \
@@ -17,8 +18,9 @@ try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
         TypeVar, Protocol, SupportsInt, Generic, Callable
 except ImportError:
-    from typing_extensions import List, Any, Iterable, Sequence, Union, \
-        Optional, TypeVar, Protocol, SupportsInt, Generic, Callable
+    from typing import List, Any, Iterable, Sequence, Union, Optional, \
+        TypeVar, Protocol, SupportsInt, Generic, Callable
+    from typing_extensions import Protocol
 
 
 T_co = TypeVar('T_co', covariant=True)
