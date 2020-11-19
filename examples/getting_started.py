@@ -70,25 +70,25 @@ def main():
                  CF(num_class=scenario.n_classes),  # Catastrophic forgetting
                  RAMU(),  # Ram usage
                  CM()],  # Confusion matrix
-        tb_logdir='../logs/mnist_test_sit')
+        log_dir='../logs')
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
-        model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
+        model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
         evaluation_protocol=evaluation_protocol, device=device)
 
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for batch_info in scenario:
-        print("Start of step ", batch_info.current_step)
+    for step in scenario.train_stream:
+        print("Start of step ", step.current_step)
 
-        cl_strategy.train(batch_info, num_workers=4)
+        cl_strategy.train(step, num_workers=4)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario, num_workers=4))
+        results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
 
 
 if __name__ == '__main__':

@@ -324,15 +324,15 @@ class NCScenario(GenericCLScenario[TrainSetWithTargets,
         train_steps_patterns_assignment = []
         test_steps_patterns_assignment = []
         for step_id in range(n_steps):
-            selected_classes = self._classes_in_step[step_id]
+            selected_classes = self.original_classes_in_step[step_id]
             selected_indexes_train = []
-            for idx, element in enumerate(train_dataset.targets):
-                if element in selected_classes:
+            for idx, element in enumerate(original_training_dataset.targets):
+                if int(element) in selected_classes:
                     selected_indexes_train.append(idx)
 
             selected_indexes_test = []
-            for idx, element in enumerate(test_dataset.targets):
-                if element in selected_classes:
+            for idx, element in enumerate(original_test_dataset.targets):
+                if int(element) in selected_classes:
                     selected_indexes_test.append(idx)
 
             train_steps_patterns_assignment.append(selected_indexes_train)

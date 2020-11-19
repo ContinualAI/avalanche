@@ -35,6 +35,7 @@ import queue
 import subprocess
 import threading
 import time
+import logging
 
 
 class MAC:
@@ -47,6 +48,7 @@ class MAC:
     def __init__(self):
         self.hooks = []
         self._compute_cost = 0
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, model, dummy_input):
         """
@@ -81,7 +83,7 @@ class MAC:
             n, cout, hout, wout = output.shape  # Batch, Channels, Height, Width
             ksize = module.kernel_size[0] * module.kernel_size[1]
             self._compute_cost += cout * hout * wout * (ksize)
-        print(self._compute_cost)
+        self.log.info(self._compute_cost)
 
     def is_recognized_module(self, mod):
         modname = mod.__class__.__name__
@@ -113,6 +115,7 @@ class GPUUsage:
 
         self.n_measurements = 0
         self.avg_usage = 0
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, t):
         """
@@ -131,7 +134,7 @@ class GPUUsage:
 
         if self.n_measurements > 0:
             self.avg_usage /= float(self.n_measurements)
-        print(f"Train Task {t} - average GPU usage: {self.avg_usage}%")
+        self.log.info(f"Train Task {t} - average GPU usage: {self.avg_usage}%")
 
         return self.avg_usage
 
@@ -148,6 +151,8 @@ class CPUUsage:
     """
         CPU usage metric measured in seconds.
     """
+    def __init__(self):
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, t):
         """
@@ -159,8 +164,8 @@ class CPUUsage:
         p = psutil.Process(os.getpid())
         times = p.cpu_times()
         user, sys = times.user, times.system
-        print("Train Task {:} - CPU usage: user {} system {}"
-              .format(t, user, sys))
+        self.log.info("Train Task {:} - CPU usage: user {} system {}"
+                      .format(t, user, sys))
         return user, sys
 
 
@@ -176,6 +181,7 @@ class ACC(object):
         """
 
         self.num_class = num_class
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, y, y_hat):
         """
@@ -241,6 +247,7 @@ class CF(object):
 
         self.best_acc = {}
         self.acc_metric = ACC(num_class=num_class)
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, y, y_hat, train_t, test_t):
         """
@@ -258,8 +265,8 @@ class CF(object):
         else:
             cf = self.best_acc[test_t] - acc
 
-        print("Task {:} - CF: {:.4f}"
-              .format(test_t, cf))
+        self.log.info("Task {:} - CF: {:.4f}"
+                      .format(test_t, cf))
 
         return cf
 
@@ -270,14 +277,15 @@ class RAMU(object):
         """
         RAM Usage metric.
         """
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, t):
 
         process = psutil.Process(os.getpid())
         mem = process.memory_info().rss  # in bytes
 
-        print("Train Task {:} - MU: {:.3f} GB"
-              .format(t, mem / (1024 * 1024 * 1024)))
+        self.log.info("Train Task {:} - MU: {:.3f} GB"
+                      .format(t, mem / (1024 * 1024 * 1024)))
 
         return mem / (1024 * 1024 * 1024)
 
@@ -298,6 +306,7 @@ class DiskUsage(object):
             self.path_to_monitor = os.getcwd()
 
         self.disk_io = disk_io
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, t):
         """
@@ -314,12 +323,12 @@ class DiskUsage(object):
             bytes2human(usage.free), \
             usage.percent
 
-        print("Disk usage for {:}".format(self.path_to_monitor))
-        print("Task {:} - disk percent: {:}%, \
-                disk total: {:}, \
-                disk used: {:}, \
-                disk free: {:}"
-              .format(t, percent, total, used, free))
+        self.log.info("Disk usage for {:}".format(self.path_to_monitor))
+        self.log.info("Task {:} - disk percent: {:}%, \
+                      disk total: {:}, \
+                      disk used: {:}, \
+                      disk free: {:}"
+                      .format(t, percent, total, used, free))
 
         if self.disk_io:
             io = psutil.disk_io_counters()
@@ -330,11 +339,12 @@ class DiskUsage(object):
                 bytes2human(io.read_bytes), \
                 bytes2human(io.write_bytes)
 
-            print("Task {:} - read count: {:}, \
+            self.log.info(
+                "Task {:} - read count: {:}, \
                 write count: {:}, \
                 bytes read: {:}, \
                 bytes written: {:}"
-                  .format(t, read_count, write_count, read_bytes, write_bytes))
+                .format(t, read_count, write_count, read_bytes, write_bytes))
         else:
             io = None
 
@@ -348,6 +358,7 @@ class CM(object):
         Confusion Matrix computation
         """
         self.num_class = num_class
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, y, y_hat, normalize=False):
         """
@@ -375,16 +386,16 @@ class CM(object):
         for i, (el, el_hat) in enumerate(zip(y, y_hat)):
             # Compute confusion matrix
             cm += confusion_matrix(
-                el.numpy(), el_hat.numpy(), 
+                el.cpu().numpy(), el_hat.cpu().numpy(),
                 labels=list(range(num_class)))                
 
         # Only use the labels that appear in the data
         classes = [str(i) for i in range(num_class)]
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-            print("Normalized confusion matrix")
+            self.log.info("Normalized confusion matrix")
         else:
-            print('Confusion matrix, without normalization')
+            self.log.info('Confusion matrix, without normalization')
 
         fig, ax = plt.subplots()
         im = ax.matshow(cm, interpolation='nearest', cmap=cmap)
@@ -422,7 +433,8 @@ class TimeUsage:
 
     def __init__(self):
         self._start_time = time.perf_counter()
+        self.log = logging.getLogger("avalanche")
 
     def compute(self, t):
         elapsed_time = time.perf_counter() - self._start_time
-        print(f"Elapsed time: {elapsed_time:0.4f} seconds")
+        self.log.info(f"Elapsed time: {elapsed_time:0.4f} seconds")
