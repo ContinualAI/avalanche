@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -96,9 +96,28 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, step_info: IStepInfo, **kwargs):
+    def train(self, step_infos: Union[IStepInfo, Sequence[IStepInfo]],
+              **kwargs):
+        """ Training loop. if step_infos is a single element trains on it.
+        If it is a sequence, trains the model on each step in order.
+        This is different from joint training on the entire stream.
+
+        :param step_infos: single IStepInfo or sequence.
+        :return:
         """
-        Training loop.
+        self.model.train()
+        self.model.to(self.device)
+
+        if isinstance(step_infos, IStepInfo):
+            step_infos = [step_infos]
+
+        for step_info in step_infos:
+            res = self.train_step(step_info, **kwargs)
+        return res
+
+    def train_step(self, step_info: IStepInfo, **kwargs):
+        """
+        Training loop over a single IStepInfo object.
 
         :param step_info: CL step information.
         :param kwargs: custom arguments.
@@ -112,16 +131,16 @@ class BaseStrategy:
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
-        self.before_training(**kwargs)
+        self.before_training_step(**kwargs)
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
-        self.after_training(**kwargs)
+        self.after_training_step(**kwargs)
         return self.evaluation_plugin.get_train_result()
 
-    def test(self, step_list: Sequence[IStepInfo], **kwargs):
+    def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
         Test the current model on a series of steps, as defined by test_part.
 
@@ -132,6 +151,9 @@ class BaseStrategy:
         """
         self.model.eval()
         self.model.to(self.device)
+
+        if isinstance(step_list, IStepInfo):
+            step_list = [step_list]
 
         self.before_test(**kwargs)
         for step_info in step_list:
@@ -149,13 +171,13 @@ class BaseStrategy:
         self.after_test(**kwargs)
         return self.evaluation_plugin.get_test_result()
 
-    def before_training(self, **kwargs):
+    def before_training_step(self, **kwargs):
         """
         Called  after the dataset and data loader creation and
         before the training loop.
         """
         for p in self.plugins:
-            p.before_training(self, **kwargs)
+            p.before_training_step(self, **kwargs)
 
     def make_train_dataloader(self, num_workers=0, **kwargs):
         """
@@ -266,9 +288,9 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_training_epoch(self, **kwargs)
 
-    def after_training(self, **kwargs):
+    def after_training_step(self, **kwargs):
         for p in self.plugins:
-            p.after_training(self, **kwargs)
+            p.after_training_step(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.step_info = None
