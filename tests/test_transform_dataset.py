@@ -5,7 +5,8 @@ from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop, ToPILImage
+from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
+    Lambda
 
 from avalanche.training.utils import TransformationDataset, \
     TransformationSubset, load_all_dataset
@@ -13,6 +14,8 @@ import random
 
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_tensors
+
+import numpy as np
 
 
 def pil_images_equal(img_a, img_b):
@@ -244,7 +247,7 @@ class TransformationTensorDatasetTests(unittest.TestCase):
             self.assertEqual(0, cl_scenario.test_stream[step_id].task_label)
 
 
-class TransformationDatasetChainTests(unittest.TestCase):
+class TransformationDatasetTransformOpsTests(unittest.TestCase):
     def test_freeze_transforms(self):
         original_dataset = MNIST('./data/mnist', download=True)
         x, y = original_dataset[0]
@@ -352,21 +355,21 @@ class TransformationDatasetChainTests(unittest.TestCase):
         x, _ = original_dataset[0]
         dataset = TransformationDataset(original_dataset, transform=ToTensor())
         x2, _ = dataset[0]
-        dataset_resetted = dataset.replace_transforms(None, None)
-        x3, _ = dataset_resetted[0]
+        dataset_reset = dataset.replace_transforms(None, None)
+        x3, _ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-        dataset_resetted.transform = ToTensor()
+        dataset_reset.transform = ToTensor()
 
-        x4, _ = dataset_resetted[0]
+        x4, _ = dataset_reset[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_resetted.replace_transforms(None, None)
+        dataset_reset.replace_transforms(None, None)
 
-        x5, _ = dataset_resetted[0]
+        x5, _ = dataset_reset[0]
         self.assertIsInstance(x5, Tensor)
 
     def test_transforms_replace_freeze_mix(self):
@@ -374,8 +377,8 @@ class TransformationDatasetChainTests(unittest.TestCase):
         x, _ = original_dataset[0]
         dataset = TransformationDataset(original_dataset, transform=ToTensor())
         x2, _ = dataset[0]
-        dataset_resetted = dataset.replace_transforms(None, None)
-        x3, _ = dataset_resetted[0]
+        dataset_reset = dataset.replace_transforms(None, None)
+        x3, _ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
         self.assertIsInstance(x2, Tensor)
@@ -386,9 +389,156 @@ class TransformationDatasetChainTests(unittest.TestCase):
         x4, _ = dataset_frozen[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_frozen_resetted = dataset_frozen.replace_transforms(None, None)
+        dataset_frozen_reset = dataset_frozen.replace_transforms(None, None)
 
-        x5, _ = dataset_frozen_resetted[0]
+        x5, _ = dataset_frozen_reset[0]
+        self.assertIsInstance(x5, Tensor)
+
+    def test_transforms_groups_base_usage(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        dataset = TransformationDataset(
+            original_dataset,
+            transform_groups=dict(train=(ToTensor(), None),
+                                  test=(None, Lambda(lambda t: float(t)))))
+
+        x, y = dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertIsInstance(y, int)
+
+        dataset_test = dataset.eval()
+
+        x2, y2 = dataset_test[0]
+        x3, y3 = dataset[0]
+        self.assertIsInstance(x2, Image)
+        self.assertIsInstance(y2, float)
+        self.assertIsInstance(x3, Tensor)
+        self.assertIsInstance(y3, int)
+
+        dataset_train = dataset.train()
+        dataset.transform = None
+
+        x4, y4 = dataset_train[0]
+        x5, y5 = dataset[0]
+        self.assertIsInstance(x4, Tensor)
+        self.assertIsInstance(y4, int)
+        self.assertIsInstance(x5, Image)
+        self.assertIsInstance(y5, int)
+
+    def test_transforms_groups_constructor_error(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        with self.assertRaises(Exception):
+            # Test tuple has only one element
+            dataset = TransformationDataset(
+                original_dataset,
+                transform_groups=dict(train=(ToTensor(), None),
+                                      test=(Lambda(lambda t: float(t)))))
+
+        with self.assertRaises(Exception):
+            # Test is not a tuple has only one element
+            dataset = TransformationDataset(
+                original_dataset,
+                transform_groups=dict(train=(ToTensor(), None),
+                                      test=[None, Lambda(lambda t: float(t))]))
+
+        with self.assertRaises(Exception):
+            # Train is None
+            dataset = TransformationDataset(
+                original_dataset,
+                transform_groups=dict(train=None,
+                                      test=(None, Lambda(lambda t: float(t)))))
+
+        with self.assertRaises(Exception):
+            # transform_groups is not a dictionary
+            dataset = TransformationDataset(
+                original_dataset,
+                transform_groups='Hello world!')
+
+    def test_transforms_groups_alternative_default_group(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        dataset = TransformationDataset(
+            original_dataset,
+            transform_groups=dict(train=(ToTensor(), None), test=(None, None)),
+            initial_transform_group='test')
+
+        x, _ = dataset[0]
+        self.assertIsInstance(x, Image)
+
+        dataset_test = dataset.eval()
+
+        x2, _ = dataset_test[0]
+        x3, _ = dataset[0]
+        self.assertIsInstance(x2, Image)
+        self.assertIsInstance(x3, Image)
+
+    def test_transforms_groups_partial_constructor(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        dataset = TransformationDataset(
+            original_dataset, transform_groups=dict(train=(ToTensor(), None)))
+
+        x, _ = dataset[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset = dataset.eval()
+        x2, _ = dataset[0]
+        self.assertIsInstance(x2, Tensor)
+
+    def test_transforms_groups_multiple_groups(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        dataset = TransformationDataset(
+            original_dataset,
+            transform_groups=dict(
+                train=(ToTensor(), None),
+                test=(None, None),
+                other=(Compose([ToTensor(),
+                               Lambda(lambda tensor: tensor.numpy())]), None)))
+
+        x, _ = dataset[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset = dataset.eval()
+        x2, _ = dataset[0]
+        self.assertIsInstance(x2, Image)
+
+        dataset = dataset.with_transforms('other')
+        x3, _ = dataset[0]
+        self.assertIsInstance(x3, np.ndarray)
+
+    def test_transforms_add_group(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        dataset = TransformationDataset(original_dataset)
+
+        with self.assertRaises(Exception):
+            # Can't add existing groups
+            dataset = dataset.add_transforms_group('train', ToTensor(), None)
+
+        with self.assertRaises(Exception):
+            # Can't add group with bad names (must be str)
+            dataset = dataset.add_transforms_group(123, ToTensor(), None)
+
+        # Can't add group with bad names (must be str)
+        dataset = dataset.add_transforms_group('other', ToTensor(), None)
+        dataset_other = dataset.with_transforms('other')
+
+        x, _ = dataset[0]
+        x2, _ = dataset_other[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Tensor)
+
+        dataset_other2 = TransformationDataset(dataset_other)
+
+        # Checks that the train group is used on dataset_other2
+        x3, _ = dataset_other2[0]
+        self.assertIsInstance(x3, Image)
+
+        with self.assertRaises(Exception):
+            # Can't add group if it already exists
+            dataset_other2 = dataset_other2.add_transforms_group(
+                'other', ToTensor(), None)
+
+        dataset_other2 = dataset_other2.with_transforms('other')
+
+        # Check that the above failed method didn't change the 'other' group
+        x4, _ = dataset_other2[0]
         self.assertIsInstance(x4, Tensor)
 
 
