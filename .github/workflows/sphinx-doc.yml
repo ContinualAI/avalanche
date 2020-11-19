@@ -15,14 +15,8 @@ jobs:
           activate-conda: false
       - name: install conda dependencies
         run: |
-          conda env create -f environment.yml
-      - name: install sphinx
-        run: |
-          source activate avalanche-env
-          conda install -c anaconda sphinx
-          conda install -c anaconda sphinx_rtd_theme
-          pip install sphinx-autoapi
+          conda env create -f environment-dev.yml
       - name: compile documentation
         run: |
-          source activate avalanche-env
+          source activate avalanche-dev-env
           sphinx-build -b dirhtml docs/ doc_html/

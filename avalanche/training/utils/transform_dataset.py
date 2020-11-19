@@ -19,7 +19,7 @@ try:
         TypeVar, Protocol, SupportsInt, Generic, Callable
 except ImportError:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
-        TypeVar, Protocol, SupportsInt, Generic, Callable
+        TypeVar, SupportsInt, Generic, Callable
     from typing_extensions import Protocol
 
 
