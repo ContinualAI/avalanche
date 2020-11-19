@@ -9,7 +9,7 @@ from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda
 
 from avalanche.training.utils import TransformationDataset, \
-    TransformationSubset, load_all_dataset
+    TransformationSubset, load_all_dataset, TransformationConcatDataset
 import random
 
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
@@ -540,6 +540,44 @@ class TransformationDatasetTransformOpsTests(unittest.TestCase):
         # Check that the above failed method didn't change the 'other' group
         x4, _ = dataset_other2[0]
         self.assertIsInstance(x4, Tensor)
+
+    def test_transformation_concat_dataset(self):
+        original_dataset = MNIST('./data/mnist', download=True)
+        original_dataset2 = MNIST('./data/mnist', download=True)
+
+        dataset = TransformationConcatDataset([original_dataset,
+                                              original_dataset2])
+
+        self.assertEqual(len(original_dataset) + len(original_dataset2),
+                         len(dataset))
+
+    def test_transformation_concat_dataset_groups(self):
+        original_dataset = TransformationDataset(
+            MNIST('./data/mnist', download=True),
+            transform_groups=dict(test=(None, None), train=(ToTensor(), None)))
+        original_dataset2 = TransformationDataset(
+            MNIST('./data/mnist', download=True),
+            transform_groups=dict(train=(None, None), test=(ToTensor(), None)))
+
+        dataset = TransformationConcatDataset([original_dataset,
+                                               original_dataset2])
+
+        self.assertEqual(len(original_dataset) + len(original_dataset2),
+                         len(dataset))
+
+        x, _ = dataset[0]
+        x2, _ = dataset[len(original_dataset)]
+        self.assertIsInstance(x, Tensor)
+        self.assertIsInstance(x2, Image)
+
+        dataset = dataset.eval()
+
+        x3, _ = dataset[0]
+        x4, _ = dataset[len(original_dataset)]
+        self.assertIsInstance(x3, Image)
+        self.assertIsInstance(x4, Tensor)
+
+
 
 
 if __name__ == '__main__':

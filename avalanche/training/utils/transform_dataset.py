@@ -14,8 +14,8 @@ from torchvision.transforms import Compose
 
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
-    SequenceDataset, ConcatDatasetWithTargets, SubsetWithTargets, \
-    LazyTargetsConversion
+    SequenceDataset, SubsetWithTargets, LazyTargetsConversion, \
+    LazyConcatTargets, find_list_from_index
 
 try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
@@ -65,8 +65,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
                  target_transform: YTransform = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train',
-                 chain_transformations: bool = True):
+                 initial_transform_group='train'):
         """
         Creates a ``TransformationDataset`` instance.
 
@@ -90,11 +89,6 @@ class TransformationDataset(DatasetWithTargets[T_co],
             ``torchvision`` datasets).
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
-        :param chain_transformations: If True, will consider transformations
-            found in the original dataset. This means that the methods used to
-            manipulate transformations will also be applied to the original
-            dataset. This only applies is the original dataset is an instance of
-            TransformationDataset (or any subclass). Defaults to True.
         """
         super().__init__()
 
@@ -104,9 +98,9 @@ class TransformationDataset(DatasetWithTargets[T_co],
                              'and target_transform values')
 
         if transform_groups is not None:
-            TransformationDataset.__check_groups_dict_format(transform_groups)
+            TransformationDataset._check_groups_dict_format(transform_groups)
 
-        self.dataset: IDatasetWithTargets[T_co] = dataset
+        self._dataset: IDatasetWithTargets[T_co] = dataset
         """
         The original dataset.
         """
@@ -114,28 +108,10 @@ class TransformationDataset(DatasetWithTargets[T_co],
         # Here LazyTargetsConversion is needed because we can receive
         # a torchvision dataset (in which targets may be a Tensor instead of a
         # sequence if int).
-        self.targets: Sequence[int] = LazyTargetsConversion(dataset.targets)
+        self.targets: Sequence[int] = self._initialize_targets_sequence(dataset)
         """
         A sequence of ints describing the label of each pattern contained in the
         dataset.
-        """
-
-        self.transform_groups: Optional[Dict[str, Tuple[XTransform,
-                                                        YTransform]]] = \
-            transform_groups
-        """
-        A dictionary containing the transform groups. Transform groups are
-        used to quickly switch between training and test transformations.
-        This becomes useful when in need to test on the training dataset as test
-        transformations usually don't contain random augmentations.
-        
-        TransformDataset natively supports switching between the 'train' and
-        'test' groups by calling the ``train()`` and ``eval()`` methods. When
-        using custom groups one can use the ``with_transforms(group_name)``
-        method instead.
-        
-        May be null, which means that the current transforms will be used to
-        handle both 'train' and 'test' groups.
         """
 
         self.current_transform_group = initial_transform_group
@@ -143,7 +119,23 @@ class TransformationDataset(DatasetWithTargets[T_co],
         The name of the transform group currently in use.
         """
 
-        self.__initialize_groups_dict(dataset, transform, target_transform)
+        self.transform_groups: Dict[str, Tuple[XTransform, YTransform]] = \
+            self._initialize_groups_dict(transform_groups, dataset,
+                                         transform, target_transform)
+        """
+        A dictionary containing the transform groups. Transform groups are
+        used to quickly switch between training and test transformations.
+        This becomes useful when in need to test on the training dataset as test
+        transformations usually don't contain random augmentations.
+
+        TransformDataset natively supports switching between the 'train' and
+        'test' groups by calling the ``train()`` and ``eval()`` methods. When
+        using custom groups one can use the ``with_transforms(group_name)``
+        method instead.
+
+        May be null, which means that the current transforms will be used to
+        handle both 'train' and 'test' groups.
+        """
 
         if self.current_transform_group not in self.transform_groups:
             raise ValueError('Invalid transformations group ' +
@@ -161,15 +153,6 @@ class TransformationDataset(DatasetWithTargets[T_co],
         A function/transform that takes in the target and transforms it.
         """
 
-        self.chain_transformations = chain_transformations
-        """
-        If True, will consider transformations found in the original dataset.
-        This means that the methods used to manipulate transformations will
-        also be applied to the original dataset. This only applies is the 
-        original dataset is an instance of TransformationDataset (or any
-        subclass).
-        """
-
         self._frozen_transforms: \
             Dict[str, Tuple[XTransform, YTransform]] = dict()
         """
@@ -179,16 +162,13 @@ class TransformationDataset(DatasetWithTargets[T_co],
         for group_name in self.transform_groups.keys():
             self._frozen_transforms[group_name] = (None, None)
 
-        if isinstance(self.dataset, TransformationDataset):
-            self.dataset = self.dataset.with_transforms(
-                self.current_transform_group)
+        self._set_original_dataset_transform_group(self.current_transform_group)
 
     def __getitem__(self, idx):
-        return manage_advanced_indexing(idx, self.__get_single_item,
-                                        len(self.dataset))
+        return manage_advanced_indexing(idx, self._get_single_item, len(self))
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self._dataset)
 
     def train(self):
         """
@@ -236,17 +216,11 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :return: A new dataset with the current transformations frozen.
         """
 
-        dataset_copy = self.__fork_dataset()
-
-        # First, freeze the transformations on the original dataset
-        # This can be easily accomplished by breaking the transformations chain
-        # Note: this obviously works even when the original dataset is not
-        # a TransformationDataset instance.
-        dataset_copy.chain_transformations = False
+        dataset_copy = self._fork_dataset()
 
         for group_name in dataset_copy.transform_groups.keys():
-            TransformationDataset.__freeze_dataset_group(dataset_copy,
-                                                         group_name)
+            TransformationDataset._freeze_dataset_group(dataset_copy,
+                                                        group_name)
 
         return dataset_copy
 
@@ -270,16 +244,9 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :return: A new dataset with the transformations frozen for the given
             group.
         """
-        dataset_copy = self.__fork_dataset()
+        dataset_copy = self._fork_dataset()
 
-        # First, freeze the transformations on the original dataset
-        # This can be easily accomplished by breaking the transformations chain
-        # Note: this obviously works even when the original dataset is not
-        # a TransformationDataset instance.
-        dataset_copy.chain_transformations = False
-
-        TransformationDataset.__freeze_dataset_group(
-            dataset_copy, group_name)
+        TransformationDataset._freeze_dataset_group(dataset_copy, group_name)
 
         return dataset_copy
 
@@ -308,7 +275,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :return: A new dataset with the added transformations.
         """
 
-        dataset_copy = self.__fork_dataset()
+        dataset_copy = self._fork_dataset()
 
         if transform is not None:
             if dataset_copy.transform is not None:
@@ -356,11 +323,9 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :return: A new dataset with the new transformations.
         """
 
-        dataset_copy = self.__fork_dataset()
-        if dataset_copy.chain_transformations and \
-                isinstance(dataset_copy.dataset, TransformationDataset):
-            dataset_copy.dataset = \
-                dataset_copy.dataset.replace_transforms(None, None)
+        dataset_copy = self._fork_dataset()
+        dataset_copy._replace_original_dataset_group(transform,
+                                                     target_transform)
 
         dataset_copy.transform = transform
         dataset_copy.target_transform = target_transform
@@ -378,7 +343,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :param group_name: The name of the transformations group to use.
         :return: A new dataset with the new transformations.
         """
-        dataset_copy = self.__fork_dataset()
+        dataset_copy = self._fork_dataset()
 
         if group_name not in dataset_copy.transform_groups:
             raise ValueError('Invalid group name ' + str(group_name))
@@ -392,9 +357,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset_copy.current_transform_group = group_name
 
         # Finally, align the underlying dataset
-        if isinstance(dataset_copy.dataset, TransformationDataset):
-            dataset_copy.dataset = dataset_copy.dataset.with_transforms(
-                group_name)
+        dataset_copy._set_original_dataset_transform_group(group_name)
 
         return dataset_copy
 
@@ -418,7 +381,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
             and transforms it.
         :return: A new dataset with the new transformations.
         """
-        dataset_copy = self.__fork_dataset()
+        dataset_copy = self._fork_dataset()
 
         if group_name in dataset_copy.transform_groups:
             raise ValueError('A group with the same name already exists')
@@ -426,19 +389,17 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset_copy.transform_groups[group_name] = \
             (transform, target_transform)
 
-        TransformationDataset.__check_groups_dict_format(
+        TransformationDataset._check_groups_dict_format(
             dataset_copy.transform_groups)
 
         dataset_copy._frozen_transforms[group_name] = (None, None)
 
         # Finally, align the underlying dataset
-        if isinstance(dataset_copy.dataset, TransformationDataset):
-            dataset_copy.dataset = dataset_copy.dataset.add_transforms_group(
-                group_name, None, None)
+        dataset_copy._add_original_dataset_group(group_name)
 
         return dataset_copy
 
-    def __fork_dataset(self: TTransformationDataset) -> TTransformationDataset:
+    def _fork_dataset(self: TTransformationDataset) -> TTransformationDataset:
         dataset_copy = copy.copy(self)
         dataset_copy._frozen_transforms = dict(dataset_copy._frozen_transforms)
         dataset_copy.transform_groups = dict(dataset_copy.transform_groups)
@@ -446,8 +407,8 @@ class TransformationDataset(DatasetWithTargets[T_co],
         return dataset_copy
 
     @staticmethod
-    def __freeze_dataset_group(dataset_copy: TTransformationDataset,
-                               group_name: str):
+    def _freeze_dataset_group(dataset_copy: TTransformationDataset,
+                              group_name: str):
         # Freeze the current transformations. Frozen transformations are saved
         # in a separate dict.
 
@@ -494,17 +455,20 @@ class TransformationDataset(DatasetWithTargets[T_co],
                 final_frozen_target_transform = Compose([
                     frozen_group[1], to_be_glued[1]])
 
-        # Finally, set the frozen transformations
+        # Set the frozen transformations
         dataset_copy._frozen_transforms[group_name] = (
             final_frozen_transform, final_frozen_target_transform)
 
-    def __get_single_item(self, idx: int):
-        pattern, label = self.dataset[idx]
-        pattern, label = self.__apply_transforms(pattern, label)
+        # Finally, apply the freeze procedure to the original dataset
+        dataset_copy._freeze_original_dataset(group_name)
+
+    def _get_single_item(self, idx: int):
+        pattern, label = self._dataset[idx]
+        pattern, label = self._apply_transforms(pattern, label)
 
         return pattern, label
 
-    def __apply_transforms(self, pattern: T_co, label: int):
+    def _apply_transforms(self, pattern: T_co, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
         if frozen_group[0] is not None:
             pattern = frozen_group[0](pattern)
@@ -521,7 +485,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         return pattern, label
 
     @staticmethod
-    def __check_groups_dict_format(groups_dict):
+    def _check_groups_dict_format(groups_dict):
         # The original groups_dict must be convertible to native Python dict
         groups_dict = dict(groups_dict)
 
@@ -542,10 +506,14 @@ class TransformationDataset(DatasetWithTargets[T_co],
                     'a tuple containing 2 elements: a transformation for the X '
                     'values and a transformation for the Y values')
 
-    def __initialize_groups_dict(self,
-                                 dataset: Any,
-                                 transform: XTransform,
-                                 target_transform: YTransform):
+    def _initialize_groups_dict(
+            self,
+            transform_groups: Optional[Dict[str, Tuple[XTransform,
+                                                       YTransform]]],
+            dataset: Any,
+            transform: XTransform,
+            target_transform: YTransform) -> Dict[str, Tuple[XTransform,
+                                                             YTransform]]:
         """
         A simple helper method that tries to fill the 'train' and 'test'
         groups as those two groups must always exist.
@@ -563,33 +531,65 @@ class TransformationDataset(DatasetWithTargets[T_co],
         :param target_transform: The target transformation passed as a parameter
             to the class constructor.
         """
-        if self.transform_groups is None:
-            self.transform_groups = {
+        if transform_groups is None:
+            transform_groups = {
                 'train': (transform, target_transform),
                 'test': (transform, target_transform)
             }
         else:
-            self.transform_groups = dict(self.transform_groups)
+            transform_groups = dict(transform_groups)
 
-        if 'train' in self.transform_groups:
-            if 'test' not in self.transform_groups:
-                self.transform_groups['test'] = self.transform_groups['train']
+        if 'train' in transform_groups:
+            if 'test' not in transform_groups:
+                transform_groups['test'] = transform_groups['train']
 
-        if 'train' not in self.transform_groups:
-            self.transform_groups['train'] = (None, None)
+        if 'train' not in transform_groups:
+            transform_groups['train'] = (None, None)
 
-        if 'test' not in self.transform_groups:
-            self.transform_groups['test'] = (None, None)
+        if 'test' not in transform_groups:
+            transform_groups['test'] = (None, None)
 
+        self._add_groups_from_original_dataset(dataset, transform_groups)
+
+        return transform_groups
+
+    def _initialize_targets_sequence(
+            self, dataset) -> Sequence[int]:
+        return LazyTargetsConversion(dataset.targets)
+
+    def _set_original_dataset_transform_group(
+            self, group_name: str) -> None:
+        if isinstance(self._dataset, TransformationDataset):
+            self._dataset = self._dataset.with_transforms(group_name)
+
+    def _freeze_original_dataset(
+            self, group_name: str) -> None:
+        if isinstance(self._dataset, TransformationDataset):
+            self._dataset = self._dataset.freeze_group_transforms(group_name)
+
+    def _replace_original_dataset_group(
+            self, transform: XTransform, target_transform: YTransform) -> None:
+        if isinstance(self._dataset, TransformationDataset):
+            self._dataset = self._dataset.replace_transforms(
+                transform, target_transform)
+
+    def _add_original_dataset_group(
+            self, group_name: str) -> None:
+        if isinstance(self._dataset, TransformationDataset):
+            self._dataset = self._dataset.add_transforms_group(
+                group_name, None, None)
+
+    def _add_groups_from_original_dataset(
+            self, dataset, transform_groups) -> None:
         if isinstance(dataset, TransformationDataset):
             for original_dataset_group in dataset.transform_groups.keys():
-                if original_dataset_group not in self.transform_groups:
-                    self.transform_groups[original_dataset_group] = (None, None)
+                if original_dataset_group not in transform_groups:
+                    transform_groups[original_dataset_group] = (None, None)
 
 
 class TransformationSubset(TransformationDataset[T_co]):
     """
-    A Dataset that behaves like a pytorch :class:`torch.utils.data.Subset`.
+    A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
     the targets field and class mapping.
     """
@@ -602,8 +602,7 @@ class TransformationSubset(TransformationDataset[T_co]):
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train',
-                 chain_transformations: bool = True):
+                 initial_transform_group='train'):
         """
         Creates a ``TransformationSubset`` instance.
 
@@ -629,11 +628,6 @@ class TransformationSubset(TransformationDataset[T_co]):
             ``torchvision`` datasets).
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
-        :param chain_transformations: If True, will consider transformations
-            found in the original dataset. This means that the methods used to
-            manipulate transformations will also be applied to the original
-            dataset. This only applies is the original dataset is an instance of
-            TransformationDataset (or any subclass). Defaults to True.
         """
         subset = SubsetWithTargets(dataset, indices=indices,
                                    class_mapping=class_mapping)
@@ -641,41 +635,7 @@ class TransformationSubset(TransformationDataset[T_co]):
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         chain_transformations=chain_transformations)
-
-
-class TransformationConcatDataset(TransformationDataset[T_co]):
-    """
-    A Dataset that behaves like a pytorch
-    :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
-    transformations, slicing, advanced indexing and the targets field.
-    """
-    def __init__(self,
-                 datasets: Sequence[IDatasetWithTargets[T_co]],
-                 *,
-                 transform: Callable[[T_co], Any] = None,
-                 target_transform: Callable[[int], int] = None,
-                 transform_groups: Dict[str, Tuple[XTransform,
-                                                   YTransform]] = None,
-                 initial_transform_group='train',
-                 chain_transformations: bool = True):
-        """
-        Creates a ``TransformationConcatDataset`` instance.
-
-        :param datasets: An sequence of datasets.
-        :param transform: A function/transform that takes the X value of a
-            pattern from the original dataset and returns a transformed version.
-        :param target_transform: A function/transform that takes in the target
-            and transforms it.
-        """
-        concat_dataset = ConcatDatasetWithTargets(datasets)
-
-        super().__init__(concat_dataset, transform=transform,
-                         target_transform=target_transform,
-                         transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         chain_transformations=chain_transformations)
+                         initial_transform_group=initial_transform_group)
 
 
 class TransformationTensorDataset(TransformationDataset[T_co]):
@@ -693,8 +653,7 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train',
-                 chain_transformations: bool = True):
+                 initial_transform_group='train'):
         """
         Creates a ``TransformationTensorDataset`` instance.
 
@@ -719,19 +678,140 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
             ``torchvision`` datasets).
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
-        :param chain_transformations: If True, will consider transformations
-            found in the original dataset. This means that the methods used to
-            manipulate transformations will also be applied to the original
-            dataset. This only applies is the original dataset is an instance of
-            TransformationDataset (or any subclass). Defaults to True.
         """
         super().__init__(SequenceDataset(dataset_x, dataset_y),
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         chain_transformations=chain_transformations)
+                         initial_transform_group=initial_transform_group)
+
+
+class TransformationConcatDataset(TransformationDataset[T_co]):
+    """
+    A Dataset that behaves like a PyTorch
+    :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
+    transformations, slicing, advanced indexing and the targets field.
+
+    This dataset guarantees that the operations involving the transformations
+    and transformations groups are consistent across the concatenated dataset
+    (if they are subclasses of :class:`TransformationDataset`).
+    """
+    def __init__(self,
+                 datasets: Sequence[IDatasetWithTargets[T_co]],
+                 *,
+                 transform: Callable[[T_co], Any] = None,
+                 target_transform: Callable[[int], int] = None,
+                 transform_groups: Dict[str, Tuple[XTransform,
+                                                   YTransform]] = None,
+                 initial_transform_group='train'):
+        """
+        Creates a ``TransformationConcatDataset`` instance.
+
+        :param datasets: An sequence of datasets.
+        :param transform: A function/transform that takes the X value of a
+            pattern from the original dataset and returns a transformed version.
+        :param target_transform: A function/transform that takes in the target
+            and transforms it.
+        :param transform_groups: A dictionary containing the transform groups.
+            Transform groups are used to quickly switch between training and
+            test transformations. This becomes useful when in need to test on
+            the training dataset as test transformations usually don't contain
+            random augmentations. ``TransformDataset`` natively supports the
+            'train' and 'test' groups by calling the ``train()`` and ``eval()``
+            methods. When using custom groups one can use the
+            ``with_transforms(group_name)`` method instead. Defaults to None,
+            which means that the current transforms will be used to
+            handle both 'train' and 'test' groups (just like in standard
+            ``torchvision`` datasets).
+        :param initial_transform_group: The name of the transform group
+            to be used. Defaults to 'train'.
+        """
+
+        self._dataset_list = list(datasets)
+        self._datasets_lengths = [len(dataset) for dataset in datasets]
+        self._overall_length = sum(self._datasets_lengths)
+
+        self._adapt_concat_datasets()
+
+        super().__init__(DatasetWithTargets(),
+                         transform=transform,
+                         target_transform=target_transform,
+                         transform_groups=transform_groups,
+                         initial_transform_group=initial_transform_group)
+
+    def __len__(self) -> int:
+        return self._overall_length
+
+    def _get_single_item(self, idx: int):
+        dataset_idx, internal_idx = find_list_from_index(
+            idx, self._datasets_lengths, self._overall_length)
+
+        pattern, label = self._dataset_list[dataset_idx][internal_idx]
+        pattern, label = self._apply_transforms(pattern, label)
+
+        return pattern, label
+
+    def _fork_dataset(self: TTransformationDataset) -> TTransformationDataset:
+        dataset_copy = super()._fork_dataset()
+
+        dataset_copy._dataset_list = list(dataset_copy._dataset_list)
+        # Note: there is no need to duplicate _datasets_lengths
+
+        return dataset_copy
+
+    def _initialize_targets_sequence(self, dataset) -> Sequence[int]:
+        return LazyConcatTargets([dataset.targets for dataset in
+                                  self._dataset_list])
+
+    def _set_original_dataset_transform_group(
+            self, group_name: str) -> None:
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                self._dataset_list[dataset_idx] = \
+                    dataset.with_transforms(group_name)
+
+    def _freeze_original_dataset(
+            self, group_name: str) -> None:
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                self._dataset_list[dataset_idx] = \
+                    dataset.freeze_group_transforms(group_name)
+
+    def _replace_original_dataset_group(
+            self, transform: XTransform, target_transform: YTransform) -> None:
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                self._dataset_list[dataset_idx] = \
+                    dataset.replace_transforms(transform, target_transform)
+
+    def _add_original_dataset_group(
+            self, group_name: str) -> None:
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                self._dataset_list[dataset_idx] = \
+                    dataset.add_transforms_group(group_name, None, None)
+
+    def _add_groups_from_original_dataset(
+            self, dataset, transform_groups) -> None:
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                for original_dataset_group in dataset.transform_groups.keys():
+                    if original_dataset_group not in transform_groups:
+                        transform_groups[original_dataset_group] = (None, None)
+
+    def _adapt_concat_datasets(self):
+        all_groups = set()
+        for dataset in self._dataset_list:
+            if isinstance(dataset, TransformationDataset):
+                all_groups.update(dataset.transform_groups.keys())
+
+        for dataset_idx, dataset in enumerate(self._dataset_list):
+            if isinstance(dataset, TransformationDataset):
+                for group_name in all_groups:
+                    if group_name not in dataset.transform_groups:
+                        self._dataset_list[dataset_idx] = \
+                            dataset.add_transforms_group(group_name, None, None)
 
 
 __all__ = ['TransformationDataset', 'TransformationSubset',
-           'TransformationTensorDataset']
+           'TransformationConcatDataset', 'TransformationTensorDataset']

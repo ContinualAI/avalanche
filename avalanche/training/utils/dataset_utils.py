@@ -23,6 +23,8 @@ T_co = TypeVar('T_co', covariant=True)
 
 TTargetType = TypeVar('TTargetType', bound=SupportsInt)
 
+# TODO: adapt base utils
+
 
 class IDataset(Protocol[T_co]):
     """
