@@ -15,6 +15,7 @@
 from torchvision import transforms
 from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.generators import nc_scenario
+from avalanche.training.utils import train_test_transformation_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -71,8 +72,8 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
         CIFAR10 otherwise.
         """
 
-    train_set = TinyImagenet(train=True)
-    test_set = TinyImagenet(train=False)
+    train_set, test_set = _get_tiny_imagenet_dataset(
+        train_transform, test_transform)
 
     if return_task_id:
         return nc_scenario(
@@ -91,3 +92,15 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
+
+
+def _get_tiny_imagenet_dataset(train_transformation, test_transformation):
+    train_set = TinyImagenet(train=True)
+
+    test_set = TinyImagenet(train=False)
+
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
+__all__ = ['SplitTinyImageNet']

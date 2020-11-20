@@ -4,7 +4,7 @@ from typing import Sequence, Union, SupportsInt, Any
 from torch import Tensor
 
 from avalanche.training.utils import TransformationTensorDataset, \
-    IDatasetWithTargets, TransformationConcatDataset
+    IDatasetWithTargets, TransformationConcatDataset, as_transformation_dataset
 from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 
@@ -63,8 +63,6 @@ def create_multi_dataset_generic_scenario(
         train_structure.append(range(next_idx, end_idx))
         next_idx = end_idx
 
-    # TODO: better integration with TransformationDataset
-
     test_structure = []
     if complete_test_set_only:
         # If complete_test_set_only is True, we can leave test_structure = []
@@ -76,7 +74,7 @@ def create_multi_dataset_generic_scenario(
         if len(test_dataset_list) != 1:
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
-        concat_test_dataset = test_dataset_list[0]
+        concat_test_dataset = as_transformation_dataset(test_dataset_list[0])
     else:
         concat_test_dataset = TransformationConcatDataset(test_dataset_list)
         test_structure = []

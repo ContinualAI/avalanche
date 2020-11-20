@@ -18,23 +18,56 @@ from __future__ import division
 from __future__ import absolute_import
 
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union, Any
 from os.path import expanduser
-import numpy as np
 import torch
+from PIL.Image import Image
+from torch import Tensor
 from torchvision.datasets import MNIST
-from torchvision import transforms
+from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
+    RandomRotation
+
 from avalanche.benchmarks import NCScenario, nc_scenario
+from avalanche.training.utils import train_test_transformation_datasets
 
-_default_mnist_train_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
+_default_mnist_train_transform = Compose([
+    ToTensor(),
+    Normalize((0.1307,), (0.3081,))
 ])
 
-_default_mnist_test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
+_default_mnist_test_transform = Compose([
+    ToTensor(),
+    Normalize((0.1307,), (0.3081,))
 ])
+
+
+class PixelsPermutation(object):
+    """
+    Apply a fixed permutation to the pixels of the given image.
+
+    Works with both Tensors and PIL images. Returns an object of the same type
+    of the input element.
+    """
+
+    def __init__(self, index_permutation: Sequence[int]):
+        self.permutation = index_permutation
+        self._to_tensor = ToTensor()
+        self._to_image = ToPILImage()
+
+    def __call__(self, img: Union[Image, Tensor]):
+        is_image = isinstance(img, Image.Image)
+        if (not is_image) and (not isinstance(img, Tensor)):
+            raise ValueError('Invalid input: must be a PIL image or a Tensor')
+
+        if is_image:
+            img = self._to_tensor(img)
+
+        img = img.view(-1)[self.permutation].view(*img.shape)
+
+        if is_image:
+            img = self._to_image(img)
+
+        return img
 
 
 def SplitMNIST(
@@ -84,8 +117,9 @@ def SplitMNIST(
         scenario otherwise.
     """
 
-    mnist_train, mnist_test = _get_mnist_dataset(train_transform,
-                                                 test_transform)
+    mnist_train, mnist_test = _get_mnist_dataset(
+        train_transform, test_transform)
+
     if return_task_id:
         return nc_scenario(
             train_dataset=mnist_train,
@@ -108,9 +142,8 @@ def SplitMNIST(
 def PermutedMNIST(
         incremental_steps: int,
         seed: Optional[int] = None,
-        train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform) -> NCScenario:
-
+        train_transform: Any = _default_mnist_train_transform,
+        test_transform: Any = _default_mnist_test_transform) -> NCScenario:
     """
     This helper create a permuted MNIST scenario: where a given number of random
     pixel permutations is used to permute the MNIST images in
@@ -153,22 +186,19 @@ def PermutedMNIST(
         idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
             torch.int64)
 
-        # add the permutation to the default dataset transformation
-        train_transform_list = train_transform.transforms.copy()
-        train_transform_list.append(
-            transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
-        )
-        new_train_transform = transforms.Compose(train_transform_list)
+        permutation = PixelsPermutation(idx_permute)
 
-        test_transform_list = test_transform.transforms.copy()
-        test_transform_list.append(
-            transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
-        )
-        new_test_transform = transforms.Compose(test_transform_list)
+        mnist_train, mnist_test = _get_mnist_dataset(permutation, permutation)
 
-        # get the datasets with the constructed transformation
-        permuted_train, permuted_test = _get_mnist_dataset(new_train_transform,
-                                                           new_test_transform)
+        # Freeze the permutation, then add the user defined transformations
+        permuted_train = mnist_train \
+            .freeze_transforms() \
+            .add_transforms(train_transform)
+
+        permuted_test = mnist_test \
+            .freeze_transforms() \
+            .add_transforms(test_transform)
+
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
 
@@ -188,7 +218,6 @@ def RotatedMNIST(
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
         test_transform=_default_mnist_test_transform) -> NCScenario:
-
     """
     This helper create a rotated MNIST scenario: where a given number of random
     rotations are used to rotate the MNIST images in
@@ -248,25 +277,19 @@ def RotatedMNIST(
             # choose a random rotation of the pixels in the image
             rotation_angle = rng_rotate.randint(-180, 181)
 
-        # add the rotation to the default dataset transformation in position
-        # 0, since it works on images and not tensors.
-        train_transform_list = train_transform.transforms.copy()
-        train_transform_list.insert(
-            0,
-            transforms.RandomRotation(degrees=(rotation_angle, rotation_angle))
-        )
-        new_train_transform = transforms.Compose(train_transform_list)
+        rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        test_transform_list = test_transform.transforms.copy()
-        test_transform_list.insert(
-            0,
-            transforms.RandomRotation(degrees=(rotation_angle, rotation_angle))
-        )
-        new_test_transform = transforms.Compose(test_transform_list)
+        mnist_train, mnist_test = _get_mnist_dataset(rotation, rotation)
 
-        # get the datasets with the constructed transformation
-        rotated_train, rotated_test = _get_mnist_dataset(new_train_transform,
-                                                         new_test_transform)
+        # Freeze the rotation, then add the user defined transformations
+        rotated_train = mnist_train \
+            .freeze_transforms() \
+            .add_transforms(train_transform)
+
+        rotated_test = mnist_test \
+            .freeze_transforms() \
+            .add_transforms(test_transform)
+
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
 
@@ -281,10 +304,27 @@ def RotatedMNIST(
 
 
 def _get_mnist_dataset(train_transformation, test_transformation):
-    mnist_train = MNIST(root=expanduser("~")+"/.avalanche/data/mnist/",
-                        train=True,
-                        download=True, transform=train_transformation)
-    mnist_test = MNIST(root=expanduser("~")+"/.avalanche/data/mnist/",
-                       train=False,
-                       download=True, transform=test_transformation)
-    return mnist_train, mnist_test
+    train_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                      train=True, download=True)
+
+    test_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                     train=False, download=True)
+
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
+__all__ = ['SplitMNIST', 'PermutedMNIST', 'RotatedMNIST']
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+
+    scenario = PermutedMNIST(5, train_transform=None, test_transform=None)
+    for i, (img, label) in enumerate(scenario.train_stream[0].dataset):
+        plt.imshow(np.asarray(img))
+        plt.show()
+        if ((i+1) % 5) == 0:
+            break

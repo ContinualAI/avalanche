@@ -18,6 +18,8 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
+from avalanche.training.utils import train_test_transformation_datasets
+
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
@@ -93,8 +95,8 @@ def SplitImageNet(root,
         CIFAR10 otherwise.
         """
 
-    train_set = ImageNet(root, split="train", transform=train_transform)
-    test_set = ImageNet(root, split="val", transform=test_transform)
+    train_set, test_set = _get_imagenet_dataset(
+        root, train_transform, test_transform)
 
     if return_task_id:
         return nc_scenario(
@@ -117,10 +119,20 @@ def SplitImageNet(root,
             fixed_class_order=fixed_class_order)
 
 
-if __name__ == "__main__":
+def _get_imagenet_dataset(root, train_transformation, test_transformation):
+    train_set = ImageNet(root, split="train")
 
+    test_set = ImageNet(root, split="val")
+
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
+__all__ = ['SplitImageNet']
+
+if __name__ == "__main__":
     scenario = SplitImageNet("/ssd2/datasets/imagenet/")
-    for step in scenario:
+    for step in scenario.train_stream:
         print("step: ", step.current_step)
-        print("classes number: ", len(step.classes_in_this_batch))
-        print("classes: ", step.classes_in_this_batch)
+        print("classes number: ", len(step.classes_in_this_step))
+        print("classes: ", step.classes_in_this_step)

@@ -25,9 +25,8 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.training.utils import TransformationDataset
-from avalanche.training.utils.dataset_utils import IDatasetWithTargets, \
-    concat_datasets_sequentially
+from avalanche.training.utils import IDatasetWithTargets, \
+    concat_datasets_sequentially, as_transformation_dataset
 
 
 def nc_scenario(
@@ -170,9 +169,10 @@ def nc_scenario(
             n_steps = len(train_dataset)
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
-    # TODO: better integration with TransformationDataset
-    train_dataset = TransformationDataset(train_dataset)
-    test_dataset = TransformationDataset(test_dataset)
+    # Datasets should be instances of TransformationDataset
+    train_dataset = as_transformation_dataset(train_dataset)
+    test_dataset = as_transformation_dataset(test_dataset)
+
     return NCScenario(train_dataset, test_dataset, n_steps, task_labels,
                       shuffle, seed, fixed_class_order, per_step_classes,
                       class_ids_from_zero_from_first_step,
@@ -257,9 +257,10 @@ def ni_scenario(
         seq_train_dataset, seq_test_dataset, _ = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
-    # TODO: better integration with TransformationDataset
-    seq_train_dataset = TransformationDataset(seq_train_dataset)
-    seq_test_dataset = TransformationDataset(seq_test_dataset)
+    # Datasets should be instances of TransformationDataset
+    seq_train_dataset = as_transformation_dataset(seq_train_dataset)
+    seq_test_dataset = as_transformation_dataset(seq_test_dataset)
+
     return NIScenario(
         seq_train_dataset, seq_test_dataset,
         n_steps,

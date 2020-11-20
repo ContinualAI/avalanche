@@ -10,6 +10,7 @@
 ################################################################################
 import copy
 
+import torch
 from torchvision.transforms import Compose
 
 from .dataset_utils import IDatasetWithTargets, \
@@ -813,5 +814,122 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
                             dataset.add_transforms_group(group_name, None, None)
 
 
+def concat_datasets_sequentially(
+        train_dataset_list: Sequence[IDatasetWithTargets[T_co]],
+        test_dataset_list: Sequence[IDatasetWithTargets[T_co]]) -> \
+        Tuple[TransformationConcatDataset[T_co],
+              TransformationConcatDataset[T_co],
+              List[list]]:
+    """
+    Concatenates a list of datasets. This is completely different from
+    :class:`ConcatDataset`, in which datasets are merged together without
+    other processing. Instead, this function re-maps the datasets class IDs.
+    For instance:
+    let the dataset[0] contain patterns of 3 different classes,
+    let the dataset[1] contain patterns of 2 different classes, then class IDs
+    will be mapped as follows:
+
+    dataset[0] class "0" -> new class ID is "0"
+
+    dataset[0] class "1" -> new class ID is "1"
+
+    dataset[0] class "2" -> new class ID is "2"
+
+    dataset[1] class "0" -> new class ID is "3"
+
+    dataset[1] class "1" -> new class ID is "4"
+
+    ... -> ...
+
+    dataset[-1] class "C-1" -> new class ID is "overall_n_classes-1"
+
+    In contrast, using PyTorch ConcatDataset:
+
+    dataset[0] class "0" -> ID is "0"
+
+    dataset[0] class "1" -> ID is "1"
+
+    dataset[0] class "2" -> ID is "2"
+
+    dataset[1] class "0" -> ID is "0"
+
+    dataset[1] class "1" -> ID is "1"
+
+    Note: ``train_dataset_list`` and ``test_dataset_list`` must have the same
+    number of datasets.
+
+    :param train_dataset_list: A list of training datasets
+    :param test_dataset_list: A list of test datasets
+
+    :returns: A concatenated dataset.
+    """
+    remapped_train_datasets = []
+    remapped_test_datasets = []
+    next_remapped_idx = 0
+
+    # Obtain the number of classes of each dataset
+    classes_per_dataset = [
+        len(torch.unique(
+            torch.cat((torch.as_tensor(train_dataset_list[dataset_idx].targets),
+                      torch.as_tensor(test_dataset_list[dataset_idx].targets)))
+            )) for dataset_idx in range(len(train_dataset_list))
+    ]
+
+    new_class_ids_per_dataset = []
+    for dataset_idx in range(len(train_dataset_list)):
+        # The class IDs for this dataset will be in range
+        # [n_classes_in_previous_datasets,
+        #       n_classes_in_previous_datasets + classes_in_this_dataset)
+        class_mapping = list(
+            range(next_remapped_idx,
+                  next_remapped_idx + classes_per_dataset[dataset_idx]))
+        new_class_ids_per_dataset.append(class_mapping)
+
+        train_set = train_dataset_list[dataset_idx]
+        test_set = test_dataset_list[dataset_idx]
+
+        # TransformationSubset is used to apply the class IDs transformation.
+        # Remember, the class_mapping parameter must be a list in which:
+        # new_class_id = class_mapping[original_class_id]
+        remapped_train_datasets.append(
+            TransformationSubset(train_set, class_mapping=class_mapping))
+        remapped_test_datasets.append(
+            TransformationSubset(test_set, class_mapping=class_mapping))
+        next_remapped_idx += classes_per_dataset[dataset_idx]
+
+    return (TransformationConcatDataset(remapped_train_datasets),
+            TransformationConcatDataset(remapped_test_datasets),
+            new_class_ids_per_dataset)
+
+
+def as_transformation_dataset(dataset: IDatasetWithTargets[T_co]) -> \
+        TransformationDataset[T_co]:
+    if isinstance(dataset, TransformationDataset):
+        return dataset
+
+    return TransformationDataset(dataset)
+
+
+def train_test_transformation_datasets(
+        train_dataset: IDatasetWithTargets[T_co],
+        test_dataset: IDatasetWithTargets[T_co],
+        train_transformation,
+        test_transformation):
+    train = TransformationDataset(
+        train_dataset,
+        transform_groups=dict(train=(train_transformation, None),
+                              test=(test_transformation, None)),
+        initial_transform_group='train')
+
+    test = TransformationDataset(
+        test_dataset,
+        transform_groups=dict(train=(train_transformation, None),
+                              test=(test_transformation, None)),
+        initial_transform_group='test')
+    return train, test
+
+
 __all__ = ['TransformationDataset', 'TransformationSubset',
-           'TransformationConcatDataset', 'TransformationTensorDataset']
+           'TransformationConcatDataset', 'TransformationTensorDataset',
+           'concat_datasets_sequentially', 'as_transformation_dataset',
+           'train_test_transformation_datasets']
