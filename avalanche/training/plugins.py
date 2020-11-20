@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 import numpy as np
 import torch
@@ -21,7 +21,7 @@ class StrategyPlugin:
     def __init__(self):
         pass
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_step(self, strategy, **kwargs):
         pass
 
     def adapt_train_dataset(self, strategy, **kwargs):
@@ -57,7 +57,7 @@ class StrategyPlugin:
     def after_training_epoch(self, strategy, **kwargs):
         pass
 
-    def after_training(self, strategy, **kwargs):
+    def after_training_step(self, strategy, **kwargs):
         pass
 
     def before_test(self, strategy, **kwargs):
@@ -135,7 +135,7 @@ class ReplayPlugin(StrategyPlugin):
             strategy.current_data = ConcatDataset([strategy.current_data,
                                                    self.ext_mem])
 
-    def after_training(self, strategy, **kwargs):
+    def after_training_step(self, strategy, **kwargs):
         """ After training we update the external memory with the patterns of
          the current training batch/task. """
 
@@ -180,12 +180,6 @@ class GDumbPlugin(StrategyPlugin):
             GDumb approach and updating the dataset accordingly.
         """
 
-        # helper memory to store new patterns when memory is not full
-        # this is necessary since it is not possible to concatenate
-        # patterns into an existing TensorDataset
-        # (dataset.tensors[0] does not support item assignment)
-        ext_mem = [[], []]
-
         # for each pattern, add it to the memory or not
         for i, (pattern, target) in enumerate(strategy.current_data):
             target_value = target.item()
@@ -227,6 +221,8 @@ class GDumbPlugin(StrategyPlugin):
                         )
 
                 self.counter[target_value] += 1
+
+        strategy.current_data = self.ext_mem
 
 
 class EvaluationPlugin(StrategyPlugin):
@@ -271,7 +267,7 @@ class EvaluationPlugin(StrategyPlugin):
     def get_test_result(self):
         return self._test_protocol_results
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_step(self, strategy, **kwargs):
         task_id = strategy.step_info.task_label
         self._train_current_task_id = task_id
         self._training_accuracy = None
@@ -381,11 +377,11 @@ class CWRStarPlugin(StrategyPlugin):
         # State
         self.batch_processed = 0
 
-    def after_training(self, strategy, **kwargs):
+    def after_training_step(self, strategy, **kwargs):
         CWRStarPlugin.consolidate_weights(self.model, self.cur_class)
         self.batch_processed += 1
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_step(self, strategy, **kwargs):
         if self.batch_processed == 1:
             self.freeze_lower_layers()
 
@@ -496,7 +492,7 @@ class MultiHeadPlugin(StrategyPlugin):
         if keep_initial_layer:
             self.task_layers[0] = getattr(model, classifier_field)
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_step(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 

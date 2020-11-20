@@ -16,7 +16,7 @@ channels:
 - conda-forge
 dependencies:
 - psutil
-- python>=3.6
+- python=3.6
 - pytorch::pytorch
 - pytorch::torchvision
 - tensorboard
