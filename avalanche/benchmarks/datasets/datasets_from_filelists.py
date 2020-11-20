@@ -25,6 +25,8 @@ from PIL import Image
 import os
 import os.path
 
+from avalanche.training.utils import TransformationDataset
+
 
 def default_loader(path):
     """
@@ -124,11 +126,20 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
                             train_transform=None, train_target_transform=None,
                             test_transform=None, test_target_transform=None):
     """
-    This reader reads a filelist and return a list of paths.
+    This reader reads a list of Caffe-style filelists and returns the proper
+    Dataset objects.
+
+    A Caffe-style list is just a text file where, for each line, two elements
+    are described: the path to the pattern (relative to the root parameter)
+    and its class label. Those two elements are separated by a single white
+    space.
+
+    This method reads each file list and returns a separate
+    dataset for each of them.
 
     :param root: root path where the data to load are stored.
     :param train_filelists: list of paths to train filelists. The flist format
-        should be: impath label, impath label, ...(same to caffe's filelist)
+        should be: impath label\nimpath label\n ...(same to caffe's filelist)
     :param test_filelists: list of paths to test filelists. It can be also a
         single path when the datasets is the same for each batch.
     :param complete_test_set_only: if True, test_filelists must contain
@@ -168,12 +179,14 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
                 'train_filelists must contain the same number of elements.')
 
     train_inc_datasets = \
-        [FilelistDataset(root, tr_flist, transform=train_transform,
-                         target_transform=train_target_transform)
+        [TransformationDataset(FilelistDataset(root, tr_flist),
+                               transform=train_transform,
+                               target_transform=train_target_transform)
          for tr_flist in train_filelists]
     test_inc_datasets = \
-        [FilelistDataset(root, te_flist, transform=test_transform,
-                         target_transform=test_target_transform)
+        [TransformationDataset(FilelistDataset(root, te_flist),
+                               transform=test_transform,
+                               target_transform=test_target_transform)
          for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets

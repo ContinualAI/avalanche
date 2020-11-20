@@ -124,13 +124,13 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10))
         train_part2 = TransformationSubset(
-            train_part2, None, class_mapping=split_mapping)
+            train_part2, class_mapping=split_mapping)
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3))
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10))
-        test_part2 = TransformationSubset(test_part2, None,
+        test_part2 = TransformationSubset(test_part2,
                                           class_mapping=split_mapping)
         my_nc_scenario = nc_scenario(
             [train_part1, train_part2], [test_part1, test_part2], 2,
@@ -162,13 +162,13 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10))
         train_part2 = TransformationSubset(
-            train_part2, None, class_mapping=split_mapping)
+            train_part2, class_mapping=split_mapping)
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(5))
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(5, 10))
-        test_part2 = TransformationSubset(test_part2, None,
+        test_part2 = TransformationSubset(test_part2,
                                           class_mapping=split_mapping)
         my_nc_scenario = nc_scenario(
             [train_part1, train_part2], [test_part1, test_part2], 5,

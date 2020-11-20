@@ -4,7 +4,7 @@ from typing import Sequence, Union, SupportsInt, Any
 from torch import Tensor
 
 from avalanche.training.utils import TransformationTensorDataset, \
-    IDatasetWithTargets, ConcatDatasetWithTargets
+    IDatasetWithTargets, TransformationConcatDataset, as_transformation_dataset
 from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 
@@ -56,7 +56,7 @@ def create_multi_dataset_generic_scenario(
     # Each dataset describes a different step so the lists of indexes will
     # just be ranges of ascending indexes.
     train_structure = []
-    concat_train_dataset = ConcatDatasetWithTargets(train_dataset_list)
+    concat_train_dataset = TransformationConcatDataset(train_dataset_list)
     next_idx = 0
     for train_dataset in train_dataset_list:
         end_idx = next_idx + len(train_dataset)
@@ -74,9 +74,9 @@ def create_multi_dataset_generic_scenario(
         if len(test_dataset_list) != 1:
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
-        concat_test_dataset = test_dataset_list[0]
+        concat_test_dataset = as_transformation_dataset(test_dataset_list[0])
     else:
-        concat_test_dataset = ConcatDatasetWithTargets(test_dataset_list)
+        concat_test_dataset = TransformationConcatDataset(test_dataset_list)
         test_structure = []
         next_idx = 0
         for test_dataset in test_dataset_list:

@@ -17,6 +17,8 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
+from avalanche.training.utils import train_test_transformation_datasets
+
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
@@ -82,8 +84,8 @@ def SplitCUB200(root,
         CIFAR10 otherwise.
         """
 
-    train_set = CUB200(root, train=True, transform=train_transform)
-    test_set = CUB200(root, train=False, transform=test_transform)
+    train_set, test_set = _get_cub200_dataset(
+        root, train_transform, test_transform)
 
     if classes_first_batch is not None:
         per_step_classes = {0: classes_first_batch}
@@ -113,10 +115,19 @@ def SplitCUB200(root,
             shuffle=shuffle)
 
 
-if __name__ == "__main__":
+def _get_cub200_dataset(root, train_transformation, test_transformation):
+    train_set = CUB200(root, train=True)
+    test_set = CUB200(root, train=False)
 
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
+__all__ = ['SplitCUB200']
+
+if __name__ == "__main__":
     scenario = SplitCUB200("~/.avalanche/data/cub200/")
-    for step in scenario:
+    for step in scenario.train_stream:
         print("step: ", step.current_step)
-        print("classes number: ", len(step.classes_in_this_batch))
-        print("classes: ", step.classes_in_this_batch)
+        print("classes number: ", len(step.classes_in_this_step))
+        print("classes: ", step.classes_in_this_step)

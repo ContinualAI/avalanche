@@ -23,6 +23,7 @@ from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_scenario
+from avalanche.training.utils import train_test_transformation_datasets
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -62,7 +63,7 @@ def SplitFMNIST(incremental_steps: int,
         first pretraining batch containing half of the classes should be used.
         If it's True, a pretrain batch with half of the classes (5 for
         cifar100) is used, and a number of incremental tasks, given by the
-        parameter incremental_task is constructed. If this paramenter is False
+        parameter incremental_task is constructed. If this parameter is False
         no pretraining task will be used, and the dataset is simply split into
         a the number of steps defined by the parameter incremental_steps.
         Default to False.
@@ -95,8 +96,9 @@ def SplitFMNIST(incremental_steps: int,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR10 otherwise.
     """
-    cifar_train, cifar_test = _get_fmnist_dataset(train_transform,
-                                                  test_transform)
+    cifar_train, cifar_test = _get_fmnist_dataset(
+        train_transform, test_transform)
+
     total_steps = incremental_steps + 1 if first_batch_with_half_classes \
         else incremental_steps
     if return_task_id:
@@ -116,23 +118,23 @@ def SplitFMNIST(incremental_steps: int,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 5} if first_batch_with_half_classes else None
-        )
+            per_step_classes={0: 5} if first_batch_with_half_classes else None)
 
 
 def _get_fmnist_dataset(train_transformation, test_transformation):
     train_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
-                             train=True,
-                             download=True, transform=train_transformation)
+                             train=True, download=True)
     test_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
-                            train=False,
-                            download=True, transform=test_transformation)
-    return train_set, test_set
+                            train=False, download=True)
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
 
+
+__all__ = ['SplitFMNIST']
 
 if __name__ == "__main__":
 
     nc_scenario = SplitFMNIST(incremental_steps=10)
 
-    for i, batch in enumerate(nc_scenario):
+    for i, batch in enumerate(nc_scenario.train_stream):
         print(i, batch)
