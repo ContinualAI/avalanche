@@ -277,7 +277,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._total_loss = 0
         self._average_loss = 0
         print("[Training on Task {}, Step {}]"
-              .format(self._test_current_task_id,
+              .format(self._train_current_task_id,
                       strategy.step_info.current_step))
 
     def after_training_iteration(self, strategy, **kwargs):
@@ -518,7 +518,7 @@ class MultiHeadPlugin(StrategyPlugin):
             # create head for unseen tasks
             task_layer = self.create_task_layer(n_output_units=n_output_units)
             strategy.add_new_params_to_optimizer(task_layer.parameters())
-            self.task_layers[task_label] = task_layer
+            self.task_layers[task_label] = task_layer.to(strategy.device)
         else:
             # check head expansion
             self.task_layers[task_label] = \
@@ -671,7 +671,7 @@ class MultiHeadPlugin(StrategyPlugin):
             min_n_output_units,
             previous_task_layer=task_layer)
 
-        self.adapt_task_layer(task_layer, new_layer)
+        self.adapt_task_layer(task_layer, new_layer.to(strategy.device))
         strategy.update_optimizer(task_layer.parameters(),
                                   new_layer.parameters())
         return new_layer
