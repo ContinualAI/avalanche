@@ -21,6 +21,7 @@ from __future__ import absolute_import
 from typing import Optional, Sequence, Union, Any
 from os.path import expanduser
 import torch
+import numpy as np
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
