@@ -29,7 +29,6 @@ from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive
-from avalanche.training.plugins import MultiHeadPlugin
 
 def main():
 
