@@ -8,7 +8,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda
 
-from avalanche.training.utils import TransformationDataset, \
+from avalanche.benchmarks.utils import TransformationDataset, \
     TransformationSubset, load_all_dataset, TransformationConcatDataset
 import random
 

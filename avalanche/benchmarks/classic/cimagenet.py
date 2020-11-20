@@ -18,7 +18,7 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-from avalanche.training.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_test_transformation_datasets
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])

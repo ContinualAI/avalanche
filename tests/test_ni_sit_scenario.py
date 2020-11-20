@@ -4,7 +4,7 @@ import torch
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios import NIStepInfo, GenericScenarioStream
-from avalanche.training.utils import TransformationSubset
+from avalanche.benchmarks.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import ni_scenario

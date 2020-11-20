@@ -21,7 +21,6 @@ from __future__ import absolute_import
 from typing import Optional, Sequence, Union, Any
 from os.path import expanduser
 import torch
-import numpy as np
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
@@ -29,7 +28,7 @@ from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
     RandomRotation
 
 from avalanche.benchmarks import NCScenario, nc_scenario
-from avalanche.training.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_test_transformation_datasets
 
 _default_mnist_train_transform = Compose([
     ToTensor(),

@@ -19,7 +19,7 @@ except ImportError:
         Generic
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.training.utils import TransformationDataset
+from avalanche.benchmarks.utils import TransformationDataset
 
 
 class DatasetPart(Enum):

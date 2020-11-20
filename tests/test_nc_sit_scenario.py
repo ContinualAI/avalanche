@@ -3,7 +3,7 @@ import unittest
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios.new_classes import NCStepInfo
-from avalanche.training.utils import TransformationSubset
+from avalanche.benchmarks.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import nc_scenario, GenericScenarioStream

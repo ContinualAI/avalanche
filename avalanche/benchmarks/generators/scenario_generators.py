@@ -25,7 +25,7 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.training.utils import IDatasetWithTargets, \
+from avalanche.benchmarks.utils import IDatasetWithTargets, \
     concat_datasets_sequentially, as_transformation_dataset
 
 
