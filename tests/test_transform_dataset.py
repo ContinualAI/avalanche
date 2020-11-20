@@ -9,7 +9,8 @@ from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda
 
 from avalanche.benchmarks.utils import TransformationDataset, \
-    TransformationSubset, load_all_dataset, TransformationConcatDataset
+    TransformationSubset, TransformationConcatDataset
+from avalanche.training.utils import load_all_dataset
 import random
 
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \

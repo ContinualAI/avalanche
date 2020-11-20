@@ -24,7 +24,7 @@ from torch.utils.data import Dataset
 
 from avalanche.evaluation.metrics import ACC
 from avalanche.evaluation.eval_protocol import EvalProtocol
-from avalanche.benchmarks.utils import pad_data, shuffle_in_unison, \
+from avalanche.training.utils import pad_data, shuffle_in_unison, \
     load_all_dataset
 
 

@@ -27,7 +27,7 @@ from avalanche.training.deprecated.ar1.utils import replace_bn_with_brn, \
     create_syn_data, init_batch, freeze_up_to, change_brn_pars, \
     examples_per_class, reset_weights, pre_update, compute_ewc_loss, \
     consolidate_weights, update_ewc_data, set_consolidate_weights
-from avalanche.benchmarks.utils import pad_data, shuffle_in_unison
+from avalanche.training.utils import pad_data, shuffle_in_unison
 import torch
 import copy
 import numpy as np

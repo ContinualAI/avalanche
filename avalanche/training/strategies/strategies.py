@@ -6,7 +6,7 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.evaluation import EvalProtocol
-from avalanche.training.base_strategy import BaseStrategy
+from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training.plugins import StrategyPlugin, \
     CWRStarPlugin, ReplayPlugin, GDumbPlugin
 
