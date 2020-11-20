@@ -181,8 +181,8 @@ class GDumbPlugin(StrategyPlugin):
         """
 
         # for each pattern, add it to the memory or not
-        for i, (pattern, target) in enumerate(strategy.current_data):
-            target_value = target.item()
+        for i, (pattern, target_value) in enumerate(strategy.current_data):
+            target = torch.tensor(target_value)
 
             if self.counter == {}:
                 # any positive (>0) number is ok

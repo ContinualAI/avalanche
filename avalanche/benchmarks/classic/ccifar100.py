@@ -19,7 +19,8 @@ from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR100
 from torchvision import transforms
-from avalanche.training.utils import concat_datasets_sequentially
+from avalanche.training.utils.transform_dataset import \
+    concat_datasets_sequentially, train_test_transformation_datasets
 from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
 from avalanche.benchmarks import nc_scenario, NCScenario
 
@@ -60,7 +61,7 @@ def SplitCIFAR100(incremental_steps: int,
         first pretraining batch containing half of the classes should be used.
         If it's True, a pretrain batch with half of the classes (50 for
         cifar100) is used, and a number of incremental tasks, given by the
-        parameter incremental_task is constructed. If this paramenter is False
+        parameter incremental_task is constructed. If this parameter is False
         no pretraining task will be used, and the dataset is simply split into
         a the number of steps defined by the parameter incremental_steps.
         Default to False.
@@ -161,10 +162,12 @@ def SplitCIFAR110(
         incremental training.  
     """
 
-    cifar10_train, cifar10_test = _get_cifar10_dataset(train_transform,
-                                                       test_transform)
-    cifar100_train, cifar100_test = _get_cifar100_dataset(train_transform,
-                                                          test_transform)
+    cifar10_train, cifar10_test = _get_cifar10_dataset(
+        train_transform, test_transform)
+
+    cifar100_train, cifar100_test = _get_cifar100_dataset(
+        train_transform, test_transform)
+
     cifar_10_100_train, cifar_10_100_test, _ = concat_datasets_sequentially(
         [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
     )
@@ -192,10 +195,14 @@ def SplitCIFAR110(
 
 
 def _get_cifar100_dataset(train_transformation, test_transformation):
-    cifar_train = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
-                           train=True,
-                           download=True, transform=train_transformation)
-    cifar_test = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
-                          train=False,
-                          download=True, transform=test_transformation)
-    return cifar_train, cifar_test
+    train_set = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
+                         train=True, download=True)
+
+    test_set = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
+                        train=False, download=True)
+
+    return train_test_transformation_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
+__all__ = ['SplitCIFAR100', 'SplitCIFAR110']

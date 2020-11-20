@@ -4,10 +4,10 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
     Dict, Any, Iterable, List, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSetWithTargets, TestSetWithTargets, \
-    TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario
+    TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario, \
+    TrainSet, TestSet
 from avalanche.training.utils import TransformationDataset, \
-    TransformationSubset, IDatasetWithTargets
+    TransformationSubset
 
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
 TGenericStepInfo = TypeVar('TGenericStepInfo', bound='GenericStepInfo')
@@ -15,8 +15,7 @@ TGenericScenarioStream = TypeVar('TGenericScenarioStream',
                                  bound='GenericScenarioStream')
 
 
-class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
-                                TStepInfo]):
+class GenericCLScenario(Generic[TrainSet, TestSet, TStepInfo]):
     """
     Base implementation of a Continual Learning scenario. A Continual Learning
     scenario is defined by a sequence of steps (batches or tasks depending on
@@ -33,10 +32,10 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
     their indexes) contained in that step.
     """
     def __init__(self: TGenericCLScenario,
-                 original_train_dataset: TrainSetWithTargets,
-                 original_test_dataset: TestSetWithTargets,
-                 train_dataset: IDatasetWithTargets,
-                 test_dataset: IDatasetWithTargets,
+                 original_train_dataset: TrainSet,
+                 original_test_dataset: TestSet,
+                 train_dataset: TransformationDataset,
+                 test_dataset: TransformationDataset,
                  train_steps_patterns_assignment: Sequence[Sequence[int]],
                  test_steps_patterns_assignment: Sequence[Sequence[int]],
                  task_labels: Sequence[int],
@@ -50,8 +49,14 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
         The scenario is defined by the train and test datasets plus the
         assignment of patterns to steps (batches/tasks).
 
-        :param train_dataset: The training dataset.
-        :param test_dataset:  The test dataset.
+        :param train_dataset: The training dataset. The dataset must be a
+            subclass of :class:`TransformationDataset`. For instance, one can
+            use the datasets from the torchvision package like that:
+            ``train_dataset=TransformationDataset(torchvision_dataset)``.
+        :param test_dataset: The test dataset. The dataset must be a
+            subclass of :class:`TransformationDataset`. For instance, one can
+            use the datasets from the torchvision package like that:
+            ``test_dataset=TransformationDataset(torchvision_dataset)``.
         :param train_steps_patterns_assignment: A list of steps. Each step is
             in turn defined by a list of integers describing the pattern index
             inside the training dataset.
@@ -89,17 +94,16 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             used.
         """
 
-        self.original_train_dataset: TrainSetWithTargets = \
-            original_train_dataset
+        self.original_train_dataset: TrainSet = original_train_dataset
         """ The original training set. """
 
-        self.original_test_dataset: TestSetWithTargets = original_test_dataset
+        self.original_test_dataset: TestSet = original_test_dataset
         """ The original test set. """
 
-        self.train_dataset: IDatasetWithTargets = train_dataset
+        self.train_dataset: TransformationDataset = train_dataset
         """ The training set used to generate the incremental steps. """
 
-        self.test_dataset: IDatasetWithTargets = test_dataset
+        self.test_dataset: TransformationDataset = test_dataset
         """ The test set used to generate the incremental steps. """
 
         self.train_steps_patterns_assignment: Sequence[Sequence[int]]
@@ -114,36 +118,6 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
 
         self.task_labels: Sequence[int] = task_labels
         """ The task label of each step. """
-
-        # Steal transforms from the datasets, that is, copy the reference to the
-        # transformation functions, and set to None the fields in the
-        # respective Dataset instances. This will allow us to disable
-        # transformations (useful while managing rehearsal) or even apply test
-        # transforms to train patterns (useful when if testing on the training
-        # sets, as test transforms usually don't contain data augmentation
-        # transforms)
-        self.train_transform = None
-        self.train_target_transform = None
-        self.test_transform = None
-        self.test_target_transform = None
-
-        if hasattr(train_dataset, 'transform') and \
-                train_dataset.transform is not None:
-            self.train_transform = train_dataset.transform
-            train_dataset.transform = None
-        if hasattr(train_dataset, 'target_transform') and \
-                train_dataset.target_transform is not None:
-            self.train_target_transform = train_dataset.target_transform
-            train_dataset.target_transform = None
-
-        if hasattr(test_dataset, 'transform') and \
-                test_dataset.transform is not None:
-            self.test_transform = test_dataset.transform
-            test_dataset.transform = None
-        if hasattr(test_dataset, 'target_transform') and \
-                test_dataset.target_transform is not None:
-            self.test_target_transform = test_dataset.target_transform
-            test_dataset.target_transform = None
 
         self.train_steps_patterns_assignment: Sequence[Sequence[int]] = \
             train_steps_patterns_assignment
@@ -252,7 +226,6 @@ class GenericCLScenario(Generic[TrainSetWithTargets, TestSetWithTargets,
             (that is, the union of the first two list) while the last one
             returns a list of classes that will be encountered in next steps.
         """
-        train_dataset: TrainSetWithTargets
         train_steps_patterns_assignment: Sequence[Sequence[int]]
 
         class_set_current_step = self.classes_in_step[current_step]
@@ -370,7 +343,7 @@ class LazyClassesInSteps(Sequence[Set[int]]):
 
     def __getitem__(self, step_id) -> Set[int]:
         return set(
-            [int(self._scenario.train_dataset.targets[pattern_idx])
+            [self._scenario.train_dataset.targets[pattern_idx]
              for pattern_idx
              in self._scenario.train_steps_patterns_assignment[step_id]])
 
@@ -522,8 +495,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
                 patterns_indexes = self.scenario.test_steps_patterns_assignment[
                     self.current_step]
 
-        # TODO: solve transformation issue
-        return TransformationSubset(dataset, patterns_indexes)
+        return TransformationSubset(dataset, indices=patterns_indexes)
 
     @property
     def task_label(self) -> int:

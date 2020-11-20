@@ -10,6 +10,7 @@
 ################################################################################
 from abc import abstractmethod
 from enum import Enum
+
 try:
     from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
         Sequence, Any, Union, Iterable, Generic
@@ -18,7 +19,7 @@ except ImportError:
         Generic
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.training.utils import IDatasetWithTargets, TransformationDataset
+from avalanche.training.utils import TransformationDataset
 
 
 class DatasetPart(Enum):
@@ -36,8 +37,8 @@ class DatasetType(Enum):
     VALIDATION = 2  # Validation (or test) set
 
 
-TrainSetWithTargets = TypeVar('TrainSetWithTargets', bound=IDatasetWithTargets)
-TestSetWithTargets = TypeVar('TestSetWithTargets', bound=IDatasetWithTargets)
+TrainSet = TypeVar('TrainSet', bound=TransformationDataset)
+TestSet = TypeVar('TestSet', bound=TransformationDataset)
 TScenario = TypeVar('TScenario')
 TStepInfo = TypeVar('TStepInfo', bound='IStepInfo')
 TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
@@ -138,6 +139,6 @@ class IScenarioStream(Protocol[TScenario, TStepInfo]):
         ...
 
 
-__all__ = ['DatasetPart', 'DatasetType', 'TrainSetWithTargets',
-           'TestSetWithTargets', 'IStepInfo', 'TStepInfo', 'TScenario',
+__all__ = ['DatasetPart', 'DatasetType', 'TrainSet',
+           'TestSet', 'IStepInfo', 'TStepInfo', 'TScenario',
            'IScenarioStream', 'TScenarioStream']

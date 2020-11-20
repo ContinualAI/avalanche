@@ -14,7 +14,7 @@ from typing import Optional, List, Generic, Sequence, Dict, Any, Set
 import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSetWithTargets, TestSetWithTargets
+    TrainSet, TestSet
 from avalanche.training.utils import TransformationSubset, IDatasetWithTargets
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
@@ -39,9 +39,8 @@ def _step_structure_from_assignment(dataset: IDatasetWithTargets,
     return step_structure
 
 
-class NIScenario(GenericCLScenario[TrainSetWithTargets,
-                                   TestSetWithTargets, 'NIStepInfo'],
-                 Generic[TrainSetWithTargets, TestSetWithTargets]):
+class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIStepInfo'],
+                 Generic[TrainSet, TestSet]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -58,8 +57,9 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
     """
 
     def __init__(
-            self, train_dataset: TrainSetWithTargets,
-            test_dataset: TestSetWithTargets,
+            self,
+            train_dataset: TrainSet,
+            test_dataset: TestSet,
             n_steps: int,
             task_labels: bool = False,
             shuffle: bool = True,
@@ -72,12 +72,14 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
         Creates a NIScenario instance given the training and test Datasets and
         the number of steps.
 
-        :param train_dataset: The training dataset. The dataset must contain a
-            "targets" field. For instance, one can safely use the datasets from
-            the torchvision package.
-        :param test_dataset: The test dataset. The dataset must contain a
-            "targets" field. For instance, one can safely use the datasets from
-            the torchvision package.
+        :param train_dataset: The training dataset. The dataset must be a
+            subclass of :class:`TransformationDataset`. For instance, one can
+            use the datasets from the torchvision package like that:
+            ``train_dataset=TransformationDataset(torchvision_dataset)``.
+        :param test_dataset: The test dataset. The dataset must be a
+            subclass of :class:`TransformationDataset`. For instance, one can
+            use the datasets from the torchvision package like that:
+            ``test_dataset=TransformationDataset(torchvision_dataset)``.
         :param n_steps: The number of steps.
         :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
@@ -154,7 +156,8 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
             included_patterns = list()
             for step_def in fixed_step_assignment:
                 included_patterns.extend(step_def)
-            subset = TransformationSubset(train_dataset, included_patterns)
+            subset = TransformationSubset(train_dataset,
+                                          indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True)
 
@@ -340,7 +343,7 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
                 else:
                     remaining_patterns.sort()
                     patterns_order = remaining_patterns
-                targets_order = [int(train_dataset.targets[pattern_idx])
+                targets_order = [train_dataset.targets[pattern_idx]
                                  for pattern_idx in patterns_order]
 
                 avg_step_size = len(patterns_order) // n_steps
@@ -406,21 +409,18 @@ class NIScenario(GenericCLScenario[TrainSetWithTargets,
         return super().get_reproducibility_data()
 
 
-class NIStepInfo(GenericStepInfo[NIScenario[TrainSetWithTargets,
-                                            TestSetWithTargets],
+class NIStepInfo(GenericStepInfo[NIScenario[TrainSet, TestSet],
                                  GenericScenarioStream[
                                      'NIStepInfo',
-                                     NIScenario[TrainSetWithTargets,
-                                                TestSetWithTargets]]],
-                 Generic[TrainSetWithTargets, TestSetWithTargets]):
+                                     NIScenario[TrainSet, TestSet]]],
+                 Generic[TrainSet, TestSet]):
     """
     Defines a "New Instances" step. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
     stream from which this step was taken.
     """
     def __init__(self, origin_stream: GenericScenarioStream[
-                     'NIStepInfo', NIScenario[TrainSetWithTargets,
-                                              TestSetWithTargets]],
+                     'NIStepInfo', NIScenario[TrainSet, TestSet]],
                  current_step: int):
         """
         Creates a ``NIStepInfo`` instance given the stream from this

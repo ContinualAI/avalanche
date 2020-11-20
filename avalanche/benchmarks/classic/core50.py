@@ -85,11 +85,10 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
     scenario_obj = create_generic_scenario_from_filelists(
         root_img, train_failists_paths,
         root + filelists_bp + "test_filelist.txt",
-        [0 for i in range(nbatch[scenario])],
+        [0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=transforms.ToTensor(),
-        test_transform=transforms.ToTensor()
-    )
+        test_transform=transforms.ToTensor())
 
     return scenario_obj
 
@@ -98,13 +97,13 @@ if __name__ == "__main__":
 
     # this below can be taken as a usage example or a simple test script
     import sys
-    from torch.utils.data import DataLoader
+    from torch.utils.data.dataloader import DataLoader
     from torchvision import transforms
 
     scenario = CORe50(scenario="nicv2_79")
-    for i, batch in enumerate(scenario):
+    for i, batch in enumerate(scenario.train_stream):
         print(i, batch)
-        dataset, t = batch.current_training_set()
+        dataset, t = batch.dataset, batch.task_label
         dl = DataLoader(dataset, batch_size=300)
 
         for mb in dl:
