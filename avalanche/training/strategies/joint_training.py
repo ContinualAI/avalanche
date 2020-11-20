@@ -52,7 +52,7 @@ class JointTraining(BaseStrategy):
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             test_mb_size=test_mb_size, device=device, plugins=plugins)
 
-    def train(self, step_infos:Sequence[IStepInfo], **kwargs):
+    def train(self, step_infos: Sequence[IStepInfo], **kwargs):
         """ Training loop. if step_infos is a single element trains on it.
         If it is a sequence, trains the model on each step in order.
         This is different from joint training on the entire stream.
