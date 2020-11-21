@@ -681,5 +681,67 @@ class MultiHeadPlugin(StrategyPlugin):
         return new_layer
 
 
+class LwFPlugin(StrategyPlugin):
+    """
+    A Learning without Forgetting plugin.
+    LwF uses distillation to regularize the current loss with soft targets
+    taken from a previous version of the model. 
+    """
+
+    def __init__(self, alpha=1, temperature=2):
+        """
+        :param alpha: distillation hyperparameter. It can be either a float
+                number or a list containing alpha for each step.
+        :param temperature: softmax temperature for distillation
+        """
+
+        super().__init__()
+
+        self.alpha = alpha
+        self.temperature = temperature
+        self.prev_model = None
+        self.step_id = 0
+
+    def _distillation_loss(self, out, prev_out):
+        """
+        Compute distillation loss between output of the current model and
+        and output of the previous (saved) model.
+        """
+
+        log_p = torch.log_softmax(out / self.temperature, dim=1)
+        q = torch.softmax(prev_out / self.temperature, dim=1)
+        res = torch.nn.functional.kl_div(log_p, q, reduction='batchmean')
+        return res
+
+    def penalty(self, out, x, alpha):
+        """
+        Compute weighted distillation loss.
+        """
+
+        if self.prev_model is None:
+            return 0
+        else:
+            y_prev = self.prev_model(x).detach()
+            dist_loss = self._distillation_loss(out, y_prev)
+            return alpha * dist_loss
+
+    def before_backward(self, strategy, **kwargs):
+        """
+        Add distillation loss
+        """
+        alpha = self.alpha[self.step_id] \
+            if isinstance(self.alpha, (list, tuple)) else self.alpha
+        penalty = self.penalty(strategy.logits, strategy.mb_x, alpha)
+        strategy.loss += penalty
+
+    def after_training_step(self, strategy, **kwargs):
+        """
+        Save a copy of the model after each step
+        """
+
+        self.prev_model = copy.deepcopy(strategy.model)
+        self.step_id += 1
+
+
 __all__ = ['StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
-           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin']
+           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin']
