@@ -167,6 +167,7 @@ class JointTraining:
             for ds in concat_ds.datasets:
                 szs.append(max(ds.targets) + 1)
             self.task_layers[t] = self.create_task_layer(max(szs))
+            # self.add_new_params_to_optimizer(self.task_layers[t].parameters())
 
         print("starting training...")
         self.model.train()
