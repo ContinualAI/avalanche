@@ -9,18 +9,16 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from collections import defaultdict
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.plugins import StrategyPlugin
 from avalanche.evaluation.eval_protocol import EvalProtocol
 from avalanche.training.strategies import BaseStrategy
-from avalanche.benchmarks.utils import concat_datasets_sequentially
 
 
 class JointTraining(BaseStrategy):
@@ -78,7 +76,7 @@ class JointTraining(BaseStrategy):
             self.current_data = ConcatDataset(datasets)
             self.step_info = step_infos[0]
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         print("starting training...")
         self.model.train()
