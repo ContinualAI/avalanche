@@ -20,6 +20,7 @@ from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.evaluation.eval_protocol import EvalProtocol
 
+
 class JointTraining:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  classifier_field: str = 'classifier',
@@ -27,6 +28,7 @@ class JointTraining:
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
+
         """
         JointStrategy is a super class for all the joint training strategies.
         This means that it is not a continual learning strategy but it can be
@@ -72,7 +74,7 @@ class JointTraining:
         # Flow state variables
         self.step_id = None  # test-flow only.
         self.epoch = None
-        self.step_info = None # we need to keep this for the eval plugin
+        self.step_info = None  # we need to keep this for the eval plugin
         self.current_data = None
         self.current_dataloader = None
         self.mb_it = None  # train-flow only. minibatch iteration.
@@ -95,7 +97,6 @@ class JointTraining:
                 self.task_layers[task_label])
         # this to make sure everything is on the correct device
         self.model.to(self.device)
-
 
     @torch.no_grad()
     def create_task_layer(self, n_output_units: int, previous_task_layer=None):
@@ -266,7 +267,6 @@ class JointTraining:
             self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
-
 
     def add_new_params_to_optimizer(self, new_params):
         """ Add new parameters to the trainable parameters.
