@@ -23,7 +23,7 @@ from torch.nn import CrossEntropyLoss
 
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative
+    GDumb, Cumulative, LwF
 from avalanche.benchmarks import nc_scenario, NCStepInfo
 
 
@@ -115,6 +115,19 @@ class StrategyTest(unittest.TestCase):
             mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64)
+        self.run_strategy(my_nc_scenario, strategy)
+    
+    def test_lwf(self):
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        mnist_train, mnist_test = self.load_dataset()
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+
+        strategy = LwF(model, optimizer, criterion,
+                       alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)], 
+                       temperature=2, train_mb_size=64)
         self.run_strategy(my_nc_scenario, strategy)
 
     def load_dataset(self):
