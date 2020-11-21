@@ -147,7 +147,7 @@ class StrategyTest(unittest.TestCase):
 
         dataset_train_X, dataset_test_X = [], []
         dataset_train_y, dataset_test_y = [], []
-        for class_id in range(0,10,2):
+        for class_id in range(0, 10, 2):
             idx_train = torch.logical_or(
                 train_y == class_id, train_y == class_id+1)
             idx_test = torch.logical_or(
