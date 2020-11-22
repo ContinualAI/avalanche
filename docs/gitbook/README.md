@@ -6,7 +6,7 @@ description: Powered by ContinualAI
 
 ![](.gitbook/assets/avalanche_logo_with_clai.png)
 
-**Avalanche** is an _end-to-end Continual Learning research_ framework based on [**Pytorch**](https://pytorch.org/), born within [**ContinualAI**](https://www.continualai.org/) with the unique goal of providing a **shared** and **collaborative** open-source **codebase** for _fast prototyping_, _training_ and _reproducible_ _evaluation_ of continual learning algorithms. 
+**Avalanche** is an _end-to-end Continual Learning research_ framework based on [**Pytorch**](https://pytorch.org/), born within [**ContinualAI**](https://www.continualai.org/) with the unique goal of providing a **shared** and **collaborative** open-source \(MIT licensed\) **codebase** for _fast prototyping_, _training_ and _reproducible_ _evaluation_ of continual learning algorithms. 
 
 Avalanche can help _Continual Learning_ researchers in several ways:
 
@@ -43,30 +43,30 @@ from avalanche.training.strategies import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-n_tasks = 5
-n_classes = 10
-train_ep = 2
-mb_size = 32
 
 # model
-model = SimpleMLP(num_classes=n_classes)
+model = SimpleMLP(num_classes=10)
 
 # CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_tasks)
+perm_mnist = PermutedMNIST(incremental_steps=3)
+train_stream = perm_mnist.train_stream
+test_stream = perm_mnist.test_stream
 
-# Train & Test
+# Prepare for training & testing
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
-evaluation_protocol = EvalProtocol(metrics=[ACC(n_classes)]
-cl_strategy = Naive(
-    model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=mb_size, train_epochs=train_ep,
-    test_mb_size=mb_size, evaluation_protocol=evaluation_protocol, device=device)
+evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
+# Continual learning strategy
+cl_strategy = Naive(
+    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
+    test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+
+# train and test loop
 results = []
-for task in perm_mnist:
-    cl_strategy.train(task, num_workers=4)
-    results.append(cl_strategy.test(task))
+for train_task in train_stream:
+    cl_strategy.train(train_task, num_workers=4)
+    results.append(cl_strategy.test(test_stream))
 ```
 {% endtab %}
 
@@ -211,18 +211,18 @@ We have also prepared for you a large set of _**examples & snippets**_ you can p
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
 
-## 📑 Cite Us
+## 📑 Cite Avalanche
 
-If you used _Avalanche_ in your research project, please remember to cite our white paper:
+If you used _Avalanche_ in your research project, please remember to cite our white paper. This will help us make _Avalanche_ better known in the machine learning community, ultimately making a better tool for everyone:
 
-> ```text
-> @article{lomonaco2020,
->    title = {Avalanche: an End-to-End Framework for Continual Learning Research},
->    author = {...},
->    journal = {Arxiv preprint arXiv:xxxx.xxxx},
->    year = {2020}
-> }
-> ```
+```text
+@article{lomonaco2020,
+   title = {Avalanche: an End-to-End Framework for Continual Learning Research},
+   author = {...},
+   journal = {Arxiv preprint arXiv:xxxx.xxxx},
+   year = {2020}
+}
+```
 
 ## 🗂️ Maintained by ContinualAI Lab
 
@@ -233,6 +233,4 @@ _Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**
 The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/)_._ We are always looking for new _awesome members_, so check out our official website if you want to learn more about us and our activities.
 
 Learn more about the [_**Avalanche Team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
-
-
 

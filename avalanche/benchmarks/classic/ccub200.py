@@ -17,7 +17,7 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-from avalanche.training.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_test_transformation_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),

@@ -179,15 +179,16 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_training_step(self, **kwargs)
 
-    def make_train_dataloader(self, num_workers=0, **kwargs):
+    def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
         """
         Called after the dataset instantiation. Initialize the data loader.
-        :param num_workers:
+        :param num_workers: number of thread workers for the data laoding.
+        :param shuffle: True if the data should be shuffled, False otherwise.
         """
         self.current_dataloader = DataLoader(self.current_data,
                                              num_workers=num_workers, 
                                              batch_size=self.train_mb_size,
-                                             shuffle=True)
+                                             shuffle=shuffle)
 
     def make_test_dataloader(self, num_workers=0, **kwargs):
         """

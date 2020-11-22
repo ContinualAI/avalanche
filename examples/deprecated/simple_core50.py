@@ -22,7 +22,7 @@ from __future__ import absolute_import
 from avalanche.benchmarks import CORE50
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.extras.models import SimpleCNN
-from avalanche.training.utils import imagenet_batch_preproc
+from avalanche.benchmarks.utils import imagenet_batch_preproc
 from avalanche.training.strategies import Naive
 from avalanche.evaluation import EvalProtocol
 

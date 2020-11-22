@@ -3,7 +3,7 @@ from typing import Sequence, Union, SupportsInt, Any
 
 from torch import Tensor
 
-from avalanche.training.utils import TransformationTensorDataset, \
+from avalanche.benchmarks.utils import TransformationTensorDataset, \
     IDatasetWithTargets, TransformationConcatDataset, as_transformation_dataset
 from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario

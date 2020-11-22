@@ -25,7 +25,7 @@ from PIL import Image
 import os
 import os.path
 
-from avalanche.training.utils import TransformationDataset
+from avalanche.benchmarks.utils import TransformationDataset
 
 
 def default_loader(path):

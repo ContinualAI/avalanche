@@ -11,7 +11,7 @@ Project Structure
          may be multiple CData Loaders (i.e. settings/scenarios) for the same
           orginal dataset, in this directory we maintain all the basic
            utilities functions and classes relative to each dataset/environment.
-        - [utils.py](avalanche/benchmarks/utils.py): All the utility function
+        - [utils.py](avalanche/benchmarks/utils/utils.py): All the utility function
          related to datasets and cdata_loaders.
     - [Training](avalanche/training): In this module we maintain all the
      continual learning strategies.

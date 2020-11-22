@@ -183,7 +183,9 @@ class GDumbPlugin(StrategyPlugin):
         # for each pattern, add it to the memory or not
         for i, (pattern, target_value) in enumerate(strategy.current_data):
             target = torch.tensor(target_value)
-
+            if len(pattern.size()) == 1:
+                pattern = pattern.unsqueeze(0)
+                
             if self.counter == {}:
                 # any positive (>0) number is ok
                 patterns_per_class = 1
@@ -267,7 +269,7 @@ class EvaluationPlugin(StrategyPlugin):
     def get_test_result(self):
         return self._test_protocol_results
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training_step(self, strategy, joint_training=False, **kwargs):
         task_id = strategy.step_info.task_label
         self._train_current_task_id = task_id
         self._training_accuracy = None
@@ -276,9 +278,13 @@ class EvaluationPlugin(StrategyPlugin):
         self._seen_samples = 0
         self._total_loss = 0
         self._average_loss = 0
-        print("[Training on Task {}, Step {}]"
-              .format(self._test_current_task_id,
-                      strategy.step_info.current_step))
+
+        if joint_training:
+            print("[Joint Training]")
+        else:
+            print("[Training on Task {}, Step {}]"
+                  .format(self._train_current_task_id,
+                          strategy.step_info.current_step))
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1
@@ -518,7 +524,7 @@ class MultiHeadPlugin(StrategyPlugin):
             # create head for unseen tasks
             task_layer = self.create_task_layer(n_output_units=n_output_units)
             strategy.add_new_params_to_optimizer(task_layer.parameters())
-            self.task_layers[task_label] = task_layer
+            self.task_layers[task_label] = task_layer.to(strategy.device)
         else:
             # check head expansion
             self.task_layers[task_label] = \
@@ -671,11 +677,73 @@ class MultiHeadPlugin(StrategyPlugin):
             min_n_output_units,
             previous_task_layer=task_layer)
 
-        self.adapt_task_layer(task_layer, new_layer)
+        self.adapt_task_layer(task_layer, new_layer.to(strategy.device))
         strategy.update_optimizer(task_layer.parameters(),
                                   new_layer.parameters())
         return new_layer
 
 
+class LwFPlugin(StrategyPlugin):
+    """
+    A Learning without Forgetting plugin.
+    LwF uses distillation to regularize the current loss with soft targets
+    taken from a previous version of the model. 
+    """
+
+    def __init__(self, alpha=1, temperature=2):
+        """
+        :param alpha: distillation hyperparameter. It can be either a float
+                number or a list containing alpha for each step.
+        :param temperature: softmax temperature for distillation
+        """
+
+        super().__init__()
+
+        self.alpha = alpha
+        self.temperature = temperature
+        self.prev_model = None
+        self.step_id = 0
+
+    def _distillation_loss(self, out, prev_out):
+        """
+        Compute distillation loss between output of the current model and
+        and output of the previous (saved) model.
+        """
+
+        log_p = torch.log_softmax(out / self.temperature, dim=1)
+        q = torch.softmax(prev_out / self.temperature, dim=1)
+        res = torch.nn.functional.kl_div(log_p, q, reduction='batchmean')
+        return res
+
+    def penalty(self, out, x, alpha):
+        """
+        Compute weighted distillation loss.
+        """
+
+        if self.prev_model is None:
+            return 0
+        else:
+            y_prev = self.prev_model(x).detach()
+            dist_loss = self._distillation_loss(out, y_prev)
+            return alpha * dist_loss
+
+    def before_backward(self, strategy, **kwargs):
+        """
+        Add distillation loss
+        """
+        alpha = self.alpha[self.step_id] \
+            if isinstance(self.alpha, (list, tuple)) else self.alpha
+        penalty = self.penalty(strategy.logits, strategy.mb_x, alpha)
+        strategy.loss += penalty
+
+    def after_training_step(self, strategy, **kwargs):
+        """
+        Save a copy of the model after each step
+        """
+
+        self.prev_model = copy.deepcopy(strategy.model)
+        self.step_id += 1
+
+
 __all__ = ['StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
-           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin']
+           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin']

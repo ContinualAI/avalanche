@@ -6,7 +6,7 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario, \
     TrainSet, TestSet
-from avalanche.training.utils import TransformationDataset, \
+from avalanche.benchmarks.utils import TransformationDataset, \
     TransformationSubset
 
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')

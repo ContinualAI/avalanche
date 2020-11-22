@@ -22,9 +22,9 @@ try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
         TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple
 except ImportError:
-    from typing_extensions import List, Any, Iterable, Sequence, Union, \
-        Optional, TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple
-
+    from typing import List, Any, Iterable, Sequence, Union, Optional, \
+        TypeVar, SupportsInt, Generic, Callable, Dict, Tuple
+    from typing_extensions import Protocol
 
 T_co = TypeVar('T_co', covariant=True)
 TTransform_co = TypeVar('TTransform_co', covariant=True)

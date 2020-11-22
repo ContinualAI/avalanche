@@ -25,7 +25,7 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.training.utils import IDatasetWithTargets, \
+from avalanche.benchmarks.utils import IDatasetWithTargets, \
     concat_datasets_sequentially, as_transformation_dataset
 
 
@@ -199,7 +199,7 @@ def ni_scenario(
     This method is the high-level specific scenario generator for the
     "New Instances" (NI) case. Given a sequence of train and test datasets
     creates the continual stream of data as a series of steps. Each step will
-    contain patterns belonging to different classes.
+    contain patterns belonging to the same classes.
 
     The ``task_labels`` parameter determines if each incremental step has
     an increasing task label or if, at the contrary, a default task label "0"

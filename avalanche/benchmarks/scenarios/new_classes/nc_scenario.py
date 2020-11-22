@@ -14,7 +14,7 @@ from typing import Sequence, List, Optional, Dict, Generic, Any, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSet, TestSet
-from avalanche.training.utils import TransformationSubset
+from avalanche.benchmarks.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
 

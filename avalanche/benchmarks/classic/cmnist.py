@@ -29,7 +29,7 @@ from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
     RandomRotation
 
 from avalanche.benchmarks import NCScenario, nc_scenario
-from avalanche.training.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_test_transformation_datasets
 
 _default_mnist_train_transform = Compose([
     ToTensor(),
@@ -56,7 +56,7 @@ class PixelsPermutation(object):
         self._to_image = ToPILImage()
 
     def __call__(self, img: Union[Image, Tensor]):
-        is_image = isinstance(img, Image.Image)
+        is_image = isinstance(img, Image)
         if (not is_image) and (not isinstance(img, Tensor)):
             raise ValueError('Invalid input: must be a PIL image or a Tensor')
 

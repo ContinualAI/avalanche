@@ -23,7 +23,7 @@ from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.training.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_test_transformation_datasets
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
