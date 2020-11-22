@@ -4,14 +4,15 @@ from typing import Sequence, Union, SupportsInt, Any
 from torch import Tensor
 
 from avalanche.benchmarks.utils import TransformationTensorDataset, \
-    IDatasetWithTargets, TransformationConcatDataset, as_transformation_dataset
+    TransformationConcatDataset, as_transformation_dataset, \
+    SupportedDataset
 from avalanche.benchmarks.datasets import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 
 
 def create_multi_dataset_generic_scenario(
-        train_dataset_list: Sequence[IDatasetWithTargets],
-        test_dataset_list: Sequence[IDatasetWithTargets],
+        train_dataset_list: Sequence[SupportedDataset],
+        test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False) -> GenericCLScenario:
     """

@@ -11,7 +11,6 @@ import torch
 from torch import Tensor
 from torch.utils.data.dataset import Dataset
 
-
 T_co = TypeVar('T_co', covariant=True)
 
 
@@ -55,6 +54,26 @@ class IDatasetWithTargets(IDataset[T_co], Protocol):
     """
     A sequence of ints or a PyTorch Tensor or a NumPy ndarray describing the
     label of each pattern contained in the dataset.
+    """
+
+    def __getitem__(self, index: int) -> Tuple[T_co, int]:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+
+class ITensorDataset(IDataset[T_co], Protocol):
+    """
+    Protocol definition of a Dataset that has a tensors field (like
+    TensorDataset).
+
+    Note: no __add__ method is defined.
+    """
+
+    tensors: Sequence[T_co]
+    """
+    A sequence of PyTorch Tensors describing the contents of the Dataset.
     """
 
     def __getitem__(self, index: int) -> Tuple[T_co, int]:
@@ -274,6 +293,44 @@ class SequenceDataset(DatasetWithTargets[T_co]):
         return len(self.dataset_x)
 
 
+class TensorDatasetWrapper(DatasetWithTargets[T_co]):
+    """
+    A Dataset that wraps a Tensor Dataset to provide the targets field.
+
+    A Tensor Dataset is any dataset with a "tensors" field. The tensors
+    field must be a sequence of Tensor. To provide a valid targets field,
+    the "tensors" field must contain at least 2 tensors. The second tensor
+    must contain elements that can be converted to int.
+
+    Beware that the second element obtained from the wrapped dataset using
+    __getitem__ will always be converted to int, This differs from the
+    behaviour of PyTorch TensorDataset. This is required to keep a better
+    compatibility with torchvision datasets.
+    """
+    def __init__(self, tensor_dataset: ITensorDataset[T_co]):
+        """
+        Creates a ``TensorDatasetWrapper`` instance.
+
+        :param tensor_dataset: An instance of a TensorDataset. See class
+            description for more details.
+        """
+        super().__init__()
+        if len(tensor_dataset.tensors) < 2:
+            raise ValueError('Tensor dataset has not enough tensors: '
+                             'at least 2 are required.')
+
+        self.dataset = tensor_dataset
+        self.targets = LazyTargetsConversion(tensor_dataset.tensors[1])
+
+    def __getitem__(self, idx):
+        obtained_item = list(self.dataset[idx])
+        obtained_item[1] = int(obtained_item[1])
+        return tuple(obtained_item)
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+
 def find_list_from_index(pattern_idx: int,
                          list_sizes: Sequence[int],
                          max_size: int):
@@ -343,8 +400,9 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
     return patterns_cat, labels_cat
 
 
-__all__ = ['IDataset', 'IDatasetWithTargets', 'IDatasetWithIntTargets',
-           'DatasetWithTargets', 'LazyClassMapping', 'LazyConcatTargets',
-           'LazyTargetsConversion', 'SubsetWithTargets',
+__all__ = ['IDataset', 'IDatasetWithTargets', 'ITensorDataset',
+           'IDatasetWithIntTargets', 'DatasetWithTargets', 'LazyClassMapping',
+           'LazyConcatTargets', 'LazyTargetsConversion', 'SubsetWithTargets',
            'ConcatDatasetWithTargets', 'SequenceDataset',
-           'find_list_from_index', 'manage_advanced_indexing']
+           'TensorDatasetWrapper', 'find_list_from_index',
+           'manage_advanced_indexing']
