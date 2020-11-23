@@ -61,11 +61,11 @@ class BaseStrategyTest(unittest.TestCase):
 class StrategyTest(unittest.TestCase):
 
     if "FAST_TEST" in os.environ:
-        fast_test = bool(int(os.environ['FAST_TEST']))
+        fast_test = os.environ['FAST_TEST'].lower() in ["true"]
     else:
         fast_test = False
     if "FAST_TEST" in os.environ:
-        use_gpu = bool(int(os.environ['USE_GPU']))
+        use_gpu = os.environ['USE_GPU'].lower() in ["true"]
     else:
         use_gpu = False
 

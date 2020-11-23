@@ -19,4 +19,4 @@ jobs:
       - name: testing the software
         run: |
           source activate avalanche-env
-          python -m unittest
+          FAST_TEST=True USE_GPU=False python -m unittest
