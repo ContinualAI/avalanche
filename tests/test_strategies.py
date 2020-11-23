@@ -7,7 +7,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-06-2020                                                              #
-# Author(s): Andrea Cossu                                                #
+# Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
@@ -15,16 +15,20 @@
 import unittest
 
 import torch
-
-from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Compose
+import os
+
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
+from torch.utils.data import TensorDataset
 
+from avalanche.benchmarks.datasets import MNIST
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF
-from avalanche.benchmarks import nc_scenario, NCStepInfo
+from avalanche.benchmarks import nc_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -56,94 +60,135 @@ class BaseStrategyTest(unittest.TestCase):
 
 class StrategyTest(unittest.TestCase):
 
+    if "FAST_TEST" in os.environ:
+        fast_test = bool(int(os.environ['FAST_TEST']))
+    else:
+        fast_test = False
+    if "FAST_TEST" in os.environ:
+        use_gpu = bool(int(os.environ['USE_GPU']))
+    else:
+        use_gpu = False
+
+    print("Fast Test:", fast_test)
+    print("Test on GPU:", use_gpu)
+
+    if use_gpu:
+        device = "cuda"
+    else:
+        device = "cpu"
+
     def test_naive(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False,
-            shuffle=True, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
-        strategy = Naive(model, optimizer, criterion, train_mb_size=64)
+        strategy = Naive(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_cwrstar(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False,
-            shuffle=True, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = CWRStar(model, optimizer, criterion, 'features.0.bias',
-                           train_mb_size=64)
+                           train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = Replay(model, optimizer, criterion,
-                          mem_size=200, train_mb_size=64)
+                          mem_size=200, train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
     
     def test_gdumb(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = GDumb(
                 model, optimizer, criterion,
-                mem_size=200, train_mb_size=64)
+                mem_size=200, train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_cumulative(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
-        strategy = Cumulative(model, optimizer, criterion, train_mb_size=64)
+        strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
+                              device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
     
     def test_lwf(self):
-        model = SimpleMLP()
+        model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)], 
-                       temperature=2, train_mb_size=64)
+                       temperature=2, train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
-    def load_dataset(self):
-        mnist_train = MNIST(
-            './data/mnist', train=True, download=True, 
-            transform=Compose([ToTensor()]))
+    def load_scenario(self, fast_test=False):
+        """
+        Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
+        2 classes per step.
 
-        mnist_test = MNIST(
-            './data/mnist', train=False, download=True,
-            transform=Compose([ToTensor()]))
-        return mnist_train, mnist_test
+        :param fast_test: if True loads fake data, MNIST otherwise.
+        """
+
+        if fast_test:
+            n_samples_per_class = 200
+
+            dataset = make_classification(
+                n_samples=10 * n_samples_per_class,
+                n_classes=10,
+                n_features=6, n_informative=6, n_redundant=0)
+
+            X = torch.from_numpy(dataset[0]).float()
+            y = torch.from_numpy(dataset[1]).long()
+
+            train_X, test_X, train_y, test_y = train_test_split(
+                X, y, train_size=0.6, shuffle=True, stratify=y)
+
+            train_dataset = TensorDataset(train_X, train_y)
+            test_dataset = TensorDataset(test_X, test_y)
+            my_nc_scenario = nc_scenario(
+                train_dataset, test_dataset, 5, task_labels=False
+            )
+        else:
+            mnist_train = MNIST(
+                './data/mnist', train=True, download=True,
+                transform=Compose([ToTensor()]))
+
+            mnist_test = MNIST(
+                './data/mnist', train=False, download=True,
+                transform=Compose([ToTensor()]))
+            my_nc_scenario = nc_scenario(
+                mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+
+        return my_nc_scenario
+
+    def get_model(self, fast_test=False):
+
+        if fast_test:
+            return SimpleMLP(input_size=6)
+        else:
+            return SimpleMLP()
 
     def run_strategy(self, scenario, cl_strategy):
         print('Starting experiment...')
         results = []
-        train_batch_info: NCStepInfo
         for train_batch_info in scenario.train_stream:
             print("Start of step ", train_batch_info.current_step)
 
