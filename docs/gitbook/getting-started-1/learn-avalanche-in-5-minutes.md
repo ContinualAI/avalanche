@@ -14,22 +14,49 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 
 > #### _With Avalanche, you can find all these three fundamental pieces together and more, in a single and coherent codabase._
 
-Indeed, these are the _three main modules_ offered in the _Avalanche_ package.
+Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
-## 📦 How to Install Avalanche
+{% hint style="info" %}
+In this short guide we assume you have already installed _Avalanche_. If you haven't yet, check out how you can do it following our [How to Install](1.-how-to-install.md) guide.
+{% endhint %}
 
-_Avalanche_ can be installed as simply as:
+## 🏛️ General Architecture
 
+_Avalanche_ is organized in **four main modules**:
+
+* **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
+* **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
+* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [Tensorboard](https://www.tensorflow.org/tensorboard) support.
+* **`Extras`**: In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
+
+In the graphic below, you can see how _Avalanche_ sub-modules are available and organized as well:
+
+{% code title="Avalanche Main Modules and Sub-Modules" %}
 ```text
-pip install git+https://vlomonaco:****@github.com/vlomonaco/avalanche.git
+Avalanche
+├── Benchmarks
+│   ├── Classic
+│   ├── Datasets
+│   ├── Generators
+│   ├── Scenarios
+│   └── Utils
+├── Evaluation
+│   ├── Metrics
+│   ├── Tensorboard
+|   └── Utils
+├── Training
+│   ├── Strategies
+│   ├── Plugins
+|   └── Utils
+└── Extras
+    ├── Configs
+    └── Models
 ```
+{% endcode %}
 
-You can check if the installation was successful importing the package in Python with:
+We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://vlomonaco.github.io/avalanche) is your friend as well!
 
-```text
-import avalanche
-avalanche.__version__
-```
+All right, let's start with the benchmarks module right away 👇
 
 ## 📚 Benchamarks
 
