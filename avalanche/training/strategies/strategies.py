@@ -8,7 +8,7 @@ from torch.utils.data import ConcatDataset
 from avalanche.evaluation import EvalProtocol
 from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training.plugins import StrategyPlugin, \
-    CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin
+    CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin
 
 
 class Naive(BaseStrategy):
@@ -264,4 +264,43 @@ class AGEM(BaseStrategy):
             test_mb_size=test_mb_size, device=device, plugins=plugins)
 
 
-__all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM']
+class GEM(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 patterns_per_step: int, memory_strength: float = 0.5,
+                 evaluation_protocol: Optional[EvalProtocol] = None,
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 test_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 ):
+        """ Gradient Episodic Memory (GEM) strategy. 
+            See GEM plugin for details.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param patterns_per_step: number of patterns per step in the memory
+        :param memory_strength: offset to add to the projection direction
+            in order to favour backward transfer (gamma in original paper).
+        :param evaluation_protocol: The evaluation plugin.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        """
+
+        gem = GEMPlugin(patterns_per_step, memory_strength)
+        if plugins is None:
+            plugins = [gem]
+        else:
+            plugins.append(gem)
+
+        super().__init__(
+            model, optimizer, criterion, evaluation_protocol,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            test_mb_size=test_mb_size, device=device, plugins=plugins)
+
+
+__all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM',
+           'GEM']
