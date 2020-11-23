@@ -20,11 +20,12 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
+from torch.utils.data import TensorDataset
 
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF
-from avalanche.benchmarks import tensor_scenario
+from avalanche.benchmarks import nc_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -60,9 +61,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = Naive(model, optimizer, criterion, train_mb_size=64)
         self.run_strategy(my_nc_scenario, strategy)
@@ -71,9 +70,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = CWRStar(model, optimizer, criterion, 'features.0.bias',
                            train_mb_size=64)
@@ -83,9 +80,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = Replay(model, optimizer, criterion,
                           mem_size=200, train_mb_size=64)
@@ -95,9 +90,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = GDumb(
                 model, optimizer, criterion,
@@ -108,9 +101,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64)
         self.run_strategy(my_nc_scenario, strategy)
@@ -119,18 +110,17 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)], 
                        temperature=2, train_mb_size=64)
         self.run_strategy(my_nc_scenario, strategy)
 
-    def load_dataset(self):
+    def load_scenario(self):
         """
-        Fake dataset of 10 classes, 5 steps, 2 classes per step.
+        Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
+        2 classes per step.
         """
 
         n_samples_per_class = 200
@@ -142,22 +132,13 @@ class StrategyTest(unittest.TestCase):
 
         X = torch.from_numpy(dataset[0]).float()
         y = torch.from_numpy(dataset[1]).long()
+
         train_X, test_X, train_y, test_y = train_test_split(
             X, y, train_size=0.6, shuffle=True, stratify=y)
 
-        dataset_train_X, dataset_test_X = [], []
-        dataset_train_y, dataset_test_y = [], []
-        for class_id in range(0, 10, 2):
-            idx_train = torch.logical_or(
-                train_y == class_id, train_y == class_id+1)
-            idx_test = torch.logical_or(
-                test_y == class_id, test_y == class_id + 1)
-            dataset_train_X.append(train_X[idx_train])
-            dataset_train_y.append(train_y[idx_train])
-            dataset_test_X.append(test_X[idx_test])
-            dataset_test_y.append(test_y[idx_test])
-
-        return dataset_train_X, dataset_test_X, dataset_train_y, dataset_test_y
+        train_dataset = TensorDataset(train_X, train_y)
+        test_dataset = TensorDataset(test_X, test_y)
+        return nc_scenario(train_dataset, test_dataset, 5, task_labels=False)
 
     def run_strategy(self, scenario, cl_strategy):
         print('Starting experiment...')

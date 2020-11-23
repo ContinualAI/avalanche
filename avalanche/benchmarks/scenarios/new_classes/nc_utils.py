@@ -14,7 +14,8 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.benchmarks.utils import TransformationSubset, IDatasetWithTargets
+from avalanche.benchmarks.utils import TransformationSubset, \
+    SupportedDataset
 from avalanche.benchmarks.utils import tensor_as_list
 
 
@@ -143,7 +144,7 @@ def _indexes_from_set(sequence: Sequence[SupportsInt],
                                      sort_indexes=sort_indexes)
 
 
-def make_nc_transformation_subset(dataset: IDatasetWithTargets,
+def make_nc_transformation_subset(dataset: SupportedDataset,
                                   transform: Any, target_transform: Any,
                                   classes: Union[None, Sequence[int]],
                                   bucket_classes: bool = False,

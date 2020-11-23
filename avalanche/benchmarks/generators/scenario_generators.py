@@ -25,15 +25,16 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import IDatasetWithTargets, \
+from avalanche.benchmarks.utils import \
     concat_datasets_sequentially, as_transformation_dataset
+from avalanche.benchmarks.utils.transform_dataset import SupportedDataset
 
 
 def nc_scenario(
         train_dataset: Union[
-            Sequence[IDatasetWithTargets], IDatasetWithTargets],
+            Sequence[SupportedDataset], SupportedDataset],
         test_dataset: Union[
-            Sequence[IDatasetWithTargets], IDatasetWithTargets],
+            Sequence[SupportedDataset], SupportedDataset],
         n_steps: int,
         task_labels: bool,
         *,
@@ -182,9 +183,9 @@ def nc_scenario(
 
 def ni_scenario(
         train_dataset: Union[
-            Sequence[IDatasetWithTargets], IDatasetWithTargets],
+            Sequence[SupportedDataset], SupportedDataset],
         test_dataset: Union[
-            Sequence[IDatasetWithTargets], IDatasetWithTargets],
+            Sequence[SupportedDataset], SupportedDataset],
         n_steps: int,
         *,
         task_labels: bool = False,
@@ -273,8 +274,8 @@ def ni_scenario(
 
 
 def dataset_scenario(
-        train_dataset_list: Sequence[IDatasetWithTargets],
-        test_dataset_list: Sequence[IDatasetWithTargets],
+        train_dataset_list: Sequence[SupportedDataset],
+        test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False) -> GenericCLScenario:
     """

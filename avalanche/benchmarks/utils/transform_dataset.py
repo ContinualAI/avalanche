@@ -16,7 +16,7 @@ from torchvision.transforms import Compose
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
     SequenceDataset, SubsetWithTargets, LazyTargetsConversion, \
-    LazyConcatTargets, find_list_from_index
+    LazyConcatTargets, find_list_from_index, ITensorDataset
 
 try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
@@ -32,6 +32,8 @@ TTransformationDataset = TypeVar('TTransformationDataset',
                                  bound='TransformationDataset')
 XTransform = Optional[Callable[[T_co], Any]]
 YTransform = Optional[Callable[[int], int]]
+
+SupportedDataset = Union[IDatasetWithTargets[T_co], ITensorDataset[T_co]]
 
 
 class TransformationDataset(DatasetWithTargets[T_co],
@@ -60,7 +62,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
     the constructor and the :func:`with_transforms` method.
     """
     def __init__(self,
-                 dataset: IDatasetWithTargets[T_co],
+                 dataset: SupportedDataset[T_co],
                  *,
                  transform: XTransform = None,
                  target_transform: YTransform = None,
@@ -101,7 +103,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         if transform_groups is not None:
             TransformationDataset._check_groups_dict_format(transform_groups)
 
-        self._dataset: IDatasetWithTargets[T_co] = dataset
+        self._dataset: SupportedDataset[T_co] = dataset
         """
         The original dataset.
         """
@@ -465,6 +467,10 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
     def _get_single_item(self, idx: int):
         pattern, label = self._dataset[idx]
+        if _is_tensor_dataset(self._dataset):
+            # Manages the fact that TensorDataset may return a single element
+            # Tensor instead of an int.
+            label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
         return pattern, label
@@ -554,9 +560,8 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
         return transform_groups
 
-    def _initialize_targets_sequence(
-            self, dataset) -> Sequence[int]:
-        return LazyTargetsConversion(dataset.targets)
+    def _initialize_targets_sequence(self, dataset) -> Sequence[int]:
+        return _make_target_from_supported_dataset(dataset)
 
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
@@ -595,7 +600,7 @@ class TransformationSubset(TransformationDataset[T_co]):
     the targets field and class mapping.
     """
     def __init__(self,
-                 dataset: IDatasetWithTargets[T_co],
+                 dataset: SupportedDataset[T_co],
                  *,
                  indices: Sequence[int] = None,
                  class_mapping: Sequence[int] = None,
@@ -698,7 +703,7 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
     (if they are subclasses of :class:`TransformationDataset`).
     """
     def __init__(self,
-                 datasets: Sequence[IDatasetWithTargets[T_co]],
+                 datasets: Sequence[SupportedDataset[T_co]],
                  *,
                  transform: Callable[[T_co], Any] = None,
                  target_transform: Callable[[int], int] = None,
@@ -748,6 +753,10 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
             idx, self._datasets_lengths, self._overall_length)
 
         pattern, label = self._dataset_list[dataset_idx][internal_idx]
+        if _is_tensor_dataset(self._dataset_list[dataset_idx]):
+            # Manages the fact that TensorDataset may return a single element
+            # Tensor instead of an int.
+            label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
         return pattern, label
@@ -761,8 +770,15 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
         return dataset_copy
 
     def _initialize_targets_sequence(self, dataset) -> Sequence[int]:
-        return LazyConcatTargets([dataset.targets for dataset in
-                                  self._dataset_list])
+        targets_list = []
+        # Could be easily done with a single line of code
+        # This however, allows the user to better check which was the
+        # problematic dataset by using a debugger.
+        for dataset_idx, single_dataset in enumerate(self._dataset_list):
+            targets_list.append(
+                _make_target_from_supported_dataset(single_dataset))
+
+        return LazyConcatTargets(targets_list)
 
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
@@ -802,6 +818,11 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
 
     def _adapt_concat_datasets(self):
         all_groups = set()
+
+        for dataset in self._dataset_list:
+            if isinstance(dataset, TransformationDataset):
+                all_groups.update(dataset.transform_groups.keys())
+
         for dataset in self._dataset_list:
             if isinstance(dataset, TransformationDataset):
                 all_groups.update(dataset.transform_groups.keys())
@@ -929,7 +950,27 @@ def train_test_transformation_datasets(
     return train, test
 
 
-__all__ = ['TransformationDataset', 'TransformationSubset',
+def _make_target_from_supported_dataset(dataset: SupportedDataset) -> \
+        Sequence[int]:
+    if hasattr(dataset, 'targets'):
+        return LazyTargetsConversion(dataset.targets)
+
+    if hasattr(dataset, 'tensors'):
+        if len(dataset.tensors) < 2:
+            raise ValueError('Tensor dataset has not enough tensors: '
+                             'at least 2 are required.')
+        return LazyTargetsConversion(dataset.tensors[1])
+
+    raise ValueError('Unsupported dataset: must have a valid targets field'
+                     'or has to be a Tensor Dataset with at least 2'
+                     'Tensors')
+
+
+def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
+    return hasattr(dataset, 'tensors') and len(dataset.tensors) >= 2
+
+
+__all__ = ['SupportedDataset', 'TransformationDataset', 'TransformationSubset',
            'TransformationConcatDataset', 'TransformationTensorDataset',
            'concat_datasets_sequentially', 'as_transformation_dataset',
            'train_test_transformation_datasets']

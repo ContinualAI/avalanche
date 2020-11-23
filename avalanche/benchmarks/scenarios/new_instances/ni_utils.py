@@ -133,11 +133,12 @@ def make_ni_transformation_subset(dataset: IDatasetWithTargets,
         ``sort_classes`` and ``sort_indexes`` parameters.
     """
     return TransformationSubset(dataset,
-                                _indexes_from_set(dataset.targets,
-                                                  patterns_indexes,
-                                                  bucket_classes=bucket_classes,
-                                                  sort_classes=sort_classes,
-                                                  sort_indexes=sort_indexes),
+                                indices=_indexes_from_set(
+                                    dataset.targets,
+                                    patterns_indexes,
+                                    bucket_classes=bucket_classes,
+                                    sort_classes=sort_classes,
+                                    sort_indexes=sort_indexes),
                                 transform=transform,
                                 target_transform=target_transform)
 
