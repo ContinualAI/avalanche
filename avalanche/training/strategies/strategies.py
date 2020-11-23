@@ -229,7 +229,7 @@ class LwF(BaseStrategy):
 class AGEM(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 mem_size: int, patterns_per_step: int, sample_size: int = 64,
+                 patterns_per_step: int, sample_size: int = 64,
                  evaluation_protocol: Optional[EvalProtocol] = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
@@ -241,7 +241,6 @@ class AGEM(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
-        :param mem_size: number of patterns in memory
         :param patterns_per_step: number of patterns per step in the memory
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.        
@@ -253,7 +252,7 @@ class AGEM(BaseStrategy):
         :param plugins: Plugins to be added. Defaults to None.
         """
 
-        agem = AGEMPlugin(mem_size, patterns_per_step, sample_size)
+        agem = AGEMPlugin(patterns_per_step, sample_size)
         if plugins is None:
             plugins = [agem]
         else:

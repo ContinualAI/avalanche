@@ -751,9 +751,8 @@ class AGEMPlugin(StrategyPlugin):
     sampled set of memory examples is negative, the gradient is projected.
     """
 
-    def __init__(self, mem_size: int, patterns_per_step: int, sample_size: int):
+    def __init__(self, patterns_per_step: int, sample_size: int):
         """
-        :param mem_size: number of patterns in the memory
         :param patterns_per_step: number of patterns per step in the memory
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.
@@ -761,7 +760,6 @@ class AGEMPlugin(StrategyPlugin):
 
         super().__init__()
 
-        self.mem_size = int(mem_size)
         self.patterns_per_step = int(patterns_per_step)
         self.sample_size = int(sample_size)
     

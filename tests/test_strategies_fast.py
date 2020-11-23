@@ -137,7 +137,7 @@ class StrategyTest(unittest.TestCase):
             tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
 
         strategy = AGEM(model, optimizer, criterion,
-                        mem_size=500, patterns_per_step=500/5,
+                        patterns_per_step=500/5,
                         train_mb_size=64)
 
         self.run_strategy(my_nc_scenario, strategy)

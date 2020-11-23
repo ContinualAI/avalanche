@@ -24,7 +24,7 @@ from torch.nn import CrossEntropyLoss
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF, AGEM
-from avalanche.benchmarks import nc_scenario, NCStepInfo
+from avalanche.benchmarks import nc_scenario, NCStepInfo, PermutedMNIST
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -131,16 +131,15 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_agem(self):
+        n_steps = 5
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        mnist_train, mnist_test = self.load_dataset()
-        my_nc_scenario = nc_scenario(
-            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        my_nc_scenario = PermutedMNIST(incremental_steps=n_steps)
 
         strategy = AGEM(model, optimizer, criterion,
-                        mem_size=500, patterns_per_step=500/5,
-                        train_mb_size=64)
+                        patterns_per_step=250, sample_size=256,
+                        train_mb_size=10)
 
         self.run_strategy(my_nc_scenario, strategy)
 
