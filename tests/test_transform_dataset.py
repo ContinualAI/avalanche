@@ -4,6 +4,7 @@ import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
+from torch.utils.data import TensorDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda
@@ -92,6 +93,28 @@ class TransformationDatasetTests(unittest.TestCase):
         self.assertEqual(x2.shape, (1, 16, 16))
         self.assertIsInstance(y2, int)
         self.assertEqual(y2, -1)
+
+    def test_transform_dataset_tensor_dataset_input(self):
+        train_x = torch.rand(500, 3, 28, 28)
+        train_y = torch.zeros(500)
+        test_x = torch.rand(200, 3, 28, 28)
+        test_y = torch.ones(200)
+
+        train = TensorDataset(train_x, train_y)
+        test = TensorDataset(test_x, test_y)
+        train_dataset = TransformationDataset(train)
+        test_dataset = TransformationDataset(test)
+
+        self.assertEqual(500, len(train_dataset))
+        self.assertEqual(200, len(test_dataset))
+
+        x, y = train_dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertEqual(0, y)
+
+        x2, y2 = test_dataset[0]
+        self.assertIsInstance(x2, Tensor)
+        self.assertEqual(1, y2)
 
 
 class TransformationSubsetTests(unittest.TestCase):

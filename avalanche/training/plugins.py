@@ -270,7 +270,7 @@ class EvaluationPlugin(StrategyPlugin):
     def get_test_result(self):
         return self._test_protocol_results
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training_step(self, strategy, joint_training=False, **kwargs):
         task_id = strategy.step_info.task_label
         self._train_current_task_id = task_id
         self._training_accuracy = None
@@ -279,9 +279,13 @@ class EvaluationPlugin(StrategyPlugin):
         self._seen_samples = 0
         self._total_loss = 0
         self._average_loss = 0
-        print("[Training on Task {}, Step {}]"
-              .format(self._train_current_task_id,
-                      strategy.step_info.current_step))
+
+        if joint_training:
+            print("[Joint Training]")
+        else:
+            print("[Training on Task {}, Step {}]"
+                  .format(self._train_current_task_id,
+                          strategy.step_info.current_step))
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1

@@ -37,7 +37,6 @@ from avalanche.training.strategies import Naive
 def main():
     # --- CONFIG
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    n_batches = 5
     # ---------
 
     # --- TRANSFORMATIONS
@@ -82,7 +81,8 @@ def main():
     print('Starting experiment...')
     results = []
     for step in scenario.train_stream:
-        print("Start of step ", step.current_step)
+        print("Start of step: ", step.current_step)
+        print("Current Classes: ", step.classes_in_this_step)
 
         cl_strategy.train(step, num_workers=4)
         print('Training completed')

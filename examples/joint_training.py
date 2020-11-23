@@ -27,7 +27,7 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.classic import SplitMNIST
+from avalanche.benchmarks.classic import SplitMNIST, PermutedMNIST
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
@@ -42,7 +42,7 @@ def main():
     model = SimpleMLP(num_classes=10)
 
     # CL Benchmark Creation
-    perm_mnist = SplitMNIST(incremental_steps=5)
+    perm_mnist = PermutedMNIST(incremental_steps=5)
     train_stream = perm_mnist.train_stream
     test_stream = perm_mnist.test_stream
 
@@ -52,7 +52,7 @@ def main():
     evaluation_protocol = EvalProtocol(
         metrics=[ACC(num_class=10)])
 
-    # Continual learning strategy
+    # Joint training strategy
     joint_train = JointTraining(
         model, optimizer, criterion, train_mb_size=32, train_epochs=1,
         test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device

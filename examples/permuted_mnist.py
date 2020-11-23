@@ -58,6 +58,7 @@ def main():
     # train and test loop
     results = []
     for train_task in train_stream:
+        print("Current Classes: ", train_task.classes_in_this_step)
         cl_strategy.train(train_task, num_workers=4)
         results.append(cl_strategy.test(test_stream))
 
