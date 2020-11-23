@@ -24,7 +24,7 @@ from torch.utils.data import TensorDataset
 
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF
+    GDumb, Cumulative, LwF, AGEM
 from avalanche.benchmarks import nc_scenario
 
 
@@ -121,9 +121,7 @@ class StrategyTest(unittest.TestCase):
         model = SimpleMLP(input_size=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        tr_X, test_X, tr_y, test_y = self.load_dataset()
-        my_nc_scenario = tensor_scenario(
-            tr_X, tr_y, test_X, test_y, [0]*len(tr_X))
+        my_nc_scenario = self.load_scenario()
 
         strategy = AGEM(model, optimizer, criterion,
                         patterns_per_step=500/5,
