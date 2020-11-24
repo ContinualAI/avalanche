@@ -14,6 +14,7 @@ channels:
 - pytorch
 - vlomonaco
 - conda-forge
+- omnia
 dependencies:
 - psutil
 - python=3.6
@@ -27,6 +28,7 @@ dependencies:
 - sphinx
 - sphinx_rtd_theme
 - conda-forge::sphinx-autoapi
+- quadprog
 - pip
 - pip:
     - pytorchcv
