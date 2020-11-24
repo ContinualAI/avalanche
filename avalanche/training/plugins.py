@@ -1,4 +1,6 @@
 import copy
+import random
+import quadprog
 from collections import defaultdict
 from typing import Dict, Any
 
@@ -745,5 +747,258 @@ class LwFPlugin(StrategyPlugin):
         self.step_id += 1
 
 
+class AGEMPlugin(StrategyPlugin):
+    """
+    Average Gradient Episodic Memory Plugin.
+    AGEM projects the gradient on the current minibatch by using an external 
+    episodic memory of patterns from previous steps. If the dot product
+    between the current gradient and the (average) gradient of a randomly
+    sampled set of memory examples is negative, the gradient is projected.
+    """
+
+    def __init__(self, patterns_per_step: int, sample_size: int):
+        """
+        :param patterns_per_step: number of patterns per step in the memory
+        :param sample_size: number of patterns in memory sample when computing
+            reference gradient.
+        """
+
+        super().__init__()
+
+        self.patterns_per_step = int(patterns_per_step)
+        self.sample_size = int(sample_size)
+    
+        self.reference_gradients = None
+        self.memory_x, self.memory_y = None, None
+
+    def before_training_iteration(self, strategy, **kwargs):
+        """
+        Compute reference gradient on memory sample.
+        """
+
+        if self.memory_x is not None:
+            strategy.model.train()
+            strategy.optimizer.zero_grad()
+            xref, yref = self.sample_from_memory(self.sample_size)
+            xref, yref = xref.to(strategy.device), yref.to(strategy.device)
+            out = strategy.model(xref)
+            loss = strategy.criterion(out, yref)
+            loss.backward()
+            self.reference_gradients = [ 
+                (n, p.grad)
+                for n, p in strategy.model.named_parameters()]
+
+    @torch.no_grad()
+    def after_backward(self, strategy, **kwargs):
+        """
+        Project gradient based on reference gradients
+        """
+
+        if self.memory_x is not None:
+            for (n1, p1), (n2, refg) in zip(strategy.model.named_parameters(),
+                                            self.reference_gradients):
+
+                assert n1 == n2, "Different model parameters in AGEM projection"
+                assert (p1.grad is not None and refg is not None) \
+                    or (p1.grad is None and refg is None)
+
+                if refg is None:
+                    continue
+
+                dotg = torch.dot(p1.grad.view(-1), refg.view(-1))
+                dotref = torch.dot(refg.view(-1), refg.view(-1))
+                if dotg < 0:
+                    p1.grad -= (dotg / dotref) * refg
+
+    def after_training_step(self, strategy, **kwargs):
+        """
+        Save a copy of the model after each step
+        """
+
+        self.update_memory(strategy.current_dataloader)
+
+    def sample_from_memory(self, sample_size):
+        """
+        Sample a minibatch from memory.
+        Return a tuple of patterns (tensor), targets (tensor).
+        """
+        
+        if self.memory_x is None or self.memory_y is None:
+            raise ValueError('Empty memory for AGEM.')
+
+        if self.memory_x.size(0) <= sample_size:
+            return self.memory_x, self.memory_y
+        else:
+            idxs = random.sample(range(self.memory_x.size(0)), sample_size)
+            return self.memory_x[idxs], self.memory_y[idxs]
+
+    @torch.no_grad()
+    def update_memory(self, dataloader):
+        """
+        Update replay memory with patterns from current step.
+        """
+
+        tot = 0
+        for x, y in dataloader:
+            if tot + x.size(0) <= self.patterns_per_step:
+                if self.memory_x is None:
+                    self.memory_x = x.clone()
+                    self.memory_y = y.clone()
+                else:
+                    self.memory_x = torch.cat((self.memory_x, x), dim=0)
+                    self.memory_y = torch.cat((self.memory_y, y), dim=0)
+            else:
+                diff = self.patterns_per_step - tot
+                if self.memory_x is None:
+                    self.memory_x = x[:diff].clone()
+                    self.memory_y = y[:diff].clone()
+                else:
+                    self.memory_x = torch.cat((self.memory_x, x[:diff]), dim=0)
+                    self.memory_y = torch.cat((self.memory_y, y[:diff]), dim=0)
+                break
+            tot += x.size(0)
+
+
+class GEMPlugin(StrategyPlugin):
+    """
+    Gradient Episodic Memory Plugin.
+    GEM projects the gradient on the current minibatch by using an external 
+    episodic memory of patterns from previous steps. The gradient on the current
+    minibatch is projected so that the dot product with all the reference
+    gradients of previous tasks remains positive.
+    """
+
+    def __init__(self, patterns_per_step: int, memory_strength: float):
+        """
+        :param patterns_per_step: number of patterns per step in the memory
+        :param memory_strength: offset to add to the projection direction
+            in order to favour backward transfer (gamma in original paper).
+        """
+
+        super().__init__()
+
+        self.patterns_per_step = int(patterns_per_step)
+        self.memory_strength = memory_strength
+
+        self.memory_x, self.memory_y = {}, {}
+
+        self.G = None
+
+        self.step_id = 0
+
+    def before_training_iteration(self, strategy, **kwargs):
+        """
+        Compute gradient constraints on previous memory samples from all steps.
+        """
+
+        if self.step_id > 0:
+            G = []
+            strategy.model.train()
+            for t in range(self.step_id):
+                strategy.optimizer.zero_grad()
+                xref = self.memory_x[t].to(strategy.device)
+                yref = self.memory_y[t].to(strategy.device)
+                out = strategy.model(xref)
+                loss = strategy.criterion(out, yref)
+                loss.backward()
+
+                G.append(torch.cat([p.grad.flatten()
+                         for p in strategy.model.parameters()
+                         if p.grad is not None], dim=0))
+
+            self.G = torch.stack(G)  # (steps, parameters)
+
+    @torch.no_grad()
+    def after_backward(self, strategy, **kwargs):
+        """
+        Project gradient based on reference gradients
+        """
+
+        if self.step_id > 0:
+            g = torch.cat([p.grad.flatten()
+                        for p in strategy.model.parameters()
+                        if p.grad is not None], dim=0)
+
+            to_project = (torch.mv(self.G, g) < 0).any()
+        else:
+            to_project = False
+
+        if to_project:
+            v_star = self.solve_quadprog(g).to(strategy.device)
+        
+            num_pars = 0  # reshape v_star into the parameter matrices
+            for p in strategy.model.parameters():
+
+                curr_pars = p.numel()
+
+                if p.grad is None:
+                    continue
+
+                p.grad.copy_(v_star[num_pars:num_pars+curr_pars].view(p.size()))
+                num_pars += curr_pars
+
+            assert num_pars == v_star.numel(), "Error in projecting gradient"
+
+    def after_training_step(self, strategy, **kwargs):
+        """
+        Save a copy of the model after each step
+        """
+
+        self.update_memory(strategy.current_dataloader)
+        self.step_id += 1
+
+    @torch.no_grad()
+    def update_memory(self, dataloader):
+        """
+        Update replay memory with patterns from current step.
+        """
+
+        t = self.step_id
+
+        tot = 0
+        for x, y in dataloader:
+            if tot + x.size(0) <= self.patterns_per_step:
+                if t not in self.memory_x:
+                    self.memory_x[t] = x.clone()
+                    self.memory_y[t] = y.clone()
+                else:
+                    self.memory_x[t] = torch.cat((self.memory_x[t], x), dim=0)
+                    self.memory_y[t] = torch.cat((self.memory_y[t], y), dim=0)
+            else:
+                diff = self.patterns_per_step - tot
+                if t not in self.memory_x:
+                    self.memory_x[t] = x[:diff].clone()
+                    self.memory_y[t] = y[:diff].clone()
+                else:
+                    self.memory_x[t] = torch.cat((self.memory_x[t], x[:diff]),
+                                                  dim=0)
+                    self.memory_y[t] = torch.cat((self.memory_y[t], y[:diff]),
+                                                  dim=0)
+                break
+            tot += x.size(0)
+
+    def solve_quadprog(self, g):
+        """
+        Solve quadratic programming with current gradient g and 
+        gradients matrix on previous tasks G.
+        Taken from original code: 
+        https://github.com/facebookresearch/GradientEpisodicMemory/blob/master/model/gem.py
+        """
+
+        memories_np = self.G.cpu().double().numpy()
+        gradient_np = g.cpu().contiguous().view(-1).double().numpy()
+        t = memories_np.shape[0]
+        P = np.dot(memories_np, memories_np.transpose())
+        P = 0.5 * (P + P.transpose()) + np.eye(t) * 1e-3
+        q = np.dot(memories_np, gradient_np) * -1
+        G = np.eye(t)
+        h = np.zeros(t) + self.memory_strength
+        v = quadprog.solve_qp(P, q, G, h)[0]
+        v_star = np.dot(v, memories_np) + gradient_np
+        
+        return torch.from_numpy(v_star).float()
+
+
 __all__ = ['StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
-           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin']
+           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
+           'AGEMPlugin', 'GEMPlugin']

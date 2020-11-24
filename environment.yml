@@ -13,6 +13,7 @@ name: avalanche-env
 channels:
 - pytorch
 - vlomonaco
+- omnia
 dependencies:
 - psutil
 - python>=3.6
@@ -22,6 +23,7 @@ dependencies:
 - scikit-learn
 - matplotlib
 - numpy
+- quadprog
 - pip
 - pip:
     - pytorchcv
