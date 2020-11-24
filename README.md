@@ -1,11 +1,9 @@
 # Avalanche: a Comprehensive Framework for Continual Learning Research
-![codesize](https://img.shields.io/github/languages/code-size/vlomonaco/core50")
 ![issue](https://img.shields.io/github/issues/vlomonaco/core50)
 ![pr](https://img.shields.io/github/issues-pr/vlomonaco/core50)
-
+<br>
 **[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Examples]()** | **[API Doc]()**
 
----
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
