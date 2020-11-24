@@ -29,7 +29,7 @@ Avalanche is one of the first experiments of a End-to-end Research Framework for
 
 Let's make it together :people_holding_hands: a wonderful ride! :balloon:
 
-Check out how you code changes when you start using Avalanche! :point_down:
+Check out below how you can start using Avalanche! :point_down:
 
 Quick Example
 ----------------
@@ -90,7 +90,7 @@ details and make you a true Continual Learner! :woman_student:
 
 - [From Zero to Hero Tutorial]()
 
-Getting Started
+Cite Avalanche
 ----------------
 If you used Avalanche in your research project, please remember to cite our white paper. 
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
