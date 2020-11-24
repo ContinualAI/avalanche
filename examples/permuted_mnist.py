@@ -39,7 +39,7 @@ def main():
     model = SimpleMLP(num_classes=10)
 
     # CL Benchmark Creation
-    perm_mnist = PermutedMNIST(incremental_steps=3, seed=1)
+    perm_mnist = PermutedMNIST(incremental_steps=5, seed=1)
     train_stream = perm_mnist.train_stream
     test_stream = perm_mnist.test_stream
 
@@ -52,7 +52,7 @@ def main():
     # Continual learning strategy
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
+        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device\
     )
 
     # train and test loop
