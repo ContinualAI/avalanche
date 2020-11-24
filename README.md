@@ -2,7 +2,7 @@
 ![issue](https://img.shields.io/github/issues/vlomonaco/core50)
 ![pr](https://img.shields.io/github/issues-pr/vlomonaco/core50)
 <br>
-**[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Examples]()** | **[API Doc]()**
+**[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Tutorial]()** | **[API Doc]()**
 
 
 <p align="center">
