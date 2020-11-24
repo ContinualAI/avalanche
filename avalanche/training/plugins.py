@@ -916,8 +916,8 @@ class GEMPlugin(StrategyPlugin):
 
         if self.step_id > 0:
             g = torch.cat([p.grad.flatten()
-                        for p in strategy.model.parameters()
-                        if p.grad is not None], dim=0)
+                          for p in strategy.model.parameters()
+                          if p.grad is not None], dim=0)
 
             to_project = (torch.mv(self.G, g) < 0).any()
         else:
@@ -971,9 +971,9 @@ class GEMPlugin(StrategyPlugin):
                     self.memory_y[t] = y[:diff].clone()
                 else:
                     self.memory_x[t] = torch.cat((self.memory_x[t], x[:diff]),
-                                                  dim=0)
+                                                 dim=0)
                     self.memory_y[t] = torch.cat((self.memory_y[t], y[:diff]),
-                                                  dim=0)
+                                                 dim=0)
                 break
             tot += x.size(0)
 

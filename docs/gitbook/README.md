@@ -231,6 +231,8 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 _Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organziation and the largest open community on Continual Learning for AI_. __
 
+Do you have a question, do you want to report an issue or simply ask for a new feture? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
+
 The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/)_._ We are always looking for new _awesome members_, so check out our official website if you want to learn more about us and our activities.
 
 Learn more about the [_**Avalanche Team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
