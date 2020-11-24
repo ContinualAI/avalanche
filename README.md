@@ -1,5 +1,11 @@
 # Avalanche: a Comprehensive Framework for Continual Learning Research
+![codesize](https://img.shields.io/github/languages/code-size/vlomonaco/core50")
+![issue](https://img.shields.io/github/issues/vlomonaco/core50)
+![pr](https://img.shields.io/github/issues-pr/vlomonaco/core50)
+
 **[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Examples]()** | **[API Doc]()**
+
+---
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
@@ -17,13 +23,14 @@ Avalanche can help Continual Learning researchers in several ways:
 
 The framework is organized in four main modules:
 
-- [Benchmarks](avalanche/benchmarks)): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
+- [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 - [Evaluation](avalanche/training): This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
 - [Extras](avalanche/extras): In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
 Avalanche is one of the first experiments of a End-to-end Research Framework for reproducible machine learning research where you can find benchmarks, algorithms and evaluation protocols in the same place.
 
 Let's make it together :people_holding_hands: a wonderful ride! :balloon:
+
 Check out how you code changes when you start using Avalanche! :point_down:
 
 Quick Example
@@ -84,7 +91,6 @@ Having completed these two sections, you will already feel with superpowers ⚡,
 details and make you a true Continual Learner! :woman_student:
 
 - [From Zero to Hero Tutorial]()
-
 
 Getting Started
 ----------------
