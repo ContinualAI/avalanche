@@ -12,7 +12,7 @@
 name: avalanche-env
 channels:
 - pytorch
-- omnia
+- conda-forge
 dependencies:
 - psutil
 - python>=3.6
@@ -22,7 +22,7 @@ dependencies:
 - scikit-learn
 - matplotlib
 - numpy
-- quadprog
+- conda-forge::quadprog
 - pip
 - pip:
     - pytorchcv
