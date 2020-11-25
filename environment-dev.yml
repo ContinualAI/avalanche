@@ -12,7 +12,6 @@
 name: avalanche-dev-env
 channels:
 - pytorch
-- vlomonaco
 - conda-forge
 - omnia
 dependencies:
@@ -24,11 +23,11 @@ dependencies:
 - scikit-learn
 - matplotlib
 - numpy
+- quadprog
+- pip
 - conda-forge::pycodestyle
 - sphinx
 - sphinx_rtd_theme
 - conda-forge::sphinx-autoapi
-- quadprog
-- pip
 - pip:
     - pytorchcv

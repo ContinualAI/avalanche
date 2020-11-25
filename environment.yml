@@ -12,7 +12,6 @@
 name: avalanche-env
 channels:
 - pytorch
-- vlomonaco
 - omnia
 dependencies:
 - psutil

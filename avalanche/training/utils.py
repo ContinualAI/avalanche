@@ -120,7 +120,7 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
         ave_loss /= ((it + 1) * y.size(0))
 
         if it % 10 == 0:
-            self.log.info(
+            log.info(
                 '==>>> it: {}, avg. loss: {:.6f}, running train acc: {:.3f}'
                 .format(it, ave_loss, acc)
             )
