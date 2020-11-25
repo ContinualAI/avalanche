@@ -8,11 +8,11 @@ description: A Brief Introduction to Avalanche
 
 > #### _Pushing research in Continual Learning to the next level, providing a shared and collaborative codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms._
 
-As a powerful _avalanche_, a _Continual Learning_ agent _incrementally_ _improves_ its knowledge and skills over time, learning how to interact with the external world. 
+As a powerful _avalanche_, a _Continual Learning_ agent _incrementally_ _improves_ its knowledge and skills over time, building upon the previously acquired ones and learning how to interact with the external world. 
 
 We hope _Avalanche_ may trigger the same _positive reinforcement loop_ within our community, moving towards a more _collaborative_ and _inclusive_ way of doing research and helping us tackle bigger problems, faster and better, but together!
 
-{% embed url="https://www.youtube.com/watch?v=UNaYpBpRJOY" caption="Avalanche Anthem by Bring Me The Horizon" %}
+![The &quot;snowball effect&quot;: how a simple tool becomes an Avalanche through collaboration. ](../.gitbook/assets/snowball-1.jpg)
 
 ## The Avalanche Advantage 💪
 

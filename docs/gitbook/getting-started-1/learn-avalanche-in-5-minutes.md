@@ -87,55 +87,70 @@ from avalanche.benchmarks.datasets import ImageFolder, DatasetFolder, FilelistDa
 
 Of course, you can use them as you would use any _Pythorch Dataset_.
 
+### Benchmarks Basics
+
+The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that characterize the bechmark. However, the most important ones are the `train` and `test streams`.
+
+In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
+
+Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **steps**. Steps are batch of data \(or "_tasks_"\) that can be provided with or without a specific task label.
+
 ### **Classic Benchmarks**
 
-_Continual Learning_ is all concerned with learning over a stream of data. _Avalache_ maintains a set of commonly used benchmarks build on top of one of multiple datasets, that simulate that stream.
+_Avalanche_ maintains a set of commonly used benchmarks build on top of one of multiple datasets, that simulate that stream.
 
 ```python
 from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
 SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, PermutedMNIST, \
 SplitCUB200
 
-# creating PermutedMNIST with
+# creating the benchmark (scenario object)
 perm_mnist = PermutedMNIST(
     incremental_steps=3,
     seed=1234,
 )
 
-for step in perm_mnist:
-    print("Start of task ", step.current_task)
-    print('Classes in this task:', step.classes_in_this_task)
+# recovering the train and test streams
+train_stream = perm_mnist.train_stream
+test_stream = perm_mnist.test_stream
 
-    # Here's what you can do with the NIStepInfo object
-    current_training_set = step.current_training_set()
-    training_dataset, t = current_training_set
-    print('Task {} batch {} -> train'.format(t, step.current_task))
-    print('This task contains', len(training_dataset), 'patterns')
+# iterating over the train stream
+for step in train_stream:
 
-    complete_test_set = step.complete_test_sets()
+    print("Start of task ", step.task_label)
+    print('Classes in this task:', step.classes_in_this_step)
+
+    # The current Pytorch training set can be easily recovered through the step
+    current_training_set = step.dataset
+    # ...as well as the task_label
+    print('Task {}'.format(step.task_label))
+    print('This task contains', len(current_training_set), 'training examples')
+
+    # we can recover the corresponding test step in the test stream
+    current_test_set = test_stream[step.current_step].dataset
+    print('This task contains', len(current_test_set), 'test examples')
 ```
 
 ### Benchmarks Generators
 
-What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offer a number of utilities that you can use to create your own benchmark with maximum flexibilty!
+What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offer a number of utilites that you can use to create your own benchmark with maximum flexibilty: the **benchmarks generators**!
 
-The _specific_ scenario generators are useful when starting from one or multiple pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark:
+ The _specific_ scenario generators are useful when starting from one or multiple pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incrementa_l or _Task-Incremental_ scenarios among others.
 
 ```python
-from avalanche.benchmarks.generators import NIScenario, NCScenario
+from avalanche.benchmarks.generators import nc_scenario, ni_scenario
 
-ni_scenario = NIScenario(
+scenario = ni_scenario(
     mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
     balance_steps=True
 )
-
-nc_scenario = NCScenario(
+scenario = nc_scenario(
     mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
     task_labels=False
 )
 ```
 
-Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned SIT-NI, SIT-NC or MT-NC scenarios, you can always use our **generic generators**:
+Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _Domain-Incremental_, _Class-Incrementa_l or _Task-Incremental_  scenarios, you can always use our **generic generators**:
 
 * **filelist\_scenario**
 * **dataset\_scenario**
@@ -146,24 +161,25 @@ from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario,
                                             tensor_scenario
 ```
 
-You can read more about how to use them the full _Benchmarks_ module tutorial:
+You can read more about how to use them the full _Benchmarks_ module tutorial!
 
 {% page-ref page="../from-zero-to-hero-tutorial/2.-benchmarks.md" %}
 
 ## 💪Training
 
-The `training` module in _Avalanche_ is build heavily on modularity and its main goals are two:
+The `training` module in _Avalanche_ is build on modularity and its main goals are two:
 
-1. provide a set of standard **continual learning baselines** that can be easily run for comparison; 
-2. provide the necessary utilities to **create and run your own strategy** as efficiently and easy as possible.
+1. provide a set of standard **continual learning baselines** that can be easily run for comparison;
+2. provide the necessary utilities to **create and run your own strategy** as efficiently and easy as possible with building blocks we already prepared for you.
 
 ### Strategies
 
-If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simply as instantiate an object. Please note that at the moment only the _Naive, Cumulative_ and _GDumb_ baselines are supported.
+If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simply as instantiate an object:
 
 ```python
 from avalanche.extras.models import SimpleMLP
-from avalanche.strategies import Naive, Cumulative, GDumb
+from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, 
+Cumulative, LwF
 
 model = SimpleMLP(num_classes=10)
 cl_strategy = Naive(
@@ -186,12 +202,13 @@ class MyStrategy():
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
-
-    def train(self, step_info):
+    
+    def train(self, step):
         # here you can implement your own training loop for each step (i.e. 
         # batch or task).
 
-        train_dataset, t = step_info.current_training_set()
+        train_dataset = step.dataset
+        t = step.task_label
         train_data_loader = DataLoader(
             train_dataset, num_workers=4, batch_size=128
         )
@@ -201,11 +218,12 @@ class MyStrategy():
                 # you magin here...
                 pass
 
-    def test(self, step_info):
+    def test(self, step):
         # here you can implement your own test loop for each step (i.e. 
         # batch or task).
 
-        test_dataset, t = step_info.step_specific_test_set(0)
+        test_dataset = step.dataset
+        t = step.task_label
         test_data_loader = DataLoader(
             test_dataset, num_workers=4, batch_size=128
         )
@@ -216,28 +234,30 @@ class MyStrategy():
 Then, we can use our strategy as we would do for the pre-implemented ones:
 
 ```python
-# CREATE THE STRATEGY 
+# MODEL CREATION
+model = SimpleMLP(num_classes=scenario.n_classes)
+
+# CREATE THE STRATEGY INSTANCE (NAIVE)
 cl_strategy = MyStrategy(
     model, SGD(model.parameters(), lr=0.001, momentum=0.9),
     CrossEntropyLoss())
 
 # TRAINING LOOP
 print('Starting experiment...')
-results = []
-batch_info: NCBatchInfo
-for batch_info in nc_scenario:
-    print("Start of step ", batch_info.current_step)
+ 
+for step in scenario.train_stream:
+    print("Start of step ", step.current_step)
 
-    cl_strategy.train(batch_info)
+    cl_strategy.train(step)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    results.append(cl_strategy.test(batch_info))
+    cl_strategy.test(scenario.test_stream[step.current_step])
 ```
 
 While this is the easiest possible way to add your own stratey to _Avalanche_ we support more sophisticated modalities that let you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins** shared with other strategies.
 
-Check out more details about what Avalanche can offer in this module following the "Training" chapter of the "From Zero to Hero" tutorial:
+Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
 {% page-ref page="../from-zero-to-hero-tutorial/3.-training.md" %}
 
@@ -316,7 +336,7 @@ evalp = EvalProtocol(
 clmodel = Naive(model, eval_protocol=evalp)
 ```
 
-For more details about the evaluation module, check out the extended guide in the "Evaluation" chapter of the "_From Zero to Hero_" Avalanche tutorial:
+For more details about the evaluation module, check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** Avalanche tutorial!
 
 {% page-ref page="../from-zero-to-hero-tutorial/4.-evaluation.md" %}
 
@@ -330,51 +350,39 @@ Here we show how you can use all these modules together to **design your experim
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop
 
-from avalanche.benchmarks.scenarios import DatasetPart, \
-    create_nc_single_dataset_sit_scenario, NCBatchInfo
+from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies.new_strategy_api.cl_naive import Naive
+from avalanche.training.strategies import Naive
 
+# Config
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-mnist_train = MNIST('./data/mnist', train=True, download=True)
-mnist_test = MNIST('./data/mnist', train=False, download=True)
+# model
+model = SimpleMLP(num_classes=10)
 
-nc_scenario = NCScenario(mnist_train, mnist_test, n_batches, shuffle=True, seed=1234)
+# CL Benchmark Creation
+perm_mnist = PermutedMNIST(incremental_steps=3)
+train_stream = perm_mnist.train_stream
+test_stream = perm_mnist.test_stream
 
-# MODEL CREATION
-model = SimpleMLP(num_classes=nc_scenario.n_classes)
+# Prepare for training & testing
+optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+criterion = CrossEntropyLoss()
+evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
-# DEFINE THE EVALUATION PROTOCOL
-evaluation_protocol = EvalProtocol(
-    metrics=[ACC(num_class=nc_scenario.n_classes),  # Accuracy metric
-             CF(num_class=nc_scenario.n_classes),  # Catastrophic forgetting
-             RAMU(),  # Ram usage
-             CM()],  # Confusion matrix
-    tb_logdir='../logs/mnist_test_sit'
-)
-
-# CREATE THE STRATEGY INSTANCE (NAIVE)
+# Continual learning strategy
 cl_strategy = Naive(
-    model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-    evaluation_protocol=evaluation_protocol
-)
+    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
+    test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
 
-# TRAINING LOOP
-print('Starting experiment...')
+# train and test loop
 results = []
-
-for batch_info in nc_scenario:
-    print("Start of step ", batch_info.current_step)
-
-    cl_strategy.train(batch_info)
-    results.append(cl_strategy.test(batch_info)
+for train_task in train_stream:
+    cl_strategy.train(train_task, num_workers=4)
+    results.append(cl_strategy.test(test_stream))
 ```
 
 ## 🤝 Run it on Google Colab
