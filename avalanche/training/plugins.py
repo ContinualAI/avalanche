@@ -287,8 +287,8 @@ class EvaluationPlugin(StrategyPlugin):
             self.log.info("[Joint Training]")
         else:
             self.log.info("[Training on Task {}, Step {}]"
-                  .format(self._train_current_task_id,
-                          strategy.step_info.current_step))
+                          .format(self._train_current_task_id,
+                                  strategy.step_info.current_step))
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1

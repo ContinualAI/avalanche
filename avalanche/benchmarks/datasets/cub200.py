@@ -39,9 +39,11 @@ class CUB200(Dataset):
         self.log = logging.getLogger("avalanche")
 
         if download:
-            self.log.error("Download is not supported for this Dataset."
+            self.log.error(
+                  "Download is not supported for this Dataset."
                   "You need to download 'images.tgz' and 'lists.tgz' manually "
-                  "at: http://www.vision.caltech.edu/visipedia/CUB-200.html")
+                  "at: http://www.vision.caltech.edu/visipedia/CUB-200.html"
+            )
 
         if not os.path.exists(os.path.join(self.root, self.filename[:-4])):
             extract_archive(os.path.join(self.root, self.filename))

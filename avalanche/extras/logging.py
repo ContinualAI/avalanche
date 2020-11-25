@@ -22,6 +22,8 @@ from __future__ import absolute_import
 
 import os
 import logging
+from torch.utils.tensorboard import SummaryWriter
+
 
 class TensorboardLogging(object):
 
@@ -32,6 +34,7 @@ class TensorboardLogging(object):
 
         """
         self.writer = SummaryWriter(tb_logdir)
+
 
 class Logger:
     """ Main Logger class. """
@@ -56,6 +59,3 @@ class Logger:
         )
 
         self.log = logging
-
-
-from torch.utils.tensorboard import SummaryWriter
