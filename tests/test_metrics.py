@@ -33,7 +33,7 @@ class MultiTaskTests(unittest.TestCase):
         )  # 2'563'440 mul
         dummy = torch.randn(32, 1, xn, xn)
         met = MAC()
-        print(2563440, met.compute(model, dummy))
+        # print(2563440, met.compute(model, dummy))
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import copy
 import random
 import quadprog
+import logging
 from collections import defaultdict
 from typing import Dict, Any
 
@@ -243,6 +244,7 @@ class EvaluationPlugin(StrategyPlugin):
     def __init__(self, evaluation_protocol):
         super().__init__()
         self.evaluation_protocol = evaluation_protocol
+        self.log = logging.getLogger("avalanche")
 
         # Private state variables
         self._dataset_size = None
@@ -282,9 +284,9 @@ class EvaluationPlugin(StrategyPlugin):
         self._average_loss = 0
 
         if joint_training:
-            print("[Joint Training]")
+            self.log.info("[Joint Training]")
         else:
-            print("[Training on Task {}, Step {}]"
+            self.log.info("[Training on Task {}, Step {}]"
                   .format(self._train_current_task_id,
                           strategy.step_info.current_step))
 
@@ -310,7 +312,7 @@ class EvaluationPlugin(StrategyPlugin):
 
         # Logging
         if iteration % 100 == 0:
-            print(
+            self.log.info(
                 '[Training] ==>>> it: {}, avg. loss: {:.6f}, '
                 'running train acc: {:.3f}'.format(
                     iteration, self._average_loss,
@@ -346,10 +348,11 @@ class EvaluationPlugin(StrategyPlugin):
             self._train_current_task_id, self._test_current_task_id)
         acc, accs = results[ACC]
 
-        print("[Evaluation] Task {}, Step {}: Avg Loss {:.6f}; Avg Acc {:.3f}"
-              .format(self._test_current_task_id,
-                      strategy.step_info.current_step,
-                      self._test_average_loss, acc))
+        self.log.info("[Evaluation] Task {}, Step {}: Avg Loss {:.6f}; "
+                      "Avg Acc {:.3f}"
+                      .format(self._test_current_task_id,
+                              strategy.step_info.current_step,
+                              self._test_average_loss, acc))
 
         self._test_protocol_results[self._test_current_task_id] = \
             (self._test_average_loss, acc, accs, results)
@@ -370,6 +373,7 @@ class CWRStarPlugin(StrategyPlugin):
         :param num_classes: total number of classes
         """
         super().__init__()
+        self.log = logging.getLogger("avalanche")
         self.model = model
         self.second_last_layer_name = second_last_layer_name
         self.num_classes = num_classes
@@ -455,7 +459,7 @@ class CWRStarPlugin(StrategyPlugin):
         for name, param in self.model.named_parameters():
             # tells whether we want to use gradients for a given parameter
             param.requires_grad = False
-            print("Freezing parameter " + name)
+            self.log.info("Freezing parameter " + name)
             if name == self.second_last_layer_name:
                 break
 

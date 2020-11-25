@@ -21,32 +21,19 @@ from __future__ import absolute_import
 
 from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage, DiskUsage, TimeUsage
 import numpy as np
-from .tensorboard import TensorboardLogging
-import logging
-import os
+from avalanche.extras.logging import Logger
 
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC()], log_dir="../logs/",
-                 tb_logdir_name="tb_data"):
+    def __init__(self, metrics=[ACC()], logger=Logger()):
 
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        logger = logging.getLogger("avalanche")
-        logger.setLevel(logging.INFO)
-        logger.addHandler(logging.StreamHandler())
-        logger.addHandler(logging.FileHandler(
-            os.path.join(log_dir, 'logfile.log'))
-        )
-
-        self.log = logger
+        self.logger = logger
+        self.log = logger.log
+        self.tb_logging = logger.tb_logging
         self.metrics = []
         for metric in metrics:
             self.metrics.append(metric)
-        self.tb_logging = TensorboardLogging(
-            tb_logdir=os.path.join(log_dir, tb_logdir_name)
-        )
 
         # to be updated
         self.cur_acc = {}

@@ -15,6 +15,7 @@ from torch.nn import Module, Linear
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, ConcatDataset
 import torch
+import logging
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
@@ -49,6 +50,7 @@ class JointTraining:
         """
 
         # attributes similat to the BaseStrategy
+        self.log = logging.getLogger("avalanche")
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -169,7 +171,7 @@ class JointTraining:
             self.task_layers[t] = self.create_task_layer(max(szs))
             # self.add_new_params_to_optimizer(self.task_layers[t].parameters())
 
-        print("starting training...")
+        self.log.info("starting training...")
         self.model.train()
         self.model.to(self.device)
 

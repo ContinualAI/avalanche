@@ -25,6 +25,7 @@ from __future__ import absolute_import
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
+import logging
 
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
@@ -83,6 +84,8 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
               train_it, device=None, mask=None):
     """ Train net from memory using pytorch """
 
+    log = logging.getLogger("avalanche")
+
     correct_cnt, ave_loss = 0, 0
     model = model.to(device)
 
@@ -117,7 +120,7 @@ def train_net(optimizer, model, criterion, batch_size, train_x, train_y,
         ave_loss /= ((it + 1) * y.size(0))
 
         if it % 10 == 0:
-            print(
+            self.log.info(
                 '==>>> it: {}, avg. loss: {:.6f}, running train acc: {:.3f}'
                 .format(it, ave_loss, acc)
             )
