@@ -8,7 +8,8 @@ from torch.utils.data import ConcatDataset
 from avalanche.evaluation import EvalProtocol
 from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training.plugins import StrategyPlugin, \
-    CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin
+    CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, \
+    GEMPlugin, EWCPlugin
 
 
 class Naive(BaseStrategy):
@@ -302,5 +303,49 @@ class GEM(BaseStrategy):
             test_mb_size=test_mb_size, device=device, plugins=plugins)
 
 
+class EWC(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 ewc_lambda: float, mode: str = 'standard', 
+                 decay_factor: Optional[float] = None,
+                 evaluation_protocol: Optional[EvalProtocol] = None,
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 test_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 ):
+        """ Elastic Weight Consolidation (EWC) strategy.
+            See EWC plugin for details.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param ewc_lambda: hyperparameter to weigh the penalty inside the total
+               loss. The larger the lambda, the larger the regularization.
+        :param mode: `standard` to keep a separate penalty for each previous 
+               step. `onlinesum` to keep a single penalty summed over all
+               previous tasks. `onlineweightedsum` to keep a single penalty
+               summed with a decay factor over all previous tasks.
+        :param decay_factor: used only if mode is `onlineweightedsum`. 
+               It specify the decay term of the importance matrix.
+        :param evaluation_protocol: The evaluation plugin.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        """
+
+        ewc = EWCPlugin(ewc_lambda, mode, decay_factor)
+        if plugins is None:
+            plugins = [ewc]
+        else:
+            plugins.append(ewc)
+
+        super().__init__(
+            model, optimizer, criterion, evaluation_protocol,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            test_mb_size=test_mb_size, device=device, plugins=plugins)
+
+
 __all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM',
-           'GEM']
+           'GEM', 'EWC']
