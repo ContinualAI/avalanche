@@ -1023,9 +1023,6 @@ class EWCPlugin(StrategyPlugin):
                step. 
                `online` to keep a single penalty summed with a decay factor 
                over all previous tasks.
-               Warning: even if mode is not `separate` this plugin will maintain
-               all the importances and parameters for each step anyway.
-               This is useful to inspect how such values change over time.
         :param decay_factor: used only if mode is `online`. 
                It specifies the decay term of the importance matrix.
         :param keep_importance_data: if True, keep in memory both parameter
