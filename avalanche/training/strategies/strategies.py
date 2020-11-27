@@ -306,8 +306,9 @@ class GEM(BaseStrategy):
 class EWC(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 ewc_lambda: float, mode: str = 'standard', 
+                 ewc_lambda: float, mode: str = 'standard',
                  decay_factor: Optional[float] = None,
+                 keep_importance_data: bool = False,
                  evaluation_protocol: Optional[EvalProtocol] = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
@@ -327,6 +328,11 @@ class EWC(BaseStrategy):
                summed with a decay factor over all previous tasks.
         :param decay_factor: used only if mode is `onlineweightedsum`. 
                It specify the decay term of the importance matrix.
+        :param keep_importance_data: if True, keep in memory both parameter
+                values and importances for all previous task, for all modes.
+                If False, keep only last parameter values and importances.
+                If mode is `separate`, the value of `keep_importance_data` is
+                set to be True.
         :param evaluation_protocol: The evaluation plugin.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
@@ -335,7 +341,7 @@ class EWC(BaseStrategy):
         :param plugins: Plugins to be added. Defaults to None.
         """
 
-        ewc = EWCPlugin(ewc_lambda, mode, decay_factor)
+        ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
             plugins = [ewc]
         else:

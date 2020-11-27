@@ -1014,7 +1014,8 @@ class EWCPlugin(StrategyPlugin):
     step. Importances are computed with an additional pass on the training set. 
     """
 
-    def __init__(self, ewc_lambda, mode='separate', decay_factor=None):
+    def __init__(self, ewc_lambda, mode='separate', decay_factor=None,
+                 keep_importance_data=False):
         """
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
@@ -1027,6 +1028,11 @@ class EWCPlugin(StrategyPlugin):
                This is useful to inspect how such values change over time.
         :param decay_factor: used only if mode is `online`. 
                It specifies the decay term of the importance matrix.
+        :param keep_importance_data: if True, keep in memory both parameter
+                values and importances for all previous task, for all modes.
+                If False, keep only last parameter values and importances.
+                If mode is `separate`, the value of `keep_importance_data` is
+                set to be True.
         """
 
         super().__init__()
@@ -1038,6 +1044,11 @@ class EWCPlugin(StrategyPlugin):
         self.mode = mode
         self.decay_factor = decay_factor
         self.step_id = 0
+
+        if self.mode == 'separate':
+            self.keep_importance_data = True
+        else:
+            self.keep_importance_data = keep_importance_data
 
         self.saved_params = defaultdict(list)
         self.importances = defaultdict(list)
@@ -1082,6 +1093,9 @@ class EWCPlugin(StrategyPlugin):
                                                strategy.device)
         self.update_importances(importances)
         self.saved_params[self.step_id] = copy_params_dict(strategy.model)
+        # clear previuos parameter values
+        if self.step_id > 0 and (not self.keep_importance_data):
+            del self.saved_params[self.step_id - 1]
         self.step_id += 1
     
     def compute_importances(self, model, criterion, optimizer,
@@ -1125,10 +1139,15 @@ class EWCPlugin(StrategyPlugin):
             self.importances[self.step_id] = importances
         elif self.mode == 'online':
             for (k1, old_imp), (k2, curr_imp) in \
-                        zip(self.importances[self.step_id-1], importances):
+                        zip(self.importances[self.step_id - 1], importances):
                 assert k1 == k2, 'Error in importance computation.'
                 self.importances[self.step_id].append(
                     (k1, (self.decay_factor * old_imp + curr_imp)))
+            
+            # clear previous parameter importances
+            if self.step_id > 0 and (not self.keep_importance_data):
+                del self.importances[self.step_id - 1]
+
         else:
             raise ValueError("Wrong EWC mode.")
 

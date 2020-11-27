@@ -8,6 +8,15 @@ from avalanche.extras import SimpleMLP
 This example tests EWC on Split MNIST and Permuted MNIST.
 It is possible to choose, among other options, between EWC with separate
 penalties and online EWC with a single penalty.
+
+On Permuted MNIST EWC maintains a very good performance on previous tasks
+with a wide range of configurations. The average accuracy on previous tasks
+at the end of training on all task is around 85%,
+with a comparable training accuracy.
+
+On Split MNIST, on the contrary, EWC is not able to remember previous tasks and
+is subjected to complete forgetting in all configurations. The training accuracy
+is above 90% but the average accuracy on previou tasks is around 20%.
 """
 
 parser = argparse.ArgumentParser()
