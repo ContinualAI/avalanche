@@ -287,9 +287,9 @@ class EvaluationPlugin(StrategyPlugin):
         if joint_training:
             self.log.info("[Joint Training]")
         else:
-            self.log.info("[Training on Task {}, Step {}]"
-                          .format(self._train_current_task_id,
-                                  strategy.step_info.current_step))
+            self.log.info("[Training on Step {}, Task {}]"
+                          .format(strategy.step_info.current_step,
+                                  self._train_current_task_id))
 
     def after_training_iteration(self, strategy, **kwargs):
         self._training_total_iterations += 1
@@ -314,9 +314,9 @@ class EvaluationPlugin(StrategyPlugin):
         # Logging
         if iteration % 100 == 0:
             self.log.info(
-                '[Training] ==>>> it: {}, avg. loss: {:.6f}, '
+                '[Training] ==>>> ep: {}, it: {}, avg. loss: {:.6f}, '
                 'running train acc: {:.3f}'.format(
-                    iteration, self._average_loss,
+                    strategy.epoch, iteration, self._average_loss,
                     self._training_accuracy))
 
             self.evaluation_protocol.update_tb_train(
