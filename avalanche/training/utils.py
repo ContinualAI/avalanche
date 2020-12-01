@@ -173,7 +173,7 @@ def set_classifier(model, weigth, bias, clas=None):
         model.classifier = torch.nn.Linear(512, 10)
 
     else:
-        raise NotImplemented
+        raise NotImplementedError()
 
 
 def reset_classifier(model, val=0, std=None):
@@ -336,6 +336,33 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     return x, y
 
 
+def zerolike_params_dict(model):
+    """
+    Create a list of (name, parameter), where parameter is initalized to zero.
+    The list has as many parameters as model, with the same size.
+
+    :param model: a pytorch model
+    """
+
+    return [(k, torch.zeros_like(p).to(p.device))
+            for k, p in model.named_parameters()]
+
+
+def copy_params_dict(model, copy_grad=False):
+    """
+    Create a list of (name, parameter), where parameter is copied from model.
+    The list has as many parameters as model, with the same size.
+
+    :param model: a pytorch model
+    :param copy_grad: if True returns gradients instead of parameter values
+    """
+
+    if copy_grad:
+        return [(k, p.grad.data.clone()) for k, p in model.named_parameters()]
+    else:
+        return [(k, p.data.clone()) for k, p in model.named_parameters()]
+
+
 __all__ = ['get_accuracy',
            'train_net',
            'preprocess_imgs',
@@ -349,4 +376,6 @@ __all__ = ['get_accuracy',
            'pad_data',
            'compute_one_hot',
            'imagenet_batch_preproc',
-           'load_all_dataset']
+           'load_all_dataset',
+           'zerolike_params_dict',
+           'copy_params_dict']

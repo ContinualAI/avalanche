@@ -27,7 +27,7 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks.datasets import MNIST
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF, AGEM, GEM, MultiTaskStrategy
+    GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy
 from avalanche.benchmarks import nc_scenario
 
 
@@ -168,6 +168,30 @@ class StrategyTest(unittest.TestCase):
 
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_step=256,
+                       train_mb_size=10, train_epochs=1)
+
+        self.run_strategy(my_nc_scenario, strategy)
+    
+    def test_ewc(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+
+        strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
+                       mode='separate',
+                       train_mb_size=10, train_epochs=1)
+
+        self.run_strategy(my_nc_scenario, strategy)
+
+    def test_ewc_online(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+
+        strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
+                       mode='online', decay_factor=0.1,
                        train_mb_size=10, train_epochs=1)
 
         self.run_strategy(my_nc_scenario, strategy)
