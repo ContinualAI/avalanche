@@ -42,17 +42,22 @@ class Logger:
     log = None
     tb_logging = None
 
-    def __init__(self, log_dir="./logs/", tb_logdir_name="tb_data"):
+    def __init__(self, log_dir="./logs/", tb_logdir_name="tb_data",
+                 logging_level=logging.INFO, additional_handlers=None):
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
         logger = logging.getLogger("avalanche")
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging_level)
         logger.addHandler(logging.StreamHandler())
         logger.addHandler(logging.FileHandler(
             os.path.join(log_dir, 'logfile.log'))
         )
+
+        if additional_handlers is not None:
+            for hl in additional_handlers:
+                logger.addHandler(hl)
 
         self.tb_logging = TensorboardLogging(
             tb_logdir=os.path.join(log_dir, tb_logdir_name)

@@ -51,8 +51,8 @@ def main():
 
     # Continual learning strategy
     cl_strategy = Naive(
-        model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device\
+        model, optimizer, criterion, train_mb_size=32, train_epochs=2,
+        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
     )
 
     # train and test loop
