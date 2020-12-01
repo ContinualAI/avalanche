@@ -75,9 +75,8 @@ class MultiTaskStrategy(BaseStrategy):
         :param kwargs:
         :return:
         """
-        data = {self.step_id.task_label: self.current_data}
         self.current_dataloader = MultiTaskDataLoader(
-              data,
+              self.current_data,
               num_workers=num_workers,
               batch_size=self.test_mb_size)
 

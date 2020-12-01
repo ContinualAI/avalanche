@@ -30,7 +30,6 @@ class MultiTaskDataLoader:
         :param kwargs: data loader arguments. See pytorch :class:`DataLoader`.
         """
         self.data_dict = data_dict
-        self.max_len = max([len(d) for d in self.data_dict.values()])
         self.loaders_dict: Dict[int, DataLoader] = {}
 
         for task_id, data in self.data_dict.items():
@@ -40,9 +39,10 @@ class MultiTaskDataLoader:
         iter_dataloaders = {}
         for t in self.loaders_dict.keys():
             iter_dataloaders[t] = iter(self.loaders_dict[t])
+        max_len = max([len(d) for d in iter_dataloaders.values()])
 
         try:
-            for it in range(self.max_len):
+            for it in range(max_len):
                 for t in self.data_dict.keys():
                     t_loader = iter_dataloaders[t]
                     try:
