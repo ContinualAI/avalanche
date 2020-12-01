@@ -7,3 +7,4 @@ data/
 logs/
 *.pyc
 doc_html/*
+.run/
