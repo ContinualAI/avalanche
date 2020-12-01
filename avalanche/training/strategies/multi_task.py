@@ -8,12 +8,15 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+from torch.nn import Module
+from torch.optim import Optimizer
+
 from avalanche.benchmarks.utils.data_loader import MultiTaskDataLoader
 from avalanche.training.strategies import BaseStrategy
 
 
 class MultiTaskStrategy(BaseStrategy):
-    def __init__(self, known_train_labels: bool = True,
+    def __init__(self, model: Module, optimizer: Optimizer, criterion, known_train_labels: bool = True,
                  known_test_labels: bool = True,
                  **kwargs):
         """
@@ -34,7 +37,7 @@ class MultiTaskStrategy(BaseStrategy):
         """
         self.known_train_labels = known_train_labels
         self.known_test_labels = known_test_labels
-        super().__init__(**kwargs)
+        super().__init__(model, optimizer, criterion, **kwargs)
 
         # State variables
         # MultiTaskStrategy adds a task-id.
