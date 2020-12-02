@@ -1,10 +1,10 @@
 .vscode/
 __pycache__
 .idea/
+.run/
 avalanche/benchmarks/datasets/*/data
 *.py~
 data/
 logs/
 *.pyc
 doc_html/*
-.run/
