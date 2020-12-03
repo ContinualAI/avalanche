@@ -27,7 +27,7 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks.datasets import MNIST
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF, AGEM, GEM, EWC
+    GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy
 from avalanche.benchmarks import nc_scenario
 
 
@@ -76,6 +76,15 @@ class StrategyTest(unittest.TestCase):
         device = "cuda"
     else:
         device = "cpu"
+
+    def test_multi_task(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        strategy = MultiTaskStrategy(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device)
+        self.run_strategy(my_nc_scenario, strategy)
 
     def test_naive(self):
         model = self.get_model(fast_test=self.fast_test)
