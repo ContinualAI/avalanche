@@ -1,6 +1,6 @@
 # Avalanche: a Comprehensive Framework for Continual Learning Research
 **[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Tutorial]()** | **[API Doc]()**
-<br>
+
 ![issue](https://img.shields.io/github/issues/vlomonaco/core50)
 ![pr](https://img.shields.io/github/issues-pr/vlomonaco/core50)
 
