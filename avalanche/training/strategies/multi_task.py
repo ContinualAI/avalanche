@@ -16,12 +16,13 @@ from avalanche.training.strategies import BaseStrategy
 
 
 class MultiTaskStrategy(BaseStrategy):
-    def __init__(self, model: Module, optimizer: Optimizer, criterion, known_train_labels: bool = True,
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 known_train_labels: bool = True,
                  known_test_labels: bool = True,
                  **kwargs):
         """
-        MultiTaskStrategy is a CL strategy that provides task identities at train
-        and test time (if needed).
+        MultiTaskStrategy is a CL strategy that provides task identities at
+        train and test time (if needed).
 
         The main difference with :class:`BaseStrategy` is the use of task
         identities. See :class:`BaseStrategy` for additional documentation
@@ -41,12 +42,15 @@ class MultiTaskStrategy(BaseStrategy):
 
         # State variables
         # MultiTaskStrategy adds a task-id.
+        # Also inherits state from BaseStrategy.
         self.mb_x, self.mb_y, self.mb_task_id = None, None, None
 
     def adapt_train_dataset(self, **kwargs):
         """
         Called after the dataset initialization and before the
         dataloader initialization. Allows to customize the dataset.
+        multi-task datasets are dictionaries with task ids as keys
+        and TransformationDatasets as values.
         :param kwargs:
         :return:
         """
@@ -59,12 +63,21 @@ class MultiTaskStrategy(BaseStrategy):
         :param num_workers: number of thread workers for the data laoding.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
-        self.current_dataloader = MultiTaskDataLoader(self.current_data,
-                                             num_workers=num_workers,
-                                             batch_size=self.train_mb_size,
-                                             shuffle=shuffle)
+        self.current_dataloader = MultiTaskDataLoader(
+            self.current_data,
+            num_workers=num_workers,
+            batch_size=self.train_mb_size,
+            shuffle=shuffle)
 
     def adapt_test_dataset(self, **kwargs):
+        """
+        Called after the dataset initialization and before the
+        dataloader initialization. Allows to customize the dataset.
+        multi-task datasets are dictionaries with task ids as keys
+        and TransformationDatasets as values.
+        :param kwargs:
+        :return:
+        """
         self.current_data = {self.step_info.task_label: self.current_data}
         super().adapt_test_dataset(**kwargs)
 

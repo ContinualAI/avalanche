@@ -15,7 +15,7 @@ from typing import Dict
 class MultiTaskDataLoader:
     def __init__(self, data_dict: Dict, **kwargs):
         """ Custom data loader for multi-task training.
-        The dictionary `data_dict` maps the task ids into their
+        The dictionary `data_dict` maps task ids into their
         corresponding datasets.
 
         When iterating over the data, it returns sequentially a different

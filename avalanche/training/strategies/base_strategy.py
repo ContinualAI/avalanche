@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 01-12-2020                                                             #
+# Author(s): Antonio Carta                                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
 from collections import defaultdict
 from typing import Optional, Sequence, Union
 
@@ -22,6 +32,9 @@ class BaseStrategy:
         customized by child strategies. Additionally, it supports plugins,
         a mechanism to augment existing strategies with additional
         behavior (e.g. a memory buffer for replay).
+
+        This strategy does not use task identities. See
+        :class:MultiTaskStrategy: if you need them.
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -128,6 +141,7 @@ class BaseStrategy:
         self.model.to(self.device)
 
         self.current_data = step_info.dataset
+        self.current_data.train()
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
@@ -161,6 +175,8 @@ class BaseStrategy:
             self.step_id = step_info.current_step
 
             self.current_data = step_info.dataset
+            self.current_data.eval()
+
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
 
