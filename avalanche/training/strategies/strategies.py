@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 01-12-2020                                                             #
+# Author(s): Antonio Carta, Andrea Cossu                                       #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
 from typing import Optional, Sequence, List, Union
 
 from torch.nn import Module
@@ -17,6 +27,7 @@ class Naive(BaseStrategy):
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
     to contrast the catastrophic forgetting of previous knowledge.
+    This strategy does not use task identities.
 
     Naive is easy to set up and its results are commonly used to show the worst
     performing baseline.
@@ -56,6 +67,7 @@ class CWRStar(BaseStrategy):
                  plugins: Optional[List[StrategyPlugin]] = None,
                  ):
         """ CWR* Strategy.
+        This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -91,6 +103,7 @@ class Replay(BaseStrategy):
                  plugins: Optional[List[StrategyPlugin]] = None,
                  ):
         """ Experience replay strategy. See ReplayPlugin for more details.
+        This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -124,6 +137,7 @@ class GDumb(BaseStrategy):
                  plugins: Optional[List[StrategyPlugin]] = None,
                  ):
         """ GDumb strategy. See GDumbPlugin for more details.
+        This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -159,6 +173,7 @@ class Cumulative(BaseStrategy):
                  ):
         """ Cumulative strategy. At each step,
             train model with data from all previous steps and current step.
+            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -200,6 +215,7 @@ class LwF(BaseStrategy):
                  ):
         """ Learning without Forgetting strategy. 
             See LwF plugin for details.
+            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -238,6 +254,7 @@ class AGEM(BaseStrategy):
                  ):
         """ Average Gradient Episodic Memory (A-GEM) strategy. 
             See AGEM plugin for details.
+            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -276,6 +293,7 @@ class GEM(BaseStrategy):
                  ):
         """ Gradient Episodic Memory (GEM) strategy. 
             See GEM plugin for details.
+            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -316,6 +334,7 @@ class EWC(BaseStrategy):
                  ):
         """ Elastic Weight Consolidation (EWC) strategy.
             See EWC plugin for details.
+            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
