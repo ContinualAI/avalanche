@@ -16,6 +16,7 @@
 
 import csv
 import os
+import logging
 import sys
 from zipfile import ZipFile
 from os.path import expanduser
@@ -50,6 +51,7 @@ class TinyImagenet(Dataset):
             :param fun target_transform: Pytorch transformation founction for y
             :param bool download: True for downloading the dataset
         """
+        self.log = logging.getLogger("avalanche")
         self.transform = transform
         self.target_transform = target_transform
         self.train = train
@@ -61,16 +63,16 @@ class TinyImagenet(Dataset):
                 data_folder
             )
 
-        try:
+        if os.path.exists(self.data_folder):
+            if download:
+                self.log.info(
+                    "Directory {} already exists".format(self.data_folder))
+        else:
             # Create target Directory for Tiny ImageNet data
             os.makedirs(self.data_folder)
-            print("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory ", self.data_folder, " Created ")
             self.download = download
             self.download_tinyImageNet()
-
-        except OSError:
-            self.download = False
-            print("Directory ", self.data_folder, " already exists")
 
         self.data_folder = os.path.join(self.data_folder, 'tiny-imagenet-200')
 
@@ -80,15 +82,15 @@ class TinyImagenet(Dataset):
     def download_tinyImageNet(self):
         """ Downloads the TintImagenet Dataset """
 
-        print("Downloading " + filename[1] + "...")
+        self.log.info("Downloading " + filename[1] + "...")
         urlretrieve(filename[1], os.path.join(self.data_folder, filename[0]))
 
         with ZipFile(os.path.join(self.data_folder, filename[0]), 'r') as zipf:
-            print('Extracting Tiny ImageNet images...')
+            self.log.info('Extracting Tiny ImageNet images...')
             zipf.extractall(self.data_folder)
-            print('Done!')
+            self.log.info('Done!')
 
-        print("Download complete.")
+        self.log.info("Download complete.")
 
     def labels2dict(self):
         """

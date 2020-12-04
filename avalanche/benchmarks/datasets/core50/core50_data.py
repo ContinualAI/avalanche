@@ -14,6 +14,7 @@
 
 import os
 import sys
+import logging
 from zipfile import ZipFile 
 
 
@@ -52,6 +53,8 @@ class CORE50_DATA(object):
             data_folder (string): folder in which to download core50 dataset. 
         """
 
+        self.log = logging.getLogger("avalanche")
+
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
         else:
@@ -61,25 +64,25 @@ class CORE50_DATA(object):
         try:
             # Create target Directory for CORE50 data
             os.makedirs(self.data_folder)
-            print("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory ", self.data_folder, " Created ")
             self.download = True
             self.download_core50()
 
         except OSError:
             self.download = False
-            print("Directory ", self.data_folder, " already exists")
+            self.log.error("Directory ", self.data_folder, " already exists")
 
     def download_core50(self):
 
         for name in filename:
-            print("Downloading " + name[1] + "...")
+            self.log.info("Downloading " + name[1] + "...")
             urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
 
             if name[1].endswith('.zip'):
                 with ZipFile(
                         os.path.join(self.data_folder, name[0]), 'r') as zipf:
-                    print('Extracting CORe50 images...') 
+                    self.log.info('Extracting CORe50 images...')
                     zipf.extractall(self.data_folder) 
-                    print('Done!') 
+                    self.log.info('Done!')
 
-        print("Download complete.")
+        self.log.info("Download complete.")

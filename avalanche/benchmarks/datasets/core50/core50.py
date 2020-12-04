@@ -15,6 +15,7 @@
 """ Tiny-Imagenet Pytorch Dataset """
 
 import os
+import logging
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 from PIL import Image
@@ -43,6 +44,7 @@ class CORe50(Dataset):
         self.target_transform = target_transform
         self.root = root
         self.loader = loader
+        self.log = logging.getLogger("avalanche")
 
         # any scenario and run is good here since we want just to load the
         # train images and targets with no particular order
@@ -53,18 +55,18 @@ class CORe50(Dataset):
         if download:
             self.core_data = CORE50_DATA(data_folder=root)
 
-        print("Loading paths...")
+        self.log.info("Loading paths...")
         with open(os.path.join(root, 'paths.pkl'), 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
-        print("Loading labels...")
+        self.log.info("Loading labels...")
         with open(os.path.join(root, 'labels.pkl'), 'rb') as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(nbatch + 1):
                 self.train_test_targets += self.all_targets[scen][run][i]
 
-        print("Loading LUP...")
+        self.log.info("Loading LUP...")
         with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 

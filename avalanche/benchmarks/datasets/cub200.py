@@ -15,6 +15,7 @@
 """ CUB200 Pytorch Dataset """
 
 import os
+import logging
 from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import check_integrity, \
     extract_archive
@@ -35,11 +36,14 @@ class CUB200(Dataset):
         self.transform = transform
         self.loader = default_loader
         self.train = train
+        self.log = logging.getLogger("avalanche")
 
         if download:
-            print("Download is not supported for this Dataset."
+            self.log.error(
+                  "Download is not supported for this Dataset."
                   "You need to download 'images.tgz' and 'lists.tgz' manually "
-                  "at: http://www.vision.caltech.edu/visipedia/CUB-200.html")
+                  "at: http://www.vision.caltech.edu/visipedia/CUB-200.html"
+            )
 
         if not os.path.exists(os.path.join(self.root, self.filename[:-4])):
             extract_archive(os.path.join(self.root, self.filename))

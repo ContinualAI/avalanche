@@ -13,9 +13,11 @@
 * [Benchmarks](examples/benchmarks.md)
 * [Training](examples/training.md)
 * [Evaluation](examples/evaluation.md)
+* [Extras](examples/extras.md)
 
 ## 📙 From Zero to Hero Tutorial
 
+* [Introduction](from-zero-to-hero-tutorial/introduction.md)
 * [Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
 * [Training](from-zero-to-hero-tutorial/3.-training.md)
 * [Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)

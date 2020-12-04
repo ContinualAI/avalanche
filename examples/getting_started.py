@@ -69,7 +69,7 @@ def main():
                  CF(num_class=scenario.n_classes),  # Catastrophic forgetting
                  RAMU(),  # Ram usage
                  CM()],  # Confusion matrix
-        log_dir='../logs')
+        )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(

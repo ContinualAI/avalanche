@@ -23,15 +23,18 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
+import logging
 
 
 def create_syn_data(model):
     size = 0
-    print('Creating Syn data for Optimal params and their Fisher info')
+    log = logging.getLogger("avalanche")
+
+    log.info('Creating Syn data for Optimal params and their Fisher info')
 
     for name, param in model.named_parameters():
         if "bn" not in name and "output" not in name:
-            print(name, param.flatten().size(0))
+            log.info(name, param.flatten().size(0))
             size += param.flatten().size(0)
 
     # The first array returned is a 2D array: the first component contains
