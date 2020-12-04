@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 03-12-2020                                                             #
+# Author(s): Antonio Carta, Andrea Cossu                                       #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
 import copy
 import random
 import quadprog
@@ -99,6 +109,7 @@ class ReplayPlugin(StrategyPlugin):
     Handles an external memory filled with randomly selected
     patterns and implements the "adapt_train_dataset" callback to add them to
     the training set.
+    This plugin does not use task identities.
 
     The :mem_size: attribute controls the number of patterns to be stored in 
     the external memory. We assume the training set contains at least 
@@ -162,6 +173,7 @@ class GDumbPlugin(StrategyPlugin):
     is trained with all and only the data of the external memory.
     The memory is updated at the end of each step to add new classes or
     new examples of already encountered classes.
+    This plugin does not use task identities.
 
     This plugin can be combined with a Naive strategy to obtain the
     standard GDumb strategy.
@@ -368,6 +380,7 @@ class CWRStarPlugin(StrategyPlugin):
 
     def __init__(self, model, second_last_layer_name, num_classes=50):
         """ CWR* Strategy.
+        This plugin does not use task identities.
 
         :param model: trained model
         :param second_last_layer_name: name of the second to last layer.
@@ -473,6 +486,9 @@ class MultiHeadPlugin(StrategyPlugin):
         scenarios and single-head adaptation for incremental tasks.
         The plugin automatically set the correct output head when the task
         changes and adds new heads when a novel task is encountered.
+        This plugin *needs task identities* for multi-task scenarios.
+        It does not need task identities for single incremental tasks
+        (e.g. class incremental).
 
         By default, a Linear (fully connected) layer is created
         with as many output units as the number of classes in that task. This
@@ -694,7 +710,8 @@ class LwFPlugin(StrategyPlugin):
     """
     A Learning without Forgetting plugin.
     LwF uses distillation to regularize the current loss with soft targets
-    taken from a previous version of the model. 
+    taken from a previous version of the model.
+    This plugin does not use task identities.
     """
 
     def __init__(self, alpha=1, temperature=2):
@@ -759,6 +776,7 @@ class AGEMPlugin(StrategyPlugin):
     episodic memory of patterns from previous steps. If the dot product
     between the current gradient and the (average) gradient of a randomly
     sampled set of memory examples is negative, the gradient is projected.
+    This plugin does not use task identities.
     """
 
     def __init__(self, patterns_per_step: int, sample_size: int):
@@ -871,6 +889,7 @@ class GEMPlugin(StrategyPlugin):
     episodic memory of patterns from previous steps. The gradient on the current
     minibatch is projected so that the dot product with all the reference
     gradients of previous tasks remains positive.
+    This plugin does not use task identities.
     """
 
     def __init__(self, patterns_per_step: int, memory_strength: float):
@@ -1011,7 +1030,8 @@ class EWCPlugin(StrategyPlugin):
     step. During training on each minibatch, the loss is augmented 
     with a penalty which keeps the value of the current weights close to the
     value they had on previous steps in proportion to their importance on that 
-    step. Importances are computed with an additional pass on the training set. 
+    step. Importances are computed with an additional pass on the training set.
+    This plugin does not use task identities.
     """
 
     def __init__(self, ewc_lambda, mode='separate', decay_factor=None,
