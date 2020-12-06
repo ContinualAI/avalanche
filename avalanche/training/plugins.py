@@ -521,11 +521,11 @@ class MultiHeadPlugin(StrategyPlugin):
         if keep_initial_layer:
             self.task_layers[0] = getattr(model, classifier_field)
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 
-    def before_test_step(self, strategy, **kwargs):
+    def before_test_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 
@@ -540,7 +540,12 @@ class MultiHeadPlugin(StrategyPlugin):
         :return: None
         """
 
-        task_label = step_info.task_label
+        # task label is set depending on the type of scenario
+        # multitask or others
+        if hasattr(strategy, 'mb_task_id'):
+            task_label = strategy.mb_task_id
+        else:
+            task_label = step_info.task_label
         n_output_units = max(step_info.dataset.targets) + 1
 
         if task_label not in self.task_layers:
