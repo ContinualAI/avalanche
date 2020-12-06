@@ -540,7 +540,8 @@ class MultiHeadPlugin(StrategyPlugin):
         :return: None
         """
 
-        task_label = step_info.task_label
+        # task label is set depending on the type of scenario: multitask or others
+        task_label = strategy.mb_task_id if hasattr(strategy, 'mb_task_id') else step_info.task_label
         n_output_units = max(step_info.dataset.targets) + 1
 
         if task_label not in self.task_layers:
