@@ -521,11 +521,11 @@ class MultiHeadPlugin(StrategyPlugin):
         if keep_initial_layer:
             self.task_layers[0] = getattr(model, classifier_field)
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 
-    def before_test_step(self, strategy, **kwargs):
+    def before_test_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 
