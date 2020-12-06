@@ -12,5 +12,5 @@ In this tutorial you'll learn Avalanche _in-depth_ and learn how to extend and c
 
 {% page-ref page="../from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md" %}
 
-We don't have a lot of rules for contributing or a strict _code of conduct_, please anjoy this freedom with a grain of salt! 😁 
+We don't have a lot of rules for contributing or a strict _code of conduct_, please enjoy this freedom with a grain of salt! 😁 
 
