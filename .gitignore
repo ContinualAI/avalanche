@@ -1,6 +1,7 @@
 .vscode/
 __pycache__
 .idea/
+.run/
 avalanche/benchmarks/datasets/*/data
 *.py~
 data/

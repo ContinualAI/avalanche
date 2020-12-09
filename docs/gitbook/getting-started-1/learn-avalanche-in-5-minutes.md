@@ -4,6 +4,12 @@ description: A Short Guide for Researchers on the Run
 
 # Learn Avalanche in 5 Minutes
 
+{% hint style="danger" %}
+This doc is out-of-date. Check the [full tutorial](../from-zero-to-hero-tutorial/introduction.md) for more details.
+{% endhint %}
+
+This doc is out-of-date. Check the [corresponding notebook](https://colab.research.google.com/drive/1vjLrdYEHWGH9Rz0cQZzb63BO2yCAsUIT#scrollTo=ADOrYmNXak23) for the latest version.
+
 _Avalanche_ is mostly about making the life of a continual learning researcher easier.
 
 > #### What are the **three pillars** of any respectful continual learning research project?
@@ -12,7 +18,7 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 * **Training**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
 * **Evaluation**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
 
-> #### _With Avalanche, you can find all these three fundamental pieces together and more, in a single and coherent codabase._
+> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent codabase._
 
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
@@ -56,7 +62,7 @@ Avalanche
 
 We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://vlomonaco.github.io/avalanche) is your friend as well!
 
-All right, let's start with the benchmarks module right away 👇
+All right, let's start with the _benchmarks_ module right away 👇
 
 ## 📚 Benchamarks
 

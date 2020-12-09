@@ -10,7 +10,7 @@ description: A Brief Introduction to Avalanche
 
 As a powerful _avalanche_, a _Continual Learning_ agent _incrementally_ _improves_ its knowledge and skills over time, building upon the previously acquired ones and learning how to interact with the external world. 
 
-We hope _Avalanche_ may trigger the same _positive reinforcement loop_ within our community, moving towards a more _collaborative_ and _inclusive_ way of doing research and helping us tackle bigger problems, faster and better, but together!
+We hope _Avalanche_ may trigger the same _**positive reinforcement loop**_ within our community, moving towards a more _**collaborative**_ ****and _**inclusive**_ ****way of doing research and helping us tackle bigger problems, faster and better, but together! 👪
 
 ![The &quot;snowball effect&quot;: how a simple tool becomes an Avalanche through collaboration. ](../.gitbook/assets/snowball-1.jpg)
 

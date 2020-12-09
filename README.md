@@ -78,7 +78,7 @@ Getting Started
 We know that learning a new tool may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.
 For example, you may start with our 5-minutes guide that will let you acquire the basics about Avalanche and how you can use it in your research project:
 
-- [Getting Stated Guide]()
+- [Getting Started Guide]()
 
 We have also prepared for you a large set of examples & snippets you can plug-in directly into your code and play with:
 
