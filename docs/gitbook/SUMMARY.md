@@ -5,6 +5,7 @@
 ## 📌 Getting Started <a id="getting-started-1"></a>
 
 * [Introduction](getting-started-1/why-avalanche.md)
+* [Alpha Version](getting-started-1/alpha-version.md)
 * [How to Install](getting-started-1/1.-how-to-install.md)
 * [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
 
@@ -38,6 +39,7 @@
 * [Ask Your Question](questions-and-issues/ask-your-question.md)
 * [Add Your Issue](questions-and-issues/add-your-issue.md)
 * [Request a Feature](questions-and-issues/request-a-feature.md)
+* [Give Feedback](questions-and-issues/give-feedback.md)
 
 ## 👪 About Us <a id="contacts-and-links"></a>
 

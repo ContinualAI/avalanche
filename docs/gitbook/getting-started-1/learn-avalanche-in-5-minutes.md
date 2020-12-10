@@ -41,22 +41,22 @@ In the graphic below, you can see how _Avalanche_ sub-modules are available and 
 ```text
 Avalanche
 ├── Benchmarks
-│   ├── Classic
-│   ├── Datasets
-│   ├── Generators
-│   ├── Scenarios
-│   └── Utils
+│   ├── Classic
+│   ├── Datasets
+│   ├── Generators
+│   ├── Scenarios
+│   └── Utils
 ├── Evaluation
-│   ├── Metrics
-│   ├── Tensorboard
-|   └── Utils
+│   ├── Metrics
+│   ├── Tensorboard
+|   └── Utils
 ├── Training
-│   ├── Strategies
-│   ├── Plugins
-|   └── Utils
+│   ├── Strategies
+│   ├── Plugins
+|   └── Utils
 └── Extras
-    ├── Configs
-    └── Models
+    ├── Configs
+    └── Models
 ```
 {% endcode %}
 
@@ -141,7 +141,7 @@ for step in train_stream:
 
 What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offer a number of utilites that you can use to create your own benchmark with maximum flexibilty: the **benchmarks generators**!
 
- The _specific_ scenario generators are useful when starting from one or multiple pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incrementa_l or _Task-Incremental_ scenarios among others.
+The _specific_ scenario generators are useful when starting from one or multiple pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incrementa\_l or \_Task-Incremental_ scenarios among others.
 
 ```python
 from avalanche.benchmarks.generators import nc_scenario, ni_scenario
@@ -156,7 +156,7 @@ scenario = nc_scenario(
 )
 ```
 
-Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _Domain-Incremental_, _Class-Incrementa_l or _Task-Incremental_  scenarios, you can always use our **generic generators**:
+Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _Domain-Incremental_, _Class-Incrementa\_l or \_Task-Incremental_ scenarios, you can always use our **generic generators**:
 
 * **filelist\_scenario**
 * **dataset\_scenario**
@@ -208,7 +208,7 @@ class MyStrategy():
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
-    
+
     def train(self, step):
         # here you can implement your own training loop for each step (i.e. 
         # batch or task).
@@ -250,7 +250,7 @@ cl_strategy = MyStrategy(
 
 # TRAINING LOOP
 print('Starting experiment...')
- 
+
 for step in scenario.train_stream:
     print("Start of step ", step.current_step)
 

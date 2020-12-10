@@ -14,7 +14,7 @@ We hope _Avalanche_ may trigger the same _**positive reinforcement loop**_ withi
 
 ![The &quot;snowball effect&quot;: how a simple tool becomes an Avalanche through collaboration. ](../.gitbook/assets/snowball-1.jpg)
 
-## The Avalanche Advantage 💪
+## 💪The Avalanche Advantage 
 
 Avalanche has several advantages:
 

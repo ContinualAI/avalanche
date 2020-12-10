@@ -6,7 +6,7 @@ description: Powered by ContinualAI
 
 ![](.gitbook/assets/avalanche_logo_with_clai.png)
 
-**Avalanche** is an _end-to-end Continual Learning research_ framework based on [**Pytorch**](https://pytorch.org/), born within [**ContinualAI**](https://www.continualai.org/) with the unique goal of providing a **shared** and **collaborative** open-source \(MIT licensed\) **codebase** for _fast prototyping_, _training_ and _reproducible_ _evaluation_ of continual learning algorithms. 
+**Avalanche** is an _end-to-end Continual Learning research_ framework based on [**Pytorch**](https://pytorch.org/), born within [**ContinualAI**](https://www.continualai.org/) with the unique goal of providing a **shared** and **collaborative** open-source \(MIT licensed\) **codebase** for _fast prototyping_, _training_ and _reproducible_ _evaluation_ of continual learning algorithms.
 
 Avalanche can help _Continual Learning_ researchers in several ways:
 
@@ -23,8 +23,8 @@ The framework is organized in four main modules:
 * **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [Tensorboard](https://www.tensorflow.org/tensorboard) support.
 * **`Extras`**: In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
 
-_Avalanche_ is one of the first experiments of a **End-to-end Research Framework** for reproducible m_achine learning_ research where you can find _benchmarks_, _algorithms_ and _evaluation protocols_ **in the same place**.  
-  
+_Avalanche_ is one of the first experiments of a **End-to-end Research Framework** for reproducible m_achine learning_ research where you can find _benchmarks_, _algorithms_ and _evaluation protocols_ **in the same place**.
+
 Let's make it together 👫 a wonderful ride! 🎈
 
 Check out _how you code changes_ when you start using _Avalanche_! 👇
@@ -158,7 +158,7 @@ for task_id, train_dataset in enumerate(list_train_dataset):
 
     train_data_loader = DataLoader(
         train_dataset, num_workers=num_workers, batch_size=train_mb_size)
-    
+
     for ep in range(train_ep):
         for iteration, (train_mb_x, train_mb_y) in enumerate(train_data_loader):
             optimizer.zero_grad()
@@ -177,10 +177,10 @@ for task_id, train_dataset in enumerate(list_train_dataset):
 # Test
 acc_results = []
 for task_id, test_dataset in enumerate(list_test_dataset):
-    
+
     train_data_loader = DataLoader(
         train_dataset, num_workers=num_workers, batch_size=train_mb_size)
-    
+
     correct = 0
     for iteration, (test_mb_x, test_mb_y) in enumerate(test_data_loader):
 
@@ -196,7 +196,7 @@ for task_id, test_dataset in enumerate(list_test_dataset):
 
         # compute acc
         correct += (test_mb_y.eq(test_logits.long())).sum()
-    
+
     acc_results.append(len(test_dataset)/correct)
 ```
 {% endtab %}
@@ -204,8 +204,8 @@ for task_id, test_dataset in enumerate(list_test_dataset):
 
 ## 🚦 Getting Started
 
-We know that learning a new tool _may be tough at first_. This is why we made _Avalanche_ as easy as possible to learn with a set of resources that will help you along the way.  
-  
+We know that learning a new tool _may be tough at first_. This is why we made _Avalanche_ as easy as possible to learn with a set of resources that will help you along the way.
+
 For example, you may start with our _**5-minutes**_ **guide** that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
@@ -229,7 +229,7 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 ![](.gitbook/assets/continualai_lab_logo.png)
 
-_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organziation and the largest open community on Continual Learning for AI_. __
+_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organziation and the largest open community on Continual Learning for AI_. \_\_
 
 Do you have a question, do you want to report an issue or simply ask for a new feture? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
