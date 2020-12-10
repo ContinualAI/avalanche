@@ -62,9 +62,9 @@ strategy = EWC(model, optimizer, criterion, args.ewc_lambda,
 
 # create scenario
 if args.scenario == 'pmnist':
-    scenario = PermutedMNIST(incremental_steps=args.permutations)
+    scenario = PermutedMNIST(n_steps=args.permutations)
 elif args.scenario == 'smnist':
-    scenario = SplitMNIST(incremental_steps=5, return_task_id=False)
+    scenario = SplitMNIST(n_steps=5, return_task_id=False)
 else:
     raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 

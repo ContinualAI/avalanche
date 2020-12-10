@@ -34,7 +34,7 @@ _default_test_transform = transforms.Compose([
 
 
 def SplitCUB200(root,
-                incremental_steps=11,
+                n_steps=11,
                 classes_first_batch=100,
                 return_task_id=False,
                 seed=0,
@@ -48,8 +48,7 @@ def SplitCUB200(root,
     download it and store the data in the data folder.
 
     :param root: Base path where Imagenet data are stored.
-    :param incremental_steps: The number of incremental steps in the current
-        scenario.
+    :param n_steps: The number of steps in the current scenario.
     :param classes_first_batch: Number of classes in the first batch.
     Usually this is set to 500. Default to None.
     :param return_task_id: if True, for every step the task id is returned and
@@ -96,7 +95,7 @@ def SplitCUB200(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=True,
             per_step_classes=per_step_classes,
             seed=seed,
@@ -107,7 +106,7 @@ def SplitCUB200(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=False,
             per_step_classes=per_step_classes,
             seed=seed,

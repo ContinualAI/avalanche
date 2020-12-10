@@ -112,7 +112,7 @@ SplitCUB200
 
 # creating the benchmark (scenario object)
 perm_mnist = PermutedMNIST(
-    incremental_steps=3,
+    n_steps=3,
     seed=1234,
 )
 
@@ -370,7 +370,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = SimpleMLP(num_classes=10)
 
 # CL Benchmark Creation
-perm_mnist = PermutedMNIST(incremental_steps=3)
+perm_mnist = PermutedMNIST(n_steps=3)
 train_stream = perm_mnist.train_stream
 test_stream = perm_mnist.test_stream
 
