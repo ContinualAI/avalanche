@@ -9,7 +9,7 @@ _Avalanche_ is a framework in constant development. Thanks to the support of the
 A the moment, _Avalanche_ is in **Alpha \(v0.0.1\)**, but we already support a number of _Benchmarks_, _Strategies_ and Metrics, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
 
 {% hint style="info" %}
-Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedbacks](../questions-and-issues/give-feedback.md)!
+Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
 
 ## 📚 Supported Benchmarks
@@ -98,7 +98,7 @@ With _"Tensorboard"_ is checked if the metrics can be also visualized in **Tenso
 | **A** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **MS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **SSS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **CE** | ❌ | ❌ | ❌ |  |
+| **CE** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **Confusion Matrix** | ✔️ | ✔️ | ❌ | \*\*\*\* |
 | **MAC** | ✔️ | ✔️ | ❌ | \*\*\*\* |
 | **CPU Usage** | ✔️ | ✔️ | ❌ | \*\*\*\* |
