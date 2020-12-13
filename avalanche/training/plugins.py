@@ -13,7 +13,7 @@ import random
 import quadprog
 import logging
 from collections import defaultdict
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Union, Sequence, List, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -21,7 +21,16 @@ from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.evaluation.metrics import ACC
+from avalanche.evaluation import OnTrainStepStart, AbstractMetric, EvalData, \
+    MetricValue, OnTrainIteration, OnTestStepStart, OnTestIteration, \
+    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd
+from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
+    OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd
+from avalanche.evaluation.metrics import Accuracy, Loss
+from avalanche.extras.logging import Logger
+
+if TYPE_CHECKING:
+    from avalanche.training.strategies import BaseStrategy
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 
@@ -35,70 +44,76 @@ class StrategyPlugin:
     def __init__(self):
         pass
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def adapt_train_dataset(self, strategy, **kwargs):
+    def before_training_step(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_training_epoch(self, strategy, **kwargs):
+    def adapt_train_dataset(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_training_iteration(self, strategy, **kwargs):
+    def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_forward(self, strategy, **kwargs):
+    def before_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_forward(self, strategy, **kwargs):
+    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_backward(self, strategy, **kwargs):
+    def after_forward(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_backward(self, strategy, **kwargs):
+    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_training_iteration(self, strategy, **kwargs):
+    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_update(self, strategy, **kwargs):
+    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_update(self, strategy, **kwargs):
+    def before_update(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_training_epoch(self, strategy, **kwargs):
+    def after_update(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_test(self, strategy, **kwargs):
+    def after_training_step(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def adapt_test_dataset(self, strategy, **kwargs):
+    def after_training(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_test_step(self, strategy, **kwargs):
+    def before_test(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_test_step(self, strategy, **kwargs):
+    def adapt_test_dataset(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_test(self, strategy, **kwargs):
+    def before_test_step(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_test_iteration(self, strategy, **kwargs):
+    def after_test_step(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def before_test_forward(self, strategy, **kwargs):
+    def after_test(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_test_forward(self, strategy, **kwargs):
+    def before_test_iteration(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def after_test_iteration(self, strategy, **kwargs):
+    def before_test_forward(self, strategy: 'BaseStrategy', **kwargs):
+        pass
+
+    def after_test_forward(self, strategy: 'BaseStrategy', **kwargs):
+        pass
+
+    def after_test_iteration(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
 
@@ -248,132 +263,239 @@ class EvaluationPlugin(StrategyPlugin):
     An evaluation plugin that obtains relevant data from the
     training and testing loops of the strategy through callbacks.
 
-    Internally, the evaluation plugin tries uses the "evaluation_protocol"
-    (an instance of :class:`EvalProtocol`), to compute the
-    required metrics. The "evaluation_protocol" is usually passed as argument
-    from the strategy.
+    This plugin updates the given metrics and logs them using the provided
+    loggers.
     """
 
-    def __init__(self, evaluation_protocol):
+    def __init__(self,
+                 loggers: Union[Logger, Sequence[Logger]],
+                 *metrics: AbstractMetric):
+        """
+        Creates an instance of the evaluation plugin.
+
+        :param loggers: The loggers to use to log the metric values.
+        :param metrics: The metrics to compute.
+        """
         super().__init__()
-        self.evaluation_protocol = evaluation_protocol
-        self.log = logging.getLogger("avalanche")
+
+        self.metrics = metrics
+
+        if isinstance(loggers, Logger):
+            loggers = [loggers]
+        self.loggers = loggers
 
         # Private state variables
-        self._dataset_size = None
-        self._seen_samples = 0
-        self._total_loss = 0
-        self._average_loss = 0
+        self._steps_counter: int = -1
 
-        # Training
-        self._training_accuracy = None
-        self._training_correct_count = 0
-        self._training_average_loss = 0
-        self._training_total_iterations = 0
+        # Training variables
+        self._current_train_step_id: Optional[int] = None
         self._train_current_task_id = None
-        self._train_seen_samples = 0
 
-        # Test
-        self._test_average_loss = 0
+        # Test variables
+        self._current_test_step_id: Optional[int] = None
         self._test_current_task_id = None
-        self._test_true_y = None
-        self._test_predicted_y = None
-        self._test_protocol_results = None
 
-    def get_train_result(self):
-        return self._training_average_loss, self._training_accuracy
+    def _log_info(self, msg: str):
+        for logger in self.loggers:
+            logger.log.info(msg)
 
-    def get_test_result(self):
-        return self._test_protocol_results
+    def _log_metric_values(self, metric_values: List[MetricValue]):
+        for to_be_logged in metric_values:
+            for logger in self.loggers:
+                logger.log_metric(to_be_logged)
+
+    def _update_metrics(self, evaluation_data: EvalData):
+        metric_values = []
+        for metric in self.metrics:
+            metric_result = metric(evaluation_data)
+            # AbstractMetric result can be a single value or a list of values
+
+            if isinstance(metric_result, MetricValue):
+                metric_values.append(metric_result)
+            elif metric_result is not None:
+                metric_values += metric_result
+        self._log_metric_values(metric_values)
+        return metric_values
+
+    def before_training(self, strategy, **kwargs):
+        evaluation_data = OnTrainPhaseStart(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
+
+    def after_training(self, strategy, **kwargs):
+        evaluation_data = OnTrainPhaseEnd(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
 
     def before_training_step(self, strategy, joint_training=False, **kwargs):
-        task_id = strategy.step_info.task_label
-        self._train_current_task_id = task_id
-        self._training_accuracy = None
-        self._training_correct_count = 0
-        self._dataset_size = len(strategy.current_data)
-        self._seen_samples = 0
-        self._total_loss = 0
-        self._average_loss = 0
+        step_info = strategy.step_info
+        self._steps_counter += 1
+        self._current_train_step_id = step_info.current_step
+        self._train_current_task_id = step_info.task_label
 
+        evaluation_data = OnTrainStepStart(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
+
+        # Logging
         if joint_training:
-            self.log.info("[Joint Training]")
+            self._log_info("[Joint Training]")
         else:
-            self.log.info("[Training on Step {}, Task {}]"
-                          .format(strategy.step_info.current_step,
-                                  self._train_current_task_id))
+            self._log_info("[Training on Step {}, Task {}]"
+                           .format(strategy.step_info.current_step,
+                                   self._train_current_task_id))
+
+    def after_training_step(self, strategy, **kwargs):
+        evaluation_data = OnTrainStepEnd(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
+
+    def before_training_epoch(self, strategy, **kwargs):
+        evaluation_data = OnTrainEpochStart(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, strategy.epoch)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
+
+    def after_training_epoch(self, strategy, **kwargs):
+        evaluation_data = OnTrainEpochEnd(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, strategy.epoch)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
 
     def after_training_iteration(self, strategy, **kwargs):
-        self._training_total_iterations += 1
+        epoch = strategy.epoch
         iteration = strategy.mb_it
         train_mb_y = strategy.mb_y
         logits = strategy.logits
         loss = strategy.loss
-        self._seen_samples += train_mb_y.shape[0]
 
-        # Accuracy
-        _, predicted_labels = torch.max(logits, 1)
-        correct_predictions = torch.eq(predicted_labels, train_mb_y) \
-            .sum().item()
-        self._training_correct_count += correct_predictions
-        self._training_accuracy = self._training_correct_count / \
-            self._seen_samples
+        evaluation_data = OnTrainIteration(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, epoch, iteration, train_mb_y,
+            logits, loss)
 
-        # Loss
-        self._total_loss += loss.item()
-        self._average_loss = self._total_loss / self._seen_samples
+        # Update metrics
+        metric_values = self._update_metrics(evaluation_data)
 
         # Logging
-        if iteration % 100 == 0:
-            self.log.info(
-                '[Training] ==>>> ep: {}, it: {}, avg. loss: {:.6f}, '
-                'running train acc: {:.3f}'.format(
-                    strategy.epoch, iteration, self._average_loss,
-                    self._training_accuracy))
+        if (iteration + 1) % 100 == 0:
+            # TODO: move logger call elsewhere
+            # TODO: Accuracy doesn't emit at iteration end (add ad hoc method?)
+            accuracy_metric = next(
+                filter(lambda v: isinstance(v.origin, Accuracy), metric_values),
+                None)
+            loss_metric = next(
+                filter(lambda v: isinstance(v.origin, Loss), metric_values),
+                None)
 
-            self.evaluation_protocol.update_tb_train(
-                self._average_loss, self._training_accuracy,
-                self._training_total_iterations, torch.unique(train_mb_y),
-                self._train_current_task_id)
+            accuracy_result = 'N.A.'
+            loss_result = 'N.A.'
+
+            if accuracy_metric is not None:
+                accuracy_result = '{:.3f}'.format(accuracy_metric.value)
+
+            if loss_metric is not None:
+                loss_result = '{:.6f}'.format(loss_metric.value)
+
+            self._log_info(
+                '[Training] ==>>> ep: {}, it: {}, avg. loss: {}, '
+                'running train acc: {}'.format(
+                    strategy.epoch, iteration, loss_result, accuracy_result))
 
     def before_test_step(self, strategy, **kwargs):
-        step_info = strategy.step_info
-
-        self._test_protocol_results = dict()
+        step_info: IStepInfo = strategy.step_info
+        self._current_test_step_id = step_info.current_step
         self._test_current_task_id = step_info.task_label
-        self._test_average_loss = 0
-        self._test_true_y = []
-        self._test_predicted_y = []
-        self._dataset_size = len(strategy.current_data)
-        self._seen_samples = 0
 
-    def after_test_iteration(self, strategy, **kwargs):
-        _, predicted_labels = torch.max(strategy.logits, 1)
-        self._test_true_y.append(strategy.mb_y)
-        self._test_predicted_y.append(predicted_labels)
-        self._test_average_loss += strategy.loss.item()
+        evaluation_data = OnTestStepStart(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, self._current_test_step_id,
+            self._test_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
 
     def after_test_step(self, strategy, **kwargs):
-        self._test_average_loss /= self._dataset_size
+        evaluation_data = OnTestStepEnd(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, self._current_test_step_id,
+            self._test_current_task_id)
 
-        results = self.evaluation_protocol.get_results(
-            self._test_true_y, self._test_predicted_y,
-            self._train_current_task_id, self._test_current_task_id)
-        acc, accs = results[ACC]
+        # Update metrics
+        metric_values = self._update_metrics(evaluation_data)
 
-        self.log.info("[Evaluation] Task {}, Step {}: Avg Loss {:.6f}; "
-                      "Avg Acc {:.3f}"
-                      .format(self._test_current_task_id,
-                              strategy.step_info.current_step,
-                              self._test_average_loss, acc))
+        # Logging
+        # TODO: move logger call elsewhere
+        accuracy_metric = next(
+            filter(lambda v: isinstance(v.origin, Accuracy), metric_values),
+            None)
+        loss_metric = next(
+            filter(lambda v: isinstance(v.origin, Loss), metric_values),
+            None)
 
-        self._test_protocol_results[self._test_current_task_id] = \
-            (self._test_average_loss, acc, accs, results)
+        accuracy_result = 'N.A.'
+        loss_result = 'N.A.'
+
+        if accuracy_metric is not None:
+            accuracy_result = '{:.3f}'.format(accuracy_metric.value)
+
+        if loss_metric is not None:
+            loss_result = '{:.6f}'.format(loss_metric.value)
+
+        self._log_info(
+            "[Evaluation] Task {}, Step {}: Avg Loss {}; Avg Acc {}".format(
+                self._test_current_task_id, self._current_test_step_id,
+                loss_result, accuracy_result))
+
+    def after_test_iteration(self, strategy, **kwargs):
+        epoch = strategy.epoch
+        iteration = strategy.mb_it
+        train_mb_y = strategy.mb_y
+        logits = strategy.logits
+        loss = strategy.loss
+
+        evaluation_data = OnTestIteration(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, self._current_test_step_id,
+            self._test_current_task_id, epoch, iteration, train_mb_y,
+            logits, loss)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
+
+    def before_test(self, strategy, **kwargs):
+        evaluation_data = OnTestPhaseStart(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, self._current_test_step_id,
+            self._test_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
 
     def after_test(self, strategy, **kwargs):
-        self.evaluation_protocol.update_tb_test(
-            self._test_protocol_results,
-            strategy.step_info.current_step)
+        evaluation_data = OnTestPhaseEnd(
+            self._steps_counter, self._current_train_step_id,
+            self._train_current_task_id, self._current_test_step_id,
+            self._test_current_task_id)
+
+        # Update metrics
+        self._update_metrics(evaluation_data)
 
 
 class CWRStarPlugin(StrategyPlugin):
@@ -777,7 +899,7 @@ class LwFPlugin(StrategyPlugin):
 class AGEMPlugin(StrategyPlugin):
     """
     Average Gradient Episodic Memory Plugin.
-    AGEM projects the gradient on the current minibatch by using an external 
+    AGEM projects the gradient on the current minibatch by using an external
     episodic memory of patterns from previous steps. If the dot product
     between the current gradient and the (average) gradient of a randomly
     sampled set of memory examples is negative, the gradient is projected.
@@ -890,7 +1012,7 @@ class AGEMPlugin(StrategyPlugin):
 class GEMPlugin(StrategyPlugin):
     """
     Gradient Episodic Memory Plugin.
-    GEM projects the gradient on the current minibatch by using an external 
+    GEM projects the gradient on the current minibatch by using an external
     episodic memory of patterns from previous steps. The gradient on the current
     minibatch is projected so that the dot product with all the reference
     gradients of previous tasks remains positive.
@@ -1032,9 +1154,9 @@ class EWCPlugin(StrategyPlugin):
     """
     Elastic Weight Consolidation (EWC) plugin.
     EWC computes importance of each weight at the end of training on current
-    step. During training on each minibatch, the loss is augmented 
+    step. During training on each minibatch, the loss is augmented
     with a penalty which keeps the value of the current weights close to the
-    value they had on previous steps in proportion to their importance on that 
+    value they had on previous steps in proportion to their importance on that
     step. Importances are computed with an additional pass on the training set.
     This plugin does not use task identities.
     """

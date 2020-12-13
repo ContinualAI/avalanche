@@ -1,17 +1,25 @@
 from enum import Enum
 from numbers import Number
-from typing import NamedTuple, Union, List, Sequence, Optional, Tuple
+from typing_extensions import Protocol
+from typing import NamedTuple, Union, Optional, Tuple, List, Callable
 
 from PIL.Image import Image
 from torch import Tensor
 
+from .evaluation_data import EvalData
+
 MetricType = Union[float, int, Tensor, Image]
+MetricResult = Optional[Union[List['MetricValue'], 'MetricValue']]
+
+
+class Metric(Protocol):
+    def __call__(self, eval_data: EvalData) -> Union[None, List[MetricResult]]:
+        ...
 
 
 class PlotPosition(Enum):
-    NEXT = 0
-    SPECIFIC = 1
-    ONE_SHOT = 2
+    SPECIFIC = 0
+    ONE_SHOT = 1
 
 
 class AlternativeValues:
@@ -27,10 +35,16 @@ class AlternativeValues:
 
 
 class MetricValue(NamedTuple):
+    origin: Metric
     name: str
     value: Union[MetricType, AlternativeValues]
     plot_position: PlotPosition
-    x_plot: Optional[Number] = None
+    x_plot: Number
 
 
-__all__ = ['PlotPosition', 'AlternativeValues', 'MetricValue']
+__all__ = [
+    'MetricResult',
+    'Metric',
+    'PlotPosition',
+    'AlternativeValues',
+    'MetricValue']

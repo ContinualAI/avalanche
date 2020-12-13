@@ -52,7 +52,7 @@ class EvalTestData(EvalData):
         self.test_task_label: int = test_task_label
 
 
-class OnTrainStart(EvalData):
+class OnTrainPhaseStart(EvalData):
     # TODO: doc
 
     def __init__(self,
@@ -62,17 +62,7 @@ class OnTrainStart(EvalData):
         super().__init__(step_counter, step_id, training_task_label)
 
 
-class OnTrainEnd(EvalData):
-    # TODO: doc
-
-    def __init__(self,
-                 step_counter: int,
-                 step_id: int,
-                 training_task_label: int):
-        super().__init__(step_counter, step_id, training_task_label)
-
-
-class OnTestStart(EvalTestData):
+class OnTestPhaseStart(EvalTestData):
     # TODO: doc
 
     def __init__(self,
@@ -85,7 +75,63 @@ class OnTestStart(EvalTestData):
                          test_step_id, test_task_label)
 
 
-class OnTestEnd(EvalTestData):
+class OnTrainPhaseEnd(EvalData):
+    # TODO: doc
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int):
+        super().__init__(step_counter, step_id, training_task_label)
+
+
+class OnTestPhaseEnd(EvalTestData):
+    # TODO: doc
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int,
+                 test_step_id: int,
+                 test_task_label: int):
+        super().__init__(step_counter, step_id, training_task_label,
+                         test_step_id, test_task_label)
+
+
+class OnTrainStepStart(EvalData):
+    # TODO: doc
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int):
+        super().__init__(step_counter, step_id, training_task_label)
+
+
+class OnTestStepStart(EvalTestData):
+    # TODO: doc
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int,
+                 test_step_id: int,
+                 test_task_label: int):
+        super().__init__(step_counter, step_id, training_task_label,
+                         test_step_id, test_task_label)
+
+
+class OnTrainStepEnd(EvalData):
+    # TODO: doc
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int):
+        super().__init__(step_counter, step_id, training_task_label)
+
+
+class OnTestStepEnd(EvalTestData):
     # TODO: doc
 
     def __init__(self,
@@ -110,21 +156,6 @@ class OnTrainEpochStart(EvalData):
         self.epoch: int = epoch
 
 
-class OnTestEpochStart(EvalTestData):
-    # TODO: doc
-
-    def __init__(self,
-                 step_counter: int,
-                 step_id: int,
-                 training_task_label: int,
-                 test_step_id: int,
-                 test_task_label: int,
-                 epoch: int):
-        super().__init__(step_counter, step_id, training_task_label,
-                         test_step_id, test_task_label)
-        self.epoch: int = epoch
-
-
 class OnTrainEpochEnd(EvalData):
     # TODO: doc
 
@@ -134,21 +165,6 @@ class OnTrainEpochEnd(EvalData):
                  training_task_label: int,
                  epoch: int):
         super().__init__(step_counter, step_id, training_task_label)
-        self.epoch: int = epoch
-
-
-class OnTestEpochEnd(EvalTestData):
-    # TODO: doc
-
-    def __init__(self,
-                 step_counter: int,
-                 step_id: int,
-                 training_task_label: int,
-                 test_step_id: int,
-                 test_task_label: int,
-                 epoch: int):
-        super().__init__(step_counter, step_id, training_task_label,
-                         test_step_id, test_task_label)
         self.epoch: int = epoch
 
 
@@ -195,7 +211,17 @@ class OnTestIteration(EvalTestData):
         self.loss: Tensor = _detach_tensor(loss)
 
 
-__all__ = ['EvalData', 'EvalTestData', 'OnTrainStart', 'OnTrainEnd',
-           'OnTestStart', 'OnTestEnd', 'OnTrainEpochStart', 'OnTestEpochStart',
-           'OnTrainEpochEnd', 'OnTestEpochEnd', 'OnTrainIteration',
+__all__ = ['EvalData',
+           'EvalTestData',
+           'OnTrainPhaseStart',
+           'OnTestPhaseStart',
+           'OnTrainPhaseEnd',
+           'OnTestPhaseEnd',
+           'OnTrainStepStart',
+           'OnTestStepStart',
+           'OnTrainStepEnd',
+           'OnTestStepEnd',
+           'OnTrainEpochStart',
+           'OnTrainEpochEnd',
+           'OnTrainIteration',
            'OnTestIteration']

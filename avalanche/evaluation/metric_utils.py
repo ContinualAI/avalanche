@@ -1,9 +1,12 @@
 import io
+from typing import Union, Sequence, List
 
 import matplotlib.pyplot as plt
 from PIL import Image
 from numpy import ndarray
 from sklearn.metrics import ConfusionMatrixDisplay
+
+from .evaluation_data import EvalData, EvalTestData
 
 
 def default_cm_image_creator(confusion_matrix_tensor: ndarray,
@@ -60,4 +63,31 @@ def default_cm_image_creator(confusion_matrix_tensor: ndarray,
     return image
 
 
-__all__ = ['default_cm_image_creator']
+def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
+    # TODO: doc
+
+    if eval_data.test_phase:
+        return eval_data.test_task_label
+
+    return eval_data.training_task_label
+
+
+def filter_accepted_events(event_types: Union[type, Sequence[type]],
+                           train=True, test=False) -> List[type]:
+    # TODO: doc
+    if isinstance(event_types, type):
+        event_types = [event_types]
+
+    accepted = []
+    for event_type in event_types:
+        if issubclass(event_type, EvalTestData) and test:
+            accepted.append(event_type)
+        elif issubclass(event_type, EvalData) and train:
+            accepted.append(event_type)
+    return accepted
+
+
+__all__ = [
+    'default_cm_image_creator',
+    'get_task_label',
+    'filter_accepted_events']

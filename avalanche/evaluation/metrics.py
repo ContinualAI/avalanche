@@ -5,30 +5,26 @@ import torch
 from PIL.Image import Image
 from numpy import ndarray
 
-from avalanche.evaluation.abstract_metric import Metric
-from avalanche.evaluation.evaluation_data import OnTrainEpochEnd, \
-    OnTestEpochEnd, OnTestEnd, OnTrainEnd, \
-    OnTrainEpochStart, OnTestEpochStart, OnTrainStart, OnTestStart
-from avalanche.evaluation.metric_result import MetricValue, PlotPosition, \
-    AlternativeValues
-from avalanche.evaluation.metric_units import AverageAccuracyUnit, \
-    ConfusionMatrixUnit
-from avalanche.evaluation.metric_utils import default_cm_image_creator
+from .abstract_metric import AbstractMetric
+from .evaluation_data import OnTrainEpochEnd, OnTestStepEnd,\
+    OnTrainStepEnd, OnTrainEpochStart, OnTrainStepStart, OnTestStepStart
+from .metric_definitions import MetricValue, PlotPosition, AlternativeValues
+from .metric_units import AverageAccuracyUnit, ConfusionMatrixUnit, \
+    AverageLossUnit
+from .metric_utils import default_cm_image_creator, filter_accepted_events, \
+    get_task_label
 
 
-class Accuracy(Metric):
+class Accuracy(AbstractMetric):
     """
-    The accuracy metric.
+    The average accuracy metric.
 
     This metric is computed separately for each task.
 
-    By default this metric computes the accuracy on the test set only but this
-    behaviour can be changed by passing train=True in the constructor, in which
-    case also the training accuracy is logged. Beware that, when logging the
-    training accuracy, the running training accuracy will be emitted after each
-    epoch.
+    The accuracy will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training accuracy is the "running" one.
     """
-    def __init__(self, *, train=False, test=True):
+    def __init__(self, *, train=True, test=True):
         """
         Creates an instance of the Accuracy metric.
 
@@ -36,7 +32,7 @@ class Accuracy(Metric):
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
-            phase. Defaults to False.
+            phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
             phase. Defaults to True.
         """
@@ -53,26 +49,82 @@ class Accuracy(Metric):
         # When computing the accuracy metric we need to get EpochEnd events
         # to check if the epoch ended. The actual element in charge of
         # accumulating the running accuracy is the accuracy_unit.
-        on_events = Metric.filter_accepted_events(
-            [OnTrainEpochEnd, OnTestEpochEnd], train=train, test=test)
+        on_events = filter_accepted_events(
+            [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
 
         # Attach callbacks
-        self.attach(self.accuracy_unit)\
-            .on(on_events, self.result_emitter)
+        self._attach(self.accuracy_unit)\
+            ._on(on_events, self.result_emitter)
 
-    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestEpochEnd]):
+    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]):
         # This simply queries accuracy_unit for the accuracy value and
         # emits that value by labeling it with the appropriate name.
         phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = Metric.get_task_label(eval_data)
+        task_label = get_task_label(eval_data)
         metric_value = self.accuracy_unit.value
 
         metric_name = 'Top1_Task{:03}_{}'.format(task_label, phase_name)
+        plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(metric_name, metric_value, PlotPosition.NEXT)
+        return MetricValue(self, metric_name, metric_value,
+                           PlotPosition.SPECIFIC, plot_x_position)
 
 
-class ConfusionMatrix(Metric):
+class Loss(AbstractMetric):
+    """
+    The average loss metric.
+
+    This metric is computed separately for each task.
+
+    The loss will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training loss is the "running" one.
+    """
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the Loss metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__()
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             'time.')
+
+        # Create loss unit
+        self.loss_unit = AverageLossUnit(on_train_epochs=train,
+                                         on_test_epochs=test)
+
+        # When computing the loss metric we need to get EpochEnd events
+        # to check if the epoch ended. The actual element in charge of
+        # accumulating the running loss is the loss_unit.
+        on_events = filter_accepted_events(
+            [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
+
+        # Attach callbacks
+        self._attach(self.loss_unit)._on(on_events, self.result_emitter)
+
+    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]):
+        # This simply queries loss_unit for the loss value and
+        # emits that value by labeling it with the appropriate name.
+        phase_name = 'Test' if eval_data.test_phase else 'Train'
+        task_label = get_task_label(eval_data)
+        metric_value = self.loss_unit.value
+
+        metric_name = 'Loss_Task{:03}_{}'.format(task_label, phase_name)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return MetricValue(self, metric_name, metric_value,
+                           PlotPosition.SPECIFIC, plot_x_position)
+
+
+class ConfusionMatrix(AbstractMetric):
     """
     The Confusion Matrix metric.
 
@@ -135,33 +187,34 @@ class ConfusionMatrix(Metric):
             num_classes=num_classes, normalize=normalize,
             on_train_epochs=train, on_test_epochs=test)
 
-        on_events = Metric.filter_accepted_events(
-            [OnTrainEnd, OnTestEnd], train=train, test=test)
+        on_events = filter_accepted_events(
+            [OnTrainStepEnd, OnTestStepEnd], train=train, test=test)
 
         # Attach callbacks
-        self.attach(self._cm_unit) \
-            .on(on_events, self.result_emitter)
+        self._attach(self._cm_unit)._on(on_events, self.result_emitter)
 
-    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestEpochEnd]):
+    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]):
         phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = Metric.get_task_label(eval_data)
+        task_label = get_task_label(eval_data)
         metric_value = self._cm_unit.value
 
         metric_name = 'CM_Task{:03}_{}'.format(task_label, phase_name)
+        plot_x_position = self._next_x_position(metric_name)
 
         metric_representation = MetricValue(
-            metric_name, torch.as_tensor(metric_value), PlotPosition.NEXT)
+            self, metric_name, torch.as_tensor(metric_value),
+            PlotPosition.SPECIFIC, plot_x_position)
 
         if self._save_image:
             cm_image = self._image_creator(metric_value)
             metric_representation = MetricValue(
-                metric_name, AlternativeValues(cm_image, metric_value),
-                PlotPosition.NEXT)
+                self, metric_name, AlternativeValues(cm_image, metric_value),
+                PlotPosition.SPECIFIC, plot_x_position)
 
         return metric_representation
 
 
-class CatastrophicForgetting(Metric):
+class CatastrophicForgetting(AbstractMetric):
     """
     The Catastrophic Forgetting metric.
 
@@ -188,10 +241,10 @@ class CatastrophicForgetting(Metric):
             on_train_epochs=False, on_test_epochs=True)
 
         # Attach callbacks
-        self.attach(self._accuracy_unit)\
-            .on(OnTestEpochEnd, self.result_emitter)
+        self._attach(self._accuracy_unit)\
+            ._on(OnTestStepEnd, self.result_emitter)
 
-    def result_emitter(self, eval_data: OnTestEpochEnd):
+    def result_emitter(self, eval_data: OnTestStepEnd):
         train_task_label = eval_data.training_task_label
         test_task_label = eval_data.test_task_label
         accuracy_value = float(self._accuracy_unit)
@@ -206,11 +259,13 @@ class CatastrophicForgetting(Metric):
             forgetting = self.best_accuracy[test_task_label] - accuracy_value
 
         metric_name = 'Forgetting_Task{:03}_Test'.format(test_task_label)
+        plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(metric_name, forgetting, PlotPosition.NEXT)
+        return MetricValue(self, metric_name, forgetting,
+                           PlotPosition.SPECIFIC, plot_x_position)
 
 
-class EpochTime(Metric):
+class EpochTime(AbstractMetric):
     """
     Time usage metric, measured in seconds.
 
@@ -244,32 +299,34 @@ class EpochTime(Metric):
 
         self._start_time = None
 
-        on_start_events = Metric.filter_accepted_events(
-            [OnTrainEpochStart, OnTestEpochStart], train=train, test=test)
+        on_start_events = filter_accepted_events(
+            [OnTrainEpochStart, OnTestStepStart], train=train, test=test)
 
-        on_end_events = Metric.filter_accepted_events(
-            [OnTrainEpochEnd, OnTestEpochEnd], train=train, test=test)
+        on_end_events = filter_accepted_events(
+            [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
 
         # Attach callbacks
-        self.on(on_start_events, self.time_start)\
-            .on(on_end_events, self.result_emitter)
+        self._on(on_start_events, self.time_start)\
+            ._on(on_end_events, self.result_emitter)
 
     def time_start(self, eval_data):
         # Epoch start
         self._start_time = time.perf_counter()
 
-    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestEpochEnd]):
+    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]):
         # Epoch end
         phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = Metric.get_task_label(eval_data)
+        task_label = get_task_label(eval_data)
         elapsed_time = time.perf_counter() - self._start_time
 
         metric_name = 'EpochTime_Task{:03}_{}'.format(task_label, phase_name)
+        plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(metric_name, elapsed_time, PlotPosition.NEXT)
+        return MetricValue(self, metric_name, elapsed_time,
+                           PlotPosition.SPECIFIC, plot_x_position)
 
 
-class AverageEpochTime(Metric):
+class AverageEpochTime(AbstractMetric):
     """
     Time usage metric, measured in seconds.
 
@@ -278,6 +335,9 @@ class AverageEpochTime(Metric):
 
     By default this metric takes the time of epochs in training steps only. This
     behaviour can be changed by passing test=True in the constructor.
+
+    Consider that, when used on the test set, the epoch time is the same as the
+    step time.
     """
 
     def __init__(self, *, train=True, test=False):
@@ -301,57 +361,65 @@ class AverageEpochTime(Metric):
         self._accumulated_time = 0.0
         self._n_epochs = 0
 
-        on_step_start_events = Metric.filter_accepted_events(
-            [OnTrainStart, OnTestStart], train=train, test=test)
+        on_step_start_events = filter_accepted_events(
+            [OnTrainStepStart, OnTestStepStart], train=train, test=test)
 
-        on_epoch_start_events = Metric.filter_accepted_events(
-            [OnTrainEpochStart, OnTestEpochStart], train=train, test=test)
+        on_epoch_start_events = filter_accepted_events(
+            [OnTrainEpochStart], train=train, test=test)
 
-        on_epoch_end_events = Metric.filter_accepted_events(
-            [OnTrainEpochEnd, OnTestEpochEnd], train=train, test=test)
+        on_epoch_end_events = filter_accepted_events(
+            [OnTrainEpochEnd], train=train, test=test)
 
-        on_step_end_events = Metric.filter_accepted_events(
-            [OnTrainEnd, OnTestEnd], train=train, test=test)
+        on_step_end_events = filter_accepted_events(
+            [OnTrainStepEnd, OnTestStepEnd], train=train, test=test)
 
         # Attach callbacks
-        self.on(on_step_start_events, self.step_start) \
-            .on(on_epoch_start_events, self.epoch_start) \
-            .on(on_epoch_end_events, self.epoch_end) \
-            .on(on_step_end_events, self.result_emitter)
+        self._on(on_step_start_events, self.step_start) \
+            ._on(on_epoch_start_events, self.epoch_start) \
+            ._on(on_epoch_end_events, self.epoch_end) \
+            ._on(on_step_end_events, self.result_emitter)
 
     def step_start(self, eval_data):
-        # Epoch start
+        # Step start
         self._accumulated_time = 0.0
         self._n_epochs = 0
+        # Used for timing during the test phase
+        self._epoch_start_time = time.perf_counter()
 
     def epoch_start(self, eval_data):
-        # Epoch start
+        # Epoch start (training phase)
         self._epoch_start_time = time.perf_counter()
 
     def epoch_end(self, eval_data):
-        # Epoch start
+        # Epoch end  (training phase)
         self._accumulated_time = time.perf_counter() - self._epoch_start_time
         self._n_epochs += 1
 
-    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestEpochEnd]):
+    def result_emitter(self, eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]):
         # Epoch end
         phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = Metric.get_task_label(eval_data)
+        task_label = get_task_label(eval_data)
 
         if self._n_epochs == 0:
-            average_epoch_time = 0.0
-        else:
-            average_epoch_time = self._accumulated_time / self._n_epochs
+            # Test phase
+            self._n_epochs = 1
+            self._accumulated_time = \
+                time.perf_counter() - self._epoch_start_time
+
+        average_epoch_time = self._accumulated_time / self._n_epochs
 
         metric_name = 'AvgEpochTime_Task{:03}_{}'.format(task_label, phase_name)
+        plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(metric_name, average_epoch_time, PlotPosition.NEXT)
+        return MetricValue(
+            self, metric_name, average_epoch_time,
+            PlotPosition.SPECIFIC, plot_x_position)
 
 
 __all__ = [
     'Accuracy',
+    'Loss',
     'ConfusionMatrix',
     'CatastrophicForgetting',
     'EpochTime',
-    'AverageEpochTime'
-]
+    'AverageEpochTime']

@@ -19,7 +19,7 @@ import logging
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.evaluation.eval_protocol import EvalProtocol
+from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
 
 
 class JointTraining:
@@ -29,7 +29,6 @@ class JointTraining:
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
-
         """
         JointStrategy is a super class for all the joint training strategies.
         This means that it is not a continual learning strategy but it can be
