@@ -8,7 +8,7 @@ from numpy import ndarray
 from .abstract_metric import AbstractMetric
 from .evaluation_data import OnTrainEpochEnd, OnTestStepEnd,\
     OnTrainStepEnd, OnTrainEpochStart, OnTrainStepStart, OnTestStepStart
-from .metric_definitions import MetricValue, PlotPosition, AlternativeValues
+from .metric_definitions import MetricValue, AlternativeValues
 from .metric_units import AverageAccuracyUnit, ConfusionMatrixUnit, \
     AverageLossUnit
 from .metric_utils import default_cm_image_creator, filter_accepted_events, \
@@ -63,11 +63,10 @@ class Accuracy(AbstractMetric):
         task_label = get_task_label(eval_data)
         metric_value = self.accuracy_unit.value
 
-        metric_name = 'Top1_Task{:03}_{}'.format(task_label, phase_name)
+        metric_name = 'Top1/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, metric_value,
-                           PlotPosition.SPECIFIC, plot_x_position)
+        return MetricValue(self, metric_name, metric_value, plot_x_position)
 
 
 class Loss(AbstractMetric):
@@ -117,11 +116,10 @@ class Loss(AbstractMetric):
         task_label = get_task_label(eval_data)
         metric_value = self.loss_unit.value
 
-        metric_name = 'Loss_Task{:03}_{}'.format(task_label, phase_name)
+        metric_name = 'Loss/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, metric_value,
-                           PlotPosition.SPECIFIC, plot_x_position)
+        return MetricValue(self, metric_name, metric_value, plot_x_position)
 
 
 class ConfusionMatrix(AbstractMetric):
@@ -198,18 +196,18 @@ class ConfusionMatrix(AbstractMetric):
         task_label = get_task_label(eval_data)
         metric_value = self._cm_unit.value
 
-        metric_name = 'CM_Task{:03}_{}'.format(task_label, phase_name)
+        metric_name = 'ConfusionMatrix/{}/Task{:03}'.format(phase_name,
+                                                            task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         metric_representation = MetricValue(
-            self, metric_name, torch.as_tensor(metric_value),
-            PlotPosition.SPECIFIC, plot_x_position)
+            self, metric_name, torch.as_tensor(metric_value), plot_x_position)
 
         if self._save_image:
             cm_image = self._image_creator(metric_value)
             metric_representation = MetricValue(
                 self, metric_name, AlternativeValues(cm_image, metric_value),
-                PlotPosition.SPECIFIC, plot_x_position)
+                plot_x_position)
 
         return metric_representation
 
@@ -258,11 +256,10 @@ class CatastrophicForgetting(AbstractMetric):
         if test_task_label in self.best_accuracy:
             forgetting = self.best_accuracy[test_task_label] - accuracy_value
 
-        metric_name = 'Forgetting_Task{:03}_Test'.format(test_task_label)
+        metric_name = 'Forgetting/Task{:03}'.format(test_task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, forgetting,
-                           PlotPosition.SPECIFIC, plot_x_position)
+        return MetricValue(self, metric_name, forgetting, plot_x_position)
 
 
 class EpochTime(AbstractMetric):
@@ -306,7 +303,7 @@ class EpochTime(AbstractMetric):
             [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
 
         # Attach callbacks
-        self._on(on_start_events, self.time_start)\
+        self._on(on_start_events, self.time_start) \
             ._on(on_end_events, self.result_emitter)
 
     def time_start(self, eval_data):
@@ -319,11 +316,11 @@ class EpochTime(AbstractMetric):
         task_label = get_task_label(eval_data)
         elapsed_time = time.perf_counter() - self._start_time
 
-        metric_name = 'EpochTime_Task{:03}_{}'.format(task_label, phase_name)
+        metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name,
+                                                       task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, elapsed_time,
-                           PlotPosition.SPECIFIC, plot_x_position)
+        return MetricValue(self, metric_name, elapsed_time, plot_x_position)
 
 
 class AverageEpochTime(AbstractMetric):
@@ -408,12 +405,12 @@ class AverageEpochTime(AbstractMetric):
 
         average_epoch_time = self._accumulated_time / self._n_epochs
 
-        metric_name = 'AvgEpochTime_Task{:03}_{}'.format(task_label, phase_name)
+        metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(phase_name,
+                                                           task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return MetricValue(
-            self, metric_name, average_epoch_time,
-            PlotPosition.SPECIFIC, plot_x_position)
+            self, metric_name, average_epoch_time, plot_x_position)
 
 
 __all__ = [

@@ -27,10 +27,23 @@ class SimpleCounter(object):
 
 
 class AbstractMetric(ABC, Metric):
-    # TODO: doc
+    """
+    Base class for all Metric.
+
+    This class exposes protected methods that can be used to link event
+    types to callbacks and to keep track of the last "x" position of a metric
+    value.
+    """
 
     def __init__(self):
-        # TODO: doc
+        """
+        Creates an instance of AbstractMetric.
+
+        This sets up the initial values of different internal utility fields
+        that are used for keeping track of the binding between event types
+        and callbacks as well as other fields that can be used by child classes.
+        """
+
         self._listeners: List[Tuple[bool, ListenersType]] = []
         """
         A list of _listeners to notify on new events, as a list of tuples.
@@ -42,11 +55,24 @@ class AbstractMetric(ABC, Metric):
         """
 
         self._metric_x_counters: Dict[str, SimpleCounter] = dict()
+        """
+        A dictionary that can be used to keep track of the next "x" position
+        of the value of a metric. Usually used by calling the 
+        "_next_x_position" method.
+        """
 
     def _on(self,
             event_types: Optional[Union[type, Sequence[type]]],
             *listeners: MetricCallbackType):
-        # TODO: doc
+        """
+        Registers the given listeners so that they will be invoked when certain
+        training/test events occur.
+
+        :param event_types: The events to listen for. Can be None, which
+            means that the listeners will receive all events.
+        :param listeners: The listeners to notify when one of the events occur.
+        :return: Self.
+        """
         if event_types is None or isinstance(event_types, type):
             event_types = [event_types]
         for listener in listeners:
@@ -56,17 +82,49 @@ class AbstractMetric(ABC, Metric):
         return self
 
     def _attach(self, *listeners: MetricCallbackType):
-        # TODO: doc
+        """
+        Registers the given listeners so that they will be invoked when an
+        event occurs.
+
+        This is equivalent to "_on(None, listeners)".
+
+        :param listeners: The listeners to notify when an event occurs.
+        :return: Self.
+        """
         return self._on(None, *listeners)
 
     def _use_metric(self, metric: Metric, *listeners: WrapperCallbackType):
-        # TODO: doc
+        """
+        Registers the given listeners so that they will be invoked when the
+        given metric emits a value.
+
+        The metric value will not be directly sent to the Loggers but
+        will be made available to listeners. This is useful when using existing
+        metrics to compute the value of the current metric.
+
+        :param metric: The metric to observe.
+        :param listeners: The listeners to notify when the metric returns
+            a metric value.
+        :return: Self.
+        """
         for listener in listeners:
             self._listeners.append((True, (metric, listener)))
         return self
 
     def __call__(self, eval_data: EvalData) -> Union[None, List[MetricResult]]:
-        # TODO: doc
+        """
+        Used to feed the metric.
+
+        This method is usually called by the evaluation plugin when an event
+        occurs (epoch started, iteration ended, ...).
+
+        When called, the metric will dispatch the event to the appropriate
+        listener registered using "_on", "_attach" and "_use_metric".
+
+        :param eval_data: The evaluation data received from the evaluation
+            plugin.
+        :return: The results of this metric. Can be None.
+        """
         emitted_metrics = []
         for is_metric, listener_definition in self._listeners:
             listener = listener_definition[1]
@@ -86,7 +144,15 @@ class AbstractMetric(ABC, Metric):
                         emitted_metrics.append(metric_result)
         return emitted_metrics
 
-    def _next_x_position(self, metric_name: str, initial_x:int = 0) -> int:
+    def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:
+        """
+        Utility method that can be used to get the next "x" position of a
+        metric value (given its name).
+
+        :param metric_name: The metric value name.
+        :param initial_x: The initial "x" value. Defaults to 0.
+        :return: The next "x" value to use.
+        """
         if metric_name not in self._metric_x_counters:
             self._metric_x_counters[metric_name] = SimpleCounter(initial_x)
         return self._metric_x_counters[metric_name]()

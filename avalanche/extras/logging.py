@@ -27,7 +27,7 @@ from PIL.Image import Image
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import ToTensor
 
-from avalanche.evaluation import MetricValue, AlternativeValues, PlotPosition
+from avalanche.evaluation import MetricValue, AlternativeValues
 
 
 class TensorboardLogging(object):
@@ -71,30 +71,18 @@ class Logger:
         self.log = logger
 
     def log_metric(self, metric_value: MetricValue):
-        print('[DEBUG] Got metric', metric_value)
-        origin, name, value, plot_position, x_plot = metric_value
-
-        if plot_position != PlotPosition.SPECIFIC:
-            # ONE_SHOT not supported at this time
-            print('[DEBUG] Got ONE_SHOT metric')
-            return
+        origin, name, value, x_plot = metric_value
 
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, float, int)
 
         if not isinstance(value, (Image, float, int)):
             # Unsupported type
-            print('[DEBUG] Got unsupported metric type:', type(value))
             return
 
-        step_x = None
-        if plot_position == PlotPosition.SPECIFIC:
-            step_x = x_plot
-
         if isinstance(value, Image):
-            self.tb_logging.writer.add_image(name, ToTensor()(value),
-                                             global_step=step_x)
+            self.tb_logging.writer.add_image(
+                name, ToTensor()(value), global_step=x_plot)
         elif isinstance(value, (float, int)):
-            self.tb_logging.writer.add_scalar(name, value,
-                                              global_step=step_x)
-
+            self.tb_logging.writer.add_scalar(
+                name, value, global_step=x_plot)

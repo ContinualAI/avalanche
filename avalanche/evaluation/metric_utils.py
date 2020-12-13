@@ -15,7 +15,7 @@ def default_cm_image_creator(confusion_matrix_tensor: ndarray,
                              xticks_rotation='horizontal',
                              values_format=None,
                              cmap='viridis',
-                             dpi=50,
+                             dpi=100,
                              image_title=''):
     """
     The default Confusion Matrix image creator. This utility uses Scikit-learn
@@ -64,7 +64,17 @@ def default_cm_image_creator(confusion_matrix_tensor: ndarray,
 
 
 def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
-    # TODO: doc
+    """
+    Returns the current task label for a evaluation data object.
+
+    The current task label depends on the phase. During the training
+    phase, the task label is the one defined in the "training_task_label"
+    field. On the contrary, during the test phase the task label is the one
+    defined in the "test_task_label" field.
+
+    :param eval_data: The evaluation data to get the task label from.
+    :return: The current train or test task label.
+    """
 
     if eval_data.test_phase:
         return eval_data.test_task_label
@@ -74,7 +84,15 @@ def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
 
 def filter_accepted_events(event_types: Union[type, Sequence[type]],
                            train=True, test=False) -> List[type]:
-    # TODO: doc
+    """
+    A simple utility method used to filter the types of evaluation events.
+
+    :param event_types: A list of event types.
+    :param train: If True, train events will be kept.
+    :param test: If True, test events will be kept.
+    :return: The event types as filtered according to the "train" and "test"
+        parameters.
+    """
     if isinstance(event_types, type):
         event_types = [event_types]
 

@@ -464,7 +464,6 @@ class EvaluationPlugin(StrategyPlugin):
                 loss_result, accuracy_result))
 
     def after_test_iteration(self, strategy, **kwargs):
-        epoch = strategy.epoch
         iteration = strategy.mb_it
         train_mb_y = strategy.mb_y
         logits = strategy.logits
@@ -473,7 +472,7 @@ class EvaluationPlugin(StrategyPlugin):
         evaluation_data = OnTestIteration(
             self._steps_counter, self._current_train_step_id,
             self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id, epoch, iteration, train_mb_y,
+            self._test_current_task_id, iteration, train_mb_y,
             logits, loss)
 
         # Update metrics
