@@ -27,11 +27,12 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.classic import SplitMNIST, PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
+from avalanche.benchmarks.classic import PermutedMNIST
+from avalanche.evaluation.metrics import EpochAccuracy
+from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import JointTraining, Naive
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.strategies import JointTraining
 
 def main():
 
@@ -49,14 +50,13 @@ def main():
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=10)])
+    logger = Logger()
+    evaluation_plugin = EvaluationPlugin(logger, EpochAccuracy())
 
     # Joint training strategy
     joint_train = JointTraining(
         model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
-    )
+        test_mb_size=32, device=device, plugins=[evaluation_plugin])
 
     # train and test loop
     results = []

@@ -13,7 +13,7 @@
 ################################################################################
 
 """
-This is a simple example on how to use the new strategy API.
+This is a simple example on how to use the Evaluation Plugin.
 """
 
 from __future__ import absolute_import
@@ -28,8 +28,8 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation import EpochAccuracy, TaskForgetting, EpochLoss, \
-    ConfusionMatrix, EpochTime, AverageEpochTime
+from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
+    EpochLoss, ConfusionMatrix, EpochTime, AverageEpochTime
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
@@ -66,6 +66,8 @@ def main():
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
+    # The evaluation plugin can be used to compute many different metrics
+    # which can be saved and visualized by using a Logger.
     my_logger = Logger()
     evaluation_plugin = EvaluationPlugin(
         my_logger,  EpochAccuracy(), TaskForgetting(), EpochLoss(),

@@ -109,7 +109,6 @@ class BaseStrategy:
         This is different from joint training on the entire stream.
 
         :param step_infos: single IStepInfo or sequence.
-        :return:
         """
         self.model.train()
         self.model.to(self.device)
@@ -131,7 +130,6 @@ class BaseStrategy:
 
         :param step_info: CL step information.
         :param kwargs: custom arguments.
-        :return: train results from the evalution plugin.
         """
         self.step_info = step_info
         self.model.train()
@@ -157,7 +155,6 @@ class BaseStrategy:
         :param step_info: CL step information.
         :param test_part: determines which steps to test on.
         :param kwargs: custom arguments.
-        :return: evaluation plugin test results.
         """
         self.model.eval()
         self.model.to(self.device)

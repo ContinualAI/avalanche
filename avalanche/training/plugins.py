@@ -23,16 +23,18 @@ from torch.utils.data import random_split, ConcatDataset, TensorDataset
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation import OnTrainStepStart, EvalData, \
     MetricValue, OnTrainIteration, OnTestStepStart, OnTestIteration, \
-    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
-    EpochAccuracy, EpochLoss
+    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd
 from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
     OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd
+from avalanche.evaluation.metrics import EpochLoss, EpochAccuracy
 from avalanche.extras.logging import Logger
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.strategies import BaseStrategy, JointTraining
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+
+PluggableStrategy = Union['BaseStrategy', 'JointTraining']
 
 
 class StrategyPlugin:
@@ -45,76 +47,76 @@ class StrategyPlugin:
     def __init__(self):
         pass
 
-    def before_training(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_training_step(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def adapt_train_dataset(self, strategy: 'BaseStrategy', **kwargs):
+    def adapt_train_dataset(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_epoch(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def before_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def after_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
+    def before_backward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
+    def after_backward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_update(self, strategy: 'BaseStrategy', **kwargs):
+    def before_update(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_update(self, strategy: 'BaseStrategy', **kwargs):
+    def after_update(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_epoch(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_training_step(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_training(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test(self, strategy: 'BaseStrategy', **kwargs):
+    def before_test(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def adapt_test_dataset(self, strategy: 'BaseStrategy', **kwargs):
+    def adapt_test_dataset(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_step(self, strategy: 'BaseStrategy', **kwargs):
+    def before_test_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_step(self, strategy: 'BaseStrategy', **kwargs):
+    def after_test_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test(self, strategy: 'BaseStrategy', **kwargs):
+    def after_test(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def before_test_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def after_test_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def after_test_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
 
