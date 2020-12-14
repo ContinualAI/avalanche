@@ -39,7 +39,7 @@ _default_test_transform = transforms.Compose([
 
 
 def SplitImageNet(root,
-                  incremental_steps=10,
+                  n_steps=10,
                   per_step_classes=None,
                   return_task_id=False,
                   seed=0,
@@ -52,8 +52,7 @@ def SplitImageNet(root,
     download it and store the data in the data folder.
 
     :param root: Base path where Imagenet data are stored.
-    :param incremental_steps: The number of incremental steps in the current
-        scenario.
+    :param n_steps: The number of  steps in the current scenario.
     :param per_step_classes: Is not None, a dictionary whose keys are
         (0-indexed) step IDs and their values are the number of classes
         to include in the respective steps. The dictionary doesn't
@@ -102,7 +101,7 @@ def SplitImageNet(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=True,
             per_step_classes=per_step_classes,
             seed=seed,
@@ -112,7 +111,7 @@ def SplitImageNet(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=False,
             per_step_classes=per_step_classes,
             seed=seed,

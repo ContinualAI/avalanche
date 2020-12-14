@@ -31,7 +31,7 @@ _default_test_transform = transforms.Compose([
 ])
 
 
-def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
+def SplitTinyImageNet(n_steps=10, return_task_id=False, seed=0,
                       fixed_class_order=None,
                       train_transform=_default_train_transform,
                       test_transform=_default_test_transform):
@@ -40,8 +40,7 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental steps in the current
-        scenario.
+    :param n_steps: The number of steps in the current scenario.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -79,7 +78,7 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
@@ -88,7 +87,7 @@ def SplitTinyImageNet(incremental_steps=10, return_task_id=False, seed=0,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)

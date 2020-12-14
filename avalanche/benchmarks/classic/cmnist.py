@@ -72,7 +72,7 @@ class PixelsPermutation(object):
 
 
 def SplitMNIST(
-        incremental_steps: int,
+        n_steps: int,
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
@@ -85,7 +85,7 @@ def SplitMNIST(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental steps in the current
+    :param n_steps: The number of incremental steps in the current
         scenario.
         The value of this parameter should be a divisor of 10.
     :param return_task_id: if True, for every step the task id is returned and
@@ -125,7 +125,7 @@ def SplitMNIST(
         return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
@@ -134,27 +134,27 @@ def SplitMNIST(
         return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_steps=incremental_steps,
+            n_steps=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
 
 
 def PermutedMNIST(
-        incremental_steps: int,
+        n_steps: int,
         seed: Optional[int] = None,
         train_transform: Any = _default_mnist_train_transform,
         test_transform: Any = _default_mnist_test_transform) -> NCScenario:
     """
     This helper create a permuted MNIST scenario: where a given number of random
     pixel permutations is used to permute the MNIST images in
-    ``incremental_steps`` different manners, creating an equal number of tasks.
+    ``n_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original MNIST 10 classes, but the pixel
     in the images are permuted in different ways in every task.
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental tasks in the current
+    :param n_steps: The number of steps (tasks) in the current
         scenario. It indicates how many different permutations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
@@ -182,7 +182,7 @@ def PermutedMNIST(
     rng_permute = np.random.RandomState(seed)
 
     # for every incremental step
-    for _ in range(incremental_steps):
+    for _ in range(n_steps):
         # choose a random permutation of the pixels in the image
         idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
             torch.int64)
@@ -214,7 +214,7 @@ def PermutedMNIST(
 
 
 def RotatedMNIST(
-        incremental_steps: int,
+        n_steps: int,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
@@ -222,13 +222,13 @@ def RotatedMNIST(
     """
     This helper create a rotated MNIST scenario: where a given number of random
     rotations are used to rotate the MNIST images in
-    ``incremental_steps`` different manners, creating an equal number of tasks.
+    ``n_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original MNIST 10 classes, but the images
     are rotated in different ways and using different values in every task.
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental tasks in the current
+    :param n_steps: The number of steps (tasks) in the current
         scenario. It indicates how many different rotations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
@@ -258,9 +258,9 @@ def RotatedMNIST(
         MT rotated MNIST scenario.
     """
 
-    assert len(rotations_list) == incremental_steps, "The number of rotations" \
-                                                     " should match the number"\
-                                                     " of incremental steps."
+    assert len(rotations_list) == n_steps, "The number of rotations" \
+                                           " should match the number" \
+                                           " of incremental steps."
     assert all(-180 <= rotations_list[i] <= 180
                for i in range(len(rotations_list))), "The value of a rotation" \
                                                      " should be between -180" \
@@ -271,7 +271,7 @@ def RotatedMNIST(
     rng_rotate = np.random.RandomState(seed)
 
     # for every incremental step
-    for step in range(incremental_steps):
+    for step in range(n_steps):
         if rotations_list is not None:
             rotation_angle = rotations_list[step]
         else:

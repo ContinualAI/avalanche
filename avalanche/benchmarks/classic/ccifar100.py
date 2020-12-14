@@ -39,8 +39,8 @@ _default_cifar100_test_transform = transforms.Compose([
 ])
 
 
-def SplitCIFAR100(incremental_steps: int,
-                  first_batch_with_half_classes: bool = False,
+def SplitCIFAR100(n_steps: int,
+                  first_step_with_half_classes: bool = False,
                   return_task_id=False,
                   seed: Optional[int] = None,
                   fixed_class_order: Optional[Sequence[int]] = None,
@@ -51,20 +51,15 @@ def SplitCIFAR100(incremental_steps: int,
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental steps in the current
-        scenario. If the first step is a "pretrain" step and it contains
-        half of the classes, the number of incremental steps is the number of
-        tasks performed after the pretraining task.
-        The value of this parameter should be a divisor of 100 if
+    :param n_steps: The number of incremental steps in the current
+        scenario. The value of this parameter should be a divisor of 100 if
         first_task_with_half_classes if false, a divisor of 50 otherwise.
-    :param first_batch_with_half_classes: A boolean value that indicates if a
+    :param first_step_with_half_classes: A boolean value that indicates if a
         first pretraining batch containing half of the classes should be used.
-        If it's True, a pretrain batch with half of the classes (50 for
-        cifar100) is used, and a number of incremental tasks, given by the
-        parameter incremental_task is constructed. If this parameter is False
-        no pretraining task will be used, and the dataset is simply split into
-        a the number of steps defined by the parameter incremental_steps.
-        Default to False.
+        If it's True, a pretraining step with half of the classes (50 for
+        cifar100) is used. If this parameter is False no pretraining task
+        will be used, and the dataset is simply split into a the number of
+        steps defined by the parameter n_steps. Default to False.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -94,33 +89,33 @@ def SplitCIFAR100(incremental_steps: int,
         a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
         CIFAR100 otherwise.
     """
-    cifar_train, cifar_test = _get_cifar100_dataset(train_transform,
-                                                    test_transform)
-    total_steps = incremental_steps + 1 if first_batch_with_half_classes \
-        else incremental_steps
+    cifar_train, cifar_test = _get_cifar100_dataset(
+        train_transform, test_transform
+    )
+
     if return_task_id:
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=total_steps,
+            n_steps=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 50} if first_batch_with_half_classes else None,
+            per_step_classes={0: 50} if first_step_with_half_classes else None,
             class_ids_from_zero_in_each_step=True)
     else:
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=total_steps,
+            n_steps=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 50} if first_batch_with_half_classes else None)
+            per_step_classes={0: 50} if first_step_with_half_classes else None)
 
 
 def SplitCIFAR110(
-        incremental_steps: int,
+        n_steps: int,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         train_transform=_default_cifar100_train_transform,
@@ -132,9 +127,9 @@ def SplitCIFAR110(
     If the datasets are not present in the computer the method automatically
     download them and store the data in the data folder.
 
-    :param incremental_steps: The number of incremental steps for the
-        incremental training on cifar100. The first "pretrain" batch using
-        cifar10 is not included in this number of incremental steps.
+    :param n_steps: The number of steps for the entire scenario. The first
+    step will be the entire cifar10, while the other n-1 steps about
+    the incremental training on cifar100.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -186,7 +181,7 @@ def SplitCIFAR110(
 
     return nc_scenario(
         cifar_10_100_train, cifar_10_100_test,
-        n_steps=incremental_steps + 1,
+        n_steps=n_steps,
         task_labels=False,
         shuffle=False,
         seed=None,

@@ -1,16 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 01-12-2020                                                             #
-# Author(s): Antonio Carta                                                     #
+# Date: 20-11-2020                                                             #
+# Author(s): Vincenzo Lomonaco                                                 #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+
 """
-Multi-task training examples. Differently from the BaseStrategy, multi-task
-training allows to use the task ids at train and test time (optionally).
+In this simple example we show all the different ways you can use MNIST with
+Avalanche.
 """
 
 from __future__ import absolute_import
@@ -21,23 +25,27 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.classic import PermutedMNIST
+from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, \
+    SplitMNIST
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import MultiTaskStrategy
-
+from avalanche.training.strategies import Naive
 
 def main():
 
-    # Config
+    # Device config
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # model
     model = SimpleMLP(num_classes=10)
 
-    # CL Benchmark Creation
-    perm_mnist = PermutedMNIST(n_steps=5)
+    # Here we show all the MNIST variation we offer in the "classic" benchmarks
+    perm_mnist = PermutedMNIST(n_steps=5, seed=1)
+    perm_mnist = RotatedMNIST(n_steps=5, seed=1)
+    perm_mnist = SplitMNIST(n_steps=5, seed=1)
+
+    # Than we can extract the parallel train and test streams
     train_stream = perm_mnist.train_stream
     test_stream = perm_mnist.test_stream
 
@@ -47,18 +55,18 @@ def main():
     evaluation_protocol = EvalProtocol(
         metrics=[ACC(num_class=10)])
 
-    # Joint training strategy
-    joint_train = MultiTaskStrategy(
-        model=model, optimizer=optimizer, criterion=criterion,
-        train_mb_size=32, train_epochs=1, test_mb_size=32,
-        evaluation_protocol=evaluation_protocol, device=device
+    # Continual learning strategy
+    cl_strategy = Naive(
+        model, optimizer, criterion, train_mb_size=32, train_epochs=2,
+        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
     )
 
     # train and test loop
     results = []
-    joint_train.train(train_stream, num_workers=4)
-    results.append(joint_train.test(test_stream))
-
+    for train_task in train_stream:
+        print("Current Classes: ", train_task.classes_in_this_step)
+        cl_strategy.train(train_task, num_workers=4)
+        results.append(cl_strategy.test(test_stream))
 
 if __name__ == '__main__':
     main()
