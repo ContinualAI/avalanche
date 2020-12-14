@@ -32,6 +32,7 @@ from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
     EpochLoss, ConfusionMatrix, EpochTime, AverageEpochTime
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
+from avalanche.extras.strategy_trace import DotTrace
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -68,11 +69,17 @@ def main():
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
     # The evaluation plugin can be used to compute many different metrics
     # which can be saved and visualized by using a Logger.
+    # The evaluation plugin will also use a "tracer" which will print
+    # (and log to a file if you want) a bunch of useful information in a
+    # nice and easy to read format.
+    # Here we define a custom
     my_logger = Logger()
+    trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
     evaluation_plugin = EvaluationPlugin(
-        my_logger,  EpochAccuracy(), TaskForgetting(), EpochLoss(),
+        EpochAccuracy(), TaskForgetting(), EpochLoss(),
         EpochTime(), AverageEpochTime(),
-        ConfusionMatrix(num_classes=scenario.n_classes))
+        ConfusionMatrix(num_classes=scenario.n_classes),
+        loggers=my_logger, tracers=trace)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(

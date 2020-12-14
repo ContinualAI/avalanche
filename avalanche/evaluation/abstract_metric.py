@@ -129,7 +129,7 @@ class AbstractMetric(ABC, Metric):
             self._listeners.append((True, (metric, listener)))
         return self
 
-    def __call__(self, eval_data: EvalData) -> Union[None, List[MetricResult]]:
+    def __call__(self, eval_data: EvalData) -> MetricResult:
         """
         Used to feed the metric.
 

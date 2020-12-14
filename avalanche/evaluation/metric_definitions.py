@@ -22,7 +22,7 @@ from torch import Tensor
 from .evaluation_data import EvalData
 
 MetricType = Union[float, int, Tensor, Image]
-MetricResult = Optional[Union[List['MetricValue'], 'MetricValue']]
+MetricResult = List['MetricValue']
 
 
 class Metric(Protocol):
@@ -33,7 +33,7 @@ class Metric(Protocol):
     information retrieved from the strategy and optionally outputs values
     to be logged.
     """
-    def __call__(self, eval_data: EvalData) -> Union[None, List[MetricResult]]:
+    def __call__(self, eval_data: EvalData) -> MetricResult:
         ...
 
 

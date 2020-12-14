@@ -19,6 +19,7 @@ import numpy as np
 import torch
 from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
+from typing_extensions import Literal
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation import OnTrainStepStart, EvalData, \
@@ -27,8 +28,8 @@ from avalanche.evaluation import OnTrainStepStart, EvalData, \
 from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
     OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd
-from avalanche.evaluation.metrics import EpochLoss, EpochAccuracy
 from avalanche.extras.logging import Logger
+from avalanche.extras.strategy_trace import StrategyTrace, DefaultStrategyTrace
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy, JointTraining
@@ -271,8 +272,12 @@ class EvaluationPlugin(StrategyPlugin):
     """
 
     def __init__(self,
-                 loggers: Union[Logger, Sequence[Logger]],
-                 *metrics: AbstractMetric):
+                 *metrics: AbstractMetric,
+                 loggers: Union[Logger, Sequence[Logger]] = None,
+                 tracers: Union[None,
+                                StrategyTrace,
+                                Sequence[StrategyTrace],
+                                Literal['default']] = 'default'):
         """
         Creates an instance of the evaluation plugin.
 
@@ -283,9 +288,20 @@ class EvaluationPlugin(StrategyPlugin):
 
         self.metrics = metrics
 
-        if isinstance(loggers, Logger):
+        if loggers is None:
+            loggers = []
+        elif not isinstance(loggers, Sequence):
             loggers = [loggers]
-        self.loggers = loggers
+        self.loggers: Sequence[Logger] = loggers
+
+        if tracers is None:
+            tracers = []
+        elif tracers == 'default':
+            tracers = [DefaultStrategyTrace()]
+        elif not isinstance(tracers, Sequence):
+            tracers = [tracers]
+
+        self._tracers: Sequence[StrategyTrace] = tracers
 
         # Private state variables
         self._steps_counter: int = -1
@@ -298,16 +314,14 @@ class EvaluationPlugin(StrategyPlugin):
         self._current_test_step_id: Optional[int] = None
         self._test_current_task_id = None
 
-    def _log_info(self, msg: str):
-        for logger in self.loggers:
-            logger.log.info(msg)
-
     def _log_metric_values(self, metric_values: List[MetricValue]):
         for to_be_logged in metric_values:
             for logger in self.loggers:
                 logger.log_metric(to_be_logged)
 
     def _update_metrics(self, evaluation_data: EvalData):
+        for trace_util in self._tracers:
+            trace_util(evaluation_data)
         metric_values = []
         for metric in self.metrics:
             metric_result = metric(evaluation_data)
@@ -349,14 +363,6 @@ class EvaluationPlugin(StrategyPlugin):
         # Update metrics
         self._update_metrics(evaluation_data)
 
-        # Logging
-        if joint_training:
-            self._log_info("[Joint Training]")
-        else:
-            self._log_info("[Training on Step {}, Task {}]"
-                           .format(strategy.step_info.current_step,
-                                   self._train_current_task_id))
-
     def after_training_step(self, strategy, **kwargs):
         evaluation_data = OnTrainStepEnd(
             self._steps_counter, self._current_train_step_id,
@@ -394,33 +400,7 @@ class EvaluationPlugin(StrategyPlugin):
             logits, loss)
 
         # Update metrics
-        metric_values = self._update_metrics(evaluation_data)
-
-        # Logging
-        if (iteration + 1) % 100 == 0:
-            # TODO: move logger call elsewhere
-            # TODO: EpochAccuracy doesn't emit at iteration end
-            # TODO: (add ad hoc method or loss?)
-            accuracy_metric = next(
-                filter(lambda v: isinstance(v.origin, EpochAccuracy),
-                       metric_values), None)
-            loss_metric = next(
-                filter(lambda v: isinstance(v.origin, EpochLoss),
-                       metric_values), None)
-
-            accuracy_result = 'N.A.'
-            loss_result = 'N.A.'
-
-            if accuracy_metric is not None:
-                accuracy_result = '{:.3f}'.format(accuracy_metric.value)
-
-            if loss_metric is not None:
-                loss_result = '{:.6f}'.format(loss_metric.value)
-
-            self._log_info(
-                '[Training] ==>>> ep: {}, it: {}, avg. loss: {}, '
-                'running train acc: {}'.format(
-                    strategy.epoch, iteration, loss_result, accuracy_result))
+        self._update_metrics(evaluation_data)
 
     def before_test_step(self, strategy, **kwargs):
         step_info: IStepInfo = strategy.step_info
@@ -442,30 +422,7 @@ class EvaluationPlugin(StrategyPlugin):
             self._test_current_task_id)
 
         # Update metrics
-        metric_values = self._update_metrics(evaluation_data)
-
-        # Logging
-        # TODO: move logger call elsewhere
-        accuracy_metric = next(
-            filter(lambda v: isinstance(v.origin, EpochAccuracy),
-                   metric_values), None)
-        loss_metric = next(
-            filter(lambda v: isinstance(v.origin, EpochLoss), metric_values),
-            None)
-
-        accuracy_result = 'N.A.'
-        loss_result = 'N.A.'
-
-        if accuracy_metric is not None:
-            accuracy_result = '{:.3f}'.format(accuracy_metric.value)
-
-        if loss_metric is not None:
-            loss_result = '{:.6f}'.format(loss_metric.value)
-
-        self._log_info(
-            "[Evaluation] Task {}, Step {}: Avg Loss {}; Avg Acc {}".format(
-                self._test_current_task_id, self._current_test_step_id,
-                loss_result, accuracy_result))
+        self._update_metrics(evaluation_data)
 
     def after_test_iteration(self, strategy, **kwargs):
         iteration = strategy.mb_it

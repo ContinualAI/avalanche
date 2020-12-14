@@ -15,7 +15,7 @@
 from typing import Union
 
 from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, MetricValue, \
-    MetricTypes
+    MetricTypes, OnTrainIteration, OnTestIteration
 from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.metric_units import AverageLossUnit
 from avalanche.evaluation.metric_utils import filter_accepted_events, \
@@ -33,7 +33,7 @@ class EpochLoss(AbstractMetric):
     """
     def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the Loss metric.
+        Creates an instance of the EpochLoss metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
@@ -77,4 +77,60 @@ class EpochLoss(AbstractMetric):
                            metric_value, plot_x_position)
 
 
-__all__ = ['EpochLoss']
+class RunningEpochLoss(AbstractMetric):
+    """
+    The running average loss metric.
+
+    Differently from :class:`EpochLoss`, this metric will emit a value
+    after each iteration, too. The metric value will be also emitted on
+    "train epoch end" and "test step end" events, exactly as
+    :class:`EpochLoss`.
+    """
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the RunningEpochLoss metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__()
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             'time.')
+
+        # Create loss unit
+        self.loss_unit = AverageLossUnit(on_train_epochs=train,
+                                         on_test_epochs=test)
+
+        # When computing the loss metric we need to get EpochEnd events
+        # to check if the epoch ended. The actual element in charge of
+        # accumulating the running loss is the loss_unit.
+        on_events = filter_accepted_events(
+            [OnTrainIteration, OnTestIteration,
+             OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
+
+        # Attach callbacks
+        self._attach(self.loss_unit)._on(on_events, self.result_emitter)
+
+    def result_emitter(self, eval_data):
+        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
+        # This simply queries loss_unit for the loss value and
+        # emits that value by labeling it with the appropriate name.
+        phase_name = 'Test' if eval_data.test_phase else 'Train'
+        task_label = get_task_label(eval_data)
+        metric_value = self.loss_unit.value
+
+        metric_name = 'RunningLoss/{}/Task{:03}'.format(phase_name, task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return MetricValue(self, metric_name, MetricTypes.LOSS,
+                           metric_value, plot_x_position)
+
+
+__all__ = ['EpochLoss', 'RunningEpochLoss']

@@ -51,7 +51,7 @@ def main():
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
     logger = Logger()
-    evaluation_plugin = EvaluationPlugin(logger, EpochAccuracy())
+    evaluation_plugin = EvaluationPlugin(EpochAccuracy(), loggers=logger)
 
     # Joint training strategy
     joint_train = JointTraining(
