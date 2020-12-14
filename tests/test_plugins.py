@@ -5,8 +5,8 @@ from torch.optim import SGD
 from avalanche.benchmarks import nc_scenario
 from avalanche.benchmarks.datasets import MNIST
 from avalanche.benchmarks.scenarios import DatasetPart
-from avalanche.evaluation.eval_protocol import EvalProtocol
-from avalanche.evaluation.metrics import ACC
+from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
+from avalanche.evaluation_deprecated.metrics import ACC
 from avalanche.extras import SimpleMLP
 from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
 from avalanche.training.strategies import Naive
@@ -99,7 +99,7 @@ class PluginTests(unittest.TestCase):
             metrics=[ACC(num_class=scenario.n_classes)])
 
         plug = MockPlugin()
-        strategy = Naive(model, optimizer, criterion, eval_protocol,
+        strategy = Naive(model, optimizer, criterion,
             train_mb_size=100, train_epochs=1, test_mb_size=100,
             device='cpu', plugins=[plug]
         )
