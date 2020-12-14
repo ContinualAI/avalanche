@@ -1,5 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 14-12-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 from abc import ABC
-from typing import Union, List, Tuple, Optional, Callable, Sequence, Dict
+from typing import Union, List, Tuple, Optional, Callable, Sequence, Dict, \
+    TypeVar
 
 from .evaluation_data import EvalData
 from .metric_definitions import Metric, MetricResult
@@ -10,6 +25,7 @@ MetricCallbackType = Union[Callable[[EvalData], MetricResult], MetricUnit]
 WrapperCallbackType = Callable[[MetricResult], MetricResult]
 ListenersType = Union[Tuple[Optional[type], MetricCallbackType],
                       Tuple['Metric', WrapperCallbackType]]
+TAbstractMetric = TypeVar('TAbstractMetric', bound='AbstractMetric')
 
 
 class SimpleCounter(object):
@@ -61,9 +77,9 @@ class AbstractMetric(ABC, Metric):
         "_next_x_position" method.
         """
 
-    def _on(self,
+    def _on(self: TAbstractMetric,
             event_types: Optional[Union[type, Sequence[type]]],
-            *listeners: MetricCallbackType):
+            *listeners: MetricCallbackType) -> TAbstractMetric:
         """
         Registers the given listeners so that they will be invoked when certain
         training/test events occur.
@@ -81,7 +97,8 @@ class AbstractMetric(ABC, Metric):
                 self._listeners.append((False, (event_type, listener)))
         return self
 
-    def _attach(self, *listeners: MetricCallbackType):
+    def _attach(self: TAbstractMetric, *listeners: MetricCallbackType) \
+            -> TAbstractMetric:
         """
         Registers the given listeners so that they will be invoked when an
         event occurs.
@@ -93,7 +110,8 @@ class AbstractMetric(ABC, Metric):
         """
         return self._on(None, *listeners)
 
-    def _use_metric(self, metric: Metric, *listeners: WrapperCallbackType):
+    def _use_metric(self: TAbstractMetric, metric: Metric,
+                    *listeners: WrapperCallbackType) -> TAbstractMetric:
         """
         Registers the given listeners so that they will be invoked when the
         given metric emits a value.
@@ -158,4 +176,9 @@ class AbstractMetric(ABC, Metric):
         return self._metric_x_counters[metric_name]()
 
 
-__all__ = ['AbstractMetric']
+__all__ = [
+    'AbstractMetric',
+    'MetricCallbackType',
+    'WrapperCallbackType',
+    'ListenersType',
+    'TAbstractMetric']

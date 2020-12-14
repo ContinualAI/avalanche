@@ -71,7 +71,8 @@ class Logger:
         self.log = logger
 
     def log_metric(self, metric_value: MetricValue):
-        origin, name, value, x_plot = metric_value
+        name = metric_value.name
+        value = metric_value.value
 
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, float, int)
@@ -82,7 +83,8 @@ class Logger:
 
         if isinstance(value, Image):
             self.tb_logging.writer.add_image(
-                name, ToTensor()(value), global_step=x_plot)
+                name, ToTensor()(value),
+                global_step=metric_value.x_plot)
         elif isinstance(value, (float, int)):
             self.tb_logging.writer.add_scalar(
-                name, value, global_step=x_plot)
+                name, value, global_step=metric_value.x_plot)

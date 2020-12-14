@@ -28,8 +28,8 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import Accuracy, \
-    ConfusionMatrix, CatastrophicForgetting, Loss
+from avalanche.evaluation import EpochAccuracy, TaskForgetting, EpochLoss, \
+    ConfusionMatrix, EpochTime, AverageEpochTime
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
@@ -68,7 +68,8 @@ def main():
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
     my_logger = Logger()
     evaluation_plugin = EvaluationPlugin(
-        my_logger,  Accuracy(), CatastrophicForgetting(), Loss(),
+        my_logger,  EpochAccuracy(), TaskForgetting(), EpochLoss(),
+        EpochTime(), AverageEpochTime(),
         ConfusionMatrix(num_classes=scenario.n_classes))
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)

@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 14-12-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 import io
 from typing import Union, Sequence, List
 
@@ -83,7 +97,7 @@ def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
 
 
 def filter_accepted_events(event_types: Union[type, Sequence[type]],
-                           train=True, test=False) -> List[type]:
+                           train: bool, test: bool) -> List[type]:
     """
     A simple utility method used to filter the types of evaluation events.
 
@@ -98,8 +112,9 @@ def filter_accepted_events(event_types: Union[type, Sequence[type]],
 
     accepted = []
     for event_type in event_types:
-        if issubclass(event_type, EvalTestData) and test:
-            accepted.append(event_type)
+        if issubclass(event_type, EvalTestData):
+            if test:
+                accepted.append(event_type)
         elif issubclass(event_type, EvalData) and train:
             accepted.append(event_type)
     return accepted

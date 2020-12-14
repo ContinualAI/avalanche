@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 14-12-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 from abc import abstractmethod
 from typing import TypeVar, SupportsFloat, List
 
@@ -11,19 +25,49 @@ TAccumulated = TypeVar('TAccumulated')
 
 
 class RawAccumulator(Protocol[TRawData, TAccumulated]):
+    """
+    Protocol definition of an accumulator.
+
+    An accumulator receives the values to accumulate (__call__ method)
+    and lazily aggregates them when the value property is accessed.
+
+    The reset method can be used to revert the accumulator to its initial state.
+    """
+
     def __call__(self: TAccumulator, data: TRawData) -> TAccumulator:
+        """
+        Accumulates the given values and returns self.
+
+        :param data: The data to accumulate.
+        :return: Self.
+        """
         ...
 
     def reset(self: TAccumulator) -> TAccumulator:
+        """
+        Reverts this accumulator to its initial state.
+
+        :return: Self.
+        """
         ...
 
     @property
     @abstractmethod
     def value(self) -> TAccumulated:
+        """
+        Returns the value as the aggregation of previously accumulated values.
+
+        Accessing this property doesn't affect the state of the accumulator.
+
+        :return: The aggregated value.
+        """
         ...
 
 
 class SumAccumulator(RawAccumulator[SupportsFloat, float]):
+    """
+    A simple accumulator used to sum floating point values.
+    """
 
     def __init__(self):
         self._accumulator: float = 0.0
@@ -42,6 +86,9 @@ class SumAccumulator(RawAccumulator[SupportsFloat, float]):
 
 
 class AverageAccumulator(RawAccumulator[Tensor, float]):
+    """
+    A simple accumulator used to average over Tensor numeric values.
+    """
 
     def __init__(self):
         self._accumulator: float = 0.0
@@ -71,6 +118,9 @@ class AverageAccumulator(RawAccumulator[Tensor, float]):
 
 
 class TensorAccumulator(RawAccumulator[Tensor, Tensor]):
+    """
+    A simple accumulator used to concatenate Tensors.
+    """
 
     def __init__(self):
         self._accumulator: List[Tensor] = []

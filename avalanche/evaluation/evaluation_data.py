@@ -1,8 +1,19 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 14-12-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 from typing import TypeVar
-
 from torch import Tensor
-
-# This list of classes would be greatly simplified if we could use dataclasses.
 
 TElement = TypeVar('TElement')
 
@@ -33,14 +44,17 @@ class EvalData:
         """
         If True, this event refers to the training phase.
         """
+
         self.step_counter: int = step_counter
         """
         The number of training steps encountered so far.
         """
+
         self.training_step_id: int = training_step_id
         """
         The training step ID. May be different from the step counter.
         """
+
         self.training_task_label: int = training_task_label
         """
         The training task label.
@@ -73,6 +87,10 @@ class EvalTestData(EvalData):
                  test_task_label: int):
         super().__init__(step_counter, training_step_id, training_task_label)
         self.train_phase: bool = False
+        """
+        If True, this event refers to the training phase.
+        """
+
         self.test_step_id: int = test_step_id
         """
         The test step ID.

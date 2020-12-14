@@ -21,12 +21,13 @@ from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.evaluation import OnTrainStepStart, AbstractMetric, EvalData, \
+from avalanche.evaluation import OnTrainStepStart, EvalData, \
     MetricValue, OnTrainIteration, OnTestStepStart, OnTestIteration, \
-    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd
+    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
+    EpochAccuracy, EpochLoss
+from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
     OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd
-from avalanche.evaluation.metrics import Accuracy, Loss
 from avalanche.extras.logging import Logger
 
 if TYPE_CHECKING:
@@ -396,13 +397,14 @@ class EvaluationPlugin(StrategyPlugin):
         # Logging
         if (iteration + 1) % 100 == 0:
             # TODO: move logger call elsewhere
-            # TODO: Accuracy doesn't emit at iteration end (add ad hoc method?)
+            # TODO: EpochAccuracy doesn't emit at iteration end
+            # TODO: (add ad hoc method or loss?)
             accuracy_metric = next(
-                filter(lambda v: isinstance(v.origin, Accuracy), metric_values),
-                None)
+                filter(lambda v: isinstance(v.origin, EpochAccuracy),
+                       metric_values), None)
             loss_metric = next(
-                filter(lambda v: isinstance(v.origin, Loss), metric_values),
-                None)
+                filter(lambda v: isinstance(v.origin, EpochLoss),
+                       metric_values), None)
 
             accuracy_result = 'N.A.'
             loss_result = 'N.A.'
@@ -443,10 +445,10 @@ class EvaluationPlugin(StrategyPlugin):
         # Logging
         # TODO: move logger call elsewhere
         accuracy_metric = next(
-            filter(lambda v: isinstance(v.origin, Accuracy), metric_values),
-            None)
+            filter(lambda v: isinstance(v.origin, EpochAccuracy),
+                   metric_values), None)
         loss_metric = next(
-            filter(lambda v: isinstance(v.origin, Loss), metric_values),
+            filter(lambda v: isinstance(v.origin, EpochLoss), metric_values),
             None)
 
         accuracy_result = 'N.A.'

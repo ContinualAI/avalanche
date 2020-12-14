@@ -1,6 +1,20 @@
-from numbers import Number
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 14-12-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
+from enum import Enum, auto
 from typing_extensions import Protocol
-from typing import NamedTuple, Union, Optional, Tuple, List
+from typing import Union, Optional, Tuple, List
 
 from PIL.Image import Image
 from torch import Tensor
@@ -45,7 +59,60 @@ class AlternativeValues:
         return None
 
 
-class MetricValue(NamedTuple):
+class MetricTypes(Enum):
+    OTHER = auto()
+    """
+    Value used to flag a metric type that doesn't fit in any of the other
+    standard types.
+    """
+
+    ACCURACY = auto()
+    """
+    Used to flag accuracy values.
+    """
+
+    LOSS = auto()
+    """
+    Used to flag loss values.
+    """
+
+    FORGETTING = auto()
+    """
+    Used to flag values representing accuracy losses.
+    """
+
+    CONFUSION_MATRIX = auto()
+    """
+    Used to flag confusion matrices.
+    """
+
+    ELAPSED_TIME = auto()
+    """
+    Used to flag values describing an elapsed time (usually in seconds).
+    """
+
+    CPU_USAGE = auto()
+    """
+    Used to flag values describing the CPU usage.
+    """
+
+    GPU_USAGE = auto()
+    """
+    Used to flag values describing the GPU usage.
+    """
+
+    RAM_USAGE = auto()
+    """
+    Used to flag values describing the RAM usage (usually in MiB).
+    """
+
+    STORAGE_USAGE = auto()
+    """
+    Used to flag values describing the storage occupation (usually in MiB).
+    """
+
+
+class MetricValue(object):
     """
     The result of a Metric.
 
@@ -58,14 +125,30 @@ class MetricValue(NamedTuple):
     an Image. It's up to the Logger, according to its capabilities, decide which
     representation to use.
     """
-    origin: Metric
-    name: str
-    value: Union[MetricType, AlternativeValues]
-    x_plot: Number
+    def __init__(self, origin: Metric, name: str, metric_type: MetricTypes,
+                 value: Union[MetricType, AlternativeValues],
+                 x_plot: int):
+        """
+        Creates an instance of MetricValue.
+
+        :param origin: The originating Metric instance.
+        :param name: The display name of this value.
+        :param metric_type: The type of this metric value, as a element
+            from the  MetricTypes enumeration.
+
+        :param value:
+        :param x_plot:
+        """
+        self.origin: Metric = origin
+        self.name: str = name
+        self.metric_type: MetricTypes = metric_type
+        self.value: Union[MetricType, AlternativeValues] = value
+        self.x_plot: int = x_plot
 
 
 __all__ = [
     'MetricResult',
     'Metric',
     'AlternativeValues',
+    'MetricTypes',
     'MetricValue']
