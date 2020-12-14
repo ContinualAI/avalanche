@@ -57,6 +57,8 @@ _"Dataset Support"_ is checked if an easy-to-use PyTorch version of the dataset 
 | **HMDB51** | ✔️ | ❌ | N.A. |
 | **UCF101** | ✔️ | ❌ | N.A. |
 | **CelebA** | ✔️ | ❌ | N.A. |
+| **Caltech101** | ❌ | ❌ | N.A. |
+| **Caltech256** | ❌ | ❌ | N.A. |
 
 ## 📈 Supported Strategies
 
