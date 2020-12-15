@@ -109,6 +109,7 @@ class MetricUnit(Generic[TMetricType], ABC):
 
         if self._check_event_allowed(eval_data):
             self._on_update(eval_data)
+        return None
 
     @property
     @abstractmethod

@@ -16,7 +16,7 @@ from typing import Dict
 
 from avalanche.evaluation import OnTestStepEnd, MetricValue, MetricTypes
 from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_units import AverageAccuracyUnit
+from avalanche.evaluation.metric_units import AverageAccuracyUnit, MetricUnit
 
 
 class TaskForgetting(AbstractMetric):
@@ -43,7 +43,7 @@ class TaskForgetting(AbstractMetric):
         """
 
         # Create accuracy unit
-        self._accuracy_unit = AverageAccuracyUnit(
+        self._accuracy_unit: MetricUnit = AverageAccuracyUnit(
             on_train_epochs=False, on_test_epochs=True)
 
         # Attach callbacks
@@ -54,7 +54,7 @@ class TaskForgetting(AbstractMetric):
         eval_data: OnTestStepEnd
         train_task_label = eval_data.training_task_label
         test_task_label = eval_data.test_task_label
-        accuracy_value = float(self._accuracy_unit)
+        accuracy_value = self._accuracy_unit.value
 
         if test_task_label not in self.best_accuracy and \
                 train_task_label == test_task_label:

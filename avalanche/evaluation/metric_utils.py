@@ -13,7 +13,7 @@
 ################################################################################
 
 import io
-from typing import Union, Sequence, List
+from typing import Union, Sequence, List, Type
 
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -96,8 +96,9 @@ def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
     return eval_data.training_task_label
 
 
-def filter_accepted_events(event_types: Union[type, Sequence[type]],
-                           train: bool, test: bool) -> List[type]:
+def filter_accepted_events(
+        event_types: Union[Type[EvalData], Sequence[Type[EvalData]]],
+        train: bool, test: bool) -> List[Type[EvalData]]:
     """
     A simple utility method used to filter the types of evaluation events.
 

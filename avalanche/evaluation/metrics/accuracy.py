@@ -15,9 +15,9 @@
 from typing import Union
 
 from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, MetricValue, \
-    MetricTypes, OnTrainIteration, OnTestIteration
+    MetricTypes, OnTrainIteration, OnTestIteration, EvalData
 from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_units import AverageAccuracyUnit
+from avalanche.evaluation.metric_units import AverageAccuracyUnit, MetricUnit
 from avalanche.evaluation.metric_utils import filter_accepted_events, \
     get_task_label
 
@@ -50,8 +50,8 @@ class EpochAccuracy(AbstractMetric):
                              'time.')
 
         # Create accuracy unit
-        self.accuracy_unit = AverageAccuracyUnit(on_train_epochs=train,
-                                                 on_test_epochs=test)
+        self.accuracy_unit: MetricUnit = AverageAccuracyUnit(
+            on_train_epochs=train, on_test_epochs=test)
 
         # When computing the accuracy metric we need to get EpochEnd events
         # to check if the epoch ended. The actual element in charge of
@@ -63,7 +63,7 @@ class EpochAccuracy(AbstractMetric):
         self._attach(self.accuracy_unit)\
             ._on(on_events, self.result_emitter)
 
-    def result_emitter(self, eval_data):
+    def result_emitter(self, eval_data: EvalData):
         eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
         # This simply queries accuracy_unit for the accuracy value and
         # emits that value by labeling it with the appropriate name.
@@ -106,8 +106,8 @@ class RunningEpochAccuracy(AbstractMetric):
                              'time.')
 
         # Create accuracy unit
-        self.accuracy_unit = AverageAccuracyUnit(on_train_epochs=train,
-                                                 on_test_epochs=test)
+        self.accuracy_unit: MetricUnit = AverageAccuracyUnit(
+            on_train_epochs=train, on_test_epochs=test)
 
         # When computing the accuracy metric we need to get EpochEnd events
         # to check if the epoch ended. The actual element in charge of

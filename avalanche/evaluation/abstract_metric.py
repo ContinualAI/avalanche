@@ -14,16 +14,16 @@
 
 from abc import ABC
 from typing import Union, List, Tuple, Optional, Callable, Sequence, Dict, \
-    TypeVar
+    TypeVar, Type
 
 from .evaluation_data import EvalData
-from .metric_definitions import Metric, MetricResult
-from .metric_units import MetricUnit
+from .metric_definitions import Metric, MetricResult, MetricValue
 
 
-MetricCallbackType = Union[Callable[[EvalData], MetricResult], MetricUnit]
-WrapperCallbackType = Callable[[MetricResult], MetricResult]
-ListenersType = Union[Tuple[Optional[type], MetricCallbackType],
+NMetricValues = Union[None, MetricValue, List[MetricValue]]
+MetricCallbackType = Callable[[EvalData], NMetricValues]
+WrapperCallbackType = Callable[[MetricResult], NMetricValues]
+ListenersType = Union[Tuple[Optional[Type[EvalData]], MetricCallbackType],
                       Tuple['Metric', WrapperCallbackType]]
 TAbstractMetric = TypeVar('TAbstractMetric', bound='AbstractMetric')
 
@@ -78,7 +78,8 @@ class AbstractMetric(ABC, Metric):
         """
 
     def _on(self: TAbstractMetric,
-            event_types: Optional[Union[type, Sequence[type]]],
+            event_types: Optional[Union[Type[EvalData],
+                                        Sequence[Type[EvalData]]]],
             *listeners: MetricCallbackType) -> TAbstractMetric:
         """
         Registers the given listeners so that they will be invoked when certain
@@ -93,7 +94,7 @@ class AbstractMetric(ABC, Metric):
             event_types = [event_types]
         for listener in listeners:
             for event_type in event_types:
-
+                event_type: Type[EvalData]
                 self._listeners.append((False, (event_type, listener)))
         return self
 
@@ -144,22 +145,28 @@ class AbstractMetric(ABC, Metric):
         :return: The results of this metric. Can be None.
         """
         emitted_metrics = []
-        for is_metric, listener_definition in self._listeners:
-            listener = listener_definition[1]
+        listener_definition: ListenersType
+        for is_metric, (type_or_metric, listener) in self._listeners:
 
             if is_metric:
+                type_or_metric: Metric
+                listener: WrapperCallbackType
                 # This is a wrapped metric added via .use_metric(...)
-                metric = listener_definition[0]
-                metric_result = metric(eval_data)
+                metric_result = type_or_metric(eval_data)
                 if metric_result is not None:
                     listener(metric_result)
             else:
+                type_or_metric: Type[EvalData]
+                listener: MetricCallbackType
                 # Standard event _listeners
-                event_type = listener_definition[0]
-                if event_type is None or isinstance(eval_data, event_type):
+                if type_or_metric is None or \
+                        isinstance(eval_data, type_or_metric):
                     metric_result = listener(eval_data)
                     if metric_result is not None:
-                        emitted_metrics.append(metric_result)
+                        if isinstance(metric_result, Sequence):
+                            emitted_metrics += list(metric_result)
+                        else:
+                            emitted_metrics.append(metric_result)
         return emitted_metrics
 
     def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:

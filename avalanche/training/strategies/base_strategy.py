@@ -267,7 +267,7 @@ class BaseStrategy:
 
     def after_training(self, **kwargs):
         for p in self.plugins:
-            p.before_training(self, **kwargs)
+            p.after_training(self, **kwargs)
 
     def before_training_iteration(self, **kwargs):
         for p in self.plugins:

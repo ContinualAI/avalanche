@@ -21,7 +21,7 @@ from numpy import ndarray
 from avalanche.evaluation import OnTrainStepEnd, OnTestStepEnd, \
     OnTrainEpochEnd, MetricValue, MetricTypes, AlternativeValues
 from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_units import ConfusionMatrixUnit
+from avalanche.evaluation.metric_units import ConfusionMatrixUnit, MetricUnit
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     filter_accepted_events, get_task_label
 
@@ -84,7 +84,7 @@ class ConfusionMatrix(AbstractMetric):
         self._image_creator = image_creator
 
         # Create CM unit
-        self._cm_unit = ConfusionMatrixUnit(
+        self._cm_unit: MetricUnit = ConfusionMatrixUnit(
             num_classes=num_classes, normalize=normalize,
             on_train_epochs=train, on_test_epochs=test)
 

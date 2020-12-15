@@ -17,7 +17,7 @@ from typing import Union
 from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, MetricValue, \
     MetricTypes, OnTrainIteration, OnTestIteration
 from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_units import AverageLossUnit
+from avalanche.evaluation.metric_units import AverageLossUnit, MetricUnit
 from avalanche.evaluation.metric_utils import filter_accepted_events, \
     get_task_label
 
@@ -50,8 +50,8 @@ class EpochLoss(AbstractMetric):
                              'time.')
 
         # Create loss unit
-        self.loss_unit = AverageLossUnit(on_train_epochs=train,
-                                         on_test_epochs=test)
+        self.loss_unit: MetricUnit = AverageLossUnit(
+            on_train_epochs=train, on_test_epochs=test)
 
         # When computing the loss metric we need to get EpochEnd events
         # to check if the epoch ended. The actual element in charge of
@@ -105,8 +105,8 @@ class RunningEpochLoss(AbstractMetric):
                              'time.')
 
         # Create loss unit
-        self.loss_unit = AverageLossUnit(on_train_epochs=train,
-                                         on_test_epochs=test)
+        self.loss_unit: MetricUnit = AverageLossUnit(
+            on_train_epochs=train, on_test_epochs=test)
 
         # When computing the loss metric we need to get EpochEnd events
         # to check if the epoch ended. The actual element in charge of
