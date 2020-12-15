@@ -30,3 +30,4 @@ dependencies:
 - conda-forge::sphinx-autoapi
 - pip:
     - pytorchcv
+    - googledrivedownloader
