@@ -23,7 +23,7 @@ import torch
 import numpy as np
 import os
 import psutil
-from .utils import bytes2human
+from ..evaluation.metric_utils import bytes2human
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt

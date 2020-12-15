@@ -4,7 +4,7 @@ import unittest
 import torch
 from torch import nn
 
-from avalanche.evaluation.metrics import MAC
+from avalanche.evaluation_deprecated.metrics import MAC
 
 
 class MultiTaskTests(unittest.TestCase):

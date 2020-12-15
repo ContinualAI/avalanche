@@ -18,18 +18,15 @@ import torch
 import logging
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.evaluation.eval_protocol import EvalProtocol
+from avalanche.training.plugins import StrategyPlugin
 
 
 class JointTraining:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  classifier_field: str = 'classifier',
-                 evaluation_protocol: Optional[EvalProtocol] = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence[StrategyPlugin]] = None):
-
         """
         JointStrategy is a super class for all the joint training strategies.
         This means that it is not a continual learning strategy but it can be
@@ -41,7 +38,6 @@ class JointTraining:
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
         :param classifier_field: (optional) to specify the name of output layer.
-        :param evaluation_protocol: evaluation plugin.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param test_mb_size: mini-batch size for test.
@@ -59,13 +55,7 @@ class JointTraining:
         self.test_mb_size = train_mb_size if test_mb_size is None \
             else test_mb_size
         self.device = device
-
-        if evaluation_protocol is None:
-            self.evaluation_plugin = EvaluationPlugin(EvalProtocol())
-        else:
-            self.evaluation_plugin = EvaluationPlugin(evaluation_protocol)
         self.plugins = [] if plugins is None else plugins
-        self.plugins.append(self.evaluation_plugin)
 
         # attributes specific to the JointTraning
         self.task_to_concat_dataset = {}
@@ -148,6 +138,8 @@ class JointTraining:
         if isinstance(step_infos, IStepInfo):
             step_infos = [step_infos]
 
+        self.before_training(**kwargs)
+
         # here we concat steps of the same tasks
         task_labels = []
         task_to_datasets = {}
@@ -185,7 +177,8 @@ class JointTraining:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
-        return self.evaluation_plugin.get_train_result()
+
+        self.after_training(**kwargs)
 
     def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
         """
@@ -221,7 +214,7 @@ class JointTraining:
         """
 
         # compute the max num of iterations to cover one epoch.
-        iter_dataloaders = {}
+        iter_dataloaders = dict()
         max_size = 0
         for t in self.task_to_concat_dataset.keys():
             iter_dataloaders[t] = iter(self.current_dataloaders[t])
@@ -307,7 +300,6 @@ class JointTraining:
             self.after_test_step(**kwargs)
 
         self.after_test(**kwargs)
-        return self.evaluation_plugin.get_test_result()
 
     def before_training_step(self, **kwargs):
         """
@@ -347,6 +339,14 @@ class JointTraining:
         """
         for p in self.plugins:
             p.before_training_epoch(self, **kwargs)
+
+    def before_training(self, **kwargs):
+        for p in self.plugins:
+            p.before_training(self, **kwargs)
+
+    def after_training(self, **kwargs):
+        for p in self.plugins:
+            p.after_training(self, **kwargs)
 
     def before_training_iteration(self, **kwargs):
         for p in self.plugins:

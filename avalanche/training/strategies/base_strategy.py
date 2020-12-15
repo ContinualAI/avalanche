@@ -16,16 +16,16 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.evaluation.eval_protocol import EvalProtocol
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from avalanche.training.plugins import StrategyPlugin
 
 
 class BaseStrategy:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 evaluation_protocol: Optional[EvalProtocol] = None,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence[StrategyPlugin]] = None):
+                 plugins: Optional[Sequence['StrategyPlugin']] = None):
         """
         BaseStrategy is the super class of all continual learning strategies.
         It implements a basic training loop and callback system that can be
@@ -39,7 +39,6 @@ class BaseStrategy:
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param evaluation_protocol: evaluation plugin.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param test_mb_size: mini-batch size for test.
@@ -54,13 +53,7 @@ class BaseStrategy:
         self.test_mb_size = train_mb_size if test_mb_size is None \
             else test_mb_size
         self.device = device
-
-        if evaluation_protocol is None:
-            self.evaluation_plugin = EvaluationPlugin(EvalProtocol())
-        else:
-            self.evaluation_plugin = EvaluationPlugin(evaluation_protocol)
         self.plugins = [] if plugins is None else plugins
-        self.plugins.append(self.evaluation_plugin)
 
         # Flow state variables
         self.step_id = None  # test-flow only.
@@ -116,7 +109,6 @@ class BaseStrategy:
         This is different from joint training on the entire stream.
 
         :param step_infos: single IStepInfo or sequence.
-        :return:
         """
         self.model.train()
         self.model.to(self.device)
@@ -124,8 +116,12 @@ class BaseStrategy:
         if isinstance(step_infos, IStepInfo):
             step_infos = [step_infos]
 
+        self.before_training(**kwargs)
+        res = None
         for step_info in step_infos:
             res = self.train_step(step_info, **kwargs)
+
+        self.after_training(**kwargs)
         return res
 
     def train_step(self, step_info: IStepInfo, **kwargs):
@@ -134,7 +130,6 @@ class BaseStrategy:
 
         :param step_info: CL step information.
         :param kwargs: custom arguments.
-        :return: train results from the evalution plugin.
         """
         self.step_info = step_info
         self.model.train()
@@ -152,7 +147,6 @@ class BaseStrategy:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
-        return self.evaluation_plugin.get_train_result()
 
     def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
@@ -161,7 +155,6 @@ class BaseStrategy:
         :param step_info: CL step information.
         :param test_part: determines which steps to test on.
         :param kwargs: custom arguments.
-        :return: evaluation plugin test results.
         """
         self.model.eval()
         self.model.to(self.device)
@@ -185,7 +178,6 @@ class BaseStrategy:
             self.after_test_step(**kwargs)
 
         self.after_test(**kwargs)
-        return self.evaluation_plugin.get_test_result()
 
     def before_training_step(self, **kwargs):
         """
@@ -198,7 +190,7 @@ class BaseStrategy:
     def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
         """
         Called after the dataset instantiation. Initialize the data loader.
-        :param num_workers: number of thread workers for the data laoding.
+        :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
         self.current_dataloader = DataLoader(self.current_data,
@@ -268,6 +260,14 @@ class BaseStrategy:
             self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
+
+    def before_training(self, **kwargs):
+        for p in self.plugins:
+            p.before_training(self, **kwargs)
+
+    def after_training(self, **kwargs):
+        for p in self.plugins:
+            p.after_training(self, **kwargs)
 
     def before_training_iteration(self, **kwargs):
         for p in self.plugins:

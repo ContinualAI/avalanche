@@ -20,8 +20,8 @@ from __future__ import division
 from __future__ import absolute_import
 
 from avalanche.training.deprecated.strategy import Strategy
-from avalanche.evaluation.eval_protocol import EvalProtocol
-from avalanche.evaluation.metrics import ACC
+from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
+from avalanche.evaluation_deprecated.metrics import ACC
 from .utils import create_syn_data, init_batch, compute_ewc_loss, pre_update,\
     post_update, update_ewc_data
 import torch
