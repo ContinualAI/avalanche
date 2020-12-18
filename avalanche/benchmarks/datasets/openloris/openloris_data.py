@@ -15,8 +15,7 @@
 import os
 import sys
 from zipfile import ZipFile
-
-from google_drive_downloader import GoogleDriveDownloader as gdd
+import logging
 
 if sys.version_info[0] >= 3:
     pass
@@ -39,7 +38,7 @@ filename = [
      '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H')
 ]
 
-
+# id of the real train.zip, the current one above is the validation.zip
 # 11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF
 
 
@@ -53,7 +52,7 @@ class OPENLORIS_DATA(object):
         Args:
             data_folder (string): folder in which to download openloris dataset.
         """
-
+        self.log = logging.getLogger("avalanche")
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
         else:
@@ -63,26 +62,26 @@ class OPENLORIS_DATA(object):
         try:
             # Create target Directory for openloris data
             os.makedirs(self.data_folder)
-            print("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory ", self.data_folder, " Created ")
             self.download = True
             self.download_openloris()
 
         except OSError:
             self.download = False
-            print("Directory ", self.data_folder, " already exists")
+            self.log.info("Directory ", self.data_folder, " already exists")
 
     def download_openloris(self):
-
-        for name in filename:
-            print("Downloading " + name[1] + "...")
-            gdd.download_file_from_google_drive(file_id=name[1],
-                                                dest_path=os.path.join(
-                                                    self.data_folder, name[0]))
-            if name[1].endswith('.zip'):
-                with ZipFile(
-                        os.path.join(self.data_folder, name[0]), 'r') as zipf:
-                    print('Extracting OpenLORIS images...')
-                    zipf.extractall(self.data_folder)
-                    print('Done!')
-
-        print("Download complete.")
+        # DEPRECATED: fix this below once the OpenLoris is on a server
+        # for name in filename:
+        #     print("Downloading " + name[1] + "...")
+        #     gdd.download_file_from_google_drive(
+        #     file_id=name[1],
+        #     dest_path=os.path.join(
+        #     self.data_folder, name[0]))
+        #     if name[0].endswith('.zip'):
+        #         with ZipFile(
+        #                 os.path.join(self.data_folder, name[0]), 'r') as zipf:
+        #             print('Extracting OpenLORIS images...')
+        #             zipf.extractall(self.data_folder)
+        #             print('Done!')
+        raise NotImplementedError

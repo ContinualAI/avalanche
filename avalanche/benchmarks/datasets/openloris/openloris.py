@@ -15,7 +15,9 @@
 """ Tiny-Imagenet Pytorch Dataset """
 
 import os
+import sys
 import pickle as pkl
+import logging
 from os.path import expanduser
 
 from PIL import Image
@@ -38,35 +40,57 @@ class OpenLORIS(Dataset):
 
     def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/",
                  train=True, transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=True):
+                 loader=pil_loader, download=False):
 
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
         self.root = root
         self.loader = loader
+        self.log = logging.getLogger("avalanche")
 
         # any scenario and factor is good here since we want just to load the
         # train images and targets with no particular order
         scen = 'domain'
         factor = 0
-        ntask = 8
+        ntask = 9
 
         if download:
-            self.core_data = OPENLORIS_DATA(data_folder=root)
+            # self.core_data = OPENLORIS_DATA(data_folder=root)
+            self.log.error(
+                  "Download is not supported for this Dataset."
+                  "You need to download the following files "
+                  "manually:\n"
+                  "- train.zip: "
+                  "https://drive.google.com/u/0/uc?id"
+                  "=11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF&export=download\n"
+                  "- validation.zip: https://drive.google.com/u/0/uc?id="
+                  "1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga&export=download\n"
+                  "- test.zip: https://drive.google.com/u/0/uc?id="
+                  "1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x&export=download\n"
+                  "- LUP.pkl: https://drive.google.com/u/0/uc?id="
+                  "1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV&export=download\n"
+                  "- Paths.pkl: https://drive.google.com/u/0/uc?id="
+                  "1KnuYLdlG3VQrhgbtIANLki81ah8Thezj&export=download\n"
+                  "- Labels.pkl: https://drive.google.com/u/0/uc?id="
+                  "1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H&export=download\n"
+                  "For more details, check the official website: "
+                  "https://lifelong-robotic-vision.github.io/dataset/object\n"
+            )
+            sys.exit(0)
 
-        print("Loading paths...")
+        self.log.info("Loading paths...")
         with open(os.path.join(root, 'Paths.pkl'), 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
-        print("Loading labels...")
+        self.log.info("Loading labels...")
         with open(os.path.join(root, 'Labels.pkl'), 'rb') as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(ntask + 1):
                 self.train_test_targets += self.all_targets[scen][factor][i]
 
-        print("Loading LUP...")
+        self.log.info("Loading LUP...")
         with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 
@@ -120,7 +144,7 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    train_data = OpenLORIS()
+    train_data = OpenLORIS(download=True)
     test_data = OpenLORIS(train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
