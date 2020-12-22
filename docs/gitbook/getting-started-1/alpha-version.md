@@ -61,23 +61,23 @@ In the Table below, we list all the major benchmarks used in _Continual Learning
 
 _"Dataset Support"_ is checked if an easy-to-use PyTorch version of the dataset is available, whereas _"Benchmark Support"_ is checked if the actual _continual learning benchmark_ \(which sequentialize the data\) is also provided.
 
-| Name | Dataset Support | Benchmark Support | References |
-| :--- | :--- | :--- | :--- |
-| **CORe50** | ✔️ | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **RotatedMNIST** | ✔️ | ✔️ |  |
-| **PermutedMNIST** | ✔️ | ✔️ |  |
-| **SplitMNIST** | ✔️ | ✔️ |  |
-| **FashionMNIST** | ✔️ | ✔️ |  |
-| **CIFAR-10** | ✔️ | ✔️ |  |
-| **CIFAR-100** | ✔️ | ✔️ |  |
-| **CIFAR-110** | ✔️ | ✔️ |  |
-| **TinyImagenet** | ✔️ | ✔️ |  |
-| **CUB200** | ✔️ | ✔️ |  |
-| **SplitImagenet** | ✔️ | ✔️ |  |
-| **CRIB** | ❌ | ❌ |  |
-| **OpenLORIS** | ❌ | ❌ |  |
-| **MiniImagenet** | ❌ | ❌ |  |
-| **Stream-51** | ❌ | ❌ |  |
+| Name | Benchmark Support | References |
+| :--- | :--- | :--- |
+| **CORe50** | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
+| **RotatedMNIST** | ✔️ |  |
+| **PermutedMNIST** | ✔️ |  |
+| **SplitMNIST** | ✔️ |  |
+| **FashionMNIST** | ✔️ |  |
+| **CIFAR-10** | ✔️ |  |
+| **CIFAR-100** | ✔️ |  |
+| **CIFAR-110** | ✔️ |  |
+| **TinyImagenet** | ✔️ |  |
+| **CUB200** | ✔️ |  |
+| **SplitImagenet** | ✔️ |  |
+| **CRIB** | ❌ |  |
+| **OpenLORIS** | ✔️ |  |
+| **MiniImagenet** | ❌ |  |
+| **Stream-51** | ❌ |  |
 
 ## 📈 Supported Strategies
 
