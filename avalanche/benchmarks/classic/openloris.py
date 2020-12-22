@@ -31,13 +31,15 @@ nbatch = {
     'illumination': 9,
     'occlusion': 9,
     'pixel': 9,
+    'mixture-iros': 12
 }
 
 fac2dirs = {
     'clutter': "batches_filelists/domain/clutter",
     'illumination': "batches_filelists/domain/illumination",
     'occlusion': "batches_filelists/domain/occlusion",
-    'pixel': "batches_filelists/domain/pixel"
+    'pixel': "batches_filelists/domain/pixel",
+    'mixture-iros': "batches_filelists/domain/iros"
 }
 
 
@@ -50,7 +52,9 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
         avalanche/datasets/openloris/data/.
     :param factor: OpenLORIS main factors, indicating different environmental
         variations. It can be chosen between 'clutter', 'illumination',
-        'occlusion', or 'pixel'.
+        'occlusion', 'pixel', or 'mixture-iros'. The first three factors are
+        included in the ICRA 2020 paper and the last factor (mixture-iros) is
+        the benchmark setting for IROS 2019 Lifelong robotic vision competition.
 
     :returns: it returns a :class:`GenericCLScenario` instance that can be
         iterated.
@@ -58,8 +62,8 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
 
     assert (factor in nbatch.keys()), "The selected factor is note " \
                                       "recognized: it should be 'clutter'," \
-                                      "'illumination', 'occlusion', or " \
-                                      "'pixel'."
+                                      "'illumination', 'occlusion', " \
+                                      "'pixel', or 'mixture-iros'."
     if root is None:
         data = OPENLORIS_DATA()
     else:
