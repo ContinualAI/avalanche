@@ -42,7 +42,7 @@ fac2dirs = {
 
 
 def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
-           factor="clutter"):
+              factor="clutter"):
     """ OpenLORIS continual scenario generator
 
     :param root: Path indicating where to store the dataset and related
