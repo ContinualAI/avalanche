@@ -35,7 +35,9 @@ filename = [
     ('Paths.pkl',
      '1KnuYLdlG3VQrhgbtIANLki81ah8Thezj'),
     ('Labels.pkl',
-     '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H')
+     '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H'),
+    ('batches_filelists.zip',
+     '178KaVRTLruaTOb2t17fg0O4bNC3dF7Nu')
 ]
 
 # id of the real train.zip, the current one above is the validation.zip
