@@ -229,7 +229,7 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 ![](.gitbook/assets/continualai_lab_logo.png)
 
-_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organziation and the largest open community on Continual Learning for AI_. \_\_
+_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI_.
 
 Do you have a question, do you want to report an issue or simply ask for a new feture? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 

@@ -6,3 +6,4 @@ from .cmnist import *
 from .cfashion_mnist import *
 from .cimagenet import *
 from .ccub200 import *
+from .openloris import *

@@ -12,53 +12,72 @@ A the moment, _Avalanche_ is in **Alpha \(v0.0.1\)**, but we already support a n
 Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
 
+## 🖼️ Supported Datasets
+
+In the Table below, we list all the Pytorch datasets used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. Some of them were already available in [_Torchvision_](https://pytorch.org/docs/stable/torchvision/index.html), while other have been integrated by us.
+
+| Name | Dataset Support | From Torch Vision | Automatic Download | References |
+| :--- | :--- | :--- | :--- | :--- |
+| **CORe50** | ✔️ | ✔️ | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
+| **MNIST** | ✔️ | ✔️ | ✔️ |  |
+| **CIFAR-10** | ✔️ | ✔️ | ✔️ |  |
+| **CIFAR-100** | ✔️ | ✔️ | ✔️ |  |
+| **FashionMNIST** | ✔️ | ✔️ | ✔️ |  |
+| **TinyImagenet** | ✔️ | ✔️ | ✔️ |  |
+| **MiniImagenet** | ❌ | ❌ | ❌ |  |
+| **Imagenet** | ✔️ | ✔️ | ❌ |  |
+| **CUB200** | ✔️ | ❌ | ❌ |  |
+| **CRIB** | ❌ | ❌ | ❌ |  |
+| **OpenLORIS** | ✔️ | ❌ | ❌ |  |
+| **Stream-51** | ❌ | ❌ | ❌ |  |
+| **KMNIST** | ✔️ | ✔️ | ✔️ |  |
+| **EMNIST** | ✔️ | ✔️ | ✔️ |  |
+| **QMNIST** | ✔️ | ✔️ | ✔️ |  |
+| **FakeData** | ✔️ | ✔️ | ✔️ |  |
+| **CocoCaption** | ✔️ | ✔️ | ❌ |  |
+| **CocoDetection** | ✔️ | ❌ | ❌ |  |
+| **LSUN** | ✔️ | ❌ | ❌ |  |
+| **STL10** | ✔️ | ❌ | ✔️ |  |
+| **SVHN** | ✔️ | ❌ | ✔️ |  |
+| **PhotoTour** | ✔️ | ❌ | ✔️ |  |
+| **SBU** | ✔️ | ✔️ | ✔️ |  |
+| **Flickr8k** | ✔️ | ✔️ | ❌ |  |
+| **Flickr30k** | ✔️ | ✔️ | ❌ |  |
+| **VOCDetection** | ✔️ | ✔️ | ✔️ |  |
+| **VOCSegmentation** | ✔️ | ✔️ | ✔️ |  |
+| **Cityscapes** | ✔️ | ✔️ | ❌ |  |
+| **SBDataset** | ✔️ | ✔️ | ✔️ |  |
+| **USPS** | ✔️ | ✔️ | ✔️ |  |
+| **Kinetics400** | ✔️ | ✔️ | ❌ |  |
+| **HMDB51** | ✔️ | ✔️ | ❌ |  |
+| **UCF101** | ✔️ | ✔️ | ❌ |  |
+| **CelebA** | ✔️ | ✔️ | ✔️ |  |
+| **Caltech101** | ❌ | ❌ | ❌ |  |
+| **Caltech256** | ❌ | ❌ | ❌ |  |
+
 ## 📚 Supported Benchmarks
 
 In the Table below, we list all the major benchmarks used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. 
 
 _"Dataset Support"_ is checked if an easy-to-use PyTorch version of the dataset is available, whereas _"Benchmark Support"_ is checked if the actual _continual learning benchmark_ \(which sequentialize the data\) is also provided.
 
-| Name | Dataset Support | Benchmark Support | References |
-| :--- | :--- | :--- | :--- |
-| **CORe50** | ✔️ | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **RotatedMNIST** | ✔️ | ✔️ |  |
-| **PermutedMNIST** | ✔️ | ✔️ |  |
-| **SplitMNIST** | ✔️ | ✔️ |  |
-| **FashionMNIST** | ✔️ | ✔️ |  |
-| **CIFAR-10** | ✔️ | ✔️ |  |
-| **CIFAR-100** | ✔️ | ✔️ |  |
-| **CIFAR-110** | ✔️ | ✔️ |  |
-| **TinyImagenet** | ✔️ | ✔️ |  |
-| **CUB200** | ✔️ | ✔️ |  |
-| **SplitImagenet** | ✔️ | ✔️ |  |
-| **CRIB** | ❌ | ❌ |  |
-| **OpenLORIS** | ❌ | ❌ |  |
-| **MiniImagenet** | ❌ | ❌ |  |
-| **Stream-51** | ❌ | ❌ |  |
-| **KMNIST** | ✔️ | ❌ | N.A. |
-| **EMNIST** | ✔️ | ❌ | N.A. |
-| **QMNIST** | ✔️ | ❌ | N.A. |
-| **FakeData** | ✔️ | ❌ | N.A. |
-| **CocoCaption** | ✔️ | ❌ | N.A. |
-| **CocoDetection** | ✔️ | ❌ | N.A. |
-| **LSUN** | ✔️ | ❌ | N.A. |
-| **STL10** | ✔️ | ❌ | N.A. |
-| **SVHN** | ✔️ | ❌ | N.A. |
-| **PhotoTour** | ✔️ | ❌ | N.A. |
-| **SBU** | ✔️ | ❌ | N.A. |
-| **Flickr8k** | ✔️ | ❌ | N.A. |
-| **Flickr30k** | ✔️ | ❌ | N.A. |
-| **VOCDetection** | ✔️ | ❌ | N.A. |
-| **VOCSegmentation** | ✔️ | ❌ | N.A. |
-| **Cityscapes** | ✔️ | ❌ | N.A. |
-| **SBDataset** | ✔️ | ❌ | N.A. |
-| **USPS** | ✔️ | ❌ | N.A. |
-| **Kinetics400** | ✔️ | ❌ | N.A. |
-| **HMDB51** | ✔️ | ❌ | N.A. |
-| **UCF101** | ✔️ | ❌ | N.A. |
-| **CelebA** | ✔️ | ❌ | N.A. |
-| **Caltech101** | ❌ | ❌ | N.A. |
-| **Caltech256** | ❌ | ❌ | N.A. |
+| Name | Benchmark Support | References |
+| :--- | :--- | :--- |
+| **CORe50** | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
+| **RotatedMNIST** | ✔️ |  |
+| **PermutedMNIST** | ✔️ |  |
+| **SplitMNIST** | ✔️ |  |
+| **FashionMNIST** | ✔️ |  |
+| **CIFAR-10** | ✔️ |  |
+| **CIFAR-100** | ✔️ |  |
+| **CIFAR-110** | ✔️ |  |
+| **TinyImagenet** | ✔️ |  |
+| **CUB200** | ✔️ |  |
+| **SplitImagenet** | ✔️ |  |
+| **CRIB** | ❌ |  |
+| **OpenLORIS** | ✔️ |  |
+| **MiniImagenet** | ❌ |  |
+| **Stream-51** | ❌ |  |
 
 ## 📈 Supported Strategies
 
