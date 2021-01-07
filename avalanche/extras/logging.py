@@ -27,7 +27,7 @@ from PIL.Image import Image
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import ToTensor
 
-from avalanche.evaluation import MetricValue, AlternativeValues
+from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
 
 
 class TensorboardLogging(object):

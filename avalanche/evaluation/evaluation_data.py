@@ -148,6 +148,8 @@ class OnTrainPhaseEnd(EvalData):
     steps have completed.
     """
 
+    # TODO: step_id, training_task_label == last step id, last train task label
+
     def __init__(self,
                  step_counter: int,
                  step_id: int,
@@ -162,6 +164,7 @@ class OnTestPhaseEnd(EvalTestData):
     This means that all test steps have completed and the strategy is
     about to switch to the training phase.
     """
+    # TODO: test_step_id, test_task_label == last step id, last test task label
 
     def __init__(self,
                  step_counter: int,
@@ -273,7 +276,64 @@ class OnTrainEpochEnd(EvalData):
         """
 
 
-class OnTrainIteration(EvalData):
+class OnTrainIterationStart(EvalData):
+    """
+    Evaluation data sent to metrics when a training iteration (on a minibatch)
+    is about to start.
+    """
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int,
+                 epoch: int,
+                 iteration: int,
+                 ground_truth: Tensor):
+        super().__init__(step_counter, step_id, training_task_label)
+        self.epoch: int = epoch
+        """
+        The current epoch.
+        """
+
+        self.iteration: int = iteration
+        """
+        The iteration that is about to start (first iteration = 0).
+        """
+
+        self.ground_truth: Tensor = _detach_tensor(ground_truth)
+        """
+        A Tensor describing the ground truth for the current minibatch.
+        """
+
+
+class OnTestIterationStart(EvalTestData):
+    """
+    Evaluation data sent to metrics when a test iteration (on a minibatch)
+    is about to start.
+    """
+
+    def __init__(self,
+                 step_counter: int,
+                 step_id: int,
+                 training_task_label: int,
+                 test_step_id: int,
+                 test_task_label: int,
+                 iteration: int,
+                 ground_truth: Tensor):
+        super().__init__(step_counter, step_id, training_task_label,
+                         test_step_id, test_task_label)
+        self.iteration: int = iteration
+        """
+        The iteration that is about to start (first iteration = 0).
+        """
+
+        self.ground_truth: Tensor = _detach_tensor(ground_truth)
+        """
+        A Tensor describing the ground truth for the current minibatch.
+        """
+
+
+class OnTrainIterationEnd(EvalData):
     """
     Evaluation data sent to metrics when a training iteration (on a minibatch)
     completes.
@@ -317,7 +377,7 @@ class OnTrainIteration(EvalData):
         """
 
 
-class OnTestIteration(EvalTestData):
+class OnTestIterationEnd(EvalTestData):
     """
     Evaluation data sent to metrics when a test iteration (on a minibatch)
     completes.
@@ -370,5 +430,7 @@ __all__ = ['EvalData',
            'OnTestStepEnd',
            'OnTrainEpochStart',
            'OnTrainEpochEnd',
-           'OnTrainIteration',
-           'OnTestIteration']
+           'OnTrainIterationStart',
+           'OnTestIterationStart',
+           'OnTrainIterationEnd',
+           'OnTestIterationEnd']

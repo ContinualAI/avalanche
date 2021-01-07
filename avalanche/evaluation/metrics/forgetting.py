@@ -12,14 +12,18 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict
+from typing import Dict, Optional, Set
 
-from avalanche.evaluation import OnTestStepEnd, MetricValue, MetricTypes
+from avalanche.evaluation import OnTestStepEnd, AggregatedMetric, OnTestPhaseEnd
+from avalanche.evaluation.metric_definitions import TResult
+from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
+    MetricResult
 from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.metric_units import AverageAccuracyUnit, MetricUnit
+from avalanche.evaluation.metrics import TaskAccuracy
 
 
-class TaskForgetting(AbstractMetric):
+class TaskForgetting(AggregatedMetric[Dict[int, float], TaskAccuracy]):
     """
     The TaskForgetting metric, describing the accuracy loss detected for a
     certain task.
@@ -29,47 +33,62 @@ class TaskForgetting(AbstractMetric):
     result obtained on the same task at the end of successive steps.
 
     This metric is computed during the test phase only.
+    TODO: doc
     """
+
     def __init__(self):
         """
         Creates an instance of the Catastrophic TaskForgetting metric.
 
         """
-        super().__init__()
+        super().__init__(TaskAccuracy())
 
-        self.best_accuracy: Dict[int, float] = dict()
+        self._initial_task_accuracy: Dict[int, float] = dict()
         """
-        The best accuracy of each task.
+        The initial accuracy of each task.
         """
 
-        # Create accuracy unit
-        self._accuracy_unit: MetricUnit = AverageAccuracyUnit(
-            on_train_epochs=False, on_test_epochs=True)
+    def result(self) -> Dict[int, float]:
+        task_accuracies: Dict[int, float] = self.base_metric.result()
+        all_task_labels: Set[int] = set(self._initial_task_accuracy.keys())\
+            .union(set(task_accuracies.keys()))
+        task_forgetting: Dict[int, float] = dict()
+        for task_id in all_task_labels:
+            delta = 0.0
+            if (task_id in task_accuracies) and \
+                    (task_id in self._initial_task_accuracy):
+                # Task already encountered in previous phases
+                delta = self._initial_task_accuracy[task_id] - \
+                        task_accuracies[task_id]
+            # Other situations:
+            # - A task that was not encountered before (forgetting == 0)
+            # - A task that was encountered before, but has not been
+            # encountered in the current test phase (forgetting == N.A. == 0)
+            task_forgetting[task_id] = delta
+        return task_forgetting
 
-        # Attach callbacks
-        self._attach(self._accuracy_unit)\
-            ._on(OnTestStepEnd, self.result_emitter)
+    def before_test(self, eval_data) -> None:
+        super().before_test(eval_data)
+        self.reset()
 
-    def result_emitter(self, eval_data):
-        eval_data: OnTestStepEnd
-        train_task_label = eval_data.training_task_label
-        test_task_label = eval_data.test_task_label
-        accuracy_value = self._accuracy_unit.value
+    def after_test(self, eval_data: OnTestPhaseEnd) -> MetricResult:
+        super().after_test(eval_data)
+        return self._consolidate_and_package_result(eval_data)
 
-        if test_task_label not in self.best_accuracy and \
-                train_task_label == test_task_label:
-            self.best_accuracy[test_task_label] = accuracy_value
+    def _consolidate_and_package_result(self, eval_data) -> MetricResult:
+        for task_label, task_accuracy in self.base_metric.result().items():
+            if task_label not in self._initial_task_accuracy:
+                self._initial_task_accuracy[task_label] = task_accuracy
 
-        forgetting = 0.0
+        metric_values = []
+        for task_label, task_forgetting in self.result().items():
+            metric_name = 'Task_Forgetting/Task{:03}'.format(task_label)
+            plot_x_position = self._next_x_position(metric_name)
 
-        if test_task_label in self.best_accuracy:
-            forgetting = self.best_accuracy[test_task_label] - accuracy_value
-
-        metric_name = 'TaskForgetting/Task{:03}'.format(test_task_label)
-        plot_x_position = self._next_x_position(metric_name)
-
-        return MetricValue(self, metric_name, MetricTypes.FORGETTING,
-                           forgetting, plot_x_position)
+            metric_values.append(MetricValue(
+                self, metric_name, MetricTypes.FORGETTING,
+                task_forgetting, plot_x_position))
+        return metric_values
 
 
 __all__ = ['TaskForgetting']

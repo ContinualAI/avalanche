@@ -17,8 +17,8 @@ from typing import Union, List, Tuple, Optional, Callable, Sequence, Dict, \
     TypeVar, Type
 
 from .evaluation_data import EvalData
-from .metric_definitions import Metric, MetricResult, MetricValue
-
+from .metric_definitions import Metric
+from .metric_results import MetricResult, MetricValue
 
 NMetricValues = Union[None, MetricValue, List[MetricValue]]
 MetricCallbackType = Callable[[EvalData], NMetricValues]

@@ -6,149 +6,229 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 14-12-2020                                                             #
+# Date: 30-12-2020                                                             #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-
-from enum import Enum, auto
+from abc import ABC, abstractmethod
 from typing_extensions import Protocol
-from typing import Union, Optional, Tuple, List
+from typing import TypeVar, Optional, Dict, Generic, TYPE_CHECKING
 
-from PIL.Image import Image
-from torch import Tensor
+from .evaluation_data import OnTrainPhaseStart, OnTrainPhaseEnd, \
+    OnTrainStepStart, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
+    OnTrainIterationEnd, OnTestStepStart, OnTestStepEnd, OnTestIterationEnd, \
+    OnTestPhaseStart, OnTestPhaseEnd, OnTrainIterationStart, \
+    OnTestIterationStart
 
-from .evaluation_data import EvalData
+if TYPE_CHECKING:
+    from .metric_results import MetricResult
 
-MetricType = Union[float, int, Tensor, Image]
-MetricResult = List['MetricValue']
+TResult = TypeVar('TResult')
+TAggregated = TypeVar('TAggregated', bound='PluginMetric')
 
 
-class Metric(Protocol):
+class Metric(Protocol[TResult]):
     """
-    Protocol definition of a metric.
+    Definition of a metric.
 
-    A metric simply accepts an evaluation data object containing relevant
-    information retrieved from the strategy and optionally outputs values
-    to be logged.
+    A metric exposes methods to reset the internal counters as well as
+    a method used to retrieve the result.
+
+    The specific metric implementation exposes ways to update the metric
+    state. Usually, standalone metrics like :class:`Sum`, :class:`Mean`,
+    :class:`Accuracy`, ... expose an `update` method.
+
+    On the other hand, metrics that are to be used by using the
+    :class:`EvaluationPlugin` usually update their value by receiving events
+    from the plugin (see the :class:`PluginMetric` class for more details).
     """
-    def __call__(self, eval_data: EvalData) -> MetricResult:
-        ...
 
-
-class AlternativeValues:
-    """
-    A container for alternative representations of the same metric value.
-    """
-    def __init__(self, *alternatives: MetricType):
-        self.alternatives: Tuple[MetricType] = alternatives
-
-    def best_supported_value(self, *supported_types: type) -> \
-            Optional[MetricType]:
+    def result(self) -> Optional[TResult]:
         """
-        Retrieves a supported representation for this metric value.
+        Obtains the value of the metric.
 
-        :param supported_types: A list of supported value types.
-        :return: The best supported representation. Returns None if no supported
-            representation is found.
+        :return: The value of the metric.
         """
-        for alternative in self.alternatives:
-            if isinstance(alternative, supported_types):
-                return alternative
+        pass
+
+    def reset(self) -> None:
+        """
+        Resets the metric internal state.
+
+        :return: None.
+        """
+        pass
+
+
+class PluginMetric(Metric[TResult], ABC):
+    """
+    A kind of metric that can be used by the :class:`EvaluationPlugin`.
+
+    This class leaves the implementation of the `result` and `reset` methods
+    to child classes while providing an empty implementation of the callbacks
+    invoked by the :class:`EvaluationPlugin`. Subclasses should implement
+    the `result`, `reset` and the desired callbacks to compute the specific
+    metric.
+
+    This class also provides a utility method, `_next_x_position`, which can
+    be used to label each metric value with its appropriate "x" position in the
+    plot.
+    """
+    def __init__(self):
+        # TODO: doc
+        self._metric_x_counters: Dict[str, int] = dict()
+
+    @abstractmethod
+    def result(self) -> Optional[TResult]:
+        pass
+
+    @abstractmethod
+    def reset(self) -> None:
+        pass
+
+    def before_training(self, eval_data: OnTrainPhaseStart) -> 'MetricResult':
+        return None
+
+    def after_training(self, eval_data: OnTrainPhaseEnd) -> 'MetricResult':
+        return None
+
+    def before_training_step(self, eval_data: OnTrainStepStart) \
+            -> 'MetricResult':
+        return None
+
+    def after_training_step(self, eval_data: OnTrainStepEnd) -> 'MetricResult':
+        return None
+
+    def before_training_epoch(self, eval_data: OnTrainEpochStart) \
+            -> 'MetricResult':
+        return None
+
+    def after_training_epoch(self, eval_data: OnTrainEpochEnd) \
+            -> 'MetricResult':
+        return None
+
+    def before_training_iteration(self, eval_data: OnTrainIterationStart) \
+            -> 'MetricResult':
+        return None
+
+    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+            -> 'MetricResult':
+        return None
+
+    def before_test_step(self, eval_data: OnTestStepStart) -> 'MetricResult':
+        return None
+
+    def after_test_step(self, eval_data: OnTestStepEnd) -> 'MetricResult':
+        return None
+
+    def before_test_iteration(self, eval_data: OnTestIterationStart) \
+            -> 'MetricResult':
+        return None
+
+    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+            -> 'MetricResult':
+        return None
+
+    def before_test(self, eval_data: OnTestPhaseStart) -> 'MetricResult':
+        return None
+
+    def after_test(self, eval_data: OnTestPhaseEnd) -> 'MetricResult':
+        return None
+
+    def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:
+        """
+        Utility method that can be used to get the next "x" position of a
+        metric value (given its name).
+
+        :param metric_name: The metric value name.
+        :param initial_x: The initial "x" value. Defaults to 0.
+        :return: The next "x" value to use.
+        """
+        if metric_name not in self._metric_x_counters:
+            self._metric_x_counters[metric_name] = initial_x
+        x_result = self._metric_x_counters[metric_name]
+        self._metric_x_counters[metric_name] += 1
+        return x_result
+
+
+class AggregatedMetric(Generic[TResult, TAggregated],
+                       PluginMetric[TResult], ABC):
+    # TODO: doc
+    def __init__(self, base_metric: TAggregated):
+        # TODO: doc
+        super().__init__()
+        self.base_metric: TAggregated = base_metric
+
+    @abstractmethod
+    def result(self) -> Optional[TResult]:
+        pass
+
+    def reset(self) -> None:
+        self.base_metric.reset()
+
+    def before_training(self, eval_data: OnTrainPhaseStart) -> 'MetricResult':
+        self.base_metric.before_training(eval_data)
+        return None
+
+    def after_training(self, eval_data: OnTrainPhaseEnd) -> 'MetricResult':
+        self.base_metric.after_training(eval_data)
+        return None
+
+    def before_training_step(self, eval_data: OnTrainStepStart)\
+            -> 'MetricResult':
+        self.base_metric.before_training_step(eval_data)
+        return None
+
+    def after_training_step(self, eval_data: OnTrainStepEnd) -> 'MetricResult':
+        self.base_metric.after_training_step(eval_data)
+        return None
+
+    def before_training_epoch(self, eval_data: OnTrainEpochStart) \
+            -> 'MetricResult':
+        self.base_metric.before_training_epoch(eval_data)
+        return None
+
+    def after_training_epoch(self, eval_data: OnTrainEpochEnd) \
+            -> 'MetricResult':
+        self.base_metric.after_training_epoch(eval_data)
+        return None
+
+    def before_training_iteration(self, eval_data: OnTrainIterationStart) \
+            -> 'MetricResult':
+        self.base_metric.before_training_iteration(eval_data)
+        return None
+
+    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+            -> 'MetricResult':
+        self.base_metric.after_training_iteration(eval_data)
+        return None
+
+    def before_test_step(self, eval_data: OnTestStepStart) -> 'MetricResult':
+        self.base_metric.before_test_step(eval_data)
+        return None
+
+    def after_test_step(self, eval_data: OnTestStepEnd) -> 'MetricResult':
+        self.base_metric.after_test_step(eval_data)
+        return None
+
+    def before_test_iteration(self, eval_data: OnTestIterationStart) \
+            -> 'MetricResult':
+        self.base_metric.before_test_iteration(eval_data)
+        return None
+
+    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+            -> 'MetricResult':
+        self.base_metric.after_test_iteration(eval_data)
+        return None
+
+    def before_test(self, eval_data: OnTestPhaseStart) -> 'MetricResult':
+        self.base_metric.before_test(eval_data)
+        return None
+
+    def after_test(self, eval_data: OnTestPhaseEnd) -> 'MetricResult':
+        self.base_metric.after_test(eval_data)
         return None
 
 
-class MetricTypes(Enum):
-    OTHER = auto()
-    """
-    Value used to flag a metric type that doesn't fit in any of the other
-    standard types.
-    """
-
-    ACCURACY = auto()
-    """
-    Used to flag accuracy values.
-    """
-
-    LOSS = auto()
-    """
-    Used to flag loss values.
-    """
-
-    FORGETTING = auto()
-    """
-    Used to flag values representing accuracy losses.
-    """
-
-    CONFUSION_MATRIX = auto()
-    """
-    Used to flag confusion matrices.
-    """
-
-    ELAPSED_TIME = auto()
-    """
-    Used to flag values describing an elapsed time (usually in seconds).
-    """
-
-    CPU_USAGE = auto()
-    """
-    Used to flag values describing the CPU usage.
-    """
-
-    GPU_USAGE = auto()
-    """
-    Used to flag values describing the GPU usage.
-    """
-
-    RAM_USAGE = auto()
-    """
-    Used to flag values describing the RAM usage (usually in MiB).
-    """
-
-    STORAGE_USAGE = auto()
-    """
-    Used to flag values describing the storage occupation (usually in MiB).
-    """
-
-
-class MetricValue(object):
-    """
-    The result of a Metric.
-
-    A result has a name, a value and a "x" position in which the metric value
-    should be plotted.
-
-    The "value" field can also be an instance of "AlternativeValues", in which
-    case it means that alternative representations exist for this value. For
-    instance, the Confusion Matrix can be represented both as a Tensor and as
-    an Image. It's up to the Logger, according to its capabilities, decide which
-    representation to use.
-    """
-    def __init__(self, origin: Metric, name: str, metric_type: MetricTypes,
-                 value: Union[MetricType, AlternativeValues],
-                 x_plot: int):
-        """
-        Creates an instance of MetricValue.
-
-        :param origin: The originating Metric instance.
-        :param name: The display name of this value.
-        :param metric_type: The type of this metric value, as a element
-            from the  MetricTypes enumeration.
-
-        :param value:
-        :param x_plot:
-        """
-        self.origin: Metric = origin
-        self.name: str = name
-        self.metric_type: MetricTypes = metric_type
-        self.value: Union[MetricType, AlternativeValues] = value
-        self.x_plot: int = x_plot
-
-
-__all__ = [
-    'MetricResult',
-    'Metric',
-    'AlternativeValues',
-    'MetricTypes',
-    'MetricValue']
+__all__ = ['Metric', 'PluginMetric', 'AggregatedMetric']

@@ -5,7 +5,7 @@ from typing import TextIO, Optional, Union
 import warnings
 from typing_extensions import Protocol
 
-from avalanche.evaluation import EvalData, OnTrainIteration, OnTestIteration, \
+from avalanche.evaluation import EvalData, OnTrainIterationEnd, OnTestIterationEnd, \
     OnTrainEpochEnd, OnTestStepEnd, OnTestStepStart, OnTrainStepStart, Metric, \
     OnTrainPhaseEnd, OnTestPhaseEnd, OnTrainPhaseStart, OnTestPhaseStart
 from avalanche.evaluation.metrics import RunningEpochLoss
@@ -105,7 +105,7 @@ class DotTrace(StrategyTrace):
         running_loss = metric_values['iterations_loss']
         running_accuracy = metric_values['iterations_accuracy']
 
-        if isinstance(eval_data, (OnTrainIteration, OnTestIteration)):
+        if isinstance(eval_data, (OnTrainIterationEnd, OnTestIterationEnd)):
             self._last_iter = eval_data.iteration
             new_line = (self._last_iter + 1) % self._iter_line == 0
             print_summary = ((self._last_iter + 1) %

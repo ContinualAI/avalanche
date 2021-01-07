@@ -13,41 +13,142 @@
 ################################################################################
 
 import time
-from typing import Union
+from typing import Union, SupportsFloat
 
 from avalanche.evaluation import OnTrainEpochStart, OnTestStepStart, \
-    OnTrainEpochEnd, OnTestStepEnd, MetricValue, MetricTypes, \
-    OnTrainStepStart, OnTrainStepEnd
+    OnTrainEpochEnd, OnTestStepEnd, OnTrainStepStart, OnTrainStepEnd, Metric, \
+    PluginMetric, OnTrainIterationStart, OnTestIterationStart, \
+    OnTrainIterationEnd, OnTestIterationEnd, AggregatedMetric, EvalData
+from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
+    MetricResult
 from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.metric_utils import filter_accepted_events, \
     get_task_label
+from avalanche.evaluation.metrics.mean import Mean
+from avalanche.evaluation.metrics.sum import Sum
 
 
-class EpochTime(AbstractMetric):
+class ElapsedTime(Metric[float]):
+
+    def __init__(self):
+        self._sum_time = Sum()
+        self._prev_time = None
+
+    def update(self) -> None:
+        now = time.perf_counter()
+        if self._prev_time is not None:
+            self._sum_time.update(now - self._prev_time)
+        self._prev_time = now
+
+    def result(self) -> float:
+        return self._sum_time.result()
+
+    def reset(self) -> None:
+        self._prev_time = None
+        self._sum_time.reset()
+
+
+class MinibatchTime(PluginMetric[float]):
     """
-    Time usage metric, measured in seconds.
+    The average accuracy metric.
 
-    The time is measured between the start and end of an epoch.
+    This metric is computed separately for each task.
 
-    Beware that this metric logs a time value for each epoch! For the average
-    epoch time use :class:`AverageEpochTime` instead, which logs the average
-    the average epoch time for each step.
-
-    By default this metric takes the time on training epochs only but this
-    behaviour can be changed by passing test=True in the constructor.
+    The accuracy will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training accuracy is the "running" one.
+    TODO: doc
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the Epoch Time metric.
+        Creates an instance of the EpochAccuracy metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
 
-        :param train: When True, the time will be taken on training epochs.
-            Defaults to True.
-        :param test: When True, the time will be taken on test epochs.
-            Defaults to False.
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__()
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             'time.')
+        self._minibatch_time = ElapsedTime()
+        self._compute_train_time = train
+        self._compute_test_time = test
+
+    def result(self) -> float:
+        return self._minibatch_time.result()
+
+    def reset(self) -> None:
+        self._minibatch_time.reset()
+
+    def before_training_iteration(self, eval_data) -> MetricResult:
+        if not self._compute_train_time:
+            return
+        self.reset()
+        self._minibatch_time.update()
+
+    def before_test_iteration(self, eval_data) -> MetricResult:
+        if not self._compute_test_time:
+            return
+        self.reset()
+        self._minibatch_time.update()
+
+    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+            -> MetricResult:
+        if self._compute_train_time:
+            self._minibatch_time.update()
+            return self._on_iteration(eval_data)
+
+    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+            -> MetricResult:
+        if self._compute_test_time:
+            self._minibatch_time.update()
+            return self._on_iteration(eval_data)
+
+    def _on_iteration(self, eval_data: Union[OnTrainIterationEnd,
+                                             OnTestIterationEnd]):
+        self._last_mb_time = self._minibatch_time.result()
+        return self._package_result(eval_data)
+
+    def _package_result(self, eval_data: EvalData) -> MetricResult:
+        phase_name = 'Test' if eval_data.test_phase else 'Train'
+        task_label = get_task_label(eval_data)
+        metric_value = self.result()
+
+        metric_name = 'Time_MB/{}/Task{:03}'.format(phase_name, task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, MetricTypes.LOSS,
+                            metric_value, plot_x_position)]
+
+
+class EpochTime(PluginMetric[float]):
+    """
+    The average accuracy metric.
+
+    This metric is computed separately for each task.
+
+    The accuracy will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training accuracy is the "running" one.
+    TODO: doc
+    """
+
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the EpochAccuracy metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
         """
         super().__init__()
 
@@ -55,131 +156,190 @@ class EpochTime(AbstractMetric):
             raise ValueError('train and test can\'t be both False at the same'
                              'time.')
 
-        self._start_time = None
+        self._elapsed_time = ElapsedTime()
+        self._take_train_time = train
+        self._take_test_time = test
 
-        on_start_events = filter_accepted_events(
-            [OnTrainEpochStart, OnTestStepStart], train=train, test=test)
+    def before_training_epoch(self, eval_data) -> MetricResult:
+        if not self._take_train_time:
+            return
+        self.reset()
 
-        on_end_events = filter_accepted_events(
-            [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
+    def before_test_step(self, eval_data) -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
 
-        # Attach callbacks
-        self._on(on_start_events, self.time_start) \
-            ._on(on_end_events, self.result_emitter)
+    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+        if self._take_train_time:
+            self._elapsed_time.update()
+            return self._package_result(eval_data)
 
-    def time_start(self, _):
-        # Epoch start
-        self._start_time = time.perf_counter()
+    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+        if self._take_test_time:
+            self._elapsed_time.update()
+            return self._package_result(eval_data)
 
-    def result_emitter(self, eval_data):
-        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
-        # Epoch end
+    def reset(self) -> None:
+        self._elapsed_time.reset()
+
+    def result(self) -> float:
+        return self._elapsed_time.result()
+
+    def _package_result(self, eval_data: EvalData) -> MetricResult:
         phase_name = 'Test' if eval_data.test_phase else 'Train'
         task_label = get_task_label(eval_data)
-        elapsed_time = time.perf_counter() - self._start_time
+        elapsed_time = self.result()
 
         metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name,
                                                        task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
-                           elapsed_time, plot_x_position)
+        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
+                            elapsed_time, plot_x_position)]
 
 
-class AverageEpochTime(AbstractMetric):
+class AverageEpochTime(AggregatedMetric[float, EpochTime]):
     """
-    Time usage metric, measured in seconds.
+    The average accuracy metric.
 
-    The time is measured as the average epoch time of a step.
-    The average value is computed and emitted at the end of the train/test step.
+    This metric is computed separately for each task.
 
-    By default this metric takes the time of epochs in training steps only. This
-    behaviour can be changed by passing test=True in the constructor.
-
-    Consider that, when used on the test set, the epoch time is the same as the
-    step time. This means that this metric and the :class:`EpochTime` metric
-    will emit the same values when used for the test phase.
+    The accuracy will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training accuracy is the "running" one.
+    TODO: doc
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the Average Epoch Time metric.
+        Creates an instance of the EpochAccuracy metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
 
-        :param train: When True, the time will be taken on training epochs.
-            Defaults to True.
-        :param test: When True, the time will be taken on test epochs.
-            Defaults to False.
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__(EpochTime(train=train, test=test))
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             'time.')
+
+        self._time_mean = Mean()
+        self._take_train_time = train
+        self._take_test_time = test
+
+    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+        super().after_training_epoch(eval_data)
+        if self._take_train_time:
+            return self._package_result(eval_data)
+
+    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+        super().after_test_step(eval_data)
+        if self._take_test_time:
+            return self._package_result(eval_data)
+
+    def reset(self) -> None:
+        super().reset()
+        self._time_mean.reset()
+
+    def result(self) -> float:
+        return self._time_mean.result()
+
+    def _package_result(self, eval_data: EvalData) -> MetricResult:
+        phase_name = 'Test' if eval_data.test_phase else 'Train'
+        task_label = get_task_label(eval_data)
+        average_epoch_time = self.result()
+
+        metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(
+            phase_name, task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
+                            average_epoch_time, plot_x_position)]
+
+
+class StepTime(PluginMetric[float]):
+    """
+    The average accuracy metric.
+
+    This metric is computed separately for each task.
+
+    The accuracy will be emitted after each epoch by aggregating minibatch
+    values. Beware that the training accuracy is the "running" one.
+    TODO: doc
+    """
+
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the EpochAccuracy metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
         """
         super().__init__()
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
                              'time.')
-        self._epoch_start_time = None
-        self._accumulated_time = 0.0
-        self._n_epochs = 0
 
-        on_step_start_events = filter_accepted_events(
-            [OnTrainStepStart, OnTestStepStart], train=train, test=test)
+        self._elapsed_time = ElapsedTime()
+        self._take_train_time = train
+        self._take_test_time = test
 
-        on_epoch_start_events = filter_accepted_events(
-            [OnTrainEpochStart], train=train, test=test)
+    def before_training_step(self, eval_data) -> MetricResult:
+        if not self._take_train_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
 
-        on_epoch_end_events = filter_accepted_events(
-            [OnTrainEpochEnd], train=train, test=test)
+    def before_test_step(self, eval_data) -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
 
-        on_step_end_events = filter_accepted_events(
-            [OnTrainStepEnd, OnTestStepEnd], train=train, test=test)
+    def after_training_step(self, eval_data) -> MetricResult:
+        if self._take_train_time:
+            self._elapsed_time.update()
+            return self._package_result(eval_data)
 
-        # Attach callbacks
-        self._on(on_step_start_events, self.step_start) \
-            ._on(on_epoch_start_events, self.epoch_start) \
-            ._on(on_epoch_end_events, self.epoch_end) \
-            ._on(on_step_end_events, self.result_emitter)
+    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+        if self._take_test_time:
+            self._elapsed_time.update()
+            return self._package_result(eval_data)
 
-    def step_start(self, _):
-        # Step start
-        self._accumulated_time = 0.0
-        self._n_epochs = 0
-        # Used for timing during the test phase
-        self._epoch_start_time = time.perf_counter()
+    def reset(self) -> None:
+        self._elapsed_time.reset()
 
-    def epoch_start(self, _):
-        # Epoch start (training phase)
-        self._epoch_start_time = time.perf_counter()
+    def result(self) -> float:
+        return self._elapsed_time.result()
 
-    def epoch_end(self, _):
-        # Epoch end  (training phase)
-        self._accumulated_time = time.perf_counter() - self._epoch_start_time
-        self._n_epochs += 1
-
-    def result_emitter(self, eval_data):
-        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
-        # Epoch end
+    def _package_result(self, eval_data: EvalData) -> MetricResult:
         phase_name = 'Test' if eval_data.test_phase else 'Train'
         task_label = get_task_label(eval_data)
+        step_time = self.result()
 
-        if self._n_epochs == 0:
-            # Test phase
-            self._n_epochs = 1
-            self._accumulated_time = \
-                time.perf_counter() - self._epoch_start_time
-
-        average_epoch_time = self._accumulated_time / self._n_epochs
-
-        metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(phase_name,
-                                                           task_label)
+        metric_name = 'Step_Time/{}/Task{:03}'.format(
+            phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(
-            self, metric_name, MetricTypes.ELAPSED_TIME,
-            average_epoch_time, plot_x_position)
+        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
+                            step_time, plot_x_position)]
 
 
 __all__ = [
+    'ElapsedTime',
+    'MinibatchTime',
+    'EpochTime',
     'AverageEpochTime',
-    'EpochTime'
+    'StepTime'
 ]

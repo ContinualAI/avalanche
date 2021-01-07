@@ -22,8 +22,8 @@ from numpy import ndarray
 from sklearn.metrics import confusion_matrix
 from torch import Tensor
 
-from .evaluation_data import EvalData, EvalTestData, OnTrainIteration, \
-    OnTrainEpochStart, OnTestIteration, OnTrainEpochEnd, OnTrainStepStart, \
+from .evaluation_data import EvalData, EvalTestData, OnTrainIterationEnd, \
+    OnTrainEpochStart, OnTestIterationEnd, OnTrainEpochEnd, OnTrainStepStart, \
     OnTrainStepEnd, OnTestStepStart, OnTestStepEnd, OnTrainPhaseStart, \
     OnTestPhaseStart, OnTrainPhaseEnd, OnTestPhaseEnd
 from .raw_accumulators import AverageAccumulator, SumAccumulator, \
@@ -322,7 +322,7 @@ class AbstractMetricAggregator(Generic[TMetricType],
         return None
 
     def _accumulate_iteration(
-           self, eval_data: Union[OnTrainIteration, OnTestIteration],
+           self, eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
            accumulated, is_train_phase: bool) -> Any:
         return None
 
@@ -352,7 +352,7 @@ class AbstractMetricAggregator(Generic[TMetricType],
                 ((not is_train) and not self._on_test):
             return
 
-        if isinstance(eval_data, (OnTrainIteration, OnTestIteration)):
+        if isinstance(eval_data, (OnTrainIterationEnd, OnTestIterationEnd)):
             # An iteration ended: accumulate the iteration data
             if is_train:
                 self._train_iterations_accumulator = self._accumulate_iteration(
@@ -442,7 +442,7 @@ class IterationsAggregator(Generic[TMetricType],
     @abstractmethod
     def _accumulate_iteration(
             self,
-            eval_data: Union[OnTrainIteration, OnTestIteration],
+            eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated,
             is_train_phase: bool):
         pass
@@ -476,7 +476,7 @@ class EpochPatternsCounterUnit(IterationsAggregator[int]):
 
     def _accumulate_iteration(
             self,
-            eval_data: Union[OnTrainIteration, OnTestIteration],
+            eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated: SumAccumulator,
             is_train_phase: bool):
         return accumulated(len(eval_data.ground_truth))
@@ -503,7 +503,7 @@ class EpochAverage(IterationsAggregator[float], ABC):
 
     @abstractmethod
     def _accumulate_iteration(
-            self, eval_data: Union[OnTrainIteration, OnTestIteration],
+            self, eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated: AverageAccumulator,
             is_train_phase: bool):
         pass
@@ -527,7 +527,7 @@ class AverageLossUnit(EpochAverage):
 
     def _accumulate_iteration(
             self,
-            eval_data: Union[OnTrainIteration, OnTestIteration],
+            eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated: AverageAccumulator, is_train_phase: bool) -> \
             Tuple[float, int]:
         # torch.mean manages different loss reduction types (sum, none, mean).
@@ -548,7 +548,7 @@ class AverageAccuracyUnit(EpochAverage):
 
     def _accumulate_iteration(
             self,
-            eval_data: Union[OnTrainIteration, OnTestIteration],
+            eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated: AverageAccumulator, is_train_phase: bool) -> \
             Tuple[float, int]:
         pred_y: Tensor = torch.max(eval_data.prediction_logits, 1)[1]
@@ -589,7 +589,7 @@ class ConfusionMatrixUnit(IterationsAggregator[ndarray]):
 
     def _accumulate_iteration(
             self,
-            eval_data: Union[OnTrainIteration, OnTestIteration],
+            eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd],
             accumulated: Tuple[TensorAccumulator, TensorAccumulator],
             is_train_phase: bool):
         pred_y: Tensor = torch.max(eval_data.prediction_logits, 1)[1]
