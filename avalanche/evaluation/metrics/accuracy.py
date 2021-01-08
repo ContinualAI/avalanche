@@ -289,28 +289,24 @@ class RunningEpochAccuracy(EpochAccuracy):
     def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
             -> MetricResult:
         super().after_training_iteration(eval_data)
-        if not self._compute_train_accuracy:
-            return
-
-        return self._package_result(eval_data)
+        if self._compute_train_accuracy:
+            return self._package_result(eval_data)
 
     def after_test_iteration(self, eval_data: OnTestIterationEnd) \
             -> MetricResult:
         super().after_test_iteration(eval_data)
-        if not self._compute_test_accuracy:
-            return
+        if self._compute_test_accuracy:
+            return self._package_result(eval_data)
 
-        return self._package_result(eval_data)
-
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
-        pass
+        return None
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test_step(self, eval_data: OnTestStepEnd) -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
-        pass
+        return None
 
     def _package_result(self, eval_data: EvalData):
         eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd,
@@ -360,7 +356,8 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
             result_dict[task_id] = self._task_accuracy[task_id].result()
         return result_dict
 
-    def update(self, true_y, predicted_y, task_label) -> None:
+    def update(self, true_y: Tensor, predicted_y: Tensor, task_label: int) \
+            -> None:
         self._task_accuracy[task_label].update(true_y, predicted_y)
 
     def before_test(self, eval_data) -> None:
