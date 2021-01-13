@@ -144,11 +144,12 @@ class OnTrainPhaseEnd(EvalData):
     This means that all training steps have completed and the strategy is
     about to switch to the test phase.
 
-    The step_counter here refers to the counter as it is after all training
+    The `step_counter` refers to the counter as it is after all training
     steps have completed.
-    """
 
-    # TODO: step_id, training_task_label == last step id, last train task label
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    step.
+    """
 
     def __init__(self,
                  step_counter: int,
@@ -163,8 +164,11 @@ class OnTestPhaseEnd(EvalTestData):
 
     This means that all test steps have completed and the strategy is
     about to switch to the training phase.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step while `test_step_id` and `test_task_label` refer to the
+    last encountered test step.
     """
-    # TODO: test_step_id, test_task_label == last step id, last test task label
 
     def __init__(self,
                  step_counter: int,
@@ -195,6 +199,9 @@ class OnTestStepStart(EvalTestData):
     Beware that this type of events also cover the "test epoch start"
     checkpoint, as a test step only involves running a single epoch on the test
     dataset.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step.
     """
 
     def __init__(self,
@@ -226,6 +233,9 @@ class OnTestStepEnd(EvalTestData):
     Beware that this type of events also cover the "test epoch end"
     checkpoint, as a test step only involves running a single epoch on the test
     dataset.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step.
     """
 
     def __init__(self,
@@ -262,6 +272,9 @@ class OnTrainEpochEnd(EvalData):
     Evaluation data sent to metrics when a training epoch completes.
 
     Beware that the equivalent "Test" event doesn't exist.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step.
     """
 
     def __init__(self,
@@ -310,6 +323,9 @@ class OnTestIterationStart(EvalTestData):
     """
     Evaluation data sent to metrics when a test iteration (on a minibatch)
     is about to start.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step.
     """
 
     def __init__(self,
@@ -381,6 +397,9 @@ class OnTestIterationEnd(EvalTestData):
     """
     Evaluation data sent to metrics when a test iteration (on a minibatch)
     completes.
+
+    The `step_id` and `training_task_label` fields refer to the last encountered
+    training step.
     """
 
     def __init__(self,

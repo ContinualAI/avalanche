@@ -64,7 +64,7 @@ class Loss(Metric[float]):
         :param loss: The loss Tensor. Different reduction types don't affect
             the result.
         :param patterns: The number of patterns in the minibatch.
-        :return: None
+        :return: None.
         """
         self._mean_loss.update(torch.mean(loss), weight=patterns)
 
@@ -82,7 +82,7 @@ class Loss(Metric[float]):
         """
         Resets the metric.
 
-        :return: None
+        :return: None.
         """
         self._mean_loss.reset()
 
@@ -121,7 +121,7 @@ class MinibatchLoss(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
         self._minibatch_loss = Loss()
         self._compute_train_loss = train
         self._compute_test_loss = test
@@ -187,7 +187,7 @@ class EpochLoss(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._mean_loss = Loss()
         self._compute_train_accuracy = train
@@ -265,7 +265,7 @@ class RunningEpochLoss(EpochLoss):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test

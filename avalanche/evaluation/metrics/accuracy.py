@@ -65,7 +65,7 @@ class Accuracy(Metric[float]):
             are supported.
         :param predicted_y: The ground truth. Both labels and logit vectors
             are supported.
-        :return: None
+        :return: None.
         """
         if len(true_y) != len(predicted_y):
             raise ValueError('Size mismatch for true_y and predicted_y tensors')
@@ -102,7 +102,7 @@ class Accuracy(Metric[float]):
         """
         Resets the metric.
 
-        :return: None
+        :return: None.
         """
         self._mean_accuracy.reset()
 
@@ -135,7 +135,7 @@ class MinibatchAccuracy(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
         self._minibatch_accuracy = Accuracy()
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test
@@ -203,7 +203,7 @@ class EpochAccuracy(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._accuracy_metric = Accuracy()
         self._compute_train_accuracy = train
@@ -281,7 +281,7 @@ class RunningEpochAccuracy(EpochAccuracy):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test

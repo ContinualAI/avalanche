@@ -13,7 +13,7 @@
 ################################################################################
 from abc import ABC, abstractmethod
 from typing_extensions import Protocol
-from typing import TypeVar, Optional, Dict, Generic, TYPE_CHECKING
+from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
 from .evaluation_data import OnTrainPhaseStart, OnTrainPhaseEnd, \
     OnTrainStepStart, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
@@ -76,7 +76,12 @@ class PluginMetric(Metric[TResult], ABC):
     plot.
     """
     def __init__(self):
-        # TODO: doc
+        """
+        Creates an instance of a plugin metric.
+
+        Child classes can safely invoke this (super) constructor as the first
+        step.
+        """
         self._metric_x_counters: Dict[str, int] = dict()
 
     @abstractmethod
@@ -152,83 +157,4 @@ class PluginMetric(Metric[TResult], ABC):
         return x_result
 
 
-class AggregatedMetric(Generic[TResult, TAggregated],
-                       PluginMetric[TResult], ABC):
-    # TODO: doc
-    def __init__(self, base_metric: TAggregated):
-        # TODO: doc
-        super().__init__()
-        self.base_metric: TAggregated = base_metric
-
-    @abstractmethod
-    def result(self) -> Optional[TResult]:
-        pass
-
-    def reset(self) -> None:
-        self.base_metric.reset()
-
-    def before_training(self, eval_data: OnTrainPhaseStart) -> 'MetricResult':
-        self.base_metric.before_training(eval_data)
-        return None
-
-    def after_training(self, eval_data: OnTrainPhaseEnd) -> 'MetricResult':
-        self.base_metric.after_training(eval_data)
-        return None
-
-    def before_training_step(self, eval_data: OnTrainStepStart)\
-            -> 'MetricResult':
-        self.base_metric.before_training_step(eval_data)
-        return None
-
-    def after_training_step(self, eval_data: OnTrainStepEnd) -> 'MetricResult':
-        self.base_metric.after_training_step(eval_data)
-        return None
-
-    def before_training_epoch(self, eval_data: OnTrainEpochStart) \
-            -> 'MetricResult':
-        self.base_metric.before_training_epoch(eval_data)
-        return None
-
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) \
-            -> 'MetricResult':
-        self.base_metric.after_training_epoch(eval_data)
-        return None
-
-    def before_training_iteration(self, eval_data: OnTrainIterationStart) \
-            -> 'MetricResult':
-        self.base_metric.before_training_iteration(eval_data)
-        return None
-
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
-            -> 'MetricResult':
-        self.base_metric.after_training_iteration(eval_data)
-        return None
-
-    def before_test_step(self, eval_data: OnTestStepStart) -> 'MetricResult':
-        self.base_metric.before_test_step(eval_data)
-        return None
-
-    def after_test_step(self, eval_data: OnTestStepEnd) -> 'MetricResult':
-        self.base_metric.after_test_step(eval_data)
-        return None
-
-    def before_test_iteration(self, eval_data: OnTestIterationStart) \
-            -> 'MetricResult':
-        self.base_metric.before_test_iteration(eval_data)
-        return None
-
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
-            -> 'MetricResult':
-        self.base_metric.after_test_iteration(eval_data)
-        return None
-
-    def before_test(self, eval_data: OnTestPhaseStart) -> 'MetricResult':
-        self.base_metric.before_test(eval_data)
-        return None
-
-    def after_test(self, eval_data: OnTestPhaseEnd) -> 'MetricResult':
-        self.base_metric.after_test(eval_data)
-        return None
-
-
-__all__ = ['Metric', 'PluginMetric', 'AggregatedMetric']
+__all__ = ['Metric', 'PluginMetric']

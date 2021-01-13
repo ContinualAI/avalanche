@@ -27,10 +27,9 @@ from avalanche.evaluation import OnTrainStepStart, EvalData, \
     OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
     PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.evaluation.abstract_metric import AbstractMetric
 from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
-    OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd, OnTrainIterationStart, \
-    OnTestIterationStart
+    OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd, \
+    OnTrainIterationStart, OnTestIterationStart
 from avalanche.extras.logging import Logger
 from avalanche.extras.strategy_trace import StrategyTrace, DefaultStrategyTrace
 
@@ -328,7 +327,6 @@ class EvaluationPlugin(StrategyPlugin):
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(evaluation_data)
-            # AbstractMetric result can be a single value or a list of values
 
             if isinstance(metric_result, MetricValue):
                 metric_values.append(metric_result)

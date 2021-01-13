@@ -13,55 +13,98 @@
 ################################################################################
 
 import time
-from typing import Union, SupportsFloat
+from typing import Union
 
-from avalanche.evaluation import OnTrainEpochStart, OnTestStepStart, \
-    OnTrainEpochEnd, OnTestStepEnd, OnTrainStepStart, OnTrainStepEnd, Metric, \
-    PluginMetric, OnTrainIterationStart, OnTestIterationStart, \
-    OnTrainIterationEnd, OnTestIterationEnd, AggregatedMetric, EvalData
+from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, Metric, \
+    PluginMetric, OnTrainIterationEnd, OnTestIterationEnd, \
+    EvalData
 from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
     MetricResult
-from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_utils import filter_accepted_events, \
-    get_task_label
+from avalanche.evaluation.metric_utils import get_task_label
 from avalanche.evaluation.metrics.mean import Mean
-from avalanche.evaluation.metrics.sum import Sum
 
 
 class ElapsedTime(Metric[float]):
+    """
+    The elapsed time metric.
 
+    Instances of this metric keep track of the time elapsed between calls to the
+    `update` method. The starting time is set when the `update` method is called
+    for the first time. That is, the starting time is *not* taken at the time
+    the constructor is invoked.
+
+    Calling the `update` method more than twice will update the metric to the
+    elapsed time between the first and the last call to `update`.
+
+    The result, obtained using the `result` method, is the time, in seconds,
+    computed as stated above.
+
+    The `reset` method will set the metric to its initial state, thus resetting
+    the initial time. This metric in its initial state (or if the `update`
+    method was invoked only once) will return an elapsed time of 0.
+    """
     def __init__(self):
-        self._sum_time = Sum()
+        """
+        Creates an instance of the accuracy metric.
+
+        This metric in its initial state (or if the `update` method was invoked
+        only once) will return an elapsed time of 0. The metric can be updated
+        by using the `update` method while the running accuracy can be retrieved
+        using the `result` method.
+        """
+        self._init_time = None
         self._prev_time = None
 
     def update(self) -> None:
+        """
+        Update the elapsed time.
+
+        For more info on how to set the initial time see the class description.
+
+        :return: None.
+        """
         now = time.perf_counter()
-        if self._prev_time is not None:
-            self._sum_time.update(now - self._prev_time)
+        if self._init_time is None:
+            self._init_time = now
         self._prev_time = now
 
     def result(self) -> float:
-        return self._sum_time.result()
+        """
+        Retrieves the elapsed time.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: The elapsed time, in seconds, as a float value.
+        """
+        if self._init_time is None:
+            return 0.0
+        return self._prev_time - self._init_time
 
     def reset(self) -> None:
+        """
+        Resets the metric, including the initial time.
+
+        :return: None.
+        """
         self._prev_time = None
-        self._sum_time.reset()
+        self._init_time = None
 
 
 class MinibatchTime(PluginMetric[float]):
     """
-    The average accuracy metric.
+    The minibatch time metric.
 
-    This metric is computed separately for each task.
+    This metric "logs" the elapsed time for each iteration. Beware that this
+    metric will not average the time across minibatches!
 
-    The accuracy will be emitted after each epoch by aggregating minibatch
-    values. Beware that the training accuracy is the "running" one.
-    TODO: doc
+    If a more coarse-grained logging is needed, consider using
+    :class:`EpochTime`, :class:`AverageEpochTime` or
+    :class:`StepTime` instead.
     """
 
     def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the EpochAccuracy metric.
+        Creates an instance of the minibatch time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
@@ -75,7 +118,7 @@ class MinibatchTime(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
         self._minibatch_time = ElapsedTime()
         self._compute_train_time = train
         self._compute_test_time = test
@@ -129,18 +172,18 @@ class MinibatchTime(PluginMetric[float]):
 
 class EpochTime(PluginMetric[float]):
     """
-    The average accuracy metric.
+    The epoch elapsed time metric.
 
-    This metric is computed separately for each task.
+    The elapsed time will be logged after each epoch. Beware that this
+    metric will not average the time across epochs!
 
-    The accuracy will be emitted after each epoch by aggregating minibatch
-    values. Beware that the training accuracy is the "running" one.
-    TODO: doc
+    If logging the average average across epochs is needed, consider using
+    :class:`AverageEpochTime` instead.
     """
 
     def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the EpochAccuracy metric.
+        Creates an instance of the epoch time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
@@ -154,7 +197,7 @@ class EpochTime(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._elapsed_time = ElapsedTime()
         self._take_train_time = train
@@ -199,20 +242,19 @@ class EpochTime(PluginMetric[float]):
                             elapsed_time, plot_x_position)]
 
 
-class AverageEpochTime(AggregatedMetric[float, EpochTime]):
+class AverageEpochTime(PluginMetric[float]):
     """
-    The average accuracy metric.
+    The average epoch time metric.
 
-    This metric is computed separately for each task.
+    The average elapsed time will be logged at the end of the step.
 
-    The accuracy will be emitted after each epoch by aggregating minibatch
-    values. Beware that the training accuracy is the "running" one.
-    TODO: doc
+    Beware that this metric will average the time across epochs! If logging the
+    epoch-specific time is needed, consider using :class:`EpochTime` instead.
     """
 
     def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the EpochAccuracy metric.
+        Creates an instance of the average epoch time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
@@ -222,11 +264,11 @@ class AverageEpochTime(AggregatedMetric[float, EpochTime]):
         :param test: When True, the metric will be computed on the test
             phase. Defaults to True.
         """
-        super().__init__(EpochTime(train=train, test=test))
+        super().__init__()
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._time_mean = Mean()
         self._take_train_time = train
@@ -264,13 +306,15 @@ class AverageEpochTime(AggregatedMetric[float, EpochTime]):
 
 class StepTime(PluginMetric[float]):
     """
-    The average accuracy metric.
+    The step time metric.
 
-    This metric is computed separately for each task.
-
-    The accuracy will be emitted after each epoch by aggregating minibatch
-    values. Beware that the training accuracy is the "running" one.
-    TODO: doc
+    This metric may seed very similar to :class:`AverageEpochTime`. However,
+    differently from that: 1) obviously, the time is not averaged by dividing
+    by the number of epochs; 2) most importantly, the time consumed outside the
+    epoch loop is accounted too (a thing that :class:`AverageEpochTime` doesn't
+    support). For instance, this metric is more suitable when measuring times
+    of algorithms involving after-training consolidation, replay pattern
+    selection and other time consuming mechanisms.
     """
 
     def __init__(self, *, train=True, test=True):
@@ -289,7 +333,7 @@ class StepTime(PluginMetric[float]):
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
 
         self._elapsed_time = ElapsedTime()
         self._take_train_time = train
