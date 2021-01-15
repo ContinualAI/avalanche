@@ -22,14 +22,8 @@ from torch.utils.data import random_split, ConcatDataset, TensorDataset
 from typing_extensions import Literal
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.evaluation import OnTrainStepStart, EvalData, \
-    OnTrainIterationEnd, OnTestStepStart, OnTestIterationEnd, \
-    OnTestStepEnd, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
-    PluginMetric
+from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.evaluation.evaluation_data import OnTestPhaseEnd, \
-    OnTestPhaseStart, OnTrainPhaseStart, OnTrainPhaseEnd, \
-    OnTrainIterationStart, OnTestIterationStart
 from avalanche.extras.logging import Logger
 from avalanche.extras.strategy_trace import StrategyTrace, DefaultStrategyTrace
 
@@ -321,12 +315,12 @@ class EvaluationPlugin(StrategyPlugin):
             for logger in self.loggers:
                 logger.log_metric(to_be_logged)
 
-    def _update_metrics(self, evaluation_data: EvalData, callback: str):
+    def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         for trace_util in self._tracers:
-            trace_util(evaluation_data)
+            getattr(trace_util, callback)(strategy)
         metric_values = []
         for metric in self.metrics:
-            metric_result = getattr(metric, callback)(evaluation_data)
+            metric_result = getattr(metric, callback)(strategy)
 
             if isinstance(metric_result, MetricValue):
                 metric_values.append(metric_result)
@@ -335,152 +329,77 @@ class EvaluationPlugin(StrategyPlugin):
         self._log_metric_values(metric_values)
         return metric_values
 
-    def before_training(self, strategy, **kwargs):
-        evaluation_data = OnTrainPhaseStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id)
+    def before_training(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_training')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_training')
+    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_training_step')
 
-    def after_training(self, strategy, **kwargs):
-        evaluation_data = OnTrainPhaseEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id)
+    def adapt_train_dataset(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'adapt_train_dataset')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_training')
+    def before_training_epoch(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_training_epoch')
 
-    def before_training_step(self, strategy, joint_training=False, **kwargs):
-        step_info = strategy.step_info
-        self._steps_counter += 1
-        self._current_train_step_id = step_info.current_step
-        self._train_current_task_id = step_info.task_label
+    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_training_iteration')
 
-        evaluation_data = OnTrainStepStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id)
+    def before_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_forward')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_training_step')
+    def after_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_forward')
 
-    def after_training_step(self, strategy, **kwargs):
-        evaluation_data = OnTrainStepEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id)
+    def before_backward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_backward')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_training_step')
+    def after_backward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_backward')
 
-    def before_training_epoch(self, strategy, **kwargs):
-        evaluation_data = OnTrainEpochStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, strategy.epoch)
+    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_training_iteration')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_training_epoch')
+    def before_update(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_update')
 
-    def after_training_epoch(self, strategy, **kwargs):
-        evaluation_data = OnTrainEpochEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, strategy.epoch)
+    def after_update(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_update')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_training_epoch')
+    def after_training_epoch(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_training_epoch')
 
-    def before_training_iteration(self, strategy, **kwargs):
-        epoch = strategy.epoch
-        iteration = strategy.mb_it
-        train_mb_y = strategy.mb_y
+    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_training_step')
 
-        evaluation_data = OnTrainIterationStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, epoch, iteration, train_mb_y)
+    def after_training(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_training')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_training_iteration')
+    def before_test(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_test')
 
-    def after_training_iteration(self, strategy, **kwargs):
-        epoch = strategy.epoch
-        iteration = strategy.mb_it
-        train_mb_y = strategy.mb_y
-        logits = strategy.logits
-        loss = strategy.loss
+    def adapt_test_dataset(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'adapt_test_dataset')
 
-        evaluation_data = OnTrainIterationEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, epoch, iteration, train_mb_y,
-            logits, loss)
+    def before_test_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_test_step')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_training_iteration')
+    def after_test_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_test_step')
 
-    def before_test_step(self, strategy, **kwargs):
-        step_info: IStepInfo = strategy.step_info
-        self._current_test_step_id = step_info.current_step
-        self._test_current_task_id = step_info.task_label
+    def after_test(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_test')
 
-        evaluation_data = OnTestStepStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id)
+    def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_test_iteration')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_test_step')
+    def before_test_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_test_forward')
 
-    def after_test_step(self, strategy, **kwargs):
-        evaluation_data = OnTestStepEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id)
+    def after_test_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_test_forward')
 
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_test_step')
-
-    def before_test_iteration(self, strategy, **kwargs):
-        iteration = strategy.mb_it
-        train_mb_y = strategy.mb_y
-
-        evaluation_data = OnTestIterationStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id, iteration, train_mb_y)
-
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_test_iteration')
-
-    def after_test_iteration(self, strategy, **kwargs):
-        iteration = strategy.mb_it
-        train_mb_y = strategy.mb_y
-        logits = strategy.logits
-        loss = strategy.loss
-
-        evaluation_data = OnTestIterationEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id, iteration, train_mb_y,
-            logits, loss)
-
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_test_iteration')
-
-    def before_test(self, strategy, **kwargs):
-        evaluation_data = OnTestPhaseStart(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id)
-
-        # Update metrics
-        self._update_metrics(evaluation_data, 'before_test')
-
-    def after_test(self, strategy, **kwargs):
-        evaluation_data = OnTestPhaseEnd(
-            self._steps_counter, self._current_train_step_id,
-            self._train_current_task_id, self._current_test_step_id,
-            self._test_current_task_id)
-
-        # Update metrics
-        self._update_metrics(evaluation_data, 'after_test')
+    def after_test_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_test_iteration')
 
 
 class CWRStarPlugin(StrategyPlugin):
@@ -1281,6 +1200,6 @@ class EWCPlugin(StrategyPlugin):
             raise ValueError("Wrong EWC mode.")
 
 
-__all__ = ['StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
+__all__ = ['PluggableStrategy', 'StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
            'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
            'AGEMPlugin', 'GEMPlugin', 'EWCPlugin']

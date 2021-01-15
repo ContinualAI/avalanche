@@ -12,17 +12,13 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from abc import ABC, abstractmethod
-from typing_extensions import Protocol
 from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
-from .evaluation_data import OnTrainPhaseStart, OnTrainPhaseEnd, \
-    OnTrainStepStart, OnTrainStepEnd, OnTrainEpochStart, OnTrainEpochEnd, \
-    OnTrainIterationEnd, OnTestStepStart, OnTestStepEnd, OnTestIterationEnd, \
-    OnTestPhaseStart, OnTestPhaseEnd, OnTrainIterationStart, \
-    OnTestIterationStart
+from typing_extensions import Protocol
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
+    from avalanche.training.plugins import PluggableStrategy
 
 TResult = TypeVar('TResult')
 TAggregated = TypeVar('TAggregated', bound='PluginMetric')
@@ -86,59 +82,94 @@ class PluginMetric(Metric[TResult], ABC):
 
     @abstractmethod
     def result(self) -> Optional[TResult]:
-        pass
+        return None
 
     @abstractmethod
     def reset(self) -> None:
-        pass
-
-    def before_training(self, eval_data: OnTrainPhaseStart) -> 'MetricResult':
         return None
 
-    def after_training(self, eval_data: OnTrainPhaseEnd) -> 'MetricResult':
+    def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return None
 
-    def before_training_step(self, eval_data: OnTrainStepStart) \
+    def before_training_step(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def after_training_step(self, eval_data: OnTrainStepEnd) -> 'MetricResult':
-        return None
-
-    def before_training_epoch(self, eval_data: OnTrainEpochStart) \
+    def adapt_train_dataset(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) \
+    def before_training_epoch(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def before_training_iteration(self, eval_data: OnTrainIterationStart) \
+    def before_training_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def before_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def before_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def before_test_step(self, eval_data: OnTestStepStart) -> 'MetricResult':
+    def before_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return None
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> 'MetricResult':
+    def after_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return None
 
-    def before_test_iteration(self, eval_data: OnTestIterationStart) \
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_training_step(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return None
 
-    def before_test(self, eval_data: OnTestPhaseStart) -> 'MetricResult':
+    def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return None
 
-    def after_test(self, eval_data: OnTestPhaseEnd) -> 'MetricResult':
+    def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def adapt_test_dataset(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def before_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def before_test_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def before_test_forward(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def after_test_forward(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
         return None
 
     def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:

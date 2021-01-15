@@ -13,15 +13,14 @@
 ################################################################################
 
 import time
-from typing import Union
+from typing import TYPE_CHECKING
 
-from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, Metric, \
-    PluginMetric, OnTrainIterationEnd, OnTestIterationEnd, \
-    EvalData
-from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
-    MetricResult
-from avalanche.evaluation.metric_utils import get_task_label
+from avalanche.evaluation import Metric, PluginMetric
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
+from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics.mean import Mean
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
 class ElapsedTime(Metric[float]):
@@ -129,45 +128,42 @@ class MinibatchTime(PluginMetric[float]):
     def reset(self) -> None:
         self._minibatch_time.reset()
 
-    def before_training_iteration(self, eval_data) -> MetricResult:
+    def before_training_iteration(self, strategy) -> MetricResult:
         if not self._compute_train_time:
             return
         self.reset()
         self._minibatch_time.update()
 
-    def before_test_iteration(self, eval_data) -> MetricResult:
+    def before_test_iteration(self, strategy) -> MetricResult:
         if not self._compute_test_time:
             return
         self.reset()
         self._minibatch_time.update()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_train_time:
             self._minibatch_time.update()
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_time:
             self._minibatch_time.update()
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def _on_iteration(self, eval_data: Union[OnTrainIterationEnd,
-                                             OnTestIterationEnd]):
+    def _on_iteration(self, strategy: 'PluggableStrategy'):
         self._last_mb_time = self._minibatch_time.result()
-        return self._package_result(eval_data)
+        return self._package_result(strategy)
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
         metric_name = 'Time_MB/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.LOSS,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class EpochTime(PluginMetric[float]):
@@ -203,25 +199,28 @@ class EpochTime(PluginMetric[float]):
         self._take_train_time = train
         self._take_test_time = test
 
-    def before_training_epoch(self, eval_data) -> MetricResult:
+    def before_training_epoch(self, strategy) -> MetricResult:
         if not self._take_train_time:
             return
         self.reset()
+        self._elapsed_time.update()
 
-    def before_test_step(self, eval_data) -> MetricResult:
+    def before_test_step(self, strategy) -> MetricResult:
         if not self._take_test_time:
             return
         self.reset()
+        self._elapsed_time.update()
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
         if self._take_train_time:
             self._elapsed_time.update()
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._take_test_time:
             self._elapsed_time.update()
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
     def reset(self) -> None:
         self._elapsed_time.reset()
@@ -229,17 +228,15 @@ class EpochTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         elapsed_time = self.result()
 
         metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name,
                                                        task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
-                            elapsed_time, plot_x_position)]
+        return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
 
 
 class AverageEpochTime(PluginMetric[float]):
@@ -271,37 +268,55 @@ class AverageEpochTime(PluginMetric[float]):
                              ' time.')
 
         self._time_mean = Mean()
+        self._epoch_time = ElapsedTime()
         self._take_train_time = train
         self._take_test_time = test
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
-        super().after_training_epoch(eval_data)
-        if self._take_train_time:
-            return self._package_result(eval_data)
+    def before_training_epoch(self, strategy) -> MetricResult:
+        if not self._take_train_time:
+            return
+        self._epoch_time.reset()
+        self._epoch_time.update()
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
-        super().after_test_step(eval_data)
-        if self._take_test_time:
-            return self._package_result(eval_data)
+    def before_test_step(self, strategy) -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
+        self._epoch_time.reset()
+        self._epoch_time.update()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if not self._take_train_time:
+            return
+        self._epoch_time.update()
+        self._time_mean.update(self._epoch_time.result())
+        return self._package_result(strategy)
+
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if not self._take_test_time:
+            return
+        self._epoch_time.update()
+        self._time_mean.update(self._epoch_time.result())
+        return self._package_result(strategy)
 
     def reset(self) -> None:
-        super().reset()
+        self._epoch_time.reset()
         self._time_mean.reset()
 
     def result(self) -> float:
         return self._time_mean.result()
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         average_epoch_time = self.result()
 
         metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(
             phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
-                            average_epoch_time, plot_x_position)]
+        return [MetricValue(
+            self, metric_name, average_epoch_time, plot_x_position)]
 
 
 class StepTime(PluginMetric[float]):
@@ -339,27 +354,29 @@ class StepTime(PluginMetric[float]):
         self._take_train_time = train
         self._take_test_time = test
 
-    def before_training_step(self, eval_data) -> MetricResult:
+    def before_training_step(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
         if not self._take_train_time:
             return
         self.reset()
         self._elapsed_time.update()
 
-    def before_test_step(self, eval_data) -> MetricResult:
+    def before_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if not self._take_test_time:
             return
         self.reset()
         self._elapsed_time.update()
 
-    def after_training_step(self, eval_data) -> MetricResult:
+    def after_training_step(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
         if self._take_train_time:
             self._elapsed_time.update()
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._take_test_time:
             self._elapsed_time.update()
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
     def reset(self) -> None:
         self._elapsed_time.reset()
@@ -367,17 +384,15 @@ class StepTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         step_time = self.result()
 
         metric_name = 'Step_Time/{}/Task{:03}'.format(
             phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
-                            step_time, plot_x_position)]
+        return [MetricValue(self, metric_name, step_time, plot_x_position)]
 
 
 __all__ = [

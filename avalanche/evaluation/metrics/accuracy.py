@@ -12,18 +12,17 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from collections import defaultdict
-from typing import Union, Dict
+from typing import Dict, TYPE_CHECKING
 
 import torch
 from torch import Tensor
 
-from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, \
-    OnTrainIterationEnd, OnTestIterationEnd, EvalData, Metric, \
-    PluginMetric, OnTrainEpochStart, OnTestStepStart
-from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
-    MetricResult
-from avalanche.evaluation.metric_utils import get_task_label
+from avalanche.evaluation import Metric, PluginMetric
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
+from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics.mean import Mean
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
 class Accuracy(Metric[float]):
@@ -118,7 +117,7 @@ class MinibatchAccuracy(PluginMetric[float]):
     :class:`EpochAccuracy` and/or :class:`TaskAccuracy` instead.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, test=False):
         """
         Creates an instance of the MinibatchAccuracy metric.
 
@@ -129,7 +128,7 @@ class MinibatchAccuracy(PluginMetric[float]):
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
-            phase. Defaults to True.
+            phase. Defaults to False.
         """
         super().__init__()
 
@@ -146,34 +145,31 @@ class MinibatchAccuracy(PluginMetric[float]):
     def reset(self) -> None:
         self._minibatch_accuracy.reset()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_train_accuracy:
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_accuracy:
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def _on_iteration(
-            self, eval_data: Union[OnTrainIterationEnd,
-                                   OnTestIterationEnd]) -> MetricResult:
+    def _on_iteration(self, strategy: 'PluggableStrategy') -> MetricResult:
         self.reset()  # Because this metric computes the accuracy of a single mb
-        self._minibatch_accuracy.update(eval_data.ground_truth,
-                                        eval_data.prediction_logits)
-        return self._package_result(eval_data)
+        self._minibatch_accuracy.update(strategy.mb_y,
+                                        strategy.logits)
+        return self._package_result(strategy)
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_MB/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Minibatch_Top1/{}/Task{:03}'.format(phase_name,
+                                                           task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ACCURACY,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class EpochAccuracy(PluginMetric[float]):
@@ -186,7 +182,7 @@ class EpochAccuracy(PluginMetric[float]):
     unbalanced minibatch sizes will not affect the metric.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, test=False):
         """
         Creates an instance of the EpochAccuracy metric.
 
@@ -197,7 +193,7 @@ class EpochAccuracy(PluginMetric[float]):
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
-            phase. Defaults to True.
+            phase. Defaults to False.
         """
         super().__init__()
 
@@ -215,42 +211,41 @@ class EpochAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) -> None:
+    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_accuracy:
-            self._accuracy_metric.update(eval_data.ground_truth,
-                                         eval_data.prediction_logits)
+            self._accuracy_metric.update(strategy.mb_y,
+                                         strategy.logits)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
-            self._accuracy_metric.update(eval_data.ground_truth,
-                                         eval_data.prediction_logits)
+            self._accuracy_metric.update(strategy.mb_y,
+                                         strategy.logits)
 
-    def before_training_epoch(self, eval_data: OnTrainEpochStart) -> None:
+    def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_accuracy:
             self.reset()
 
-    def before_test_step(self, eval_data: OnTestStepStart) -> None:
+    def before_test_step(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
             self.reset()
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
         if self._compute_train_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._compute_test_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Epoch_Top1/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ACCURACY,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class RunningEpochAccuracy(EpochAccuracy):
@@ -286,40 +281,36 @@ class RunningEpochAccuracy(EpochAccuracy):
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_training_iteration(eval_data)
+        super().after_training_iteration(strategy)
         if self._compute_train_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_test_iteration(eval_data)
+        super().after_test_iteration(strategy)
         if self._compute_test_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> None:
+    def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
         return None
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> None:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
         return None
 
-    def _package_result(self, eval_data: EvalData):
-        eval_data: Union[OnTrainIterationEnd, OnTestIterationEnd,
-                         OnTrainEpochEnd, OnTestStepEnd]
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy'):
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
         metric_name = 'Top1_Running/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.ACCURACY,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class TaskAccuracy(PluginMetric[Dict[int, float]]):
@@ -360,15 +351,13 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
             -> None:
         self._task_accuracy[task_label].update(true_y, predicted_y)
 
-    def before_test(self, eval_data) -> None:
+    def before_test(self, strategy) -> None:
         self.reset()
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
-        self.update(eval_data.ground_truth,
-                    eval_data.prediction_logits,
-                    eval_data.test_task_label)
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.mb_y, strategy.logits, strategy.test_task_label)
 
-    def after_test(self, eval_data) -> MetricResult:
+    def after_test(self, strategy) -> MetricResult:
         return self._package_result()
 
     def _package_result(self) -> MetricResult:
@@ -378,8 +367,7 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(
-                self, metric_name, MetricTypes.ACCURACY,
-                task_accuracy, plot_x_position))
+                self, metric_name, task_accuracy, plot_x_position))
         return metric_values
 
 

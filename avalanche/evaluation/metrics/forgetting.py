@@ -12,16 +12,15 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Set
+from typing import Dict, Set, TYPE_CHECKING
 
 from torch import Tensor
 
-from avalanche.evaluation import OnTestPhaseEnd, \
-    OnTestIterationEnd
 from avalanche.evaluation.metric_definitions import PluginMetric
-from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
-    MetricResult
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics import Accuracy
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
 class TaskForgetting(PluginMetric[Dict[int, float]]):
@@ -92,16 +91,16 @@ class TaskForgetting(PluginMetric[Dict[int, float]]):
             self._current_task_accuracy[task_label] = Accuracy()
         self._current_task_accuracy[task_label].update(true_y, predicted_y)
 
-    def before_test(self, eval_data) -> None:
+    def before_test(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
-        self.update(eval_data.ground_truth,
-                    eval_data.prediction_logits,
-                    eval_data.test_task_label)
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.mb_y,
+                    strategy.logits,
+                    strategy.test_task_label)
 
-    def after_test(self, eval_data: OnTestPhaseEnd) -> MetricResult:
-        return self._package_result(eval_data.training_task_label)
+    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+        return self._package_result(strategy.train_task_label)
 
     def result(self) -> Dict[int, float]:
         """
@@ -135,8 +134,7 @@ class TaskForgetting(PluginMetric[Dict[int, float]]):
             task_forgetting[task_id] = delta
         return task_forgetting
 
-    def _package_result(self, train_task: int) \
-            -> MetricResult:
+    def _package_result(self, train_task: int) -> MetricResult:
 
         # The forgetting value is computed as the difference between the
         # accuracy obtained after training for the first time and the current
@@ -153,8 +151,7 @@ class TaskForgetting(PluginMetric[Dict[int, float]]):
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(
-                self, metric_name, MetricTypes.FORGETTING,
-                task_forgetting, plot_x_position))
+                self, metric_name, task_forgetting, plot_x_position))
         return metric_values
 
 

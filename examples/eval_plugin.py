@@ -29,7 +29,8 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
-    EpochLoss, ConfusionMatrix, EpochTime, AverageEpochTime
+    EpochLoss, EpochTime, AverageEpochTime, TaskAccuracy, MinibatchAccuracy
+from avalanche.evaluation.metrics.confusion_matrix import TaskConfusionMatrix
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.extras.strategy_trace import DotTrace
@@ -76,9 +77,9 @@ def main():
     my_logger = Logger()
     trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
     evaluation_plugin = EvaluationPlugin(
-        EpochAccuracy(), TaskForgetting(), EpochLoss(),
-        EpochTime(), AverageEpochTime(),
-        ConfusionMatrix(num_classes=scenario.n_classes),
+        MinibatchAccuracy(), EpochAccuracy(), TaskAccuracy(), TaskForgetting(),
+        EpochLoss(), EpochTime(), AverageEpochTime(),
+        TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=my_logger, tracers=trace)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)

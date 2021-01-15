@@ -12,18 +12,17 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from collections import defaultdict
-from typing import Union, Dict
+from typing import Dict, TYPE_CHECKING
 
 import torch
 from torch import Tensor
 
-from avalanche.evaluation import OnTrainEpochEnd, OnTestStepEnd, \
-    OnTrainIterationEnd, OnTestIterationEnd, PluginMetric, EvalData,\
-    OnTrainEpochStart, OnTestStepStart, Metric
-from avalanche.evaluation.metric_results import MetricTypes, MetricValue, \
-    MetricResult
-from avalanche.evaluation.metric_utils import get_task_label
+from avalanche.evaluation import PluginMetric, Metric
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
+from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics.mean import Mean
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
 class Loss(Metric[float]):
@@ -132,33 +131,30 @@ class MinibatchLoss(PluginMetric[float]):
     def reset(self) -> None:
         self._minibatch_loss.reset()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_train_loss:
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_loss:
-            return self._on_iteration(eval_data)
+            return self._on_iteration(strategy)
 
-    def _on_iteration(self, eval_data: Union[OnTrainIterationEnd,
-                                             OnTestIterationEnd]):
+    def _on_iteration(self, strategy: 'PluggableStrategy'):
         self.reset()  # Because this metric computes the loss of a single mb
-        self._minibatch_loss.update(eval_data.loss,
-                                    patterns=len(eval_data.ground_truth))
-        return self._package_result(eval_data)
+        self._minibatch_loss.update(strategy.loss,
+                                    patterns=len(strategy.mb_y))
+        return self._package_result(strategy)
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
         metric_name = 'Loss_MB/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.LOSS,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class EpochLoss(PluginMetric[float]):
@@ -193,30 +189,30 @@ class EpochLoss(PluginMetric[float]):
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test
 
-    def before_training_epoch(self,
-                              eval_data: OnTrainEpochStart) -> None:
+    def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_accuracy:
             self.reset()
 
-    def before_test_step(self, eval_data: OnTestStepStart) -> None:
+    def before_test_step(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
             self.reset()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) -> None:
+    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_accuracy:
-            self._mean_loss.update(eval_data.loss, len(eval_data.ground_truth))
+            self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
-            self._mean_loss.update(eval_data.loss, len(eval_data.ground_truth))
+            self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> MetricResult:
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
         if self._compute_train_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._compute_test_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
     def reset(self) -> None:
         self._mean_loss.reset()
@@ -224,17 +220,14 @@ class EpochLoss(PluginMetric[float]):
     def result(self) -> float:
         return self._mean_loss.result()
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
         metric_name = 'Loss/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.LOSS,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class RunningEpochLoss(EpochLoss):
@@ -270,38 +263,36 @@ class RunningEpochLoss(EpochLoss):
         self._compute_train_accuracy = train
         self._compute_test_accuracy = test
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) \
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_training_iteration(eval_data)
+        super().after_training_iteration(strategy)
         if self._compute_train_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) \
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_test_iteration(eval_data)
+        super().after_test_iteration(strategy)
         if self._compute_test_accuracy:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_training_epoch(self, eval_data: OnTrainEpochEnd) -> None:
+    def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochLoss so that it doesn't
         # emit a metric value on epoch end!
         return None
 
-    def after_test_step(self, eval_data: OnTestStepEnd) -> None:
+    def after_test_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochLoss so that it doesn't
         # emit a metric value on epoch end!
         return None
 
-    def _package_result(self, eval_data: EvalData) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
         metric_name = 'Loss_Running/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, MetricTypes.LOSS,
-                            metric_value, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
 class TaskLoss(PluginMetric[Dict[int, float]]):
@@ -342,15 +333,13 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
     def update(self, loss: Tensor, patterns: int, task_label: int) -> None:
         self._task_loss[task_label].update(loss,  patterns)
 
-    def before_test(self, eval_data) -> None:
+    def before_test(self, strategy) -> None:
         self.reset()
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
-        self.update(eval_data.loss,
-                    len(eval_data.ground_truth),
-                    eval_data.test_task_label)
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.loss, len(strategy.mb_y), strategy.test_task_label)
 
-    def after_test(self, eval_data) -> MetricResult:
+    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
         return self._package_result()
 
     def _package_result(self) -> MetricResult:
@@ -360,8 +349,7 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(
-                self, metric_name, MetricTypes.LOSS,
-                task_loss, plot_x_position))
+                self, metric_name, task_loss, plot_x_position))
         return metric_values
 
 

@@ -1,30 +1,103 @@
 import sys
+from abc import ABC
 from pathlib import Path
-from typing import TextIO, Optional, Union
+from typing import TextIO, Optional, Union, TYPE_CHECKING
 
 import warnings
-from typing_extensions import Protocol
 
-from avalanche.evaluation import EvalData, OnTrainIterationEnd, OnTestIterationEnd, \
-    OnTrainEpochEnd, OnTestStepEnd, OnTestStepStart, OnTrainStepStart, Metric, \
-    OnTrainPhaseEnd, OnTestPhaseEnd, OnTrainPhaseStart, OnTestPhaseStart
-from avalanche.evaluation.metrics import RunningEpochLoss
-from avalanche.evaluation.metrics.accuracy import RunningEpochAccuracy
+from avalanche.evaluation.metrics import Loss
+from avalanche.evaluation.metrics.accuracy import Accuracy
+
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
-class StrategyTrace(Protocol):
-    def __call__(self, eval_data: EvalData) -> None:
-        ...
+class StrategyTrace(ABC):
+    def __init__(self):
+        pass
+
+    def before_training(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_training_step(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def adapt_train_dataset(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_training_epoch(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_training_iteration(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_forward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_forward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_backward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_backward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_training_iteration(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_update(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_update(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_training_step(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_training(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_test(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def adapt_test_dataset(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_test_step(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_test_step(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_test(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_test_iteration(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def before_test_forward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_test_forward(self, strategy: 'PluggableStrategy'):
+        return None
+
+    def after_test_iteration(self, strategy: 'PluggableStrategy'):
+        return None
 
 
 class DotTrace(StrategyTrace):
-    def __init__(self, stdout=True,
+    def __init__(self,
+                 stdout=True,
                  stderr=False,
                  trace_file: Union[str, Path] = None,
                  *,
                  iterations_per_line: int = 50,
                  lines_between_summaries: int = 4):
-
+        super().__init__()
         if stdout and stderr:
             warnings.warn('Logging trace on both standard output and error. '
                           'This may lead to a duplicate output')
@@ -40,27 +113,17 @@ class DotTrace(StrategyTrace):
         self._stderr: bool = stderr
 
         # Trace metrics
-        self._iteration_loss_metric: Metric = RunningEpochLoss()
-        self._iteration_accuracy_metric: Metric = RunningEpochAccuracy()
+        self._running_loss: Loss = Loss()
+        self._running_accuracy: Accuracy = Accuracy()
 
         # Presentation internals
         self._last_iter = 0
         self._iter_line = iterations_per_line
         self._lines_summary = lines_between_summaries
 
-    def _update_metrics(self, eval_data: EvalData):
-        iterations_loss = self._iteration_loss_metric(eval_data)
-        iterations_accuracy = self._iteration_accuracy_metric(eval_data)
-        loss: Optional[float] = None
-        if len(iterations_loss) > 0:
-            loss = iterations_loss[0].value
-
-        accuracy: Optional[float] = None
-        if len(iterations_accuracy) > 0:
-            accuracy = iterations_accuracy[0].value
-        return dict(
-            iterations_loss=loss,
-            iterations_accuracy=accuracy)
+    def _update_metrics(self, strategy: 'PluggableStrategy'):
+        self._running_loss.update(strategy.loss, len(strategy.mb_y))
+        self._running_accuracy.update(strategy.mb_y, strategy.logits)
 
     def _new_line(self):
         if self._stdout:
@@ -100,67 +163,95 @@ class DotTrace(StrategyTrace):
               'File logging will be disabled.', file=sys.stderr)
         print(err, flush=True, file=sys.stderr)
 
-    def __call__(self, eval_data: EvalData):
-        metric_values = self._update_metrics(eval_data)
-        running_loss = metric_values['iterations_loss']
-        running_accuracy = metric_values['iterations_accuracy']
+    def after_training_iteration(self, strategy: 'PluggableStrategy'):
+        self._on_iteration(strategy)
 
-        if isinstance(eval_data, (OnTrainIterationEnd, OnTestIterationEnd)):
-            self._last_iter = eval_data.iteration
-            new_line = (self._last_iter + 1) % self._iter_line == 0
-            print_summary = ((self._last_iter + 1) %
-                             (self._iter_line * self._lines_summary)) == 0
-            self._message('.' if eval_data.train_phase else '+')
-            if new_line:
-                self._message(' [{: >5} iterations]'.format(self._last_iter+1))
-                self._new_line()
+    def after_test_iteration(self, strategy: 'PluggableStrategy'):
+        self._on_iteration(strategy)
 
-            if print_summary and eval_data.train_phase:
-                msg = '> Running average loss: {:.6f}, accuracy {:.4f}%'.format(
-                        running_loss, running_accuracy*100.0)
-                self._message(msg)
-                self._new_line()
+    def before_training_step(self, strategy: 'PluggableStrategy'):
+        self._on_step_start(strategy)
 
-        elif isinstance(eval_data, (OnTestStepStart, OnTrainStepStart)):
-            action_name = 'training' if eval_data.train_phase else 'test'
-            step_id = eval_data.training_step_id if eval_data.train_phase \
-                else eval_data.test_step_id
-            task_id = eval_data.training_task_label if eval_data.train_phase \
-                else eval_data.test_task_label
-            msg = '-- Starting {} on step {} (Task {}) --'.format(
-                action_name, step_id, task_id)
+    def before_test_step(self, strategy: 'PluggableStrategy'):
+        self._on_step_start(strategy)
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy'):
+        self._on_epoch_end(strategy)
+
+    def after_test_step(self, strategy: 'PluggableStrategy'):
+        self._on_epoch_end(strategy)
+
+    def before_training(self, strategy: 'PluggableStrategy'):
+        self._on_phase_start(strategy)
+
+    def before_test(self, strategy: 'PluggableStrategy'):
+        self._on_phase_start(strategy)
+
+    def after_training(self, strategy: 'PluggableStrategy'):
+        self._on_phase_end(strategy)
+
+    def after_test(self, strategy: 'PluggableStrategy'):
+        self._on_phase_end(strategy)
+
+    def _on_iteration(self, strategy: 'PluggableStrategy'):
+        self._update_metrics(strategy)
+        self._last_iter = strategy.mb_it
+
+        new_line = (self._last_iter + 1) % self._iter_line == 0
+        print_summary = ((self._last_iter + 1) %
+                         (self._iter_line * self._lines_summary)) == 0
+        self._message('.' if strategy.is_training else '+')
+        if new_line:
+            self._message(' [{: >5} iterations]'.format(self._last_iter + 1))
+            self._new_line()
+
+        if print_summary and strategy.is_training:
+            msg = '> Running average loss: {:.6f}, accuracy {:.4f}%'.format(
+                self._running_loss.result(),
+                self._running_accuracy.result() * 100.0)
             self._message(msg)
             self._new_line()
 
-        elif isinstance(eval_data, (OnTrainEpochEnd, OnTestStepEnd)):
-            is_train = eval_data.train_phase
-            if is_train:
-                msg = 'Epoch {} ended. Loss: {:.6f}, accuracy {:.4f}%'.format(
-                    eval_data.epoch, running_loss, running_accuracy*100.0)
-            else:
-                msg = '> Test on step {} (Task {}) ended. Loss: {:.6f}, ' \
-                      'accuracy {:.4f}%' .format(eval_data.test_step_id,
-                                                 eval_data.test_task_label,
-                                                 running_loss,
-                                                 running_accuracy*100.0)
+    def _on_step_start(self, strategy: 'PluggableStrategy'):
+        action_name = 'training' if strategy.is_training else 'test'
+        step_id = strategy.step_id
+        task_id = strategy.train_task_label if strategy.is_training \
+            else strategy.test_task_label
+        msg = '-- Starting {} on step {} (Task {}) --'.format(
+            action_name, step_id, task_id)
+        self._message(msg)
+        self._new_line()
 
-            if (self._last_iter + 1) % self._iter_line != 0:
-                self._new_line()
-            self._message(msg)
-            self._new_line()
-        elif isinstance(eval_data, (OnTrainPhaseEnd, OnTestPhaseEnd)):
-            phase_name = 'training' if eval_data.train_phase else 'test'
-            msg = '-- >> End of {} phase << --'.format(phase_name)
-            self._new_line()
-            self._message(msg)
-            self._new_line()
+    def _on_epoch_end(self, strategy: 'PluggableStrategy'):
+        if strategy.is_training:
+            msg = 'Epoch {} ended. Loss: {:.6f}, accuracy {:.4f}%'.format(
+                strategy.epoch, self._running_loss.result(),
+                self._running_accuracy.result() * 100.0)
+        else:
+            msg = '> Test on step {} (Task {}) ended. Loss: {:.6f}, ' \
+                  'accuracy {:.4f}%'\
+                .format(strategy.step_id, strategy.test_task_label,
+                        self._running_loss.result(),
+                        self._running_accuracy.result() * 100.0)
 
-        elif isinstance(eval_data, (OnTrainPhaseStart, OnTestPhaseStart)):
-            phase_name = 'training' if eval_data.train_phase else 'test'
-            msg = '-- >> Start of {} phase << --'.format(phase_name)
+        if (self._last_iter + 1) % self._iter_line != 0:
             self._new_line()
-            self._message(msg)
-            self._new_line()
+        self._message(msg)
+        self._new_line()
+
+    def _on_phase_start(self, strategy: 'PluggableStrategy'):
+        phase_name = 'training' if strategy.is_training else 'test'
+        msg = '-- >> Start of {} phase << --'.format(phase_name)
+        self._new_line()
+        self._message(msg)
+        self._new_line()
+
+    def _on_phase_end(self, strategy: 'PluggableStrategy'):
+        phase_name = 'training' if strategy.is_training else 'test'
+        msg = '-- >> End of {} phase << --'.format(phase_name)
+        self._new_line()
+        self._message(msg)
+        self._new_line()
 
 
 DefaultStrategyTrace = DotTrace

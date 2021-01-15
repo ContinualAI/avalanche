@@ -13,7 +13,7 @@
 ################################################################################
 
 from typing_extensions import Literal
-from typing import Callable, Union, Optional, Dict, Mapping
+from typing import Callable, Union, Optional, Dict, Mapping, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -22,12 +22,12 @@ from packaging import version
 from torch import Tensor
 from torch.nn.functional import pad
 
-from avalanche.evaluation import OnTestStepEnd, \
-    PluginMetric, Metric, OnTrainIterationEnd, \
-    OnTestIterationEnd, OnTrainPhaseEnd
+from avalanche.evaluation import PluginMetric, Metric
 from avalanche.evaluation.metric_results import AlternativeValues, \
-    MetricTypes, MetricValue, MetricResult
+    MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import default_cm_image_creator
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):
@@ -93,19 +93,19 @@ class ConfusionMatrix(Metric[Tensor]):
         # Check if logits or labels
         if len(predicted_y.shape) > 1:
             # Logits -> transform to labels
-            max_label = max(max_label, predicted_y.shape[1])
+            max_label = max(max_label, predicted_y.shape[1]-1)
             predicted_y = torch.max(predicted_y, 1)[1]
 
         if len(true_y.shape) > 1:
             # Logits -> transform to labels
-            max_label = max(max_label, true_y.shape[1])
+            max_label = max(max_label, true_y.shape[1]-1)
             true_y = torch.max(true_y, 1)[1]
 
         # Initialize or enlarge the confusion matrix
         max_label = max(max_label, max(torch.max(predicted_y).item(),
                                        torch.max(true_y).item()))
         if self._num_classes is not None:
-            max_label = max(max_label, self._num_classes)
+            max_label = max(max_label, self._num_classes-1)
 
         if max_label < 0:
             raise ValueError('The Confusion Matrix metric can only handle '
@@ -167,7 +167,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
     def __init__(self, *,
                  train: bool = False,
                  test: bool = True,
-                 num_classes: Union[int, Mapping[int]] = None,
+                 num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
                  image_creator: Callable[[Tensor], Image] =
@@ -239,37 +239,36 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
                 num_classes=self._class_num_for_task(task_label))
         self._task_matrices[task_label].update(true_y, predicted_y)
 
-    def before_training(self, eval_data) -> None:
+    def before_training(self, strategy) -> None:
         if self._keep_train_matrix:
             self.reset()
 
-    def before_test(self, eval_data) -> None:
+    def before_test(self, strategy) -> None:
         if self._keep_test_matrix:
             self.reset()
 
-    def after_training_iteration(self, eval_data: OnTrainIterationEnd) -> None:
+    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._keep_train_matrix:
-            self.update(eval_data.ground_truth,
-                        eval_data.prediction_logits,
-                        eval_data.training_task_label)
+            self.update(strategy.mb_y,
+                        strategy.logits,
+                        strategy.train_task_label)
 
-    def after_test_iteration(self, eval_data: OnTestIterationEnd) -> None:
+    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._keep_test_matrix:
-            self.update(eval_data.ground_truth,
-                        eval_data.prediction_logits,
-                        eval_data.test_task_label)
+            self.update(strategy.mb_y,
+                        strategy.logits,
+                        strategy.train_task_label)
 
-    def after_training(self, eval_data: OnTrainPhaseEnd) -> 'MetricResult':
+    def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if self._keep_train_matrix:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def after_test(self, eval_data: OnTestStepEnd) -> MetricResult:
+    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._keep_test_matrix:
-            return self._package_result(eval_data)
+            return self._package_result(strategy)
 
-    def _package_result(self, eval_data: Union[OnTrainPhaseEnd,
-                                               OnTestStepEnd]) -> MetricResult:
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name = 'Test' if strategy.is_testing else 'Train'
         metric_values = []
         for task_label, task_cm in self.result().items():
             metric_name = 'ConfusionMatrix/{}/Task{:03}'.format(phase_name,
@@ -279,12 +278,11 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             if self._save_image:
                 cm_image = self._image_creator(task_cm)
                 metric_representation = MetricValue(
-                    self, metric_name, MetricTypes.CONFUSION_MATRIX,
-                    AlternativeValues(cm_image, task_cm), plot_x_position)
+                    self, metric_name, AlternativeValues(cm_image, task_cm),
+                    plot_x_position)
             else:
                 metric_representation = MetricValue(
-                    self, metric_name, MetricTypes.CONFUSION_MATRIX,
-                    task_cm, plot_x_position)
+                    self, metric_name, task_cm, plot_x_position)
             metric_values.append(metric_representation)
         return metric_values
 
@@ -324,4 +322,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         return torch.tensor(numpy_ndarray, dtype=matrix.dtype)
 
 
-__all__ = ['ConfusionMatrix']
+__all__ = [
+    'ConfusionMatrix',
+    'TaskConfusionMatrix'
+]
