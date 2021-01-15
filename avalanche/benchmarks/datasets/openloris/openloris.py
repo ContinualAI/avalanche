@@ -74,6 +74,9 @@ class OpenLORIS(Dataset):
                   "1KnuYLdlG3VQrhgbtIANLki81ah8Thezj&export=download\n"
                   "- Labels.pkl: https://drive.google.com/u/0/uc?id="
                   "1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H&export=download\n"
+                  "- batches_filelists.zip: "
+                  "https://drive.google.com/u/0/uc?id="
+                  "1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp&export=download\n"                  
                   "For more details, check the official website: "
                   "https://lifelong-robotic-vision.github.io/dataset/object\n"
             )
