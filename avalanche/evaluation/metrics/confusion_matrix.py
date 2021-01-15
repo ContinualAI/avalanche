@@ -18,7 +18,6 @@ from typing import Callable, Union, Optional, Dict, Mapping, TYPE_CHECKING
 import numpy as np
 import torch
 from PIL.Image import Image
-from packaging import version
 from torch import Tensor
 from torch.nn.functional import pad
 
@@ -313,9 +312,9 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
 
     @staticmethod
     def nan_to_num(matrix: Tensor) -> Tensor:
-        if version.parse(torch.__version__) >= version.parse("1.8.0"):
-            # noinspection PyUnresolvedReferences
-            return torch.nan_to_num(matrix)
+        # if version.parse(torch.__version__) >= version.parse("1.8.0"):
+        #    # noinspection PyUnresolvedReferences
+        #    return torch.nan_to_num(matrix)
 
         numpy_ndarray = matrix.numpy()
         numpy_ndarray = np.nan_to_num(numpy_ndarray)
