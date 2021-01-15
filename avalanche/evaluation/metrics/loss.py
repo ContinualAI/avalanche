@@ -331,7 +331,7 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
         return result_dict
 
     def update(self, loss: Tensor, patterns: int, task_label: int) -> None:
-        self._task_loss[task_label].update(loss,  patterns)
+        self._task_loss[task_label].update(loss, patterns)
 
     def before_test(self, strategy) -> None:
         self.reset()
