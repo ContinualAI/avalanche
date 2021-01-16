@@ -13,173 +13,392 @@
 ################################################################################
 
 import time
-from typing import Union
+from typing import TYPE_CHECKING
 
-from avalanche.evaluation import OnTrainEpochStart, OnTestStepStart, \
-    OnTrainEpochEnd, OnTestStepEnd, MetricValue, MetricTypes, \
-    OnTrainStepStart, OnTrainStepEnd
-from avalanche.evaluation.abstract_metric import AbstractMetric
-from avalanche.evaluation.metric_utils import filter_accepted_events, \
-    get_task_label
+from avalanche.evaluation import Metric, PluginMetric
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
+from avalanche.evaluation.metric_utils import phase_and_task
+from avalanche.evaluation.metrics.mean import Mean
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
-class EpochTime(AbstractMetric):
+class ElapsedTime(Metric[float]):
     """
-    Time usage metric, measured in seconds.
+    The elapsed time metric.
 
-    The time is measured between the start and end of an epoch.
+    Instances of this metric keep track of the time elapsed between calls to the
+    `update` method. The starting time is set when the `update` method is called
+    for the first time. That is, the starting time is *not* taken at the time
+    the constructor is invoked.
 
-    Beware that this metric logs a time value for each epoch! For the average
-    epoch time use :class:`AverageEpochTime` instead, which logs the average
-    the average epoch time for each step.
+    Calling the `update` method more than twice will update the metric to the
+    elapsed time between the first and the last call to `update`.
 
-    By default this metric takes the time on training epochs only but this
-    behaviour can be changed by passing test=True in the constructor.
+    The result, obtained using the `result` method, is the time, in seconds,
+    computed as stated above.
+
+    The `reset` method will set the metric to its initial state, thus resetting
+    the initial time. This metric in its initial state (or if the `update`
+    method was invoked only once) will return an elapsed time of 0.
     """
-
-    def __init__(self, *, train=True, test=False):
+    def __init__(self):
         """
-        Creates an instance of the Epoch Time metric.
+        Creates an instance of the accuracy metric.
+
+        This metric in its initial state (or if the `update` method was invoked
+        only once) will return an elapsed time of 0. The metric can be updated
+        by using the `update` method while the running accuracy can be retrieved
+        using the `result` method.
+        """
+        self._init_time = None
+        self._prev_time = None
+
+    def update(self) -> None:
+        """
+        Update the elapsed time.
+
+        For more info on how to set the initial time see the class description.
+
+        :return: None.
+        """
+        now = time.perf_counter()
+        if self._init_time is None:
+            self._init_time = now
+        self._prev_time = now
+
+    def result(self) -> float:
+        """
+        Retrieves the elapsed time.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: The elapsed time, in seconds, as a float value.
+        """
+        if self._init_time is None:
+            return 0.0
+        return self._prev_time - self._init_time
+
+    def reset(self) -> None:
+        """
+        Resets the metric, including the initial time.
+
+        :return: None.
+        """
+        self._prev_time = None
+        self._init_time = None
+
+
+class MinibatchTime(PluginMetric[float]):
+    """
+    The minibatch time metric.
+
+    This metric "logs" the elapsed time for each iteration. Beware that this
+    metric will not average the time across minibatches!
+
+    If a more coarse-grained logging is needed, consider using
+    :class:`EpochTime`, :class:`AverageEpochTime` or
+    :class:`StepTime` instead.
+    """
+
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the minibatch time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
 
-        :param train: When True, the time will be taken on training epochs.
-            Defaults to True.
-        :param test: When True, the time will be taken on test epochs.
-            Defaults to False.
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
         """
         super().__init__()
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
+                             ' time.')
+        self._minibatch_time = ElapsedTime()
+        self._compute_train_time = train
+        self._compute_test_time = test
 
-        self._start_time = None
+    def result(self) -> float:
+        return self._minibatch_time.result()
 
-        on_start_events = filter_accepted_events(
-            [OnTrainEpochStart, OnTestStepStart], train=train, test=test)
+    def reset(self) -> None:
+        self._minibatch_time.reset()
 
-        on_end_events = filter_accepted_events(
-            [OnTrainEpochEnd, OnTestStepEnd], train=train, test=test)
+    def before_training_iteration(self, strategy) -> MetricResult:
+        if not self._compute_train_time:
+            return
+        self.reset()
+        self._minibatch_time.update()
 
-        # Attach callbacks
-        self._on(on_start_events, self.time_start) \
-            ._on(on_end_events, self.result_emitter)
+    def before_test_iteration(self, strategy) -> MetricResult:
+        if not self._compute_test_time:
+            return
+        self.reset()
+        self._minibatch_time.update()
 
-    def time_start(self, _):
-        # Epoch start
-        self._start_time = time.perf_counter()
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if self._compute_train_time:
+            self._minibatch_time.update()
+            return self._on_iteration(strategy)
 
-    def result_emitter(self, eval_data):
-        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
-        # Epoch end
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
-        elapsed_time = time.perf_counter() - self._start_time
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if self._compute_test_time:
+            self._minibatch_time.update()
+            return self._on_iteration(strategy)
+
+    def _on_iteration(self, strategy: 'PluggableStrategy'):
+        self._last_mb_time = self._minibatch_time.result()
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
+        metric_value = self.result()
+
+        metric_name = 'Time_MB/{}/Task{:03}'.format(phase_name, task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+
+class EpochTime(PluginMetric[float]):
+    """
+    The epoch elapsed time metric.
+
+    The elapsed time will be logged after each epoch. Beware that this
+    metric will not average the time across epochs!
+
+    If logging the average average across epochs is needed, consider using
+    :class:`AverageEpochTime` instead.
+    """
+
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the epoch time metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__()
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             ' time.')
+
+        self._elapsed_time = ElapsedTime()
+        self._take_train_time = train
+        self._take_test_time = test
+
+    def before_training_epoch(self, strategy) -> MetricResult:
+        if not self._take_train_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
+
+    def before_test_step(self, strategy) -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if self._take_train_time:
+            self._elapsed_time.update()
+            return self._package_result(strategy)
+
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if self._take_test_time:
+            self._elapsed_time.update()
+            return self._package_result(strategy)
+
+    def reset(self) -> None:
+        self._elapsed_time.reset()
+
+    def result(self) -> float:
+        return self._elapsed_time.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
+        elapsed_time = self.result()
 
         metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name,
                                                        task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(self, metric_name, MetricTypes.ELAPSED_TIME,
-                           elapsed_time, plot_x_position)
+        return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
 
 
-class AverageEpochTime(AbstractMetric):
+class AverageEpochTime(PluginMetric[float]):
     """
-    Time usage metric, measured in seconds.
+    The average epoch time metric.
 
-    The time is measured as the average epoch time of a step.
-    The average value is computed and emitted at the end of the train/test step.
+    The average elapsed time will be logged at the end of the step.
 
-    By default this metric takes the time of epochs in training steps only. This
-    behaviour can be changed by passing test=True in the constructor.
-
-    Consider that, when used on the test set, the epoch time is the same as the
-    step time. This means that this metric and the :class:`EpochTime` metric
-    will emit the same values when used for the test phase.
+    Beware that this metric will average the time across epochs! If logging the
+    epoch-specific time is needed, consider using :class:`EpochTime` instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the Average Epoch Time metric.
+        Creates an instance of the average epoch time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.
 
-        :param train: When True, the time will be taken on training epochs.
-            Defaults to True.
-        :param test: When True, the time will be taken on test epochs.
-            Defaults to False.
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
         """
         super().__init__()
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
-                             'time.')
-        self._epoch_start_time = None
-        self._accumulated_time = 0.0
-        self._n_epochs = 0
+                             ' time.')
 
-        on_step_start_events = filter_accepted_events(
-            [OnTrainStepStart, OnTestStepStart], train=train, test=test)
+        self._time_mean = Mean()
+        self._epoch_time = ElapsedTime()
+        self._take_train_time = train
+        self._take_test_time = test
 
-        on_epoch_start_events = filter_accepted_events(
-            [OnTrainEpochStart], train=train, test=test)
+    def before_training_epoch(self, strategy) -> MetricResult:
+        if not self._take_train_time:
+            return
+        self._epoch_time.reset()
+        self._epoch_time.update()
 
-        on_epoch_end_events = filter_accepted_events(
-            [OnTrainEpochEnd], train=train, test=test)
+    def before_test_step(self, strategy) -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
+        self._epoch_time.reset()
+        self._epoch_time.update()
 
-        on_step_end_events = filter_accepted_events(
-            [OnTrainStepEnd, OnTestStepEnd], train=train, test=test)
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if not self._take_train_time:
+            return
+        self._epoch_time.update()
+        self._time_mean.update(self._epoch_time.result())
+        return self._package_result(strategy)
 
-        # Attach callbacks
-        self._on(on_step_start_events, self.step_start) \
-            ._on(on_epoch_start_events, self.epoch_start) \
-            ._on(on_epoch_end_events, self.epoch_end) \
-            ._on(on_step_end_events, self.result_emitter)
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if not self._take_test_time:
+            return
+        self._epoch_time.update()
+        self._time_mean.update(self._epoch_time.result())
+        return self._package_result(strategy)
 
-    def step_start(self, _):
-        # Step start
-        self._accumulated_time = 0.0
-        self._n_epochs = 0
-        # Used for timing during the test phase
-        self._epoch_start_time = time.perf_counter()
+    def reset(self) -> None:
+        self._epoch_time.reset()
+        self._time_mean.reset()
 
-    def epoch_start(self, _):
-        # Epoch start (training phase)
-        self._epoch_start_time = time.perf_counter()
+    def result(self) -> float:
+        return self._time_mean.result()
 
-    def epoch_end(self, _):
-        # Epoch end  (training phase)
-        self._accumulated_time = time.perf_counter() - self._epoch_start_time
-        self._n_epochs += 1
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
+        average_epoch_time = self.result()
 
-    def result_emitter(self, eval_data):
-        eval_data: Union[OnTrainEpochEnd, OnTestStepEnd]
-        # Epoch end
-        phase_name = 'Test' if eval_data.test_phase else 'Train'
-        task_label = get_task_label(eval_data)
-
-        if self._n_epochs == 0:
-            # Test phase
-            self._n_epochs = 1
-            self._accumulated_time = \
-                time.perf_counter() - self._epoch_start_time
-
-        average_epoch_time = self._accumulated_time / self._n_epochs
-
-        metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(phase_name,
-                                                           task_label)
+        metric_name = 'Avg_Epoch_Time/{}/Task{:03}'.format(
+            phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
-        return MetricValue(
-            self, metric_name, MetricTypes.ELAPSED_TIME,
-            average_epoch_time, plot_x_position)
+        return [MetricValue(
+            self, metric_name, average_epoch_time, plot_x_position)]
+
+
+class StepTime(PluginMetric[float]):
+    """
+    The step time metric.
+
+    This metric may seed very similar to :class:`AverageEpochTime`. However,
+    differently from that: 1) obviously, the time is not averaged by dividing
+    by the number of epochs; 2) most importantly, the time consumed outside the
+    epoch loop is accounted too (a thing that :class:`AverageEpochTime` doesn't
+    support). For instance, this metric is more suitable when measuring times
+    of algorithms involving after-training consolidation, replay pattern
+    selection and other time consuming mechanisms.
+    """
+
+    def __init__(self, *, train=True, test=True):
+        """
+        Creates an instance of the EpochAccuracy metric.
+
+        The train and test parameters can be True at the same time. However,
+        at least one of them must be True.
+
+        :param train: When True, the metric will be computed on the training
+            phase. Defaults to True.
+        :param test: When True, the metric will be computed on the test
+            phase. Defaults to True.
+        """
+        super().__init__()
+
+        if not train and not test:
+            raise ValueError('train and test can\'t be both False at the same'
+                             ' time.')
+
+        self._elapsed_time = ElapsedTime()
+        self._take_train_time = train
+        self._take_test_time = test
+
+    def before_training_step(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if not self._take_train_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
+
+    def before_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if not self._take_test_time:
+            return
+        self.reset()
+        self._elapsed_time.update()
+
+    def after_training_step(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        if self._take_train_time:
+            self._elapsed_time.update()
+            return self._package_result(strategy)
+
+    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if self._take_test_time:
+            self._elapsed_time.update()
+            return self._package_result(strategy)
+
+    def reset(self) -> None:
+        self._elapsed_time.reset()
+
+    def result(self) -> float:
+        return self._elapsed_time.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
+        step_time = self.result()
+
+        metric_name = 'Step_Time/{}/Task{:03}'.format(
+            phase_name, task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, step_time, plot_x_position)]
 
 
 __all__ = [
+    'ElapsedTime',
+    'MinibatchTime',
+    'EpochTime',
     'AverageEpochTime',
-    'EpochTime'
+    'StepTime'
 ]

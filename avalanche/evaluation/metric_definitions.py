@@ -6,149 +6,186 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 14-12-2020                                                             #
+# Date: 30-12-2020                                                             #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+from abc import ABC, abstractmethod
+from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
-from enum import Enum, auto
 from typing_extensions import Protocol
-from typing import Union, Optional, Tuple, List
 
-from PIL.Image import Image
-from torch import Tensor
+if TYPE_CHECKING:
+    from .metric_results import MetricResult
+    from avalanche.training.plugins import PluggableStrategy
 
-from .evaluation_data import EvalData
-
-MetricType = Union[float, int, Tensor, Image]
-MetricResult = List['MetricValue']
+TResult = TypeVar('TResult')
+TAggregated = TypeVar('TAggregated', bound='PluginMetric')
 
 
-class Metric(Protocol):
+class Metric(Protocol[TResult]):
     """
-    Protocol definition of a metric.
+    Definition of a metric.
 
-    A metric simply accepts an evaluation data object containing relevant
-    information retrieved from the strategy and optionally outputs values
-    to be logged.
+    A metric exposes methods to reset the internal counters as well as
+    a method used to retrieve the result.
+
+    The specific metric implementation exposes ways to update the metric
+    state. Usually, standalone metrics like :class:`Sum`, :class:`Mean`,
+    :class:`Accuracy`, ... expose an `update` method.
+
+    On the other hand, metrics that are to be used by using the
+    :class:`EvaluationPlugin` usually update their value by receiving events
+    from the plugin (see the :class:`PluginMetric` class for more details).
     """
-    def __call__(self, eval_data: EvalData) -> MetricResult:
-        ...
 
-
-class AlternativeValues:
-    """
-    A container for alternative representations of the same metric value.
-    """
-    def __init__(self, *alternatives: MetricType):
-        self.alternatives: Tuple[MetricType] = alternatives
-
-    def best_supported_value(self, *supported_types: type) -> \
-            Optional[MetricType]:
+    def result(self) -> Optional[TResult]:
         """
-        Retrieves a supported representation for this metric value.
+        Obtains the value of the metric.
 
-        :param supported_types: A list of supported value types.
-        :return: The best supported representation. Returns None if no supported
-            representation is found.
+        :return: The value of the metric.
         """
-        for alternative in self.alternatives:
-            if isinstance(alternative, supported_types):
-                return alternative
+        pass
+
+    def reset(self) -> None:
+        """
+        Resets the metric internal state.
+
+        :return: None.
+        """
+        pass
+
+
+class PluginMetric(Metric[TResult], ABC):
+    """
+    A kind of metric that can be used by the :class:`EvaluationPlugin`.
+
+    This class leaves the implementation of the `result` and `reset` methods
+    to child classes while providing an empty implementation of the callbacks
+    invoked by the :class:`EvaluationPlugin`. Subclasses should implement
+    the `result`, `reset` and the desired callbacks to compute the specific
+    metric.
+
+    This class also provides a utility method, `_next_x_position`, which can
+    be used to label each metric value with its appropriate "x" position in the
+    plot.
+    """
+    def __init__(self):
+        """
+        Creates an instance of a plugin metric.
+
+        Child classes can safely invoke this (super) constructor as the first
+        step.
+        """
+        self._metric_x_counters: Dict[str, int] = dict()
+
+    @abstractmethod
+    def result(self) -> Optional[TResult]:
         return None
 
+    @abstractmethod
+    def reset(self) -> None:
+        return None
 
-class MetricTypes(Enum):
-    OTHER = auto()
-    """
-    Value used to flag a metric type that doesn't fit in any of the other
-    standard types.
-    """
+    def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    ACCURACY = auto()
-    """
-    Used to flag accuracy values.
-    """
+    def before_training_step(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
-    LOSS = auto()
-    """
-    Used to flag loss values.
-    """
+    def adapt_train_dataset(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
-    FORGETTING = auto()
-    """
-    Used to flag values representing accuracy losses.
-    """
+    def before_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
-    CONFUSION_MATRIX = auto()
-    """
-    Used to flag confusion matrices.
-    """
+    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
-    ELAPSED_TIME = auto()
-    """
-    Used to flag values describing an elapsed time (usually in seconds).
-    """
+    def before_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    CPU_USAGE = auto()
-    """
-    Used to flag values describing the CPU usage.
-    """
+    def after_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    GPU_USAGE = auto()
-    """
-    Used to flag values describing the GPU usage.
-    """
+    def before_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    RAM_USAGE = auto()
-    """
-    Used to flag values describing the RAM usage (usually in MiB).
-    """
+    def after_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    STORAGE_USAGE = auto()
-    """
-    Used to flag values describing the storage occupation (usually in MiB).
-    """
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
+    def before_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-class MetricValue(object):
-    """
-    The result of a Metric.
+    def after_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
 
-    A result has a name, a value and a "x" position in which the metric value
-    should be plotted.
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
 
-    The "value" field can also be an instance of "AlternativeValues", in which
-    case it means that alternative representations exist for this value. For
-    instance, the Confusion Matrix can be represented both as a Tensor and as
-    an Image. It's up to the Logger, according to its capabilities, decide which
-    representation to use.
-    """
-    def __init__(self, origin: Metric, name: str, metric_type: MetricTypes,
-                 value: Union[MetricType, AlternativeValues],
-                 x_plot: int):
+    def after_training_step(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def adapt_test_dataset(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def before_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def after_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+        return None
+
+    def before_test_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def before_test_forward(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def after_test_forward(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+            -> 'MetricResult':
+        return None
+
+    def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:
         """
-        Creates an instance of MetricValue.
+        Utility method that can be used to get the next "x" position of a
+        metric value (given its name).
 
-        :param origin: The originating Metric instance.
-        :param name: The display name of this value.
-        :param metric_type: The type of this metric value, as a element
-            from the  MetricTypes enumeration.
-
-        :param value:
-        :param x_plot:
+        :param metric_name: The metric value name.
+        :param initial_x: The initial "x" value. Defaults to 0.
+        :return: The next "x" value to use.
         """
-        self.origin: Metric = origin
-        self.name: str = name
-        self.metric_type: MetricTypes = metric_type
-        self.value: Union[MetricType, AlternativeValues] = value
-        self.x_plot: int = x_plot
+        if metric_name not in self._metric_x_counters:
+            self._metric_x_counters[metric_name] = initial_x
+        x_result = self._metric_x_counters[metric_name]
+        self._metric_x_counters[metric_name] += 1
+        return x_result
 
 
-__all__ = [
-    'MetricResult',
-    'Metric',
-    'AlternativeValues',
-    'MetricTypes',
-    'MetricValue']
+__all__ = ['Metric', 'PluginMetric']

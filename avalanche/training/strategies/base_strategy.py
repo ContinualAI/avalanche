@@ -65,6 +65,13 @@ class BaseStrategy:
         self.mb_x, self.mb_y = None, None
         self.loss = None
         self.logits = None
+        self.train_task_label: Optional[int] = None
+        self.test_task_label: Optional[int] = None
+        self.is_training: bool = False
+
+    @property
+    def is_testing(self):
+        return not self.is_training
 
     def update_optimizer(self, old_params, new_params, reset_state=True):
         """ Update the optimizer by substituting old_params with new_params.
@@ -110,6 +117,7 @@ class BaseStrategy:
 
         :param step_infos: single IStepInfo or sequence.
         """
+        self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
@@ -119,6 +127,7 @@ class BaseStrategy:
         self.before_training(**kwargs)
         res = None
         for step_info in step_infos:
+            self.train_task_label = step_info.task_label
             res = self.train_step(step_info, **kwargs)
 
         self.after_training(**kwargs)
@@ -156,6 +165,7 @@ class BaseStrategy:
         :param test_part: determines which steps to test on.
         :param kwargs: custom arguments.
         """
+        self.is_training = False
         self.model.eval()
         self.model.to(self.device)
 
@@ -164,6 +174,7 @@ class BaseStrategy:
 
         self.before_test(**kwargs)
         for step_info in step_list:
+            self.test_task_label = step_info.task_label
             self.step_info = step_info
             self.step_id = step_info.current_step
 
