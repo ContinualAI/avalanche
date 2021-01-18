@@ -70,7 +70,7 @@ class TinyImagenet(Dataset):
         else:
             # Create target Directory for Tiny ImageNet data
             os.makedirs(self.data_folder)
-            self.log.info("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory {} created".format(self.data_folder))
             self.download = download
             self.download_tinyImageNet()
 
@@ -82,7 +82,7 @@ class TinyImagenet(Dataset):
     def download_tinyImageNet(self):
         """ Downloads the TintImagenet Dataset """
 
-        self.log.info("Downloading " + filename[1] + "...")
+        self.log.info("Downloading {}...".format(filename[1]))
         urlretrieve(filename[1], os.path.join(self.data_folder, filename[0]))
 
         with ZipFile(os.path.join(self.data_folder, filename[0]), 'r') as zipf:
