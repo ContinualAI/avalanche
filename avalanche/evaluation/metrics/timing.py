@@ -144,17 +144,13 @@ class MinibatchTime(PluginMetric[float]):
             -> MetricResult:
         if self._compute_train_time:
             self._minibatch_time.update()
-            return self._on_iteration(strategy)
+            return self._package_result(strategy)
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_time:
             self._minibatch_time.update()
-            return self._on_iteration(strategy)
-
-    def _on_iteration(self, strategy: 'PluggableStrategy'):
-        self._last_mb_time = self._minibatch_time.result()
-        return self._package_result(strategy)
+            return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
         phase_name, task_label = phase_and_task(strategy)
@@ -173,7 +169,7 @@ class EpochTime(PluginMetric[float]):
     The elapsed time will be logged after each epoch. Beware that this
     metric will not average the time across epochs!
 
-    If logging the average average across epochs is needed, consider using
+    If logging the average time across epochs is needed, consider using
     :class:`AverageEpochTime` instead.
     """
 
@@ -232,8 +228,7 @@ class EpochTime(PluginMetric[float]):
         phase_name, task_label = phase_and_task(strategy)
         elapsed_time = self.result()
 
-        metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name,
-                                                       task_label)
+        metric_name = 'Epoch_Time/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
@@ -323,7 +318,7 @@ class StepTime(PluginMetric[float]):
     """
     The step time metric.
 
-    This metric may seed very similar to :class:`AverageEpochTime`. However,
+    This metric may seem very similar to :class:`AverageEpochTime`. However,
     differently from that: 1) obviously, the time is not averaged by dividing
     by the number of epochs; 2) most importantly, the time consumed outside the
     epoch loop is accounted too (a thing that :class:`AverageEpochTime` doesn't
@@ -334,7 +329,7 @@ class StepTime(PluginMetric[float]):
 
     def __init__(self, *, train=True, test=True):
         """
-        Creates an instance of the EpochAccuracy metric.
+        Creates an instance of the step time metric.
 
         The train and test parameters can be True at the same time. However,
         at least one of them must be True.

@@ -31,6 +31,7 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
     EpochLoss, EpochTime, AverageEpochTime, TaskAccuracy, MinibatchAccuracy
 from avalanche.evaluation.metrics.confusion_matrix import TaskConfusionMatrix
+from avalanche.evaluation.metrics.cpu_usage import StepCpuUsage
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.extras.strategy_trace import DotTrace
@@ -78,7 +79,7 @@ def main():
     trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
     evaluation_plugin = EvaluationPlugin(
         MinibatchAccuracy(), EpochAccuracy(), TaskAccuracy(), TaskForgetting(),
-        EpochLoss(), EpochTime(), AverageEpochTime(),
+        EpochLoss(), EpochTime(), AverageEpochTime(), StepCpuUsage(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=my_logger, tracers=trace)
 
