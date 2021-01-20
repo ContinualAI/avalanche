@@ -36,7 +36,7 @@ class CpuUsage(Metric[float]):
         """
         Creates an instance of the CPU usage metric.
 
-        By default this metric in its initial state will return an CPU usage
+        By default this metric in its initial state will return a CPU usage
         value of 0. The metric can be updated by using the `update` method
         while the average CPU usage can be retrieved using the `result` method.
         """
@@ -415,20 +415,10 @@ class StepCpuUsage(PluginMetric[float]):
         return [MetricValue(self, metric_name, step_cpu, plot_x_position)]
 
 
-if __name__ == '__main__':
-    # Simple usage example
-    metric = CpuUsage()
-
-    metric.update()
-    for i in range(5):
-        a = 0
-        for j in range(1000000):
-            a += 1
-        metric.update()
-        print(metric.result())
-        time.sleep(1)
-
-
 __all__ = [
-    'CpuUsage'
+    'CpuUsage',
+    'MinibatchCpuUsage',
+    'EpochCpuUsage',
+    'AverageEpochCpuUsage',
+    'StepCpuUsage'
 ]

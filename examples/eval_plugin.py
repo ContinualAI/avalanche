@@ -32,6 +32,9 @@ from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
     EpochLoss, EpochTime, AverageEpochTime, TaskAccuracy, MinibatchAccuracy
 from avalanche.evaluation.metrics.confusion_matrix import TaskConfusionMatrix
 from avalanche.evaluation.metrics.cpu_usage import StepCpuUsage
+from avalanche.evaluation.metrics.disk_usage import DiskUsageMonitor
+from avalanche.evaluation.metrics.gpu_usage import GpuUsageMonitor
+from avalanche.evaluation.metrics.ram_usage import RamUsageMonitor
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.extras.strategy_trace import DotTrace
@@ -81,6 +84,7 @@ def main():
         MinibatchAccuracy(), EpochAccuracy(), TaskAccuracy(), TaskForgetting(),
         EpochLoss(), EpochTime(), AverageEpochTime(), StepCpuUsage(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
+        DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
         loggers=my_logger, tracers=trace)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)

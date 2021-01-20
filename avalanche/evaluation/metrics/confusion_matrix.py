@@ -94,11 +94,21 @@ class ConfusionMatrix(Metric[Tensor]):
             # Logits -> transform to labels
             max_label = max(max_label, predicted_y.shape[1]-1)
             predicted_y = torch.max(predicted_y, 1)[1]
+        else:
+            # Labels -> check non-negative
+            min_label = torch.min(predicted_y).item()
+            if min_label < 0:
+                raise ValueError('Label values must be non-negative values')
 
         if len(true_y.shape) > 1:
             # Logits -> transform to labels
             max_label = max(max_label, true_y.shape[1]-1)
             true_y = torch.max(true_y, 1)[1]
+        else:
+            # Labels -> check non-negative
+            min_label = torch.min(true_y).item()
+            if min_label < 0:
+                raise ValueError('Label values must be non-negative values')
 
         # Initialize or enlarge the confusion matrix
         max_label = max(max_label, max(torch.max(predicted_y).item(),
