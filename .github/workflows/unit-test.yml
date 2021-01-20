@@ -15,8 +15,8 @@ jobs:
           activate-conda: false
       - name: install conda dependencies
         run: |
-          conda env create -f environment.yml
+          conda env create -f environment-dev.yml
       - name: testing the software
         run: |
-          source activate avalanche-env
+          source activate avalanche-dev-env
           FAST_TEST=True USE_GPU=False python -m unittest
