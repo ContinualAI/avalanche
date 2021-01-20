@@ -28,13 +28,9 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
-    EpochLoss, EpochTime, AverageEpochTime, TaskAccuracy, MinibatchAccuracy
-from avalanche.evaluation.metrics.confusion_matrix import TaskConfusionMatrix
-from avalanche.evaluation.metrics.cpu_usage import StepCpuUsage
-from avalanche.evaluation.metrics.disk_usage import DiskUsageMonitor
-from avalanche.evaluation.metrics.gpu_usage import GpuUsageMonitor
-from avalanche.evaluation.metrics.ram_usage import RamUsageMonitor
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
+    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.extras.strategy_trace import DotTrace
@@ -80,9 +76,13 @@ def main():
     # Here we define a custom
     my_logger = Logger()
     trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
+
     evaluation_plugin = EvaluationPlugin(
-        MinibatchAccuracy(), EpochAccuracy(), TaskAccuracy(), TaskForgetting(),
-        EpochLoss(), EpochTime(), AverageEpochTime(), StepCpuUsage(),
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
         loggers=my_logger, tracers=trace)

@@ -13,7 +13,7 @@
 ################################################################################
 
 from collections import defaultdict
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, List
 
 import torch
 from torch import Tensor
@@ -44,7 +44,7 @@ class Loss(Metric[float]):
     The result is the running loss computed as the accumulated average loss.
 
     The reset method will bring the metric to its initial state. By default
-    this metric in its initial state will return an accuracy value of 0.
+    this metric in its initial state will return a loss value of 0.
     """
     def __init__(self):
         """
@@ -187,32 +187,32 @@ class EpochLoss(PluginMetric[float]):
                              ' time.')
 
         self._mean_loss = Loss()
-        self._compute_train_accuracy = train
-        self._compute_test_accuracy = test
+        self._compute_train_loss = train
+        self._compute_test_loss = test
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_train_accuracy:
+        if self._compute_train_loss:
             self.reset()
 
     def before_test_step(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_test_accuracy:
+        if self._compute_test_loss:
             self.reset()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_train_accuracy:
+        if self._compute_train_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_test_accuracy:
+        if self._compute_test_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_train_accuracy:
+        if self._compute_train_loss:
             return self._package_result(strategy)
 
     def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._compute_test_accuracy:
+        if self._compute_test_loss:
             return self._package_result(strategy)
 
     def reset(self) -> None:
@@ -248,7 +248,7 @@ class RunningEpochLoss(EpochLoss):
         At least one of them must be True!
 
         Beware that the test parameter defaults to False because logging
-        the running test accuracy it's and uncommon practice.
+        the running test loss it's and uncommon practice.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
@@ -261,19 +261,19 @@ class RunningEpochLoss(EpochLoss):
             raise ValueError('train and test can\'t be both False at the same'
                              ' time.')
 
-        self._compute_train_accuracy = train
-        self._compute_test_accuracy = test
+        self._compute_train_loss = train
+        self._compute_test_loss = test
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         super().after_training_iteration(strategy)
-        if self._compute_train_accuracy:
+        if self._compute_train_loss:
             return self._package_result(strategy)
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         super().after_test_iteration(strategy)
-        if self._compute_test_accuracy:
+        if self._compute_test_loss:
             return self._package_result(strategy)
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
@@ -354,10 +354,61 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
         return metric_values
 
 
+def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
+                 task=False, train=None, test=None) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param minibatch: If True, will return a metric able to log the minibatch
+        loss.
+    :param epoch: If True, will return a metric able to log the epoch loss.
+    :param epoch_running: If True, will return a metric able to log the running
+        epoch loss.
+    :param task: If True, will return a metric able to log the task loss. This
+        metric applies to the test flow only. If the `test` parameter is False,
+        an error will be raised.
+    :param train: If True, metrics will log values for the train flow. Defaults
+        to None, which means that the per-metric default value will be used.
+    :param test: If True, metrics will log values for the test flow. Defaults
+        to None, which means that the per-metric default value will be used.
+
+    :return: A list of plugin metrics.
+    """
+
+    if (train is not None and not train) and (test is not None and not test):
+        raise ValueError('train and test can\'t be both False at the same'
+                         ' time.')
+    if task and test is not None and not test:
+        raise ValueError('The task loss metric only applies to the test phase.')
+
+    train_test_flags = dict()
+    if train is not None:
+        train_test_flags['train'] = train
+
+    if test is not None:
+        train_test_flags['test'] = test
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchLoss(**train_test_flags))
+
+    if epoch:
+        metrics.append(EpochLoss(**train_test_flags))
+
+    if epoch_running:
+        metrics.append(RunningEpochLoss(**train_test_flags))
+
+    if task:
+        metrics.append(TaskLoss())
+
+    return metrics
+
+
 __all__ = [
     'Loss',
     'MinibatchLoss',
     'EpochLoss',
     'RunningEpochLoss',
-    'TaskLoss'
+    'TaskLoss',
+    'loss_metrics'
 ]

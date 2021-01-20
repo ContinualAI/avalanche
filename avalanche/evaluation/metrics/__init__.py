@@ -8,4 +8,5 @@ from .forgetting import *
 from .gpu_usage import *
 from .loss import *
 from .mac import *
+from .ram_usage import *
 from .timing import *
