@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 19-01-2021                                                             #
+# Author(s): Vincenzo Lomonaco, Lorenzo Pellegrini                             #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 import atexit
 import collections
 import subprocess
@@ -9,7 +23,7 @@ from typing import Optional, TYPE_CHECKING
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics import Mean
-from avalanche.evaluation.metrics._metric_any_event import AnyEventMetric
+from avalanche.evaluation.metrics._any_event_metric import AnyEventMetric
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 

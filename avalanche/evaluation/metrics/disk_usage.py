@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+################################################################################
+# Copyright (c) 2020 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 19-01-2021                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 import os
 import time
 from pathlib import Path
@@ -7,7 +21,7 @@ import psutil
 
 from avalanche.evaluation import Metric
 from avalanche.evaluation.metric_utils import phase_and_task
-from avalanche.evaluation.metrics._metric_any_event import AnyEventMetric
+from avalanche.evaluation.metrics._any_event_metric import AnyEventMetric
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 
 if TYPE_CHECKING:

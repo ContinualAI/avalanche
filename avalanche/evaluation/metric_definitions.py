@@ -11,6 +11,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+
 from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 

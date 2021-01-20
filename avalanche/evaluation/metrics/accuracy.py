@@ -11,6 +11,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+
 from collections import defaultdict
 from typing import Dict, TYPE_CHECKING
 
