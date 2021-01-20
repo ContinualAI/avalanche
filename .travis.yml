@@ -18,8 +18,8 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-  - conda env create -f environment.yml
-  - conda activate avalanche-env
+  - conda env create -f environment-dev.yml
+  - conda activate avalanche-dev-env
 
 script:
   - python -m unittest
