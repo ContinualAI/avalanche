@@ -15,7 +15,7 @@
 import os
 import time
 import warnings
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, Callable, TYPE_CHECKING, List
 
 from psutil import Process
 
@@ -429,10 +429,59 @@ class StepCpuUsage(PluginMetric[float]):
         return [MetricValue(self, metric_name, step_cpu, plot_x_position)]
 
 
+def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_average=False,
+                      step=False, train=None, test=None) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param minibatch: If True, will return a metric able to log the minibatch
+        elapsed time.
+    :param epoch: If True, will return a metric able to log the epoch elapsed
+        time.
+    :param epoch_average: If True, will return a metric able to log the average
+        epoch elapsed time.
+    :param step: If True, will return a metric able to log the step elapsed
+        time.
+    :param train: If True, metrics will log values for the train flow. Defaults
+        to None, which means that the per-metric default value will be used.
+    :param test: If True, metrics will log values for the test flow. Defaults
+        to None, which means that the per-metric default value will be used.
+
+    :return: A list of plugin metrics.
+    """
+
+    if (train is not None and not train) and (test is not None and not test):
+        raise ValueError('train and test can\'t be both False at the same'
+                         ' time.')
+
+    train_test_flags = dict()
+    if train is not None:
+        train_test_flags['train'] = train
+
+    if test is not None:
+        train_test_flags['test'] = test
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchCpuUsage(**train_test_flags))
+
+    if epoch:
+        metrics.append(EpochCpuUsage(**train_test_flags))
+
+    if epoch_average:
+        metrics.append(AverageEpochCpuUsage(**train_test_flags))
+
+    if step:
+        metrics.append(StepCpuUsage(**train_test_flags))
+
+    return metrics
+
+
 __all__ = [
     'CpuUsage',
     'MinibatchCpuUsage',
     'EpochCpuUsage',
     'AverageEpochCpuUsage',
-    'StepCpuUsage'
+    'StepCpuUsage',
+    'cpu_usage_metrics'
 ]

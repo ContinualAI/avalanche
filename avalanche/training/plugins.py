@@ -268,7 +268,7 @@ class EvaluationPlugin(StrategyPlugin):
     """
 
     def __init__(self,
-                 *metrics: PluginMetric,
+                 *metrics: Union[PluginMetric, Sequence[PluginMetric]],
                  loggers: Union[Logger, Sequence[Logger]] = None,
                  tracers: Union[None,
                                 StrategyTrace,
@@ -281,8 +281,13 @@ class EvaluationPlugin(StrategyPlugin):
         :param metrics: The metrics to compute.
         """
         super().__init__()
-
-        self.metrics = metrics
+        flat_metrics_list = []
+        for metric in metrics:
+            if isinstance(metric, PluginMetric):
+                flat_metrics_list.append(metric)
+            else:
+                flat_metrics_list += list(metric)
+        self.metrics = flat_metrics_list
 
         if loggers is None:
             loggers = []
@@ -298,17 +303,6 @@ class EvaluationPlugin(StrategyPlugin):
             tracers = [tracers]
 
         self._tracers: Sequence[StrategyTrace] = tracers
-
-        # Private state variables
-        self._steps_counter: int = -1
-
-        # Training variables
-        self._current_train_step_id: Optional[int] = None
-        self._train_current_task_id = None
-
-        # Test variables
-        self._current_test_step_id: Optional[int] = None
-        self._test_current_task_id = None
 
     def _log_metric_values(self, metric_values: List[MetricValue]):
         for to_be_logged in metric_values:

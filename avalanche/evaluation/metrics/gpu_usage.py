@@ -44,6 +44,8 @@ class GpuUsage:
     """
 
     MAX_BUFFER = 10000
+    SMI_NOT_FOUND_MSG = 'No GPU available: nvidia-smi command not ' \
+                        'found. Gpu Usage logging will be disabled.'
 
     def __init__(self, gpu_id, every=2.0):
         """
@@ -65,6 +67,7 @@ class GpuUsage:
         # Long running process
         self._p = None
         self._read_thread = None
+        self._nvidia_smi_error: bool = False
         self._nvidia_smi_found: bool = False
 
     def update(self) -> None:
@@ -91,6 +94,8 @@ class GpuUsage:
         self._last_result = mean_usage.result()
 
     def _start_watch(self):
+        if self._nvidia_smi_error:
+            return
         try:
             self._p = subprocess.Popen(self._cmd, bufsize=1,
                                        stdout=subprocess.PIPE)
@@ -98,11 +103,12 @@ class GpuUsage:
                                                  daemon=True)
             self._read_thread.start()
             atexit.register(self.reset)
+            self._nvidia_smi_error = False
             self._nvidia_smi_found = True
-        except NotADirectoryError:
+        except (subprocess.SubprocessError, OSError):
+            self._nvidia_smi_error = True
             self._nvidia_smi_found = False
-            raise warnings.warn('No GPU available: nvidia-smi command not '
-                                'found. Gpu Usage logging will be disabled.')
+            warnings.warn(GpuUsage.SMI_NOT_FOUND_MSG)
 
     def _push_lines(self) -> None:
         last_time = None

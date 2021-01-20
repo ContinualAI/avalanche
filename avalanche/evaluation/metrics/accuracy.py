@@ -13,7 +13,7 @@
 ################################################################################
 
 from collections import defaultdict
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, List
 
 import torch
 from torch import Tensor
@@ -372,10 +372,62 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
         return metric_values
 
 
+def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
+                     task=False, train=None, test=None) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param minibatch: If True, will return a metric able to log the minibatch
+        accuracy.
+    :param epoch: If True, will return a metric able to log the epoch accuracy.
+    :param epoch_running: If True, will return a metric able to log the running
+        epoch accuracy.
+    :param task: If True, will return a metric able to log the task accuracy.
+        This metric applies to the test flow only. If the `test` parameter is
+        False, an error will be raised.
+    :param train: If True, metrics will log values for the train flow. Defaults
+        to None, which means that the per-metric default value will be used.
+    :param test: If True, metrics will log values for the test flow. Defaults
+        to None, which means that the per-metric default value will be used.
+
+    :return: A list of plugin metrics.
+    """
+
+    if (train is not None and not train) and (test is not None and not test):
+        raise ValueError('train and test can\'t be both False at the same'
+                         ' time.')
+    if task and test is not None and not test:
+        raise ValueError('The task accuracy metric only applies to the test '
+                         'phase.')
+
+    train_test_flags = dict()
+    if train is not None:
+        train_test_flags['train'] = train
+
+    if test is not None:
+        train_test_flags['test'] = test
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchAccuracy(**train_test_flags))
+
+    if epoch:
+        metrics.append(EpochAccuracy(**train_test_flags))
+
+    if epoch_running:
+        metrics.append(RunningEpochAccuracy(**train_test_flags))
+
+    if task:
+        metrics.append(TaskAccuracy())
+
+    return metrics
+
+
 __all__ = [
     'Accuracy',
     'MinibatchAccuracy',
     'EpochAccuracy',
     'RunningEpochAccuracy',
-    'TaskAccuracy'
+    'TaskAccuracy',
+    'accuracy_metrics'
 ]

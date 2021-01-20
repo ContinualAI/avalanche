@@ -4,13 +4,15 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import List
 
 import torch
 from torch import nn
 
+from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
-    DiskUsage, MAC
-from avalanche.evaluation.metrics.cpu_usage import CpuUsage
+    DiskUsage, MAC, accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics.cpu_usage import CpuUsage, cpu_usage_metrics
 from avalanche.evaluation.metrics.ram_usage import RamUsage
 
 
@@ -108,6 +110,19 @@ class AccuracyMetricTests(unittest.TestCase):
         uut.update(truth, predicted)
         self.assertEqual(5.0/12.0, uut.result())
 
+    def test_accuracy_helper(self):
+        metrics = accuracy_metrics(minibatch=True, epoch=True)
+        self.assertEqual(2, len(metrics))
+        self.assertIsInstance(metrics, List)
+        self.assertIsInstance(metrics[0], PluginMetric)
+        self.assertIsInstance(metrics[1], PluginMetric)
+
+        with self.assertRaises(ValueError):
+            accuracy_metrics(train=False, test=False)
+
+        with self.assertRaises(ValueError):
+            accuracy_metrics(task=True, test=False)
+
 
 class LossMetricTests(unittest.TestCase):
     def test_standalone_forgetting(self):
@@ -146,6 +161,19 @@ class LossMetricTests(unittest.TestCase):
 
         # Check that the last call to result didn't change the value
         self.assertAlmostEqual(expected_mean, uut.result())
+
+    def test_loss_helper(self):
+        metrics = loss_metrics(minibatch=True, epoch_running=True)
+        self.assertEqual(2, len(metrics))
+        self.assertIsInstance(metrics, List)
+        self.assertIsInstance(metrics[0], PluginMetric)
+        self.assertIsInstance(metrics[1], PluginMetric)
+
+        with self.assertRaises(ValueError):
+            loss_metrics(train=False, test=False)
+
+        with self.assertRaises(ValueError):
+            loss_metrics(task=True, test=False)
 
 
 class ConfusionMatrixMetricTests(unittest.TestCase):
@@ -292,6 +320,16 @@ class CpuUsageMetricTests(unittest.TestCase):
         time.sleep(0.3)
 
         self.assertEqual(last_result, uut.result())
+
+    def test_cpu_usage_helper(self):
+        metrics = cpu_usage_metrics(epoch=True, step=True)
+        self.assertEqual(2, len(metrics))
+        self.assertIsInstance(metrics, List)
+        self.assertIsInstance(metrics[0], PluginMetric)
+        self.assertIsInstance(metrics[1], PluginMetric)
+
+        with self.assertRaises(ValueError):
+            cpu_usage_metrics(train=False, test=False)
 
 
 class RamUsageMetricTests(unittest.TestCase):
