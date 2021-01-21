@@ -118,7 +118,8 @@ class MinibatchAccuracy(PluginMetric[float]):
     :class:`EpochAccuracy` and/or :class:`TaskAccuracy` instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=False, log_to_board: bool = True,
+                 log_to_text: bool = False):
         """
         Creates an instance of the MinibatchAccuracy metric.
 
@@ -130,8 +131,13 @@ class MinibatchAccuracy(PluginMetric[float]):
             phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
             phase. Defaults to False.
+        :param log_to_board: If True, the logger will log the metric value
+            on the dashboard (for instance, :class:`TensorboardLogger`).
+        :param log_to_text: If True, the values emitted by this metric will be
+            sent the strategy trace instance(s) to be printed in a text form
+            (for an example see :class:`DotTrace`).
         """
-        super().__init__()
+        super().__init__(log_to_board, log_to_text)
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
@@ -183,7 +189,8 @@ class EpochAccuracy(PluginMetric[float]):
     unbalanced minibatch sizes will not affect the metric.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=False, log_to_board: bool = True,
+                 log_to_text: bool = False):
         """
         Creates an instance of the EpochAccuracy metric.
 
@@ -195,8 +202,13 @@ class EpochAccuracy(PluginMetric[float]):
             phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
             phase. Defaults to False.
+        :param log_to_board: If True, the logger will log the metric value
+            on the dashboard (for instance, :class:`TensorboardLogger`).
+        :param log_to_text: If True, the values emitted by this metric will be
+            sent the strategy trace instance(s) to be printed in a text form
+            (for an example see :class:`DotTrace`).
         """
-        super().__init__()
+        super().__init__(log_to_board, log_to_text)
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
@@ -257,7 +269,8 @@ class RunningEpochAccuracy(EpochAccuracy):
     this metric will log the running accuracy value after each iteration.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=False, log_to_board: bool = True,
+                 log_to_text: bool = False):
         """
         Creates an instance of the RunningEpochAccuracy metric.
 
@@ -272,8 +285,14 @@ class RunningEpochAccuracy(EpochAccuracy):
             phase. Defaults to True.
         :param test: When True, the metric will be computed on the test
             phase. Defaults to False.
+        :param log_to_board: If True, the logger will log the metric value
+            on the dashboard (for instance, :class:`TensorboardLogger`).
+        :param log_to_text: If True, the values emitted by this metric will be
+            sent the strategy trace instance(s) to be printed in a text form
+            (for an example see :class:`DotTrace`).
         """
-        super().__init__()
+        super().__init__(train=train, test=test,
+                         log_to_board=log_to_board, log_to_text=log_to_text)
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'
@@ -328,11 +347,17 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
     doesn't apply to the training phase.
     """
 
-    def __init__(self):
+    def __init__(self, log_to_board: bool = True, log_to_text: bool = False):
         """
         Creates an instance of the TaskAccuracy metric.
+
+        :param log_to_board: If True, the logger will log the metric value
+            on the dashboard (for instance, :class:`TensorboardLogger`).
+        :param log_to_text: If True, the values emitted by this metric will be
+            sent the strategy trace instance(s) to be printed in a text form
+            (for an example see :class:`DotTrace`).
         """
-        super().__init__()
+        super().__init__(log_to_board, log_to_text)
 
         self._task_accuracy: Dict[int, Accuracy] = defaultdict(Accuracy)
         """
@@ -373,7 +398,9 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
 
 
 def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                     task=False, train=None, test=None) -> List[PluginMetric]:
+                     task=False, train=None, test=None,
+                     log_to_board: bool = True, log_to_text: bool = False) \
+        -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -389,6 +416,11 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         to None, which means that the per-metric default value will be used.
     :param test: If True, metrics will log values for the test flow. Defaults
         to None, which means that the per-metric default value will be used.
+    :param log_to_board: If True, the logger will log the metric value
+        on the dashboard (for instance, :class:`TensorboardLogger`).
+    :param log_to_text: If True, the values emitted by this metric will be
+        sent the strategy trace instance(s) to be printed in a text form
+        (for an example see :class:`DotTrace`).
 
     :return: A list of plugin metrics.
     """
@@ -407,6 +439,9 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if test is not None:
         train_test_flags['test'] = test
 
+    train_test_flags['log_to_board'] = log_to_board
+    train_test_flags['log_to_text'] = log_to_text
+
     metrics = []
     if minibatch:
         metrics.append(MinibatchAccuracy(**train_test_flags))
@@ -418,7 +453,8 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         metrics.append(RunningEpochAccuracy(**train_test_flags))
 
     if task:
-        metrics.append(TaskAccuracy())
+        metrics.append(TaskAccuracy(log_to_board=log_to_board,
+                                    log_to_text=log_to_text))
 
     return metrics
 

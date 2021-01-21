@@ -176,6 +176,8 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
     def __init__(self, *,
                  train: bool = False,
                  test: bool = True,
+                 log_to_board: bool = True,
+                 log_to_text: bool = False,
                  num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
@@ -191,6 +193,11 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             phase. Defaults to False.
         :param test: When True, the metric will be computed on the test
             phase. Defaults to True.
+        :param log_to_board: If True, the logger will log the metric value
+            on the dashboard (for instance, :class:`TensorboardLogger`).
+        :param log_to_text: If True, the values emitted by this metric will be
+            sent the strategy trace instance(s) to be printed in a text form
+            (for an example see :class:`DotTrace`).
         :param num_classes: When not None, is used to properly define the
             amount of rows/columns in the confusion matrix. When None, the
             matrix will have many rows/columns as the maximum value of the
@@ -209,7 +216,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             of the confusion matrix, returns a graphical representation of the
             matrix as a PIL Image. Defaults to `default_cm_image_creator`.
         """
-        super().__init__()
+        super().__init__(log_to_board, log_to_text)
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'

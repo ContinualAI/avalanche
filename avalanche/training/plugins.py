@@ -9,32 +9,32 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 import copy
-import random
-import quadprog
 import logging
+import random
 from collections import defaultdict
-from typing import Dict, Any, Optional, Union, Sequence, List, TYPE_CHECKING
+from typing import Dict, Any, Union, Sequence, List, TYPE_CHECKING
 
 import numpy as np
+import quadprog
 import torch
+import warnings
 from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
-from typing_extensions import Literal
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.extras.logging import Logger
-from avalanche.extras.strategy_trace import StrategyTrace, DefaultStrategyTrace
+from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
 
 if TYPE_CHECKING:
+    from avalanche.extras.logging import StrategyLogger
     from avalanche.training.strategies import BaseStrategy, JointTraining
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 PluggableStrategy = Union['BaseStrategy', 'JointTraining']
 
 
-class StrategyPlugin:
+class StrategyPlugin(StrategyCallbacks):
     """
     Base class for strategy plugins. Implements all the callbacks required
     by the BaseStrategy with an empty function. Subclasses must override
@@ -42,6 +42,7 @@ class StrategyPlugin:
     """
 
     def __init__(self):
+        super().__init__()
         pass
 
     def before_training(self, strategy: PluggableStrategy, **kwargs):
@@ -269,16 +270,13 @@ class EvaluationPlugin(StrategyPlugin):
 
     def __init__(self,
                  *metrics: Union[PluginMetric, Sequence[PluginMetric]],
-                 loggers: Union[Logger, Sequence[Logger]] = None,
-                 tracers: Union[None,
-                                StrategyTrace,
-                                Sequence[StrategyTrace],
-                                Literal['default']] = 'default'):
+                 logger: Union[StrategyLogger,
+                               Sequence[StrategyLogger]] = None):
         """
         Creates an instance of the evaluation plugin.
 
-        :param loggers: The loggers to use to log the metric values.
         :param metrics: The metrics to compute.
+        :param logger: The logger(s) to use to save the metric values.
         """
         super().__init__()
         flat_metrics_list = []
@@ -289,29 +287,24 @@ class EvaluationPlugin(StrategyPlugin):
                 flat_metrics_list += list(metric)
         self.metrics = flat_metrics_list
 
-        if loggers is None:
-            loggers = []
-        elif not isinstance(loggers, Sequence):
-            loggers = [loggers]
-        self.loggers: Sequence[Logger] = loggers
+        if logger is None:
+            logger = []
+        elif not isinstance(logger, Sequence):
+            logger = [logger]
+        self.loggers: Sequence[StrategyLogger] = logger
 
-        if tracers is None:
-            tracers = []
-        elif tracers == 'default':
-            tracers = [DefaultStrategyTrace()]
-        elif not isinstance(tracers, Sequence):
-            tracers = [tracers]
+        if len(self.loggers) == 0:
+            warnings.warn('No loggers specified, metrics will not be logged')
 
-        self._tracers: Sequence[StrategyTrace] = tracers
-
-    def _log_metric_values(self, metric_values: List[MetricValue]):
+    def _log_metric_values(self, strategy: PluggableStrategy,
+                           metric_values: List[MetricValue],
+                           callback: str):
         for to_be_logged in metric_values:
             for logger in self.loggers:
+                getattr(logger, callback)(strategy, metric_values)
                 logger.log_metric(to_be_logged)
 
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
-        for trace_util in self._tracers:
-            getattr(trace_util, callback)(strategy)
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
@@ -320,7 +313,7 @@ class EvaluationPlugin(StrategyPlugin):
                 metric_values.append(metric_result)
             elif metric_result is not None:
                 metric_values += metric_result
-        self._log_metric_values(metric_values)
+        self._log_metric_values(strategy, metric_values, callback)
         return metric_values
 
     def before_training(self, strategy: PluggableStrategy, **kwargs):
