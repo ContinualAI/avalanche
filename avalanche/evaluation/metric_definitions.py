@@ -17,6 +17,8 @@ from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
 from typing_extensions import Protocol
 
+from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
+
 if TYPE_CHECKING:
     from .metric_results import MetricResult
     from avalanche.training.plugins import PluggableStrategy
@@ -58,7 +60,7 @@ class Metric(Protocol[TResult]):
         pass
 
 
-class PluginMetric(Metric[TResult], ABC):
+class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     """
     A kind of metric that can be used by the :class:`EvaluationPlugin`.
 
@@ -85,6 +87,7 @@ class PluginMetric(Metric[TResult], ABC):
             sent the strategy trace instance(s) to be printed in a text form
             (for an example see :class:`DotTrace`).
         """
+        super().__init__()
         self._metric_x_counters: Dict[str, int] = dict()
 
         self.log_to_board: bool = log_to_board
@@ -102,95 +105,95 @@ class PluginMetric(Metric[TResult], ABC):
 
     @abstractmethod
     def result(self) -> Optional[TResult]:
-        return None
+        pass
 
     @abstractmethod
     def reset(self) -> None:
-        return None
+        pass
 
     def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def before_training_step(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def adapt_train_dataset(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_training_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def before_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def after_training_step(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def adapt_test_dataset(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def after_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        return None
+        pass
 
     def before_test_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def before_test_forward(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def after_test_forward(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
-        return None
+        pass
 
     def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:
         """

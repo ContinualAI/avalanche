@@ -31,9 +31,9 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
     DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
-from avalanche.extras.logging.tensorboard_logger import TensorboardLogger
+from avalanche.training.logging.tensorboard_logger import TensorboardLogger
 from avalanche.extras.models import SimpleMLP
-from avalanche.extras.trace.dot_trace import DotTrace
+from avalanche.training.logging import DotTrace
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -75,8 +75,8 @@ def main():
     # nice and easy to read format.
     # Here we define a custom
     my_logger = TensorboardLogger(
-        tb_log_dir="logs", tb_log_exp_name="logging_example",
-        text_trace=DotTrace(stdout=True, trace_file='./logs/my_log.txt'))
+        tb_log_dir="logs", tb_log_exp_name="logging_example")
+    text_logger = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
 
     evaluation_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, task=True),
@@ -86,7 +86,7 @@ def main():
         TaskForgetting(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
-        loggers=my_logger)
+        logger=[my_logger, text_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(

@@ -22,19 +22,17 @@ from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.evaluation import PluginMetric
-from avalanche.evaluation.metric_results import MetricValue
 from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 if TYPE_CHECKING:
-    from avalanche.extras.logging import StrategyLogger
-    from avalanche.training.strategies import BaseStrategy, JointTraining
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+    from avalanche.training.logging import StrategyLogger
+    from avalanche.evaluation import PluginMetric
 
 PluggableStrategy = Union['BaseStrategy', 'JointTraining']
 
 
-class StrategyPlugin(StrategyCallbacks):
+class StrategyPlugin(StrategyCallbacks[Any]):
     """
     Base class for strategy plugins. Implements all the callbacks required
     by the BaseStrategy with an empty function. Subclasses must override
@@ -269,9 +267,9 @@ class EvaluationPlugin(StrategyPlugin):
     """
 
     def __init__(self,
-                 *metrics: Union[PluginMetric, Sequence[PluginMetric]],
-                 logger: Union[StrategyLogger,
-                               Sequence[StrategyLogger]] = None):
+                 *metrics: Union['PluginMetric', Sequence['PluginMetric']],
+                 logger: Union['StrategyLogger',
+                               Sequence['StrategyLogger']] = None):
         """
         Creates an instance of the evaluation plugin.
 
@@ -281,39 +279,33 @@ class EvaluationPlugin(StrategyPlugin):
         super().__init__()
         flat_metrics_list = []
         for metric in metrics:
-            if isinstance(metric, PluginMetric):
-                flat_metrics_list.append(metric)
-            else:
+            if isinstance(metric, Sequence):
                 flat_metrics_list += list(metric)
+            else:
+                flat_metrics_list.append(metric)
         self.metrics = flat_metrics_list
 
         if logger is None:
             logger = []
         elif not isinstance(logger, Sequence):
             logger = [logger]
-        self.loggers: Sequence[StrategyLogger] = logger
+        self.loggers: Sequence['StrategyLogger'] = logger
 
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
-
-    def _log_metric_values(self, strategy: PluggableStrategy,
-                           metric_values: List[MetricValue],
-                           callback: str):
-        for to_be_logged in metric_values:
-            for logger in self.loggers:
-                getattr(logger, callback)(strategy, metric_values)
-                logger.log_metric(to_be_logged)
 
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
 
-            if isinstance(metric_result, MetricValue):
-                metric_values.append(metric_result)
+            if isinstance(metric_result, Sequence):
+                metric_values += list(metric_result)
             elif metric_result is not None:
-                metric_values += metric_result
-        self._log_metric_values(strategy, metric_values, callback)
+                metric_values.append(metric_result)
+
+        for logger in self.loggers:
+            getattr(logger, callback)(strategy, metric_values)
         return metric_values
 
     def before_training(self, strategy: PluggableStrategy, **kwargs):

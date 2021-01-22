@@ -21,7 +21,7 @@ from __future__ import absolute_import
 
 from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage, DiskUsage, TimeUsage
 import numpy as np
-from avalanche.extras.logging.tensorboard_logger import Logger
+from avalanche.training.logging.tensorboard_logger import Logger
 
 
 class EvalProtocol(object):

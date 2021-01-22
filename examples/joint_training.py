@@ -29,7 +29,7 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.evaluation.metrics import EpochAccuracy
-from avalanche.extras.logging.tensorboard_logger import Logger
+from avalanche.training.logging.tensorboard_logger import Logger
 from avalanche.extras.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import JointTraining
