@@ -33,8 +33,8 @@ from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
     DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
 from avalanche.extras.logging import Logger
 from avalanche.extras.models import SimpleMLP
-from avalanche.extras.strategy_trace import DotTrace
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.extras.interactive_logging import InteractiveLogger
+from avalanche.extras.text_logging import TextLogger
 from avalanche.training.strategies import Naive
 
 
@@ -74,24 +74,26 @@ def main():
     # (and log to a file if you want) a bunch of useful information in a
     # nice and easy to read format.
     # Here we define a custom
-    my_logger = Logger()
-    trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
+    interactive_logger = TextLogger(
+        [*accuracy_metrics(minibatch=True, epoch=True, task=True),
+         *loss_metrics(minibatch=True, epoch=True, task=True),
+         *timing_metrics(epoch=True, epoch_average=True, test=False),
+         *cpu_usage_metrics(step=True),
+         TaskForgetting(), TaskConfusionMatrix(num_classes=scenario.n_classes), DiskUsageMonitor(),
+         RamUsageMonitor(), GpuUsageMonitor(0)]
+    )
 
-    evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        timing_metrics(epoch=True, epoch_average=True, test=False),
-        cpu_usage_metrics(step=True),
-        TaskForgetting(),
-        TaskConfusionMatrix(num_classes=scenario.n_classes),
-        DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
-        loggers=my_logger, tracers=trace)
+    # plugin = EvaluationPlugin(accuracy_metrics(minibatch=True, epoch=True, task=True),
+    #                           loss_metrics(minibatch=True, epoch=True, task=True),
+    #                           timing_metrics(epoch=True, epoch_average=True, test=False), cpu_usage_metrics(step=True),
+    #                           TaskForgetting(), TaskConfusionMatrix(num_classes=scenario.n_classes), DiskUsageMonitor(),
+    #                           RamUsageMonitor(), GpuUsageMonitor(0), loggers=my_logger, tracers=trace)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-        device=device, plugins=[evaluation_plugin])
+        device=device, plugins=[interactive_logger])
 
     # TRAINING LOOP
     print('Starting experiment...')
