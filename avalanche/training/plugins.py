@@ -25,7 +25,7 @@ from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.extras.logging import Logger
-from avalanche.extras.strategy_trace import StrategyTrace, DefaultStrategyTrace
+
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy, JointTraining
@@ -256,144 +256,6 @@ class GDumbPlugin(StrategyPlugin):
                 self.counter[target_value] += 1
 
         strategy.current_data = self.ext_mem
-
-
-class EvaluationPlugin(StrategyPlugin):
-    """
-    An evaluation plugin that obtains relevant data from the
-    training and testing loops of the strategy through callbacks.
-
-    This plugin updates the given metrics and logs them using the provided
-    loggers.
-    """
-
-    def __init__(self,
-                 *metrics: Union[PluginMetric, Sequence[PluginMetric]],
-                 loggers: Union[Logger, Sequence[Logger]] = None,
-                 tracers: Union[None,
-                                StrategyTrace,
-                                Sequence[StrategyTrace],
-                                Literal['default']] = 'default'):
-        """
-        Creates an instance of the evaluation plugin.
-
-        :param loggers: The loggers to use to log the metric values.
-        :param metrics: The metrics to compute.
-        """
-        super().__init__()
-        flat_metrics_list = []
-        for metric in metrics:
-            if isinstance(metric, PluginMetric):
-                flat_metrics_list.append(metric)
-            else:
-                flat_metrics_list += list(metric)
-        self.metrics = flat_metrics_list
-
-        if loggers is None:
-            loggers = []
-        elif not isinstance(loggers, Sequence):
-            loggers = [loggers]
-        self.loggers: Sequence[Logger] = loggers
-
-        if tracers is None:
-            tracers = []
-        elif tracers == 'default':
-            tracers = [DefaultStrategyTrace()]
-        elif not isinstance(tracers, Sequence):
-            tracers = [tracers]
-
-        self._tracers: Sequence[StrategyTrace] = tracers
-
-    def _log_metric_values(self, metric_values: List[MetricValue]):
-        for to_be_logged in metric_values:
-            for logger in self.loggers:
-                logger.log_metric(to_be_logged)
-
-    def _update_metrics(self, strategy: PluggableStrategy, callback: str):
-        for trace_util in self._tracers:
-            getattr(trace_util, callback)(strategy)
-        metric_values = []
-        for metric in self.metrics:
-            metric_result = getattr(metric, callback)(strategy)
-
-            if isinstance(metric_result, MetricValue):
-                metric_values.append(metric_result)
-            elif metric_result is not None:
-                metric_values += metric_result
-        self._log_metric_values(metric_values)
-        return metric_values
-
-    def before_training(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_training')
-
-    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_training_step')
-
-    def adapt_train_dataset(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'adapt_train_dataset')
-
-    def before_training_epoch(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_training_epoch')
-
-    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_training_iteration')
-
-    def before_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_forward')
-
-    def after_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_forward')
-
-    def before_backward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_backward')
-
-    def after_backward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_backward')
-
-    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_training_iteration')
-
-    def before_update(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_update')
-
-    def after_update(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_update')
-
-    def after_training_epoch(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_training_epoch')
-
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_training_step')
-
-    def after_training(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_training')
-
-    def before_test(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test')
-
-    def adapt_test_dataset(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'adapt_test_dataset')
-
-    def before_test_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_step')
-
-    def after_test_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_step')
-
-    def after_test(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test')
-
-    def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_iteration')
-
-    def before_test_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_forward')
-
-    def after_test_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_forward')
-
-    def after_test_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_iteration')
 
 
 class CWRStarPlugin(StrategyPlugin):
@@ -1195,5 +1057,5 @@ class EWCPlugin(StrategyPlugin):
 
 
 __all__ = ['PluggableStrategy', 'StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
-           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
+           'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
            'AGEMPlugin', 'GEMPlugin', 'EWCPlugin']
