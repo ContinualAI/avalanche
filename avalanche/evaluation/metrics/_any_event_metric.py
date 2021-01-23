@@ -30,6 +30,12 @@ class AnyEventMetric(PluginMetric[TResult], ABC):
     encountered. For internal use only.
     """
     def __init__(self):
+        """
+        Initializes the "AnyEventMetric" instance.
+
+        Can be safely called by subclasses at the beginning of the
+        initialization procedure.
+        """
         super().__init__()
 
     @abstractmethod

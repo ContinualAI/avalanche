@@ -1,5 +1,11 @@
+from typing import TYPE_CHECKING
+
+from avalanche.logging import StrategyLogger
+
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
+
 import sys
-from abc import ABC
 from pathlib import Path
 from typing import TextIO, Optional, Union, TYPE_CHECKING
 
@@ -12,84 +18,7 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class StrategyTrace(ABC):
-    def __init__(self):
-        pass
-
-    def before_training(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_training_step(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def adapt_train_dataset(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_training_epoch(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_training_iteration(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_forward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_forward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_backward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_backward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_training_iteration(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_update(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_update(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_training_epoch(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_training_step(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_training(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_test(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def adapt_test_dataset(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_test_step(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_test_step(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_test(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_test_iteration(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def before_test_forward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_test_forward(self, strategy: 'PluggableStrategy'):
-        return None
-
-    def after_test_iteration(self, strategy: 'PluggableStrategy'):
-        return None
-
-
-class DotTrace(StrategyTrace):
+class DotTrace(StrategyLogger):
     def __init__(self,
                  stdout=True,
                  stderr=False,
@@ -163,34 +92,51 @@ class DotTrace(StrategyTrace):
               'File logging will be disabled.', file=sys.stderr)
         print(err, flush=True, file=sys.stderr)
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy'):
+    def after_training_iteration(self, strategy: 'PluggableStrategy',
+                                 _metric_values, **kwargs):
         self._on_iteration(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy'):
+    def after_test_iteration(self, strategy: 'PluggableStrategy',
+                             _metric_values, **kwargs):
         self._on_iteration(strategy)
 
-    def before_training_step(self, strategy: 'PluggableStrategy'):
+    def before_training_step(self, strategy: 'PluggableStrategy',
+                             _metric_values, **kwargs):
         self._on_step_start(strategy)
 
-    def before_test_step(self, strategy: 'PluggableStrategy'):
+    def before_test_step(self, strategy: 'PluggableStrategy',
+                         _metric_values, **kwargs):
+        self._running_loss.reset()
+        self._running_accuracy.reset()
         self._on_step_start(strategy)
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy'):
+    def before_training_epoch(self, strategy: 'PluggableStrategy',
+                              _metric_values, **kwargs):
+        self._running_loss.reset()
+        self._running_accuracy.reset()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy',
+                             _metric_values, **kwargs):
         self._on_epoch_end(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy'):
+    def after_test_step(self, strategy: 'PluggableStrategy',
+                        _metric_values, **kwargs):
         self._on_epoch_end(strategy)
 
-    def before_training(self, strategy: 'PluggableStrategy'):
+    def before_training(self, strategy: 'PluggableStrategy',
+                        _metric_values, **kwargs):
         self._on_phase_start(strategy)
 
-    def before_test(self, strategy: 'PluggableStrategy'):
+    def before_test(self, strategy: 'PluggableStrategy',
+                    _metric_values, **kwargs):
         self._on_phase_start(strategy)
 
-    def after_training(self, strategy: 'PluggableStrategy'):
+    def after_training(self, strategy: 'PluggableStrategy',
+                       _metric_values, **kwargs):
         self._on_phase_end(strategy)
 
-    def after_test(self, strategy: 'PluggableStrategy'):
+    def after_test(self, strategy: 'PluggableStrategy',
+                   _metric_values, **kwargs):
         self._on_phase_end(strategy)
 
     def _on_iteration(self, strategy: 'PluggableStrategy'):
@@ -254,6 +200,6 @@ class DotTrace(StrategyTrace):
         self._new_line()
 
 
-DefaultStrategyTrace = DotTrace
-
-__all__ = ['StrategyTrace', 'DotTrace', 'DefaultStrategyTrace']
+__all__ = [
+    'DotTrace'
+]

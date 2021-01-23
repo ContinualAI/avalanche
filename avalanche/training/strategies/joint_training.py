@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, TYPE_CHECKING
 
 from torch.nn import Module, Linear
 from torch.optim import Optimizer
@@ -18,7 +18,8 @@ import torch
 import logging
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.training.plugins import StrategyPlugin
+if TYPE_CHECKING:
+    from avalanche.training.plugins import StrategyPlugin
 
 
 class JointTraining:
@@ -26,7 +27,7 @@ class JointTraining:
                  classifier_field: str = 'classifier',
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence[StrategyPlugin]] = None):
+                 plugins: Optional[Sequence['StrategyPlugin']] = None):
         """
         JointStrategy is a super class for all the joint training strategies.
         This means that it is not a continual learning strategy but it can be

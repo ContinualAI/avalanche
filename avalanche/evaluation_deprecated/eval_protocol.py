@@ -21,16 +21,14 @@ from __future__ import absolute_import
 
 from .metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage, DiskUsage, TimeUsage
 import numpy as np
-from avalanche.extras.logging import Logger
+from avalanche.logging.tensorboard_logger import TensorboardLogger
 
 
 class EvalProtocol(object):
 
-    def __init__(self, metrics=[ACC()], logger=Logger()):
+    def __init__(self, metrics=[ACC()], logger=TensorboardLogger()):
 
         self.logger = logger
-        self.log = logger.log
-        self.tb_logging = logger.tb_logging
         self.metrics = []
         for metric in metrics:
             self.metrics.append(metric)
@@ -73,7 +71,7 @@ class EvalProtocol(object):
     def update_tb_test(self, res, step):
         """ Function to update tensorboard """
 
-        if self.tb_logging.writer is not None:
+        if self.logger is not None:
 
             acc_scalars = {}
             loss_scalars = {}
@@ -120,11 +118,11 @@ class EvalProtocol(object):
                 if isinstance(metric, CF):
                     for t, (_, _, _, m_res) in res.items():
                         cf_scalars["task_" + str(t).zfill(3)] = m_res[CF]
-                    self.tb_logging.writer.add_scalars(
+                    self.logger.writer.add_scalars(
                         'Accuracy/CF', cf_scalars, step
                     )
                 elif isinstance(metric, RAMU):
-                    self.tb_logging.writer.add_scalar(
+                    self.logger.writer.add_scalar(
                         'Efficiency/RAM', res[0][3][RAMU], step
                     )
                 elif isinstance(metric, CM):
@@ -135,31 +133,31 @@ class EvalProtocol(object):
                             cm_imgs = np.concatenate((cm_imgs,
                                                       np.expand_dims(m_res[CM],
                                                                      axis=0)))
-                    self.tb_logging.writer.add_images(
+                    self.logger.writer.add_images(
                         "Confusion_matrices", cm_imgs, step)
 
-            self.tb_logging.writer.add_scalars(
+            self.logger.writer.add_scalars(
                 'Accuracy/Test', acc_scalars, step
             )
-            self.tb_logging.writer.add_scalars(
+            self.logger.writer.add_scalars(
                 'Loss/Test', loss_scalars, step
             )
-            self.tb_logging.writer.add_scalars(
+            self.logger.writer.add_scalars(
                 'Accuracy/Test_x_class', class_scalars, step
             )
-            self.tb_logging.writer.add_scalar(
+            self.logger.writer.add_scalar(
                 'Loss/Avg_Test_Loss', np.average(list(loss_scalars.values())),
                 step
             )
-            self.tb_logging.writer.add_scalar(
+            self.logger.writer.add_scalar(
                 'Accuracy/Avg_Test_Acc', np.average(list(acc_scalars.values())),
                 step
             )
-            self.tb_logging.writer.add_scalars(
+            self.logger.writer.add_scalars(
                 'Accuracy/Test_acc_diff', in_out_scalars, step
             )
 
-            self.tb_logging.writer.flush()
+            self.logger.writer.flush()
 
     def update_tb_train(self, loss, acc, step, encountered_class, t):
         """ Function to update tensorboard """
@@ -167,12 +165,12 @@ class EvalProtocol(object):
         self.cur_classes = encountered_class
         self.cur_t = t
 
-        if self.tb_logging.writer is not None:
-            self.tb_logging.writer.add_scalar(
+        if self.logger.writer is not None:
+            self.logger.writer.add_scalar(
                 'Accuracy/Train', acc, step
             )
-            self.tb_logging.writer.add_scalar(
+            self.logger.writer.add_scalar(
                 'Loss/Train', loss, step
             )
 
-        self.tb_logging.writer.flush()
+        self.logger.writer.flush()

@@ -2,16 +2,14 @@ import unittest
 
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from avalanche.benchmarks import nc_scenario
-from avalanche.benchmarks.datasets import MNIST
-from avalanche.benchmarks.scenarios import DatasetPart
-from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
-from avalanche.evaluation_deprecated.metrics import ACC
-from avalanche.extras import SimpleMLP
-from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
-from avalanche.training.strategies import Naive
 from torchvision import transforms
 from torchvision.transforms import ToTensor, RandomCrop
+
+from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks.datasets import MNIST
+from avalanche.models import SimpleMLP
+from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
+from avalanche.training.strategies import Naive
 
 
 class MockPlugin(StrategyPlugin):
@@ -95,8 +93,6 @@ class PluginTests(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         scenario = self.create_scenario()
-        eval_protocol = EvalProtocol(
-            metrics=[ACC(num_class=scenario.n_classes)])
 
         plug = MockPlugin()
         strategy = Naive(model, optimizer, criterion,

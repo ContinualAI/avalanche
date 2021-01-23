@@ -23,7 +23,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import torch
-from avalanche.extras.models.batch_renorm import BatchRenorm2D
+from avalanche.models.batch_renorm import BatchRenorm2D
 
 
 def replace_bn_with_brn(
@@ -259,7 +259,7 @@ def compute_ewc_loss(model, ewcData, lambd=0, device=None):
 
 
 if __name__ == "__main__":
-    from avalanche.extras.models.mobilenetv1 import MobilenetV1
+    from avalanche.models import MobilenetV1
     model = MobilenetV1(pretrained=True)
     replace_bn_with_brn(model, "net")
 
