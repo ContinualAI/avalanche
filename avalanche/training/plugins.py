@@ -12,7 +12,7 @@ import copy
 import logging
 import random
 from collections import defaultdict
-from typing import Dict, Any, Union, Sequence, List, TYPE_CHECKING
+from typing import Dict, Any, Union, Sequence, TYPE_CHECKING
 
 import numpy as np
 import quadprog
@@ -26,7 +26,7 @@ from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 if TYPE_CHECKING:
-    from avalanche.training.logging import StrategyLogger
+    from avalanche.logging import StrategyLogger
     from avalanche.evaluation import PluginMetric
 
 PluggableStrategy = Union['BaseStrategy', 'JointTraining']
@@ -268,13 +268,13 @@ class EvaluationPlugin(StrategyPlugin):
 
     def __init__(self,
                  *metrics: Union['PluginMetric', Sequence['PluginMetric']],
-                 logger: Union['StrategyLogger',
-                               Sequence['StrategyLogger']] = None):
+                 loggers: Union['StrategyLogger',
+                                Sequence['StrategyLogger']] = None):
         """
         Creates an instance of the evaluation plugin.
 
         :param metrics: The metrics to compute.
-        :param logger: The logger(s) to use to save the metric values.
+        :param loggers: The loggers to be used to log the metric values.
         """
         super().__init__()
         flat_metrics_list = []
@@ -285,11 +285,11 @@ class EvaluationPlugin(StrategyPlugin):
                 flat_metrics_list.append(metric)
         self.metrics = flat_metrics_list
 
-        if logger is None:
-            logger = []
-        elif not isinstance(logger, Sequence):
-            logger = [logger]
-        self.loggers: Sequence['StrategyLogger'] = logger
+        if loggers is None:
+            loggers = []
+        elif not isinstance(loggers, Sequence):
+            loggers = [loggers]
+        self.loggers: Sequence['StrategyLogger'] = loggers
 
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')

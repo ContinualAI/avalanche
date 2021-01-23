@@ -31,9 +31,9 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
     DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
-from avalanche.training.logging.tensorboard_logger import TensorboardLogger
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.logging import DotTrace
+from avalanche.logging.tensorboard_logger import TensorboardLogger
+from avalanche.models import SimpleMLP
+from avalanche.logging import DotTrace
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -86,7 +86,7 @@ def main():
         TaskForgetting(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
-        logger=[my_logger, text_logger])
+        loggers=[my_logger, text_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(

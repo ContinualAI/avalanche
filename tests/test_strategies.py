@@ -25,7 +25,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.datasets import MNIST
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy
 from avalanche.benchmarks import nc_scenario

@@ -29,15 +29,14 @@ class AnyEventMetric(PluginMetric[TResult], ABC):
     A metric that calls a given abstract method each time a new event is
     encountered. For internal use only.
     """
-    def __init__(self, log_to_board: bool, log_to_text: bool):
+    def __init__(self):
         """
-        :param log_to_board: If True, the logger will log the metric value
-            on the dashboard (for instance, :class:`TensorboardLogger`).
-        :param log_to_text: If True, the values emitted by this metric will be
-            sent the strategy trace instance(s) to be printed in a text form
-            (for an example see :class:`DotTrace`).
+        Initializes the "AnyEventMetric" instance.
+
+        Can be safely called by subclasses at the beginning of the
+        initialization procedure.
         """
-        super().__init__(log_to_board, log_to_text)
+        super().__init__()
 
     @abstractmethod
     def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':

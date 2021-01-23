@@ -21,7 +21,7 @@ from torchvision.transforms import ToTensor, Compose
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF
 from avalanche.benchmarks import nc_scenario, NCStepInfo

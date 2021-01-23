@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms.functional import to_tensor
 
 from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
-from avalanche.training.logging import StrategyLogger
+from avalanche.logging import StrategyLogger
 
 
 class TensorboardLogger(StrategyLogger):

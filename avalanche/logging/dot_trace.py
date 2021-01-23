@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from avalanche.training.logging import StrategyLogger
+from avalanche.logging import StrategyLogger
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy

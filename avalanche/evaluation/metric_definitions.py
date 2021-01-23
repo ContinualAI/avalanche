@@ -74,34 +74,15 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     be used to label each metric value with its appropriate "x" position in the
     plot.
     """
-    def __init__(self, log_to_board: bool, log_to_text: bool):
+    def __init__(self):
         """
         Creates an instance of a plugin metric.
 
         Child classes can safely invoke this (super) constructor as the first
         step.
-
-        :param log_to_board: If True, the logger will log the metric value
-            on the dashboard (for instance, :class:`TensorboardLogger`).
-        :param log_to_text: If True, the values emitted by this metric will be
-            sent the strategy trace instance(s) to be printed in a text form
-            (for an example see :class:`DotTrace`).
         """
         super().__init__()
         self._metric_x_counters: Dict[str, int] = dict()
-
-        self.log_to_board: bool = log_to_board
-        """
-        If True, the logger will log the metric value on the dashboard 
-        (for instance, :class:`TensorboardLogger`).
-        """
-
-        self.log_to_text: bool = log_to_text
-        """
-        If True, the values emitted by this metric will be sent the strategy 
-        trace instance(s) to be printed in a text form (for an example see 
-        :class:`DotTrace`).
-        """
 
     @abstractmethod
     def result(self) -> Optional[TResult]:

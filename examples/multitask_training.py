@@ -24,7 +24,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import MultiTaskStrategy
 
 
