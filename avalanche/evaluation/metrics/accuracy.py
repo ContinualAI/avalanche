@@ -273,7 +273,7 @@ class RunningEpochAccuracy(EpochAccuracy):
         :param test: When True, the metric will be computed on the test
             phase. Defaults to False.
         """
-        super().__init__()
+        super().__init__(train=train, test=test)
 
         if not train and not test:
             raise ValueError('train and test can\'t be both False at the same'

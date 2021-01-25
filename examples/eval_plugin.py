@@ -74,6 +74,7 @@ def main():
     # (and log to a file if you want) a bunch of useful information in a
     # nice and easy to read format.
     # Here we define a custom
+
     interactive_logger = TextLogger(
         [*accuracy_metrics(minibatch=True, epoch=True, task=True),
          *loss_metrics(minibatch=True, epoch=True, task=True),
@@ -88,6 +89,7 @@ def main():
     #                           timing_metrics(epoch=True, epoch_average=True, test=False), cpu_usage_metrics(step=True),
     #                           TaskForgetting(), TaskConfusionMatrix(num_classes=scenario.n_classes), DiskUsageMonitor(),
     #                           RamUsageMonitor(), GpuUsageMonitor(0), loggers=my_logger, tracers=trace)
+
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
