@@ -22,13 +22,12 @@ from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
+from avalanche.training.strategy_callbacks import StrategyCallbacks
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 if TYPE_CHECKING:
     from avalanche.logging import StrategyLogger
     from avalanche.evaluation import PluginMetric
-    from avalanche.training.strategies import BaseStrategy, JointTraining
 
 PluggableStrategy = Union['BaseStrategy', 'JointTraining']
 
@@ -295,6 +294,8 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
+        self.metric_vals = {}
+
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         metric_values = []
         for metric in self.metrics:
@@ -304,6 +305,13 @@ class EvaluationPlugin(StrategyPlugin):
                 metric_values += list(metric_result)
             elif metric_result is not None:
                 metric_values.append(metric_result)
+
+        for metric_value in metric_values:
+            m_orig = metric_value.origin
+            name = metric_value.name
+            x = metric_value.x_plot
+            val = metric_value.value
+            self.metric_vals[m_orig] = (name, x, val)
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)

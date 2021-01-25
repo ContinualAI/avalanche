@@ -65,5 +65,6 @@ def main():
         cl_strategy.train(train_task, num_workers=4)
         results.append(cl_strategy.test(test_stream))
 
+
 if __name__ == '__main__':
     main()

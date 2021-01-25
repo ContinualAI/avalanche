@@ -96,7 +96,7 @@ def main():
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
-        device=device, plugins=[eval_plugin])
+        device=device, evaluator=eval_plugin)
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -105,10 +105,12 @@ def main():
         print("Start of step: ", step.current_step)
         print("Current Classes: ", step.classes_in_this_step)
 
-        cl_strategy.train(step, num_workers=4)
+        # train returns a dictionary which contains all the metric values
+        res = cl_strategy.train(step, num_workers=4)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
+        # test also returns a dictionary which contains all the metric values
         results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
 
 

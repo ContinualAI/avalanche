@@ -72,7 +72,7 @@ class TextLogger(StrategyLogger):
                         metric_values: List['MetricValue'], **kwargs):
         super().after_test_step(strategy, metric_values, **kwargs)
         print(f'> Test on step {strategy.step_id} (Task '
-              f'{strategy.test_task_label}) ended.')
+              f'{strategy.test_task_label}) ended.', file=self.file, flush=True)
         self.print_current_metrics()
 
     def before_training(self, strategy: 'PluggableStrategy',

@@ -17,7 +17,7 @@ from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
 from typing_extensions import Protocol
 
-from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
+from avalanche.training.strategy_callbacks import StrategyCallbacks
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult

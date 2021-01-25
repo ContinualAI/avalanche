@@ -4,7 +4,7 @@ from typing import List
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.training.plugins import PluggableStrategy
-from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
+from avalanche.training.strategy_callbacks import StrategyCallbacks
 
 
 class StrategyLogger(StrategyCallbacks[None], ABC):
