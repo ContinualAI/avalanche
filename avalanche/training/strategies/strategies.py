@@ -37,7 +37,7 @@ class Naive(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """
         Creates an instance of the Naive strategy.
 
@@ -66,7 +66,7 @@ class CWRStar(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ CWR* Strategy.
         This strategy does not use task identities.
 
@@ -103,7 +103,7 @@ class Replay(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ Experience replay strategy. See ReplayPlugin for more details.
         This strategy does not use task identities.
 
@@ -138,7 +138,7 @@ class GDumb(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ GDumb strategy. See GDumbPlugin for more details.
         This strategy does not use task identities.
 
@@ -174,7 +174,7 @@ class Cumulative(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ Cumulative strategy. At each step,
             train model with data from all previous steps and current step.
             This strategy does not use task identities.
@@ -217,7 +217,7 @@ class LwF(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ Learning without Forgetting strategy. 
             See LwF plugin for details.
             This strategy does not use task identities.
@@ -257,7 +257,7 @@ class AGEM(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator : EvaluationPlugin = default_logger):
+                 evaluator: EvaluationPlugin = default_logger):
         """ Average Gradient Episodic Memory (A-GEM) strategy. 
             See AGEM plugin for details.
             This strategy does not use task identities.

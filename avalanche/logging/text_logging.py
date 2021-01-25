@@ -47,7 +47,7 @@ class TextLogger(StrategyLogger):
 
     def print_current_metrics(self):
         sorted_vals = sorted(self.metric_vals.values(),
-                        key=lambda x: x[0])
+                             key=lambda x: x[0])
         for name, x, val in sorted_vals:
             val = self._val_to_str(val)
             print(f'\t{name} = {val}', file=self.file, flush=True)
@@ -101,4 +101,4 @@ class TextLogger(StrategyLogger):
         task_id = strategy.train_task_label if strategy.is_training \
             else strategy.test_task_label
         print('-- Starting {} on step {} (Task {}) --'.format(
-              action_name, step_id, task_id), file=self.file, flush=True)
+            action_name, step_id, task_id), file=self.file, flush=True)

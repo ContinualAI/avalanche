@@ -22,6 +22,7 @@ from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics.mean import Mean
+
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
@@ -167,7 +168,7 @@ class MinibatchAccuracy(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = 'Top1_Acc_Minibatch/{}/Task{:03}'.format(phase_name,
-                                                           task_label)
+                                                               task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -243,7 +244,8 @@ class EpochAccuracy(PluginMetric[float]):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_Acc_Epoch/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Top1_Acc_Epoch/{}/Task{:03}'.format(phase_name,
+                                                           task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -308,7 +310,8 @@ class RunningEpochAccuracy(EpochAccuracy):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_Acc_Running/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Top1_Acc_Running/{}/Task{:03}'.format(phase_name,
+                                                             task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
