@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 """
-Multi-task training examples. Differently from the BaseStrategy, multi-task
+Multi-task training example. Differently from the BaseStrategy, multi-task
 training allows to use the task ids at train and test time (optionally).
 """
 

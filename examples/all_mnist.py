@@ -27,10 +27,9 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, \
     SplitMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
+
 
 def main():
 
@@ -41,9 +40,9 @@ def main():
     model = SimpleMLP(num_classes=10)
 
     # Here we show all the MNIST variation we offer in the "classic" benchmarks
-    perm_mnist = PermutedMNIST(n_steps=5, seed=1)
-    perm_mnist = RotatedMNIST(n_steps=5, seed=1)
-    perm_mnist = SplitMNIST(n_steps=5, seed=1)
+    # perm_mnist = PermutedMNIST(n_steps=5, seed=1)
+    perm_mnist = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
+    # perm_mnist = SplitMNIST(n_steps=5, seed=1)
 
     # Than we can extract the parallel train and test streams
     train_stream = perm_mnist.train_stream
@@ -52,13 +51,11 @@ def main():
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=10)])
 
     # Continual learning strategy
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
+        test_mb_size=32, device=device
     )
 
     # train and test loop

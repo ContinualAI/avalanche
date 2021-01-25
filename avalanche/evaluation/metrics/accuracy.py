@@ -166,7 +166,7 @@ class MinibatchAccuracy(PluginMetric[float]):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Minibatch_Top1/{}/Task{:03}'.format(phase_name,
+        metric_name = 'Top1_Acc_Minibatch/{}/Task{:03}'.format(phase_name,
                                                            task_label)
         plot_x_position = self._next_x_position(metric_name)
 
@@ -243,7 +243,7 @@ class EpochAccuracy(PluginMetric[float]):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Epoch_Top1/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Top1_Acc_Epoch/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -308,7 +308,7 @@ class RunningEpochAccuracy(EpochAccuracy):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_Running/{}/Task{:03}'.format(phase_name, task_label)
+        metric_name = 'Top1_Acc_Running/{}/Task{:03}'.format(phase_name, task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -364,7 +364,7 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
     def _package_result(self) -> MetricResult:
         metric_values = []
         for task_label, task_accuracy in self.result().items():
-            metric_name = 'Task_Top1/Task{:03}'.format(task_label)
+            metric_name = 'Top1_Acc_Task/Task{:03}'.format(task_label)
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(

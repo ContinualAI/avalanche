@@ -31,10 +31,9 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
     DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
-from avalanche.extras.logging import Logger
-from avalanche.extras.models import SimpleMLP
-from avalanche.extras.interactive_logging import InteractiveLogger
-from avalanche.extras.text_logging import TextLogger
+from avalanche.models import SimpleMLP
+from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
 
@@ -68,34 +67,36 @@ def main():
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
-    # The evaluation plugin can be used to compute many different metrics
-    # which can be saved and visualized by using a Logger.
-    # The evaluation plugin will also use a "tracer" which will print
-    # (and log to a file if you want) a bunch of useful information in a
-    # nice and easy to read format.
-    # Here we define a custom
+    # The evaluation plugin manages the metrics computation.
+    # It takes as argument a list of metrics and a list of loggers.
+    # The evaluation plugin calls the loggers to serialize the metrics
+    # and save them in persistent memory or print them in the standard output.
 
-    interactive_logger = TextLogger(
-        [*accuracy_metrics(minibatch=True, epoch=True, task=True),
-         *loss_metrics(minibatch=True, epoch=True, task=True),
-         *timing_metrics(epoch=True, epoch_average=True, test=False),
-         *cpu_usage_metrics(step=True),
-         TaskForgetting(), TaskConfusionMatrix(num_classes=scenario.n_classes), DiskUsageMonitor(),
-         RamUsageMonitor(), GpuUsageMonitor(0)]
-    )
+    # log to Tensorboard
+    tb_logger = TensorboardLogger()
 
-    # plugin = EvaluationPlugin(accuracy_metrics(minibatch=True, epoch=True, task=True),
-    #                           loss_metrics(minibatch=True, epoch=True, task=True),
-    #                           timing_metrics(epoch=True, epoch_average=True, test=False), cpu_usage_metrics(step=True),
-    #                           TaskForgetting(), TaskConfusionMatrix(num_classes=scenario.n_classes), DiskUsageMonitor(),
-    #                           RamUsageMonitor(), GpuUsageMonitor(0), loggers=my_logger, tracers=trace)
+    # log to text file
+    text_logger = TextLogger(open('log.txt', 'a'))
+
+    # print to stdout
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        TaskConfusionMatrix(num_classes=scenario.n_classes,save_image=False),
+        DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+        loggers=[interactive_logger, text_logger, tb_logger])
 
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-        CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-        device=device, plugins=[interactive_logger])
+        CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
+        device=device, plugins=[eval_plugin])
 
     # TRAINING LOOP
     print('Starting experiment...')

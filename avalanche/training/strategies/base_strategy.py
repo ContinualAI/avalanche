@@ -17,6 +17,9 @@ from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from typing import TYPE_CHECKING
+
+from avalanche.logging import default_logger
+
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -53,7 +56,7 @@ class BaseStrategy:
         self.test_mb_size = train_mb_size if test_mb_size is None \
             else test_mb_size
         self.device = device
-        self.plugins = [] if plugins is None else plugins
+        self.plugins = [default_logger] if plugins is None else plugins
 
         # Flow state variables
         self.step_id = None  # test-flow only.
