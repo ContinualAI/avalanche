@@ -12,12 +12,14 @@ import copy
 import logging
 import random
 from collections import defaultdict
-from typing import Dict, Any, Union, Sequence, TYPE_CHECKING
+from typing import Dict, Any, Union, Sequence, TYPE_CHECKING, Optional
 
 import numpy as np
 import quadprog
 import torch
 import warnings
+
+from torch import Tensor
 from torch.nn import Module, Linear
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
@@ -1181,6 +1183,178 @@ class EWCPlugin(StrategyPlugin):
             raise ValueError("Wrong EWC mode.")
 
 
-__all__ = ['PluggableStrategy', 'StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
-           'EvaluationPlugin', 'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
-           'AGEMPlugin', 'GEMPlugin', 'EWCPlugin']
+class SynapticIntelligencePlugin(StrategyPlugin):
+    # TODO: doc
+    def __init__(self, si_lambda: float, device: Any = 'as_strategy'):
+        """ Synaptic Intelligence Strategy.
+
+        This is the Synaptic Intelligence pytorch implementation of the
+        algorithm described in the paper "Continual Learning Through Synaptic
+        Intelligence" (https://arxiv.org/abs/1703.04200)
+
+        :param bool multi_head: multi-head or not
+        :param si_lambda: Synaptic Intellgence lambda term.
+        """
+
+        super().__init__()
+
+        self.si_lambda: float = si_lambda
+        self.ewc_data: Optional[Tensor] = None
+        self.syn_data: Optional[Dict[str, Tensor]] = None
+        self._device = device
+
+    def device(self, strategy: PluggableStrategy):
+        if self._device == 'as_strategy':
+            return strategy.device
+
+        return self._device
+
+    @staticmethod
+    def create_syn_data(model: Module):
+        size = 0
+        log = logging.getLogger("avalanche")
+
+        log.info('Creating Syn data for Optimal params and their Fisher info')
+
+        for name, param in model.named_parameters():
+            if "bn" not in name and "output" not in name:
+                size += param.numel()
+
+        # The first array returned is a 2D array: the first component contains
+        # the params at loss minimum, the second the parameter importance
+        # The second array is a dictionary with the synData
+        syn_data = {'old_theta': torch.zeros(size, dtype=torch.float32),
+                    'new_theta': torch.zeros(size, dtype=torch.float32),
+                    'grad': torch.zeros(size, dtype=torch.float32),
+                    'trajectory': torch.zeros(size, dtype=torch.float32),
+                    'cum_trajectory': torch.zeros(size, dtype=torch.float32)}
+
+        return torch.zeros((2, size), dtype=torch.float32), syn_data
+
+    @staticmethod
+    @torch.no_grad()
+    def extract_weights(model, target):
+        weights_vector = None
+        for name, param in model.named_parameters():
+            if "bn" not in name and "output" not in name:
+                # print(name, param.flatten())
+                if weights_vector is None:
+                    weights_vector = param.flatten()
+                else:
+                    weights_vector = torch.cat(
+                        (weights_vector, param.flatten()), 0)
+
+        target[...] = weights_vector.cpu()
+
+    @staticmethod
+    def init_batch(model, ewc_data: Tensor, syn_data):
+        SynapticIntelligencePlugin.\
+            extract_weights(model, ewc_data[0])  # Keep initial weights
+        syn_data['trajectory'].fill_(0.0)
+
+    @staticmethod
+    def compute_ewc_loss(model, ewc_data, lambd=0.0, device=None):
+        weights_vector = None
+        for name, param in model.named_parameters():
+            if "bn" not in name and "output" not in name:
+                # print(name, param.flatten())
+                if weights_vector is None:
+                    weights_vector = param.flatten()
+                else:
+                    weights_vector = torch.cat(
+                        (weights_vector, param.flatten()), 0)
+
+        ewc_data = ewc_data.to(device)
+        loss = (lambd / 2) * torch.dot(ewc_data[1],
+                                       (weights_vector - ewc_data[0]) ** 2)
+        return loss
+
+    @staticmethod
+    def pre_update(model, syn_data):
+        SynapticIntelligencePlugin.extract_weights(model, syn_data['old_theta'])
+
+    @staticmethod
+    def post_update(model, syn_data):
+        SynapticIntelligencePlugin.extract_weights(model, syn_data['new_theta'])
+        SynapticIntelligencePlugin.extract_grad(model, syn_data['grad'])
+
+        syn_data['trajectory'] += syn_data['grad'] * (
+                syn_data['new_theta'] - syn_data['old_theta'])
+
+    @staticmethod
+    @torch.no_grad()
+    def extract_grad(model, target):
+        # Store the gradients into target
+
+        grad_vector = None
+        for name, param in model.named_parameters():
+            if "bn" not in name and "output" not in name:
+                # print(name, param.flatten())
+                if grad_vector is None:
+                    grad_vector = param.grad.flatten()
+                else:
+                    grad_vector = torch.cat(
+                        (grad_vector, param.grad.flatten()), 0)
+
+        target[...] = grad_vector.cpu()
+
+    @staticmethod
+    def update_ewc_data(net, ewc_data, syn_data, clip_to, c=0.0015):
+        SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'])
+        eps = 0.0000001  # 0.001 in few task - 0.1 used in a more complex setup
+
+        syn_data['cum_trajectory'] += c * syn_data['trajectory'] / (
+                np.square(syn_data['new_theta'] - ewc_data[0]) + eps)
+
+        ewc_data[1] = torch.empty_like(syn_data['cum_trajectory']) \
+            .copy_(-syn_data['cum_trajectory'])
+        # change sign here because the Ewc regularization
+        # in Caffe (theta - thetaold) is inverted w.r.t. syn equation [4]
+        # (thetaold - theta)
+        ewc_data[1] = torch.clamp(ewc_data[1], max=clip_to)
+        # (except CWR)
+        ewc_data[0] = syn_data['new_theta'].clone().detach()
+
+    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
+        super().before_training_step(strategy, **kwargs)
+        if self.ewc_data is None:
+            self.ewc_data, self.syn_data = \
+                SynapticIntelligencePlugin.create_syn_data(strategy.model)
+        SynapticIntelligencePlugin.\
+            init_batch(strategy.model, self.ewc_data, self.syn_data)
+
+    def before_backward(self, strategy: PluggableStrategy, **kwargs):
+        super().before_backward(strategy, **kwargs)
+        strategy.loss += SynapticIntelligencePlugin.\
+            compute_ewc_loss(strategy.model, self.ewc_data,
+                             lambd=self.si_lambda,
+                             device=self.device(strategy))
+
+    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        super().before_training_iteration(strategy, **kwargs)
+        SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data)
+
+    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        super().after_training_iteration(strategy, **kwargs)
+        SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data)
+
+    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
+        super().after_training_step(strategy, **kwargs)
+        SynapticIntelligencePlugin.update_ewc_data(
+            strategy.model, self.ewc_data, self.syn_data, 0.001, 1)
+
+
+__all__ = [
+    'PluggableStrategy',
+    'StrategyPlugin',
+    'ReplayPlugin',
+    'GDumbPlugin',
+    'EvaluationPlugin',
+    'CWRStarPlugin',
+    'MultiHeadPlugin',
+    'LwFPlugin',
+    'AGEMPlugin',
+    'GEMPlugin',
+    'EWCPlugin',
+    'SynapticIntelligencePlugin'
+]
