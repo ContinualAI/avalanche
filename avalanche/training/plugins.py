@@ -1184,24 +1184,69 @@ class EWCPlugin(StrategyPlugin):
 
 
 class SynapticIntelligencePlugin(StrategyPlugin):
-    # TODO: doc
+    """
+    The Synaptic Intelligence plugin.
+
+    This is the Synaptic Intelligence PyTorch implementation of the
+    algorithm described in the paper "Continual Learning Through Synaptic
+    Intelligence" (https://arxiv.org/abs/1703.04200).
+
+    This plugin can be attached to existing strategies to achieve a
+    regularization effect.
+
+    This plugin will require the strategy `loss` field to be set before the
+    `before_backward` callback is invoked. The loss Tensor will be updated to
+    achieve the S.I. regularization effect.
+    """
     def __init__(self, si_lambda: float, device: Any = 'as_strategy'):
-        """ Synaptic Intelligence Strategy.
+        """
+        Creates an instance of the Synaptic Intelligence plugin.
 
-        This is the Synaptic Intelligence pytorch implementation of the
-        algorithm described in the paper "Continual Learning Through Synaptic
-        Intelligence" (https://arxiv.org/abs/1703.04200)
-
-        :param bool multi_head: multi-head or not
-        :param si_lambda: Synaptic Intellgence lambda term.
+        :param si_lambda: Synaptic Intelligence lambda term.
+        :param device: The device to use to run the S.I. steps. Defaults to
+            "as_strategy", which means that the `device` field of the strategy
+            will be used. Using a different device may lead to a performance
+            drop due to the required data transfer.
         """
 
         super().__init__()
+
+        warnings.warn("The Synaptic Intelligence plugin is in an alpha stage "
+                      "and is not perfectly aligned with the paper "
+                      "implementation. Please use at your own risk!")
 
         self.si_lambda: float = si_lambda
         self.ewc_data: Optional[Tensor] = None
         self.syn_data: Optional[Dict[str, Tensor]] = None
         self._device = device
+
+    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
+        super().before_training_step(strategy, **kwargs)
+        if self.ewc_data is None:
+            self.ewc_data, self.syn_data = \
+                SynapticIntelligencePlugin.create_syn_data(strategy.model)
+        SynapticIntelligencePlugin.\
+            init_batch(strategy.model, self.ewc_data, self.syn_data)
+
+    def before_backward(self, strategy: PluggableStrategy, **kwargs):
+        super().before_backward(strategy, **kwargs)
+        strategy.loss += SynapticIntelligencePlugin.\
+            compute_ewc_loss(strategy.model, self.ewc_data,
+                             lambd=self.si_lambda,
+                             device=self.device(strategy))
+
+    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        super().before_training_iteration(strategy, **kwargs)
+        SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data)
+
+    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
+        super().after_training_iteration(strategy, **kwargs)
+        SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data)
+
+    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
+        super().after_training_step(strategy, **kwargs)
+        SynapticIntelligencePlugin.update_ewc_data(
+            strategy.model, self.ewc_data, self.syn_data, 0.001, 1)
 
     def device(self, strategy: PluggableStrategy):
         if self._device == 'as_strategy':
@@ -1212,10 +1257,6 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     @staticmethod
     def create_syn_data(model: Module):
         size = 0
-        log = logging.getLogger("avalanche")
-
-        log.info('Creating Syn data for Optimal params and their Fisher info')
-
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
                 size += param.numel()
@@ -1285,7 +1326,6 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     @torch.no_grad()
     def extract_grad(model, target):
         # Store the gradients into target
-
         grad_vector = None
         for name, param in model.named_parameters():
             if "bn" not in name and "output" not in name:
@@ -1299,7 +1339,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         target[...] = grad_vector.cpu()
 
     @staticmethod
-    def update_ewc_data(net, ewc_data, syn_data, clip_to, c=0.0015):
+    def update_ewc_data(net, ewc_data: Tensor, syn_data, clip_to, c=0.0015):
         SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'])
         eps = 0.0000001  # 0.001 in few task - 0.1 used in a more complex setup
 
@@ -1314,34 +1354,6 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         ewc_data[1] = torch.clamp(ewc_data[1], max=clip_to)
         # (except CWR)
         ewc_data[0] = syn_data['new_theta'].clone().detach()
-
-    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
-        super().before_training_step(strategy, **kwargs)
-        if self.ewc_data is None:
-            self.ewc_data, self.syn_data = \
-                SynapticIntelligencePlugin.create_syn_data(strategy.model)
-        SynapticIntelligencePlugin.\
-            init_batch(strategy.model, self.ewc_data, self.syn_data)
-
-    def before_backward(self, strategy: PluggableStrategy, **kwargs):
-        super().before_backward(strategy, **kwargs)
-        strategy.loss += SynapticIntelligencePlugin.\
-            compute_ewc_loss(strategy.model, self.ewc_data,
-                             lambd=self.si_lambda,
-                             device=self.device(strategy))
-
-    def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
-        super().before_training_iteration(strategy, **kwargs)
-        SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data)
-
-    def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
-        super().after_training_iteration(strategy, **kwargs)
-        SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data)
-
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
-        super().after_training_step(strategy, **kwargs)
-        SynapticIntelligencePlugin.update_ewc_data(
-            strategy.model, self.ewc_data, self.syn_data, 0.001, 1)
 
 
 __all__ = [

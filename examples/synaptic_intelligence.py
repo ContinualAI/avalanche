@@ -6,14 +6,14 @@
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 24-05-2020                                                             #
+# Date: 26-01-2021                                                            #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
 
 """
-This is a simple example on how to use the Evaluation Plugin.
+This is a simple example on how to use the Synaptic Intelligence Plugin.
 """
 
 from __future__ import absolute_import
@@ -69,12 +69,7 @@ def main():
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
-    # The evaluation plugin can be used to compute many different metrics
-    # which can be saved and visualized by using a Logger.
-    # The evaluation plugin will also use a "tracer" which will print
-    # (and log to a file if you want) a bunch of useful information in a
-    # nice and easy to read format.
-    # Here we define a custom
+
     my_logger = TensorboardLogger(
         tb_log_dir="logs", tb_log_exp_name="logging_example")
     text_logger = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
@@ -86,7 +81,7 @@ def main():
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=[my_logger, text_logger])
 
-    # CREATE THE STRATEGY INSTANCE (NAIVE)
+    # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
     cl_strategy = Naive(
         model, Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(), train_mb_size=64, train_epochs=10, test_mb_size=64,
