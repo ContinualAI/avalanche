@@ -2,7 +2,7 @@ import torch
 import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
-from avalanche.extras import SimpleMLP
+from avalanche.models import SimpleMLP
 
 """
 This example tests both GEM and A-GEM on Split MNIST and Permuted MNIST.

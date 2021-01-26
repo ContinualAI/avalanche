@@ -30,7 +30,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 

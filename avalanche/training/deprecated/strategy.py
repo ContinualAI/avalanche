@@ -22,8 +22,8 @@ from __future__ import absolute_import
 import torch
 from torch.utils.data import Dataset
 
-from avalanche.evaluation_deprecated.metrics import ACC
 from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
+from avalanche.evaluation_deprecated.metrics import ACC
 from avalanche.training.utils import pad_data, shuffle_in_unison, \
     load_all_dataset
 

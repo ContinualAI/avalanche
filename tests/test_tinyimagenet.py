@@ -13,7 +13,7 @@
 ################################################################################
 
 """ TinyImagenet Tests"""
-
+import logging
 import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
@@ -22,6 +22,10 @@ from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
 
 class TinyImagenetTest(unittest.TestCase):
     def test_tinyimagenet_default_loader(self):
+
+        logger = logging.getLogger("avalanche")
+        logger.setLevel(logging.INFO)
+        logger.addHandler(logging.StreamHandler())
 
         scenario = SplitTinyImageNet()
         for task_info in scenario.train_stream:

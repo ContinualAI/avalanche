@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, TYPE_CHECKING
 
 from torch.nn import Module, Linear
 from torch.optim import Optimizer
@@ -18,7 +18,8 @@ import torch
 import logging
 
 from avalanche.benchmarks.scenarios import IStepInfo
-from avalanche.training.plugins import StrategyPlugin
+if TYPE_CHECKING:
+    from avalanche.training.plugins import StrategyPlugin
 
 
 class JointTraining:
@@ -26,7 +27,7 @@ class JointTraining:
                  classifier_field: str = 'classifier',
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence[StrategyPlugin]] = None):
+                 plugins: Optional[Sequence['StrategyPlugin']] = None):
         """
         JointStrategy is a super class for all the joint training strategies.
         This means that it is not a continual learning strategy but it can be
@@ -73,6 +74,13 @@ class JointTraining:
         self.mb_x, self.mb_y = None, None
         self.loss = None
         self.logits = None
+        self.train_task_label: Optional[int] = None
+        self.test_task_label: Optional[int] = None
+        self.is_training: bool = False
+
+    @property
+    def is_testing(self):
+        return not self.is_training
 
     @torch.no_grad()
     def set_task_layer(self, task_label):
@@ -132,6 +140,7 @@ class JointTraining:
         :param step_infos: sequence of IStepInfo (a stream).
         :return:
         """
+        self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
@@ -144,6 +153,7 @@ class JointTraining:
         task_labels = []
         task_to_datasets = {}
         for step_info in step_infos:
+            self.train_task_label = step_info.task_label
             task_labels.append(step_info.task_label)
             if step_info.task_label not in task_to_datasets.keys():
                 task_to_datasets[step_info.task_label] = []
@@ -280,6 +290,7 @@ class JointTraining:
         :param kwargs: custom arguments.
         :return: evaluation plugin test results.
         """
+        self.is_training = False
         self.model.eval()
         self.model.to(self.device)
 
@@ -288,6 +299,7 @@ class JointTraining:
 
         self.before_test(**kwargs)
         for step_info in step_list:
+            self.test_task_label = step_info.task_label
             self.step_info = step_info
             self.step_id = step_info.current_step
 

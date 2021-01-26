@@ -28,11 +28,12 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
-    EpochLoss, ConfusionMatrix, EpochTime, AverageEpochTime
-from avalanche.extras.logging import Logger
-from avalanche.extras.models import SimpleMLP
-from avalanche.extras.strategy_trace import DotTrace
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
+    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+from avalanche.logging.tensorboard_logger import TensorboardLogger
+from avalanche.models import SimpleMLP
+from avalanche.logging import DotTrace
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -73,13 +74,19 @@ def main():
     # (and log to a file if you want) a bunch of useful information in a
     # nice and easy to read format.
     # Here we define a custom
-    my_logger = Logger()
-    trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
+    my_logger = TensorboardLogger(
+        tb_log_dir="logs", tb_log_exp_name="logging_example")
+    text_logger = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
+
     evaluation_plugin = EvaluationPlugin(
-        EpochAccuracy(), TaskForgetting(), EpochLoss(),
-        EpochTime(), AverageEpochTime(),
-        ConfusionMatrix(num_classes=scenario.n_classes),
-        loggers=my_logger, tracers=trace)
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        TaskConfusionMatrix(num_classes=scenario.n_classes),
+        DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+        loggers=[my_logger, text_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(

@@ -22,7 +22,6 @@ from __future__ import print_function
 
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
 from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
@@ -30,7 +29,7 @@ import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation import EvalProtocol
 from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import ReplayPlugin, MultiHeadPlugin
 

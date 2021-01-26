@@ -22,7 +22,7 @@ from __future__ import absolute_import
 from avalanche.training.deprecated.strategy import Strategy
 from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
 from avalanche.evaluation_deprecated.metrics import ACC
-from avalanche.extras.models.mobilenetv1 import MobilenetV1
+from avalanche.models.mobilenetv1 import MobilenetV1
 from avalanche.training.deprecated.ar1.utils import replace_bn_with_brn, \
     create_syn_data, init_batch, freeze_up_to, change_brn_pars, \
     examples_per_class, reset_weights, pre_update, compute_ewc_loss, \

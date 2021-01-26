@@ -13,17 +13,18 @@
 ################################################################################
 
 import io
-from typing import Union, Sequence, List, Type
+from typing import Tuple, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from PIL import Image
-from numpy import ndarray
 from sklearn.metrics import ConfusionMatrixDisplay
+from torch import Tensor
 
-from .evaluation_data import EvalData, EvalTestData
+if TYPE_CHECKING:
+    from avalanche.training.plugins import PluggableStrategy
 
 
-def default_cm_image_creator(confusion_matrix_tensor: ndarray,
+def default_cm_image_creator(confusion_matrix_tensor: Tensor,
                              display_labels=None,
                              include_values=True,
                              xticks_rotation='horizontal',
@@ -61,7 +62,8 @@ def default_cm_image_creator(confusion_matrix_tensor: ndarray,
     """
 
     display = ConfusionMatrixDisplay(
-        confusion_matrix=confusion_matrix_tensor, display_labels=display_labels)
+        confusion_matrix=confusion_matrix_tensor.numpy(),
+        display_labels=display_labels)
     display.plot(include_values=include_values, cmap=cmap,
                  xticks_rotation=xticks_rotation, values_format=values_format)
 
@@ -77,48 +79,43 @@ def default_cm_image_creator(confusion_matrix_tensor: ndarray,
     return image
 
 
-def get_task_label(eval_data: Union[EvalData, EvalTestData]) -> int:
+def get_task_label(strategy: 'PluggableStrategy') -> int:
     """
-    Returns the current task label for a evaluation data object.
+    Returns the current task label.
 
     The current task label depends on the phase. During the training
-    phase, the task label is the one defined in the "training_task_label"
+    phase, the task label is the one defined in the "train_task_label"
     field. On the contrary, during the test phase the task label is the one
     defined in the "test_task_label" field.
 
-    :param eval_data: The evaluation data to get the task label from.
+    :param strategy: The strategy instance to get the task label from.
     :return: The current train or test task label.
     """
 
-    if eval_data.test_phase:
-        return eval_data.test_task_label
+    if strategy.is_testing:
+        return strategy.test_task_label
 
-    return eval_data.training_task_label
+    return strategy.train_task_label
 
 
-def filter_accepted_events(
-        event_types: Union[Type[EvalData], Sequence[Type[EvalData]]],
-        train: bool, test: bool) -> List[Type[EvalData]]:
+def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
     """
-    A simple utility method used to filter the types of evaluation events.
+    Returns the current phase name and the associated task label.
 
-    :param event_types: A list of event types.
-    :param train: If True, train events will be kept.
-    :param test: If True, test events will be kept.
-    :return: The event types as filtered according to the "train" and "test"
-        parameters.
+    The current task label depends on the phase. During the training
+    phase, the task label is the one defined in the "train_task_label"
+    field. On the contrary, during the test phase the task label is the one
+    defined in the "test_task_label" field.
+
+    :param strategy: The strategy instance to get the task label from.
+    :return: The current phase name as either "Train" or "Task" and the
+        associated task label.
     """
-    if isinstance(event_types, type):
-        event_types = [event_types]
 
-    accepted = []
-    for event_type in event_types:
-        if issubclass(event_type, EvalTestData):
-            if test:
-                accepted.append(event_type)
-        elif issubclass(event_type, EvalData) and train:
-            accepted.append(event_type)
-    return accepted
+    if strategy.is_testing:
+        return "Test", strategy.test_task_label
+
+    return "Train", strategy.train_task_label
 
 
 def bytes2human(n):
@@ -141,5 +138,5 @@ def bytes2human(n):
 __all__ = [
     'default_cm_image_creator',
     'get_task_label',
-    'filter_accepted_events',
+    'phase_and_task',
     'bytes2human']
