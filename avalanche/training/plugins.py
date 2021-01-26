@@ -28,6 +28,7 @@ from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 if TYPE_CHECKING:
     from avalanche.logging import StrategyLogger
     from avalanche.evaluation import PluginMetric
+    from avalanche.training.strategies import BaseStrategy, JointTraining
 
 PluggableStrategy = Union['BaseStrategy', 'JointTraining']
 
