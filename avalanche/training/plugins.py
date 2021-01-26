@@ -1190,4 +1190,4 @@ class EWCPlugin(StrategyPlugin):
 
 __all__ = ['PluggableStrategy', 'StrategyPlugin', 'ReplayPlugin', 'GDumbPlugin',
            'CWRStarPlugin', 'MultiHeadPlugin', 'LwFPlugin',
-           'AGEMPlugin', 'GEMPlugin', 'EWCPlugin']
+           'AGEMPlugin', 'GEMPlugin', 'EWCPlugin', 'EvaluationPlugin']
