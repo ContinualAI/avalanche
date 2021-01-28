@@ -22,8 +22,6 @@ from __future__ import absolute_import
 import torch
 from torch.utils.data import Dataset
 
-from avalanche.evaluation_deprecated.eval_protocol import EvalProtocol
-from avalanche.evaluation_deprecated.metrics import ACC
 from avalanche.training.utils import pad_data, shuffle_in_unison, \
     load_all_dataset
 
@@ -32,8 +30,7 @@ class Strategy(object):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=256,
-                 train_ep=2, multi_head=False, device=None, preproc=None,
-                 eval_protocol=EvalProtocol(metrics=[ACC()])):
+                 train_ep=2, multi_head=False, device=None, preproc=None):
 
         self.model = model
         if optimizer is None:
@@ -50,7 +47,6 @@ class Strategy(object):
         self.train_ep = train_ep
         self.multi_head = multi_head
         self.device = device
-        self.eval_protocol = eval_protocol
 
         # to be updated
         self.cur_ep = None

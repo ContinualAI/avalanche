@@ -38,16 +38,15 @@ class AR1(Strategy):
 
     def __init__(self, model, optimizer=None,
                  criterion=torch.nn.CrossEntropyLoss(), mb_size=128,
-                 train_ep=2, multi_head=False, device=None, preproc=None,
-                 eval_protocol=EvalProtocol(metrics=[ACC]), lr=0.001,
+                 train_ep=2, multi_head=False, device=None, preproc=None
+                 , lr=0.001,
                  init_update_rate=0.01, inc_update_rate=0.00005, max_r_max=1.25,
                  max_d_max=0.5, inc_step=4.1e-05, rm_sz=1500, momentum=0.9,
                  l2=0.0005, freeze_below_layer="lat_features.19.bn.beta",
                  latent_layer_num=19, ewc_lambda=0):
 
         super(AR1, self).__init__(model, optimizer, criterion, mb_size,
-                                  train_ep, multi_head, device, preproc,
-                                  eval_protocol)
+                                  train_ep, multi_head, device, preproc)
 
         if optimizer is None:
             optimizer = torch.optim.SGD(
@@ -72,7 +71,7 @@ class AR1(Strategy):
 
         super(AR1, self).__init__(
             model, optimizer, criterion, mb_size, train_ep, multi_head,
-            device, preproc, eval_protocol
+            device, preproc
         )
 
         self.ewc_lambda = ewc_lambda
