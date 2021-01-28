@@ -1,16 +1,16 @@
 # #!/usr/bin/env python
 # # -*- coding: utf-8 -*-
 #
-# ################################################################################
-# # Copyright (c) 2020 ContinualAI Research                                      #
-# # Copyrights licensed under the CC BY 4.0 License.                             #
-# # See the accompanying LICENSE file for terms.                                 #
-# #                                                                              #
-# # Date: 11-09-2020                                                             #
-# # Author(s): Lorenzo Pellegrini                                                #
-# # E-mail: contact@continualai.org                                              #
-# # Website: clair.continualai.org                                               #
-# ################################################################################
+# #############################################################################
+# # Copyright (c) 2020 ContinualAI Research
+# # Copyrights licensed under the CC BY 4.0 License.
+# # See the accompanying LICENSE file for terms.
+# #
+# # Date: 11-09-2020
+# # Author(s): Lorenzo Pellegrini
+# # E-mail: contact@continualai.org
+# # Website: clair.continualai.org
+# #############################################################################
 #
 # from typing import Dict, Any, Optional, Sequence
 #
@@ -21,7 +21,8 @@
 # from avalanche.evaluation import EvalProtocol
 # from avalanche.training.skeletons import StrategyTemplate, StrategySkeleton
 # from avalanche.training.plugins.evaluation_plugin import EvaluationPlugin
-# from avalanche.training.skeletons.strategy_flow import TrainingFlow, TestingFlow
+# from avalanche.training.skeletons.strategy_flow import TrainingFlow,
+# TestingFlow
 #
 #
 # class DeepLearningStrategy(StrategyTemplate):
@@ -40,7 +41,8 @@
 #     may allow the users to adapt (pad, augment, etc.) the training and test
 #     datasets.
 #
-#     This class introduces the main parts usually found in a Deep Learning based
+#     This class introduces the main parts usually found in a Deep Learning
+#     based
 #     Continual Learning strategy, such as a training loop based on epochs,
 #     a model adaptation flow group (filled, for instance, by
 #     :class:`MTDeepLearningStrategy`) and a lot of default callbacks that the
@@ -69,16 +71,20 @@
 #         """
 #         Creates a new instance of DeepLearningStrategy.
 #
-#         This constructor accepts common parameters used to control the minibatch
+#         This constructor accepts common parameters used to control the
+#         minibatch
 #         size, the number of training epochs and the device used for training.
-#         It also accepts and instance of :class:`EvalProtocol` which will be used
+#         It also accepts and instance of :class:`EvalProtocol` which will
+#         be used
 #         to compute the required metrics.
 #
 #         :param train_mb_size: The size of the training minibatch size. This
-#             value is used when creating the training data loader. Defaults to 1.
+#             value is used when creating the training data loader.
+#             Defaults to 1.
 #         :param train_epochs: The number of training epochs. Defaults to 1.
 #         :param test_mb_size: The size of the test minibatch size. This
-#             value is used when creating the testing data loader. Defaults to 1.
+#             value is used when creating the testing data loader.
+#             Defaults to 1.
 #         :param device: The device to use. Defaults to None (cpu).
 #         :param evaluation_protocol: The evaluation protocol used to compute
 #             the relevant metrics. Defaults to None.
@@ -103,7 +109,7 @@
 #         # between make_train_dataset and make_train_dataloader
 #         self.training_flow.append_part_list([self.adapt_train_dataset],
 #                                             to_group=self.BeforeTraining,
-#                                             after_part=self.make_train_dataset)
+#                                  after_part=self.make_train_dataset)
 #
 #         # After training
 #         # - after_training: callback the user can override
@@ -113,11 +119,13 @@
 #
 #         # Model training
 #         # TrainingModelAdaptation is a empty group that can be filled later
-#         # For instance, by MTDeepLearningStrategy which handles multi-task heads
+#         # For instance, by MTDeepLearningStrategy which handles multi-task
+#         heads
 #         self.TrainingModelAdaptation = self.training_flow.append_new_group(
 #             'TrainingModelAdaptation', [], to_group=self.ModelTraining)
 #
-#         # before_training_epoch and after_training_epoch are callbacks the user
+#         # before_training_epoch and after_training_epoch are callbacks
+#         the user
 #         # can override, while next_training_epoch sets epoch+=1
 #         # (if there are any remaining epochs to run, of course)
 #         training_loop_skeleton = [self.before_training_epoch,
@@ -262,7 +270,8 @@
 #         This method can be safely overridden by users. Defaults to no-op.
 #
 #         The user should adapt the existing "test_dataset" (that can be
-#         retrieved in the global namespace). If the result is an object different
+#         retrieved in the global namespace). If the result is an object
+#         different
 #         from the original "test_dataset", the corresponding namespace value
 #         must be set accordingly using the "update_namespace" method.
 #
@@ -333,7 +342,8 @@
 #         Checks if another epoch has to be run and sets the epoch namespace
 #         value accordingly.
 #
-#         This method simply checks for the train_epochs parameter for the number
+#         This method simply checks for the train_epochs parameter for the
+#         number
 #         of training epochs to run.
 #
 #         This is the last part of the TrainingLoop group, which means that
@@ -359,7 +369,8 @@
 #         """
 #         Checks if there are training epochs left.
 #
-#         This method simply checks for the train_epochs parameter for the number
+#         This method simply checks for the train_epochs parameter for the
+#         number
 #         of training epochs to run.
 #
 #         This method doesn't set any namespace values.
@@ -716,7 +727,8 @@
 #         Beware that a dataset part flag must be passed as the second parameter
 #         (as a value of :class:`DatasetPart`). This flag controls whenever the
 #         user wants to test on all tasks/batches ("COMPLETE"), only on already
-#         encountered tasks/batches ("CUMULATIVE"), only on previous ones ("OLD"),
+#         encountered tasks/batches ("CUMULATIVE"), only on previous ones
+#         ("OLD"),
 #         on the current task/batch only ("CURRENT") or even on future
 #         tasks/batches ("FUTURE").
 #
@@ -753,7 +765,8 @@
 #
 #     When dealing with a Single-Incremental-Task scenario, the final layer may
 #     get dynamically expanded. By default, the initialization provided by the
-#     Linear class is used and then weights of already existing classes are copied
+#     Linear class is used and then weights of already existing classes are
+#     copied
 #     (that  is, without adapting the weights of new classes). The user can
 #     control how the new weights are initialized by overriding
 #     "initialize_dynamically_expanded_head".
@@ -776,7 +789,8 @@
 #         multiple models are used, must be implemented separately (this
 #         implementation may still serve as a good starting point). The second
 #         parameter specifies the name of the model field which will get changed
-#         when adapting for a different task. The third parameter control whenever
+#         when adapting for a different task. The third parameter control
+#         whenever
 #         the existing head should be kept for task 0 or it should be discarded.
 #
 #         The remaining parameters are passed as constructor arguments for the
@@ -784,17 +798,21 @@
 #
 #         :param model: The model.
 #         :param classifier_field: The name of the model field to adapt.
-#         :param keep_initial_layer: If True, the model head found in the original
+#         :param keep_initial_layer: If True, the model head found in the
+#         original
 #             model will be used for task 0. Defaults to False, which means that
 #             the head for task 0 will be created from scratch and the existing
-#             head will be discarded. Beware that when keeping the original layer
+#             head will be discarded. Beware that when keeping the original
+#             layer
 #             the weight initialization will not take place. That is, the layer
 #             will initially be kept as-is.
 #         :param train_mb_size: The size of the training minibatch size. This
-#             value is used when creating the training data loader. Defaults to 1.
+#             value is used when creating the training data loader. Defaults
+#             to 1.
 #         :param train_epochs: The number of training epochs. Defaults to 1.
 #         :param test_mb_size: The size of the test minibatch size. This
-#             value is used when creating the testing data loader. Defaults to 1.
+#             value is used when creating the testing data loader. Defaults
+#             to 1.
 #         :param device: The device to use. Defaults to None (cpu).
 #         :param evaluation_protocol: The evaluation protocol used to compute
 #             the relevant metrics. Defaults to None.
@@ -802,11 +820,13 @@
 #         """
 #         super(MTDeepLearningStrategy, self).__init__(
 #             train_mb_size=train_mb_size, train_epochs=train_epochs,
-#             test_mb_size=test_mb_size, evaluation_protocol=evaluation_protocol,
+#             test_mb_size=test_mb_size,
+#             evaluation_protocol=evaluation_protocol,
 #             device=device, plugins=plugins)
 #
 #         if not hasattr(model, classifier_field):
-#             raise ValueError('The model has no field named ' + classifier_field)
+#             raise ValueError('The model has no field named ' +
+#             classifier_field)
 #
 #         self.training_flow.append_part_list(
 #             [self.set_task_layer], to_group=self.TrainingModelAdaptation,
@@ -831,7 +851,8 @@
 #         Sets the correct task layer.
 #
 #         This method is used by both training and testing flows. This is
-#         particularly useful when testing on the complete test set, which usually
+#         particularly useful when testing on the complete test set,
+#         which usually
 #         includes not already seen tasks.
 #
 #         By default a Linear layer is created for each task. More info can be
@@ -841,14 +862,17 @@
 #         :param classifier_field: The name of the layer (model class field) to
 #             change.
 #         :param step_info: The step info object.
-#         :param step_id: The relevant step id. If None, the current training step
+#         :param step_id: The relevant step id. If None, the current
+#         training step
 #             id is used.
 #         :return: None
 #         """
 #         # TODO: better management of testing flow (especially head expansion)
-#         # Main idea for the testing flow: just discard (not store) the layer for
+#         # Main idea for the testing flow: just discard (not store) the layer
+#         for
 #         # tasks that were not encountered during a training flow.
-#         # Can use existing facilities to know if current flow is test or train!
+#         # Can use existing facilities to know if current flow is test or
+#         train!
 #         # Also, do not expand layers during testing !OR! create a new expanded
 #         # layer (which get discarded) by setting the weights of not already
 #         # encountered classes to 0!
@@ -876,7 +900,8 @@
 #
 #         self.task_layers[task_label] = \
 #             self.expand_task_layer(model, classifier_field,
-#                                    n_output_units, self.task_layers[task_label])
+#                                    n_output_units,
+#                                    self.task_layers[task_label])
 #
 #         self.adapt_model_for_task(
 #             model, classifier_field,
@@ -932,7 +957,8 @@
 #         done as well.
 #
 #         The input layer can be either a new layer created for a previously
-#         unseen task or a layer created to expand an existing task layer. In the
+#         unseen task or a layer created to expand an existing task layer. In
+#         the
 #         latter case, the user can define a specific weight initialization
 #         procedure for the expanded part of the head by overriding the
 #         "initialize_dynamically_expanded_head" method.
@@ -995,7 +1021,8 @@
 #             prev_task_layer.weight[:to_copy_units]
 #
 #         # Bias copy
-#         if prev_task_layer.bias is not None and new_task_layer.bias is not None:
+#         if prev_task_layer.bias is not None and
+#         new_task_layer.bias is not None:
 #             new_task_layer.bias[:to_copy_units] = \
 #                 prev_task_layer.bias[:to_copy_units]
 #
@@ -1013,7 +1040,8 @@
 #
 #         This method checks if the layer for a task should be expanded to
 #         accommodate for "min_n_output_units" output units. If the task layer
-#         already contains a sufficient amount of output units, no operations are
+#         already contains a sufficient amount of output units,
+#         no operations are
 #         done and "task_layer" will be returned as-is.
 #
 #         If an expansion is needed, "create_task_layer" will be used to create

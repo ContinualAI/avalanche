@@ -1,16 +1,16 @@
 # #!/usr/bin/env python
 # # -*- coding: utf-8 -*-
 #
-# ################################################################################
-# # Copyright (c) 2020 ContinualAI Research                                      #
-# # Copyrights licensed under the CC BY 4.0 License.                             #
-# # See the accompanying LICENSE file for terms.                                 #
-# #                                                                              #
-# # Date: 1-05-2020                                                              #
-# # Author(s): Vincenzo Lomonaco                                                 #
-# # E-mail: contact@continualai.org                                              #
-# # Website: clair.continualai.org                                               #
-# ################################################################################
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 1-05-2020                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
 #
 # """ Common training utils. """
 #
@@ -41,7 +41,8 @@
 #                  criterion=torch.nn.CrossEntropyLoss(), mb_size=128,
 #                  train_ep=2, multi_head=False, device=None, preproc=None
 #                  , lr=0.001,
-#                  init_update_rate=0.01, inc_update_rate=0.00005, max_r_max=1.25,
+#                  init_update_rate=0.01, inc_update_rate=0.00005,
+#                  max_r_max=1.25,
 #                  max_d_max=0.5, inc_step=4.1e-05, rm_sz=1500, momentum=0.9,
 #                  l2=0.0005, freeze_below_layer="lat_features.19.bn.beta",
 #                  latent_layer_num=19, ewc_lambda=0):
@@ -58,7 +59,8 @@
 #             )
 #
 #         # Model setup
-#         model = MobilenetV1(pretrained=True, latent_layer_num=latent_layer_num)
+#         model = MobilenetV1(pretrained=True,
+#         latent_layer_num=latent_layer_num)
 #         replace_bn_with_brn(
 #             model, momentum=init_update_rate, r_d_max_inc_step=inc_step,
 #             max_r_max=max_r_max, max_d_max=max_d_max
