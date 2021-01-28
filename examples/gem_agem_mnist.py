@@ -60,45 +60,46 @@ parser.add_argument('--cuda', type=int, default=-1,
 args = parser.parse_args()
 
 
-model = SimpleMLP(hidden_size=args.hs)
-optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
-criterion = torch.nn.CrossEntropyLoss()
+if __name__ == '__main__':
+    model = SimpleMLP(hidden_size=args.hs)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    criterion = torch.nn.CrossEntropyLoss()
 
-# check if selected GPU is available or use CPU
-assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
-if args.cuda >= 0:
-    assert torch.cuda.device_count() > args.cuda, \
-           f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
-device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
-print(f'Using device: {device}')
+    # check if selected GPU is available or use CPU
+    assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
+    if args.cuda >= 0:
+        assert torch.cuda.device_count() > args.cuda, \
+               f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
+    device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
+    print(f'Using device: {device}')
 
-# create strategy
-if args.strategy == 'gem':
-    strategy = GEM(model, optimizer, criterion, args.patterns_per_step,
-                   args.memory_strength, train_epochs=args.epochs, 
-                   device=device, train_mb_size=10)
-elif args.strategy == 'agem':
-    strategy = AGEM(model, optimizer, criterion, args.patterns_per_step,
-                    args.sample_size, train_epochs=args.epochs, device=device,
-                    train_mb_size=10)
-else:
-    raise ValueError("Wrong strategy name. Allowed gem, agem.")
+    # create strategy
+    if args.strategy == 'gem':
+        strategy = GEM(model, optimizer, criterion, args.patterns_per_step,
+                       args.memory_strength, train_epochs=args.epochs,
+                       device=device, train_mb_size=10)
+    elif args.strategy == 'agem':
+        strategy = AGEM(model, optimizer, criterion, args.patterns_per_step,
+                        args.sample_size, train_epochs=args.epochs, device=device,
+                        train_mb_size=10)
+    else:
+        raise ValueError("Wrong strategy name. Allowed gem, agem.")
 
-# create scenario
-if args.scenario == 'pmnist':
-    scenario = PermutedMNIST(n_steps=args.permutations)
-elif args.scenario == 'smnist':
-    scenario = SplitMNIST(n_steps=5, return_task_id=False)
-else:
-    raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
+    # create scenario
+    if args.scenario == 'pmnist':
+        scenario = PermutedMNIST(n_steps=args.permutations)
+    elif args.scenario == 'smnist':
+        scenario = SplitMNIST(n_steps=5, return_task_id=False)
+    else:
+        raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
-# train on the selected scenario with the chosen strategy
-print('Starting experiment...')
-results = []
-for train_batch_info in scenario.train_stream:
-    print("Start training on step ", train_batch_info.current_step)
+    # train on the selected scenario with the chosen strategy
+    print('Starting experiment...')
+    results = []
+    for train_batch_info in scenario.train_stream:
+        print("Start training on step ", train_batch_info.current_step)
 
-    strategy.train(train_batch_info, num_workers=4)
-    print("End training on step ", train_batch_info.current_step)
-    print('Computing accuracy on the test set')
-    results.append(strategy.test(scenario.test_stream[:]))
+        strategy.train(train_batch_info, num_workers=4)
+        print("End training on step ", train_batch_info.current_step)
+        print('Computing accuracy on the test set')
+        results.append(strategy.test(scenario.test_stream[:]))

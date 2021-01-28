@@ -28,8 +28,9 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
@@ -64,18 +65,17 @@ def main():
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     # DEFINE THE EVALUATION PROTOCOL
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=scenario.n_classes),  # Accuracy metric
-                 CF(num_class=scenario.n_classes),  # Catastrophic forgetting
-                 RAMU(),  # Ram usage
-                 CM()],  # Confusion matrix
+    evaluation_protocol = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        loggers=InteractiveLogger()
         )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-        evaluation_protocol=evaluation_protocol, device=device)
+        evaluator=evaluation_protocol, device=device)
 
     # TRAINING LOOP
     print('Starting experiment...')

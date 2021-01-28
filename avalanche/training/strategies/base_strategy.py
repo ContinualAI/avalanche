@@ -16,7 +16,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo
+from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -25,7 +27,9 @@ class BaseStrategy:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence['StrategyPlugin']] = None):
+                 plugins: Optional[Sequence['StrategyPlugin']] = None,
+                 evaluator=default_logger):
+        self.model = model
         """
         BaseStrategy is the super class of all continual learning strategies.
         It implements a basic training loop and callback system that can be
@@ -44,8 +48,9 @@ class BaseStrategy:
         :param test_mb_size: mini-batch size for test.
         :param device: PyTorch device to run the model.
         :param plugins: (optional) list of StrategyPlugins.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging 
+            and metric computations.
         """
-        self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_epochs = train_epochs
@@ -54,6 +59,8 @@ class BaseStrategy:
             else test_mb_size
         self.device = device
         self.plugins = [] if plugins is None else plugins
+        self.plugins.append(evaluator)
+        self.evaluator = evaluator
 
         # Flow state variables
         self.step_id = None  # test-flow only.
@@ -125,10 +132,10 @@ class BaseStrategy:
             step_infos = [step_infos]
 
         self.before_training(**kwargs)
-        res = None
+        res = []
         for step_info in step_infos:
             self.train_task_label = step_info.task_label
-            res = self.train_step(step_info, **kwargs)
+            res.append(self.train_step(step_info, **kwargs))
 
         self.after_training(**kwargs)
         return res
@@ -156,6 +163,7 @@ class BaseStrategy:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
+        return self.evaluator.metric_vals.copy()
 
     def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
@@ -172,6 +180,7 @@ class BaseStrategy:
         if isinstance(step_list, IStepInfo):
             step_list = [step_list]
 
+        res = []
         self.before_test(**kwargs)
         for step_info in step_list:
             self.test_task_label = step_info.task_label
@@ -187,8 +196,10 @@ class BaseStrategy:
             self.before_test_step(**kwargs)
             self.test_epoch(**kwargs)
             self.after_test_step(**kwargs)
+            res.append(self.evaluator.metric_vals.copy())
 
         self.after_test(**kwargs)
+        return res
 
     def before_training_step(self, **kwargs):
         """
