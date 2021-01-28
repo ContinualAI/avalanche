@@ -25,10 +25,9 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
+
 
 def main():
 
@@ -46,14 +45,11 @@ def main():
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=10)])
 
     # Continual learning strategy
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device
-    )
+        test_mb_size=32, device=device)
 
     # train and test loop
     results = []
