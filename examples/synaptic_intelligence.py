@@ -21,19 +21,19 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD, Adam
+from torch.nn import CrossEntropyLoss, Linear
+from torch.optim import Adam
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop
+from torchvision.transforms import ToTensor, RandomCrop, Resize
 
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
-    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+    loss_metrics, TaskConfusionMatrix
+from avalanche.logging import TextLogger, InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
 from avalanche.models import SimpleMLP
-from avalanche.logging import DotTrace
+from avalanche.models.mobilenetv1 import MobilenetV1
 from avalanche.training.plugins import EvaluationPlugin, \
     SynapticIntelligencePlugin
 from avalanche.training.strategies import Naive
@@ -46,40 +46,41 @@ def main():
 
     # --- TRANSFORMATIONS
     train_transform = transforms.Compose([
-        RandomCrop(28, padding=4),
+        Resize(224),
         ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     test_transform = transforms.Compose([
+        Resize(224),
         ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST('./data/mnist', train=True,
-                        download=True, transform=train_transform)
-    mnist_test = MNIST('./data/mnist', train=False,
-                       download=True, transform=test_transform)
-    scenario = nc_scenario(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+    scenario = SplitCIFAR10(5, train_transform=train_transform,
+                            test_transform=test_transform)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = MobilenetV1()
+    model.output = Linear(1024, scenario.n_classes, bias=False)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
 
     my_logger = TensorboardLogger(
         tb_log_dir="logs", tb_log_exp_name="logging_example")
-    text_logger = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
+    text_logger = TextLogger(open('log.txt', 'a'))
+
+    # print to stdout
+    interactive_logger = InteractiveLogger()
 
     evaluation_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, task=True),
         loss_metrics(minibatch=True, epoch=True, task=True),
         TaskForgetting(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
-        loggers=[my_logger, text_logger])
+        loggers=[my_logger, text_logger, interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
     cl_strategy = Naive(

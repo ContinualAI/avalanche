@@ -12,7 +12,9 @@ import copy
 import logging
 import random
 from collections import defaultdict
-from typing import Dict, Any, Union, Sequence, TYPE_CHECKING, Optional
+from fnmatch import fnmatch
+from typing import Dict, Any, Union, Sequence, TYPE_CHECKING, Optional, List, \
+    Tuple, Set
 
 import numpy as np
 import quadprog
@@ -21,12 +23,13 @@ import warnings
 
 from torch import Tensor
 from torch.nn import Module, Linear
+from torch.nn.modules.batchnorm import _NormBase
 from torch.utils.data import random_split, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.scenarios import IStepInfo
-
-from avalanche.training.strategies.strategy_callbacks import StrategyCallbacks
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+from avalanche.training.strategy_callbacks import StrategyCallbacks
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
+    get_layers_and_params
 
 if TYPE_CHECKING:
     from avalanche.logging import StrategyLogger
@@ -298,6 +301,8 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
+        self.metric_vals = {}
+
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         metric_values = []
         for metric in self.metrics:
@@ -307,6 +312,13 @@ class EvaluationPlugin(StrategyPlugin):
                 metric_values += list(metric_result)
             elif metric_result is not None:
                 metric_values.append(metric_result)
+
+        for metric_value in metric_values:
+            m_orig = metric_value.origin
+            name = metric_value.name
+            x = metric_value.x_plot
+            val = metric_value.value
+            self.metric_vals[m_orig] = (name, x, val)
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)
@@ -1198,7 +1210,10 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     `before_backward` callback is invoked. The loss Tensor will be updated to
     achieve the S.I. regularization effect.
     """
-    def __init__(self, si_lambda: float, device: Any = 'as_strategy'):
+
+    def __init__(self, si_lambda: float,
+                 excluded_parameters: Sequence['str'] = None,
+                 device: Any = 'as_strategy'):
         """
         Creates an instance of the Synaptic Intelligence plugin.
 
@@ -1215,7 +1230,10 @@ class SynapticIntelligencePlugin(StrategyPlugin):
                       "and is not perfectly aligned with the paper "
                       "implementation. Please use at your own risk!")
 
+        if excluded_parameters is None:
+            excluded_parameters = []
         self.si_lambda: float = si_lambda
+        self.excluded_parameters: Set[str] = set(excluded_parameters)
         self.ewc_data: Optional[Tensor] = None
         self.syn_data: Optional[Dict[str, Tensor]] = None
         self._device = device
@@ -1224,29 +1242,34 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         super().before_training_step(strategy, **kwargs)
         if self.ewc_data is None:
             self.ewc_data, self.syn_data = \
-                SynapticIntelligencePlugin.create_syn_data(strategy.model)
-        SynapticIntelligencePlugin.\
-            init_batch(strategy.model, self.ewc_data, self.syn_data)
+                SynapticIntelligencePlugin.create_syn_data(
+                    strategy.model, self.excluded_parameters)
+        SynapticIntelligencePlugin. \
+            init_batch(strategy.model, self.ewc_data, self.syn_data,
+                       self.excluded_parameters)
 
-    def before_backward(self, strategy: PluggableStrategy, **kwargs):
-        super().before_backward(strategy, **kwargs)
-        strategy.loss += SynapticIntelligencePlugin.\
+    def after_backward(self, strategy: PluggableStrategy, **kwargs):
+        super().after_backward(strategy, **kwargs)
+        strategy.loss += SynapticIntelligencePlugin. \
             compute_ewc_loss(strategy.model, self.ewc_data,
-                             lambd=self.si_lambda,
+                             self.excluded_parameters, lambd=self.si_lambda,
                              device=self.device(strategy))
 
     def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         super().before_training_iteration(strategy, **kwargs)
-        SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data)
+        SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data,
+                                              self.excluded_parameters)
 
     def after_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         super().after_training_iteration(strategy, **kwargs)
-        SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data)
+        SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data,
+                                               self.excluded_parameters)
 
     def after_training_step(self, strategy: PluggableStrategy, **kwargs):
         super().after_training_step(strategy, **kwargs)
         SynapticIntelligencePlugin.update_ewc_data(
-            strategy.model, self.ewc_data, self.syn_data, 0.001, 1)
+            strategy.model, self.ewc_data, self.syn_data, 0.001,
+            self.excluded_parameters, 1)
 
     def device(self, strategy: PluggableStrategy):
         if self._device == 'as_strategy':
@@ -1255,11 +1278,14 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         return self._device
 
     @staticmethod
-    def create_syn_data(model: Module):
+    def create_syn_data(model: Module, excluded_parameters: Set[str]):
+        # Add wildcards ".*" to all excluded parameter names
+        params = SynapticIntelligencePlugin.allowed_parameters(
+            model, excluded_parameters)
+
         size = 0
-        for name, param in model.named_parameters():
-            if "bn" not in name and "output" not in name:
-                size += param.numel()
+        for _, param in params:
+            size += param.numel()
 
         # The first array returned is a 2D array: the first component contains
         # the params at loss minimum, the second the parameter importance
@@ -1274,36 +1300,35 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
     @staticmethod
     @torch.no_grad()
-    def extract_weights(model, target):
-        weights_vector = None
-        for name, param in model.named_parameters():
-            if "bn" not in name and "output" not in name:
-                # print(name, param.flatten())
-                if weights_vector is None:
-                    weights_vector = param.flatten()
-                else:
-                    weights_vector = torch.cat(
-                        (weights_vector, param.flatten()), 0)
+    def extract_weights(model: Module, target, excluded_parameters: Set[str]):
+        params = SynapticIntelligencePlugin.allowed_parameters(
+            model, excluded_parameters)
 
-        target[...] = weights_vector.cpu()
+        weights_vectors: List[Tensor] = []
+        for name, param in params:
+            weights_vectors.append(param.detach().cpu().flatten())
+
+        target[...] = torch.cat(weights_vectors, 0)
 
     @staticmethod
-    def init_batch(model, ewc_data: Tensor, syn_data):
-        SynapticIntelligencePlugin.\
-            extract_weights(model, ewc_data[0])  # Keep initial weights
+    def init_batch(model, ewc_data: Tensor, syn_data,
+                   excluded_parameters: Set[str]):
+        # Keep initial weights
+        SynapticIntelligencePlugin. \
+            extract_weights(model, ewc_data[0], excluded_parameters)
         syn_data['trajectory'].fill_(0.0)
 
     @staticmethod
-    def compute_ewc_loss(model, ewc_data, lambd=0.0, device=None):
-        weights_vector = None
-        for name, param in model.named_parameters():
-            if "bn" not in name and "output" not in name:
-                # print(name, param.flatten())
-                if weights_vector is None:
-                    weights_vector = param.flatten()
-                else:
-                    weights_vector = torch.cat(
-                        (weights_vector, param.flatten()), 0)
+    def compute_ewc_loss(model, ewc_data, excluded_parameters: Set[str],
+                         device, lambd=0.0):
+        params = SynapticIntelligencePlugin.allowed_parameters(
+            model, excluded_parameters)
+
+        weights_vectors: List[Tensor] = []
+        for name, param in params:
+            weights_vectors.append(param.cpu().flatten())
+
+        weights_vector = torch.cat(weights_vectors, 0).to(device)
 
         ewc_data = ewc_data.to(device)
         loss = (lambd / 2) * torch.dot(ewc_data[1],
@@ -1311,36 +1336,38 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         return loss
 
     @staticmethod
-    def pre_update(model, syn_data):
-        SynapticIntelligencePlugin.extract_weights(model, syn_data['old_theta'])
+    def pre_update(model, syn_data, excluded_parameters: Set[str]):
+        SynapticIntelligencePlugin.extract_weights(model, syn_data['old_theta'],
+                                                   excluded_parameters)
 
     @staticmethod
-    def post_update(model, syn_data):
-        SynapticIntelligencePlugin.extract_weights(model, syn_data['new_theta'])
-        SynapticIntelligencePlugin.extract_grad(model, syn_data['grad'])
+    def post_update(model, syn_data, excluded_parameters: Set[str]):
+        SynapticIntelligencePlugin.extract_weights(model, syn_data['new_theta'],
+                                                   excluded_parameters)
+        SynapticIntelligencePlugin.extract_grad(model, syn_data['grad'],
+                                                excluded_parameters)
 
         syn_data['trajectory'] += syn_data['grad'] * (
                 syn_data['new_theta'] - syn_data['old_theta'])
 
     @staticmethod
     @torch.no_grad()
-    def extract_grad(model, target):
-        # Store the gradients into target
-        grad_vector = None
-        for name, param in model.named_parameters():
-            if "bn" not in name and "output" not in name:
-                # print(name, param.flatten())
-                if grad_vector is None:
-                    grad_vector = param.grad.flatten()
-                else:
-                    grad_vector = torch.cat(
-                        (grad_vector, param.grad.flatten()), 0)
+    def extract_grad(model, target, excluded_parameters: Set[str]):
+        params = SynapticIntelligencePlugin.allowed_parameters(
+            model, excluded_parameters)
 
-        target[...] = grad_vector.cpu()
+        # Store the gradients into target
+        grad_vectors: List[Tensor] = []
+        for name, param in params:
+            grad_vectors.append(param.grad.detach().cpu().flatten())
+
+        target[...] = torch.cat(grad_vectors, 0)
 
     @staticmethod
-    def update_ewc_data(net, ewc_data: Tensor, syn_data, clip_to, c=0.0015):
-        SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'])
+    def update_ewc_data(net, ewc_data: Tensor, syn_data, clip_to,
+                        excluded_parameters: Set[str], c=0.0015):
+        SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'],
+                                                   excluded_parameters)
         eps = 0.0000001  # 0.001 in few task - 0.1 used in a more complex setup
 
         syn_data['cum_trajectory'] += c * syn_data['trajectory'] / (
@@ -1354,6 +1381,50 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         ewc_data[1] = torch.clamp(ewc_data[1], max=clip_to)
         # (except CWR)
         ewc_data[0] = syn_data['new_theta'].clone().detach()
+
+    @staticmethod
+    def explode_excluded_parameters(excluded: Set[str]) -> Set[str]:
+        """
+        Explodes a list of excluded parameters by adding a generic final ".*"
+        wildcard at its end.
+
+        :param excluded: The original set of excluded parameters.
+
+        :return: The set of excluded parameters in which ".*" patterns have been
+            added.
+        """
+        result = set()
+        for x in excluded:
+            result.add(x)
+            if not x.endswith('*'):
+                result.add(x + '.*')
+        return result
+
+    @staticmethod
+    def allowed_parameters(model: Module, excluded_parameters: Set[str]) \
+            -> List[Tuple[str, Tensor]]:
+        # Add wildcards ".*" to all excluded parameter names
+        result = []
+        excluded_parameters = SynapticIntelligencePlugin. \
+            explode_excluded_parameters(excluded_parameters)
+        layers_params = get_layers_and_params(model)
+
+        for lp in layers_params:
+            if isinstance(lp.layer, _NormBase):
+                # Exclude batch norm parameters
+                excluded_parameters.add(lp.parameter_name)
+
+        for name, param in model.named_parameters():
+            accepted = True
+            for exclusion_pattern in excluded_parameters:
+                if fnmatch(name, exclusion_pattern):
+                    accepted = False
+                    break
+
+            if accepted:
+                result.append((name, param))
+
+        return result
 
 
 __all__ = [

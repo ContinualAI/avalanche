@@ -27,8 +27,6 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import ReplayPlugin, MultiHeadPlugin
@@ -58,25 +56,16 @@ def main():
     mnist_test = MNIST('./data/mnist', train=False,
                        download=True, transform=test_transform)
     scenario = nc_scenario(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+        mnist_train, mnist_test, n_batches, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
     model = SimpleMLP(num_classes=scenario.n_classes)
 
-    # DEFINE THE EVALUATION PROTOCOL
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=scenario.n_classes),  # Accuracy metric
-                 CF(num_class=scenario.n_classes),  # Catastrophic forgetting
-                 RAMU(),  # Ram usage
-                 CM()],  # Confusion matrix
-        )
-
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(model, torch.optim.Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
-        train_mb_size=100, train_epochs=4, test_mb_size=100,
-        evaluation_protocol=evaluation_protocol, device=device,
+        train_mb_size=100, train_epochs=4, test_mb_size=100, device=device,
         plugins=[ReplayPlugin(mem_size=10000), MultiHeadPlugin(model)]
     )
 

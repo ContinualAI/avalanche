@@ -22,8 +22,12 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+from typing import NamedTuple, List
+
 import numpy as np
 import torch
+from torch import Tensor
+from torch.nn import Module
 from torch.utils.data import Dataset, DataLoader
 import logging
 
@@ -363,6 +367,32 @@ def copy_params_dict(model, copy_grad=False):
         return [(k, p.data.clone()) for k, p in model.named_parameters()]
 
 
+class LayerParameter(NamedTuple):
+    layer_name: str
+    layer: Module
+    parameter_name: str
+    parameter: Tensor
+
+
+def get_layers_and_params(model: Module, prefix='') -> List[LayerParameter]:
+    result: List[LayerParameter] = []
+    for param_name, param in model.named_parameters(recurse=False):
+        result.append(LayerParameter(
+            prefix[:-1], model, prefix + param_name, param))
+
+    layer_name: str
+    layer: Module
+    for layer_name, layer in model.named_modules():
+        if layer == model:
+            continue
+
+        layer_complete_name = prefix + layer_name + '.'
+
+        result += get_layers_and_params(layer, prefix=layer_complete_name)
+
+    return result
+
+
 __all__ = ['get_accuracy',
            'train_net',
            'preprocess_imgs',
@@ -378,4 +408,5 @@ __all__ = ['get_accuracy',
            'imagenet_batch_preproc',
            'load_all_dataset',
            'zerolike_params_dict',
-           'copy_params_dict']
+           'copy_params_dict',
+           'get_layers_and_params']
