@@ -65,7 +65,6 @@ class JointTraining:
         self.task_layers = {}
 
         # Flow state variables
-        self.step_id = None  # test-flow only.
         self.epoch = None
         self.step_info = None  # we need to keep this for the eval plugin
         self.current_data = None
@@ -301,7 +300,6 @@ class JointTraining:
         for step_info in step_list:
             self.test_task_label = step_info.task_label
             self.step_info = step_info
-            self.step_id = step_info.current_step
 
             self.current_data = step_info.dataset
             self.adapt_test_dataset(**kwargs)
@@ -446,7 +444,6 @@ class JointTraining:
         for p in self.plugins:
             p.after_test(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.step_id = None
         self.step_info = None
         self.current_data = None
         self.current_dataloader = None
