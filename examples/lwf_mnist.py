@@ -2,12 +2,12 @@ import torch
 import argparse
 from avalanche.benchmarks import SplitMNIST
 from avalanche.training.strategies import LwF
-from avalanche.extras import SimpleMLP
-from avalanche.evaluation.metrics import EpochAccuracy, TaskForgetting, \
-    EpochLoss, ConfusionMatrix, EpochTime, AverageEpochTime
-from avalanche.extras.logging import Logger
-from avalanche.extras.strategy_trace import DotTrace
+from avalanche.models import SimpleMLP
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics
+from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
+
 
 """
 This example tests Learning without Forgetting (LwF) on Split MNIST.
@@ -46,12 +46,15 @@ if args.cuda >= 0:
 device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
 print(f'Using device: {device}')
 
-# loggers
-my_logger = Logger()
-trace = DotTrace(stdout=True, trace_file='./logs/my_log.txt')
-evaluation_plugin = EvaluationPlugin(
-    EpochAccuracy(), TaskForgetting(), EpochLoss(),
-    loggers=my_logger, tracers=trace)
+# create split scenario
+scenario = SplitMNIST(n_steps=5, return_task_id=False)
+
+interactive_logger = InteractiveLogger()
+eval_plugin = EvaluationPlugin(
+    accuracy_metrics(minibatch=True, epoch=True, task=True),
+    loss_metrics(minibatch=True, epoch=True, task=True),
+    TaskForgetting(),
+    loggers=[interactive_logger])
 
 # create strategy
 assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,\
@@ -61,10 +64,7 @@ lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 else args.lwf_alpha
 strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
                temperature=args.softmax_temperature,
                train_epochs=args.epochs, device=device,
-               train_mb_size=args.minibatch_size, plugins=[evaluation_plugin])
-
-# create split scenario
-scenario = SplitMNIST(n_steps=5, return_task_id=False)
+               train_mb_size=args.minibatch_size, evaluator=eval_plugin)
 
 # train on the selected scenario with the chosen strategy
 print('Starting experiment...')
