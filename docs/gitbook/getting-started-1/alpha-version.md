@@ -12,6 +12,12 @@ A the moment, _Avalanche_ is in **Alpha \(v0.0.1\)**, but we already support a n
 Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
 
+{% hint style="danger" %}
+This doc is out-of-date, it may need un update.
+{% endhint %}
+
+This doc is out-of-date. Check the [full tutorial](../from-zero-to-hero-tutorial/introduction.md) for more details.
+
 ## 🖼️ Supported Datasets
 
 In the Table below, we list all the Pytorch datasets used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. Some of them were already available in [_Torchvision_](https://pytorch.org/docs/stable/torchvision/index.html), while other have been integrated by us.

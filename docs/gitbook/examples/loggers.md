@@ -1,8 +1,8 @@
 ---
-description: Examples for the Models module offered in Avalanche
+description: Examples for the Loggers module offered in Avalanche
 ---
 
-# Models
+# Loggers
 
 
 

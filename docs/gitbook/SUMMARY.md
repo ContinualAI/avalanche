@@ -11,17 +11,20 @@
 
 ## 📝 Examples
 
+* [Models](examples/extras.md)
 * [Benchmarks](examples/benchmarks.md)
 * [Training](examples/training.md)
 * [Evaluation](examples/evaluation.md)
-* [Extras](examples/extras.md)
+* [Loggers](examples/loggers.md)
 
 ## 📙 From Zero to Hero Tutorial
 
 * [Introduction](from-zero-to-hero-tutorial/introduction.md)
+* [Models](from-zero-to-hero-tutorial/models.md)
 * [Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
 * [Training](from-zero-to-hero-tutorial/3.-training.md)
 * [Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
+* [Loggers](from-zero-to-hero-tutorial/loggers.md)
 * [Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
 * [Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
 * [Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
