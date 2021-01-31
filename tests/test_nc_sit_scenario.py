@@ -75,8 +75,57 @@ class SITTests(unittest.TestCase):
         for batch_id in range(4):
             self.assertEqual(2, len(my_nc_scenario.classes_in_step[batch_id]))
             all_classes.extend(my_nc_scenario.classes_in_step[batch_id])
-
         self.assertEqual(list(range(8)), all_classes)
+
+        # Regression test for issue #258
+        for i, step_info in enumerate(my_nc_scenario.train_stream):
+            unique_dataset_classes = sorted(set(step_info.dataset.targets))
+            expected_dataset_classes = list(range(2 * i, 2 * (i+1)))
+
+            self.assertListEqual(expected_dataset_classes,
+                                 unique_dataset_classes)
+            self.assertListEqual(
+                sorted(order[2 * i:2 * (i+1)]),
+                sorted(my_nc_scenario.original_classes_in_step[i]))
+        # End regression test for issue #258
+
+    def test_sit_single_dataset_remap_indexes_each_step(self):
+        order = [2, 3, 5, 8, 9, 1, 4, 6]
+        mnist_train = MNIST('./data/mnist', train=True, download=True)
+        mnist_test = MNIST('./data/mnist', train=False, download=True)
+
+        with self.assertRaises(ValueError):
+            # class_ids_from_zero_* are mutually exclusive
+            nc_scenario(
+                mnist_train, mnist_test, 4, task_labels=False,
+                fixed_class_order=order,
+                class_ids_from_zero_from_first_step=True,
+                class_ids_from_zero_in_each_step=True)
+
+        my_nc_scenario = nc_scenario(
+            mnist_train, mnist_test, 4, task_labels=False,
+            fixed_class_order=order,
+            class_ids_from_zero_in_each_step=True)
+
+        self.assertEqual(4, len(my_nc_scenario.classes_in_step))
+
+        all_classes = []
+        for batch_id in range(4):
+            self.assertEqual(2, len(my_nc_scenario.classes_in_step[batch_id]))
+            all_classes.extend(my_nc_scenario.classes_in_step[batch_id])
+        self.assertEqual(8, len(all_classes))
+        self.assertListEqual([0, 1], sorted(set(all_classes)))
+
+        # Regression test for issue #258
+        for i, step_info in enumerate(my_nc_scenario.train_stream):
+            unique_dataset_classes = sorted(set(step_info.dataset.targets))
+            expected_dataset_classes = [0, 1]
+            self.assertListEqual(expected_dataset_classes,
+                                 unique_dataset_classes)
+            self.assertListEqual(
+                sorted(order[2 * i:2 * (i + 1)]),
+                sorted(my_nc_scenario.original_classes_in_step[i]))
+        # End regression test for issue #258
 
     def test_sit_single_dataset_reproducibility_data(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
