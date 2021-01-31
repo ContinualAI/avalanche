@@ -71,7 +71,7 @@ class TextLogger(StrategyLogger):
     def after_test_step(self, strategy: 'PluggableStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         super().after_test_step(strategy, metric_values, **kwargs)
-        print(f'> Test on step {strategy.step_id} (Task '
+        print(f'> Test on step {strategy.test_step_id} (Task '
               f'{strategy.test_task_label}) ended.', file=self.file, flush=True)
         self.print_current_metrics()
 
@@ -97,7 +97,7 @@ class TextLogger(StrategyLogger):
 
     def _on_step_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'test'
-        step_id = strategy.step_id
+        step_id = strategy.training_step_counter
         task_id = strategy.train_task_label if strategy.is_training \
             else strategy.test_task_label
         print('-- Starting {} on step {} (Task {}) --'.format(

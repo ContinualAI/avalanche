@@ -142,7 +142,6 @@ class ReplayPlugin(StrategyPlugin):
 
         self.mem_size = mem_size
         self.ext_mem = None
-        self.it = 0
         self.rm_add = None
 
     def adapt_train_dataset(self, strategy, **kwargs):
@@ -156,7 +155,8 @@ class ReplayPlugin(StrategyPlugin):
         self.rm_add = None
 
         # how many patterns to save for next iter
-        h = min(self.mem_size // (self.it + 1), len(strategy.current_data))
+        h = min(self.mem_size // (strategy.training_step_counter + 1),
+                len(strategy.current_data))
 
         # We recover it using the random_split method and getting rid of the
         # second split.
@@ -164,7 +164,7 @@ class ReplayPlugin(StrategyPlugin):
             strategy.current_data, [h, len(strategy.current_data) - h]
         )
 
-        if self.it > 0:
+        if strategy.training_step_counter > 0:
             # We update the train_dataset concatenating the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.
@@ -177,7 +177,7 @@ class ReplayPlugin(StrategyPlugin):
 
         # replace patterns in random memory
         ext_mem = self.ext_mem
-        if self.it == 0:
+        if strategy.training_step_counter == 0:
             ext_mem = copy.deepcopy(self.rm_add)
         else:
             _, saved_part = random_split(
@@ -185,7 +185,6 @@ class ReplayPlugin(StrategyPlugin):
             )
             ext_mem = ConcatDataset([saved_part, self.rm_add])
         self.ext_mem = ext_mem
-        self.it += 1
 
 
 class GDumbPlugin(StrategyPlugin):
@@ -206,7 +205,6 @@ class GDumbPlugin(StrategyPlugin):
 
         super().__init__()
 
-        self.it = 0
         self.mem_size = mem_size
         self.ext_mem = None
         # count occurrences for each class
@@ -421,15 +419,11 @@ class CWRStarPlugin(StrategyPlugin):
         # to be updated
         self.cur_class = None
 
-        # State
-        self.batch_processed = 0
-
     def after_training_step(self, strategy, **kwargs):
         CWRStarPlugin.consolidate_weights(self.model, self.cur_class)
-        self.batch_processed += 1
 
     def before_training_step(self, strategy, **kwargs):
-        if self.batch_processed == 1:
+        if strategy.training_step_counter == 1:
             self.freeze_lower_layers()
 
         # Count current classes and number of samples for each of them.
@@ -752,7 +746,6 @@ class LwFPlugin(StrategyPlugin):
         self.alpha = alpha
         self.temperature = temperature
         self.prev_model = None
-        self.step_id = 0
 
     def _distillation_loss(self, out, prev_out):
         """
@@ -781,7 +774,7 @@ class LwFPlugin(StrategyPlugin):
         """
         Add distillation loss
         """
-        alpha = self.alpha[self.step_id] \
+        alpha = self.alpha[strategy.training_step_counter] \
             if isinstance(self.alpha, (list, tuple)) else self.alpha
         penalty = self.penalty(strategy.logits, strategy.mb_x, alpha)
         strategy.loss += penalty
@@ -792,7 +785,6 @@ class LwFPlugin(StrategyPlugin):
         """
 
         self.prev_model = copy.deepcopy(strategy.model)
-        self.step_id += 1
 
 
 class AGEMPlugin(StrategyPlugin):
@@ -934,17 +926,15 @@ class GEMPlugin(StrategyPlugin):
 
         self.G = None
 
-        self.step_id = 0
-
     def before_training_iteration(self, strategy, **kwargs):
         """
         Compute gradient constraints on previous memory samples from all steps.
         """
 
-        if self.step_id > 0:
+        if strategy.training_step_counter > 0:
             G = []
             strategy.model.train()
-            for t in range(self.step_id):
+            for t in range(strategy.training_step_counter):
                 strategy.optimizer.zero_grad()
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
@@ -964,7 +954,7 @@ class GEMPlugin(StrategyPlugin):
         Project gradient based on reference gradients
         """
 
-        if self.step_id > 0:
+        if strategy.training_step_counter > 0:
             g = torch.cat([p.grad.flatten()
                           for p in strategy.model.parameters()
                           if p.grad is not None], dim=0)
@@ -994,16 +984,14 @@ class GEMPlugin(StrategyPlugin):
         Save a copy of the model after each step
         """
 
-        self.update_memory(strategy.current_dataloader)
-        self.step_id += 1
+        self.update_memory(strategy.current_dataloader,
+                           strategy.training_step_counter)
 
     @torch.no_grad()
-    def update_memory(self, dataloader):
+    def update_memory(self, dataloader, t):
         """
         Update replay memory with patterns from current step.
         """
-
-        t = self.step_id
 
         tot = 0
         for x, y in dataloader:
@@ -1086,7 +1074,6 @@ class EWCPlugin(StrategyPlugin):
         self.ewc_lambda = ewc_lambda
         self.mode = mode
         self.decay_factor = decay_factor
-        self.step_id = 0
 
         if self.mode == 'separate':
             self.keep_importance_data = True
@@ -1101,13 +1088,13 @@ class EWCPlugin(StrategyPlugin):
         Compute EWC penalty and add it to the loss.
         """
 
-        if self.step_id == 0:
+        if strategy.training_step_counter == 0:
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
         
         if self.mode == 'separate':
-            for step in range(self.step_id):
+            for step in range(strategy.training_step_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
                             strategy.model.named_parameters(),
                             self.saved_params[step],
@@ -1116,8 +1103,8 @@ class EWCPlugin(StrategyPlugin):
         elif self.mode == 'online':
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
                         strategy.model.named_parameters(),
-                        self.saved_params[self.step_id],
-                        self.importances[self.step_id]):
+                        self.saved_params[strategy.training_step_counter],
+                        self.importances[strategy.training_step_counter]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
@@ -1134,13 +1121,14 @@ class EWCPlugin(StrategyPlugin):
                                                strategy.optimizer,
                                                strategy.current_dataloader,
                                                strategy.device)
-        self.update_importances(importances)
-        self.saved_params[self.step_id] = copy_params_dict(strategy.model)
+        self.update_importances(importances, strategy.training_step_counter)
+        self.saved_params[strategy.training_step_counter] = \
+            copy_params_dict(strategy.model)
         # clear previuos parameter values
-        if self.step_id > 0 and (not self.keep_importance_data):
-            del self.saved_params[self.step_id - 1]
-        self.step_id += 1
-    
+        if strategy.training_step_counter > 0 and \
+                (not self.keep_importance_data):
+            del self.saved_params[strategy.training_step_counter - 1]
+
     def compute_importances(self, model, criterion, optimizer,
                             dataloader, device):
         """
@@ -1172,24 +1160,24 @@ class EWCPlugin(StrategyPlugin):
         return importances
 
     @torch.no_grad()
-    def update_importances(self, importances):
+    def update_importances(self, importances, t):
         """
         Update importance for each parameter based on the currently computed
         importances.
         """
 
-        if self.mode == 'separate' or self.step_id == 0:
-            self.importances[self.step_id] = importances
+        if self.mode == 'separate' or t == 0:
+            self.importances[t] = importances
         elif self.mode == 'online':
             for (k1, old_imp), (k2, curr_imp) in \
-                        zip(self.importances[self.step_id - 1], importances):
+                        zip(self.importances[t - 1], importances):
                 assert k1 == k2, 'Error in importance computation.'
-                self.importances[self.step_id].append(
+                self.importances[t].append(
                     (k1, (self.decay_factor * old_imp + curr_imp)))
             
             # clear previous parameter importances
-            if self.step_id > 0 and (not self.keep_importance_data):
-                del self.importances[self.step_id - 1]
+            if t > 0 and (not self.keep_importance_data):
+                del self.importances[t - 1]
 
         else:
             raise ValueError("Wrong EWC mode.")
