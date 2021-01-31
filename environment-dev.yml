@@ -23,6 +23,7 @@ dependencies:
 - matplotlib
 - numpy
 - conda-forge::quadprog
+- tqdm
 - pip
 - conda-forge::pycodestyle
 - sphinx

@@ -9,7 +9,7 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 """
-Multi-task training examples. Differently from the BaseStrategy, multi-task
+Multi-task training example. Differently from the BaseStrategy, multi-task
 training allows to use the task ids at train and test time (optionally).
 """
 
@@ -22,8 +22,6 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import MultiTaskStrategy
 
@@ -44,15 +42,11 @@ def main():
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
-    evaluation_protocol = EvalProtocol(
-        metrics=[ACC(num_class=10)])
 
     # Joint training strategy
     joint_train = MultiTaskStrategy(
         model=model, optimizer=optimizer, criterion=criterion,
-        train_mb_size=32, train_epochs=1, test_mb_size=32,
-        evaluation_protocol=evaluation_protocol, device=device
-    )
+        train_mb_size=32, train_epochs=1, test_mb_size=32, device=device)
 
     # train and test loop
     results = []
