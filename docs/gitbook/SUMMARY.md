@@ -5,7 +5,7 @@
 ## 📌 Getting Started <a id="getting-started-1"></a>
 
 * [Introduction](getting-started-1/why-avalanche.md)
-* [Alpha Version](getting-started-1/alpha-version.md)
+* [Current Release](getting-started-1/alpha-version.md)
 * [How to Install](getting-started-1/1.-how-to-install.md)
 * [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
 

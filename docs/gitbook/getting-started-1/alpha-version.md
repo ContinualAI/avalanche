@@ -1,8 +1,8 @@
 ---
-description: 'Currently Supported Benchmarks, Strategies & Metrics'
+description: 'Supported Benchmarks, Strategies & Metrics'
 ---
 
-# Alpha Version
+# Current Release
 
 _Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we plan to **extend its features** and **improve its usability**, based on the always new demands of our research community!  
   
