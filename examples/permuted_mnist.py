@@ -27,7 +27,10 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
-
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 def main():
 
@@ -38,18 +41,29 @@ def main():
     model = SimpleMLP(num_classes=10)
 
     # CL Benchmark Creation
-    perm_mnist = PermutedMNIST(n_steps=5, seed=1)
-    train_stream = perm_mnist.train_stream
-    test_stream = perm_mnist.test_stream
+    scenario = PermutedMNIST(n_steps=5, seed=1)
+    train_stream = scenario.train_stream
+    test_stream = scenario.test_stream
 
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
 
+    # choose some metrics and evaluation method
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        loggers=[interactive_logger])
+
     # Continual learning strategy
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        test_mb_size=32, device=device)
+        test_mb_size=32, device=device, evaluator=eval_plugin)
 
     # train and test loop
     results = []
