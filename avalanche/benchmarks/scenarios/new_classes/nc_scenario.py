@@ -134,8 +134,15 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCStepInfo'],
         n_original_classes = max(self.classes_order_original_ids) + 1
 
         self.class_mapping: List[int] = []
-        """ class_mapping stores the class mapping so that
-        mapped_class_id = class_mapping[original_class_id]. """
+        """
+        class_mapping stores the class mapping so that 
+        `mapped_class_id = class_mapping[original_class_id]`. 
+        
+        If the scenario is created with an amount of classes which is less than
+        the amount of all classes in the dataset, then class_mapping will 
+        contain some -1 values corresponding to ignored classes. This can
+        happen when passing a fixed class order to the constructor.
+        """
 
         self.n_classes_per_step: List[int] = []
         """ A list that, for each step (identified by its index/ID),
@@ -271,7 +278,10 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCStepInfo'],
             # over all steps
             self.classes_order = list(range(0, self.n_classes))
             self.class_mapping = [-1] * n_original_classes
-            for class_id in range(self.n_classes):
+            for class_id in range(n_original_classes):
+                # This check is needed because, when a fixed class order is
+                # used, the user may have defined an amount of classes less than
+                # the overall amount of classes in the dataset.
                 if class_id in self.classes_order_original_ids:
                     self.class_mapping[class_id] = \
                         self.classes_order_original_ids.index(class_id)
@@ -417,15 +427,7 @@ class NCStepInfo(GenericStepInfo[NCScenario[TrainSet, TestSet],
         :param origin_stream: The stream from which this step was obtained.
         :param current_step: The current step ID, as an integer.
         """
-        super(NCStepInfo, self).__init__(
-            origin_stream, current_step)
-
-    @property
-    def dataset(self):
-        dataset = GenericStepInfo.dataset.fget(self)
-
-        return TransformationSubset(
-            dataset, class_mapping=self.scenario.class_mapping)
+        super(NCStepInfo, self).__init__(origin_stream, current_step)
 
 
 __all__ = ['NCScenario', 'NCStepInfo']
