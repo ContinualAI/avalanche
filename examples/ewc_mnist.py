@@ -3,6 +3,10 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 """
 This example tests EWC on Split MNIST and Permuted MNIST.
@@ -55,12 +59,6 @@ if __name__ == '__main__':
     device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
     print(f'Using device: {device}')
 
-    # create strategy
-    strategy = EWC(model, optimizer, criterion, args.ewc_lambda,
-                   args.ewc_mode, decay_factor=args.decay_factor,
-                   train_epochs=args.epochs, device=device,
-                   train_mb_size=args.minibatch_size)
-
     # create scenario
     if args.scenario == 'pmnist':
         scenario = PermutedMNIST(n_steps=args.permutations)
@@ -68,6 +66,23 @@ if __name__ == '__main__':
         scenario = SplitMNIST(n_steps=5, return_task_id=False)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
+
+    # choose some metrics and evaluation method
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        loggers=[interactive_logger])
+
+    # create strategy
+    strategy = EWC(model, optimizer, criterion, args.ewc_lambda,
+                   args.ewc_mode, decay_factor=args.decay_factor,
+                   train_epochs=args.epochs, device=device,
+                   train_mb_size=args.minibatch_size, evaluator=eval_plugin)
 
     # train on the selected scenario with the chosen strategy
     print('Starting experiment...')

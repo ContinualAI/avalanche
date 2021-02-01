@@ -3,6 +3,10 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
 from avalanche.models import SimpleMLP
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 """
 This example tests both GEM and A-GEM on Split MNIST and Permuted MNIST.
@@ -73,18 +77,6 @@ if __name__ == '__main__':
     device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
     print(f'Using device: {device}')
 
-    # create strategy
-    if args.strategy == 'gem':
-        strategy = GEM(model, optimizer, criterion, args.patterns_per_step,
-                       args.memory_strength, train_epochs=args.epochs,
-                       device=device, train_mb_size=10)
-    elif args.strategy == 'agem':
-        strategy = AGEM(model, optimizer, criterion, args.patterns_per_step,
-                        args.sample_size, train_epochs=args.epochs, device=device,
-                        train_mb_size=10)
-    else:
-        raise ValueError("Wrong strategy name. Allowed gem, agem.")
-
     # create scenario
     if args.scenario == 'pmnist':
         scenario = PermutedMNIST(n_steps=args.permutations)
@@ -93,6 +85,28 @@ if __name__ == '__main__':
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
+    # choose some metrics and evaluation method
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        loggers=[interactive_logger])
+
+    # create strategy
+    if args.strategy == 'gem':
+        strategy = GEM(model, optimizer, criterion, args.patterns_per_step,
+                       args.memory_strength, train_epochs=args.epochs,
+                       device=device, train_mb_size=10, evaluator=eval_plugin)
+    elif args.strategy == 'agem':
+        strategy = AGEM(model, optimizer, criterion, args.patterns_per_step,
+                        args.sample_size, train_epochs=args.epochs, device=device,
+                        train_mb_size=10, evaluator=eval_plugin)
+    else:
+        raise ValueError("Wrong strategy name. Allowed gem, agem.")
     # train on the selected scenario with the chosen strategy
     print('Starting experiment...')
     results = []
