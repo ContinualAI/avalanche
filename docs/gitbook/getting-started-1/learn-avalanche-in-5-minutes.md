@@ -8,9 +8,9 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 
 > #### What are the **three pillars** of any respectful continual learning research project?
 
-* **Benchmarks**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
-* **Training**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
-* **Evaluation**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
+* **`Benchmarks`**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
+* **`Training`**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
+* **`Evaluation`**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
 * **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\). 
 * **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
 
