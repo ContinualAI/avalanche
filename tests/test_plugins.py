@@ -122,6 +122,8 @@ class PluginTests(unittest.TestCase):
             device='cpu', plugins=[plug]
         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        print("Current Classes: ", scenario.train_stream[0].classes_in_this_step)
+        print("Current Classes: ", scenario.train_stream[4].classes_in_this_step)
 
         # head creation
         strategy.train(scenario.train_stream[0])
@@ -159,7 +161,8 @@ class PluginTests(unittest.TestCase):
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
-        return nc_scenario(train_dataset, test_dataset, 5, task_labels=False)
+        return nc_scenario(train_dataset, test_dataset, 5, task_labels=False,
+                           fixed_class_order=list(range(10)))
 
 
 if __name__ == '__main__':
