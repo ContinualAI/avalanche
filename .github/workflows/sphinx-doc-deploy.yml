@@ -1,30 +1,46 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 04-02-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
+
+
 name: documentation compilation and deploynment
 
 on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
-    name: build_sphinx_doc
+    name: build_sphinx_doc_deploy
     runs-on: ubuntu-latest
-    if: github.repository == 'vlomonaco/avalanche'
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: s-weigand/setup-conda@v1
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-conda: false
-      - name: install conda dependencies
-        run: |
-          conda env create -f environment-dev.yml
+          activate-environment: avalanche-dev-env
+          environment-file: environment-dev.yml
+          auto-activate-base: false
       - name: compile documentation
         run: |
-          source activate avalanche-dev-env
           sphinx-build -b dirhtml docs/ doc_html/
       - name: Clone gh-pages branch
+        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
         uses: actions/checkout@v2
         with:
           repository: 'vlomonaco/avalanche'
@@ -32,6 +48,7 @@ jobs:
           path: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: commit to gh pages
+        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
         run: |
           cp -r doc_html/. gh-pages/
           cd gh-pages
@@ -41,7 +58,8 @@ jobs:
           git commit -m "Update documentation" -a || true
           # The above command will fail if no changes were present, so we ignore
           # that.
-      - name: Push changes
+      - name: Push changes (deploy)
+        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
         uses: ad-m/github-push-action@master
         with:
           branch: gh-pages
