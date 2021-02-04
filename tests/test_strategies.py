@@ -17,6 +17,7 @@ import unittest
 import torch
 from torchvision.transforms import ToTensor, Compose
 import os
+import sys
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -25,6 +26,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.datasets import MNIST
+from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy
@@ -83,7 +85,7 @@ class StrategyTest(unittest.TestCase):
         criterion = CrossEntropyLoss()
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = MultiTaskStrategy(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device)
+                         device=self.device, test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_naive(self):
@@ -93,7 +95,7 @@ class StrategyTest(unittest.TestCase):
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device)
+                         device=self.device, test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_cwrstar(self):
@@ -103,7 +105,8 @@ class StrategyTest(unittest.TestCase):
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = CWRStar(model, optimizer, criterion, 'features.0.bias',
-                           train_mb_size=64, device=self.device)
+                           train_mb_size=64, device=self.device,
+                           test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
@@ -113,7 +116,8 @@ class StrategyTest(unittest.TestCase):
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = Replay(model, optimizer, criterion,
-                          mem_size=200, train_mb_size=64, device=self.device)
+                          mem_size=200, train_mb_size=64, device=self.device,
+                          test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
     
     def test_gdumb(self):
@@ -124,7 +128,9 @@ class StrategyTest(unittest.TestCase):
 
         strategy = GDumb(
                 model, optimizer, criterion,
-                mem_size=200, train_mb_size=64, device=self.device)
+                mem_size=200, train_mb_size=64, device=self.device,
+                test_mb_size=50, train_epochs=2
+        )
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_cumulative(self):
@@ -134,7 +140,8 @@ class StrategyTest(unittest.TestCase):
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
-                              device=self.device)
+                              device=self.device, test_mb_size=50,
+                              train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
     
     def test_lwf(self):
@@ -145,7 +152,9 @@ class StrategyTest(unittest.TestCase):
 
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)], 
-                       temperature=2, train_mb_size=64, device=self.device)
+                       temperature=2, device=self.device,
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_agem(self):
@@ -156,7 +165,8 @@ class StrategyTest(unittest.TestCase):
 
         strategy = AGEM(model, optimizer, criterion,
                         patterns_per_step=250, sample_size=256,
-                        train_mb_size=10)
+                        train_mb_size=10, test_mb_size=50,
+                        train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
 
@@ -168,7 +178,8 @@ class StrategyTest(unittest.TestCase):
 
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_step=256,
-                       train_mb_size=10, train_epochs=1)
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
     
@@ -180,7 +191,8 @@ class StrategyTest(unittest.TestCase):
 
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='separate',
-                       train_mb_size=10, train_epochs=1)
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
 
@@ -192,7 +204,8 @@ class StrategyTest(unittest.TestCase):
 
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='online', decay_factor=0.1,
-                       train_mb_size=10, train_epochs=1)
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
 
@@ -205,7 +218,7 @@ class StrategyTest(unittest.TestCase):
         """
 
         if fast_test:
-            n_samples_per_class = 200
+            n_samples_per_class = 20
 
             dataset = make_classification(
                 n_samples=10 * n_samples_per_class,
@@ -239,17 +252,18 @@ class StrategyTest(unittest.TestCase):
     def get_model(self, fast_test=False):
 
         if fast_test:
-            return SimpleMLP(input_size=6)
+            return SimpleMLP(input_size=6, hidden_size=10)
         else:
             return SimpleMLP()
 
     def run_strategy(self, scenario, cl_strategy):
         print('Starting experiment...')
+        cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
         for train_batch_info in scenario.train_stream:
             print("Start of step ", train_batch_info.current_step)
 
-            cl_strategy.train(train_batch_info, num_workers=4)
+            cl_strategy.train(train_batch_info)
             print('Training completed')
 
             print('Computing accuracy on the current test set')
