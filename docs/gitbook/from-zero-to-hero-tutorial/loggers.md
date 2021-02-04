@@ -1,14 +1,28 @@
 ---
-description: Design Your Continual Learning Experiments
+description: "Logging... logging everywhere! \U0001F52E"
 ---
 
-# Putting All Together
+# Loggers
 
- Welcome to the "_Putting All Together_" tutorial of the "_From Zero to Hero_" series. In this part we will summarize the major Avalanche features and how you can put them together for your continual learning experiments.
+Welcome to the _"Logging"_ tutorial of the _"From Zero to Hero"_ series. In this part we will present the functionalities offered by the _Avalanche_ `logging` module.
 
-## 🛴 A Comprehensive Example
+### 📑 The Logging Module
 
-Here we report a complete example of the _Avalanche_ usage:
+In the previous tutorial we have learned how to evaluate a continual learning algorithm in _Avalanche_, through different metrics that can be used _off-the-shelf_ via the _Evaluation Plugin_ or stand-alone. However, computing metrics and collecting results, may not be enough at times.
+
+While running complex experiments with long _waiting times_, **logging** results over-time is fundamental to "_babysit_" your experiments in real-time, or even understand what went wrong in the aftermath.
+
+This is why in Avalanche we decided to put a strong emphasis on logging and **provide a number of loggers** that can be used with any set of metrics!
+
+### Loggers
+
+_Avalanche_ at the moment supports three main Loggers:
+
+* **InteractiveLogger**: This logger provides a nice progress bar and displays real-time metrics results in an interactive way \(meant for `stdout`\).
+* **TextLogger**: This logger, mostly intended for file logging, is the plain text version of the `InteractiveLogger`. Keep in mind that it may be very verbose.
+* **TensorboardLogger**: It logs all the metrics on [Tensorboard](https://www.tensorflow.org/tensorboard) in real-time. Perfect for real-time plotting.
+
+#### How to use Them
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
@@ -72,11 +86,17 @@ for step in scenario.train_stream:
     results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
 ```
 
+### Create your Logger
+
+If the available loggers are not sufficient to suit your needs, you can always implement a custom logger by specializing the behaviors of the `StrategyLogger` base class.
+
+This completes the "_Logging_" tutorial for the "_From Zero to Hero_" series. We hope you enjoyed it!
+
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 
-{% embed url="https://colab.research.google.com/drive/1KscR5NUtFQSZjVspdhLoiJlvJn3pV4TV?usp=sharing" %}
+{% embed url="https://colab.research.google.com/drive/16BV\_sJiQNl\_2gCUp82G4se40QK3IaDSq?usp=sharing" %}
 
 
 

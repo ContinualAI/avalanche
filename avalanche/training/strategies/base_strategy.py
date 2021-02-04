@@ -63,7 +63,12 @@ class BaseStrategy:
         self.evaluator = evaluator
 
         # Flow state variables
-        self.step_id = None  # test-flow only.
+
+        # Counter of each training step.
+        # Incremented by 1 at the end of each step.
+        self.training_step_counter = 0
+        # test-flow only
+        self.test_step_id = None
         self.epoch = None
         self.step_info = None
         self.current_data = None
@@ -185,7 +190,7 @@ class BaseStrategy:
         for step_info in step_list:
             self.test_task_label = step_info.task_label
             self.step_info = step_info
-            self.step_id = step_info.current_step
+            self.test_step_id = step_info.current_step
 
             self.current_data = step_info.dataset
             self.current_data.eval()
@@ -330,6 +335,9 @@ class BaseStrategy:
     def after_training_step(self, **kwargs):
         for p in self.plugins:
             p.after_training_step(self, **kwargs)
+
+        self.training_step_counter += 1
+
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.step_info = None
@@ -375,7 +383,7 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_test(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.step_id = None
+        self.test_step_id = None
         self.step_info = None
         self.current_data = None
         self.current_dataloader = None

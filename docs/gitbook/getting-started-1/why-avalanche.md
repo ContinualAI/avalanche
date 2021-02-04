@@ -27,7 +27,7 @@ Avalanche has several advantages:
 
 But most of all, _Avalanche_, can help us standardize our field and work better together, more collaboratively, towards our shared goal of making machines learn over time like humans do.  
   
-_Avalanche_ is one of the first experiments of a **End-to-end Research Framework** for reproducible m_achine learning_ research where you can find _benchmarks_, _algorithms_ and _evaluation protocols_ in the same place.  
+_Avalanche_ is one of the first experiments of a **End-to-end Research Framework** for reproducible m_achine learning_ research where you can find _benchmarks_, _algorithms, evaluation utilities_ and much more in the same place.  
   
 Let's make it together 👫 a wonderful ride! 🎈
 

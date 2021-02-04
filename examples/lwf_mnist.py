@@ -1,11 +1,39 @@
----
-description: Baselines and Strategies Code Examples
----
+import torch
+import argparse
+from avalanche.benchmarks import SplitMNIST
+from avalanche.training.strategies import LwF
+from avalanche.models import SimpleMLP
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
-# Training
 
-{% code title="\"LWF\" Example" %}
-```python
+"""
+This example tests Learning without Forgetting (LwF) on Split MNIST.
+The performance with default arguments should give an average accuracy
+of about 73%.
+"""
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--lwf_alpha', nargs='+', type=float,
+                    default=[0, 0.5, 1.333, 2.25, 3.2],
+                    help='Penalty hyperparameter for LwF. It can be either'
+                         'a list with multiple elements (one alpha per step)'
+                         'or a list of one element (same alpha for all steps).')
+parser.add_argument('--softmax_temperature', type=float, default=1,
+                    help='Temperature for softmax used in distillation')
+parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate.')
+parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
+parser.add_argument('--epochs', type=int, default=10, 
+                    help='Number of training epochs.')
+parser.add_argument('--minibatch_size', type=int, default=128,
+                    help='Minibatch size.')
+parser.add_argument('--cuda', type=int, default=-1,
+                    help='Specify GPU id to use. Use CPU if -1.')
+args = parser.parse_args()
+
+
 model = SimpleMLP(hidden_size=args.hs)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
 criterion = torch.nn.CrossEntropyLoss()
@@ -48,14 +76,3 @@ for train_batch_info in scenario.train_stream:
     print("End training on step ", train_batch_info.current_step)
     print('Computing accuracy on the test set')
     results.append(strategy.test(scenario.test_stream[:]))
-```
-{% endcode %}
-
-## 🤝 Run it on Google Colab
-
-You can run _this chapter_ and play with it on Google Colaboratory:
-
-{% hint style="danger" %}
-Notebook currently unavailable.
-{% endhint %}
-

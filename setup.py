@@ -44,6 +44,7 @@ setuptools.setup(
         'scikit-learn',
         'matplotlib',
         'numpy',
-        'pytorchcv'
+        'pytorchcv',
+        'quadprog'
     ]
 )

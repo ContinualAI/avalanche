@@ -30,6 +30,11 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import ReplayPlugin, MultiHeadPlugin
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
+
 
 
 def main():
@@ -62,11 +67,23 @@ def main():
     # MODEL CREATION
     model = SimpleMLP(num_classes=scenario.n_classes)
 
+    # choose some metrics and evaluation method
+    interactive_logger = InteractiveLogger()
+
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=True, epoch=True, task=True),
+        loss_metrics(minibatch=True, epoch=True, task=True),
+        timing_metrics(epoch=True, epoch_average=True, test=False),
+        cpu_usage_metrics(step=True),
+        TaskForgetting(),
+        loggers=[interactive_logger])
+
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(model, torch.optim.Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
         train_mb_size=100, train_epochs=4, test_mb_size=100, device=device,
-        plugins=[ReplayPlugin(mem_size=10000), MultiHeadPlugin(model)]
+        plugins=[ReplayPlugin(mem_size=10000), MultiHeadPlugin(model)],
+        evaluator=eval_plugin
     )
 
     # TRAINING LOOP

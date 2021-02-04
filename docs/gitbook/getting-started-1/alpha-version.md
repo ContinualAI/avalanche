@@ -1,8 +1,8 @@
 ---
-description: 'Currently Supported Benchmarks, Strategies & Metrics'
+description: 'Supported Benchmarks, Strategies & Metrics'
 ---
 
-# Alpha Version
+# Current Release
 
 _Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we plan to **extend its features** and **improve its usability**, based on the always new demands of our research community!  
   
@@ -11,6 +11,8 @@ A the moment, _Avalanche_ is in **Alpha \(v0.0.1\)**, but we already support a n
 {% hint style="info" %}
 Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
+
+This doc is out-of-date. Check the [full tutorial](../from-zero-to-hero-tutorial/introduction.md) for more details.
 
 ## 🖼️ Supported Datasets
 

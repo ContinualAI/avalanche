@@ -1,10 +1,10 @@
 ---
-description: Protocols and Metrics Code Examples
+description: Examples for the Loggers module offered in Avalanche
 ---
 
-# Evaluation
+# Loggers
 
-{% code title="\"Evaluation Pluging\" Example" %}
+{% code title="\"Loggers\" Example" %}
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
