@@ -70,7 +70,6 @@ def main():
 
     my_logger = TensorboardLogger(
         tb_log_dir="logs", tb_log_exp_name="logging_example")
-    text_logger = TextLogger(open('log.txt', 'a'))
 
     # print to stdout
     interactive_logger = InteractiveLogger()
@@ -80,14 +79,15 @@ def main():
         loss_metrics(minibatch=True, epoch=True, task=True),
         TaskForgetting(),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
-        loggers=[my_logger, text_logger, interactive_logger])
+        loggers=[my_logger, interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
     cl_strategy = Naive(
         model, Adam(model.parameters(), lr=0.001),
-        CrossEntropyLoss(), train_mb_size=64, train_epochs=10, test_mb_size=64,
+        CrossEntropyLoss(), train_mb_size=128, train_epochs=4, test_mb_size=128,
         device=device, plugins=[evaluation_plugin,
-                                SynapticIntelligencePlugin(0.0001)])
+                                SynapticIntelligencePlugin(0.0001,
+                                                           device=None)])
 
     # TRAINING LOOP
     print('Starting experiment...')

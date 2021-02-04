@@ -10,17 +10,24 @@
 ################################################################################
 from typing import Optional, Sequence, List, Union
 
+import numpy as np
+import torch
+from torch import Tensor
 from torch.nn import Module, CrossEntropyLoss
+from torch.nn.modules.batchnorm import _NormBase
 from torch.optim import Optimizer, SGD
 
 from torch.utils.data import ConcatDataset
 
 from avalanche.logging import default_logger
+from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.models.mobilenetv1 import MobilenetV1
 from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training.plugins import StrategyPlugin, \
     CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, \
     GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin
+from avalanche.training.utils import get_last_fc_layer, replace_bn_with_brn, \
+    get_layers_and_params, change_brn_pars, freeze_up_to, LayerParameter
 
 
 class Naive(BaseStrategy):
@@ -63,7 +70,7 @@ class Naive(BaseStrategy):
 class CWRStar(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 second_last_layer_name, num_classes=50,
+                 cwr_layer_name: str, num_classes=50,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
@@ -74,8 +81,8 @@ class CWRStar(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
-        :param second_last_layer_name: name of the second to last layer
-                (layer just before the classifier).
+        :param cwr_layer_name: name of the CWR layer. Defaults to None, which
+            means that the last fully connected layer will be used.
         :param num_classes: total number of classes.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
@@ -85,7 +92,8 @@ class CWRStar(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         """
-        cwsp = CWRStarPlugin(model, second_last_layer_name, num_classes)
+        cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True,
+                             num_classes=num_classes)
         if plugins is None:
             plugins = [cwsp]
         else:
@@ -395,7 +403,7 @@ class AR1(BaseStrategy):
     performing baseline.
     """
 
-    def __init__(self, criterion=None, lr: float = 0.001,
+    def __init__(self, criterion=None, num_classes=50, lr: float = 0.001,
                  init_update_rate: float = 0.01, inc_update_rate=0.00005,
                  max_r_max=1.25, max_d_max=0.5, inc_step=4.1e-05, momentum=0.9,
                  l2=0.0005, rm_sz: int = 1500,
@@ -431,14 +439,25 @@ class AR1(BaseStrategy):
         )
 
         model.saved_weights = {}
-        model.past_j = {i: 0 for i in range(50)}
-        model.cur_j = {i: 0 for i in range(50)}
+        model.past_j = {i: 0 for i in range(num_classes)}
+        model.cur_j = {i: 0 for i in range(num_classes)}
+
+        fc_name, fc_layer = get_last_fc_layer(model)
 
         if ewc_lambda != 0:
-            plugins.append(SynapticIntelligencePlugin(ewc_lambda))
+            # Synaptic Intelligence is not applied to the last fully
+            # connected layer.
+            # TODO: exclude "freeze below parameters"
+            plugins.append(SynapticIntelligencePlugin(
+                ewc_lambda, excluded_parameters=[fc_name]))
+
+        plugins.append(CWRStarPlugin(self.model, cwr_layer_name=fc_name,
+                                     freeze_remaining_model=False,
+                                     num_classes=num_classes))
 
         optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
                         weight_decay=l2)
+
         if criterion is None:
             criterion = CrossEntropyLoss()
 
@@ -452,13 +471,76 @@ class AR1(BaseStrategy):
         self.momentum = momentum
         self.l2 = l2
         self.rm = None
+        self.cur_acts: Optional[Tensor] = None
 
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             test_mb_size=test_mb_size, device=device, plugins=plugins)
 
-        # TODO: implement callbacks
+    def before_training_step(self, **kwargs):
+        if self.training_step_counter > 0:
+            # freeze_below_layer and adapt optimizer
+            freeze_up_to(self.model, freeze_until_layer=self.freeze_below_layer,
+                         layer_filter=AR1.filter_bn_and_brn)
+            change_brn_pars(self.model, momentum=self.inc_update_rate,
+                            r_d_max_inc_step=0, r_max=self.max_r_max,
+                            d_max=self.max_d_max)
+            self.model = self.model.to(self.device)
+            self.optimizer = SGD(
+                self.model.parameters(), lr=self.lr, momentum=self.momentum,
+                weight_decay=self.l2)
+
+        # Runs S.I. and CWR* plugin callbacks
+        # TODO: cur_j of the CWR plugin must consider latent patterns
+        super().before_training_step(**kwargs)
+
+        # Selective unfreeze
+        # TODO: Not sure of that!
+        self.model.eval()
+        self.model.end_features.train()
+        self.model.output.train()
+
+    # TODO: custom epoch (inject latent patterns, store latent activations)
+
+    def after_training_step(self, **kwargs):
+        # Runs S.I. and CWR* plugin callbacks
+        super().after_training_step(**kwargs)
+
+        h = min(self.rm_sz // (self.training_step_counter + 1),
+                self.cur_acts.size(0))
+
+        idxs_cur = np.random.choice(
+            self.cur_acts.size(0), h, replace=False)
+
+        rm_add = [self.cur_acts[idxs_cur],
+                  torch.tensor(self.current_data.targets[idxs_cur])]
+
+        # replace patterns in random memory
+        if self.training_step_counter == 0:
+            self.rm = rm_add
+        else:
+            idxs_2_replace = np.random.choice(
+                self.rm[0].size(0), h, replace=False)
+            for j, idx in enumerate(idxs_2_replace):
+                self.rm[0][idx] = rm_add[0][j]
+                self.rm[1][idx] = rm_add[1][j]
+
+    @staticmethod
+    def filter_bn_and_brn(param_def: LayerParameter):
+        return not isinstance(param_def.layer, (_NormBase, BatchRenorm2D))
+
+    @staticmethod
+    def examples_per_class(targets):
+        result = dict()
+
+        unique_classes, examples_count = torch.unique(
+            torch.as_tensor(targets), return_counts=True)
+        for unique_idx in range(len(unique_classes)):
+            result[int(unique_classes[unique_idx])] = \
+                int(examples_count[unique_idx])
+
+        return result
 
 
 __all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM',

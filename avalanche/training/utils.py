@@ -22,14 +22,16 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Optional, Tuple, Callable
 
 import numpy as np
 import torch
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import Module, Linear
 from torch.utils.data import Dataset, DataLoader
 import logging
+
+from avalanche.models.batch_renorm import BatchRenorm2D
 
 
 def get_accuracy(model, criterion, batch_size, test_x, test_y, test_it,
@@ -393,6 +395,143 @@ def get_layers_and_params(model: Module, prefix='') -> List[LayerParameter]:
     return result
 
 
+def get_layer_by_name(model: Module, layer_name: str) -> Optional[Module]:
+    for layer_param in get_layers_and_params(model):
+        if layer_param.layer_name == 'layer_name':
+            return layer_param.layer
+    return None
+
+
+def get_last_fc_layer(model: Module) -> Optional[Tuple[str, Linear]]:
+    last_fc = None
+    for layer_name, layer in model.named_modules():
+        if isinstance(layer, Linear):
+            last_fc = (layer_name, layer)
+
+    return last_fc
+
+
+def swap_last_fc_layer(model: Module, new_layer: Module) -> None:
+    last_fc_name, last_fc_layer = get_last_fc_layer(model)
+    setattr(model, last_fc_name, new_layer)
+
+
+def replace_bn_with_brn(m: Module, momentum=0.1, r_d_max_inc_step=0.0001,
+                        r_max=1.0, d_max=0.0, max_r_max=3.0, max_d_max=5.0):
+
+    for attr_str in dir(m):
+        target_attr = getattr(m, attr_str)
+        if type(target_attr) == torch.nn.BatchNorm2d:
+            # print('replaced: ', name, attr_str)
+            setattr(m, attr_str,
+                    BatchRenorm2D(
+                        target_attr.num_features,
+                        gamma=target_attr.weight,
+                        beta=target_attr.bias,
+                        running_mean=target_attr.running_mean,
+                        running_var=target_attr.running_var,
+                        eps=target_attr.eps,
+                        momentum=momentum,
+                        r_d_max_inc_step=r_d_max_inc_step,
+                        r_max=r_max,
+                        d_max=d_max,
+                        max_r_max=max_r_max,
+                        max_d_max=max_d_max
+                        )
+                    )
+    for n, ch in m.named_children():
+        replace_bn_with_brn(ch, momentum, r_d_max_inc_step, r_max, d_max,
+                            max_r_max, max_d_max)
+
+
+def change_brn_pars(
+        m: Module, momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,
+        d_max=0.0):
+    for attr_str in dir(m):
+        target_attr = getattr(m, attr_str)
+        if type(target_attr) == BatchRenorm2D:
+            target_attr.momentum = torch.tensor((momentum), requires_grad=False)
+            target_attr.r_max = torch.tensor(r_max, requires_grad=False)
+            target_attr.d_max = torch.tensor(d_max, requires_grad=False)
+            target_attr.r_d_max_inc_step = r_d_max_inc_step
+
+    for n, ch in m.named_children():
+        change_brn_pars(ch, momentum, r_d_max_inc_step, r_max, d_max)
+
+
+def freeze_everything(model: Module, set_eval_mode: bool = True):
+    if set_eval_mode:
+        model.eval()
+
+    for layer_param in get_layers_and_params(model):
+        layer_param.parameter.requires_grad = False
+
+
+def unfreeze_everything(model: Module, set_train_mode: bool = True):
+    if set_train_mode:
+        model.train()
+
+    for layer_param in get_layers_and_params(model):
+        layer_param.parameter.requires_grad = True
+
+
+def freeze_up_to(model: Module,
+                 freeze_until_layer: str = None,
+                 set_eval_mode: bool = True,
+                 set_requires_grad_false: bool = True,
+                 layer_filter: Callable[[LayerParameter], bool] = None,
+                 module_prefix: str = ''):
+    """
+    A simple utility that can be used to freeze a model.
+
+    :param model: The model.
+    :param freeze_until_layer: If not None, the freezing algorithm will continue
+        (proceeding from the input towards the output) until the specified layer
+        is encountered. The given layer is excluded from the freezing procedure.
+    :param set_eval_mode: If True, the frozen layers will be set in eval mode.
+        Defaults to True.
+    :param set_requires_grad_false: If True, the autograd engine will be
+        disabled for frozen parameters. Defaults to True.
+    :param layer_filter: A function that, given a :class:`LayerParameter`,
+        returns `True` if the parameter must be frozen. If all parameters of
+        a layer are frozen, then the layer will be set in eval mode (according
+        to the `set_eval_mode` parameter. Defaults to None, which means that all
+        parameters will be frozen.
+    :param module_prefix: The model prefix. Do not use if non strictly
+        necessary.
+    :return:
+    """
+
+    frozen_layers = set()
+    frozen_parameters = set()
+
+    to_freeze_layers = dict()
+    for param_def in get_layers_and_params(model, prefix=module_prefix):
+        if freeze_until_layer is not None and \
+                freeze_until_layer == param_def.layer_name:
+            break
+
+        freeze_param = layer_filter is None or layer_filter(param_def)
+        if freeze_param:
+            if set_requires_grad_false:
+                param_def.parameter.requires_grad = False
+                frozen_parameters.add(param_def.parameter_name)
+
+            if param_def.layer_name not in to_freeze_layers:
+                to_freeze_layers[param_def.layer_name] = (True, param_def.layer)
+        else:
+            # Don't freeze this parameter -> do not set eval on the layer
+            to_freeze_layers[param_def.layer_name] = (False, None)
+
+    if set_eval_mode:
+        for layer_name, layer_result in to_freeze_layers.items():
+            if layer_result[0]:
+                layer_result[1].eval()
+                frozen_layers.add(layer_name)
+
+    return frozen_layers, frozen_parameters
+
+
 __all__ = ['get_accuracy',
            'train_net',
            'preprocess_imgs',
@@ -409,4 +548,12 @@ __all__ = ['get_accuracy',
            'load_all_dataset',
            'zerolike_params_dict',
            'copy_params_dict',
-           'get_layers_and_params']
+           'get_layers_and_params',
+           'get_layer_by_name',
+           'get_last_fc_layer',
+           'swap_last_fc_layer',
+           'replace_bn_with_brn',
+           'change_brn_pars',
+           'freeze_everything',
+           'unfreeze_everything',
+           'freeze_up_to']
