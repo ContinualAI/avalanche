@@ -99,7 +99,7 @@ if __name__ == '__main__':
     for train_batch_info in scenario.train_stream:
         print("Start training on step ", train_batch_info.current_step)
 
-        strategy.train(train_batch_info, num_workers=4)
+        strategy.train(train_batch_info)
         print("End training on step ", train_batch_info.current_step)
         print('Computing accuracy on the test set')
         results.append(strategy.test(scenario.test_stream[:]))

@@ -60,7 +60,7 @@ def main():
 
     # train and test loop
     results = []
-    joint_train.train(train_stream, num_workers=4)
+    joint_train.train(train_stream)
     results.append(joint_train.test(test_stream))
 
 if __name__ == '__main__':

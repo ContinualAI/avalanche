@@ -115,7 +115,7 @@ def main():
     for task_id, train_dataset in enumerate(list_train_dataset):
         print("Starting task:", task_id)
         train_data_loader = DataLoader(
-            train_dataset, num_workers=4, batch_size=32, shuffle=False)
+            train_dataset, batch_size=32, shuffle=False)
 
         for ep in range(1):
             print("Epoch: ", ep)
@@ -142,7 +142,7 @@ def main():
         for task_id, test_dataset in enumerate(list_test_dataset):
 
             test_data_loader = DataLoader(
-                test_dataset, num_workers=4, batch_size=32)
+                test_dataset, batch_size=32)
 
             correct = 0
             for iteration, (test_mb_x, test_mb_y) in enumerate(
