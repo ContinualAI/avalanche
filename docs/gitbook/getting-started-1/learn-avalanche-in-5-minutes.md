@@ -36,22 +36,21 @@ In the graphic below, you can see how _Avalanche_ sub-modules are available and 
 ```text
 Avalanche
 ├── Benchmarks
-│   ├── Classic
-│   ├── Datasets
-│   ├── Generators
-│   ├── Scenarios
-│   └── Utils
+│   ├── Classic
+│   ├── Datasets
+│   ├── Generators
+│   ├── Scenarios
+│   └── Utils
 ├── Evaluation
-│   ├── Metrics
-│   ├── Tensorboard
-|   └── Utils
+│   ├── Metrics
+│   ├── Tensorboard
+|   └── Utils
 ├── Training
-│   ├── Strategies
-│   ├── Plugins
-|   └── Utils
+│   ├── Strategies
+│   ├── Plugins
+|   └── Utils
 ├── Models
 └── Loggers
-
 ```
 {% endcode %}
 
@@ -257,9 +256,9 @@ Check out more details about what Avalanche can offer in this module following t
 
 ## 📈 Evaluation
 
-The `evaluation` module is quite straightforward at the moment as it offers all the basic functionalities to evaluate keep track of a continual learning experiment. 
+The `evaluation` module is quite straightforward at the moment as it offers all the basic functionalities to evaluate keep track of a continual learning experiment.
 
-This is mostly done thought the **Metrics**: a set of classes \(one for metric\) which implement the main continual learning metrics computation like _accuracy_, _forgetting_, _memory usage_, _running times_, etc.
+This is mostly done thought the **Metrics**: a set of classes \(one for metric\) which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
 
 ### Metrics
 
