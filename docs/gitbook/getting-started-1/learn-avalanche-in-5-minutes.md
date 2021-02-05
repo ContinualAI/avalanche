@@ -14,7 +14,7 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 * **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\). 
 * **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
 
-> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent codabase._
+> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent codebase._
 
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
@@ -28,7 +28,7 @@ _Avalanche_ is organized in **four main modules**:
 
 * **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
-* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [Tensorboard](https://www.tensorflow.org/tensorboard) support.
+* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [TensorBoard](https://www.tensorflow.org/tensorboard) support.
 * **`Extras`**: In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
 
 In the graphic below, you can see how _Avalanche_ sub-modules are available and organized as well:
@@ -64,9 +64,9 @@ All right, let's start with the _benchmarks_ module right away 👇
 
 The benchmark module offers three main features:
 
-1. **Datasets**: a comprehensive list of Pytorch Datasets ready to use \(It includes all the _Torchvision_ Datasets and more!\).
+1. **Datasets**: a comprehensive list of PyTorch Datasets ready to use \(It includes all the _Torchvision_ Datasets and more!\).
 2. **Classic Benchmarks**: a set of classic _Continual Learning_ Benchmarks ready to be used \(there can be multiple benchmarks based on a single dataset\).
-3. **Generators**: a set of functions you can use to generate your own benchmark starting from any Pytorch Dataset!
+3. **Generators**: a set of functions you can use to generate your own benchmark starting from any PyTorch Dataset!
 
 ### Datasets
 
@@ -80,11 +80,11 @@ VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
 CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
 ```
 
-Of course, you can use them as you would use any _Pythorch Dataset_.
+Of course, you can use them as you would use any _PyTorch Dataset_.
 
 ### Benchmarks Basics
 
-The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that characterize the benchmark. However, the most important ones are the `train` and `test streams`.
+The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that describe the benchmark. However, the most important ones are the `train` and `test streams`.
 
 In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
 
@@ -92,7 +92,7 @@ Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that
 
 ### **Classic Benchmarks**
 
-_Avalanche_ maintains a set of commonly used benchmarks build on top of one of multiple datasets, that simulate that stream.
+_Avalanche_ maintains a set of commonly used benchmarks built on top of one or multiple datasets.
 
 ```python
 from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
@@ -128,9 +128,9 @@ for step in train_stream:
 
 ### Benchmarks Generators
 
-What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offer a number of utilites that you can use to create your own benchmark with maximum flexibilty: the **benchmarks generators**!
+What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offers a number of utilities that you can use to create your own benchmark with maximum flexibility: the **benchmark generators**!
 
-The _specific_ scenario generators are useful when starting from one or multiple Pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios among others.
+The _specific_ scenario generators are useful when starting from one or multiple PyTorch datasets and you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios among others.
 
 ```python
 from avalanche.benchmarks.generators import nc_scenario, ni_scenario
@@ -145,7 +145,7 @@ scenario = nc_scenario(
 )
 ```
 
-Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios, you can always use our **generic generators**:
+Finally, if your ideal benchmark does not fit well in the aforementioned _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios, you can always use our **generic generators**:
 
 * **filelist\_scenario**
 * **dataset\_scenario**
@@ -162,14 +162,14 @@ You can read more about how to use them the full _Benchmarks_ module tutorial!
 
 ## 💪Training
 
-The `training` module in _Avalanche_ is build on modularity and its main goals are two:
+The `training` module in _Avalanche_ is build on modularity and it has two main goals:
 
 1. provide a set of standard **continual learning baselines** that can be easily run for comparison;
-2. provide the necessary utilities to **create and run your own strategy** as efficiently and easy as possible with building blocks we already prepared for you.
+2. provide the necessary utilities to **implement and run your own strategy** in the most efficient and simple way possible thanks to the building blocks we already prepared for you.
 
 ### Strategies
 
-If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simply as instantiate an object:
+If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simple as creating an object:
 
 ```python
 from avalanche.models import SimpleMLP
@@ -250,7 +250,7 @@ for step in scenario.train_stream:
     cl_strategy.test(scenario.test_stream[step.current_step])
 ```
 
-While this is the easiest possible way to add your own strategy to _Avalanche_ we support more sophisticated modalities \(based on _callbacks_\) that let you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins** shared with other strategies.
+While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
