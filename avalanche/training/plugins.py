@@ -1247,15 +1247,26 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         self.si_lambda: float = si_lambda
         self.excluded_parameters: Set[str] = set(excluded_parameters)
         self.ewc_data: EwcDataType = (dict(), dict())
-        self.syn_data: SynDataType = dict()
+        """
+        The first dictionary contains the params at loss minimum while the 
+        second one contains the parameter importance.
+        """
+
+        self.syn_data: SynDataType = {
+            'old_theta': dict(),
+            'new_theta': dict(),
+            'grad': dict(),
+            'trajectory': dict(),
+            'cum_trajectory': dict()}
+
         self._device = device
 
     def before_training_step(self, strategy: PluggableStrategy, **kwargs):
         super().before_training_step(strategy, **kwargs)
-        if self.ewc_data is None:
-            self.ewc_data, self.syn_data = \
-                SynapticIntelligencePlugin.create_syn_data(
-                    strategy.model, self.excluded_parameters)
+        SynapticIntelligencePlugin.create_syn_data(
+            strategy.model, self.ewc_data, self.syn_data,
+            self.excluded_parameters)
+
         SynapticIntelligencePlugin. \
             init_batch(strategy.model, self.ewc_data, self.syn_data,
                        self.excluded_parameters)
@@ -1293,33 +1304,29 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
     @staticmethod
     @torch.no_grad()
-    def create_syn_data(model: Module, excluded_parameters: Set[str]) -> \
-            Tuple[EwcDataType, SynDataType]:
+    def create_syn_data(model: Module, ewc_data: EwcDataType,
+                        syn_data: SynDataType, excluded_parameters: Set[str]):
         params = SynapticIntelligencePlugin.allowed_parameters(
             model, excluded_parameters)
 
-        # The first component contains the params at loss minimum,
-        # the second the parameter importance
-        ewc_data: EwcDataType = (dict(), dict())
-
-        # The second array is a dictionary with the synData
-        syn_data: Dict[str, Dict[str, Tensor]] = {
-            'old_theta': dict(),
-            'new_theta': dict(),
-            'grad': dict(),
-            'trajectory': dict(),
-            'cum_trajectory': dict()}
-
         for param_name, param in params:
+            if param_name in ewc_data[0]:
+                continue
+
+            # Handles added parameters (doesn't manage parameter expansion!)
             ewc_data[0][param_name] = SynapticIntelligencePlugin._zero(param)
             ewc_data[1][param_name] = SynapticIntelligencePlugin._zero(param)
-            syn_data['old_theta'] = SynapticIntelligencePlugin._zero(param)
-            syn_data['new_theta'] = SynapticIntelligencePlugin._zero(param)
-            syn_data['grad'] = SynapticIntelligencePlugin._zero(param)
-            syn_data['trajectory'] = SynapticIntelligencePlugin._zero(param)
-            syn_data['cum_trajectory'] = SynapticIntelligencePlugin._zero(param)
 
-        return ewc_data, syn_data
+            syn_data['old_theta'][param_name] = \
+                SynapticIntelligencePlugin._zero(param)
+            syn_data['new_theta'][param_name] = \
+                SynapticIntelligencePlugin._zero(param)
+            syn_data['grad'][param_name] = \
+                SynapticIntelligencePlugin._zero(param)
+            syn_data['trajectory'][param_name] = \
+                SynapticIntelligencePlugin._zero(param)
+            syn_data['cum_trajectory'][param_name] = \
+                SynapticIntelligencePlugin._zero(param)
 
     @staticmethod
     @torch.no_grad()
