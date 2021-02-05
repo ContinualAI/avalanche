@@ -91,11 +91,11 @@ def main():
     results = []
     for batch_info in scenario.train_stream:
         print("Start of step ", batch_info.current_step)
-        cl_strategy.train(batch_info, num_workers=4)
+        cl_strategy.train(batch_info)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+        results.append(cl_strategy.test(scenario.test_stream))
 
 
 if __name__ == '__main__':
