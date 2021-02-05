@@ -1202,6 +1202,11 @@ class EWCPlugin(StrategyPlugin):
             raise ValueError("Wrong EWC mode.")
 
 
+ParamDict = Dict[str, Tensor]
+EwcDataType = Tuple[ParamDict, ParamDict]
+SynDataType = Dict[str, Dict[str, Tensor]]
+
+
 class SynapticIntelligencePlugin(StrategyPlugin):
     """
     The Synaptic Intelligence plugin.
@@ -1241,8 +1246,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             excluded_parameters = []
         self.si_lambda: float = si_lambda
         self.excluded_parameters: Set[str] = set(excluded_parameters)
-        self.ewc_data: Optional[Tensor] = None
-        self.syn_data: Optional[Dict[str, Tensor]] = None
+        self.ewc_data: EwcDataType = (dict(), dict())
+        self.syn_data: SynDataType = dict()
         self._device = device
 
     def before_training_step(self, strategy: PluggableStrategy, **kwargs):
@@ -1257,10 +1262,12 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
     def after_backward(self, strategy: PluggableStrategy, **kwargs):
         super().after_backward(strategy, **kwargs)
-        strategy.loss += SynapticIntelligencePlugin. \
-            compute_ewc_loss(strategy.model, self.ewc_data,
-                             self.excluded_parameters, lambd=self.si_lambda,
-                             device=self.device(strategy))
+        syn_loss = SynapticIntelligencePlugin.compute_ewc_loss(
+            strategy.model, self.ewc_data, self.excluded_parameters,
+            lambd=self.si_lambda, device=self.device(strategy))
+
+        if syn_loss is not None:
+            strategy.loss += syn_loss
 
     def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         super().before_training_iteration(strategy, **kwargs)
@@ -1285,109 +1292,143 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         return self._device
 
     @staticmethod
-    def create_syn_data(model: Module, excluded_parameters: Set[str]):
-        # Add wildcards ".*" to all excluded parameter names
+    @torch.no_grad()
+    def create_syn_data(model: Module, excluded_parameters: Set[str]) -> \
+            Tuple[EwcDataType, SynDataType]:
         params = SynapticIntelligencePlugin.allowed_parameters(
             model, excluded_parameters)
 
-        size = 0
-        for _, param in params:
-            size += param.numel()
+        # The first component contains the params at loss minimum,
+        # the second the parameter importance
+        ewc_data: EwcDataType = (dict(), dict())
 
-        # The first array returned is a 2D array: the first component contains
-        # the params at loss minimum, the second the parameter importance
         # The second array is a dictionary with the synData
-        syn_data = {'old_theta': torch.zeros(size, dtype=torch.float32),
-                    'new_theta': torch.zeros(size, dtype=torch.float32),
-                    'grad': torch.zeros(size, dtype=torch.float32),
-                    'trajectory': torch.zeros(size, dtype=torch.float32),
-                    'cum_trajectory': torch.zeros(size, dtype=torch.float32)}
+        syn_data: Dict[str, Dict[str, Tensor]] = {
+            'old_theta': dict(),
+            'new_theta': dict(),
+            'grad': dict(),
+            'trajectory': dict(),
+            'cum_trajectory': dict()}
 
-        return torch.zeros((2, size), dtype=torch.float32), syn_data
+        for param_name, param in params:
+            ewc_data[0][param_name] = SynapticIntelligencePlugin._zero(param)
+            ewc_data[1][param_name] = SynapticIntelligencePlugin._zero(param)
+            syn_data['old_theta'] = SynapticIntelligencePlugin._zero(param)
+            syn_data['new_theta'] = SynapticIntelligencePlugin._zero(param)
+            syn_data['grad'] = SynapticIntelligencePlugin._zero(param)
+            syn_data['trajectory'] = SynapticIntelligencePlugin._zero(param)
+            syn_data['cum_trajectory'] = SynapticIntelligencePlugin._zero(param)
+
+        return ewc_data, syn_data
 
     @staticmethod
     @torch.no_grad()
-    def extract_weights(model: Module, target, excluded_parameters: Set[str]):
+    def _zero(param: Tensor):
+        return torch.zeros(param.numel(), dtype=param.dtype)
+
+    @staticmethod
+    @torch.no_grad()
+    def extract_weights(model: Module, target: ParamDict,
+                        excluded_parameters: Set[str]):
         params = SynapticIntelligencePlugin.allowed_parameters(
             model, excluded_parameters)
 
-        weights_vectors: List[Tensor] = []
         for name, param in params:
-            weights_vectors.append(param.detach().cpu().flatten())
-
-        target[...] = torch.cat(weights_vectors, 0)
+            target[name][...] = param.detach().cpu().flatten()
 
     @staticmethod
-    def init_batch(model, ewc_data: Tensor, syn_data,
+    @torch.no_grad()
+    def extract_grad(model, target: ParamDict, excluded_parameters: Set[str]):
+        params = SynapticIntelligencePlugin.allowed_parameters(
+            model, excluded_parameters)
+
+        # Store the gradients into target
+        for name, param in params:
+            target[name][...] = param.grad.detach().cpu().flatten()
+
+    @staticmethod
+    @torch.no_grad()
+    def init_batch(model, ewc_data: EwcDataType, syn_data: SynDataType,
                    excluded_parameters: Set[str]):
         # Keep initial weights
         SynapticIntelligencePlugin. \
             extract_weights(model, ewc_data[0], excluded_parameters)
-        syn_data['trajectory'].fill_(0.0)
+        for param_name, param_trajectory in syn_data['trajectory'].items():
+            param_trajectory.fill_(0.0)
 
     @staticmethod
-    def compute_ewc_loss(model, ewc_data, excluded_parameters: Set[str],
-                         device, lambd=0.0):
-        params = SynapticIntelligencePlugin.allowed_parameters(
-            model, excluded_parameters)
-
-        weights_vectors: List[Tensor] = []
-        for name, param in params:
-            weights_vectors.append(param.cpu().flatten())
-
-        weights_vector = torch.cat(weights_vectors, 0).to(device)
-
-        ewc_data = ewc_data.to(device)
-        loss = (lambd / 2) * torch.dot(ewc_data[1],
-                                       (weights_vector - ewc_data[0]) ** 2)
-        return loss
-
-    @staticmethod
-    def pre_update(model, syn_data, excluded_parameters: Set[str]):
+    @torch.no_grad()
+    def pre_update(model, syn_data: SynDataType,
+                   excluded_parameters: Set[str]):
         SynapticIntelligencePlugin.extract_weights(model, syn_data['old_theta'],
                                                    excluded_parameters)
 
     @staticmethod
-    def post_update(model, syn_data, excluded_parameters: Set[str]):
+    @torch.no_grad()
+    def post_update(model, syn_data: SynDataType,
+                    excluded_parameters: Set[str]):
         SynapticIntelligencePlugin.extract_weights(model, syn_data['new_theta'],
                                                    excluded_parameters)
         SynapticIntelligencePlugin.extract_grad(model, syn_data['grad'],
                                                 excluded_parameters)
 
-        syn_data['trajectory'] += syn_data['grad'] * (
-                syn_data['new_theta'] - syn_data['old_theta'])
+        for param_name in syn_data['trajectory']:
+            syn_data['trajectory'][param_name] += \
+                syn_data['grad'][param_name] * (
+                        syn_data['new_theta'][param_name] -
+                        syn_data['old_theta'][param_name])
 
     @staticmethod
-    @torch.no_grad()
-    def extract_grad(model, target, excluded_parameters: Set[str]):
+    def compute_ewc_loss(model, ewc_data: EwcDataType,
+                         excluded_parameters: Set[str], device, lambd=0.0):
         params = SynapticIntelligencePlugin.allowed_parameters(
             model, excluded_parameters)
 
-        # Store the gradients into target
-        grad_vectors: List[Tensor] = []
+        loss = None
         for name, param in params:
-            grad_vectors.append(param.grad.detach().cpu().flatten())
+            weights = param.to(device).flatten()  # Flat, not detached
+            param_ewc_data_0 = ewc_data[0][name].to(device)  # Flat, detached
+            param_ewc_data_1 = ewc_data[1][name].to(device)  # Flat, detached
 
-        target[...] = torch.cat(grad_vectors, 0)
+            syn_loss: Tensor = torch.dot(
+                param_ewc_data_1,
+                (weights - param_ewc_data_0) ** 2) * (lambd / 2)
+
+            if loss is None:
+                loss = syn_loss
+            else:
+                loss += syn_loss
+
+        return loss
 
     @staticmethod
-    def update_ewc_data(net, ewc_data: Tensor, syn_data, clip_to,
-                        excluded_parameters: Set[str], c=0.0015):
+    @torch.no_grad()
+    def update_ewc_data(net, ewc_data: EwcDataType, syn_data: SynDataType,
+                        clip_to: float, excluded_parameters: Set[str],
+                        c=0.0015):
         SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'],
                                                    excluded_parameters)
         eps = 0.0000001  # 0.001 in few task - 0.1 used in a more complex setup
 
-        syn_data['cum_trajectory'] += c * syn_data['trajectory'] / (
-                np.square(syn_data['new_theta'] - ewc_data[0]) + eps)
+        for param_name in syn_data['cum_trajectory']:
+            syn_data['cum_trajectory'][param_name] += \
+                c * syn_data['trajectory'][param_name] / (
+                    np.square(syn_data['new_theta'][param_name] -
+                              ewc_data[0][param_name]) + eps)
 
-        ewc_data[1] = torch.empty_like(syn_data['cum_trajectory']) \
-            .copy_(-syn_data['cum_trajectory'])
+        for param_name in syn_data['cum_trajectory']:
+            ewc_data[1][param_name] = torch.empty_like(
+                syn_data['cum_trajectory'][param_name]).copy_(
+                -syn_data['cum_trajectory'][param_name])
+
         # change sign here because the Ewc regularization
         # in Caffe (theta - thetaold) is inverted w.r.t. syn equation [4]
         # (thetaold - theta)
-        ewc_data[1] = torch.clamp(ewc_data[1], max=clip_to)
-        # (except CWR)
-        ewc_data[0] = syn_data['new_theta'].clone().detach()
+        for param_name in ewc_data[1]:
+            ewc_data[1][param_name] = torch.clamp(
+                ewc_data[1][param_name], max=clip_to)
+            ewc_data[0][param_name] = \
+                syn_data['new_theta'][param_name].clone()
 
     @staticmethod
     def explode_excluded_parameters(excluded: Set[str]) -> Set[str]:
@@ -1408,7 +1449,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         return result
 
     @staticmethod
-    def allowed_parameters(model: Module, excluded_parameters: Set[str]) \
+    def not_excluded_parameters(model: Module, excluded_parameters: Set[str]) \
             -> List[Tuple[str, Tensor]]:
         # Add wildcards ".*" to all excluded parameter names
         result = []
@@ -1429,6 +1470,20 @@ class SynapticIntelligencePlugin(StrategyPlugin):
                     break
 
             if accepted:
+                result.append((name, param))
+
+        return result
+
+    @staticmethod
+    def allowed_parameters(model: Module, excluded_parameters: Set[str]) \
+            -> List[Tuple[str, Tensor]]:
+
+        allow_list = SynapticIntelligencePlugin.not_excluded_parameters(
+            model, excluded_parameters)
+
+        result = []
+        for name, param in allow_list:
+            if param.requires_grad:
                 result.append((name, param))
 
         return result
