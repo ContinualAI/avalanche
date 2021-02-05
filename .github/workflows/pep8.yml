@@ -1,6 +1,24 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 28-01-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
+
+
 name: PEP8 checking
 # This workflow is triggered on pushes to the repository.
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - docs/gitbook/**
+  pull_request:
+    paths-ignore:
+      - docs/gitbook/**
 
 jobs:
   check:
