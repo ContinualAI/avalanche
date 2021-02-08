@@ -8,26 +8,26 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+import warnings
 from typing import Optional, Sequence, List, Union
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import Module, CrossEntropyLoss
 from torch.nn.modules.batchnorm import _NormBase
 from torch.optim import Optimizer, SGD
-
 from torch.utils.data import ConcatDataset
+from torch.utils.data.dataloader import DataLoader
 
 from avalanche.logging import default_logger
 from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.models.mobilenetv1 import MobilenetV1
+from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin,\
+    ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
+    EvaluationPlugin, SynapticIntelligencePlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
-from avalanche.training.plugins import StrategyPlugin, \
-    CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, \
-    GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin
 from avalanche.training.utils import get_last_fc_layer, replace_bn_with_brn, \
-    get_layers_and_params, change_brn_pars, freeze_up_to, LayerParameter
+    change_brn_pars, freeze_up_to, LayerAndParameter, examples_per_class
 
 
 class Naive(BaseStrategy):
@@ -70,9 +70,8 @@ class Naive(BaseStrategy):
 class CWRStar(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 cwr_layer_name: str, num_classes=50,
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 cwr_layer_name: str, train_mb_size: int = 1,
+                 train_epochs: int = 1, test_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ CWR* Strategy.
@@ -83,7 +82,6 @@ class CWRStar(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param cwr_layer_name: name of the CWR layer. Defaults to None, which
             means that the last fully connected layer will be used.
-        :param num_classes: total number of classes.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param test_mb_size: The test minibatch size. Defaults to 1.
@@ -92,8 +90,7 @@ class CWRStar(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         """
-        cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True,
-                             num_classes=num_classes)
+        cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
         if plugins is None:
             plugins = [cwsp]
         else:
@@ -391,42 +388,111 @@ class EWC(BaseStrategy):
             evaluator=evaluator)
 
 
+class SynapticIntelligence(BaseStrategy):
+    """
+    The Synaptic Intelligence strategy.
+
+    This is the Synaptic Intelligence PyTorch implementation of the
+    algorithm described in the paper "Continual Learning Through Synaptic
+    Intelligence" (https://arxiv.org/abs/1703.04200).
+
+    The Synaptic Intelligence regularization can also be used in a different
+    strategy by applying the :class:`SynapticIntelligencePlugin` plugin.
+    """
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 si_lambda: float, train_mb_size: int = 1,
+                 train_epochs: int = 1, test_mb_size: int = 1, device='cpu',
+                 plugins: Optional[Sequence['StrategyPlugin']] = None,
+                 evaluator=default_logger):
+        """
+        Creates an instance of the Synaptic Intelligence strategy.
+
+        :param model: PyTorch model.
+        :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
+        :param si_lambda: Synaptic Intelligence lambda term.
+        :param train_mb_size: mini-batch size for training.
+        :param train_epochs: number of training epochs.
+        :param test_mb_size: mini-batch size for test.
+        :param device: PyTorch device to run the model.
+        :param plugins: (optional) list of StrategyPlugins.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        """
+        if plugins is None:
+            plugins = []
+
+        # This implementation relies on the S.I. Plugin, which contains the
+        # entire implementation of the strategy!
+        plugins.append(SynapticIntelligencePlugin(si_lambda))
+
+        super(SynapticIntelligence, self).__init__(
+            model, optimizer, criterion, train_mb_size, train_epochs,
+            test_mb_size, device=device, plugins=plugins, evaluator=evaluator)
+
+
 class AR1(BaseStrategy):
     """
-    TODO: doc
-    The simplest (and least effective) Continual Learning strategy. Naive just
-    incrementally fine tunes a single model without employing any method
-    to contrast the catastrophic forgetting of previous knowledge.
-    This strategy does not use task identities.
+    The AR1 strategy with Latent Replay.
 
-    Naive is easy to set up and its results are commonly used to show the worst
-    performing baseline.
+    This implementations allows for the use of both Synaptic Intelligence and
+    Latent Replay to protect the lower level of the model from forgetting.
+
+    While the original papers show how to use those two techniques in a mutual
+    exclusive way, this implementation allows for the use of both of them
+    concurrently. This behaviour is controlled by passing proper constructor
+    arguments).
     """
 
-    def __init__(self, criterion=None, num_classes=50, lr: float = 0.001,
-                 init_update_rate: float = 0.01, inc_update_rate=0.00005,
-                 max_r_max=1.25, max_d_max=0.5, inc_step=4.1e-05, momentum=0.9,
-                 l2=0.0005, rm_sz: int = 1500,
+    def __init__(self, criterion=None, lr: float = 0.001, momentum=0.9,
+                 l2=0.0005, train_epochs: int = 4,
+                 init_update_rate: float = 0.01,
+                 inc_update_rate=0.00005,
+                 max_r_max=1.25, max_d_max=0.5, inc_step=4.1e-05,
+                 rm_sz: int = 1500,
                  freeze_below_layer: str = "lat_features.19.bn.beta",
                  latent_layer_num: int = 19, ewc_lambda: float = 0,
-                 train_mb_size: int = 128,
-                 train_epochs: int = 128, test_mb_size: int = 128,
-                 device=None,
-                 plugins: Optional[Sequence[StrategyPlugin]] = None):
+                 train_mb_size: int = 128, test_mb_size: int = 128, device=None,
+                 plugins: Optional[Sequence[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger):
         """
-        TODO: doc
-        Creates an instance of the Naive strategy.
+        Creates an instance of the AR1 strategy.
 
-        :param model: The model.
-        :param lr:
         :param criterion: The loss criterion to use. Defaults to None, in which
             case the cross entropy loss is used.
-        :param train_mb_size: The train minibatch size. Defaults to 1.
-        :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param lr: The learning rate (SGD optimizer).
+        :param momentum: The momentum (SGD optimizer).
+        :param l2: The L2 penalty used for weight decay.
+        :param train_epochs: The number of training epochs. Defaults to 4.
+        :param init_update_rate: The initial update rate of BatchReNorm layers.
+        :param inc_update_rate: The incremental update rate of BatchReNorm
+            layers.
+        :param max_r_max: The maximum r value of BatchReNorm layers.
+        :param max_d_max: The maximum d value of BatchReNorm layers.
+        :param inc_step: The incremental step of r and d values of BatchReNorm
+            layers.
+        :param rm_sz: The size of the replay buffer. The replay buffer is shared
+            across classes. Defaults to 1500.
+        :param freeze_below_layer: A string describing the name of the layer
+            to use while freezing the lower (nearest to the input) part of the
+            model. The given layer is not frozen (exclusive).
+        :param latent_layer_num: The number of the layer to use as the Latent
+            Replay Layer. Usually this is the same of `freeze_below_layer`.
+        :param ewc_lambda: The Synaptic Intelligence lambda term. Defaults to
+            0, which means that the Synaptic Intelligence regularization
+            will not be applied.
+        :param train_mb_size: The train minibatch size. Defaults to 128.
+        :param test_mb_size: The test minibatch size. Defaults to 128.
         :param device: The device to use. Defaults to None (cpu).
-        :param plugins: Plugins to be added. Defaults to None.
+        :param plugins: (optional) list of StrategyPlugins.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
         """
+
+        warnings.warn("The AR1 strategy implementation is in an alpha stage "
+                      "and is not perfectly aligned with the paper "
+                      "implementation. Please use at your own risk!")
 
         if plugins is None:
             plugins = []
@@ -435,25 +501,19 @@ class AR1(BaseStrategy):
         model = MobilenetV1(pretrained=True, latent_layer_num=latent_layer_num)
         replace_bn_with_brn(
             model, momentum=init_update_rate, r_d_max_inc_step=inc_step,
-            max_r_max=max_r_max, max_d_max=max_d_max
-        )
-
-        model.saved_weights = {}
-        model.past_j = {i: 0 for i in range(num_classes)}
-        model.cur_j = {i: 0 for i in range(num_classes)}
+            max_r_max=max_r_max, max_d_max=max_d_max)
 
         fc_name, fc_layer = get_last_fc_layer(model)
 
         if ewc_lambda != 0:
             # Synaptic Intelligence is not applied to the last fully
-            # connected layer.
-            # TODO: exclude "freeze below parameters"
+            # connected layer (and implicitly to "freeze below" ones.
             plugins.append(SynapticIntelligencePlugin(
                 ewc_lambda, excluded_parameters=[fc_name]))
 
-        plugins.append(CWRStarPlugin(self.model, cwr_layer_name=fc_name,
-                                     freeze_remaining_model=False,
-                                     num_classes=num_classes))
+        self.cwr_plugin = CWRStarPlugin(model, cwr_layer_name=fc_name,
+                                        freeze_remaining_model=False)
+        plugins.append(self.cwr_plugin)
 
         optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
                         weight_decay=l2)
@@ -472,76 +532,172 @@ class AR1(BaseStrategy):
         self.l2 = l2
         self.rm = None
         self.cur_acts: Optional[Tensor] = None
+        self.replay_mb_size = 0
 
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins)
+            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator)
 
     def before_training_step(self, **kwargs):
+        self.model.eval()
+        self.model.end_features.train()
+        self.model.output.train()
+
         if self.training_step_counter > 0:
-            # freeze_below_layer and adapt optimizer
+            # In AR1 batch 0 is treated differently as the feature extractor is
+            # left more free to learn.
+            # This if is executed for batch > 0, in which we freeze layers
+            # below "self.freeze_below_layer" (which usually is the latent
+            # replay layer!) and we also change the parameters of BatchReNorm
+            # layers to a more conservative configuration.
+
+            # "freeze_up_to" will freeze layers below "freeze_below_layer"
+            # Beware that Batch ReNorm layers are not frozen!
             freeze_up_to(self.model, freeze_until_layer=self.freeze_below_layer,
                          layer_filter=AR1.filter_bn_and_brn)
+
+            # Adapt the parameters of BatchReNorm layers
             change_brn_pars(self.model, momentum=self.inc_update_rate,
                             r_d_max_inc_step=0, r_max=self.max_r_max,
                             d_max=self.max_d_max)
+
+            # Adapt the model and optimizer
             self.model = self.model.to(self.device)
             self.optimizer = SGD(
                 self.model.parameters(), lr=self.lr, momentum=self.momentum,
                 weight_decay=self.l2)
 
-        # Runs S.I. and CWR* plugin callbacks
-        # TODO: cur_j of the CWR plugin must consider latent patterns
+        # super()... will run S.I. and CWR* plugin callbacks
         super().before_training_step(**kwargs)
 
-        # Selective unfreeze
-        # TODO: Not sure of that!
-        self.model.eval()
-        self.model.end_features.train()
-        self.model.output.train()
+        # Update cur_j of CWR* to consider latent patterns
+        if self.training_step_counter > 0:
+            for class_id, count in examples_per_class(self.rm[1]).items():
+                self.model.cur_j[class_id] += count
+            self.cwr_plugin.cur_class = [
+                cls for cls in set(self.model.cur_j.keys())
+                if self.model.cur_j[cls] > 0]
+            self.cwr_plugin.reset_weights(self.cwr_plugin.cur_class)
 
-    # TODO: custom epoch (inject latent patterns, store latent activations)
+    def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
+        """
+        Called after the dataset instantiation. Initialize the data loader.
+
+        For AR1 a "custom" dataloader is used: instead of using
+        `self.train_mb_size` as the batch size, the data loader batch size will
+        be computed ad `self.train_mb_size - latent_mb_size`. `latent_mb_size`
+        is in turn computed as:
+
+        `
+        len(train_dataset) // ((len(train_dataset) + len(replay_buffer)
+        // self.train_mb_size)
+        `
+
+        so that the number of iterations required to run an epoch on the current
+        batch is equal to the number of iterations required to run an epoch
+        on the replay buffer.
+
+        :param num_workers: number of thread workers for the data loading.
+        :param shuffle: True if the data should be shuffled, False otherwise.
+        """
+
+        current_batch_mb_size = self.train_mb_size
+
+        if self.training_step_counter > 0:
+            train_patterns = len(self.current_data)
+            current_batch_mb_size = train_patterns // (
+                    (train_patterns + self.rm_sz) // self.train_mb_size)
+
+        current_batch_mb_size = max(1, current_batch_mb_size)
+        self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
+
+        self.current_dataloader = DataLoader(
+            self.current_data, num_workers=num_workers,
+            batch_size=current_batch_mb_size, shuffle=shuffle)
+
+    def training_epoch(self, **kwargs):
+        for self.mb_it, (self.mb_x, self.mb_y) in \
+                enumerate(self.current_dataloader):
+            self.before_training_iteration(**kwargs)
+
+            self.optimizer.zero_grad()
+            self.mb_x = self.mb_x.to(self.device)
+            self.mb_y = self.mb_y.to(self.device)
+
+            if self.training_step_counter > 0:
+                lat_mb_x = self.rm[0][self.mb_it * self.replay_mb_size:
+                                      (self.mb_it + 1) * self.replay_mb_size]
+                lat_mb_x = lat_mb_x.to(self.device)
+                lat_mb_y = self.rm[1][self.mb_it * self.replay_mb_size:
+                                      (self.mb_it + 1) * self.replay_mb_size]
+                lat_mb_y = lat_mb_y.to(self.device)
+                self.mb_y = torch.cat((self.mb_y, lat_mb_y), 0)
+            else:
+                lat_mb_x = None
+
+            # Forward pass. Here we are injecting latent patterns lat_mb_x.
+            # lat_mb_x will be None for the very first batch (batch 0), which
+            # means that lat_acts.shape[0] == self.mb_x[0].
+            self.before_forward(**kwargs)
+            self.logits, lat_acts = self.model(
+                self.mb_x, latent_input=lat_mb_x, return_lat_acts=True)
+
+            if self.epoch == 0:
+                # On the first epoch only: store latent activations. Those
+                # activations will be used to update the replay buffer.
+                lat_acts = lat_acts.detach().clone().cpu()
+                if self.mb_it == 0:
+                    self.cur_acts = lat_acts
+                else:
+                    self.cur_acts = torch.cat((self.cur_acts, lat_acts), 0)
+            self.after_forward(**kwargs)
+
+            # Loss & Backward
+            # We don't need to handle latent replay, as self.mb_y already
+            # contains both current and replay labels.
+            self.loss = self.criterion(self.logits, self.mb_y)
+            self.before_backward(**kwargs)
+            self.loss.backward()
+            self.after_backward(**kwargs)
+
+            # Optimization step
+            self.before_update(**kwargs)
+            self.optimizer.step()
+            self.after_update(**kwargs)
+
+            self.after_training_iteration(**kwargs)
 
     def after_training_step(self, **kwargs):
-        # Runs S.I. and CWR* plugin callbacks
-        super().after_training_step(**kwargs)
-
         h = min(self.rm_sz // (self.training_step_counter + 1),
                 self.cur_acts.size(0))
 
-        idxs_cur = np.random.choice(
-            self.cur_acts.size(0), h, replace=False)
+        idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
+        rm_add_y = torch.tensor(
+            [self.current_data.targets[idx_cur] for idx_cur in idxs_cur])
 
-        rm_add = [self.cur_acts[idxs_cur],
-                  torch.tensor(self.current_data.targets[idxs_cur])]
+        rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 
         # replace patterns in random memory
         if self.training_step_counter == 0:
             self.rm = rm_add
         else:
-            idxs_2_replace = np.random.choice(
-                self.rm[0].size(0), h, replace=False)
+            idxs_2_replace = torch.randperm(self.rm[0].size(0))[:h]
             for j, idx in enumerate(idxs_2_replace):
+                idx = int(idx)
                 self.rm[0][idx] = rm_add[0][j]
                 self.rm[1][idx] = rm_add[1][j]
 
+        self.cur_acts = None
+
+        # Runs S.I. and CWR* plugin callbacks
+        super().after_training_step(**kwargs)
+
     @staticmethod
-    def filter_bn_and_brn(param_def: LayerParameter):
+    def filter_bn_and_brn(param_def: LayerAndParameter):
         return not isinstance(param_def.layer, (_NormBase, BatchRenorm2D))
-
-    @staticmethod
-    def examples_per_class(targets):
-        result = dict()
-
-        unique_classes, examples_count = torch.unique(
-            torch.as_tensor(targets), return_counts=True)
-        for unique_idx in range(len(unique_classes)):
-            result[int(unique_classes[unique_idx])] = \
-                int(examples_count[unique_idx])
-
-        return result
 
 
 __all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM',
-           'GEM', 'EWC']
+           'GEM', 'EWC', 'SynapticIntelligence', 'AR1']

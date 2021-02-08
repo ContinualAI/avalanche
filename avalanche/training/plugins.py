@@ -30,7 +30,7 @@ from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.strategy_callbacks import StrategyCallbacks
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
     get_layers_and_params, freeze_everything, get_last_fc_layer, \
-    get_layer_by_name, unfreeze_everything
+    get_layer_by_name, unfreeze_everything, examples_per_class
 
 if TYPE_CHECKING:
     from avalanche.logging import StrategyLogger
@@ -398,8 +398,7 @@ class EvaluationPlugin(StrategyPlugin):
 
 class CWRStarPlugin(StrategyPlugin):
 
-    def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True,
-                 num_classes=50):
+    def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True):
         """
         CWR* Strategy.
         This plugin does not use task identities.
@@ -411,56 +410,47 @@ class CWRStarPlugin(StrategyPlugin):
         :param freeze_remaining_model: If True, the plugin will freeze (set
             layers in eval mode and disable autograd for parameters) all the
             model except the cwr layer. Defaults to True.
-        :param num_classes: total number of classes.
         """
         super().__init__()
         self.log = logging.getLogger("avalanche")
         self.model = model
         self.cwr_layer_name = cwr_layer_name
         self.freeze_remaining_model = freeze_remaining_model
-        self.num_classes = num_classes
 
         # Model setup
         self.model.saved_weights = {}
-        self.model.past_j = {i: 0 for i in range(self.num_classes)}
-        self.model.cur_j = {i: 0 for i in range(self.num_classes)}
+        self.model.past_j = defaultdict(int)
+        self.model.cur_j = defaultdict(int)
 
         # to be updated
         self.cur_class = None
 
     def after_training_step(self, strategy, **kwargs):
-        CWRStarPlugin.consolidate_weights(self.model, self.cur_class)
+        self.consolidate_weights()
+        self.set_consolidate_weights()
 
     def before_training_step(self, strategy, **kwargs):
         if self.freeze_remaining_model and strategy.training_step_counter > 0:
             self.freeze_other_layers()
 
         # Count current classes and number of samples for each of them.
-        count = {i: 0 for i in range(self.num_classes)}
-        self.curr_classes = set()
-        for _, (_, mb_y) in enumerate(strategy.current_dataloader):
-            for y in mb_y:
-                self.curr_classes.add(int(y))
-                count[int(y)] += 1
-        self.cur_class = [int(o) for o in self.curr_classes]
+        self.model.cur_j = examples_per_class(strategy.current_data.targets)
+        self.cur_class = [cls for cls in set(self.model.cur_j.keys()) if
+                          self.model.cur_j[cls] > 0]
 
-        self.model.cur_j = count
-        CWRStarPlugin.reset_weights(self.model, self.cur_class)
+        self.reset_weights(self.cur_class)
 
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
-        CWRStarPlugin.set_consolidate_weights(self.model)
-
-    def consolidate_weights(self, cur_clas):
+    def consolidate_weights(self):
         """ Mean-shift for the target layer weights"""
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
             globavg = np.average(cwr_layer.weight.detach()
-                                 .cpu().numpy()[cur_clas])
-            for c in cur_clas:
+                                 .cpu().numpy()[self.cur_class])
+            for c in self.cur_class:
                 w = cwr_layer.weight.detach().cpu().numpy()[c]
 
-                if c in cur_clas:
+                if c in self.cur_class:
                     new_w = w - globavg
                     if c in self.model.saved_weights.keys():
                         wpast_j = np.sqrt(self.model.past_j[c] /
@@ -1267,9 +1257,9 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             strategy.model, self.ewc_data, self.syn_data,
             self.excluded_parameters)
 
-        SynapticIntelligencePlugin. \
-            init_batch(strategy.model, self.ewc_data, self.syn_data,
-                       self.excluded_parameters)
+        SynapticIntelligencePlugin.init_batch(
+            strategy.model, self.ewc_data, self.syn_data,
+            self.excluded_parameters)
 
     def after_backward(self, strategy: PluggableStrategy, **kwargs):
         super().after_backward(strategy, **kwargs)
@@ -1278,7 +1268,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             lambd=self.si_lambda, device=self.device(strategy))
 
         if syn_loss is not None:
-            strategy.loss += syn_loss
+            strategy.loss += syn_loss.to(strategy.device)
 
     def before_training_iteration(self, strategy: PluggableStrategy, **kwargs):
         super().before_training_iteration(strategy, **kwargs)

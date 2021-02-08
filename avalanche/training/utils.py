@@ -22,6 +22,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+from collections import defaultdict
 from typing import NamedTuple, List, Optional, Tuple, Callable
 
 import numpy as np
@@ -369,17 +370,17 @@ def copy_params_dict(model, copy_grad=False):
         return [(k, p.data.clone()) for k, p in model.named_parameters()]
 
 
-class LayerParameter(NamedTuple):
+class LayerAndParameter(NamedTuple):
     layer_name: str
     layer: Module
     parameter_name: str
     parameter: Tensor
 
 
-def get_layers_and_params(model: Module, prefix='') -> List[LayerParameter]:
-    result: List[LayerParameter] = []
+def get_layers_and_params(model: Module, prefix='') -> List[LayerAndParameter]:
+    result: List[LayerAndParameter] = []
     for param_name, param in model.named_parameters(recurse=False):
-        result.append(LayerParameter(
+        result.append(LayerAndParameter(
             prefix[:-1], model, prefix + param_name, param))
 
     layer_name: str
@@ -397,7 +398,7 @@ def get_layers_and_params(model: Module, prefix='') -> List[LayerParameter]:
 
 def get_layer_by_name(model: Module, layer_name: str) -> Optional[Module]:
     for layer_param in get_layers_and_params(model):
-        if layer_param.layer_name == 'layer_name':
+        if layer_param.layer_name == layer_name:
             return layer_param.layer
     return None
 
@@ -414,6 +415,21 @@ def get_last_fc_layer(model: Module) -> Optional[Tuple[str, Linear]]:
 def swap_last_fc_layer(model: Module, new_layer: Module) -> None:
     last_fc_name, last_fc_layer = get_last_fc_layer(model)
     setattr(model, last_fc_name, new_layer)
+
+
+def adapt_classification_layer(model: Module, num_classes: int,
+                               bias: bool = None) -> Tuple[str, Linear]:
+    last_fc_layer: Linear
+    last_fc_name, last_fc_layer = get_last_fc_layer(model)
+
+    if bias is not None:
+        use_bias = bias
+    else:
+        use_bias = last_fc_layer.bias is not None
+
+    new_fc = Linear(last_fc_layer.in_features, num_classes, bias=use_bias)
+    swap_last_fc_layer(model, new_fc)
+    return last_fc_name, new_fc
 
 
 def replace_bn_with_brn(m: Module, momentum=0.1, r_d_max_inc_step=0.0001,
@@ -479,7 +495,7 @@ def freeze_up_to(model: Module,
                  freeze_until_layer: str = None,
                  set_eval_mode: bool = True,
                  set_requires_grad_false: bool = True,
-                 layer_filter: Callable[[LayerParameter], bool] = None,
+                 layer_filter: Callable[[LayerAndParameter], bool] = None,
                  module_prefix: str = ''):
     """
     A simple utility that can be used to freeze a model.
@@ -532,6 +548,18 @@ def freeze_up_to(model: Module,
     return frozen_layers, frozen_parameters
 
 
+def examples_per_class(targets):
+    result = defaultdict(int)
+
+    unique_classes, examples_count = torch.unique(
+        torch.as_tensor(targets), return_counts=True)
+    for unique_idx in range(len(unique_classes)):
+        result[int(unique_classes[unique_idx])] = \
+            int(examples_count[unique_idx])
+
+    return result
+
+
 __all__ = ['get_accuracy',
            'train_net',
            'preprocess_imgs',
@@ -548,12 +576,15 @@ __all__ = ['get_accuracy',
            'load_all_dataset',
            'zerolike_params_dict',
            'copy_params_dict',
+           'LayerAndParameter',
            'get_layers_and_params',
            'get_layer_by_name',
            'get_last_fc_layer',
            'swap_last_fc_layer',
+           'adapt_classification_layer',
            'replace_bn_with_brn',
            'change_brn_pars',
            'freeze_everything',
            'unfreeze_everything',
-           'freeze_up_to']
+           'freeze_up_to',
+           'examples_per_class']
