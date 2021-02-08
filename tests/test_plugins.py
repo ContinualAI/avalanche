@@ -1,12 +1,16 @@
+import sys
+
+import torch
 import unittest
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
 
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
-from torchvision.transforms import ToTensor, RandomCrop
+from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.benchmarks.datasets import MNIST
+from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
 from avalanche.training.strategies import Naive
@@ -89,7 +93,7 @@ class PluginTests(unittest.TestCase):
     def test_callback_reachability(self):
         # Check that all the callbacks are called during
         # training and test loops.
-        model = SimpleMLP()
+        model = SimpleMLP(input_size=6, hidden_size=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         scenario = self.create_scenario()
@@ -99,6 +103,7 @@ class PluginTests(unittest.TestCase):
             train_mb_size=100, train_epochs=1, test_mb_size=100,
             device='cpu', plugins=[plug]
         )
+        strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         strategy.train(scenario.train_stream[0], num_workers=4)
         strategy.test([scenario.test_stream[0]], num_workers=4)
         assert all(plug.activated)
@@ -106,7 +111,7 @@ class PluginTests(unittest.TestCase):
     def test_multihead_optimizer_update(self):
         # Check if the optimizer is updated correctly
         # when heads are created and updated.
-        model = SimpleMLP()
+        model = SimpleMLP(input_size=6, hidden_size=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         scenario = self.create_scenario()
@@ -116,6 +121,9 @@ class PluginTests(unittest.TestCase):
             train_mb_size=100, train_epochs=1, test_mb_size=100,
             device='cpu', plugins=[plug]
         )
+        strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        print("Current Classes: ", scenario.train_stream[0].classes_in_this_step)
+        print("Current Classes: ", scenario.train_stream[4].classes_in_this_step)
 
         # head creation
         strategy.train(scenario.train_stream[0])
@@ -138,22 +146,23 @@ class PluginTests(unittest.TestCase):
         assert b_ptr_new in opt_params_ptrs
 
     def create_scenario(self):
-        train_transform = transforms.Compose([
-            RandomCrop(28, padding=4),
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        test_transform = transforms.Compose([
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        mnist_train = MNIST('./data/mnist', train=True, download=True,
-                            transform=train_transform)
-        mnist_test = MNIST('./data/mnist', train=False, download=True,
-                           transform=test_transform)
-        scenario = nc_scenario(mnist_train, mnist_test, 5, task_labels=False,
-                               shuffle=False, seed=1234)
-        return scenario
+        n_samples_per_class = 20
+
+        dataset = make_classification(
+            n_samples=10 * n_samples_per_class,
+            n_classes=10,
+            n_features=6, n_informative=6, n_redundant=0)
+
+        X = torch.from_numpy(dataset[0]).float()
+        y = torch.from_numpy(dataset[1]).long()
+
+        train_X, test_X, train_y, test_y = train_test_split(
+            X, y, train_size=0.6, shuffle=True, stratify=y)
+
+        train_dataset = TensorDataset(train_X, train_y)
+        test_dataset = TensorDataset(test_X, test_y)
+        return nc_scenario(train_dataset, test_dataset, 5, task_labels=False,
+                           fixed_class_order=list(range(10)))
 
 
 if __name__ == '__main__':

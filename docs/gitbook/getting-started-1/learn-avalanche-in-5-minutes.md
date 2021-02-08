@@ -4,21 +4,15 @@ description: A Short Guide for Researchers on the Run
 
 # Learn Avalanche in 5 Minutes
 
-{% hint style="danger" %}
-This doc is out-of-date. Check the [full tutorial](../from-zero-to-hero-tutorial/introduction.md) for more details.
-{% endhint %}
-
-This doc is out-of-date. Check the [corresponding notebook](https://colab.research.google.com/drive/1vjLrdYEHWGH9Rz0cQZzb63BO2yCAsUIT#scrollTo=ADOrYmNXak23) for the latest version.
-
 _Avalanche_ is mostly about making the life of a continual learning researcher easier.
 
 > #### What are the **three pillars** of any respectful continual learning research project?
 
-* **Benchmarks**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
-* **Training**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
-* **Evaluation**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
+* **`Benchmarks`**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
+* **`Training`**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
+* **`Evaluation`**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
 
-> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent codabase._
+> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent, well-maintained codebase._
 
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
@@ -28,12 +22,13 @@ In this short guide we assume you have already installed _Avalanche_. If you hav
 
 ## 🏛️ General Architecture
 
-_Avalanche_ is organized in **four main modules**:
+_Avalanche_ is organized in **five main modules**:
 
 * **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
-* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [Tensorboard](https://www.tensorflow.org/tensorboard) support.
-* **`Extras`**: In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
+* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [TensorBoard](https://www.tensorflow.org/tensorboard) support.
+* **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\). 
+* **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
 
 In the graphic below, you can see how _Avalanche_ sub-modules are available and organized as well:
 
@@ -54,9 +49,8 @@ Avalanche
 │   ├── Strategies
 │   ├── Plugins
 |   └── Utils
-└── Extras
-    ├── Configs
-    └── Models
+├── Models
+└── Loggers
 ```
 {% endcode %}
 
@@ -64,38 +58,31 @@ We will learn more about each of them during this tutorial series, but keep in m
 
 All right, let's start with the _benchmarks_ module right away 👇
 
-## 📚 Benchamarks
+## 📚 Benchmarks
 
-The benchamark module offers three main features:
+The benchmark module offers three main features:
 
-1. **Datasets**: a comprehensive list of Pytorch Datasets ready to use \(It includes all the _Torchvision_ Datasets and more!\).
-2. **Classic Benchmarks**: a set of classic Continual Learning Benchmarks ready to be used.
-3. **Generators**: a set of functions you can use to generate your own benchmark starting from any Pytorch Dataset!
+1. **Datasets**: a comprehensive list of PyTorch Datasets ready to use \(It includes all the _Torchvision_ Datasets and more!\).
+2. **Classic Benchmarks**: a set of classic _Continual Learning_ Benchmarks ready to be used \(there can be multiple benchmarks based on a single dataset\).
+3. **Generators**: a set of functions you can use to generate your own benchmark starting from any PyTorch Dataset!
 
 ### Datasets
 
 Datasets can be imported in _Avalanche_ as simply as:
 
 ```python
-# the ones already supported in TorchVision
 from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
 QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
 CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
 VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-CelebA 
-
-# ...and additional ones!
-from avalanche.benchmarks.datasets import CORe50, TinyImagenet, CUB200
-
-# ... or generic constructors
-from avalanche.benchmarks.datasets import ImageFolder, DatasetFolder, FilelistDataset
+CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
 ```
 
-Of course, you can use them as you would use any _Pythorch Dataset_.
+Of course, you can use them as you would use any _PyTorch Dataset_.
 
 ### Benchmarks Basics
 
-The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that characterize the bechmark. However, the most important ones are the `train` and `test streams`.
+The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that describe the benchmark. However, the most important ones are the `train` and `test streams`.
 
 In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
 
@@ -103,7 +90,7 @@ Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that
 
 ### **Classic Benchmarks**
 
-_Avalanche_ maintains a set of commonly used benchmarks build on top of one of multiple datasets, that simulate that stream.
+_Avalanche_ maintains a set of commonly used benchmarks built on top of one or multiple datasets.
 
 ```python
 from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
@@ -139,9 +126,9 @@ for step in train_stream:
 
 ### Benchmarks Generators
 
-What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offer a number of utilites that you can use to create your own benchmark with maximum flexibilty: the **benchmarks generators**!
+What if we want to create a new benchmark that is not present in the "_Classic_" ones? Well, in that case _Avalanche_ offers a number of utilities that you can use to create your own benchmark with maximum flexibility: the **benchmark generators**!
 
-The _specific_ scenario generators are useful when starting from one or multiple pytorch datasets you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incrementa\_l or \_Task-Incremental_ scenarios among others.
+The _specific_ scenario generators are useful when starting from one or multiple PyTorch datasets and you want to create a "**New Instances**" or "**New Classes**" benchmark: i.e. it supports the easy and flexible creation of a _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios among others.
 
 ```python
 from avalanche.benchmarks.generators import nc_scenario, ni_scenario
@@ -156,7 +143,7 @@ scenario = nc_scenario(
 )
 ```
 
-Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _Domain-Incremental_, _Class-Incrementa\_l or \_Task-Incremental_ scenarios, you can always use our **generic generators**:
+Finally, if your ideal benchmark does not fit well in the aforementioned _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios, you can always use our **generic generators**:
 
 * **filelist\_scenario**
 * **dataset\_scenario**
@@ -173,23 +160,23 @@ You can read more about how to use them the full _Benchmarks_ module tutorial!
 
 ## 💪Training
 
-The `training` module in _Avalanche_ is build on modularity and its main goals are two:
+The `training` module in _Avalanche_ is build on modularity and it has two main goals:
 
 1. provide a set of standard **continual learning baselines** that can be easily run for comparison;
-2. provide the necessary utilities to **create and run your own strategy** as efficiently and easy as possible with building blocks we already prepared for you.
+2. provide the necessary utilities to **implement and run your own strategy** in the most efficient and simple way possible thanks to the building blocks we already prepared for you.
 
 ### Strategies
 
-If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simply as instantiate an object:
+If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ this is as simple as creating an object:
 
 ```python
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, 
-Cumulative, LwF
+from avalanche.models import SimpleMLP
+from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, \
+Cumulative, LwF, GEM, AGEM, EWC
 
 model = SimpleMLP(num_classes=10)
 cl_strategy = Naive(
-    model, 'classifier', SGD(model.parameters(), lr=0.001, momentum=0.9),
+    model, SGD(model.parameters(), lr=0.001, momentum=0.9),
     CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100
 )
 ```
@@ -261,7 +248,7 @@ for step in scenario.train_stream:
     cl_strategy.test(scenario.test_stream[step.current_step])
 ```
 
-While this is the easiest possible way to add your own stratey to _Avalanche_ we support more sophisticated modalities that let you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins** shared with other strategies.
+While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
@@ -269,33 +256,28 @@ Check out more details about what Avalanche can offer in this module following t
 
 ## 📈 Evaluation
 
-The `evaluation` module is quite straightforward at the moment and offers 3 main submodules:
+The `evaluation` module is quite straightforward at the moment as it offers all the basic functionalities to evaluate keep track of a continual learning experiment.
 
-* **Metrics**: a set of classes \(one for metric\) which implement the main continual learning matrics computation like _accuracy_, _forgetting_, _memory usage_, _running times_, etc.
-* **TensorboardLogging**: offers a main class to handles Tensorboard logging configuration with nice plots updated on-the-fly to control and "_babysit_" your experiment easily.
-* **Evaluation Protocols**: this module provides a single point of entry to the evaluation methodology configuration and in charge of hangling the metrics computation, tensorboard or avanced console logging.
+This is mostly done thought the **Metrics**: a set of classes \(one for metric\) which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
 
 ### Metrics
 
-In _Avalanche_ we offer at the moment a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based matrics but also the ones related to computation and memory.
+In _Avalanche_ we offer at the moment a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
 
-The metrics already available \(soon to be expanded\) are:
-
-* **Accuracy** \(`ACC`\): Accuracy over time \(Total average or per task\).
-* **Catastrophic Forgetting** \(`CF`\): Forgetting as defined in \(Lopez-paz 2017\).
-* **RAM Usage** \(`RAMU`\): RAM usage by the process over time.
-* **Confusion Matrix** \(`CM`\): Confusion matrix over time.
-* **CPU Usage** \(`CPUUsage`\): CPU usage by the process over time.
-* **GPU Usage** \(`GPUUsage`\): GPU usage by the process over time.
-* **Disk Usage** \(`DiskUsage`\): Disk usage by the process over time.
-* **Time Usage** \(`TimeUsage`\): Running time of the python process.
+The metrics already available in the current _Avalanche_ release are:
 
 ```python
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM, CPUUsage, GPUUsage,\
- DiskUsage, TimeUsage
+from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
+EpochAccuracy, RunningEpochAccuracy, TaskAccuracy, ConfusionMatrix, \
+TaskConfusionMatrix, CpuUsage, MinibatchCpuUsage, EpochCpuUsage, \
+AverageEpochCpuUsage, StepCpuUsage, DiskUsage, DiskUsageMonitor, \
+TaskForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
+EpochLoss, RunningEpochLoss, TaskLoss, MAC, Mean, RamUsage, RamUsageMonitor, \
+Sum, ElapsedTime, MinibatchTime, EpochTime, AverageEpochTime, StepTime, \
+timing_metrics
 ```
 
-While each metric can be directly managed within and _Evaluation Protocol_ \(see next section\), we can use each metric directly, being them simply python classes. For example the accuracy metric works as follows:
+We can use each metric similarly to [tf.keras.metrics](https://www.tensorflow.org/api_docs/python/tf/keras/metrics), being them simply python classes. For example the **Accuracy** metric works as follows:
 
 ```python
 real_y = np.asarray([1, 2])
@@ -307,95 +289,83 @@ print("Average Accuracy:", acc)
 print("Accuracy per class:", acc_x_class)
 ```
 
-### Tensorboard
-
-Tensorboard has consolidated its position as the go-to **visualization toolkit** for deep learning experiments for both pytorch and tensorflow. In _Avalanche_ we decided the different the different metrics \(and their eventual change over time\) using the standard Pytorch version.
-
-At the moment we implemented just the `TensorboardLogging` object that can be used to specify Tensorboard behavious with eventual customizations.
-
-```python
-from avalanche.evaluation.tensorboard import TensorboardLogging
-
-# a simple example of tensorboard instantiation
-tb_logging = TensorboardLogging(tb_logdir=".")
-```
-
-### Evaluation Protocol
-
-The **Evaluation Protocol**, is the object in charge of configuring and controlling the evaluation procedure. This object can be passed to a Strategy that will automatically call its main functionalities when the **training and testing flows** are activated.
-
-```python
-from avalanche.evaluation.metrics import ACC, CF, RAMU, CM
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive
-from avalanche.evaluation import EvalProtocol
-
-# load the model with PyTorch for example
-model = SimpleMLP()
-
-# Eval Protocol
-evalp = EvalProtocol(
-    metrics=[ACC(), CF(), RAMU(), CM()], tb_logdir='.'
-)
-
-# adding the CL strategy
-clmodel = Naive(model, eval_protocol=evalp)
-```
-
-For more details about the evaluation module, check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** Avalanche tutorial!
+For more details about the evaluation module, check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
 
 {% page-ref page="../from-zero-to-hero-tutorial/4.-evaluation.md" %}
 
-## Putting all Together
+## 🔗 Putting all Together
 
 You've learned how to install _Avalanche,_ how to create benchmarks that can suit your needs, how you can create your own continual learning algorithm and how you can evaluate its performance.
 
 Here we show how you can use all these modules together to **design your experiments** as quantitative supporting evidence for your research project or paper.
 
 ```python
-import torch
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
-
-from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
+from avalanche.benchmarks.classic import SplitMNIST
+from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
+    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+from avalanche.models import SimpleMLP
+from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
-# Config
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+scenario = SplitMNIST(n_steps=5)
 
-# model
-model = SimpleMLP(num_classes=10)
+# MODEL CREATION
+model = SimpleMLP(num_classes=scenario.n_classes)
 
-# CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_steps=3)
-train_stream = perm_mnist.train_stream
-test_stream = perm_mnist.test_stream
+# DEFINE THE EVALUATION PLUGIN and LOGGERS
+# The evaluation plugin manages the metrics computation.
+# It takes as argument a list of metrics, collectes their results and returns 
+# them to the strategy it is attached to.
 
-# Prepare for training & testing
-optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
-criterion = CrossEntropyLoss()
-evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
+# log to Tensorboard
+tb_logger = TensorboardLogger()
 
-# Continual learning strategy
+# log to text file
+text_logger = TextLogger(open('log.txt', 'a'))
+
+# print to stdout
+interactive_logger = InteractiveLogger()
+
+eval_plugin = EvaluationPlugin(
+    accuracy_metrics(minibatch=True, epoch=True, task=True),
+    loss_metrics(minibatch=True, epoch=True, task=True),
+    timing_metrics(epoch=True, epoch_average=True, test=False),
+    cpu_usage_metrics(step=True),
+    TaskForgetting(),
+    TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+    loggers=[interactive_logger, text_logger, tb_logger]
+)
+
+# CREATE THE STRATEGY INSTANCE (NAIVE)
 cl_strategy = Naive(
-    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
-    test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+    model, SGD(model.parameters(), lr=0.001, momentum=0.9),
+    CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
+    evaluator=eval_plugin)
 
-# train and test loop
+# TRAINING LOOP
+print('Starting experiment...')
 results = []
-for train_task in train_stream:
-    cl_strategy.train(train_task, num_workers=4)
-    results.append(cl_strategy.test(test_stream))
+for step in scenario.train_stream:
+    print("Start of step: ", step.current_step)
+    print("Current Classes: ", step.classes_in_this_step)
+
+    # train returns a dictionary which contains all the metric values
+    res = cl_strategy.train(step, num_workers=4)
+    print('Training completed')
+
+    print('Computing accuracy on the whole test set')
+    # test also returns a dictionary which contains all the metric values
+    results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
 ```
 
 ## 🤝 Run it on Google Colab
 
-You can run _this chapter_ and play with it on Google Colaboratory:
+You can run _this chapter_ and play with it on _Google Colaboratory_:
 
 {% hint style="danger" %}
-TODO: add link here.
+Notebook currently unavailable.
 {% endhint %}
 

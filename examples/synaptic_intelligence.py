@@ -93,11 +93,11 @@ def main():
         print("Start of step: ", step.current_step)
         print("Current Classes: ", step.classes_in_this_step)
 
-        cl_strategy.train(step, num_workers=4)
+        cl_strategy.train(step)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+        results.append(cl_strategy.test(scenario.test_stream))
 
 
 if __name__ == '__main__':

@@ -1,22 +1,76 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 28-01-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
+
 name: unit test
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - docs/gitbook/**
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - docs/gitbook/**
 
 jobs:
-  build:
+  unit-test:
     name: unit test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.6", "3.7", "3.8"]
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: s-weigand/setup-conda@v1
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-conda: false
-      - name: install conda dependencies
+          activate-environment: avalanche-env
+          environment-file: .github/envs/test-environment.yml
+          python-version: ${{ matrix.python-version }}
+          auto-activate-base: false
+      - name: python unit test
+        id: unittest
         run: |
-          conda env create -f environment-dev.yml
-      - name: testing the software
-        run: |
-          source activate avalanche-dev-env
           FAST_TEST=True USE_GPU=False python -m unittest
+      - name: test success
+        if: success() && github.event_name == 'push' && github.repository == 'vlomonaco/avalanche'
+        run: |
+          rm -f .github/packages-info/fail-${{ matrix.python-version }}-*
+          rm -f .github/packages-info/success-${{ matrix.python-version }}-*
+          conda list > $".github/packages-info/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+      - name: test failure
+        if: failure() && github.event_name == 'push' && github.repository == 'vlomonaco/avalanche'
+        run: |
+          conda list > $".github/packages-info/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+      - name: commit changes
+        if: always() && github.event_name == 'push' && github.repository == 'vlomonaco/avalanche'
+        run: |
+          git config --local user.email ${{ secrets.EMAIL }}
+          git config --local user.name ${{ secrets.NAME }}
+          git pull
+          git add .
+          git commit -m "Update packages files" -a || true
+          git pull
+      - name: Push changes
+        if: always() && github.event_name == 'push' && github.repository == 'vlomonaco/avalanche'
+        continue-on-error: true
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
