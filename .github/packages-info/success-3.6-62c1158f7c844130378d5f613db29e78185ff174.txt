@@ -27,8 +27,8 @@ expat                     2.2.10               h9c3ff4c_0    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
 freetype                  2.10.4               h0708190_1    conda-forge
 gettext                   0.19.8.1          h0b5b191_1005    conda-forge
-glib                      2.66.5               hcd2ae1e_2    conda-forge
-glib-tools                2.66.5               hcd2ae1e_2    conda-forge
+glib                      2.66.6               h9c3ff4c_3    conda-forge
+glib-tools                2.66.6               h9c3ff4c_3    conda-forge
 google-auth               1.24.0             pyhd3deb0d_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
@@ -50,7 +50,7 @@ libffi                    3.3                  h58526e2_2    conda-forge
 libgcc-ng                 9.3.0               h2828fa1_18    conda-forge
 libgfortran-ng            7.5.0               h14aa051_18    conda-forge
 libgfortran4              7.5.0               h14aa051_18    conda-forge
-libglib                   2.66.5               h164308a_2    conda-forge
+libglib                   2.66.6               h1f3bc88_3    conda-forge
 libgomp                   9.3.0               h2828fa1_18    conda-forge
 libiconv                  1.16                 h516909a_0    conda-forge
 liblapack                 3.8.0                    16_mkl    conda-forge
