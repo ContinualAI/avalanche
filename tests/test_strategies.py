@@ -15,7 +15,7 @@
 import unittest
 
 import torch
-from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms import ToTensor, Compose, transforms, Resize
 import os
 import sys
 
@@ -29,8 +29,10 @@ from avalanche.benchmarks.datasets import MNIST
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy
-from avalanche.benchmarks import nc_scenario
+    GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy, \
+    SynapticIntelligence, AR1
+from avalanche.benchmarks import nc_scenario, SplitCIFAR10
+from avalanche.training.utils import get_last_fc_layer
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -84,8 +86,10 @@ class StrategyTest(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
-        strategy = MultiTaskStrategy(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device, test_mb_size=50, train_epochs=2)
+        strategy = MultiTaskStrategy(model, optimizer, criterion,
+                                     train_mb_size=64, device=self.device,
+                                     test_mb_size=50, train_epochs=2)
+
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_naive(self):
@@ -104,9 +108,9 @@ class StrategyTest(unittest.TestCase):
         criterion = CrossEntropyLoss()
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
-        strategy = CWRStar(model, optimizer, criterion, 'features.0.bias',
-                           train_mb_size=64, device=self.device,
-                           test_mb_size=50, train_epochs=2)
+        last_fc_name, _ = get_last_fc_layer(model)
+        strategy = CWRStar(model, optimizer, criterion, last_fc_name,
+                           train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_replay(self):
@@ -208,6 +212,70 @@ class StrategyTest(unittest.TestCase):
                        train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
+
+    def test_synaptic_intelligence(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+
+        strategy = SynapticIntelligence(
+            model, optimizer, criterion, si_lambda=0.0001,
+            train_epochs=1, train_mb_size=10, test_mb_size=10)
+
+        self.run_strategy(my_nc_scenario, strategy)
+
+    def test_ar1(self):
+        my_nc_scenario = self.load_ar1_scenario(fast_test=self.fast_test)
+
+        strategy = AR1(train_epochs=1, train_mb_size=10, test_mb_size=10,
+                       rm_sz=200)
+
+        self.run_strategy(my_nc_scenario, strategy)
+
+    def load_ar1_scenario(self, fast_test=False):
+        """
+        Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
+        2 classes per step. This toy scenario is intended
+
+        :param fast_test: if True loads fake data, MNIST otherwise.
+        """
+
+        if fast_test:
+            n_samples_per_class = 50
+
+            dataset = make_classification(
+                n_samples=10 * n_samples_per_class,
+                n_classes=10,
+                n_features=224 * 224 * 3, n_informative=6, n_redundant=0)
+
+            X = torch.from_numpy(dataset[0]).reshape(-1, 3, 224, 224).float()
+            y = torch.from_numpy(dataset[1]).long()
+
+            train_X, test_X, train_y, test_y = train_test_split(
+                X, y, train_size=0.6, shuffle=True, stratify=y)
+
+            train_dataset = TensorDataset(train_X, train_y)
+            test_dataset = TensorDataset(test_X, test_y)
+            my_nc_scenario = nc_scenario(
+                train_dataset, test_dataset, 5, task_labels=False
+            )
+        else:
+            train_transform = transforms.Compose([
+                Resize(224),
+                ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+            test_transform = transforms.Compose([
+                Resize(224),
+                ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+
+            my_nc_scenario = SplitCIFAR10(5, train_transform=train_transform,
+                                          test_transform=test_transform)
+
+        return my_nc_scenario
 
     def load_scenario(self, fast_test=False):
         """

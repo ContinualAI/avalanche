@@ -6,14 +6,14 @@
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 26-01-2021                                                            #
+# Date: 08-02-2021                                                             #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
 
 """
-This is a simple example on how to use the Synaptic Intelligence Plugin.
+This is a simple example on how to use the AR1 strategy.
 """
 
 from __future__ import absolute_import
@@ -22,7 +22,6 @@ from __future__ import print_function
 
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
@@ -31,11 +30,8 @@ from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
     loss_metrics, TaskConfusionMatrix
 from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
-from avalanche.models.mobilenetv1 import MobilenetV1
-from avalanche.training.plugins import EvaluationPlugin, \
-    SynapticIntelligencePlugin
-from avalanche.training.strategies.strategies import SynapticIntelligence
-from avalanche.training.utils import adapt_classification_layer
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.strategies import AR1
 
 
 def main():
@@ -61,12 +57,7 @@ def main():
                             test_transform=test_transform)
     # ---------
 
-    # MODEL CREATION
-    model = MobilenetV1()
-    adapt_classification_layer(model, scenario.n_classes, bias=False)
-
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
-
     my_logger = TensorboardLogger(
         tb_log_dir="logs", tb_log_exp_name="logging_example")
 
@@ -80,11 +71,9 @@ def main():
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=[my_logger, interactive_logger])
 
-    # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
-    cl_strategy = SynapticIntelligence(
-        model, Adam(model.parameters(), lr=0.001), CrossEntropyLoss(),
-        si_lambda=0.0001, train_mb_size=128, train_epochs=4, test_mb_size=128,
-        device=device, evaluator=evaluation_plugin)
+    # CREATE THE STRATEGY INSTANCE
+    cl_strategy = AR1(criterion=CrossEntropyLoss(), device=device,
+                      evaluator=evaluation_plugin)
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -93,11 +82,11 @@ def main():
         print("Start of step: ", step.current_step)
         print("Current Classes: ", step.classes_in_this_step)
 
-        cl_strategy.train(step)
+        cl_strategy.train(step, num_workers=4)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream))
+        results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
 
 
 if __name__ == '__main__':
