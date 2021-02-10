@@ -63,5 +63,5 @@ class MultiTaskDataLoader:
 
 
 __all__ = [
-   'MultiTaskDataLoader'
+    'MultiTaskDataLoader'
 ]

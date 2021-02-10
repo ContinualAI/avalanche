@@ -129,4 +129,3 @@ if __name__ == "__main__":
         print("step: ", step.current_step)
         print("classes number: ", len(step.classes_in_this_step))
         print("classes: ", step.classes_in_this_step)
-
