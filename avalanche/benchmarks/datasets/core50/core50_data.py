@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the MIT License.                                   #
@@ -86,3 +83,8 @@ class CORE50_DATA(object):
                     self.log.info('Done!')
 
         self.log.info("Download complete.")
+
+
+__all__ = [
+    'CORE50_DATA'
+]

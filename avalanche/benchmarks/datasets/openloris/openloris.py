@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -24,7 +21,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets.openloris import OPENLORIS_DATA
+from .openloris_data import OPENLORIS_DATA
 
 
 def pil_loader(path):
@@ -142,7 +139,7 @@ if __name__ == "__main__":
 
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.
-    from torch.utils.data import DataLoader
+    from torch.utils.data.dataloader import DataLoader
     import matplotlib.pyplot as plt
     from torchvision import transforms
     import torch
@@ -162,3 +159,7 @@ if __name__ == "__main__":
         print(x.size())
         print(len(y))
         break
+
+__all__ = [
+    'OpenLORIS'
+]

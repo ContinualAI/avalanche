@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the MIT License.                                   #
@@ -14,7 +11,6 @@
 
 import os
 import sys
-from zipfile import ZipFile
 import logging
 
 if sys.version_info[0] >= 3:
@@ -87,3 +83,8 @@ class OPENLORIS_DATA(object):
         #             zipf.extractall(self.data_folder)
         #             print('Done!')
         raise NotImplementedError
+
+
+__all__ = [
+    'OPENLORIS_DATA'
+]

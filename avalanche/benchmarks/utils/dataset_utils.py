@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyrights licensed under the CC BY 4.0 License.                             #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 12-05-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: clair.continualai.org                                               #
+################################################################################
 
 try:
     from typing import Protocol, Sequence, List, Any, Iterable, Union, \
@@ -400,9 +410,19 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
     return patterns_cat, labels_cat
 
 
-__all__ = ['IDataset', 'IDatasetWithTargets', 'ITensorDataset',
-           'IDatasetWithIntTargets', 'DatasetWithTargets', 'LazyClassMapping',
-           'LazyConcatTargets', 'LazyTargetsConversion', 'SubsetWithTargets',
-           'ConcatDatasetWithTargets', 'SequenceDataset',
-           'TensorDatasetWrapper', 'find_list_from_index',
-           'manage_advanced_indexing']
+__all__ = [
+    'IDataset',
+    'IDatasetWithTargets',
+    'ITensorDataset',
+    'IDatasetWithIntTargets',
+    'DatasetWithTargets',
+    'LazyClassMapping',
+    'LazyConcatTargets',
+    'LazyTargetsConversion',
+    'SubsetWithTargets',
+    'ConcatDatasetWithTargets',
+    'SequenceDataset',
+    'TensorDatasetWrapper',
+    'find_list_from_index',
+    'manage_advanced_indexing'
+]

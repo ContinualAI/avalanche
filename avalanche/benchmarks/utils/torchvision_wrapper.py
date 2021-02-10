@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -14,11 +11,6 @@
 
 """ This module conveniently wraps Pytorch Datasets building utils for using a
 clean and comprehensive Avalanche API."""
-
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
 
 from torchvision.datasets import ImageFolder as torchImageFolder
 from torchvision.datasets import DatasetFolder as torchDatasetFolder
@@ -35,3 +27,9 @@ def DatasetFolder(*args, **kwargs):
 if __name__ == "__main__":
 
     mnist = DatasetFolder(".", download=True)
+
+
+__all__ = [
+    'ImageFolder',
+    'DatasetFolder'
+]

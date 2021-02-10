@@ -1,61 +1,21 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 1-05-2020                                                              #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Date: 12-05-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
 
 """ Common benchmarks/environments utils. """
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from typing import List, Iterable, Sequence, Union, Dict
 
-import numpy as np
 import torch
 from torch import Tensor
-
-
-def remove_some_labels(dataset, labels_set, scale_labels=False):
-    """ This method simply remove patterns with labels contained in
-        the labels_set. """
-
-    data, labels = dataset
-    for label in labels_set:
-        # Using fun below copies data
-        mask = np.where(labels == label)[0]
-        labels = np.delete(labels, mask)
-        data = np.delete(data, mask, axis=0)
-
-    if scale_labels:
-        # scale labels if they do not start from zero
-        min = np.min(labels)
-        labels = (labels - min)
-
-    return data, labels
-
-
-def change_some_labels(dataset, labels_set, change_set):
-    """ This method simply change labels contained in
-        the labels_set. """
-
-    data, labels = dataset
-    for label, change in zip(labels_set, change_set):
-        mask = np.where(labels == label)[0]
-        labels = np.put(labels, mask, change)
-
-    return data, labels
 
 
 def tensor_as_list(sequence) -> List:
@@ -166,3 +126,9 @@ def grouped_and_ordered_indexes(
     result = list(patterns_indexes)  # Make sure we're working on a copy
     result.sort()
     return result
+
+
+__all__ = [
+    'tensor_as_list',
+    'grouped_and_ordered_indexes'
+]

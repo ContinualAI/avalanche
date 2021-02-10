@@ -511,5 +511,10 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
         return self.origin_stream.name == 'train'
 
 
-__all__ = ['TGenericCLScenario', 'GenericCLScenario', 'GenericScenarioStream',
-           'GenericStepInfo', 'AbstractStepInfo']
+__all__ = [
+    'TGenericCLScenario',
+    'GenericCLScenario',
+    'GenericScenarioStream',
+    'AbstractStepInfo',
+    'GenericStepInfo',
+]
