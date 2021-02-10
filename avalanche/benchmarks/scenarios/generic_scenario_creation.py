@@ -84,6 +84,7 @@ def create_multi_dataset_generic_scenario(
             end_idx = next_idx + len(test_dataset)
             test_structure.append(range(next_idx, end_idx))
             next_idx = end_idx
+    concat_test_dataset = concat_test_dataset.eval()
 
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.
@@ -235,17 +236,22 @@ def create_generic_scenario_from_tensors(
             raise ValueError('test_data_x and test_data_y must contain'
                              ' the same amount of elements')
 
+    transform_groups = dict(train=(train_transform, train_target_transform),
+                            test=(test_transform, test_target_transform))
+
     train_datasets = [
         TransformationTensorDataset(
-            dataset_x, dataset_y, transform=train_transform,
-            target_transform=train_target_transform)
+            dataset_x, dataset_y,
+            transform_groups=transform_groups,
+            initial_transform_group='train')
         for dataset_x, dataset_y in
         zip(train_data_x, train_data_y)]
 
     test_datasets = [
         TransformationTensorDataset(
-            dataset_x, dataset_y, transform=test_transform,
-            target_transform=test_target_transform)
+            dataset_x, dataset_y,
+            transform_groups=transform_groups,
+            initial_transform_group='test')
         for dataset_x, dataset_y in
         zip(test_data_x, test_data_y)]
 

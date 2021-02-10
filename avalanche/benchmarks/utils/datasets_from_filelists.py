@@ -173,15 +173,17 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
                 'When complete_test_set_only is False, test_filelists and '
                 'train_filelists must contain the same number of elements.')
 
+    transform_groups = dict(train=(train_transform, train_target_transform),
+                            test=(test_transform, test_target_transform))
     train_inc_datasets = \
         [TransformationDataset(FilelistDataset(root, tr_flist),
-                               transform=train_transform,
-                               target_transform=train_target_transform)
+                               transform_groups=transform_groups,
+                               initial_transform_group='train')
          for tr_flist in train_filelists]
     test_inc_datasets = \
         [TransformationDataset(FilelistDataset(root, te_flist),
-                               transform=test_transform,
-                               target_transform=test_target_transform)
+                               transform_groups=transform_groups,
+                               initial_transform_group='test')
          for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets

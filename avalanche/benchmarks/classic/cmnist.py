@@ -18,6 +18,7 @@ from torch import Tensor
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
     RandomRotation
+import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_scenario
 from avalanche.benchmarks.utils import train_test_transformation_datasets
