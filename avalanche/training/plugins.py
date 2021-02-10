@@ -889,7 +889,7 @@ class AGEMPlugin(StrategyPlugin):
         """
 
         tot = 0
-        for x, y in dataloader:
+        for _, x, y in dataloader:
             if tot + x.size(0) <= self.patterns_per_step:
                 if self.memory_x is None:
                     self.memory_x = x.clone()

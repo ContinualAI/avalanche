@@ -21,8 +21,9 @@ class MultiTaskDataLoader:
         When iterating over the data, it returns sequentially a different
         batch for each task (i.e. first a batch for task 1, then task 2,
         and so on). If datasets for different tasks have different lengths,
-        smaller tasks are oversampled to match the largest task. It is
-        suggested to use this loader only if tasks have approximately the
+        smaller tasks are oversampled to match the largest task.
+
+        It is suggested to use this loader only if tasks have approximately the
         same length.
 
         :param data_dict: a dictionary with task ids as keys and Datasets
@@ -34,6 +35,7 @@ class MultiTaskDataLoader:
 
         for task_id, data in self.data_dict.items():
             self.loaders_dict[task_id] = DataLoader(data, **kwargs)
+        self.max_len = max([len(d) for d in self.loaders_dict.values()])
 
     def __iter__(self):
         iter_dataloaders = {}
@@ -59,4 +61,4 @@ class MultiTaskDataLoader:
             return
 
     def __len__(self):
-        return sum([len(dl) for dl in self.data_dict.values()])
+        return self.max_len * len(self.loaders_dict)
