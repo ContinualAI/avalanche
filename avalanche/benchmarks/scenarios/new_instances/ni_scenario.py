@@ -15,28 +15,11 @@ import torch
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSet, TestSet
-from avalanche.benchmarks.utils import TransformationSubset, IDatasetWithTargets
+from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
+    _step_structure_from_assignment
+from avalanche.benchmarks.utils import TransformationSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
-
-
-def _step_structure_from_assignment(dataset: IDatasetWithTargets,
-                                    assignment: Sequence[Sequence[int]],
-                                    n_classes: int):
-    n_steps = len(assignment)
-    step_structure = [[0 for _ in range(n_classes)] for _ in range(n_steps)]
-
-    for step_id in range(n_steps):
-        step_targets = [int(dataset.targets[pattern_idx])
-                        for pattern_idx in assignment[step_id]]
-        cls_ids, cls_counts = torch.unique(torch.as_tensor(
-            step_targets), return_counts=True)
-
-        for unique_idx in range(len(cls_ids)):
-            step_structure[step_id][int(cls_ids[unique_idx])] += \
-                int(cls_counts[unique_idx])
-
-    return step_structure
 
 
 class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIStepInfo'],
@@ -433,4 +416,7 @@ class NIStepInfo(GenericStepInfo[NIScenario[TrainSet, TestSet],
             origin_stream, current_step)
 
 
-__all__ = ['NIScenario', 'NIStepInfo']
+__all__ = [
+    'NIScenario',
+    'NIStepInfo'
+]

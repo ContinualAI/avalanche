@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the MIT License.                                   #
@@ -20,7 +17,7 @@ import logging
 import sys
 from zipfile import ZipFile
 from os.path import expanduser
-from torch.utils.data import Dataset
+from torch.utils.data.dataset import Dataset
 from PIL import Image
 from torchvision.transforms import ToTensor
 
@@ -209,7 +206,7 @@ if __name__ == "__main__":
 
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.
-    from torch.utils.data import DataLoader
+    from torch.utils.data.dataloader import DataLoader
     import matplotlib.pyplot as plt
     from torchvision import transforms
     import torch
@@ -226,3 +223,8 @@ if __name__ == "__main__":
         print(x.shape)
         print(y.shape)
         break
+
+
+__all__ = [
+    'TinyImagenet'
+]

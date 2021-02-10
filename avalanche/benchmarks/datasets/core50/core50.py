@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -16,12 +13,12 @@
 
 import os
 import logging
-from torch.utils.data import Dataset
+from torch.utils.data.dataset import Dataset
 from torchvision.transforms import ToTensor
 from PIL import Image
 import pickle as pkl
 from os.path import expanduser
-from avalanche.benchmarks.datasets.core50 import CORE50_DATA
+from .core50_data import CORE50_DATA
 
 
 def pil_loader(path):
@@ -115,7 +112,7 @@ if __name__ == "__main__":
 
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.
-    from torch.utils.data import DataLoader
+    from torch.utils.data.dataloader import DataLoader
     import matplotlib.pyplot as plt
     from torchvision import transforms
     import torch
@@ -135,3 +132,8 @@ if __name__ == "__main__":
         print(x.size())
         print(len(y))
         break
+
+
+__all__ = [
+    'CORe50'
+]

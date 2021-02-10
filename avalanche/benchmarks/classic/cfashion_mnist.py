@@ -12,11 +12,6 @@
 """ This module implements an high-level function to create the classic
 Fashion MNIST split CL scenario. """
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import FashionMNIST
@@ -126,7 +121,9 @@ def _get_fmnist_dataset(train_transformation, test_transformation):
         train_set, test_set, train_transformation, test_transformation)
 
 
-__all__ = ['SplitFMNIST']
+__all__ = [
+    'SplitFMNIST'
+]
 
 if __name__ == "__main__":
 

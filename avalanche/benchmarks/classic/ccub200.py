@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -122,7 +119,9 @@ def _get_cub200_dataset(root, train_transformation, test_transformation):
         train_set, test_set, train_transformation, test_transformation)
 
 
-__all__ = ['SplitCUB200']
+__all__ = [
+    'SplitCUB200'
+]
 
 if __name__ == "__main__":
     scenario = SplitCUB200("~/.avalanche/data/cub200/")
@@ -130,3 +129,4 @@ if __name__ == "__main__":
         print("step: ", step.current_step)
         print("classes number: ", len(step.classes_in_this_step))
         print("classes: ", step.classes_in_this_step)
+

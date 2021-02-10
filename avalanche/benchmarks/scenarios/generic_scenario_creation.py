@@ -254,6 +254,8 @@ def create_generic_scenario_from_tensors(
         complete_test_set_only=complete_test_set_only)
 
 
-__all__ = ['create_multi_dataset_generic_scenario',
-           'create_generic_scenario_from_filelists',
-           'create_generic_scenario_from_tensors']
+__all__ = [
+    'create_multi_dataset_generic_scenario',
+    'create_generic_scenario_from_filelists',
+    'create_generic_scenario_from_tensors'
+]

@@ -12,11 +12,6 @@
 """ This module contains useful utility functions and classes to generate
 pytorch datasets based on filelists (Caffe style) """
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 from pathlib import Path
 
 import torch.utils.data as data
@@ -28,7 +23,7 @@ import os.path
 from avalanche.benchmarks.utils import TransformationDataset
 
 
-def default_loader(path):
+def default_image_loader(path):
     """
     Sets the default image loader for the Pytorch Dataset.
 
@@ -68,7 +63,7 @@ class FilelistDataset(data.Dataset):
 
     def __init__(
             self, root, flist, transform=None, target_transform=None,
-            flist_reader=default_flist_reader, loader=default_loader):
+            flist_reader=default_flist_reader, loader=default_image_loader):
         """
         This reader reads a filelist and return a list of paths.
 
@@ -190,3 +185,11 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
          for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets
+
+
+__all__ = [
+    'default_image_loader',
+    'default_flist_reader',
+    'FilelistDataset',
+    'datasets_from_filelists'
+]

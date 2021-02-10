@@ -493,5 +493,10 @@ def _one_dataset_per_step_class_order(
     return fixed_class_order, classes_per_step
 
 
-__all__ = ['nc_scenario', 'ni_scenario', 'dataset_scenario',
-           'filelist_scenario', 'tensor_scenario']
+__all__ = [
+    'nc_scenario',
+    'ni_scenario',
+    'dataset_scenario',
+    'filelist_scenario',
+    'tensor_scenario'
+]

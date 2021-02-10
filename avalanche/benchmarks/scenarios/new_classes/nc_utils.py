@@ -184,4 +184,6 @@ def make_nc_transformation_subset(dataset: SupportedDataset,
         target_transform=target_transform)
 
 
-__all__ = ['make_nc_transformation_subset']
+__all__ = [
+    'make_nc_transformation_subset'
+]

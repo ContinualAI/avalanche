@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -15,13 +12,8 @@
 """ This module contains the high-level OpenLORIS scenario/factor generator.
 It basically returns a iterable scenario object ``GenericCLScenario`` given
 a number of configuration parameters."""
-
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
-from avalanche.benchmarks.datasets import OPENLORIS_DATA
+from avalanche.benchmarks.datasets.openloris.openloris_data import \
+    OPENLORIS_DATA
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_filelists
 from os.path import expanduser
@@ -89,6 +81,10 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
 
     return factor_obj
 
+
+__all__ = [
+    'OpenLORIS'
+]
 
 if __name__ == "__main__":
 
