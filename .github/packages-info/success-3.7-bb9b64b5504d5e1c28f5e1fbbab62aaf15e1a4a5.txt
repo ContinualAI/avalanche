@@ -17,7 +17,7 @@ certifi                   2020.12.5        py37h89c1867_1    conda-forge
 cffi                      1.14.4           py37hc58025e_1    conda-forge
 chardet                   3.0.4           py37he5f6b98_1008    conda-forge
 click                     7.1.2              pyh9f0ad1d_0    conda-forge
-cryptography              3.3.1            py37h7f0c10b_1    conda-forge
+cryptography              3.4.4            py37hf1a17b8_0    conda-forge
 cudatoolkit               11.0.3               h15472ef_7    conda-forge
 cycler                    0.10.0                     py_2    conda-forge
 cython                    0.29.21          py37hcd2ae1e_2    conda-forge
@@ -110,7 +110,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               h21135ba_1    conda-forge
 torchvision               0.8.2                py37_cu110    pytorch
 tornado                   6.1              py37h5e8e339_1    conda-forge
-tqdm                      4.56.1             pyhd8ed1ab_0    conda-forge
+tqdm                      4.56.2             pyhd8ed1ab_0    conda-forge
 typing-extensions         3.7.4.3                       0    conda-forge
 typing_extensions         3.7.4.3                    py_0    conda-forge
 urllib3                   1.26.3             pyhd8ed1ab_0    conda-forge
