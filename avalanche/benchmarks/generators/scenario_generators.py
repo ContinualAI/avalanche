@@ -171,8 +171,8 @@ def nc_scenario(
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
     # Datasets should be instances of TransformationDataset
-    train_dataset = as_transformation_dataset(train_dataset)
-    test_dataset = as_transformation_dataset(test_dataset)
+    train_dataset = as_transformation_dataset(train_dataset).train()
+    test_dataset = as_transformation_dataset(test_dataset).eval()
 
     return NCScenario(train_dataset, test_dataset, n_steps, task_labels,
                       shuffle, seed, fixed_class_order, per_step_classes,
@@ -259,8 +259,8 @@ def ni_scenario(
             concat_datasets_sequentially(train_dataset, test_dataset)
 
     # Datasets should be instances of TransformationDataset
-    seq_train_dataset = as_transformation_dataset(seq_train_dataset)
-    seq_test_dataset = as_transformation_dataset(seq_test_dataset)
+    seq_train_dataset = as_transformation_dataset(seq_train_dataset).train()
+    seq_test_dataset = as_transformation_dataset(seq_test_dataset).eval()
 
     return NIScenario(
         seq_train_dataset, seq_test_dataset,
@@ -493,5 +493,10 @@ def _one_dataset_per_step_class_order(
     return fixed_class_order, classes_per_step
 
 
-__all__ = ['nc_scenario', 'ni_scenario', 'dataset_scenario',
-           'filelist_scenario', 'tensor_scenario']
+__all__ = [
+    'nc_scenario',
+    'ni_scenario',
+    'dataset_scenario',
+    'filelist_scenario',
+    'tensor_scenario'
+]

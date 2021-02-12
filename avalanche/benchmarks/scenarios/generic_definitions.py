@@ -9,7 +9,6 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 from abc import abstractmethod
-from enum import Enum
 
 try:
     from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
@@ -20,21 +19,6 @@ except ImportError:
     from typing_extensions import Protocol, runtime_checkable
 
 from avalanche.benchmarks.utils import TransformationDataset
-
-
-class DatasetPart(Enum):
-    """An enumeration defining the different dataset parts"""
-    CURRENT = 1  # Classes in this step only
-    CUMULATIVE = 2  # Encountered classes (including classes in this step)
-    OLD = 3  # Encountered classes (excluding classes in this step)
-    FUTURE = 4  # Future classes
-    COMPLETE = 5  # All classes (encountered + not seen yet)
-
-
-class DatasetType(Enum):
-    """An enumeration defining the different dataset types"""
-    TRAIN = 1  # Training set
-    VALIDATION = 2  # Validation (or test) set
 
 
 TrainSet = TypeVar('TrainSet', bound=TransformationDataset)
@@ -139,6 +123,12 @@ class IScenarioStream(Protocol[TScenario, TStepInfo]):
         ...
 
 
-__all__ = ['DatasetPart', 'DatasetType', 'TrainSet',
-           'TestSet', 'IStepInfo', 'TStepInfo', 'TScenario',
-           'IScenarioStream', 'TScenarioStream']
+__all__ = [
+    'TrainSet',
+    'TestSet',
+    'IStepInfo',
+    'TStepInfo',
+    'TScenario',
+    'IScenarioStream',
+    'TScenarioStream'
+]

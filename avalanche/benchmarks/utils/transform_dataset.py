@@ -8,6 +8,15 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+
+"""
+This module contains the implementation of the Transformation Dataset,
+which is the standard Avalanche implementation of a PyTorch dataset. Despite
+being a child class of the PyTorch Dataset, the TransfomationDataset (and its
+derivatives) is much more powerful as it offers many more features
+out-of-the-box.
+"""
+
 import copy
 
 import torch
@@ -970,7 +979,13 @@ def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
     return hasattr(dataset, 'tensors') and len(dataset.tensors) >= 2
 
 
-__all__ = ['SupportedDataset', 'TransformationDataset', 'TransformationSubset',
-           'TransformationConcatDataset', 'TransformationTensorDataset',
-           'concat_datasets_sequentially', 'as_transformation_dataset',
-           'train_test_transformation_datasets']
+__all__ = [
+    'SupportedDataset',
+    'TransformationDataset',
+    'TransformationSubset',
+    'TransformationTensorDataset',
+    'TransformationConcatDataset',
+    'concat_datasets_sequentially',
+    'as_transformation_dataset',
+    'train_test_transformation_datasets'
+]

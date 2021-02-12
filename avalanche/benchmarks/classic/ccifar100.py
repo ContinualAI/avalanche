@@ -9,11 +9,6 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 import random
 from typing import Sequence, Optional
 from os.path import expanduser
@@ -200,4 +195,7 @@ def _get_cifar100_dataset(train_transformation, test_transformation):
         train_set, test_set, train_transformation, test_transformation)
 
 
-__all__ = ['SplitCIFAR100', 'SplitCIFAR110']
+__all__ = [
+    'SplitCIFAR100',
+    'SplitCIFAR110'
+]

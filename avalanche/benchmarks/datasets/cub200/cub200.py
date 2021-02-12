@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the MIT License.                                   #
@@ -19,7 +16,7 @@ import logging
 from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import check_integrity, \
     extract_archive
-from torch.utils.data import Dataset
+from torch.utils.data.dataset import Dataset
 
 
 class CUB200(Dataset):
@@ -34,7 +31,7 @@ class CUB200(Dataset):
 
         self.root = os.path.expanduser(root)
         self.transform = transform
-        self.loader = default_loader
+        self.loader = loader
         self.train = train
         self.log = logging.getLogger("avalanche")
 
@@ -102,3 +99,8 @@ if __name__ == "__main__":
     print("test data len:", len(dataset))
     dataset = CUB200(root="~/.avalanche/data/cub200/", train=True)
     print("train data len:", len(dataset))
+
+
+__all__ = [
+    'CUB200'
+]

@@ -430,4 +430,7 @@ class NCStepInfo(GenericStepInfo[NCScenario[TrainSet, TestSet],
         super(NCStepInfo, self).__init__(origin_stream, current_step)
 
 
-__all__ = ['NCScenario', 'NCStepInfo']
+__all__ = [
+    'NCScenario',
+    'NCStepInfo'
+]

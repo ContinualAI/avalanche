@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import DataLoader
 from typing import Dict
 
 
@@ -60,3 +60,8 @@ class MultiTaskDataLoader:
 
     def __len__(self):
         return sum([len(dl) for dl in self.data_dict.values()])
+
+
+__all__ = [
+    'MultiTaskDataLoader'
+]
