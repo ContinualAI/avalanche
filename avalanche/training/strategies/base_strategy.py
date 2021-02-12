@@ -31,11 +31,11 @@ class BaseStrategy:
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger):
         """
-        BaseStrategy is the super class of all continual learning strategies.
-        It implements a basic training loop and callback system that allows to
-        execute code in each step of the training loop. Plugins can implement
-        the callbacks to augment the training loop with additional behavior
-        (e.g. a memory buffer for replay).
+        BaseStrategy is the super class of all task-based continual learning
+        strategies. It implements a basic training loop and callback system
+        that allows to execute code at each step of the training loop. Plugins
+        can be used to implement callbacks to augment the training loop with
+        additional behavior (e.g. a memory buffer for replay).
 
         This strategy supports several continual learning scenarios:
         - class-incremental scenarios (no task labels)
