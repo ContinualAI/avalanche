@@ -288,14 +288,20 @@ class EvaluationPlugin(StrategyPlugin):
     def __init__(self,
                  *metrics: Union['PluginMetric', Sequence['PluginMetric']],
                  loggers: Union['StrategyLogger',
-                                Sequence['StrategyLogger']] = None):
+                                Sequence['StrategyLogger']] = None,
+                 collect_all=True):
         """
         Creates an instance of the evaluation plugin.
 
         :param metrics: The metrics to compute.
         :param loggers: The loggers to be used to log the metric values.
+        :param collect_curves (bool): enables the collection of the metric
+            curves. If True `self.metric_curves` stores all the values of
+            each curve in a dictionary. Please disable this if you log large
+            values (embeddings, parameters) and you want to reduce memory usage.
         """
         super().__init__()
+        self.collect_all = collect_all
         flat_metrics_list = []
         for metric in metrics:
             if isinstance(metric, Sequence):
@@ -313,24 +319,31 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
-        self.metric_vals = {}
+        # for each curve  store last emitted value (train/test separated).
+        self.current_metrics = {}
+        if self.collect_all:
+            # for each curve collect all emitted values.
+            self.all_metrics = defaultdict(lambda: ([], []))
+        else:
+            self.all_metrics = None
 
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
-
             if isinstance(metric_result, Sequence):
                 metric_values += list(metric_result)
             elif metric_result is not None:
                 metric_values.append(metric_result)
 
         for metric_value in metric_values:
-            m_orig = metric_value.origin
             name = metric_value.name
             x = metric_value.x_plot
             val = metric_value.value
-            self.metric_vals[m_orig] = (name, x, val)
+            self.current_metrics[name] = val
+            if self.collect_all:
+                self.all_metrics[name][0].append(x)
+                self.all_metrics[name][1].append(val)
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)
@@ -380,6 +393,7 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_training(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_training')
+        self.current_metrics = {}  # reset current metrics
 
     def before_test(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'before_test')
@@ -395,6 +409,7 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_test(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_test')
+        self.current_metrics = {}  # reset current metrics
 
     def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'before_test_iteration')
