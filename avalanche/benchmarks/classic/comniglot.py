@@ -5,29 +5,32 @@
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 10-02-2021                                                             #
+# Date: 12-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
 
 # Python 3 compatible
 
-from typing import Optional, Sequence, Callable, Any, Union
-from os.path import expanduser, join
+from typing import Optional, Sequence, Any, Union
+from os.path import expanduser
 import torch
 from torch import Tensor
-from torchvision.datasets import Omniglot
 from torchvision.transforms import ToTensor, Compose, Normalize, ToPILImage, RandomRotation
 from PIL.Image import Image
 
 from avalanche.benchmarks import nc_scenario, NCScenario
+from avalanche.benchmarks.datasets.Omniglot import Omniglot
 from avalanche.benchmarks.utils import train_test_transformation_datasets, np
 
-_default_mnist_train_transform = Compose([
+__all__ = ['SplitOmniglot', 'PermutedOmniglot', 'RotatedOmniglot']
+
+
+_default_omniglot_train_transform = Compose([
     ToTensor(),
     Normalize((0.9221,), (0.2681,))
 ])
 
-_default_mnist_test_transform = Compose([
+_default_omniglot_test_transform = Compose([
     ToTensor(),
     Normalize((0.9221,), (0.2681,))
 ])
@@ -62,37 +65,13 @@ class PixelsPermutation(object):
         return img
 
 
-class OmniglotWrapper(Omniglot):
-    """
-    Custom class used to interface Omniglot from Torchvision with the method used in Avalanche
-    """
-    def __init__(
-            self,
-            root: str,
-            train: bool = True,
-            transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
-            download: bool = False,
-    ) -> None:
-        super().__init__(join(root, self.folder), download=download, transform=transform,
-                         target_transform=target_transform, background=train)
-
-    @property
-    def targets(self):
-        return [t for _, t in self]
-
-    @property
-    def data(self):
-        return [x for x, _ in self]
-
-
 def SplitOmniglot(
         n_steps: int,
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
-        train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform):
+        train_transform=_default_omniglot_train_transform,
+        test_transform=_default_omniglot_test_transform):
     """
     Creates a CL scenario using the OMNIGLOT dataset.
     This helper create the basic split OMNIGLOT scenario, where the 1623 classes of
@@ -157,8 +136,8 @@ def SplitOmniglot(
 def PermutedOmniglot(
         n_steps: int,
         seed: Optional[int] = None,
-        train_transform: Any = _default_mnist_train_transform,
-        test_transform: Any = _default_mnist_test_transform) -> NCScenario:
+        train_transform: Any = _default_omniglot_train_transform,
+        test_transform: Any = _default_omniglot_test_transform) -> NCScenario:
     """
     This helper create a permuted OMNIGLOT scenario: where a given number of random
     pixel permutations is used to permute the OMNIGLOT images in
@@ -230,8 +209,8 @@ def RotatedOmniglot(
         n_steps: int,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
-        train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform) -> NCScenario:
+        train_transform=_default_omniglot_train_transform,
+        test_transform=_default_omniglot_test_transform) -> NCScenario:
     """
     This helper create a rotated OMNIGLOT scenario: where a given number of random
     rotations are used to rotate the OMNIGLOT images in
@@ -317,12 +296,13 @@ def RotatedOmniglot(
 
 
 def _get_omniglot_dataset(train_transformation, test_transform):
-    train = OmniglotWrapper(root=expanduser("~") + "/.avalanche/data/omniglot/", train=True, download=True)
-    test = OmniglotWrapper(root=expanduser("~") + "/.avalanche/data/omniglot/", train=False, download=True)
+    train = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/", train=True, download=True)
+    test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/", train=False, download=True)
 
     return train_test_transformation_datasets(train_dataset=train, test_dataset=test,
                                               train_transformation=train_transformation,
                                               test_transformation=test_transform)
 
 
-__all__ = ['SplitOmniglot', 'PermutedOmniglot', 'RotatedOmniglot']
+if __name__ == '__main__':
+    _get_omniglot_dataset(_default_omniglot_train_transform, _default_omniglot_test_transform)
