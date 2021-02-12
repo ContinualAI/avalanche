@@ -38,8 +38,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: avalanche-dev-env
-          environment-file: environment-dev.yml
+          python-version: 3.8
           auto-activate-base: false
+      - name: install conda environment
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda env update --file environment-dev.yml
       - name: compile documentation
         run: |
           sphinx-build -b dirhtml docs/ doc_html/

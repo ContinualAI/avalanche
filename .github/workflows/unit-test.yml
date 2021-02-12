@@ -41,9 +41,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: avalanche-env
-          environment-file: .github/envs/test-environment.yml
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
+      - name: install conda environment
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda env update --file environment.yml
       - name: python unit test
         id: unittest
         run: |
