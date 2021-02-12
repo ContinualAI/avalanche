@@ -863,8 +863,8 @@ class AGEMPlugin(StrategyPlugin):
                                             self.reference_gradients):
 
                 assert n1 == n2, "Different model parameters in AGEM projection"
-                assert (p1.grad is not None and refg is not None) \
-                       or (p1.grad is None and refg is None)
+                assert (p1.grad is not None and refg is not None) or \
+                       (p1.grad is None and refg is None)
 
                 if refg is None:
                     continue
