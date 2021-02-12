@@ -191,8 +191,8 @@ class ReplayPlugin(StrategyPlugin):
         else:
             rem_len = len(ext_mem[curr_task_id]) - len(self.rm_add)
             _, saved_part = random_split(ext_mem[curr_task_id],
-                [len(self.rm_add), rem_len]
-            )
+                                         [len(self.rm_add), rem_len]
+                                         )
             ext_mem[curr_task_id] = ConcatDataset([saved_part, self.rm_add])
         self.ext_mem = ext_mem
 
@@ -233,7 +233,7 @@ class GDumbPlugin(StrategyPlugin):
             target = torch.tensor(target_value)
             if len(pattern.size()) == 1:
                 pattern = pattern.unsqueeze(0)
-                
+
             if current_counter == {}:
                 # any positive (>0) number is ok
                 patterns_per_class = 1
@@ -831,7 +831,7 @@ class AGEMPlugin(StrategyPlugin):
 
         self.patterns_per_step = int(patterns_per_step)
         self.sample_size = int(sample_size)
-    
+
         self.reference_gradients = None
         self.memory_x, self.memory_y = None, None
 
@@ -848,7 +848,7 @@ class AGEMPlugin(StrategyPlugin):
             out = strategy.model(xref)
             loss = strategy.criterion(out, yref)
             loss.backward()
-            self.reference_gradients = [ 
+            self.reference_gradients = [
                 (n, p.grad)
                 for n, p in strategy.model.named_parameters()]
 
@@ -864,7 +864,7 @@ class AGEMPlugin(StrategyPlugin):
 
                 assert n1 == n2, "Different model parameters in AGEM projection"
                 assert (p1.grad is not None and refg is not None) \
-                    or (p1.grad is None and refg is None)
+                       or (p1.grad is None and refg is None)
 
                 if refg is None:
                     continue
@@ -886,7 +886,7 @@ class AGEMPlugin(StrategyPlugin):
         Sample a minibatch from memory.
         Return a tuple of patterns (tensor), targets (tensor).
         """
-        
+
         if self.memory_x is None or self.memory_y is None:
             raise ValueError('Empty memory for AGEM.')
 
@@ -969,8 +969,8 @@ class GEMPlugin(StrategyPlugin):
                 loss.backward()
 
                 G.append(torch.cat([p.grad.flatten()
-                         for p in strategy.model.parameters()
-                         if p.grad is not None], dim=0))
+                                    for p in strategy.model.parameters()
+                                    if p.grad is not None], dim=0))
 
             self.G = torch.stack(G)  # (steps, parameters)
 
@@ -982,8 +982,8 @@ class GEMPlugin(StrategyPlugin):
 
         if strategy.training_step_counter > 0:
             g = torch.cat([p.grad.flatten()
-                          for p in strategy.model.parameters()
-                          if p.grad is not None], dim=0)
+                           for p in strategy.model.parameters()
+                           if p.grad is not None], dim=0)
 
             to_project = (torch.mv(self.G, g) < 0).any()
         else:
@@ -991,7 +991,7 @@ class GEMPlugin(StrategyPlugin):
 
         if to_project:
             v_star = self.solve_quadprog(g).to(strategy.device)
-        
+
             num_pars = 0  # reshape v_star into the parameter matrices
             for p in strategy.model.parameters():
 
@@ -1000,7 +1000,8 @@ class GEMPlugin(StrategyPlugin):
                 if p.grad is None:
                     continue
 
-                p.grad.copy_(v_star[num_pars:num_pars+curr_pars].view(p.size()))
+                p.grad.copy_(
+                    v_star[num_pars:num_pars + curr_pars].view(p.size()))
                 num_pars += curr_pars
 
             assert num_pars == v_star.numel(), "Error in projecting gradient"
@@ -1060,7 +1061,7 @@ class GEMPlugin(StrategyPlugin):
         h = np.zeros(t) + self.memory_strength
         v = quadprog.solve_qp(P, q, G, h)[0]
         v_star = np.dot(v, memories_np) + gradient_np
-        
+
         return torch.from_numpy(v_star).float()
 
 
@@ -1119,19 +1120,19 @@ class EWCPlugin(StrategyPlugin):
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
-        
+
         if self.mode == 'separate':
             for step in range(strategy.training_step_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                            strategy.model.named_parameters(),
-                            self.saved_params[step],
-                            self.importances[step]):
+                        strategy.model.named_parameters(),
+                        self.saved_params[step],
+                        self.importances[step]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                        strategy.model.named_parameters(),
-                        self.saved_params[strategy.training_step_counter],
-                        self.importances[strategy.training_step_counter]):
+                    strategy.model.named_parameters(),
+                    self.saved_params[strategy.training_step_counter],
+                    self.importances[strategy.training_step_counter]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
@@ -1176,11 +1177,11 @@ class EWCPlugin(StrategyPlugin):
             loss = criterion(out, y)
             loss.backward()
 
-            for (k1, p), (k2, imp) in zip(model.named_parameters(), 
+            for (k1, p), (k2, imp) in zip(model.named_parameters(),
                                           importances):
-                assert(k1 == k2)
+                assert (k1 == k2)
                 imp += p.grad.data.clone().pow(2)
-        
+
         # average over mini batch length
         for _, imp in importances:
             imp /= float(len(dataloader))
@@ -1198,11 +1199,11 @@ class EWCPlugin(StrategyPlugin):
             self.importances[t] = importances
         elif self.mode == 'online':
             for (k1, old_imp), (k2, curr_imp) in \
-                        zip(self.importances[t - 1], importances):
+                    zip(self.importances[t - 1], importances):
                 assert k1 == k2, 'Error in importance computation.'
                 self.importances[t].append(
                     (k1, (self.decay_factor * old_imp + curr_imp)))
-            
+
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):
                 del self.importances[t - 1]
@@ -1429,8 +1430,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         for param_name in syn_data['cum_trajectory']:
             syn_data['cum_trajectory'][param_name] += \
                 c * syn_data['trajectory'][param_name] / (
-                    np.square(syn_data['new_theta'][param_name] -
-                              ewc_data[0][param_name]) + eps)
+                        np.square(syn_data['new_theta'][param_name] -
+                                  ewc_data[0][param_name]) + eps)
 
         for param_name in syn_data['cum_trajectory']:
             ewc_data[1][param_name] = torch.empty_like(
