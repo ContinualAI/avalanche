@@ -183,7 +183,6 @@ class Cumulative(BaseStrategy):
                  evaluator: EvaluationPlugin = default_logger):
         """ Cumulative strategy. At each step,
             train model with data from all previous steps and current step.
-            This strategy does not use task identities.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -203,17 +202,21 @@ class Cumulative(BaseStrategy):
             test_mb_size=test_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
-        self.dataset = None  # cumulative dataset
+        self.dataset = {}  # cumulative dataset
 
     def adapt_train_dataset(self, **kwargs):
 
         super().adapt_train_dataset(**kwargs)
 
-        if self.dataset is None:
-            self.dataset = self.current_data
+        curr_task_id = self.step_info.task_label
+        curr_data = self.step_info.dataset
+        if curr_task_id in self.dataset:
+            cat_data = ConcatDataset([self.dataset[curr_task_id],
+                                      curr_data])
+            self.dataset[curr_task_id] = cat_data
         else:
-            self.dataset = ConcatDataset([self.dataset, self.current_data])
-            self.current_data = self.dataset
+            self.dataset[curr_task_id] = curr_data
+        self.adapted_dataset = self.dataset
 
 
 class LwF(BaseStrategy):
@@ -606,15 +609,18 @@ class AR1(BaseStrategy):
         current_batch_mb_size = self.train_mb_size
 
         if self.training_step_counter > 0:
-            train_patterns = len(self.current_data)
+            train_patterns = len(self.adapted_dataset)
             current_batch_mb_size = train_patterns // (
                     (train_patterns + self.rm_sz) // self.train_mb_size)
 
         current_batch_mb_size = max(1, current_batch_mb_size)
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
+        # AR1 only supports SIT scenarios (no task labels).
+        assert len(self.adapted_dataset.keys()) == 1
+        curr_data = list(self.adapted_dataset.values())[0]
         self.current_dataloader = DataLoader(
-            self.current_data, num_workers=num_workers,
+            curr_data, num_workers=num_workers,
             batch_size=current_batch_mb_size, shuffle=shuffle)
 
     def training_epoch(self, **kwargs):
@@ -673,9 +679,10 @@ class AR1(BaseStrategy):
         h = min(self.rm_sz // (self.training_step_counter + 1),
                 self.cur_acts.size(0))
 
+        curr_data = self.step_info.dataset
         idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
         rm_add_y = torch.tensor(
-            [self.current_data.targets[idx_cur] for idx_cur in idxs_cur])
+            [curr_data.targets[idx_cur] for idx_cur in idxs_cur])
 
         rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 
@@ -699,5 +706,16 @@ class AR1(BaseStrategy):
         return not isinstance(param_def.layer, (_NormBase, BatchRenorm2D))
 
 
-__all__ = ['Naive', 'CWRStar', 'Replay', 'GDumb', 'Cumulative', 'LwF', 'AGEM',
-           'GEM', 'EWC', 'SynapticIntelligence', 'AR1']
+__all__ = [
+    'Naive',
+    'CWRStar',
+    'Replay',
+    'GDumb',
+    'Cumulative',
+    'LwF',
+    'AGEM',
+    'GEM',
+    'EWC',
+    'SynapticIntelligence',
+    'AR1'
+]
