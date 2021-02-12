@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -16,12 +13,7 @@
 basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
-from avalanche.benchmarks.datasets import CORE50_DATA
+from avalanche.benchmarks.datasets.core50.core50_data import CORE50_DATA
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_filelists
 from os.path import expanduser
@@ -92,6 +84,10 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
 
     return scenario_obj
 
+
+__all__ = [
+    'CORe50'
+]
 
 if __name__ == "__main__":
 

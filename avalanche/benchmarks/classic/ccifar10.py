@@ -9,11 +9,6 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR10
@@ -123,4 +118,7 @@ def _get_cifar10_dataset(train_transformation, test_transformation):
         train_set, test_set, train_transformation, test_transformation)
 
 
-__all__ = ['SplitCIFAR10', '_get_cifar10_dataset']
+__all__ = [
+    'SplitCIFAR10',
+    '_get_cifar10_dataset'
+]

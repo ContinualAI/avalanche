@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
@@ -12,21 +9,16 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 
 from typing import Optional, Sequence, Union, Any
 from os.path import expanduser
 import torch
-import numpy as np
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
     RandomRotation
+import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_scenario
 from avalanche.benchmarks.utils import train_test_transformation_datasets
@@ -315,7 +307,11 @@ def _get_mnist_dataset(train_transformation, test_transformation):
         train_set, test_set, train_transformation, test_transformation)
 
 
-__all__ = ['SplitMNIST', 'PermutedMNIST', 'RotatedMNIST']
+__all__ = [
+    'SplitMNIST',
+    'PermutedMNIST',
+    'RotatedMNIST'
+]
 
 
 if __name__ == "__main__":

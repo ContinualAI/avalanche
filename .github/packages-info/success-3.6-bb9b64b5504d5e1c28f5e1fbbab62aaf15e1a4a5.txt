@@ -17,7 +17,7 @@ certifi                   2020.12.5        py36h5fab9bb_1    conda-forge
 cffi                      1.14.4           py36hc120d54_1    conda-forge
 chardet                   3.0.4           py36h9880bd3_1008    conda-forge
 click                     7.1.2              pyh9f0ad1d_0    conda-forge
-cryptography              3.3.1            py36h0a59100_1    conda-forge
+cryptography              3.4.4            py36hc39840e_0    conda-forge
 cudatoolkit               11.0.3               h15472ef_7    conda-forge
 cycler                    0.10.0                     py_2    conda-forge
 cython                    0.29.21          py36hc4f0c31_2    conda-forge
@@ -40,7 +40,7 @@ idna                      2.10               pyh9f0ad1d_0    conda-forge
 idna_ssl                  1.1.0           py36h9f0ad1d_1001    conda-forge
 importlib-metadata        3.4.0            py36h5fab9bb_0    conda-forge
 intel-openmp              2020.2                      254  
-joblib                    1.0.0              pyhd8ed1ab_0    conda-forge
+joblib                    1.0.1              pyhd8ed1ab_0    conda-forge
 jpeg                      9b                   h024ee3a_2  
 kiwisolver                1.3.1            py36h605e78d_1    conda-forge
 ld_impl_linux-64          2.35.1               hea4e1c9_2    conda-forge
@@ -112,7 +112,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               h21135ba_1    conda-forge
 torchvision               0.8.2                py36_cu110    pytorch
 tornado                   6.1              py36h8f6f2f9_1    conda-forge
-tqdm                      4.56.0             pyhd8ed1ab_0    conda-forge
+tqdm                      4.56.2             pyhd8ed1ab_0    conda-forge
 typing-extensions         3.7.4.3                       0    conda-forge
 typing_extensions         3.7.4.3                    py_0    conda-forge
 urllib3                   1.26.3             pyhd8ed1ab_0    conda-forge

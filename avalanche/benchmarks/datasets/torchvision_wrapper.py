@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -14,11 +11,6 @@
 
 """ This module conveniently wraps Pytorch Datasets for using a clean and
 comprehensive Avalanche API."""
-
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
 
 from torchvision.datasets import MNIST as torchMNIST
 from torchvision.datasets import FashionMNIST as torchFashionMNIST
@@ -174,3 +166,37 @@ def CelebA(*args, **kwargs):
 if __name__ == "__main__":
 
     mnist = MNIST(".", download=True)
+
+
+__all__ = [
+    'MNIST',
+    'FashionMNIST',
+    'KMNIST',
+    'EMNIST',
+    'QMNIST',
+    'FakeData',
+    'CocoCaptions',
+    'CocoDetection',
+    'LSUN',
+    'LSUN',
+    'ImageFolder',
+    'DatasetFolder',
+    'ImageNet',
+    'CIFAR10',
+    'CIFAR100',
+    'STL10',
+    'SVHN',
+    'PhotoTour',
+    'SBU',
+    'Flickr8k',
+    'Flickr30k',
+    'VOCDetection',
+    'VOCSegmentation',
+    'Cityscapes',
+    'SBDataset',
+    'USPS',
+    'Kinetics400',
+    'HMDB51',
+    'UCF101',
+    'CelebA'
+]

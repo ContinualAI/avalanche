@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import DataLoader
 from typing import Dict
 
 
