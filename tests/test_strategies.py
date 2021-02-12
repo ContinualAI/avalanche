@@ -29,7 +29,7 @@ from avalanche.benchmarks.datasets import MNIST
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF, AGEM, GEM, EWC, MultiTaskStrategy, \
+    GDumb, Cumulative, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, AR1
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
@@ -81,55 +81,70 @@ class StrategyTest(unittest.TestCase):
     else:
         device = "cpu"
 
-    def test_multi_task(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
-        strategy = MultiTaskStrategy(model, optimizer, criterion,
-                                     train_mb_size=64, device=self.device,
-                                     test_mb_size=50, train_epochs=2)
-
-        self.run_strategy(my_nc_scenario, strategy)
-
     def test_naive(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = Naive(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device, test_mb_size=50, train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
 
     def test_cwrstar(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         last_fc_name, _ = get_last_fc_layer(model)
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
                            train_mb_size=64, device=self.device)
         self.run_strategy(my_nc_scenario, strategy)
 
+        # MT scenario
+        strategy = CWRStar(model, optimizer, criterion, last_fc_name,
+                           train_mb_size=64, device=self.device)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_replay(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = Replay(model, optimizer, criterion,
-                          mem_size=200, train_mb_size=64, device=self.device,
+                          mem_size=10, train_mb_size=64, device=self.device,
                           test_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
-    
+
+        # MT scenario
+        strategy = Replay(model, optimizer, criterion,
+                          mem_size=10, train_mb_size=64, device=self.device,
+                          test_mb_size=50, train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_gdumb(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = GDumb(
                 model, optimizer, criterion,
                 mem_size=200, train_mb_size=64, device=self.device,
@@ -137,23 +152,44 @@ class StrategyTest(unittest.TestCase):
         )
         self.run_strategy(my_nc_scenario, strategy)
 
+        # MT scenario
+        strategy = GDumb(
+                model, optimizer, criterion,
+                mem_size=200, train_mb_size=64, device=self.device,
+                test_mb_size=50, train_epochs=2
+        )
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
+
     def test_cumulative(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
                               device=self.device, test_mb_size=50,
                               train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
-    
+
+        # MT scenario
+        strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
+                              device=self.device, test_mb_size=50,
+                              train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_lwf(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)], 
                        temperature=2, device=self.device,
@@ -161,38 +197,69 @@ class StrategyTest(unittest.TestCase):
                        train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
+        # MT scenario
+        strategy = LwF(model, optimizer, criterion,
+                       alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)],
+                       temperature=2, device=self.device,
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_agem(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = AGEM(model, optimizer, criterion,
                         patterns_per_step=250, sample_size=256,
                         train_mb_size=10, test_mb_size=50,
                         train_epochs=2)
-
         self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = AGEM(model, optimizer, criterion,
+                        patterns_per_step=250, sample_size=256,
+                        train_mb_size=10, test_mb_size=50,
+                        train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
 
     def test_gem(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-1)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_step=256,
                        train_mb_size=10, test_mb_size=50,
                        train_epochs=2)
 
         self.run_strategy(my_nc_scenario, strategy)
-    
+
+        # MT scenario
+        strategy = GEM(model, optimizer, criterion,
+                       patterns_per_step=256,
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
+        self.run_strategy(my_nc_scenario, strategy)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_ewc(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='separate',
                        train_mb_size=10, test_mb_size=50,
@@ -200,30 +267,59 @@ class StrategyTest(unittest.TestCase):
 
         self.run_strategy(my_nc_scenario, strategy)
 
+        # MT scenario
+        strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
+                       mode='separate',
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_ewc_online(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=False)
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='online', decay_factor=0.1,
                        train_mb_size=10, test_mb_size=50,
                        train_epochs=2)
-
         self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
+                       mode='online', decay_factor=0.1,
+                       train_mb_size=10, test_mb_size=50,
+                       train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                            use_task_labels=True)
+        self.run_strategy(scenario, strategy)
 
     def test_synaptic_intelligence(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
 
+        # SIT scenario
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, test_mb_size=10)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                      use_task_labels=False)
+        self.run_strategy(scenario, strategy)
 
-        self.run_strategy(my_nc_scenario, strategy)
+        # MT scenario
+        strategy = SynapticIntelligence(
+            model, optimizer, criterion, si_lambda=0.0001,
+            train_epochs=1, train_mb_size=10, test_mb_size=10)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                      use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
 
     def test_ar1(self):
         my_nc_scenario = self.load_ar1_scenario(fast_test=self.fast_test)
@@ -277,7 +373,7 @@ class StrategyTest(unittest.TestCase):
 
         return my_nc_scenario
 
-    def load_scenario(self, fast_test=False):
+    def load_scenario(self, fast_test=False, use_task_labels=False):
         """
         Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
         2 classes per step.
@@ -286,7 +382,7 @@ class StrategyTest(unittest.TestCase):
         """
 
         if fast_test:
-            n_samples_per_class = 20
+            n_samples_per_class = 100
 
             dataset = make_classification(
                 n_samples=10 * n_samples_per_class,
@@ -302,7 +398,7 @@ class StrategyTest(unittest.TestCase):
             train_dataset = TensorDataset(train_X, train_y)
             test_dataset = TensorDataset(test_X, test_y)
             my_nc_scenario = nc_scenario(
-                train_dataset, test_dataset, 5, task_labels=False
+                train_dataset, test_dataset, 5, task_labels=use_task_labels
             )
         else:
             mnist_train = MNIST(
@@ -313,7 +409,8 @@ class StrategyTest(unittest.TestCase):
                 './data/mnist', train=False, download=True,
                 transform=Compose([ToTensor()]))
             my_nc_scenario = nc_scenario(
-                mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+                mnist_train, mnist_test, 5,
+                task_labels=use_task_labels, seed=1234)
 
         return my_nc_scenario
 
