@@ -5,7 +5,7 @@
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 12-02-2021                                                             #
+# Date: 13-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
 
@@ -15,15 +15,13 @@ from typing import Optional, Sequence, Any, Union
 from os.path import expanduser
 import torch
 from torch import Tensor
-from torchvision.transforms import ToTensor, Compose, Normalize, ToPILImage, RandomRotation
+from torchvision.transforms import ToTensor, Compose, Normalize, \
+    ToPILImage, RandomRotation
 from PIL.Image import Image
 
 from avalanche.benchmarks import nc_scenario, NCScenario
-from avalanche.benchmarks.datasets.Omniglot import Omniglot
+from avalanche.benchmarks.datasets.omniglot import Omniglot
 from avalanche.benchmarks.utils import train_test_transformation_datasets, np
-
-__all__ = ['SplitOmniglot', 'PermutedOmniglot', 'RotatedOmniglot']
-
 
 _default_omniglot_train_transform = Compose([
     ToTensor(),
@@ -74,8 +72,9 @@ def SplitOmniglot(
         test_transform=_default_omniglot_test_transform):
     """
     Creates a CL scenario using the OMNIGLOT dataset.
-    This helper create the basic split OMNIGLOT scenario, where the 1623 classes of
-    the OMNIGLOT dataset are evenly splitted into the given nuber of tasks.
+    This helper create the basic split OMNIGLOT scenario,
+    where the 1623 classes of the OMNIGLOT dataset are evenly splitted into the
+    given nuber of tasks.
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
@@ -112,12 +111,13 @@ def SplitOmniglot(
         scenario otherwise.
     """
 
-    mnist_train, mnist_test = _get_omniglot_dataset(train_transform, test_transform)
+    omniglot_train, omniglot_test = _get_omniglot_dataset(train_transform,
+                                                          test_transform)
 
     if return_task_id:
         return nc_scenario(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
+            train_dataset=omniglot_train,
+            test_dataset=omniglot_test,
             n_steps=n_steps,
             task_labels=True,
             seed=seed,
@@ -125,8 +125,8 @@ def SplitOmniglot(
             class_ids_from_zero_in_each_step=True)
     else:
         return nc_scenario(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
+            train_dataset=omniglot_train,
+            test_dataset=omniglot_test,
             n_steps=n_steps,
             task_labels=False,
             seed=seed,
@@ -139,8 +139,8 @@ def PermutedOmniglot(
         train_transform: Any = _default_omniglot_train_transform,
         test_transform: Any = _default_omniglot_test_transform) -> NCScenario:
     """
-    This helper create a permuted OMNIGLOT scenario: where a given number of random
-    pixel permutations is used to permute the OMNIGLOT images in
+    This helper create a permuted OMNIGLOT scenario: where a given number of
+    random pixel permutations is used to permute the OMNIGLOT images in
     ``n_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original OMNIGLOT classes, but the pixel
     in the images are permuted in different ways in every task.
@@ -181,7 +181,8 @@ def PermutedOmniglot(
 
         permutation = PixelsPermutation(idx_permute)
 
-        omniglot_train, omniglot_test = _get_omniglot_dataset(permutation, permutation)
+        omniglot_train, omniglot_test = _get_omniglot_dataset(permutation,
+                                                              permutation)
 
         # Freeze the permutation, then add the user defined transformations
         permuted_train = omniglot_train \
@@ -212,8 +213,8 @@ def RotatedOmniglot(
         train_transform=_default_omniglot_train_transform,
         test_transform=_default_omniglot_test_transform) -> NCScenario:
     """
-    This helper create a rotated OMNIGLOT scenario: where a given number of random
-    rotations are used to rotate the OMNIGLOT images in
+    This helper create a rotated OMNIGLOT scenario: where a given number of
+    random rotations are used to rotate the OMNIGLOT images in
     ``n_steps`` different manners, creating an equal number of tasks.
     Each task is composed of all the original OMNIGLOT classes, but the images
     are rotated in different ways and using different values in every task.
@@ -249,9 +250,13 @@ def RotatedOmniglot(
         MT rotated OMNIGLOT scenario.
     """
 
-    assert len(rotations_list) == n_steps, "The number of rotations" \
-                                           " should match the number" \
-                                           " of incremental steps."
+    if rotations_list is None:
+        rng_rotate = np.random.RandomState(seed)
+        rotations_list = [rng_rotate.randint(-180, 181) for _ in range(n_steps)]
+    else:
+        assert len(rotations_list) == n_steps, "The number of rotations" \
+                                               " should match the number" \
+                                               " of incremental steps."
     assert all(-180 <= rotations_list[i] <= 180
                for i in range(len(rotations_list))), "The value of a rotation" \
                                                      " should be between -180" \
@@ -259,19 +264,15 @@ def RotatedOmniglot(
 
     list_train_dataset = []
     list_test_dataset = []
-    rng_rotate = np.random.RandomState(seed)
 
     # for every incremental step
     for step in range(n_steps):
-        if rotations_list is not None:
-            rotation_angle = rotations_list[step]
-        else:
-            # choose a random rotation of the pixels in the image
-            rotation_angle = rng_rotate.randint(-180, 181)
+        rotation_angle = rotations_list[step]
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        omniglot_train, omniglot_test = _get_omniglot_dataset(rotation, rotation)
+        omniglot_train, omniglot_test = _get_omniglot_dataset(rotation,
+                                                              rotation)
 
         # Freeze the rotation, then add the user defined transformations
         rotated_train = omniglot_train \
@@ -296,13 +297,25 @@ def RotatedOmniglot(
 
 
 def _get_omniglot_dataset(train_transformation, test_transform):
-    train = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/", train=True, download=True)
-    test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/", train=False, download=True)
+    train = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
+                     train=True, download=True)
+    test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
+                    train=False, download=True)
 
-    return train_test_transformation_datasets(train_dataset=train, test_dataset=test,
-                                              train_transformation=train_transformation,
-                                              test_transformation=test_transform)
+    return train_test_transformation_datasets(
+                                    train_dataset=train,
+                                    test_dataset=test,
+                                    train_transformation=train_transformation,
+                                    test_transformation=test_transform)
 
+
+__all__ = [
+    'SplitOmniglot',
+    'PermutedOmniglot',
+    'RotatedOmniglot'
+]
 
 if __name__ == '__main__':
-    _get_omniglot_dataset(_default_omniglot_train_transform, _default_omniglot_test_transform)
+    _get_omniglot_dataset(_default_omniglot_train_transform,
+                          _default_omniglot_test_transform)
+    rot = RotatedOmniglot(n_steps=10, seed=1)

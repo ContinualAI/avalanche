@@ -5,7 +5,7 @@
 # Copyrights licensed under the CC BY 4.0 License.                             #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 12-02-2021                                                             #
+# Date: 13-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
 
@@ -16,12 +16,11 @@ from typing import Optional, Callable
 
 from torchvision.datasets import Omniglot as OmniglotTorch
 
-__all__ = ['Omniglot']
-
 
 class Omniglot(OmniglotTorch):
     """
-    Custom class used to interface Omniglot from Torchvision with the method used in Avalanche
+    Custom class used to interface Omniglot from
+    Torchvision with the method used in Avalanche
     """
 
     def __init__(
@@ -32,13 +31,18 @@ class Omniglot(OmniglotTorch):
             target_transform: Optional[Callable] = None,
             download: bool = False,
     ) -> None:
-        super().__init__(join(root, self.folder), download=download, transform=transform,
-                         target_transform=target_transform, background=train)
+        super().__init__(join(root, self.folder), download=download,
+                         transform=transform,
+                         target_transform=target_transform,
+                         background=train)
 
-    @property
-    def targets(self):
-        return [t for _, t in self]
+        self.targets = [x[1] for x in self._flat_character_images]
 
     @property
     def data(self):
         return [x for x, _ in self]
+
+
+__all__ = [
+    'Omniglot'
+]
