@@ -119,7 +119,7 @@ class MinibatchAccuracy(PluginMetric[float]):
     :class:`EpochAccuracy` and/or :class:`TaskAccuracy` instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
         Creates an instance of the MinibatchAccuracy metric.
 
@@ -184,7 +184,7 @@ class EpochAccuracy(PluginMetric[float]):
     unbalanced minibatch sizes will not affect the metric.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
         Creates an instance of the EpochAccuracy metric.
 
@@ -259,7 +259,7 @@ class RunningEpochAccuracy(EpochAccuracy):
     this metric will log the running accuracy value after each iteration.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, test=True):
         """
         Creates an instance of the RunningEpochAccuracy metric.
 
