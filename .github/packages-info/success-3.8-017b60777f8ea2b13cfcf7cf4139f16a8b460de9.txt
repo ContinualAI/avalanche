@@ -10,7 +10,7 @@ c-ares                    1.17.1               h36c2ea0_0    conda-forge
 ca-certificates           2020.12.5            ha878542_0    conda-forge
 cachetools                4.2.1              pyhd8ed1ab_0    conda-forge
 certifi                   2020.12.5        py38h578d9bd_1    conda-forge
-cffi                      1.14.4           py38h261ae71_0  
+cffi                      1.14.5           py38h261ae71_0  
 chardet                   4.0.0            py38h578d9bd_1    conda-forge
 click                     7.1.2              pyh9f0ad1d_0    conda-forge
 cpuonly                   1.0                           0    pytorch
@@ -21,7 +21,7 @@ dbus                      1.13.16              hb2f20db_0
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
 freetype                  2.10.4               h5ab3b9f_0  
-glib                      2.66.1               h92f7085_0  
+glib                      2.67.3               h36276a3_1  
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
@@ -87,7 +87,7 @@ python                    3.8.5                h7579374_1
 python-dateutil           2.8.1                      py_0    conda-forge
 python_abi                3.8                      1_cp38    conda-forge
 pytorch                   1.7.1               py3.8_cpu_0  [cpuonly]  pytorch
-pytorchcv                 0.0.62                   pypi_0    pypi
+pytorchcv                 0.0.63                   pypi_0    pypi
 qt                        5.9.7                h5867ecd_1  
 quadprog                  0.1.8            py38h82cb98a_0    conda-forge
 readline                  8.1                  h27cfd23_0  
