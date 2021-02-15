@@ -136,11 +136,12 @@ class BaseStrategy:
         if isinstance(step_infos, IStepInfo):
             step_infos = [step_infos]
 
-        self.before_training(**kwargs)
         res = []
+        self.before_training(**kwargs)
         for step_info in step_infos:
             self.train_task_label = step_info.task_label
-            res.append(self.train_step(step_info, **kwargs))
+            self.train_step(step_info, **kwargs)
+            res.append(self.evaluator.current_metrics.copy())
 
         self.after_training(**kwargs)
         return res
@@ -168,7 +169,6 @@ class BaseStrategy:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
-        return self.evaluator.metric_vals.copy()
 
     def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
@@ -201,7 +201,7 @@ class BaseStrategy:
             self.before_test_step(**kwargs)
             self.test_epoch(**kwargs)
             self.after_test_step(**kwargs)
-            res.append(self.evaluator.metric_vals.copy())
+            res.append(self.evaluator.current_metrics.copy())
 
         self.after_test(**kwargs)
         return res

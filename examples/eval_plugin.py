@@ -105,14 +105,25 @@ def main():
         print("Start of step: ", step.current_step)
         print("Current Classes: ", step.classes_in_this_step)
 
-        # train returns a dictionary which contains all the metric values
+        # train returns a list of dictionaries (one for each step). Each
+        # dictionary stores the last value of each metric curve emitted
+        # during training.
         res = cl_strategy.train(step)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        # test also returns a dictionary which contains all the metric values
+        # test also returns a dictionary
         results.append(cl_strategy.test(scenario.test_stream))
 
+    print(f"Test metrics:\n{results}")
+
+    # All the metric curves (x,y values) are stored inside the evaluator
+    # (can be disabled). You can use this dictionary to manipulate the
+    # metrics without avalanche.
+    all_metrics = cl_strategy.evaluator.all_metrics
+    print(f"Stored metrics: {list(all_metrics.keys())}")
+    mname = 'Top1_Acc_Task/Task000'
+    print(f"{mname}: {cl_strategy.evaluator.all_metrics[mname]}")
 
 if __name__ == '__main__':
     main()
