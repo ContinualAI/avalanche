@@ -17,7 +17,7 @@ dbus                      1.13.6               he372182_0    conda-forge
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
 freetype                  2.10.4               h5ab3b9f_0  
-glib                      2.66.1               h92f7085_0  
+glib                      2.67.3               h36276a3_1  
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
@@ -78,7 +78,7 @@ python                    3.6.12               hcff3b4d_2
 python-dateutil           2.8.1                      py_0    conda-forge
 python_abi                3.6                     1_cp36m    conda-forge
 pytorch                   1.7.1               py3.6_cpu_0  [cpuonly]  pytorch
-pytorchcv                 0.0.62                   pypi_0    pypi
+pytorchcv                 0.0.63                   pypi_0    pypi
 qt                        5.9.7                h5867ecd_1  
 quadprog                  0.1.8            py36h51d7077_0    conda-forge
 readline                  8.1                  h27cfd23_0  
