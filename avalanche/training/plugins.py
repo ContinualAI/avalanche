@@ -24,7 +24,8 @@ import warnings
 from torch import Tensor
 from torch.nn import Module, Linear
 from torch.nn.modules.batchnorm import _NormBase
-from torch.utils.data import random_split, ConcatDataset, TensorDataset
+from torch.utils.data import random_split, ConcatDataset, TensorDataset, \
+    DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo
 from avalanche.training.strategy_callbacks import StrategyCallbacks
@@ -131,18 +132,18 @@ class ReplayPlugin(StrategyPlugin):
     Handles an external memory filled with randomly selected
     patterns and implements the "adapt_train_dataset" callback to add them to
     the training set.
-    This plugin does not use task identities.
 
     The :mem_size: attribute controls the number of patterns to be stored in 
-    the external memory. We assume the training set contains at least 
-    :mem_size: data points.
+    the external memory. In multitask scenarios, mem_size is the memory size
+    for each task. We assume the training set contains at least :mem_size: data
+    points.
     """
 
     def __init__(self, mem_size=200):
         super().__init__()
 
         self.mem_size = mem_size
-        self.ext_mem = None
+        self.ext_mem = {}  # a Dict<task_id, Dataset>
         self.rm_add = None
 
     def adapt_train_dataset(self, strategy, **kwargs):
@@ -150,6 +151,7 @@ class ReplayPlugin(StrategyPlugin):
         Expands the current training set with datapoint from
         the external memory before training.
         """
+        curr_data = strategy.step_info.dataset
 
         # Additional set of the current batch to be concatenated to the ext.
         # memory at the end of the training
@@ -157,34 +159,41 @@ class ReplayPlugin(StrategyPlugin):
 
         # how many patterns to save for next iter
         h = min(self.mem_size // (strategy.training_step_counter + 1),
-                len(strategy.current_data))
+                len(curr_data))
 
         # We recover it using the random_split method and getting rid of the
         # second split.
         self.rm_add, _ = random_split(
-            strategy.current_data, [h, len(strategy.current_data) - h]
+            curr_data, [h, len(curr_data) - h]
         )
 
         if strategy.training_step_counter > 0:
             # We update the train_dataset concatenating the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.
-            strategy.current_data = ConcatDataset([strategy.current_data,
-                                                   self.ext_mem])
+            for mem_task_id in self.ext_mem.keys():
+                mem_data = self.ext_mem[mem_task_id]
+                if mem_task_id in strategy.adapted_dataset:
+                    cat_data = ConcatDataset([curr_data, mem_data])
+                    strategy.adapted_dataset[mem_task_id] = cat_data
+                else:
+                    strategy.adapted_dataset[mem_task_id] = mem_data
 
     def after_training_step(self, strategy, **kwargs):
         """ After training we update the external memory with the patterns of
          the current training batch/task. """
+        curr_task_id = strategy.step_info.task_label
 
         # replace patterns in random memory
         ext_mem = self.ext_mem
-        if strategy.training_step_counter == 0:
-            ext_mem = copy.deepcopy(self.rm_add)
+        if curr_task_id not in ext_mem:
+            ext_mem[curr_task_id] = copy.deepcopy(self.rm_add)
         else:
-            _, saved_part = random_split(
-                ext_mem, [len(self.rm_add), len(ext_mem) - len(self.rm_add)]
-            )
-            ext_mem = ConcatDataset([saved_part, self.rm_add])
+            rem_len = len(ext_mem[curr_task_id]) - len(self.rm_add)
+            _, saved_part = random_split(ext_mem[curr_task_id],
+                                         [len(self.rm_add), rem_len]
+                                         )
+            ext_mem[curr_task_id] = ConcatDataset([saved_part, self.rm_add])
         self.ext_mem = ext_mem
 
 
@@ -194,7 +203,7 @@ class GDumbPlugin(StrategyPlugin):
     is trained with all and only the data of the external memory.
     The memory is updated at the end of each step to add new classes or
     new examples of already encountered classes.
-    This plugin does not use task identities.
+    In multitask scenarios, mem_size is the memory size for each task.
 
     This plugin can be combined with a Naive strategy to obtain the
     standard GDumb strategy.
@@ -207,9 +216,9 @@ class GDumbPlugin(StrategyPlugin):
         super().__init__()
 
         self.mem_size = mem_size
-        self.ext_mem = None
+        self.ext_mem = defaultdict(lambda: None)
         # count occurrences for each class
-        self.counter = defaultdict(int)
+        self.counter = defaultdict(lambda: defaultdict(int))
 
     def adapt_train_dataset(self, strategy, **kwargs):
         """ Before training we make sure to organize the memory following
@@ -217,50 +226,54 @@ class GDumbPlugin(StrategyPlugin):
         """
 
         # for each pattern, add it to the memory or not
-        for i, (pattern, target_value) in enumerate(strategy.current_data):
+        dataset = strategy.step_info.dataset
+        current_counter = self.counter[strategy.step_info.task_label]
+        current_mem = self.ext_mem[strategy.step_info.task_label]
+        for i, (pattern, target_value) in enumerate(dataset):
             target = torch.tensor(target_value)
             if len(pattern.size()) == 1:
                 pattern = pattern.unsqueeze(0)
-                
-            if self.counter == {}:
+
+            if current_counter == {}:
                 # any positive (>0) number is ok
                 patterns_per_class = 1
             else:
                 patterns_per_class = int(
-                    self.mem_size / len(self.counter.keys())
+                    self.mem_size / len(current_counter.keys())
                 )
 
-            if target_value not in self.counter or \
-                    self.counter[target_value] < patterns_per_class:
+            if target_value not in current_counter or \
+                    current_counter[target_value] < patterns_per_class:
                 # full memory: replace item from most represented class
                 # with current pattern
-                if sum(self.counter.values()) >= self.mem_size:
-                    to_remove = max(self.counter, key=self.counter.get)
-                    for j in range(len(self.ext_mem.tensors[1])):
-                        if self.ext_mem.tensors[1][j].item() == to_remove:
-                            self.ext_mem.tensors[0][j] = pattern
-                            self.ext_mem.tensors[1][j] = target
+                if sum(current_counter.values()) >= self.mem_size:
+                    to_remove = max(current_counter, key=current_counter.get)
+                    for j in range(len(current_mem.tensors[1])):
+                        if current_mem.tensors[1][j].item() == to_remove:
+                            current_mem.tensors[0][j] = pattern
+                            current_mem.tensors[1][j] = target
                             break
-                    self.counter[to_remove] -= 1
+                    current_counter[to_remove] -= 1
                 else:
                     # memory not full: add new pattern
-                    if self.ext_mem is None:
-                        self.ext_mem = TensorDataset(
+                    if current_mem is None:
+                        current_mem = TensorDataset(
                             pattern, target.unsqueeze(0))
                     else:
-                        self.ext_mem = TensorDataset(
+                        current_mem = TensorDataset(
                             torch.cat([
                                 pattern,
-                                self.ext_mem.tensors[0]], dim=0),
+                                current_mem.tensors[0]], dim=0),
 
                             torch.cat([
                                 target.unsqueeze(0),
-                                self.ext_mem.tensors[1]], dim=0)
+                                current_mem.tensors[1]], dim=0)
                         )
 
-                self.counter[target_value] += 1
+                current_counter[target_value] += 1
 
-        strategy.current_data = self.ext_mem
+        self.ext_mem[strategy.step_info.task_label] = current_mem
+        strategy.adapted_dataset = self.ext_mem
 
 
 class EvaluationPlugin(StrategyPlugin):
@@ -275,14 +288,20 @@ class EvaluationPlugin(StrategyPlugin):
     def __init__(self,
                  *metrics: Union['PluginMetric', Sequence['PluginMetric']],
                  loggers: Union['StrategyLogger',
-                                Sequence['StrategyLogger']] = None):
+                                Sequence['StrategyLogger']] = None,
+                 collect_all=True):
         """
         Creates an instance of the evaluation plugin.
 
         :param metrics: The metrics to compute.
         :param loggers: The loggers to be used to log the metric values.
+        :param collect_curves (bool): enables the collection of the metric
+            curves. If True `self.metric_curves` stores all the values of
+            each curve in a dictionary. Please disable this if you log large
+            values (embeddings, parameters) and you want to reduce memory usage.
         """
         super().__init__()
+        self.collect_all = collect_all
         flat_metrics_list = []
         for metric in metrics:
             if isinstance(metric, Sequence):
@@ -300,24 +319,31 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
-        self.metric_vals = {}
+        # for each curve  store last emitted value (train/test separated).
+        self.current_metrics = {}
+        if self.collect_all:
+            # for each curve collect all emitted values.
+            self.all_metrics = defaultdict(lambda: ([], []))
+        else:
+            self.all_metrics = None
 
     def _update_metrics(self, strategy: PluggableStrategy, callback: str):
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
-
             if isinstance(metric_result, Sequence):
                 metric_values += list(metric_result)
             elif metric_result is not None:
                 metric_values.append(metric_result)
 
         for metric_value in metric_values:
-            m_orig = metric_value.origin
             name = metric_value.name
             x = metric_value.x_plot
             val = metric_value.value
-            self.metric_vals[m_orig] = (name, x, val)
+            self.current_metrics[name] = val
+            if self.collect_all:
+                self.all_metrics[name][0].append(x)
+                self.all_metrics[name][1].append(val)
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)
@@ -367,6 +393,7 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_training(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_training')
+        self.current_metrics = {}  # reset current metrics
 
     def before_test(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'before_test')
@@ -382,6 +409,7 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_test(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_test')
+        self.current_metrics = {}  # reset current metrics
 
     def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'before_test_iteration')
@@ -434,7 +462,8 @@ class CWRStarPlugin(StrategyPlugin):
             self.freeze_other_layers()
 
         # Count current classes and number of samples for each of them.
-        self.model.cur_j = examples_per_class(strategy.current_data.targets)
+        data = strategy.step_info.dataset
+        self.model.cur_j = examples_per_class(data.targets)
         self.cur_class = [cls for cls in set(self.model.cur_j.keys()) if
                           self.model.cur_j[cls] > 0]
 
@@ -817,7 +846,7 @@ class AGEMPlugin(StrategyPlugin):
 
         self.patterns_per_step = int(patterns_per_step)
         self.sample_size = int(sample_size)
-    
+
         self.reference_gradients = None
         self.memory_x, self.memory_y = None, None
 
@@ -834,7 +863,7 @@ class AGEMPlugin(StrategyPlugin):
             out = strategy.model(xref)
             loss = strategy.criterion(out, yref)
             loss.backward()
-            self.reference_gradients = [ 
+            self.reference_gradients = [
                 (n, p.grad)
                 for n, p in strategy.model.named_parameters()]
 
@@ -849,8 +878,8 @@ class AGEMPlugin(StrategyPlugin):
                                             self.reference_gradients):
 
                 assert n1 == n2, "Different model parameters in AGEM projection"
-                assert (p1.grad is not None and refg is not None) \
-                    or (p1.grad is None and refg is None)
+                assert (p1.grad is not None and refg is not None) or \
+                       (p1.grad is None and refg is None)
 
                 if refg is None:
                     continue
@@ -872,7 +901,7 @@ class AGEMPlugin(StrategyPlugin):
         Sample a minibatch from memory.
         Return a tuple of patterns (tensor), targets (tensor).
         """
-        
+
         if self.memory_x is None or self.memory_y is None:
             raise ValueError('Empty memory for AGEM.')
 
@@ -889,24 +918,27 @@ class AGEMPlugin(StrategyPlugin):
         """
 
         tot = 0
-        for x, y in dataloader:
-            if tot + x.size(0) <= self.patterns_per_step:
-                if self.memory_x is None:
-                    self.memory_x = x.clone()
-                    self.memory_y = y.clone()
+        for batches in dataloader:
+            for _, (x, y) in batches.items():
+                if tot + x.size(0) <= self.patterns_per_step:
+                    if self.memory_x is None:
+                        self.memory_x = x.clone()
+                        self.memory_y = y.clone()
+                    else:
+                        self.memory_x = torch.cat((self.memory_x, x), dim=0)
+                        self.memory_y = torch.cat((self.memory_y, y), dim=0)
                 else:
-                    self.memory_x = torch.cat((self.memory_x, x), dim=0)
-                    self.memory_y = torch.cat((self.memory_y, y), dim=0)
-            else:
-                diff = self.patterns_per_step - tot
-                if self.memory_x is None:
-                    self.memory_x = x[:diff].clone()
-                    self.memory_y = y[:diff].clone()
-                else:
-                    self.memory_x = torch.cat((self.memory_x, x[:diff]), dim=0)
-                    self.memory_y = torch.cat((self.memory_y, y[:diff]), dim=0)
-                break
-            tot += x.size(0)
+                    diff = self.patterns_per_step - tot
+                    if self.memory_x is None:
+                        self.memory_x = x[:diff].clone()
+                        self.memory_y = y[:diff].clone()
+                    else:
+                        self.memory_x = torch.cat((self.memory_x,
+                                                   x[:diff]), dim=0)
+                        self.memory_y = torch.cat((self.memory_y,
+                                                   y[:diff]), dim=0)
+                    break
+                tot += x.size(0)
 
 
 class GEMPlugin(StrategyPlugin):
@@ -952,8 +984,8 @@ class GEMPlugin(StrategyPlugin):
                 loss.backward()
 
                 G.append(torch.cat([p.grad.flatten()
-                         for p in strategy.model.parameters()
-                         if p.grad is not None], dim=0))
+                                    for p in strategy.model.parameters()
+                                    if p.grad is not None], dim=0))
 
             self.G = torch.stack(G)  # (steps, parameters)
 
@@ -965,8 +997,8 @@ class GEMPlugin(StrategyPlugin):
 
         if strategy.training_step_counter > 0:
             g = torch.cat([p.grad.flatten()
-                          for p in strategy.model.parameters()
-                          if p.grad is not None], dim=0)
+                           for p in strategy.model.parameters()
+                           if p.grad is not None], dim=0)
 
             to_project = (torch.mv(self.G, g) < 0).any()
         else:
@@ -974,7 +1006,7 @@ class GEMPlugin(StrategyPlugin):
 
         if to_project:
             v_star = self.solve_quadprog(g).to(strategy.device)
-        
+
             num_pars = 0  # reshape v_star into the parameter matrices
             for p in strategy.model.parameters():
 
@@ -983,7 +1015,8 @@ class GEMPlugin(StrategyPlugin):
                 if p.grad is None:
                     continue
 
-                p.grad.copy_(v_star[num_pars:num_pars+curr_pars].view(p.size()))
+                p.grad.copy_(
+                    v_star[num_pars:num_pars + curr_pars].view(p.size()))
                 num_pars += curr_pars
 
             assert num_pars == v_star.numel(), "Error in projecting gradient"
@@ -993,15 +1026,16 @@ class GEMPlugin(StrategyPlugin):
         Save a copy of the model after each step
         """
 
-        self.update_memory(strategy.current_dataloader,
-                           strategy.training_step_counter)
+        self.update_memory(strategy.step_info.dataset,
+                           strategy.training_step_counter,
+                           strategy.train_mb_size)
 
     @torch.no_grad()
-    def update_memory(self, dataloader, t):
+    def update_memory(self, dataset, t, batch_size):
         """
         Update replay memory with patterns from current step.
         """
-
+        dataloader = DataLoader(dataset, batch_size=batch_size)
         tot = 0
         for x, y in dataloader:
             if tot + x.size(0) <= self.patterns_per_step:
@@ -1042,7 +1076,7 @@ class GEMPlugin(StrategyPlugin):
         h = np.zeros(t) + self.memory_strength
         v = quadprog.solve_qp(P, q, G, h)[0]
         v_star = np.dot(v, memories_np) + gradient_np
-        
+
         return torch.from_numpy(v_star).float()
 
 
@@ -1101,19 +1135,19 @@ class EWCPlugin(StrategyPlugin):
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
-        
+
         if self.mode == 'separate':
             for step in range(strategy.training_step_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                            strategy.model.named_parameters(),
-                            self.saved_params[step],
-                            self.importances[step]):
+                        strategy.model.named_parameters(),
+                        self.saved_params[step],
+                        self.importances[step]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                        strategy.model.named_parameters(),
-                        self.saved_params[strategy.training_step_counter],
-                        self.importances[strategy.training_step_counter]):
+                    strategy.model.named_parameters(),
+                    self.saved_params[strategy.training_step_counter],
+                    self.importances[strategy.training_step_counter]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
@@ -1128,8 +1162,9 @@ class EWCPlugin(StrategyPlugin):
         importances = self.compute_importances(strategy.model,
                                                strategy.criterion,
                                                strategy.optimizer,
-                                               strategy.current_dataloader,
-                                               strategy.device)
+                                               strategy.step_info.dataset,
+                                               strategy.device,
+                                               strategy.train_mb_size)
         self.update_importances(importances, strategy.training_step_counter)
         self.saved_params[strategy.training_step_counter] = \
             copy_params_dict(strategy.model)
@@ -1139,7 +1174,7 @@ class EWCPlugin(StrategyPlugin):
             del self.saved_params[strategy.training_step_counter - 1]
 
     def compute_importances(self, model, criterion, optimizer,
-                            dataloader, device):
+                            dataset, device, batch_size):
         """
         Compute EWC importance matrix for each parameter
         """
@@ -1148,7 +1183,7 @@ class EWCPlugin(StrategyPlugin):
 
         # list of list
         importances = zerolike_params_dict(model)
-
+        dataloader = DataLoader(dataset, batch_size=batch_size)
         for i, (x, y) in enumerate(dataloader):
             x, y = x.to(device), y.to(device)
 
@@ -1157,11 +1192,11 @@ class EWCPlugin(StrategyPlugin):
             loss = criterion(out, y)
             loss.backward()
 
-            for (k1, p), (k2, imp) in zip(model.named_parameters(), 
+            for (k1, p), (k2, imp) in zip(model.named_parameters(),
                                           importances):
-                assert(k1 == k2)
+                assert (k1 == k2)
                 imp += p.grad.data.clone().pow(2)
-        
+
         # average over mini batch length
         for _, imp in importances:
             imp /= float(len(dataloader))
@@ -1179,11 +1214,11 @@ class EWCPlugin(StrategyPlugin):
             self.importances[t] = importances
         elif self.mode == 'online':
             for (k1, old_imp), (k2, curr_imp) in \
-                        zip(self.importances[t - 1], importances):
+                    zip(self.importances[t - 1], importances):
                 assert k1 == k2, 'Error in importance computation.'
                 self.importances[t].append(
                     (k1, (self.decay_factor * old_imp + curr_imp)))
-            
+
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):
                 del self.importances[t - 1]
@@ -1410,8 +1445,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         for param_name in syn_data['cum_trajectory']:
             syn_data['cum_trajectory'][param_name] += \
                 c * syn_data['trajectory'][param_name] / (
-                    np.square(syn_data['new_theta'][param_name] -
-                              ewc_data[0][param_name]) + eps)
+                        np.square(syn_data['new_theta'][param_name] -
+                                  ewc_data[0][param_name]) + eps)
 
         for param_name in syn_data['cum_trajectory']:
             ewc_data[1][param_name] = torch.empty_like(

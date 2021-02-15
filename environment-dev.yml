@@ -9,15 +9,10 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 
-name: avalanche-dev-env
 channels:
-- pytorch
 - conda-forge
 dependencies:
 - psutil
-- python=3.6
-- pytorch::pytorch
-- pytorch::torchvision
 - tensorboard
 - scikit-learn
 - matplotlib

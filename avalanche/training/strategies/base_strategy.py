@@ -13,9 +13,10 @@ from typing import Optional, Sequence, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.scenarios import IStepInfo
+from avalanche.benchmarks.utils.data_loader import \
+    MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
 
@@ -29,16 +30,20 @@ class BaseStrategy:
                  test_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger):
-        self.model = model
         """
-        BaseStrategy is the super class of all continual learning strategies.
-        It implements a basic training loop and callback system that can be
-        customized by child strategies. Additionally, it supports plugins,
-        a mechanism to augment existing strategies with additional
-        behavior (e.g. a memory buffer for replay).
+        BaseStrategy is the super class of all task-based continual learning
+        strategies. It implements a basic training loop and callback system
+        that allows to execute code at each step of the training loop. Plugins
+        can be used to implement callbacks to augment the training loop with
+        additional behavior (e.g. a memory buffer for replay).
 
-        This strategy does not use task identities. See
-        :class:MultiTaskStrategy: if you need them.
+        This strategy supports several continual learning scenarios:
+        - class-incremental scenarios (no task labels)
+        - multi-task scenarios, where task labels are provided)
+        - multi-incremental scenarios, where the same task may be revisited
+
+        The exact scenario depends on the data stream and whether it provides
+        the task labels.
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -48,9 +53,10 @@ class BaseStrategy:
         :param test_mb_size: mini-batch size for test.
         :param device: PyTorch device to run the model.
         :param plugins: (optional) list of StrategyPlugins.
-        :param evaluator: (optional) instance of EvaluationPlugin for logging 
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         """
+        self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_epochs = train_epochs
@@ -63,15 +69,14 @@ class BaseStrategy:
         self.evaluator = evaluator
 
         # Flow state variables
-
-        # Counter of each training step.
-        # Incremented by 1 at the end of each step.
-        self.training_step_counter = 0
-        # test-flow only
-        self.test_step_id = None
+        self.training_step_counter = 0  # +1 at the end of each step.
+        self.test_step_id = None  # test-flow only
         self.epoch = None
         self.step_info = None
-        self.current_data = None
+        # data used to train. May be modified by plugins. In general, plugins
+        # can append data to it but should not read it (e.g. for replay)
+        # because it may contain extra samples from previous steps.
+        self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None  # train-flow only. minibatch iteration.
         self.mb_x, self.mb_y = None, None
@@ -136,11 +141,12 @@ class BaseStrategy:
         if isinstance(step_infos, IStepInfo):
             step_infos = [step_infos]
 
-        self.before_training(**kwargs)
         res = []
+        self.before_training(**kwargs)
         for step_info in step_infos:
             self.train_task_label = step_info.task_label
-            res.append(self.train_step(step_info, **kwargs))
+            self.train_step(step_info, **kwargs)
+            res.append(self.evaluator.current_metrics.copy())
 
         self.after_training(**kwargs)
         return res
@@ -156,8 +162,8 @@ class BaseStrategy:
         self.model.train()
         self.model.to(self.device)
 
-        self.current_data = step_info.dataset
-        self.current_data.train()
+        self.adapted_dataset = step_info.dataset
+        self.adapted_dataset.train()
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
@@ -168,7 +174,6 @@ class BaseStrategy:
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
-        return self.evaluator.metric_vals.copy()
 
     def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
@@ -192,8 +197,8 @@ class BaseStrategy:
             self.step_info = step_info
             self.test_step_id = step_info.current_step
 
-            self.current_data = step_info.dataset
-            self.current_data.eval()
+            self.adapted_dataset = step_info.dataset
+            self.adapted_dataset.eval()
 
             self.adapt_test_dataset(**kwargs)
             self.make_test_dataloader(**kwargs)
@@ -201,7 +206,7 @@ class BaseStrategy:
             self.before_test_step(**kwargs)
             self.test_epoch(**kwargs)
             self.after_test_step(**kwargs)
-            res.append(self.evaluator.metric_vals.copy())
+            res.append(self.evaluator.current_metrics.copy())
 
         self.after_test(**kwargs)
         return res
@@ -220,10 +225,11 @@ class BaseStrategy:
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
-        self.current_dataloader = DataLoader(self.current_data,
-                                             num_workers=num_workers, 
-                                             batch_size=self.train_mb_size,
-                                             shuffle=shuffle)
+        self.current_dataloader = MultiTaskMultiBatchDataLoader(
+            self.adapted_dataset,
+            num_workers=num_workers,
+            batch_size=self.train_mb_size,
+            shuffle=shuffle)
 
     def make_test_dataloader(self, num_workers=0, **kwargs):
         """
@@ -232,9 +238,9 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        self.current_dataloader = DataLoader(
-              self.current_data,
-              num_workers=num_workers, 
+        self.current_dataloader = MultiTaskDataLoader(
+              self.adapted_dataset,
+              num_workers=num_workers,
               batch_size=self.test_mb_size)
 
     def adapt_train_dataset(self, **kwargs):
@@ -244,6 +250,7 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
+        self.adapted_dataset = {self.step_info.task_label: self.adapted_dataset}
         for p in self.plugins:
             p.adapt_train_dataset(self, **kwargs)
 
@@ -262,21 +269,24 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for self.mb_it, (self.mb_x, self.mb_y) in \
+        for self.mb_it, batches in \
                 enumerate(self.current_dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.mb_x = self.mb_x.to(self.device)
-            self.mb_y = self.mb_y.to(self.device)
+            self.loss = 0
+            for self.mb_task_id, (self.mb_x, self.mb_y) in batches.items():
+                self.mb_x = self.mb_x.to(self.device)
+                self.mb_y = self.mb_y.to(self.device)
 
-            # Forward
-            self.before_forward(**kwargs)
-            self.logits = self.model(self.mb_x)
-            self.after_forward(**kwargs)
+                # Forward
+                self.before_forward(**kwargs)
+                self.logits = self.model(self.mb_x)
+                self.after_forward(**kwargs)
 
-            # Loss & Backward
-            self.loss = self.criterion(self.logits, self.mb_y)
+                # Loss & Backward
+                self.loss += self.criterion(self.logits, self.mb_y)
+
             self.before_backward(**kwargs)
             self.loss.backward()
             self.after_backward(**kwargs)
@@ -341,10 +351,10 @@ class BaseStrategy:
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.step_info = None
-        self.current_data = None
+        self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None
-        self.mb_x, self.mb_y = None, None
+        self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
         self.logits = None
 
@@ -357,11 +367,12 @@ class BaseStrategy:
             p.before_test_step(self, **kwargs)
 
     def adapt_test_dataset(self, **kwargs):
+        self.adapted_dataset = {self.step_info.task_label: self.adapted_dataset}
         for p in self.plugins:
             p.adapt_test_dataset(self, **kwargs)
 
     def test_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y) in \
+        for self.mb_it, (self.mb_task_id, self.mb_x, self.mb_y) in \
                 enumerate(self.current_dataloader):
             self.before_test_iteration(**kwargs)
 
@@ -385,10 +396,10 @@ class BaseStrategy:
         # Reset flow-state variables. They should not be used outside the flow
         self.test_step_id = None
         self.step_info = None
-        self.current_data = None
+        self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None
-        self.mb_x, self.mb_y = None, None
+        self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
         self.logits = None
 
