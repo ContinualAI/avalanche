@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
@@ -8,8 +6,6 @@
 # Date: 13-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
-
-# Python 3 compatible
 
 from os.path import join
 from typing import Optional, Callable
