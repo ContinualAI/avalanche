@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI Research                                      #
 # Copyrights licensed under the CC BY 4.0 License.                             #
@@ -8,8 +6,6 @@
 # Date: 13-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
-
-# Python 3 compatible
 
 from typing import Optional, Sequence, Any, Union
 from os.path import expanduser
@@ -21,7 +17,8 @@ from PIL.Image import Image
 
 from avalanche.benchmarks import nc_scenario, NCScenario
 from avalanche.benchmarks.datasets.omniglot import Omniglot
-from avalanche.benchmarks.utils import train_test_transformation_datasets, np
+from avalanche.benchmarks.utils import train_test_transformation_datasets
+import numpy as np
 
 _default_omniglot_train_transform = Compose([
     ToTensor(),
