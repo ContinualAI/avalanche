@@ -31,11 +31,11 @@ class TextLogger(StrategyLogger):
         self.metric_vals = {}
 
     def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
-        m_orig = metric_value.origin
+        # m_orig = metric_value.origin
         name = metric_value.name
         x = metric_value.x_plot
         val = metric_value.value
-        self.metric_vals[m_orig] = (name, x, val)
+        self.metric_vals[name] = (name, x, val)
 
     def _val_to_str(self, m_val):
         if isinstance(m_val, torch.Tensor):
