@@ -51,8 +51,8 @@ libxcb                    1.13              h14c3975_1002    conda-forge
 libxml2                   2.9.9                h13577e0_2    conda-forge
 lz4-c                     1.9.3                h2531618_0  
 markdown                  3.3.3              pyh9f0ad1d_0    conda-forge
-matplotlib                3.3.3            py36h5fab9bb_0    conda-forge
-matplotlib-base           3.3.3            py36he12231b_0    conda-forge
+matplotlib                3.3.4            py36h5fab9bb_0    conda-forge
+matplotlib-base           3.3.4            py36h62a2d02_0  
 mkl                       2020.2                      256  
 mkl-service               2.3.0            py36he8ac12f_0  
 mkl_fft                   1.2.0            py36h23d657b_0  
@@ -84,7 +84,7 @@ quadprog                  0.1.8            py36h51d7077_0    conda-forge
 readline                  8.1                  h27cfd23_0  
 requests                  2.13.0                   py36_0    conda-forge
 requests-oauthlib         1.2.0              pyh9f0ad1d_1    conda-forge
-rsa                       4.7                pyhd3deb0d_0    conda-forge
+rsa                       4.7.1              pyh44b312d_0    conda-forge
 scikit-learn              0.23.2           py36hb6e6923_3    conda-forge
 scipy                     1.5.3            py36h976291a_0    conda-forge
 setuptools                52.0.0           py36h06a4308_0  
