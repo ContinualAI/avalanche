@@ -96,7 +96,5 @@ This completes the "_Logging_" tutorial for the "_From Zero to Hero_" series. We
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 
-{% embed url="https://colab.research.google.com/drive/16BV\_sJiQNl\_2gCUp82G4se40QK3IaDSq?usp=sharing" %}
-
-
+{% embed url="https://colab.research.google.com/drive/16BV\_sJiQNl\_2gCUp82G4se40QK3IaDSq?usp=sharing" caption="" %}
 
