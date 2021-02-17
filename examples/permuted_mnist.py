@@ -27,7 +27,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
-from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -57,7 +57,7 @@ def main():
         loss_metrics(minibatch=True, epoch=True, task=True),
         timing_metrics(epoch=True, epoch_average=True, test=False),
         cpu_usage_metrics(step=True),
-        TaskForgetting(),
+        Forgetting(compute_for_step=True),
         loggers=[interactive_logger])
 
     # Continual learning strategy

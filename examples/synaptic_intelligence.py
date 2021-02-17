@@ -27,7 +27,7 @@ from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
     loss_metrics, TaskConfusionMatrix
 from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
@@ -76,7 +76,7 @@ def main():
     evaluation_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, task=True),
         loss_metrics(minibatch=True, epoch=True, task=True),
-        TaskForgetting(),
+        Forgetting(compute_for_step=True),
         TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=[my_logger, interactive_logger])
 

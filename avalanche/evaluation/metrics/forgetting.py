@@ -28,9 +28,10 @@ class Forgetting(PluginMetric[Dict[int, float]]):
     The Forgetting metric, describing the accuracy loss detected for a
     certain task or step.
 
-    This metric, computed separately for each task/step, is the difference between
-    the accuracy result obtained after first training on a task/step and the accuracy
-    result obtained on the same task/step at the end of successive steps.
+    This metric, computed separately for each task/step
+    is the difference between the accuracy result obtained after
+    first training on a task/step and the accuracy result obtained
+    on the same task/step at the end of successive steps.
 
     This metric is computed during the test phase only.
     """
@@ -72,8 +73,8 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         """
         Resets the current accuracy.
 
-        This will preserve the initial accuracy value of each task/step. To be used
-        at the beginning of each test step.
+        This will preserve the initial accuracy value of each task/step.
+        To be used at the beginning of each test step.
 
         :return: None.
         """
@@ -100,13 +101,15 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         self.reset_current_accuracy()
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.test_step_id if self.compute_for_step else strategy.test_task_label
+        label = strategy.test_step_id if self.compute_for_step \
+                else strategy.test_task_label
         self.update(strategy.mb_y,
                     strategy.logits,
                     label)
 
     def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
-        label = strategy.training_step_counter if self.compute_for_step else strategy.train_task_label
+        label = strategy.training_step_counter if self.compute_for_step \
+                else strategy.train_task_label
         return self._package_result(label)
 
     def result(self) -> Dict[int, float]:
@@ -114,13 +117,14 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         Return the amount of forgetting for each task/step.
 
         The forgetting is computed as the accuracy difference between the
-        initial task/step accuracy (when first encountered in the training stream)
-        and the current accuracy. A positive value means that forgetting
-        occurred. A negative value means that the accuracy on that task/step
-        increased.
+        initial task/step accuracy (when first encountered
+        in the training stream) and the current accuracy.
+        A positive value means that forgetting occurred. A negative value
+        means that the accuracy on that task/step increased.
 
-        :return: A dictionary in which keys are task/step labels and the values are
-            the forgetting measures (as floats in range [-1, 1]).
+        :return: A dictionary in which keys are task/step labels and the
+                 values are the forgetting measures
+                 (as floats in range [-1, 1]).
         """
         prev_accuracies: Dict[int, float] = self._initial_accuracy
         accuracies: Dict[int, Accuracy] = self._current_accuracy
@@ -155,7 +159,8 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         metric_values = []
         string_print = 'Step' if self.compute_for_step else 'Task'
         for label, forgetting in self.result().items():
-            metric_name = '{}_Forgetting/{}{:03}'.format(string_print, string_print, label)
+            metric_name = '{}_Forgetting/{}{:03}'.format(
+                string_print, string_print, label)
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(
