@@ -25,7 +25,7 @@ eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, epoch=True, task=True),
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
-    TaskForgetting(),
+    Forgetting(),
     loggers=[interactive_logger])
 
  # Than we can extract the parallel train and test streams

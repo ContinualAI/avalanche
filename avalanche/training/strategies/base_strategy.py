@@ -346,8 +346,6 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_training_step(self, **kwargs)
 
-        self.training_step_counter += 1
-
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.step_info = None
@@ -402,6 +400,8 @@ class BaseStrategy:
         self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
         self.logits = None
+
+        self.training_step_counter += 1
 
     def before_test_iteration(self, **kwargs):
         for p in self.plugins:

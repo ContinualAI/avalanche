@@ -30,7 +30,7 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import ReplayPlugin, MultiHeadPlugin
-from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -75,7 +75,7 @@ def main():
         loss_metrics(minibatch=True, epoch=True, task=True),
         timing_metrics(epoch=True, epoch_average=True, test=False),
         cpu_usage_metrics(step=True),
-        TaskForgetting(),
+        Forgetting(compute_for_step=True),
         loggers=[interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
