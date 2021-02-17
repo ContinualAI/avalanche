@@ -46,8 +46,8 @@ if ! [[ "$cuda_version" =~ ^(9.2|10.1|10.2|11.0|"none")$ ]]; then
     exit 1
 fi
 
-conda create -n avalanche-env-dev python=$python -c conda-forge
-conda activate avalanche-env-dev
+conda create -n avalanche-dev-env python=$python -c conda-forge
+conda activate avalanche-dev-env
 if [[ "$cuda_version" = "none" ]]; then 
     conda install pytorch torchvision cpuonly -c pytorch
 else 

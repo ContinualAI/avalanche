@@ -26,7 +26,7 @@ _Avalanche_ at the moment supports three main Loggers:
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
     loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
     DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
 from avalanche.models import SimpleMLP
@@ -58,7 +58,7 @@ eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, epoch=True, task=True),
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
-    TaskForgetting(),
+    Forgetting(),
     TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
@@ -96,7 +96,5 @@ This completes the "_Logging_" tutorial for the "_From Zero to Hero_" series. We
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 
-{% embed url="https://colab.research.google.com/drive/16BV\_sJiQNl\_2gCUp82G4se40QK3IaDSq?usp=sharing" %}
-
-
+{% embed url="https://colab.research.google.com/drive/16BV\_sJiQNl\_2gCUp82G4se40QK3IaDSq?usp=sharing" caption="" %}
 

@@ -23,136 +23,149 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class TaskForgetting(PluginMetric[Dict[int, float]]):
+class Forgetting(PluginMetric[Dict[int, float]]):
     """
-    The TaskForgetting metric, describing the accuracy loss detected for a
-    certain task.
+    The Forgetting metric, describing the accuracy loss detected for a
+    certain task or step.
 
-    This metric, computed separately for each task, is the difference between
-    the accuracy result obtained after first training on a task and the accuracy
-    result obtained on the same task at the end of successive steps.
+    This metric, computed separately for each task/step
+    is the difference between the accuracy result obtained after
+    first training on a task/step and the accuracy result obtained
+    on the same task/step at the end of successive steps.
 
     This metric is computed during the test phase only.
     """
 
-    def __init__(self):
+    def __init__(self, compute_for_step=False):
         """
-        Creates an instance of the Catastrophic TaskForgetting metric.
+        Creates an instance of the Forgetting metric.
+
+        :param compute_for_step: if True, compute the metric at a step level.
+            If False, compute the metric at task level. Default to False.
         """
 
         super().__init__()
 
-        self._initial_task_accuracy: Dict[int, float] = dict()
+        self.compute_for_step = compute_for_step
+
+        self._initial_accuracy: Dict[int, float] = dict()
         """
-        The initial accuracy of each task.
+        The initial accuracy of each task/step.
         """
 
-        self._current_task_accuracy: Dict[int, Accuracy] = dict()
+        self._current_accuracy: Dict[int, Accuracy] = dict()
         """
-        The current accuracy of each task.
+        The current accuracy of each task/step.
         """
 
     def reset(self) -> None:
         """
         Resets the metric.
 
-        Beware that this will also reset the initial accuracy of each task!
+        Beware that this will also reset the initial accuracy of each task/step!
 
         :return: None.
         """
-        self._initial_task_accuracy = dict()
-        self._current_task_accuracy = dict()
+        self._initial_accuracy = dict()
+        self._current_accuracy = dict()
 
     def reset_current_accuracy(self) -> None:
         """
         Resets the current accuracy.
 
-        This will preserve the initial accuracy value of each task. To be used
-        at the beginning of each test step.
+        This will preserve the initial accuracy value of each task/step.
+        To be used at the beginning of each test step.
 
         :return: None.
         """
-        self._current_task_accuracy = dict()
+        self._current_accuracy = dict()
 
-    def update(self, true_y: Tensor, predicted_y: Tensor, task_label: int) \
+    def update(self, true_y: Tensor, predicted_y: Tensor, label: int) \
             -> None:
         """
-        Updates the running accuracy of a task given the ground truth and
+        Updates the running accuracy of a task/step given the ground truth and
         predicted labels of a minibatch.
 
         :param true_y: The ground truth. Both labels and one-hot vectors
             are supported.
         :param predicted_y: The ground truth. Both labels and logit vectors
             are supported.
-        :param task_label: The task label.
+        :param label: The task or step label.
         :return: None.
         """
-        if task_label not in self._current_task_accuracy:
-            self._current_task_accuracy[task_label] = Accuracy()
-        self._current_task_accuracy[task_label].update(true_y, predicted_y)
+        if label not in self._current_accuracy:
+            self._current_accuracy[label] = Accuracy()
+        self._current_accuracy[label].update(true_y, predicted_y)
 
     def before_test(self, strategy) -> None:
         self.reset_current_accuracy()
 
     def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+        label = strategy.test_step_id if self.compute_for_step \
+                else strategy.test_task_label
         self.update(strategy.mb_y,
                     strategy.logits,
-                    strategy.test_task_label)
+                    label)
 
     def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
-        return self._package_result(strategy.train_task_label)
+        label = strategy.training_step_counter if self.compute_for_step \
+                else strategy.train_task_label
+        return self._package_result(label)
 
     def result(self) -> Dict[int, float]:
         """
-        Return the amount of forgetting for each task.
+        Return the amount of forgetting for each task/step.
 
         The forgetting is computed as the accuracy difference between the
-        initial task accuracy (when first encountered in the training stream)
-        and the current accuracy. A positive value means that forgetting
-        occurred. A negative value means that the accuracy on that task
-        increased.
+        initial task/step accuracy (when first encountered
+        in the training stream) and the current accuracy.
+        A positive value means that forgetting occurred. A negative value
+        means that the accuracy on that task/step increased.
 
-        :return: A dictionary in which keys are task labels and the values are
-            the forgetting measures (as floats in range [-1, 1]).
+        :return: A dictionary in which keys are task/step labels and the
+                 values are the forgetting measures
+                 (as floats in range [-1, 1]).
         """
-        prev_accuracies: Dict[int, float] = self._initial_task_accuracy
-        task_accuracies: Dict[int, Accuracy] = self._current_task_accuracy
-        all_task_labels: Set[int] = set(prev_accuracies.keys()) \
-            .union(set(task_accuracies.keys()))
-        task_forgetting: Dict[int, float] = dict()
-        for task_id in all_task_labels:
+        prev_accuracies: Dict[int, float] = self._initial_accuracy
+        accuracies: Dict[int, Accuracy] = self._current_accuracy
+        all_labels: Set[int] = set(prev_accuracies.keys()) \
+            .union(set(accuracies.keys()))
+        forgetting: Dict[int, float] = dict()
+        for label in all_labels:
             delta = 0.0
-            if (task_id in task_accuracies) and \
-                    (task_id in self._initial_task_accuracy):
-                # Task already encountered in previous phases
-                delta = self._initial_task_accuracy[task_id] - \
-                        task_accuracies[task_id].result()
+            if (label in accuracies) and \
+                    (label in self._initial_accuracy):
+                # Task / step already encountered in previous phases
+                delta = self._initial_accuracy[label] - \
+                        accuracies[label].result()
             # Other situations:
-            # - A task that was not encountered before (forgetting == 0)
-            # - A task that was encountered before, but has not been
+            # - A task/step that was not encountered before (forgetting == 0)
+            # - A task/step that was encountered before, but has not been
             # encountered in the current test phase (forgetting == N.A. == 0)
-            task_forgetting[task_id] = delta
-        return task_forgetting
+            forgetting[label] = delta
+        return forgetting
 
-    def _package_result(self, train_task: int) -> MetricResult:
+    def _package_result(self, label: int) -> MetricResult:
 
         # The forgetting value is computed as the difference between the
         # accuracy obtained after training for the first time and the current
         # accuracy. Here we store the initial accuracy.
-        if train_task not in self._initial_task_accuracy and \
-                train_task in self._current_task_accuracy:
-            initial_task_accuracy = self._current_task_accuracy[train_task].\
+        if label not in self._initial_accuracy and \
+                label in self._current_accuracy:
+            initial_accuracy = self._current_accuracy[label].\
                 result()
-            self._initial_task_accuracy[train_task] = initial_task_accuracy
+            self._initial_accuracy[label] = initial_accuracy
 
         metric_values = []
-        for task_label, task_forgetting in self.result().items():
-            metric_name = 'Task_Forgetting/Task{:03}'.format(task_label)
+        string_print = 'Step' if self.compute_for_step else 'Task'
+        for label, forgetting in self.result().items():
+            metric_name = '{}_Forgetting/{}{:03}'.format(
+                string_print, string_print, label)
             plot_x_position = self._next_x_position(metric_name)
 
             metric_values.append(MetricValue(
-                self, metric_name, task_forgetting, plot_x_position))
+                self, metric_name, forgetting, plot_x_position))
         return metric_values
 
 
-__all__ = ['TaskForgetting']
+__all__ = ['Forgetting']

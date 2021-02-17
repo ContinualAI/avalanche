@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import SplitMNIST
 from avalanche.training.strategies import LwF
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import TaskForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -53,7 +53,7 @@ interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
     accuracy_metrics(minibatch=True, epoch=True, task=True),
     loss_metrics(minibatch=True, epoch=True, task=True),
-    TaskForgetting(),
+    Forgetting(compute_for_step=True),
     loggers=[interactive_logger])
 
 # create strategy

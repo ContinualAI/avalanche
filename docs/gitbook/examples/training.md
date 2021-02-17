@@ -25,7 +25,7 @@ interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
     accuracy_metrics(minibatch=True, epoch=True, task=True),
     loss_metrics(minibatch=True, epoch=True, task=True),
-    TaskForgetting(),
+    Forgetting(),
     loggers=[interactive_logger])
 
 # create strategy
