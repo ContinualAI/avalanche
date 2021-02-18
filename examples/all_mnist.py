@@ -60,14 +60,14 @@ def main(args):
     # Continual learning strategy with default logger
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        test_mb_size=32, device=device)
+        eval_mb_size=32, device=device)
 
     # train and test loop
     results = []
     for train_task in train_stream:
         print("Current Classes: ", train_task.classes_in_this_step)
         cl_strategy.train(train_task)
-        results.append(cl_strategy.test(test_stream))
+        results.append(cl_strategy.eval(test_stream))
 
 
 if __name__ == '__main__':

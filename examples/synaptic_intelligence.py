@@ -84,7 +84,7 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
     cl_strategy = SynapticIntelligence(
         model, Adam(model.parameters(), lr=0.001), CrossEntropyLoss(),
-        si_lambda=0.0001, train_mb_size=128, train_epochs=4, test_mb_size=128,
+        si_lambda=0.0001, train_mb_size=128, train_epochs=4, eval_mb_size=128,
         device=device, evaluator=evaluation_plugin)
 
     # TRAINING LOOP
@@ -98,7 +98,7 @@ def main(args):
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream))
+        results.append(cl_strategy.eval(scenario.test_stream))
 
 
 if __name__ == '__main__':

@@ -52,7 +52,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True, task=True, train=True, test=True),
+        accuracy_metrics(minibatch=False, epoch=True, task=True, train=True, eval=True),
         Forgetting(compute_for_step=False),
         loggers=[interactive_logger])
 
@@ -60,14 +60,14 @@ def main(args):
     multi_head_plugin = MultiHeadPlugin(model=model)
     strategy = EWC(
         model=model, optimizer=optimizer, criterion=criterion,
-        train_mb_size=128, train_epochs=3, test_mb_size=128, device=device,
+        train_mb_size=128, train_epochs=3, eval_mb_size=128, device=device,
         evaluator=eval_plugin, plugins=[multi_head_plugin],
         ewc_lambda=0.4)
 
     # train and test loop
     for train_task in train_stream:
         strategy.train(train_task, num_workers=4)
-        strategy.test(test_stream)
+        strategy.eval(test_stream)
 
 
 if __name__ == '__main__':

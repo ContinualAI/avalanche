@@ -38,15 +38,15 @@ class InteractiveLogger(TextLogger):
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
 
-    def before_test_step(self, strategy: PluggableStrategy,
+    def before_eval_step(self, strategy: PluggableStrategy,
                          metric_values: List['MetricValue'], **kwargs):
-        super().before_test_step(strategy, metric_values, **kwargs)
+        super().before_eval_step(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.current_dataloader)
 
-    def after_test_step(self, strategy: 'PluggableStrategy',
+    def after_eval_step(self, strategy: 'PluggableStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         self._end_progress()
-        super().after_test_step(strategy, metric_values, **kwargs)
+        super().after_eval_step(strategy, metric_values, **kwargs)
 
     def after_training_iteration(self, strategy: 'PluggableStrategy',
                                  metric_values: List['MetricValue'], **kwargs):
@@ -54,11 +54,11 @@ class InteractiveLogger(TextLogger):
         self._progress.refresh()
         super().after_training_iteration(strategy, metric_values, **kwargs)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy',
+    def after_eval_iteration(self, strategy: 'PluggableStrategy',
                              metric_values: List['MetricValue'], **kwargs):
         self._progress.update()
         self._progress.refresh()
-        super().after_test_iteration(strategy, metric_values, **kwargs)
+        super().after_eval_iteration(strategy, metric_values, **kwargs)
 
     @property
     def _progress(self):

@@ -69,7 +69,7 @@ def main(args):
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+        results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 
 
 if __name__ == '__main__':

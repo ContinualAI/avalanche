@@ -5,6 +5,7 @@ description: Benchmarks and DatasetCode Examples
 # Benchmarks
 
 {% code title="\"All MNIST\" Example" %}
+
 ```python
 # Device config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,7 +29,7 @@ eval_plugin = EvaluationPlugin(
     Forgetting(),
     loggers=[interactive_logger])
 
- # Than we can extract the parallel train and test streams
+# Than we can extract the parallel train and test streams
 train_stream = scenario.train_stream
 test_stream = scenario.test_stream
 
@@ -47,7 +48,7 @@ results = []
 for train_task in train_stream:
     print("Current Classes: ", train_task.classes_in_this_step)
     cl_strategy.train(train_task, num_workers=4)
-    mresults.append(cl_strategy.test(test_stream))
+    mresults.append(cl_strategy.eval(test_stream))
 ```
 {% endcode %}
 

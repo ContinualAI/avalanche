@@ -118,10 +118,10 @@ class AccuracyMetricTests(unittest.TestCase):
         self.assertIsInstance(metrics[1], PluginMetric)
 
         with self.assertRaises(ValueError):
-            accuracy_metrics(train=False, test=False)
+            accuracy_metrics(train=False, eval=False)
 
         with self.assertRaises(ValueError):
-            accuracy_metrics(task=True, test=False)
+            accuracy_metrics(task=True, eval=False)
 
 
 class LossMetricTests(unittest.TestCase):
@@ -170,10 +170,10 @@ class LossMetricTests(unittest.TestCase):
         self.assertIsInstance(metrics[1], PluginMetric)
 
         with self.assertRaises(ValueError):
-            loss_metrics(train=False, test=False)
+            loss_metrics(train=False, eval=False)
 
         with self.assertRaises(ValueError):
-            loss_metrics(task=True, test=False)
+            loss_metrics(task=True, eval=False)
 
 
 class ConfusionMatrixMetricTests(unittest.TestCase):
@@ -329,7 +329,7 @@ class CpuUsageMetricTests(unittest.TestCase):
         self.assertIsInstance(metrics[1], PluginMetric)
 
         with self.assertRaises(ValueError):
-            cpu_usage_metrics(train=False, test=False)
+            cpu_usage_metrics(train=False, eval=False)
 
 
 class RamUsageMetricTests(unittest.TestCase):

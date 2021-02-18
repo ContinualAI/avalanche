@@ -97,31 +97,31 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def after_training(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test(self, strategy: PluggableStrategy, **kwargs):
+    def before_eval(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def adapt_test_dataset(self, strategy: PluggableStrategy, **kwargs):
+    def adapt_eval_dataset(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_step(self, strategy: PluggableStrategy, **kwargs):
+    def before_eval_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_step(self, strategy: PluggableStrategy, **kwargs):
+    def after_eval_step(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test(self, strategy: PluggableStrategy, **kwargs):
+    def after_eval(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
+    def before_eval_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_test_forward(self, strategy: PluggableStrategy, **kwargs):
+    def before_eval_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_forward(self, strategy: PluggableStrategy, **kwargs):
+    def after_eval_forward(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_test_iteration(self, strategy: PluggableStrategy, **kwargs):
+    def after_eval_iteration(self, strategy: PluggableStrategy, **kwargs):
         pass
 
 
@@ -279,7 +279,7 @@ class GDumbPlugin(StrategyPlugin):
 class EvaluationPlugin(StrategyPlugin):
     """
     An evaluation plugin that obtains relevant data from the
-    training and testing loops of the strategy through callbacks.
+    training and eval loops of the strategy through callbacks.
 
     This plugin updates the given metrics and logs them using the provided
     loggers.
@@ -319,7 +319,7 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
-        # for each curve  store last emitted value (train/test separated).
+        # for each curve  store last emitted value (train/eval separated).
         self.current_metrics = {}
         if self.collect_all:
             # for each curve collect all emitted values.
@@ -395,33 +395,33 @@ class EvaluationPlugin(StrategyPlugin):
         self._update_metrics(strategy, 'after_training')
         self.current_metrics = {}  # reset current metrics
 
-    def before_test(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test')
+    def before_eval(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_eval')
 
-    def adapt_test_dataset(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'adapt_test_dataset')
+    def adapt_eval_dataset(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'adapt_eval_dataset')
 
-    def before_test_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_step')
+    def before_eval_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_eval_step')
 
-    def after_test_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_step')
+    def after_eval_step(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_eval_step')
 
-    def after_test(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test')
+    def after_eval(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_eval')
         self.current_metrics = {}  # reset current metrics
 
-    def before_test_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_iteration')
+    def before_eval_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_eval_iteration')
 
-    def before_test_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_test_forward')
+    def before_eval_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_eval_forward')
 
-    def after_test_forward(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_forward')
+    def after_eval_forward(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_eval_forward')
 
-    def after_test_iteration(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_test_iteration')
+    def after_eval_iteration(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_eval_iteration')
 
 
 class CWRStarPlugin(StrategyPlugin):
@@ -578,7 +578,7 @@ class MultiHeadPlugin(StrategyPlugin):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 
-    def before_test_iteration(self, strategy, **kwargs):
+    def before_eval_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
         self.set_task_layer(strategy, strategy.step_info)
 

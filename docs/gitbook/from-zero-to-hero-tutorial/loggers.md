@@ -26,9 +26,10 @@ _Avalanche_ at the moment supports three main Loggers:
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
-    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics,
+
+loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix,
+DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -67,7 +68,7 @@ eval_plugin = EvaluationPlugin(
 # CREATE THE STRATEGY INSTANCE (NAIVE)
 cl_strategy = Naive(
     model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
+    CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
     evaluator=eval_plugin)
 
 # TRAINING LOOP
@@ -83,7 +84,7 @@ for step in scenario.train_stream:
 
     print('Computing accuracy on the whole test set')
     # test also returns a dictionary which contains all the metric values
-    results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+    results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 ```
 
 ### Create your Logger
