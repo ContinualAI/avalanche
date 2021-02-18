@@ -138,26 +138,26 @@ class MinibatchCpuUsage(PluginMetric[float]):
     :class:`StepCpuUsage` instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, eval=False):
         """
         Creates an instance of the minibatch CPU usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
         self._minibatch_cpu = CpuUsage()
         self._track_train_cpu = train
-        self._track_test_cpu = test
+        self._track_eval_cpu = eval
 
     def result(self) -> float:
         return self._minibatch_cpu.result()
@@ -171,8 +171,8 @@ class MinibatchCpuUsage(PluginMetric[float]):
         self.reset()
         self._minibatch_cpu.update()
 
-    def before_test_iteration(self, strategy) -> MetricResult:
-        if not self._track_test_cpu:
+    def before_eval_iteration(self, strategy) -> MetricResult:
+        if not self._track_eval_cpu:
             return
         self.reset()
         self._minibatch_cpu.update()
@@ -183,9 +183,9 @@ class MinibatchCpuUsage(PluginMetric[float]):
             self._minibatch_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._track_test_cpu:
+        if self._track_eval_cpu:
             self._minibatch_cpu.update()
             return self._package_result(strategy)
 
@@ -210,27 +210,27 @@ class EpochCpuUsage(PluginMetric[float]):
     :class:`AverageEpochCpuUsage` instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, eval=False):
         """
         Creates an instance of the epoch CPU usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._epoch_cpu = CpuUsage()
         self._track_train_cpu = train
-        self._track_test_cpu = test
+        self._track_eval_cpu = eval
 
     def before_training_epoch(self, strategy) -> MetricResult:
         if not self._track_train_cpu:
@@ -238,8 +238,8 @@ class EpochCpuUsage(PluginMetric[float]):
         self.reset()
         self._epoch_cpu.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
-        if not self._track_test_cpu:
+    def before_eval_step(self, strategy) -> MetricResult:
+        if not self._track_eval_cpu:
             return
         self.reset()
         self._epoch_cpu.update()
@@ -250,8 +250,8 @@ class EpochCpuUsage(PluginMetric[float]):
             self._epoch_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._track_test_cpu:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if self._track_eval_cpu:
             self._epoch_cpu.update()
             return self._package_result(strategy)
 
@@ -282,28 +282,28 @@ class AverageEpochCpuUsage(PluginMetric[float]):
     instead.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, eval=False):
         """
         Creates an instance of the average epoch cpu usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._cpu_mean = Mean()
         self._epoch_cpu = CpuUsage()
         self._track_train_cpu = train
-        self._track_test_cpu = test
+        self._track_eval_cpu = eval
 
     def before_training_epoch(self, strategy) -> MetricResult:
         if not self._track_train_cpu:
@@ -311,8 +311,8 @@ class AverageEpochCpuUsage(PluginMetric[float]):
         self._epoch_cpu.reset()
         self._epoch_cpu.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
-        if not self._track_test_cpu:
+    def before_eval_step(self, strategy) -> MetricResult:
+        if not self._track_eval_cpu:
             return
         self.reset()
         self._epoch_cpu.reset()
@@ -326,8 +326,8 @@ class AverageEpochCpuUsage(PluginMetric[float]):
         self._cpu_mean.update(self._epoch_cpu.result())
         return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if not self._track_test_cpu:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if not self._track_eval_cpu:
             return
         self._epoch_cpu.update()
         self._cpu_mean.update(self._epoch_cpu.result())
@@ -366,27 +366,27 @@ class StepCpuUsage(PluginMetric[float]):
     mechanisms.
     """
 
-    def __init__(self, *, train=True, test=False):
+    def __init__(self, *, train=True, eval=False):
         """
         Creates an instance of the step CPU usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._step_cpu = CpuUsage()
         self._track_train_cpu = train
-        self._track_test_cpu = test
+        self._track_eval_cpu = eval
 
     def before_training_step(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
@@ -395,8 +395,8 @@ class StepCpuUsage(PluginMetric[float]):
         self.reset()
         self._step_cpu.update()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if not self._track_test_cpu:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if not self._track_eval_cpu:
             return
         self.reset()
         self._step_cpu.update()
@@ -407,8 +407,8 @@ class StepCpuUsage(PluginMetric[float]):
             self._step_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._track_test_cpu:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if self._track_eval_cpu:
             self._step_cpu.update()
             return self._package_result(strategy)
 
@@ -430,7 +430,7 @@ class StepCpuUsage(PluginMetric[float]):
 
 
 def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_average=False,
-                      step=False, train=None, test=None) -> List[PluginMetric]:
+                      step=False, train=None, eval=None) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -444,35 +444,35 @@ def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_average=False,
         time.
     :param train: If True, metrics will log values for the train flow. Defaults
         to None, which means that the per-metric default value will be used.
-    :param test: If True, metrics will log values for the test flow. Defaults
+    :param eval: If True, metrics will log values for the eval flow. Defaults
         to None, which means that the per-metric default value will be used.
 
     :return: A list of plugin metrics.
     """
 
-    if (train is not None and not train) and (test is not None and not test):
-        raise ValueError('train and test can\'t be both False at the same'
+    if (train is not None and not train) and (eval is not None and not eval):
+        raise ValueError('train and eval can\'t be both False at the same'
                          ' time.')
 
-    train_test_flags = dict()
+    train_eval_flags = dict()
     if train is not None:
-        train_test_flags['train'] = train
+        train_eval_flags['train'] = train
 
-    if test is not None:
-        train_test_flags['test'] = test
+    if eval is not None:
+        train_eval_flags['eval'] = eval
 
     metrics = []
     if minibatch:
-        metrics.append(MinibatchCpuUsage(**train_test_flags))
+        metrics.append(MinibatchCpuUsage(**train_eval_flags))
 
     if epoch:
-        metrics.append(EpochCpuUsage(**train_test_flags))
+        metrics.append(EpochCpuUsage(**train_eval_flags))
 
     if epoch_average:
-        metrics.append(AverageEpochCpuUsage(**train_test_flags))
+        metrics.append(AverageEpochCpuUsage(**train_eval_flags))
 
     if step:
-        metrics.append(StepCpuUsage(**train_test_flags))
+        metrics.append(StepCpuUsage(**train_eval_flags))
 
     return metrics
 

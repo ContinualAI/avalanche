@@ -171,13 +171,13 @@ If you want to compare your strategy with other classic continual learning algor
 
 ```python
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, \
-Cumulative, LwF, GEM, AGEM, EWC
+from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb,
+    Cumulative, LwF, GEM, AGEM, EWC
 
 model = SimpleMLP(num_classes=10)
 cl_strategy = Naive(
     model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100
+    CrossEntropyLoss(), train_mb_size=100, train_epochs=4, eval_mb_size=100
 )
 ```
 
@@ -245,7 +245,7 @@ for step in scenario.train_stream:
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    cl_strategy.test(scenario.test_stream[step.current_step])
+    cl_strategy.eval(scenario.test_stream[step.current_step])
 ```
 
 While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
@@ -301,9 +301,10 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix, \
-    DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+from avalanche.evaluation.metrics import Forgetting, accuracy_metrics,
+
+loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix,
+DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -342,7 +343,7 @@ eval_plugin = EvaluationPlugin(
 # CREATE THE STRATEGY INSTANCE (NAIVE)
 cl_strategy = Naive(
     model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-    CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
+    CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
     evaluator=eval_plugin)
 
 # TRAINING LOOP
@@ -358,7 +359,7 @@ for step in scenario.train_stream:
 
     print('Computing accuracy on the whole test set')
     # test also returns a dictionary which contains all the metric values
-    results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+    results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 ```
 
 ## 🤝 Run it on Google Colab

@@ -33,7 +33,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
     first training on a task/step and the accuracy result obtained
     on the same task/step at the end of successive steps.
 
-    This metric is computed during the test phase only.
+    This metric is computed during the eval phase only.
     """
 
     def __init__(self, compute_for_step=False):
@@ -74,7 +74,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         Resets the current accuracy.
 
         This will preserve the initial accuracy value of each task/step.
-        To be used at the beginning of each test step.
+        To be used at the beginning of each eval step.
 
         :return: None.
         """
@@ -97,17 +97,17 @@ class Forgetting(PluginMetric[Dict[int, float]]):
             self._current_accuracy[label] = Accuracy()
         self._current_accuracy[label].update(true_y, predicted_y)
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.test_step_id if self.compute_for_step \
-                else strategy.test_task_label
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        label = strategy.eval_step_id if self.compute_for_step \
+                else strategy.eval_task_label
         self.update(strategy.mb_y,
                     strategy.logits,
                     label)
 
-    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
         label = strategy.training_step_counter if self.compute_for_step \
                 else strategy.train_task_label
         return self._package_result(label)
@@ -141,7 +141,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
             # Other situations:
             # - A task/step that was not encountered before (forgetting == 0)
             # - A task/step that was encountered before, but has not been
-            # encountered in the current test phase (forgetting == N.A. == 0)
+            # encountered in the current eval phase (forgetting == N.A. == 0)
             forgetting[label] = delta
         return forgetting
 

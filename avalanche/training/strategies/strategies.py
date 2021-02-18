@@ -43,7 +43,7 @@ class Naive(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """
@@ -54,7 +54,7 @@ class Naive(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -63,7 +63,7 @@ class Naive(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -71,7 +71,7 @@ class CWRStar(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  cwr_layer_name: str, train_mb_size: int = 1,
-                 train_epochs: int = 1, test_mb_size: int = None, device=None,
+                 train_epochs: int = 1, eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ CWR* Strategy.
@@ -84,7 +84,7 @@ class CWRStar(BaseStrategy):
             means that the last fully connected layer will be used.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -98,7 +98,7 @@ class CWRStar(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -107,7 +107,7 @@ class Replay(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Experience replay strategy. See ReplayPlugin for more details.
@@ -119,7 +119,7 @@ class Replay(BaseStrategy):
         :param mem_size: replay buffer size.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -133,7 +133,7 @@ class Replay(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -142,7 +142,7 @@ class GDumb(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ GDumb strategy. See GDumbPlugin for more details.
@@ -154,7 +154,7 @@ class GDumb(BaseStrategy):
         :param mem_size: replay buffer size.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -170,7 +170,7 @@ class GDumb(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -178,7 +178,7 @@ class Cumulative(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Cumulative strategy. At each step,
@@ -189,7 +189,7 @@ class Cumulative(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -199,7 +199,7 @@ class Cumulative(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
         self.dataset = {}  # cumulative dataset
@@ -224,7 +224,7 @@ class LwF(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  alpha: Union[float, Sequence[float]], temperature: float,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Learning without Forgetting strategy. 
@@ -239,7 +239,7 @@ class LwF(BaseStrategy):
         :param temperature: softmax temperature for distillation
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -255,7 +255,7 @@ class LwF(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -264,7 +264,7 @@ class AGEM(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  patterns_per_step: int, sample_size: int = 64,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Average Gradient Episodic Memory (A-GEM) strategy. 
@@ -279,7 +279,7 @@ class AGEM(BaseStrategy):
             reference gradient.        
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -295,7 +295,7 @@ class AGEM(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -304,7 +304,7 @@ class GEM(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  patterns_per_step: int, memory_strength: float = 0.5,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Gradient Episodic Memory (GEM) strategy. 
@@ -319,7 +319,7 @@ class GEM(BaseStrategy):
             in order to favour backward transfer (gamma in original paper).
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -335,7 +335,7 @@ class GEM(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -346,7 +346,7 @@ class EWC(BaseStrategy):
                  decay_factor: Optional[float] = None,
                  keep_importance_data: bool = False,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = None, device=None,
+                 eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """ Elastic Weight Consolidation (EWC) strategy.
@@ -371,7 +371,7 @@ class EWC(BaseStrategy):
                 set to be True.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
-        :param test_mb_size: The test minibatch size. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: Plugins to be added. Defaults to None.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -387,7 +387,7 @@ class EWC(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
 
@@ -405,7 +405,7 @@ class SynapticIntelligence(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  si_lambda: float, train_mb_size: int = 1,
-                 train_epochs: int = 1, test_mb_size: int = 1, device='cpu',
+                 train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger):
         """
@@ -417,7 +417,7 @@ class SynapticIntelligence(BaseStrategy):
         :param si_lambda: Synaptic Intelligence lambda term.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
-        :param test_mb_size: mini-batch size for test.
+        :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device to run the model.
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -432,7 +432,7 @@ class SynapticIntelligence(BaseStrategy):
 
         super(SynapticIntelligence, self).__init__(
             model, optimizer, criterion, train_mb_size, train_epochs,
-            test_mb_size, device=device, plugins=plugins, evaluator=evaluator)
+            eval_mb_size, device=device, plugins=plugins, evaluator=evaluator)
 
 
 class AR1(BaseStrategy):
@@ -456,7 +456,7 @@ class AR1(BaseStrategy):
                  rm_sz: int = 1500,
                  freeze_below_layer: str = "lat_features.19.bn.beta",
                  latent_layer_num: int = 19, ewc_lambda: float = 0,
-                 train_mb_size: int = 128, test_mb_size: int = 128, device=None,
+                 train_mb_size: int = 128, eval_mb_size: int = 128, device=None,
                  plugins: Optional[Sequence[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
         """
@@ -486,7 +486,7 @@ class AR1(BaseStrategy):
             0, which means that the Synaptic Intelligence regularization
             will not be applied.
         :param train_mb_size: The train minibatch size. Defaults to 128.
-        :param test_mb_size: The test minibatch size. Defaults to 128.
+        :param eval_mb_size: The eval minibatch size. Defaults to 128.
         :param device: The device to use. Defaults to None (cpu).
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
@@ -540,7 +540,7 @@ class AR1(BaseStrategy):
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
-            test_mb_size=test_mb_size, device=device, plugins=plugins,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
     def before_training_step(self, **kwargs):

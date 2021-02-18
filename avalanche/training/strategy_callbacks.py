@@ -64,29 +64,29 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def after_training(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_test(self, *args, **kwargs) -> CallbackResult:
+    def before_eval(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def adapt_test_dataset(self, *args, **kwargs) -> CallbackResult:
+    def adapt_eval_dataset(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_test_step(self, *args, **kwargs) -> CallbackResult:
+    def before_eval_step(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_test_step(self, *args, **kwargs) -> CallbackResult:
+    def after_eval_step(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_test(self, *args, **kwargs) -> CallbackResult:
+    def after_eval(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_test_iteration(self, *args, **kwargs) -> CallbackResult:
+    def before_eval_iteration(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_test_forward(self, *args, **kwargs) -> CallbackResult:
+    def before_eval_forward(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_test_forward(self, *args, **kwargs) -> CallbackResult:
+    def after_eval_forward(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_test_iteration(self, *args, **kwargs) -> CallbackResult:
+    def after_eval_iteration(self, *args, **kwargs) -> CallbackResult:
         pass

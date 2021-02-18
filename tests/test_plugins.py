@@ -61,31 +61,31 @@ class MockPlugin(StrategyPlugin):
     def after_training_step(self, strategy, **kwargs):
         self.activated[12] = True
 
-    def before_test(self, strategy, **kwargs):
+    def before_eval(self, strategy, **kwargs):
         self.activated[13] = True
 
-    def adapt_test_dataset(self, strategy, **kwargs):
+    def adapt_eval_dataset(self, strategy, **kwargs):
         self.activated[14] = True
 
-    def before_test_step(self, strategy, **kwargs):
+    def before_eval_step(self, strategy, **kwargs):
         self.activated[15] = True
 
-    def after_test_step(self, strategy, **kwargs):
+    def after_eval_step(self, strategy, **kwargs):
         self.activated[16] = True
 
-    def after_test(self, strategy, **kwargs):
+    def after_eval(self, strategy, **kwargs):
         self.activated[17] = True
 
-    def before_test_iteration(self, strategy, **kwargs):
+    def before_eval_iteration(self, strategy, **kwargs):
         self.activated[18] = True
 
-    def before_test_forward(self, strategy, **kwargs):
+    def before_eval_forward(self, strategy, **kwargs):
         self.activated[19] = True
 
-    def after_test_forward(self, strategy, **kwargs):
+    def after_eval_forward(self, strategy, **kwargs):
         self.activated[20] = True
 
-    def after_test_iteration(self, strategy, **kwargs):
+    def after_eval_iteration(self, strategy, **kwargs):
         self.activated[21] = True
 
 
@@ -100,12 +100,12 @@ class PluginTests(unittest.TestCase):
 
         plug = MockPlugin()
         strategy = Naive(model, optimizer, criterion,
-            train_mb_size=100, train_epochs=1, test_mb_size=100,
-            device='cpu', plugins=[plug]
-        )
+                         train_mb_size=100, train_epochs=1, eval_mb_size=100,
+                         device='cpu', plugins=[plug]
+                         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         strategy.train(scenario.train_stream[0], num_workers=4)
-        strategy.test([scenario.test_stream[0]], num_workers=4)
+        strategy.eval([scenario.test_stream[0]], num_workers=4)
         assert all(plug.activated)
 
     def test_multihead_optimizer_update(self):
@@ -118,9 +118,9 @@ class PluginTests(unittest.TestCase):
 
         plug = MultiHeadPlugin(model, 'classifier')
         strategy = Naive(model, optimizer, criterion,
-            train_mb_size=100, train_epochs=1, test_mb_size=100,
-            device='cpu', plugins=[plug]
-        )
+                         train_mb_size=100, train_epochs=1, eval_mb_size=100,
+                         device='cpu', plugins=[plug]
+                         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         print("Current Classes: ", scenario.train_stream[0].classes_in_this_step)
         print("Current Classes: ", scenario.train_stream[4].classes_in_this_step)

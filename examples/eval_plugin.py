@@ -90,7 +90,7 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-        CrossEntropyLoss(), train_mb_size=500, train_epochs=1, test_mb_size=100,
+        CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
         device=device, evaluator=eval_plugin)
 
     # TRAINING LOOP
@@ -108,7 +108,7 @@ def main(args):
 
         print('Computing accuracy on the whole test set')
         # test also returns a dictionary
-        results.append(cl_strategy.test(scenario.test_stream))
+        results.append(cl_strategy.eval(scenario.test_stream))
 
     print(f"Test metrics:\n{results}")
 
