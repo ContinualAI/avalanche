@@ -10,7 +10,7 @@
 ################################################################################
 """
 This example trains a Multi-head model on Split MNIST with Elastich Weight Consolidation.
-It uses task labels to select the appropriate head at test time.
+Each step has a different task label, which is used at test time to select the appropriate head.
 """
 
 from __future__ import absolute_import
@@ -27,7 +27,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.strategies import EWC
 from avalanche.training.plugins import MultiHeadPlugin
 from avalanche.evaluation.metrics import Forgetting, accuracy_metrics
-from avalanche.logging import InteractiveLogger, TensorboardLogger
+from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 def main(args):
