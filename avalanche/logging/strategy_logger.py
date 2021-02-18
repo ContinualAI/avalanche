@@ -123,47 +123,47 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
     def before_eval(self, strategy: PluggableStrategy,
                     metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'before_test')
+            self.log_metric(val, 'before_eval')
 
     def adapt_eval_dataset(self, strategy: PluggableStrategy,
                            metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'adapt_test_dataset')
+            self.log_metric(val, 'adapt_eval_dataset')
 
     def before_eval_step(self, strategy: PluggableStrategy,
                          metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'before_test_step')
+            self.log_metric(val, 'before_eval_step')
 
     def after_eval_step(self, strategy: PluggableStrategy,
                         metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_test_step')
+            self.log_metric(val, 'after_eval_step')
 
     def after_eval(self, strategy: PluggableStrategy,
                    metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_test')
+            self.log_metric(val, 'after_eval')
 
     def before_eval_iteration(self, strategy: PluggableStrategy,
                               metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'before_test_iteration')
+            self.log_metric(val, 'before_eval_iteration')
 
     def before_eval_forward(self, strategy: PluggableStrategy,
                             metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'before_test_forward')
+            self.log_metric(val, 'before_eval_forward')
 
     def after_eval_forward(self, strategy: PluggableStrategy,
                            metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_test_forward')
+            self.log_metric(val, 'after_eval_forward')
 
     def after_eval_iteration(self, strategy: PluggableStrategy,
                              metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_test_iteration')
+            self.log_metric(val, 'after_eval_iteration')
 
 
 __all__ = [
