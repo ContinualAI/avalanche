@@ -20,23 +20,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, TaskConfusionMatrix
-from avalanche.logging import InteractiveLogger
-from avalanche.logging.tensorboard_logger import TensorboardLogger
-from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import AR1
 
 
-def main():
-    # --- CONFIG
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+def main(args):
+    # Device config
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -57,23 +55,8 @@ def main():
                             test_transform=test_transform)
     # ---------
 
-    # DEFINE THE EVALUATION PLUGIN AND LOGGER
-    my_logger = TensorboardLogger(
-        tb_log_dir="logs", tb_log_exp_name="logging_example")
-
-    # print to stdout
-    interactive_logger = InteractiveLogger()
-
-    evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        Forgetting(compute_for_step=True),
-        TaskConfusionMatrix(num_classes=scenario.n_classes),
-        loggers=[my_logger, interactive_logger])
-
     # CREATE THE STRATEGY INSTANCE
-    cl_strategy = AR1(criterion=CrossEntropyLoss(), device=device,
-                      evaluator=evaluation_plugin)
+    cl_strategy = AR1(criterion=CrossEntropyLoss(), device=device)
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -90,4 +73,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+    main(args)

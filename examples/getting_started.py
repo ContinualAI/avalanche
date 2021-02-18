@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -28,16 +29,15 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 
-def main():
+def main(args):
     # --- CONFIG
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -64,18 +64,11 @@ def main():
     # MODEL CREATION
     model = SimpleMLP(num_classes=scenario.n_classes)
 
-    # DEFINE THE EVALUATION PROTOCOL
-    evaluation_protocol = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        loggers=InteractiveLogger()
-        )
-
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=100, train_epochs=4, test_mb_size=100,
-        evaluator=evaluation_protocol, device=device)
+        device=device)
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -92,4 +85,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+    main(args)
