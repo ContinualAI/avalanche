@@ -12,7 +12,7 @@ The Project is maintained mostly by [ContinualAI Research](https://www.continual
 
 * \*\*\*\*[**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com/) 
 * Lorenzo Pellegrini 
-* Andrea Cossu
+* [Andrea Cossu](https://andreacossu.github.io/)
 * Gabriele Graffieti
 * Antonio Carta 
 
