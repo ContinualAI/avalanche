@@ -342,7 +342,7 @@ class GEM(BaseStrategy):
 class EWC(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 ewc_lambda: float, mode: str = 'standard',
+                 ewc_lambda: float, mode: str = 'separate',
                  decay_factor: Optional[float] = None,
                  keep_importance_data: bool = False,
                  train_mb_size: int = 1, train_epochs: int = 1,

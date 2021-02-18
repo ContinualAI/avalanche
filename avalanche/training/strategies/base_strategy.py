@@ -20,6 +20,7 @@ from avalanche.benchmarks.utils.data_loader import \
 from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
 
+from avalanche.training.plugins import EvaluationPlugin
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -54,7 +55,7 @@ class BaseStrategy:
         :param device: PyTorch device to run the model.
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
-            and metric computations.
+            and metric computations. None to remove logging.
         """
         self.model = model
         self.criterion = criterion
@@ -65,6 +66,8 @@ class BaseStrategy:
             else test_mb_size
         self.device = device
         self.plugins = [] if plugins is None else plugins
+        if evaluator is None:
+            evaluator = EvaluationPlugin()
         self.plugins.append(evaluator)
         self.evaluator = evaluator
 

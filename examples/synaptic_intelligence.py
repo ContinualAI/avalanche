@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
@@ -28,19 +29,20 @@ from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
 from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, TaskConfusionMatrix
+    loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
 from avalanche.models.mobilenetv1 import MobilenetV1
-from avalanche.training.plugins import EvaluationPlugin, \
-    SynapticIntelligencePlugin
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies.strategies import SynapticIntelligence
 from avalanche.training.utils import adapt_classification_layer
 
 
-def main():
+def main(args):
     # --- CONFIG
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -77,7 +79,6 @@ def main():
         accuracy_metrics(minibatch=True, epoch=True, task=True),
         loss_metrics(minibatch=True, epoch=True, task=True),
         Forgetting(compute_for_step=True),
-        TaskConfusionMatrix(num_classes=scenario.n_classes),
         loggers=[my_logger, interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
@@ -101,4 +102,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+    main(args)

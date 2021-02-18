@@ -22,6 +22,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
+import argparse
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
@@ -29,35 +30,24 @@ from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, \
     SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics
-from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
 
 
-def main():
-
+def main(args):
     # Device config
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
 
     # model
     model = SimpleMLP(num_classes=10)
 
     # Here we show all the MNIST variation we offer in the "classic" benchmarks
-    # scenario = PermutedMNIST(n_steps=5, seed=1)
-    scenario = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
-    # scenario = SplitMNIST(n_steps=5, seed=1)
-
-    # choose some metrics and evaluation method
-    interactive_logger = InteractiveLogger()
-
-    eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        timing_metrics(epoch=True, epoch_average=True, test=False),
-        cpu_usage_metrics(step=True),
-        Forgetting(compute_for_step=True),
-        loggers=[interactive_logger])
+    if args.mnist_type == 'permuted':
+        scenario = PermutedMNIST(n_steps=5, seed=1)
+    elif args.mnist_type == 'rotated':
+        scenario = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
+    else:
+        scenario = SplitMNIST(n_steps=5, seed=1)
 
     # Than we can extract the parallel train and test streams
     train_stream = scenario.train_stream
@@ -67,11 +57,10 @@ def main():
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
 
-    # Continual learning strategy
+    # Continual learning strategy with default logger
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        test_mb_size=32, device=device, evaluator=eval_plugin
-    )
+        test_mb_size=32, device=device)
 
     # train and test loop
     results = []
@@ -82,4 +71,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mnist_type', type=str, default='split',
+                        choices=['rotated', 'permuted', 'split'],
+                        help='Choose between MNIST variations: '
+                             'rotated, permuted or split.')
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+
+    main(args)
