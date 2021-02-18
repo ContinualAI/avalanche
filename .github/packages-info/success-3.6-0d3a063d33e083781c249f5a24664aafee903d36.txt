@@ -17,7 +17,7 @@ dbus                      1.13.6               he372182_0    conda-forge
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
 freetype                  2.10.4               h5ab3b9f_0  
-glib                      2.67.3               h36276a3_1  
+glib                      2.67.4               h36276a3_1  
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
@@ -97,7 +97,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               hbc83047_0  
 torchvision               0.8.2                  py36_cpu  [cpuonly]  pytorch
 tornado                   6.1              py36h1d69622_0    conda-forge
-tqdm                      4.56.2             pyhd8ed1ab_0    conda-forge
+tqdm                      4.57.0             pyhd8ed1ab_0    conda-forge
 typing_extensions         3.7.4.3            pyha847dfd_0  
 werkzeug                  1.0.1              pyh9f0ad1d_0    conda-forge
 wheel                     0.36.2             pyhd3eb1b0_0  
