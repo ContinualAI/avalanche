@@ -227,7 +227,7 @@ class LwF(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
-        """ Learning without Forgetting strategy. 
+        """ Learning without Forgetting strategy.
             See LwF plugin for details.
             This strategy does not use task identities.
 
@@ -267,7 +267,7 @@ class AGEM(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
-        """ Average Gradient Episodic Memory (A-GEM) strategy. 
+        """ Average Gradient Episodic Memory (A-GEM) strategy.
             See AGEM plugin for details.
             This strategy does not use task identities.
 
@@ -276,7 +276,7 @@ class AGEM(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param patterns_per_step: number of patterns per step in the memory
         :param sample_size: number of patterns in memory sample when computing
-            reference gradient.        
+            reference gradient.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param eval_mb_size: The eval minibatch size. Defaults to 1.
@@ -307,7 +307,7 @@ class GEM(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
-        """ Gradient Episodic Memory (GEM) strategy. 
+        """ Gradient Episodic Memory (GEM) strategy.
             See GEM plugin for details.
             This strategy does not use task identities.
 
@@ -358,11 +358,11 @@ class EWC(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
-        :param mode: `standard` to keep a separate penalty for each previous 
+        :param mode: `standard` to keep a separate penalty for each previous
                step. `onlinesum` to keep a single penalty summed over all
                previous tasks. `onlineweightedsum` to keep a single penalty
                summed with a decay factor over all previous tasks.
-        :param decay_factor: used only if mode is `onlineweightedsum`. 
+        :param decay_factor: used only if mode is `onlineweightedsum`.
                It specify the decay term of the importance matrix.
         :param keep_importance_data: if True, keep in memory both parameter
                 values and importances for all previous task, for all modes.
