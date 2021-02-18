@@ -134,7 +134,7 @@ class MinibatchTime(PluginMetric[float]):
         self.reset()
         self._minibatch_time.update()
 
-    def before_test_iteration(self, strategy) -> MetricResult:
+    def before_eval_iteration(self, strategy) -> MetricResult:
         if not self._compute_test_time:
             return
         self.reset()
@@ -146,7 +146,7 @@ class MinibatchTime(PluginMetric[float]):
             self._minibatch_time.update()
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_time:
             self._minibatch_time.update()
@@ -201,7 +201,7 @@ class EpochTime(PluginMetric[float]):
         self.reset()
         self._elapsed_time.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
+    def before_eval_step(self, strategy) -> MetricResult:
         if not self._take_test_time:
             return
         self.reset()
@@ -213,7 +213,7 @@ class EpochTime(PluginMetric[float]):
             self._elapsed_time.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._take_test_time:
             self._elapsed_time.update()
             return self._package_result(strategy)
@@ -273,7 +273,7 @@ class AverageEpochTime(PluginMetric[float]):
         self._epoch_time.reset()
         self._epoch_time.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
+    def before_eval_step(self, strategy) -> MetricResult:
         if not self._take_test_time:
             return
         self.reset()
@@ -288,7 +288,7 @@ class AverageEpochTime(PluginMetric[float]):
         self._time_mean.update(self._epoch_time.result())
         return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if not self._take_test_time:
             return
         self._epoch_time.update()
@@ -356,7 +356,7 @@ class StepTime(PluginMetric[float]):
         self.reset()
         self._elapsed_time.update()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if not self._take_test_time:
             return
         self.reset()
@@ -368,7 +368,7 @@ class StepTime(PluginMetric[float]):
             self._elapsed_time.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._take_test_time:
             self._elapsed_time.update()
             return self._package_result(strategy)

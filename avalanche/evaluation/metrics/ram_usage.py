@@ -163,7 +163,7 @@ class RamUsageMonitor(AnyEventMetric[float]):
 
     def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_testing and not self._track_test_usage):
+                (strategy.is_eval and not self._track_test_usage):
             return None
 
         is_elapsed = False

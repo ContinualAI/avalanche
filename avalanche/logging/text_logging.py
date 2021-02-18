@@ -57,9 +57,9 @@ class TextLogger(StrategyLogger):
         super().before_training_step(strategy, metric_values, **kwargs)
         self._on_step_start(strategy)
 
-    def before_test_step(self, strategy: PluggableStrategy,
+    def before_eval_step(self, strategy: PluggableStrategy,
                          metric_values: List['MetricValue'], **kwargs):
-        super().before_test_step(strategy, metric_values, **kwargs)
+        super().before_eval_step(strategy, metric_values, **kwargs)
         self._on_step_start(strategy)
 
     def after_training_epoch(self, strategy: 'PluggableStrategy',
@@ -69,11 +69,11 @@ class TextLogger(StrategyLogger):
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def after_test_step(self, strategy: 'PluggableStrategy',
+    def after_eval_step(self, strategy: 'PluggableStrategy',
                         metric_values: List['MetricValue'], **kwargs):
-        super().after_test_step(strategy, metric_values, **kwargs)
-        print(f'> Test on step {strategy.test_step_id} (Task '
-              f'{strategy.test_task_label}) ended.', file=self.file, flush=True)
+        super().after_eval_step(strategy, metric_values, **kwargs)
+        print(f'> Test on step {strategy.eval_step_id} (Task '
+              f'{strategy.eval_task_label}) ended.', file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
@@ -82,9 +82,9 @@ class TextLogger(StrategyLogger):
         super().before_training(strategy, metric_values, **kwargs)
         print('-- >> Start of training phase << --', file=self.file, flush=True)
 
-    def before_test(self, strategy: 'PluggableStrategy',
+    def before_eval(self, strategy: 'PluggableStrategy',
                     metric_values: List['MetricValue'], **kwargs):
-        super().before_test(strategy, metric_values, **kwargs)
+        super().before_eval(strategy, metric_values, **kwargs)
         print('-- >> Start of test phase << --', file=self.file, flush=True)
 
     def after_training(self, strategy: 'PluggableStrategy',
@@ -92,9 +92,9 @@ class TextLogger(StrategyLogger):
         super().after_training(strategy, metric_values, **kwargs)
         print('-- >> End of training phase << --', file=self.file, flush=True)
 
-    def after_test(self, strategy: 'PluggableStrategy',
+    def after_eval(self, strategy: 'PluggableStrategy',
                    metric_values: List['MetricValue'], **kwargs):
-        super().after_test(strategy, metric_values, **kwargs)
+        super().after_eval(strategy, metric_values, **kwargs)
         print('-- >> End of test phase << --', file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
@@ -102,8 +102,8 @@ class TextLogger(StrategyLogger):
     def _on_step_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'test'
         step_id = strategy.training_step_counter if strategy.is_training \
-            else strategy.test_step_id
+            else strategy.eval_step_id
         task_id = strategy.train_task_label if strategy.is_training \
-            else strategy.test_task_label
+            else strategy.eval_task_label
         print('-- Starting {} on step {} (Task {}) --'.format(
             action_name, step_id, task_id), file=self.file, flush=True)

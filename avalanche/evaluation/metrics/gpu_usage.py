@@ -220,7 +220,7 @@ class GpuUsageMonitor(AnyEventMetric[float]):
 
     def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_testing and not self._track_test_usage):
+                (strategy.is_eval and not self._track_test_usage):
             return None
 
         is_elapsed = False
@@ -243,13 +243,13 @@ class GpuUsageMonitor(AnyEventMetric[float]):
 
         return super().before_training(strategy)
 
-    def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if not self._track_train_usage:
             self._gpu_sensor.reset()
         else:
             self._gpu_sensor.update()
 
-        return super().before_test(strategy)
+        return super().before_eval(strategy)
 
     def result(self) -> Optional[float]:
         gpu_result = self._gpu_sensor.result()

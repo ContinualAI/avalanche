@@ -152,7 +152,7 @@ class MinibatchAccuracy(PluginMetric[float]):
         if self._compute_train_accuracy:
             return self._on_iteration(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_accuracy:
             return self._on_iteration(strategy)
@@ -218,7 +218,7 @@ class EpochAccuracy(PluginMetric[float]):
             self._accuracy_metric.update(strategy.mb_y,
                                          strategy.logits)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
             self._accuracy_metric.update(strategy.mb_y,
                                          strategy.logits)
@@ -227,7 +227,7 @@ class EpochAccuracy(PluginMetric[float]):
         if self._compute_train_accuracy:
             self.reset()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_accuracy:
             self.reset()
 
@@ -236,7 +236,7 @@ class EpochAccuracy(PluginMetric[float]):
         if self._compute_train_accuracy:
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._compute_test_accuracy:
             return self._package_result(strategy)
 
@@ -290,9 +290,9 @@ class RunningEpochAccuracy(EpochAccuracy):
         if self._compute_train_accuracy:
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_test_iteration(strategy)
+        super().after_eval_iteration(strategy)
         if self._compute_test_accuracy:
             return self._package_result(strategy)
 
@@ -301,7 +301,7 @@ class RunningEpochAccuracy(EpochAccuracy):
         # emit a metric value on epoch end!
         return None
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
         return None
@@ -355,13 +355,13 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
             -> None:
         self._task_accuracy[task_label].update(true_y, predicted_y)
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        self.update(strategy.mb_y, strategy.logits, strategy.test_task_label)
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.mb_y, strategy.logits, strategy.eval_task_label)
 
-    def after_test(self, strategy) -> MetricResult:
+    def after_eval(self, strategy) -> MetricResult:
         return self._package_result()
 
     def _package_result(self) -> MetricResult:

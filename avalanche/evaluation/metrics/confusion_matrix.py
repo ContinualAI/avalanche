@@ -252,7 +252,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         if self._keep_train_matrix:
             self.reset()
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         if self._keep_test_matrix:
             self.reset()
 
@@ -262,7 +262,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
                         strategy.logits,
                         strategy.train_task_label)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._keep_test_matrix:
             self.update(strategy.mb_y,
                         strategy.logits,
@@ -272,12 +272,12 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         if self._keep_train_matrix:
             return self._package_result(strategy)
 
-    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._keep_test_matrix:
             return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        phase_name = 'Test' if strategy.is_testing else 'Train'
+        phase_name = 'Test' if strategy.is_eval else 'Train'
         metric_values = []
         for task_label, task_cm in self.result().items():
             metric_name = 'ConfusionMatrix/{}/Task{:03}'.format(phase_name,

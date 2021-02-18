@@ -5,6 +5,7 @@ description: Examples for the Loggers module offered in Avalanche
 # Loggers
 
 {% code title="\"Loggers\" Example" %}
+
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,7 +29,7 @@ mnist_train = MNIST('./data/mnist', train=True,
 mnist_test = MNIST('./data/mnist', train=False,
                    download=True, transform=test_transform)
 scenario = nc_scenario(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
+    mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 # ---------
 
 # MODEL CREATION
@@ -55,7 +56,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
     Forgetting(),
-    TaskConfusionMatrix(num_classes=scenario.n_classes,save_image=False),
+    TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger])
 
@@ -78,7 +79,7 @@ for step in scenario.train_stream:
 
     print('Computing accuracy on the whole test set')
     # test also returns a dictionary which contains all the metric values
-    results.append(cl_strategy.test(scenario.test_stream, num_workers=4))
+    results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 ```
 {% endcode %}
 

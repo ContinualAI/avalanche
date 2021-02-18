@@ -53,12 +53,12 @@ def main(args):
     # Joint training strategy
     joint_train = JointTraining(
         model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        test_mb_size=32, device=device)
+        eval_mb_size=32, device=device)
 
     # train and test loop
     results = []
     joint_train.train(train_stream)
-    results.append(joint_train.test(test_stream))
+    results.append(joint_train.eval(test_stream))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -137,7 +137,7 @@ class MinibatchLoss(PluginMetric[float]):
         if self._compute_train_loss:
             return self._on_iteration(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._compute_test_loss:
             return self._on_iteration(strategy)
@@ -194,7 +194,7 @@ class EpochLoss(PluginMetric[float]):
         if self._compute_train_loss:
             self.reset()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_loss:
             self.reset()
 
@@ -202,7 +202,7 @@ class EpochLoss(PluginMetric[float]):
         if self._compute_train_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_test_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
@@ -211,7 +211,7 @@ class EpochLoss(PluginMetric[float]):
         if self._compute_train_loss:
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._compute_test_loss:
             return self._package_result(strategy)
 
@@ -270,9 +270,9 @@ class RunningEpochLoss(EpochLoss):
         if self._compute_train_loss:
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_test_iteration(strategy)
+        super().after_eval_iteration(strategy)
         if self._compute_test_loss:
             return self._package_result(strategy)
 
@@ -281,7 +281,7 @@ class RunningEpochLoss(EpochLoss):
         # emit a metric value on epoch end!
         return None
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochLoss so that it doesn't
         # emit a metric value on epoch end!
         return None
@@ -334,13 +334,13 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
     def update(self, loss: Tensor, patterns: int, task_label: int) -> None:
         self._task_loss[task_label].update(loss, patterns)
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        self.update(strategy.loss, len(strategy.mb_y), strategy.test_task_label)
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.loss, len(strategy.mb_y), strategy.eval_task_label)
 
-    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
         return self._package_result()
 
     def _package_result(self) -> MetricResult:

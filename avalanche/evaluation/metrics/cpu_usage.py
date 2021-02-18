@@ -171,7 +171,7 @@ class MinibatchCpuUsage(PluginMetric[float]):
         self.reset()
         self._minibatch_cpu.update()
 
-    def before_test_iteration(self, strategy) -> MetricResult:
+    def before_eval_iteration(self, strategy) -> MetricResult:
         if not self._track_test_cpu:
             return
         self.reset()
@@ -183,7 +183,7 @@ class MinibatchCpuUsage(PluginMetric[float]):
             self._minibatch_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         if self._track_test_cpu:
             self._minibatch_cpu.update()
@@ -238,7 +238,7 @@ class EpochCpuUsage(PluginMetric[float]):
         self.reset()
         self._epoch_cpu.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
+    def before_eval_step(self, strategy) -> MetricResult:
         if not self._track_test_cpu:
             return
         self.reset()
@@ -250,7 +250,7 @@ class EpochCpuUsage(PluginMetric[float]):
             self._epoch_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._track_test_cpu:
             self._epoch_cpu.update()
             return self._package_result(strategy)
@@ -311,7 +311,7 @@ class AverageEpochCpuUsage(PluginMetric[float]):
         self._epoch_cpu.reset()
         self._epoch_cpu.update()
 
-    def before_test_step(self, strategy) -> MetricResult:
+    def before_eval_step(self, strategy) -> MetricResult:
         if not self._track_test_cpu:
             return
         self.reset()
@@ -326,7 +326,7 @@ class AverageEpochCpuUsage(PluginMetric[float]):
         self._cpu_mean.update(self._epoch_cpu.result())
         return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if not self._track_test_cpu:
             return
         self._epoch_cpu.update()
@@ -395,7 +395,7 @@ class StepCpuUsage(PluginMetric[float]):
         self.reset()
         self._step_cpu.update()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if not self._track_test_cpu:
             return
         self.reset()
@@ -407,7 +407,7 @@ class StepCpuUsage(PluginMetric[float]):
             self._step_cpu.update()
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
         if self._track_test_cpu:
             self._step_cpu.update()
             return self._package_result(strategy)

@@ -97,17 +97,17 @@ class Forgetting(PluginMetric[Dict[int, float]]):
             self._current_accuracy[label] = Accuracy()
         self._current_accuracy[label].update(true_y, predicted_y)
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.test_step_id if self.compute_for_step \
-                else strategy.test_task_label
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        label = strategy.eval_step_id if self.compute_for_step \
+                else strategy.eval_task_label
         self.update(strategy.mb_y,
                     strategy.logits,
                     label)
 
-    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
         label = strategy.training_step_counter if self.compute_for_step \
                 else strategy.train_task_label
         return self._package_result(label)

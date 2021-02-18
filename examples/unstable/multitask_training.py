@@ -53,7 +53,7 @@ def main(args):
     # train and test loop
     results = []
     joint_train.train(train_stream)
-    results.append(joint_train.test(test_stream))
+    results.append(joint_train.eval(test_stream))
 
 
 if __name__ == '__main__':

@@ -81,11 +81,11 @@ def main(args):
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(model, torch.optim.Adam(model.parameters(), lr=0.001),
-        CrossEntropyLoss(),
-        train_mb_size=100, train_epochs=4, test_mb_size=100, device=device,
-        plugins=[ReplayPlugin(mem_size=10000)],
-        evaluator=eval_plugin
-    )
+                        CrossEntropyLoss(),
+                        train_mb_size=100, train_epochs=4, eval_mb_size=100, device=device,
+                        plugins=[ReplayPlugin(mem_size=10000)],
+                        evaluator=eval_plugin
+                        )
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -96,7 +96,7 @@ def main(args):
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream))
+        results.append(cl_strategy.eval(scenario.test_stream))
 
 
 if __name__ == '__main__':

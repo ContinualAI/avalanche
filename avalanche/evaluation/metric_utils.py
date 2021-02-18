@@ -85,15 +85,15 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
 
     The current task label depends on the phase. During the training
     phase, the task label is the one defined in the "train_task_label"
-    field. On the contrary, during the test phase the task label is the one
-    defined in the "test_task_label" field.
+    field. On the contrary, during the eval phase the task label is the one
+    defined in the "eval_task_label" field.
 
     :param strategy: The strategy instance to get the task label from.
-    :return: The current train or test task label.
+    :return: The current train or eval task label.
     """
 
-    if strategy.is_testing:
-        return strategy.test_task_label
+    if strategy.is_eval:
+        return strategy.eval_task_label
 
     return strategy.train_task_label
 
@@ -104,16 +104,16 @@ def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
 
     The current task label depends on the phase. During the training
     phase, the task label is the one defined in the "train_task_label"
-    field. On the contrary, during the test phase the task label is the one
-    defined in the "test_task_label" field.
+    field. On the contrary, during the eval phase the task label is the one
+    defined in the "eval_task_label" field.
 
     :param strategy: The strategy instance to get the task label from.
     :return: The current phase name as either "Train" or "Task" and the
         associated task label.
     """
 
-    if strategy.is_testing:
-        return "Test", strategy.test_task_label
+    if strategy.is_eval:
+        return "Eval", strategy.eval_task_label
 
     return "Train", strategy.train_task_label
 

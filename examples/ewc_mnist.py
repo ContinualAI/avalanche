@@ -67,7 +67,7 @@ def main(args):
         strategy.train(train_batch_info)
         print("End training on step ", train_batch_info.current_step)
         print('Computing accuracy on the test set')
-        results.append(strategy.test(scenario.test_stream[:]))
+        results.append(strategy.eval(scenario.test_stream[:]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
