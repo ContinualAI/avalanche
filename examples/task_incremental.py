@@ -4,13 +4,14 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 01-12-2020                                                             #
-# Author(s): Antonio Carta                                                     #
+# Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
 """
-Multi-task training example. Differently from the BaseStrategy, multi-task
-training allows to use the task ids at train and test time (optionally).
+This example trains on Split CIFAR10 with Naive strategy.
+In this example each step has a different task label.
+The task label, although available, is not used at test time.
 """
 
 from __future__ import absolute_import
@@ -20,11 +21,11 @@ from __future__ import print_function
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
+from torch.optim import Adam
 
-from avalanche.benchmarks.classic import PermutedMNIST
+from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import MultiTaskStrategy
+from avalanche.training.strategies import Naive
 
 
 def main(args):
@@ -34,26 +35,26 @@ def main(args):
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
     # model
-    model = SimpleMLP(num_classes=10)
+    model = SimpleMLP(input_size=32*32*3, num_classes=10)
 
     # CL Benchmark Creation
-    perm_mnist = PermutedMNIST(n_steps=5)
-    train_stream = perm_mnist.train_stream
-    test_stream = perm_mnist.test_stream
+    scenario = SplitCIFAR10(n_steps=5, return_task_id=True)
+    train_stream = scenario.train_stream
+    test_stream = scenario.test_stream
 
     # Prepare for training & testing
-    optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = Adam(model.parameters(), lr=0.01)
     criterion = CrossEntropyLoss()
 
-    # Joint training strategy
-    joint_train = MultiTaskStrategy(
+    # Choose a CL strategy
+    strategy = Naive(
         model=model, optimizer=optimizer, criterion=criterion,
-        train_mb_size=32, train_epochs=1, test_mb_size=32, device=device)
+        train_mb_size=128, train_epochs=3, eval_mb_size=128, device=device)
 
     # train and test loop
-    results = []
-    joint_train.train(train_stream)
-    results.append(joint_train.eval(test_stream))
+    for train_task in train_stream:
+        strategy.train(train_task, num_workers=4)
+        strategy.eval(test_stream)
 
 
 if __name__ == '__main__':
@@ -61,5 +62,4 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     args = parser.parse_args()
-
     main(args)
