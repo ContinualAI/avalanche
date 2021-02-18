@@ -101,26 +101,26 @@ class MinibatchTime(PluginMetric[float]):
     :class:`StepTime` instead.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the minibatch time metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
         self._minibatch_time = ElapsedTime()
         self._compute_train_time = train
-        self._compute_test_time = test
+        self._compute_eval_time = eval
 
     def result(self) -> float:
         return self._minibatch_time.result()
@@ -135,7 +135,7 @@ class MinibatchTime(PluginMetric[float]):
         self._minibatch_time.update()
 
     def before_eval_iteration(self, strategy) -> MetricResult:
-        if not self._compute_test_time:
+        if not self._compute_eval_time:
             return
         self.reset()
         self._minibatch_time.update()
@@ -148,7 +148,7 @@ class MinibatchTime(PluginMetric[float]):
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_test_time:
+        if self._compute_eval_time:
             self._minibatch_time.update()
             return self._package_result(strategy)
 
@@ -173,27 +173,27 @@ class EpochTime(PluginMetric[float]):
     :class:`AverageEpochTime` instead.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the epoch time metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._elapsed_time = ElapsedTime()
         self._take_train_time = train
-        self._take_test_time = test
+        self._take_eval_time = eval
 
     def before_training_epoch(self, strategy) -> MetricResult:
         if not self._take_train_time:
@@ -202,7 +202,7 @@ class EpochTime(PluginMetric[float]):
         self._elapsed_time.update()
 
     def before_eval_step(self, strategy) -> MetricResult:
-        if not self._take_test_time:
+        if not self._take_eval_time:
             return
         self.reset()
         self._elapsed_time.update()
@@ -214,7 +214,7 @@ class EpochTime(PluginMetric[float]):
             return self._package_result(strategy)
 
     def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._take_test_time:
+        if self._take_eval_time:
             self._elapsed_time.update()
             return self._package_result(strategy)
 
@@ -244,28 +244,28 @@ class AverageEpochTime(PluginMetric[float]):
     epoch-specific time is needed, consider using :class:`EpochTime` instead.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the average epoch time metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._time_mean = Mean()
         self._epoch_time = ElapsedTime()
         self._take_train_time = train
-        self._take_test_time = test
+        self._take_eval_time = eval
 
     def before_training_epoch(self, strategy) -> MetricResult:
         if not self._take_train_time:
@@ -274,7 +274,7 @@ class AverageEpochTime(PluginMetric[float]):
         self._epoch_time.update()
 
     def before_eval_step(self, strategy) -> MetricResult:
-        if not self._take_test_time:
+        if not self._take_eval_time:
             return
         self.reset()
         self._epoch_time.reset()
@@ -289,7 +289,7 @@ class AverageEpochTime(PluginMetric[float]):
         return self._package_result(strategy)
 
     def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if not self._take_test_time:
+        if not self._take_eval_time:
             return
         self._epoch_time.update()
         self._time_mean.update(self._epoch_time.result())
@@ -327,27 +327,27 @@ class StepTime(PluginMetric[float]):
     selection and other time consuming mechanisms.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the step time metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._elapsed_time = ElapsedTime()
         self._take_train_time = train
-        self._take_test_time = test
+        self._take_eval_time = eval
 
     def before_training_step(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
@@ -357,7 +357,7 @@ class StepTime(PluginMetric[float]):
         self._elapsed_time.update()
 
     def before_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if not self._take_test_time:
+        if not self._take_eval_time:
             return
         self.reset()
         self._elapsed_time.update()
@@ -369,7 +369,7 @@ class StepTime(PluginMetric[float]):
             return self._package_result(strategy)
 
     def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._take_test_time:
+        if self._take_eval_time:
             self._elapsed_time.update()
             return self._package_result(strategy)
 
@@ -391,7 +391,7 @@ class StepTime(PluginMetric[float]):
 
 
 def timing_metrics(*, minibatch=False, epoch=False, epoch_average=False,
-                   step=False, train=None, test=None) -> List[PluginMetric]:
+                   step=False, train=None, eval=None) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -405,35 +405,35 @@ def timing_metrics(*, minibatch=False, epoch=False, epoch_average=False,
         time.
     :param train: If True, metrics will log values for the train flow. Defaults
         to None, which means that the per-metric default value will be used.
-    :param test: If True, metrics will log values for the test flow. Defaults
+    :param eval: If True, metrics will log values for the eval flow. Defaults
         to None, which means that the per-metric default value will be used.
 
     :return: A list of plugin metrics.
     """
 
-    if (train is not None and not train) and (test is not None and not test):
-        raise ValueError('train and test can\'t be both False at the same'
+    if (train is not None and not train) and (eval is not None and not eval):
+        raise ValueError('train and eval can\'t be both False at the same'
                          ' time.')
 
-    train_test_flags = dict()
+    train_eval_flags = dict()
     if train is not None:
-        train_test_flags['train'] = train
+        train_eval_flags['train'] = train
 
-    if test is not None:
-        train_test_flags['test'] = test
+    if eval is not None:
+        train_eval_flags['eval'] = eval
 
     metrics = []
     if minibatch:
-        metrics.append(MinibatchTime(**train_test_flags))
+        metrics.append(MinibatchTime(**train_eval_flags))
 
     if epoch:
-        metrics.append(EpochTime(**train_test_flags))
+        metrics.append(EpochTime(**train_eval_flags))
 
     if epoch_average:
-        metrics.append(AverageEpochTime(**train_test_flags))
+        metrics.append(AverageEpochTime(**train_eval_flags))
 
     if step:
-        metrics.append(StepTime(**train_test_flags))
+        metrics.append(StepTime(**train_eval_flags))
 
     return metrics
 

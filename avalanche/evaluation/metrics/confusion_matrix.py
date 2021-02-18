@@ -165,8 +165,8 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
     The Confusion Matrix metric.
 
     This metric logs the confusion matrix for each task at the end of
-    each phase. By default this metric computes the matrix on the test phase
-    (on the test set) only but this behaviour can be changed by passing
+    each phase. By default this metric computes the matrix on the eval phase
+    (on the eval set) only but this behaviour can be changed by passing
     `train=True` in the constructor.
 
     The metric will log both a Tensor and PIL Image both representing the
@@ -175,7 +175,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
     """
     def __init__(self, *,
                  train: bool = False,
-                 test: bool = True,
+                 eval: bool = True,
                  num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
@@ -184,12 +184,12 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         """
         Creates an instance of the Confusion Matrix metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to False.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         :param num_classes: When not None, is used to properly define the
             amount of rows/columns in the confusion matrix. When None, the
@@ -211,8 +211,8 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._save_image: bool = save_image
@@ -225,7 +225,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         self._image_creator: Callable[[Tensor], Image] = image_creator
 
         self._keep_train_matrix = train
-        self._keep_test_matrix = test
+        self._keep_eval_matrix = eval
 
     def reset(self) -> None:
         self._task_matrices = dict()
@@ -253,7 +253,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             self.reset()
 
     def before_eval(self, strategy) -> None:
-        if self._keep_test_matrix:
+        if self._keep_eval_matrix:
             self.reset()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
@@ -263,7 +263,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
                         strategy.train_task_label)
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._keep_test_matrix:
+        if self._keep_eval_matrix:
             self.update(strategy.mb_y,
                         strategy.logits,
                         strategy.train_task_label)
@@ -273,11 +273,11 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             return self._package_result(strategy)
 
     def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._keep_test_matrix:
+        if self._keep_eval_matrix:
             return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        phase_name = 'Test' if strategy.is_eval else 'Train'
+        phase_name = 'Eval' if strategy.is_eval else 'Train'
         metric_values = []
         for task_label, task_cm in self.result().items():
             metric_name = 'ConfusionMatrix/{}/Task{:03}'.format(phase_name,

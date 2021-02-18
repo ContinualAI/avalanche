@@ -52,7 +52,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True, task=True, train=True, test=True),
+        accuracy_metrics(minibatch=False, epoch=True, task=True, train=True, eval=True),
         Forgetting(compute_for_step=False),
         loggers=[interactive_logger])
 

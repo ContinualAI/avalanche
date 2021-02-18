@@ -33,7 +33,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
     first training on a task/step and the accuracy result obtained
     on the same task/step at the end of successive steps.
 
-    This metric is computed during the test phase only.
+    This metric is computed during the eval phase only.
     """
 
     def __init__(self, compute_for_step=False):
@@ -74,7 +74,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
         Resets the current accuracy.
 
         This will preserve the initial accuracy value of each task/step.
-        To be used at the beginning of each test step.
+        To be used at the beginning of each eval step.
 
         :return: None.
         """
@@ -141,7 +141,7 @@ class Forgetting(PluginMetric[Dict[int, float]]):
             # Other situations:
             # - A task/step that was not encountered before (forgetting == 0)
             # - A task/step that was encountered before, but has not been
-            # encountered in the current test phase (forgetting == N.A. == 0)
+            # encountered in the current eval phase (forgetting == N.A. == 0)
             forgetting[label] = delta
         return forgetting
 
