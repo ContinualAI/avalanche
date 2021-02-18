@@ -101,7 +101,8 @@ class TextLogger(StrategyLogger):
 
     def _on_step_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'test'
-        step_id = strategy.training_step_counter
+        step_id = strategy.training_step_counter if strategy.is_training \
+            else strategy.test_step_id
         task_id = strategy.train_task_label if strategy.is_training \
             else strategy.test_task_label
         print('-- Starting {} on step {} (Task {}) --'.format(
