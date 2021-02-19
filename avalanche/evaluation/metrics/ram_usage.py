@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2020 ContinualAI                                               #
 # Copyrights licensed under the MIT License.                                   #
@@ -71,7 +68,7 @@ class RamUsage(Metric[float]):
 
         self._two_read_average = two_read_average
         """
-        If True, the value resulting from calling `update` more than once will 
+        If True, the value resulting from calling `update` more than once will
         set the result to the average between the last read and the current RAM
         usage value.
         """

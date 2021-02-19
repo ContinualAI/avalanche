@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
 # Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
 # Copyrights licensed under the CC BY 4.0 License.                             #
@@ -17,11 +14,6 @@
 General useful functions for pytorch.
 
 """
-# Python 2-3 compatible
-from __future__ import print_function
-from __future__ import division
-from __future__ import absolute_import
-
 from collections import defaultdict
 from typing import NamedTuple, List, Optional, Tuple, Callable
 
