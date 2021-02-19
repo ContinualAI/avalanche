@@ -26,7 +26,8 @@ if TYPE_CHECKING:
 
 class RunningAverageAccuracy(Metric[float]):
     """
-    The Running Average RunningAverageAccuracy metric.
+    The Running Average metric. This is a general metric
+    used to compute more specific ones.
 
     Instances of this metric keeps the running average accuracy
     over multiple <prediction, target> pairs of Tensors,
@@ -114,7 +115,7 @@ class SingleMinibatchAccuracy(PluginMetric[float]):
     """
     The minibatch accuracy metric. This metric only works at training time.
 
-    This metric computes the average accuracy over a single minibatch.
+    This metric computes the average accuracy over patterns from a single minibatch.
     It reports the result after each iteration.
 
     If a more coarse-grained logging is needed, consider using
@@ -138,13 +139,6 @@ class SingleMinibatchAccuracy(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        return self._on_iteration(strategy)
-
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
-            -> MetricResult:
-        return self._on_iteration(strategy)
-
-    def _on_iteration(self, strategy: 'PluggableStrategy') -> MetricResult:
         self.reset()  # Because this metric computes the accuracy of a single mb
         self._minibatch_accuracy.update(strategy.mb_y,
                                         strategy.logits)
@@ -164,6 +158,7 @@ class SingleMinibatchAccuracy(PluginMetric[float]):
 class SingleEpochAccuracy(PluginMetric[float]):
     """
     The average accuracy over a single training epoch.
+    This metric only works at training time.
 
     The accuracy will be logged after each training epoch by computing
     the number of correctly predicted patterns during the epoch divided by
@@ -206,9 +201,11 @@ class SingleEpochAccuracy(PluginMetric[float]):
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
-class WithinEpochAccuracy(SingleEpochAccuracy):
+class RunningMinibatchAccuracy(SingleEpochAccuracy):
     """
-    The accuracy metric monitored within a single epoch.
+    The average accuracy across all minibatches up to the current
+    epoch iteration.
+    This metric only works at training time.
 
     At each iteration, this metric logs the accuracy averaged over all patterns
     seen so far in the current epoch.
@@ -217,7 +214,7 @@ class WithinEpochAccuracy(SingleEpochAccuracy):
 
     def __init__(self):
         """
-        Creates an instance of the RunningTrainEpochAccuracy metric.
+        Creates an instance of the RunningMinibatchAccuracy metric.
         """
 
         super().__init__()
@@ -236,7 +233,7 @@ class WithinEpochAccuracy(SingleEpochAccuracy):
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_Acc_Running/{}/Task{:03}'.format(phase_name,
+        metric_name = 'Top1_Acc_WithinEpoch/{}/Task{:03}'.format(phase_name,
                                                              task_label)
         plot_x_position = self._next_x_position(metric_name)
 
@@ -246,9 +243,9 @@ class WithinEpochAccuracy(SingleEpochAccuracy):
 class StepAccuracy(PluginMetric[float]):
     """
     At the end of each step, this metric reports the average accuracy over all patterns seen
-    in that current step.
-    The metric can emit results during train and evaluation or only during
-     one of these two modalities.
+    in that step.
+    The metric can emit results during train and evaluation phases or only during
+     one of the two, depending on the user choice.
     """
 
     def __init__(self, *, train=True, eval=True):
@@ -312,7 +309,9 @@ class StepAccuracy(PluginMetric[float]):
 
 class EvalTaskAccuracy(PluginMetric[Dict[int, float]]):
     """
-    The task accuracy metric. This metric doesn't apply to the training phase.
+    The task accuracy metric.
+    This metric works only on evaluation phase.
+
     This metric computes the average accuracy for each task in the evaluation stream.
     It returns a dictionary mapping each task label to the corresponding
     average accuracy.
@@ -413,7 +412,7 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         metrics.append(SingleEpochAccuracy())
 
     if epoch_running:
-        metrics.append(WithinEpochAccuracy())
+        metrics.append(RunningMinibatchAccuracy())
 
     if step:
         metrics.append(StepAccuracy(**train_eval_flags))
@@ -428,7 +427,7 @@ __all__ = [
     'RunningAverageAccuracy',
     'SingleMinibatchAccuracy',
     'SingleEpochAccuracy',
-    'WithinEpochAccuracy',
+    'RunningMinibatchAccuracy',
     'StepAccuracy',
     'EvalTaskAccuracy',
     'accuracy_metrics'
