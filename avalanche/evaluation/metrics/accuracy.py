@@ -24,17 +24,22 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class Accuracy(Metric[float]):
+class RunningAverageAccuracy(Metric[float]):
     """
-    The accuracy metric.
+    The Running Average RunningAverageAccuracy metric.
 
-    Instances of this metric compute the average accuracy by receiving a pair
-    of "ground truth" and "prediction" Tensors describing the labels of a
-    minibatch. Those two tensors can both contain plain labels or
+    Instances of this metric keeps the running average accuracy
+    over multiple <prediction, target> pairs of Tensors,
+    provided incrementally.
+    The "prediction" and "target" tensors may contain plain labels or
     one-hot/logit vectors.
 
-    The result is the running accuracy computed as the number of correct
-    patterns divided by the overall amount of patterns.
+    Each time `result` is called, this metric emits the average accuracy
+    across all predictions made since the last `reset`.
+    \frac{1}{N} * \sum_{i=1}^N a_i,
+    where N is the number of predictions made seen since last `reset` and
+    a_i is 1 if the i-th prediction was correct,
+    0 otherwise.
 
     The reset method will bring the metric to its initial state. By default
     this metric in its initial state will return an accuracy value of 0.
@@ -42,7 +47,7 @@ class Accuracy(Metric[float]):
 
     def __init__(self):
         """
-        Creates an instance of the accuracy metric.
+        Creates an instance of the Running Average RunningAverageAccuracy metric.
 
         By default this metric in its initial state will return an accuracy
         value of 0. The metric can be updated by using the `update` method
@@ -55,13 +60,13 @@ class Accuracy(Metric[float]):
         """
 
     @torch.no_grad()
-    def update(self, true_y: Tensor, predicted_y: Tensor) -> None:
+    def update(self, predicted_y: Tensor, true_y: Tensor) -> None:
         """
         Update the running accuracy given the true and predicted labels.
 
-        :param true_y: The ground truth. Both labels and one-hot vectors
+        :param predicted_y: The model prediction. Both labels and logit vectors
             are supported.
-        :param predicted_y: The ground truth. Both labels and logit vectors
+        :param true_y: The ground truth. Both labels and one-hot vectors
             are supported.
         :return: None.
         """
@@ -105,38 +110,25 @@ class Accuracy(Metric[float]):
         self._mean_accuracy.reset()
 
 
-class MinibatchAccuracy(PluginMetric[float]):
+class SingleMinibatchAccuracy(PluginMetric[float]):
     """
-    The minibatch accuracy metric.
+    The minibatch accuracy metric. This metric only works at training time.
 
-    This metric "logs" the accuracy value after each iteration. Beware that this
-    metric will not average the accuracy across minibatches!
+    This metric computes the average accuracy over a single minibatch.
+    It reports the result after each iteration.
 
     If a more coarse-grained logging is needed, consider using
-    :class:`EpochAccuracy` and/or :class:`TaskAccuracy` instead.
+    :class:`TrainEpochAccuracy` instead.
     """
 
-    def __init__(self, *, train=True, eval=True):
+    def __init__(self):
         """
-        Creates an instance of the MinibatchAccuracy metric.
-
-        The train and eval parameters are used to control if this metric should
-        compute and log values referred to the train phase, eval phase or both.
-        At least one of them must be True!
-
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        Creates an instance of the TrainMinibatchAccuracy metric.
         """
+
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
-        self._minibatch_accuracy = Accuracy()
-        self._compute_train_accuracy = train
-        self._compute_eval_accuracy = eval
+        self._minibatch_accuracy = RunningAverageAccuracy()
 
     def result(self) -> float:
         return self._minibatch_accuracy.result()
@@ -146,13 +138,11 @@ class MinibatchAccuracy(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_train_accuracy:
-            return self._on_iteration(strategy)
+        return self._on_iteration(strategy)
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_eval_accuracy:
-            return self._on_iteration(strategy)
+        return self._on_iteration(strategy)
 
     def _on_iteration(self, strategy: 'PluggableStrategy') -> MetricResult:
         self.reset()  # Because this metric computes the accuracy of a single mb
@@ -171,38 +161,22 @@ class MinibatchAccuracy(PluginMetric[float]):
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
-class EpochAccuracy(PluginMetric[float]):
+class SingleEpochAccuracy(PluginMetric[float]):
     """
-    The average epoch accuracy metric.
+    The average accuracy over a single training epoch.
 
-    The accuracy will be logged after each epoch by computing the accuracy
-    as the number of correctly predicted patterns divided by the overall
-    number of patterns encountered in that epoch, which means that having
-    unbalanced minibatch sizes will not affect the metric.
+    The accuracy will be logged after each training epoch by computing
+    the number of correctly predicted patterns during the epoch divided by
+    the overall number of patterns encountered in that epoch.
     """
 
-    def __init__(self, *, train=True, eval=True):
+    def __init__(self):
         """
-        Creates an instance of the EpochAccuracy metric.
-
-        The train and eval parameters are used to control if this metric should
-        compute and log values referred to the train phase, eval phase or both.
-        At least one of them must be True!
-
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        Creates an instance of the TrainEpochAccuracy metric.
         """
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
-
-        self._accuracy_metric = Accuracy()
-        self._compute_train_accuracy = train
-        self._compute_eval_accuracy = eval
+        self._accuracy_metric = RunningAverageAccuracy()
 
     def reset(self) -> None:
         self._accuracy_metric.reset()
@@ -211,94 +185,49 @@ class EpochAccuracy(PluginMetric[float]):
         return self._accuracy_metric.result()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_train_accuracy:
-            self._accuracy_metric.update(strategy.mb_y,
-                                         strategy.logits)
-
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_eval_accuracy:
-            self._accuracy_metric.update(strategy.mb_y,
-                                         strategy.logits)
+        self._accuracy_metric.update(strategy.mb_y,
+                                     strategy.logits)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_train_accuracy:
-            self.reset()
-
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_eval_accuracy:
-            self.reset()
+        self.reset()
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_train_accuracy:
-            return self._package_result(strategy)
-
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._compute_eval_accuracy:
-            return self._package_result(strategy)
+        return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
         phase_name, task_label = phase_and_task(strategy)
         metric_value = self.result()
 
-        metric_name = 'Top1_Acc_Epoch/{}/Task{:03}'.format(phase_name,
+        metric_name = 'Top1_Acc_TrainEpoch/{}/Task{:03}'.format(phase_name,
                                                            task_label)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
-class RunningEpochAccuracy(EpochAccuracy):
+class WithinEpochAccuracy(SingleEpochAccuracy):
     """
-    The running average accuracy metric.
+    The accuracy metric monitored within a single epoch.
 
-    This metric behaves like :class:`EpochAccuracy` but, differently from it,
-    this metric will log the running accuracy value after each iteration.
+    At each iteration, this metric logs the accuracy averaged over all patterns
+    seen so far in the current epoch.
+    The metric resets its state after each training epoch.
     """
 
-    def __init__(self, *, train=True, eval=True):
+    def __init__(self):
         """
-        Creates an instance of the RunningEpochAccuracy metric.
-
-        The train and eval parameters are used to control if this metric should
-        compute and log values referred to the train phase, eval phase or both.
-        At least one of them must be True!
-
-        Beware that the eval parameter defaults to False because logging
-        the running eval accuracy it's and uncommon practice.
-
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        Creates an instance of the RunningTrainEpochAccuracy metric.
         """
-        super().__init__(train=train, eval=eval)
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
-
-        self._compute_train_accuracy = train
-        self._compute_eval_accuracy = eval
+        super().__init__()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         super().after_training_iteration(strategy)
-        if self._compute_train_accuracy:
-            return self._package_result(strategy)
-
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
-            -> MetricResult:
-        super().after_eval_iteration(strategy)
-        if self._compute_eval_accuracy:
-            return self._package_result(strategy)
+        return self._package_result(strategy)
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
-        # Overrides the method from EpochAccuracy so that it doesn't
-        # emit a metric value on epoch end!
-        return None
-
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
         return None
@@ -314,33 +243,101 @@ class RunningEpochAccuracy(EpochAccuracy):
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
 
-class TaskAccuracy(PluginMetric[Dict[int, float]]):
+class StepAccuracy(PluginMetric[float]):
     """
-    The task accuracy metric.
+    At the end of each step, this metric reports the average accuracy over all patterns seen
+    in that current step.
+    The metric can emit results during train and evaluation or only during
+     one of these two modalities.
+    """
 
-    This is the most common metric used in the evaluation of a Continual
-    Learning algorithm.
+    def __init__(self, *, train=True, eval=True):
+        """
+        At least one of `train` and `eval` must be true.
+
+        :param train: if True, reports the accuracy after each training step
+        :param eval: if True, reports the accuracy after each evaluation step
+        """
+        super().__init__()
+        if not train and not eval:
+            raise ValueError(
+                'StepAccuracy cannot have both train and'
+                ' eval parameters set to False')
+
+        self.train_mode = train
+        self.eval_mode = eval
+        self._accuracy_metric = RunningAverageAccuracy()
+
+    def reset(self) -> None:
+        self._accuracy_metric.reset()
+
+    def result(self) -> float:
+        return self._accuracy_metric.result()
+
+    def before_training_step(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self._accuracy_metric.update(strategy.mb_y,
+                                     strategy.logits)
+
+    def after_training_step(self, strategy: 'PluggableStrategy') -> \
+            'MetricResult':
+        if self.train_mode:
+            return self._package_result(strategy)
+
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self._accuracy_metric.update(strategy.mb_y,
+                                     strategy.logits)
+
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> \
+            'MetricResult':
+        if self.eval_mode:
+            return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> \
+            MetricResult:
+        phase_name, task_label = phase_and_task(strategy)
+        metric_value = self.result()
+
+        metric_name = 'Top1_Acc_Step/{}/Task{:03}'.format(phase_name,
+                                                           task_label)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+
+class EvalTaskAccuracy(PluginMetric[Dict[int, float]]):
+    """
+    The task accuracy metric. This metric doesn't apply to the training phase.
+    This metric computes the average accuracy for each task in the evaluation stream.
+    It returns a dictionary mapping each task label to the corresponding
+    average accuracy.
+    Patterns belonging to a task are not required to be presented in a single evaluation step,
+    but they may be distributed over different evaluation steps.
 
     Can be safely used when evaluation task-free scenarios, in which case the
     default task label "0" will be used.
 
-    The task accuracies will be logged at the end of the eval phase. This metric
-    doesn't apply to the training phase.
+    The task accuracies will be logged at the end of the eval phase.
     """
 
     def __init__(self):
         """
-        Creates an instance of the TaskAccuracy metric.
+        Creates an instance of the EvalTaskAccuracy metric.
         """
         super().__init__()
 
-        self._task_accuracy: Dict[int, Accuracy] = defaultdict(Accuracy)
+        self._task_accuracy: Dict[int, RunningAverageAccuracy] = defaultdict(RunningAverageAccuracy)
         """
         A dictionary used to store the accuracy for each task.
         """
 
     def reset(self) -> None:
-        self._task_accuracy = defaultdict(Accuracy)
+        self._task_accuracy = defaultdict(RunningAverageAccuracy)
 
     def result(self) -> Dict[int, float]:
         result_dict = dict()
@@ -373,18 +370,19 @@ class TaskAccuracy(PluginMetric[Dict[int, float]]):
 
 
 def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                     task=False, train=None, eval=None) -> List[PluginMetric]:
+                     step=False, task=False, train=None, eval=None) -> \
+        List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
-    :param minibatch: If True, will return a metric able to log the minibatch
+    :param minibatch: If True, will return a metric able to log the train minibatch
         accuracy.
-    :param epoch: If True, will return a metric able to log the epoch accuracy.
+    :param epoch: If True, will return a metric able to log the train epoch accuracy.
     :param epoch_running: If True, will return a metric able to log the running
         epoch accuracy.
+    :param step: If True, will return a metric able to log the accuracy on each step.
     :param task: If True, will return a metric able to log the task accuracy.
-        This metric applies to the eval flow only. If the `eval` parameter is
-        False, an error will be raised.
+        This metric applies to the eval flow only.
     :param train: If True, metrics will log values for the train flow. Defaults
         to None, which means that the per-metric default value will be used.
     :param eval: If True, metrics will log values for the eval flow. Defaults
@@ -396,7 +394,7 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if (train is not None and not train) and (eval is not None and not eval):
         raise ValueError('train and eval can\'t be both False at the same'
                          ' time.')
-    if task and eval is not None and not eval:
+    if step and eval is not None and not eval:
         raise ValueError('The task accuracy metric only applies to the eval '
                          'phase.')
 
@@ -409,25 +407,29 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
 
     metrics = []
     if minibatch:
-        metrics.append(MinibatchAccuracy(**train_eval_flags))
+        metrics.append(SingleMinibatchAccuracy())
 
     if epoch:
-        metrics.append(EpochAccuracy(**train_eval_flags))
+        metrics.append(SingleEpochAccuracy())
 
     if epoch_running:
-        metrics.append(RunningEpochAccuracy(**train_eval_flags))
+        metrics.append(WithinEpochAccuracy())
+
+    if step:
+        metrics.append(StepAccuracy(**train_eval_flags))
 
     if task:
-        metrics.append(TaskAccuracy())
+        metrics.append(EvalTaskAccuracy())
 
     return metrics
 
 
 __all__ = [
-    'Accuracy',
-    'MinibatchAccuracy',
-    'EpochAccuracy',
-    'RunningEpochAccuracy',
-    'TaskAccuracy',
+    'RunningAverageAccuracy',
+    'SingleMinibatchAccuracy',
+    'SingleEpochAccuracy',
+    'WithinEpochAccuracy',
+    'StepAccuracy',
+    'EvalTaskAccuracy',
     'accuracy_metrics'
 ]
