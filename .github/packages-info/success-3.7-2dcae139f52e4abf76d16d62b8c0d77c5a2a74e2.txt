@@ -60,7 +60,7 @@ matplotlib                3.3.4            py37h89c1867_0    conda-forge
 matplotlib-base           3.3.4            py37h62a2d02_0  
 mkl                       2020.2                      256  
 mkl-service               2.3.0            py37he8ac12f_0  
-mkl_fft                   1.2.0            py37h23d657b_0  
+mkl_fft                   1.2.1            py37h54f3939_0  
 mkl_random                1.1.1            py37h0573a6f_0  
 ncurses                   6.2                  he6710b0_1  
 ninja                     1.10.2           py37hff7bd54_0  
