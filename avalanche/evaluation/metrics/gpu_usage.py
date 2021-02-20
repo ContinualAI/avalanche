@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -187,15 +184,15 @@ class GpuUsageMonitor(AnyEventMetric[float]):
     The metric can be either configured to log after a certain timeout or
     at each event.
 
-    GPU usage is logged separately for the train and test phases.
+    GPU usage is logged separately for the train and eval phases.
     """
 
     def __init__(self, gpu_id: int, *, timeout: int = 2,
-                 train=True, test=False):
+                 train=True, eval=False):
         """
         Creates an instance of the GPU usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param gpu_id: The GPU to monitor.
@@ -203,24 +200,24 @@ class GpuUsageMonitor(AnyEventMetric[float]):
              Defaults to 2 seconds. Must be an int.
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._gpu_sensor = GpuUsage(gpu_id, every=1)
         self._timeout = timeout
         self._last_time = None
         self._track_train_usage = train
-        self._track_test_usage = test
+        self._track_eval_usage = eval
 
     def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_testing and not self._track_test_usage):
+                (strategy.is_eval and not self._track_eval_usage):
             return None
 
         is_elapsed = False
@@ -243,13 +240,13 @@ class GpuUsageMonitor(AnyEventMetric[float]):
 
         return super().before_training(strategy)
 
-    def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if not self._track_train_usage:
             self._gpu_sensor.reset()
         else:
             self._gpu_sensor.update()
 
-        return super().before_test(strategy)
+        return super().before_eval(strategy)
 
     def result(self) -> Optional[float]:
         gpu_result = self._gpu_sensor.result()

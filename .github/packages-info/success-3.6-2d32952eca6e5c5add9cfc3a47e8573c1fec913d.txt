@@ -17,7 +17,7 @@ dbus                      1.13.6               he372182_0    conda-forge
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
 freetype                  2.10.4               h5ab3b9f_0  
-glib                      2.67.3               h36276a3_1  
+glib                      2.67.4               h36276a3_1  
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
@@ -55,7 +55,7 @@ matplotlib                3.3.4            py36h5fab9bb_0    conda-forge
 matplotlib-base           3.3.4            py36h62a2d02_0  
 mkl                       2020.2                      256  
 mkl-service               2.3.0            py36he8ac12f_0  
-mkl_fft                   1.2.0            py36h23d657b_0  
+mkl_fft                   1.2.1            py36h54f3939_0  
 mkl_random                1.1.1            py36h0573a6f_0  
 ncurses                   6.2                  he6710b0_1  
 ninja                     1.10.2           py36hff7bd54_0  
@@ -97,7 +97,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               hbc83047_0  
 torchvision               0.8.2                  py36_cpu  [cpuonly]  pytorch
 tornado                   6.1              py36h1d69622_0    conda-forge
-tqdm                      4.56.2             pyhd8ed1ab_0    conda-forge
+tqdm                      4.57.0             pyhd8ed1ab_0    conda-forge
 typing_extensions         3.7.4.3            pyha847dfd_0  
 werkzeug                  1.0.1              pyh9f0ad1d_0    conda-forge
 wheel                     0.36.2             pyhd3eb1b0_0  

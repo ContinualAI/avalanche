@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -23,22 +20,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation.metrics import EpochAccuracy
-from avalanche.logging.tensorboard_logger import TensorboardLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import JointTraining
 
-def main():
+def main(args):
 
     # Config
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # model
     model = SimpleMLP(num_classes=10)
 
@@ -50,18 +46,21 @@ def main():
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()
-    logger = TensorboardLogger()
-    evaluation_plugin = EvaluationPlugin(EpochAccuracy(), loggers=logger)
 
     # Joint training strategy
     joint_train = JointTraining(
         model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        test_mb_size=32, device=device, plugins=[evaluation_plugin])
+        eval_mb_size=32, device=device)
 
     # train and test loop
     results = []
     joint_train.train(train_stream)
-    results.append(joint_train.test(test_stream))
+    results.append(joint_train.eval(test_stream))
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+
+    main(args)

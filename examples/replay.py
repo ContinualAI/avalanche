@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -13,13 +10,14 @@
 ################################################################################
 
 """
-This is a simple example on how to use the new strategy API.
+This is a simple example on how to use the Replay strategy.
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms
@@ -29,17 +27,19 @@ import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_scenario
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
-from avalanche.training.plugins import ReplayPlugin, MultiHeadPlugin
+from avalanche.training.plugins import ReplayPlugin
 from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics
+    loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 
 
-def main():
+def main(args):
     # --- CONFIG
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     n_batches = 5
     # ---------
 
@@ -73,18 +73,16 @@ def main():
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, task=True),
         loss_metrics(minibatch=True, epoch=True, task=True),
-        timing_metrics(epoch=True, epoch_average=True, test=False),
-        cpu_usage_metrics(step=True),
         Forgetting(compute_for_step=True),
         loggers=[interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(model, torch.optim.Adam(model.parameters(), lr=0.001),
-        CrossEntropyLoss(),
-        train_mb_size=100, train_epochs=4, test_mb_size=100, device=device,
-        plugins=[ReplayPlugin(mem_size=10000), MultiHeadPlugin(model)],
-        evaluator=eval_plugin
-    )
+                        CrossEntropyLoss(),
+                        train_mb_size=100, train_epochs=4, eval_mb_size=100, device=device,
+                        plugins=[ReplayPlugin(mem_size=10000)],
+                        evaluator=eval_plugin
+                        )
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -95,8 +93,12 @@ def main():
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.test(scenario.test_stream))
+        results.append(cl_strategy.eval(scenario.test_stream))
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+    main(args)

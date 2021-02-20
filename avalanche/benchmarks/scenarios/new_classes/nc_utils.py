@@ -1,6 +1,6 @@
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
-# Copyrights licensed under the CC BY 4.0 License.                             #
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 12-05-2020                                                             #

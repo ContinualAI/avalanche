@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -21,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import argparse
 import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
@@ -32,11 +30,12 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 
-def main():
+def main(args):
 
     # Config
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # model
     class SimpleMLP(nn.Module):
 
@@ -166,4 +165,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    args = parser.parse_args()
+    main(args)

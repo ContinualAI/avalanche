@@ -13,8 +13,8 @@ criterion = torch.nn.CrossEntropyLoss()
 # check if selected GPU is available or use CPU
 assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
 if args.cuda >= 0:
-    assert torch.cuda.device_count() > args.cuda, \
-           f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
+    assert torch.cuda.device_count() > args.cuda,
+        f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
 device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
 print(f'Using device: {device}')
 
@@ -29,7 +29,7 @@ eval_plugin = EvaluationPlugin(
     loggers=[interactive_logger])
 
 # create strategy
-assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,\
+assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,
     'Alpha must be a non-empty list.'
 lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 else args.lwf_alpha
 
@@ -47,7 +47,7 @@ for train_batch_info in scenario.train_stream:
     strategy.train(train_batch_info, num_workers=4)
     print("End training on step ", train_batch_info.current_step)
     print('Computing accuracy on the test set')
-    results.append(strategy.test(scenario.test_stream[:]))
+    results.append(strategy.eval(scenario.test_stream[:]))
 ```
 {% endcode %}
 

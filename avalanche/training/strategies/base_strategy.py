@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -20,6 +20,7 @@ from avalanche.benchmarks.utils.data_loader import \
 from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
 
+from avalanche.training.plugins import EvaluationPlugin
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 class BaseStrategy:
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 test_mb_size: int = 1, device='cpu',
+                 eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger):
         """
@@ -50,27 +51,29 @@ class BaseStrategy:
         :param criterion: loss function.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
-        :param test_mb_size: mini-batch size for test.
+        :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device to run the model.
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
-            and metric computations.
+            and metric computations. None to remove logging.
         """
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_epochs = train_epochs
         self.train_mb_size = train_mb_size
-        self.test_mb_size = train_mb_size if test_mb_size is None \
-            else test_mb_size
+        self.eval_mb_size = train_mb_size if eval_mb_size is None \
+            else eval_mb_size
         self.device = device
         self.plugins = [] if plugins is None else plugins
+        if evaluator is None:
+            evaluator = EvaluationPlugin()
         self.plugins.append(evaluator)
         self.evaluator = evaluator
 
         # Flow state variables
         self.training_step_counter = 0  # +1 at the end of each step.
-        self.test_step_id = None  # test-flow only
+        self.eval_step_id = None  # eval-flow only
         self.epoch = None
         self.step_info = None
         # data used to train. May be modified by plugins. In general, plugins
@@ -83,11 +86,11 @@ class BaseStrategy:
         self.loss = None
         self.logits = None
         self.train_task_label: Optional[int] = None
-        self.test_task_label: Optional[int] = None
+        self.eval_task_label: Optional[int] = None
         self.is_training: bool = False
 
     @property
-    def is_testing(self):
+    def is_eval(self):
         return not self.is_training
 
     def update_optimizer(self, old_params, new_params, reset_state=True):
@@ -175,12 +178,11 @@ class BaseStrategy:
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
 
-    def test(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
+    def eval(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
         """
-        Test the current model on a series of steps, as defined by test_part.
+        Evaluate the current model on a series of steps.
 
         :param step_info: CL step information.
-        :param test_part: determines which steps to test on.
         :param kwargs: custom arguments.
         """
         self.is_training = False
@@ -191,24 +193,24 @@ class BaseStrategy:
             step_list = [step_list]
 
         res = []
-        self.before_test(**kwargs)
+        self.before_eval(**kwargs)
         for step_info in step_list:
-            self.test_task_label = step_info.task_label
+            self.eval_task_label = step_info.task_label
             self.step_info = step_info
-            self.test_step_id = step_info.current_step
+            self.eval_step_id = step_info.current_step
 
             self.adapted_dataset = step_info.dataset
             self.adapted_dataset.eval()
 
-            self.adapt_test_dataset(**kwargs)
-            self.make_test_dataloader(**kwargs)
+            self.adapt_eval_dataset(**kwargs)
+            self.make_eval_dataloader(**kwargs)
 
-            self.before_test_step(**kwargs)
-            self.test_epoch(**kwargs)
-            self.after_test_step(**kwargs)
+            self.before_eval_step(**kwargs)
+            self.eval_epoch(**kwargs)
+            self.after_eval_step(**kwargs)
             res.append(self.evaluator.current_metrics.copy())
 
-        self.after_test(**kwargs)
+        self.after_eval(**kwargs)
         return res
 
     def before_training_step(self, **kwargs):
@@ -231,9 +233,9 @@ class BaseStrategy:
             batch_size=self.train_mb_size,
             shuffle=shuffle)
 
-    def make_test_dataloader(self, num_workers=0, **kwargs):
+    def make_eval_dataloader(self, num_workers=0, **kwargs):
         """
-        Initialize the test data loader.
+        Initialize the eval data loader.
         :param num_workers:
         :param kwargs:
         :return:
@@ -241,7 +243,7 @@ class BaseStrategy:
         self.current_dataloader = MultiTaskDataLoader(
               self.adapted_dataset,
               num_workers=num_workers,
-              batch_size=self.test_mb_size)
+              batch_size=self.eval_mb_size)
 
     def adapt_train_dataset(self, **kwargs):
         """
@@ -356,43 +358,43 @@ class BaseStrategy:
         self.loss = None
         self.logits = None
 
-    def before_test(self, **kwargs):
+    def before_eval(self, **kwargs):
         for p in self.plugins:
-            p.before_test(self, **kwargs)
+            p.before_eval(self, **kwargs)
 
-    def before_test_step(self, **kwargs):
+    def before_eval_step(self, **kwargs):
         for p in self.plugins:
-            p.before_test_step(self, **kwargs)
+            p.before_eval_step(self, **kwargs)
 
-    def adapt_test_dataset(self, **kwargs):
+    def adapt_eval_dataset(self, **kwargs):
         self.adapted_dataset = {self.step_info.task_label: self.adapted_dataset}
         for p in self.plugins:
-            p.adapt_test_dataset(self, **kwargs)
+            p.adapt_eval_dataset(self, **kwargs)
 
-    def test_epoch(self, **kwargs):
+    def eval_epoch(self, **kwargs):
         for self.mb_it, (self.mb_task_id, self.mb_x, self.mb_y) in \
                 enumerate(self.current_dataloader):
-            self.before_test_iteration(**kwargs)
+            self.before_eval_iteration(**kwargs)
 
             self.mb_x = self.mb_x.to(self.device)
             self.mb_y = self.mb_y.to(self.device)
 
-            self.before_test_forward(**kwargs)
+            self.before_eval_forward(**kwargs)
             self.logits = self.model(self.mb_x)
-            self.after_test_forward(**kwargs)
+            self.after_eval_forward(**kwargs)
             self.loss = self.criterion(self.logits, self.mb_y)
 
-            self.after_test_iteration(**kwargs)
+            self.after_eval_iteration(**kwargs)
 
-    def after_test_step(self, **kwargs):
+    def after_eval_step(self, **kwargs):
         for p in self.plugins:
-            p.after_test_step(self, **kwargs)
+            p.after_eval_step(self, **kwargs)
 
-    def after_test(self, **kwargs):
+    def after_eval(self, **kwargs):
         for p in self.plugins:
-            p.after_test(self, **kwargs)
+            p.after_eval(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.test_step_id = None
+        self.eval_step_id = None
         self.step_info = None
         self.adapted_dataset = None
         self.current_dataloader = None
@@ -403,21 +405,21 @@ class BaseStrategy:
 
         self.training_step_counter += 1
 
-    def before_test_iteration(self, **kwargs):
+    def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
-            p.before_test_iteration(self, **kwargs)
+            p.before_eval_iteration(self, **kwargs)
 
-    def before_test_forward(self, **kwargs):
+    def before_eval_forward(self, **kwargs):
         for p in self.plugins:
-            p.before_test_forward(self, **kwargs)
+            p.before_eval_forward(self, **kwargs)
 
-    def after_test_forward(self, **kwargs):
+    def after_eval_forward(self, **kwargs):
         for p in self.plugins:
-            p.after_test_forward(self, **kwargs)
+            p.after_eval_forward(self, **kwargs)
 
-    def after_test_iteration(self, **kwargs):
+    def after_eval_iteration(self, **kwargs):
         for p in self.plugins:
-            p.after_test_iteration(self, **kwargs)
+            p.after_eval_iteration(self, **kwargs)
 
 
 __all__ = ['BaseStrategy']

@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -101,30 +98,30 @@ class MinibatchLoss(PluginMetric[float]):
     :class:`EpochLoss` and/or :class:`TaskLoss` instead.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the MinibatchLoss metric.
 
-        The train and test parameters are used to control if this metric should
-        compute and log values referred to the train phase, test phase or both.
+        The train and eval parameters are used to control if this metric should
+        compute and log values referred to the train phase, eval phase or both.
         At least one of them must be True!
 
-        Beware that the test parameter defaults to False because logging
-        the test minibatch loss it's and uncommon practice.
+        Beware that the eval parameter defaults to False because logging
+        the eval minibatch loss it's and uncommon practice.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
         self._minibatch_loss = Loss()
         self._compute_train_loss = train
-        self._compute_test_loss = test
+        self._compute_eval_loss = eval
 
     def result(self) -> float:
         return self._minibatch_loss.result()
@@ -137,9 +134,9 @@ class MinibatchLoss(PluginMetric[float]):
         if self._compute_train_loss:
             return self._on_iteration(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        if self._compute_test_loss:
+        if self._compute_eval_loss:
             return self._on_iteration(strategy)
 
     def _on_iteration(self, strategy: 'PluggableStrategy'):
@@ -167,43 +164,43 @@ class EpochLoss(PluginMetric[float]):
     unbalanced minibatch sizes will not affect the metric.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the EpochLoss metric.
 
-        The train and test parameters are used to control if this metric should
-        compute and log values referred to the train phase, test phase or both.
+        The train and eval parameters are used to control if this metric should
+        compute and log values referred to the train phase, eval phase or both.
         At least one of them must be True!
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to True.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._mean_loss = Loss()
         self._compute_train_loss = train
-        self._compute_test_loss = test
+        self._compute_eval_loss = eval
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_loss:
             self.reset()
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_test_loss:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
+        if self._compute_eval_loss:
             self.reset()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         if self._compute_train_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._compute_test_loss:
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        if self._compute_eval_loss:
             self._mean_loss.update(strategy.loss, len(strategy.mb_y))
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') \
@@ -211,8 +208,8 @@ class EpochLoss(PluginMetric[float]):
         if self._compute_train_loss:
             return self._package_result(strategy)
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._compute_test_loss:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+        if self._compute_eval_loss:
             return self._package_result(strategy)
 
     def reset(self) -> None:
@@ -239,30 +236,30 @@ class RunningEpochLoss(EpochLoss):
     this metric will log the running loss value after each iteration.
     """
 
-    def __init__(self, *, train=True, test=True):
+    def __init__(self, *, train=True, eval=True):
         """
         Creates an instance of the RunningEpochLoss metric.
 
-        The train and test parameters are used to control if this metric should
-        compute and log values referred to the train phase, test phase or both.
+        The train and eval parameters are used to control if this metric should
+        compute and log values referred to the train phase, eval phase or both.
         At least one of them must be True!
 
-        Beware that the test parameter defaults to False because logging
-        the running test loss it's and uncommon practice.
+        Beware that the eval parameter defaults to False because logging
+        the running eval loss it's and uncommon practice.
 
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._compute_train_loss = train
-        self._compute_test_loss = test
+        self._compute_eval_loss = eval
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
@@ -270,10 +267,10 @@ class RunningEpochLoss(EpochLoss):
         if self._compute_train_loss:
             return self._package_result(strategy)
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        super().after_test_iteration(strategy)
-        if self._compute_test_loss:
+        super().after_eval_iteration(strategy)
+        if self._compute_eval_loss:
             return self._package_result(strategy)
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
@@ -281,7 +278,7 @@ class RunningEpochLoss(EpochLoss):
         # emit a metric value on epoch end!
         return None
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> None:
         # Overrides the method from EpochLoss so that it doesn't
         # emit a metric value on epoch end!
         return None
@@ -301,13 +298,13 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
     The task loss metric.
 
     The logged loss value is the per-pattern loss obtained by averaging the loss
-    of all test patterns of a task. This is a common metric used in the
+    of all eval patterns of a task. This is a common metric used in the
     evaluation of a Continual Learning algorithm.
 
     Can be safely used when evaluation task-free scenarios, in which case the
     default task label "0" will be used.
 
-    The task losses will be logged at the end of the test phase. This metric
+    The task losses will be logged at the end of the eval phase. This metric
     doesn't apply to the training phase.
     """
 
@@ -334,13 +331,13 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
     def update(self, loss: Tensor, patterns: int, task_label: int) -> None:
         self._task_loss[task_label].update(loss, patterns)
 
-    def before_test(self, strategy) -> None:
+    def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') -> None:
-        self.update(strategy.loss, len(strategy.mb_y), strategy.test_task_label)
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.update(strategy.loss, len(strategy.mb_y), strategy.eval_task_label)
 
-    def after_test(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
         return self._package_result()
 
     def _package_result(self) -> MetricResult:
@@ -355,7 +352,7 @@ class TaskLoss(PluginMetric[Dict[int, float]]):
 
 
 def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                 task=False, train=None, test=None) -> List[PluginMetric]:
+                 task=False, train=None, eval=None) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -365,38 +362,38 @@ def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     :param epoch_running: If True, will return a metric able to log the running
         epoch loss.
     :param task: If True, will return a metric able to log the task loss. This
-        metric applies to the test flow only. If the `test` parameter is False,
+        metric applies to the eval flow only. If the `eval` parameter is False,
         an error will be raised.
     :param train: If True, metrics will log values for the train flow. Defaults
         to None, which means that the per-metric default value will be used.
-    :param test: If True, metrics will log values for the test flow. Defaults
+    :param eval: If True, metrics will log values for the eval flow. Defaults
         to None, which means that the per-metric default value will be used.
 
     :return: A list of plugin metrics.
     """
 
-    if (train is not None and not train) and (test is not None and not test):
-        raise ValueError('train and test can\'t be both False at the same'
+    if (train is not None and not train) and (eval is not None and not eval):
+        raise ValueError('train and eval can\'t be both False at the same'
                          ' time.')
-    if task and test is not None and not test:
-        raise ValueError('The task loss metric only applies to the test phase.')
+    if task and eval is not None and not eval:
+        raise ValueError('The task loss metric only applies to the eval phase.')
 
-    train_test_flags = dict()
+    train_eval_flags = dict()
     if train is not None:
-        train_test_flags['train'] = train
+        train_eval_flags['train'] = train
 
-    if test is not None:
-        train_test_flags['test'] = test
+    if eval is not None:
+        train_eval_flags['eval'] = eval
 
     metrics = []
     if minibatch:
-        metrics.append(MinibatchLoss(**train_test_flags))
+        metrics.append(MinibatchLoss(**train_eval_flags))
 
     if epoch:
-        metrics.append(EpochLoss(**train_test_flags))
+        metrics.append(EpochLoss(**train_eval_flags))
 
     if epoch_running:
-        metrics.append(RunningEpochLoss(**train_test_flags))
+        metrics.append(RunningEpochLoss(**train_eval_flags))
 
     if task:
         metrics.append(TaskLoss())

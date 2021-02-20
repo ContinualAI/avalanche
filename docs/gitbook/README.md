@@ -61,14 +61,14 @@ evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
 # Continual learning strategy
 cl_strategy = Naive(
-    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
-    test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+    model, optimizer, criterion, train_mb_size=32, train_epochs=2,
+    eval_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
 
 # train and test loop
 results = []
 for train_task in train_stream:
     cl_strategy.train(train_task, num_workers=4)
-    results.append(cl_strategy.test(test_stream))
+    results.append(cl_strategy.eval(test_stream))
 ```
 {% endtab %}
 
@@ -230,13 +230,13 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 ![](.gitbook/assets/continualai_lab_logo%20%281%29.png)
 
-_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._ 
+_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
 
 Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
-The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _****_and used extensively by the _Units_ of the _****_[_**ContinualAI Research \(CLAIR\)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world_._ 
+The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _\*\*\_and used extensively by the \_Units_ of the _\*\*_[_**ContinualAI Research \(CLAIR\)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world_._
 
-We are always looking for new _awesome members_ willing to join the _ContinualAI Lab_, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](contacts-and-links/the-team.md#contacts). 
+We are always looking for new _awesome members_ willing to join the _ContinualAI Lab_, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](contacts-and-links/the-team.md#contacts).
 
 Learn more about the [_**Avalanche team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
 

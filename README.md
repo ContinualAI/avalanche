@@ -63,14 +63,14 @@ evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
 # Continual learning strategy
 cl_strategy = Naive(
-    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
-    test_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+    model, optimizer, criterion, train_mb_size=32, train_epochs=2,
+    eval_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
 
 # train and test loop
 results = []
 for train_task in train_stream:
     cl_strategy.train(train_task, num_workers=4)
-    results.append(cl_strategy.test(test_stream))
+    results.append(cl_strategy.eval(test_stream))
 ```
 
 Getting Started

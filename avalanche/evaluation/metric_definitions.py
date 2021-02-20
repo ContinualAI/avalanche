@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -144,35 +141,35 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def before_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def adapt_test_dataset(self, strategy: 'PluggableStrategy') \
+    def adapt_eval_dataset(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def after_test_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def after_test(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def before_test_iteration(self, strategy: 'PluggableStrategy') \
+    def before_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_test_forward(self, strategy: 'PluggableStrategy') \
+    def before_eval_forward(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_test_forward(self, strategy: 'PluggableStrategy') \
+    def after_eval_forward(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_test_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 

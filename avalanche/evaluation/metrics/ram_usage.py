@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -71,7 +68,7 @@ class RamUsage(Metric[float]):
 
         self._two_read_average = two_read_average
         """
-        If True, the value resulting from calling `update` more than once will 
+        If True, the value resulting from calling `update` more than once will
         set the result to the average between the last read and the current RAM
         usage value.
         """
@@ -131,14 +128,14 @@ class RamUsageMonitor(AnyEventMetric[float]):
     The metric can be either configured to log after a certain timeout or
     at each event.
 
-    RAM usage is logged separately for the train and test phases.
+    RAM usage is logged separately for the train and eval phases.
     """
 
-    def __init__(self, *, timeout: float = 5.0, train=True, test=False):
+    def __init__(self, *, timeout: float = 5.0, train=True, eval=False):
         """
         Creates an instance of the RAM usage metric.
 
-        The train and test parameters can be True at the same time. However,
+        The train and eval parameters can be True at the same time. However,
         at least one of them must be True.
 
         :param timeout: The timeout between each RAM usage check, in seconds.
@@ -146,24 +143,24 @@ class RamUsageMonitor(AnyEventMetric[float]):
             recommended). Defaults to 5 seconds.
         :param train: When True, the metric will be computed on the training
             phase. Defaults to True.
-        :param test: When True, the metric will be computed on the test
+        :param eval: When True, the metric will be computed on the eval
             phase. Defaults to False.
         """
         super().__init__()
 
-        if not train and not test:
-            raise ValueError('train and test can\'t be both False at the same'
+        if not train and not eval:
+            raise ValueError('train and eval can\'t be both False at the same'
                              ' time.')
 
         self._ram_sensor = RamUsage()
         self._timeout = timeout
         self._last_time = None
         self._track_train_usage = train
-        self._track_test_usage = test
+        self._track_eval_usage = eval
 
     def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_testing and not self._track_test_usage):
+                (strategy.is_eval and not self._track_eval_usage):
             return None
 
         is_elapsed = False

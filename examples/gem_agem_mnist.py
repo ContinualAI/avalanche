@@ -4,7 +4,7 @@ from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics
+    loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -40,41 +40,17 @@ Average Accuracy over all steps at the end of training on the last step: 23.5%
 
 """
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--strategy', type=str, choices=['gem', 'agem'],
-                    default='gem', help='Choose between GEM and A-GEM')
-parser.add_argument('--scenario', type=str, 
-                    choices=['pmnist', 'smnist'], default='smnist',
-                    help='Choose between Permuted MNIST, Split MNIST.')
-parser.add_argument('--patterns_per_step', type=int, default=256,
-                    help='Patterns to store in the memory for each step')
-parser.add_argument('--sample_size', type=int, default=256,
-                    help='Number of patterns to sample from memory when \
-                    projecting gradient. A-GEM only.')
-parser.add_argument('--memory_strength', type=float, default=0.5,
-                    help='Offset to add to the projection direction. GEM only.')
-parser.add_argument('--lr', type=float, default=1e-1, help='Learning rate.')
-parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
-parser.add_argument('--epochs', type=int, default=1, 
-                    help='Number of training epochs.')
-parser.add_argument('--permutations', type=int, default=5,
-                    help='Number of steps in Permuted MNIST.')
-parser.add_argument('--cuda', type=int, default=-1,
-                    help='Specify GPU id to use. Use CPU if -1.')
-args = parser.parse_args()
 
-
-if __name__ == '__main__':
+def main(args):
     model = SimpleMLP(hidden_size=args.hs)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     criterion = torch.nn.CrossEntropyLoss()
 
     # check if selected GPU is available or use CPU
     assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
-    if args.cuda >= 0:
-        assert torch.cuda.device_count() > args.cuda, \
-               f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
-    device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
+    device = torch.device(f"cuda:{args.cuda}"
+                          if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     print(f'Using device: {device}')
 
     # create scenario
@@ -91,8 +67,6 @@ if __name__ == '__main__':
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, task=True),
         loss_metrics(minibatch=True, epoch=True, task=True),
-        timing_metrics(epoch=True, epoch_average=True, test=False),
-        cpu_usage_metrics(step=True),
         Forgetting(compute_for_step=True),
         loggers=[interactive_logger])
 
@@ -116,4 +90,30 @@ if __name__ == '__main__':
         strategy.train(train_batch_info)
         print("End training on step ", train_batch_info.current_step)
         print('Computing accuracy on the test set')
-        results.append(strategy.test(scenario.test_stream[:]))
+        results.append(strategy.eval(scenario.test_stream[:]))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--strategy', type=str, choices=['gem', 'agem'],
+                        default='gem', help='Choose between GEM and A-GEM')
+    parser.add_argument('--scenario', type=str,
+                        choices=['pmnist', 'smnist'], default='smnist',
+                        help='Choose between Permuted MNIST, Split MNIST.')
+    parser.add_argument('--patterns_per_step', type=int, default=256,
+                        help='Patterns to store in the memory for each step')
+    parser.add_argument('--sample_size', type=int, default=256,
+                        help='Number of patterns to sample from memory when \
+                        projecting gradient. A-GEM only.')
+    parser.add_argument('--memory_strength', type=float, default=0.5,
+                        help='Offset to add to the projection direction. GEM only.')
+    parser.add_argument('--lr', type=float, default=1e-1, help='Learning rate.')
+    parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
+    parser.add_argument('--epochs', type=int, default=1,
+                        help='Number of training epochs.')
+    parser.add_argument('--permutations', type=int, default=5,
+                        help='Number of steps in Permuted MNIST.')
+    parser.add_argument('--cuda', type=int, default=0,
+                        help='Specify GPU id to use. Use CPU if -1.')
+    args = parser.parse_args()
+
+    main(args)

@@ -3,31 +3,23 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 1-05-2020                                                              #
+# Date: 19-02-2020                                                             #
 # Author(s): Vincenzo Lomonaco                                                 #
 # E-mail: contact@continualai.org                                              #
-# Website: www.continualai.org                                                 #
+# Website: clair.continualai.org                                               #
 ################################################################################
 
-""" CORe50 Tests"""
+"""
+This is a simple script to test if avalanche is installed correctly.
+"""
 
-import unittest
+import avalanche
 
-from avalanche.benchmarks.classic import CORe50
-from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
+def main():
 
-
-class CORe50Test(unittest.TestCase):
-    def test_core50_ni_scenario(self):
-
-        # for now we disable it as it takes a while to download the CORe50
-        # dataset.
-        pass
-
-        # scenario = CORe50(scenario="ni")
-        # for task_info in scenario:
-        #     self.assertIsInstance(task_info, IStepInfo)
-
+    print("Avalanche Version:", avalanche.__version__)
+    print("Everything looks fine here :-)")
 
 if __name__ == '__main__':
-    unittest.main()
+
+    main()
