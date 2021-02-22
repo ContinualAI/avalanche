@@ -22,7 +22,8 @@ from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 
 
 def pil_loader(path):
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    # open path as file to avoid ResourceWarning
+    # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
@@ -35,7 +36,8 @@ def default_loader(path):
 class Stream51(Dataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root, train=True, transform=ToTensor(), target_transform=None, loader=pil_loader, download=True):
+    def __init__(self, root, train=True, transform=ToTensor(),
+                 target_transform=None, loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -58,9 +60,11 @@ class Stream51(Dataset):
 
         self.log.info("Loading files...")
         if train:
-            data_list = json.load(open(os.path.join(root, 'Stream-51_train.json')))
+            data_list = json.load(
+                open(os.path.join(root, 'Stream-51_train.json')))
         else:
-            data_list = json.load(open(os.path.join(root, 'Stream-51_test.json')))
+            data_list = json.load(
+                open(os.path.join(root, 'Stream-51_test.json')))
 
         samples = self._make_dataset(data_list, ordering, seed=seed)
 
@@ -132,7 +136,9 @@ class Stream51(Dataset):
         if not ordering or len(data_list[0]) == 3:  # cannot order the test set
             return data_list
         if ordering not in ['iid', 'class_iid', 'instance', 'class_instance']:
-            raise ValueError('dataset ordering must be one of: "iid", "class_iid", "instance", or "class_instance"')
+            raise ValueError(
+                'dataset ordering must be one of: "iid", "class_iid", '
+                '"instance", or "class_instance"')
         if ordering == 'iid':
             # shuffle all data
             random.seed(seed)
@@ -149,7 +155,8 @@ class Stream51(Dataset):
             index (int): Index
 
         Returns:
-            tuple: (sample, target) where target is class_index of the target class.
+            tuple: (sample, target) where target is class_index of the target
+            class.
         """
         fpath, target = self.samples[index][-1], self.targets[index]
         sample = self.loader(os.path.join(self.root, fpath))
@@ -158,10 +165,11 @@ class Stream51(Dataset):
             cw = bbox[0] - bbox[1]
             ch = bbox[2] - bbox[3]
             center = [int(bbox[1] + cw / 2), int(bbox[3] + ch / 2)]
-            bbox = [min([int(center[0] + (cw * self.ratio / 2)), sample.size[0]]),
-                    max([int(center[0] - (cw * self.ratio / 2)), 0]),
-                    min([int(center[1] + (ch * self.ratio / 2)), sample.size[1]]),
-                    max([int(center[1] - (ch * self.ratio / 2)), 0])]
+            bbox = [
+                min([int(center[0] + (cw * self.ratio / 2)), sample.size[0]]),
+                max([int(center[0] - (cw * self.ratio / 2)), 0]),
+                min([int(center[1] + (ch * self.ratio / 2)), sample.size[1]]),
+                max([int(center[1] - (ch * self.ratio / 2)), 0])]
             sample = sample.crop((bbox[1],
                                   bbox[3],
                                   bbox[0],
@@ -182,9 +190,17 @@ class Stream51(Dataset):
         fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
         fmt_str += '    Root Location: {}\n'.format(self.root)
         tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}\n'.format(tmp,
+                                     self.transform.__repr__().replace('\n',
+                                                                       '\n' +
+                                                                       ' ' *
+                                                                       len(
+                                                                           tmp)
+                                                                       ))
         tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}'.format(tmp,
+                                   self.target_transform.__repr__().replace(
+                                       '\n', '\n' + ' ' * len(tmp)))
         return fmt_str
 
 

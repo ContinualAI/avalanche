@@ -45,10 +45,16 @@ class STREAM51_DATA(object):
             self.log.error("Directory ", self.data_folder, " already exists")
 
     def download_stream51(self):
-        # DEPRECATED: the following function causes an error unless the data is already archived on the local machine
-        # several issues on github are raised about this problem: https://github.com/ndrplz/google-drive-downloader
-        # gdd.download_file_from_google_drive(file_id='15huZ756N2cp1CCO4HxF-MVDsMx1LMoIn',
-        #                                     dest_path=os.path.join(self.data_folder, 'Stream-51.zip'),
+        # DEPRECATED: the following function causes an error unless the data
+        # is already archived on the local machine
+        # several issues on github are raised about this problem:
+        # https://github.com/ndrplz/google-drive-downloader
+        # gdd.download_file_from_google_drive(file_id=
+        #                                     '15huZ756N2cp1CCO4HxF-'
+        #                                     'MVDsMx1LMoIn',
+        #                                     dest_path=os.path.join(
+        #                                         self.data_folder,
+        #                                         'Stream-51.zip'),
         #                                     unzip=True)
         # self.log.info("Download complete.")
         raise NotImplementedError

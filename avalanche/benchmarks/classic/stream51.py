@@ -17,18 +17,21 @@ from torchvision import transforms
 import math
 import os
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 _default_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     normalize])
 
 
-def CLStream51(root, scenario="class_instance", transform=_default_transform, seed=10, eval_num=None, download=False):
+def CLStream51(root, scenario="class_instance", transform=_default_transform,
+               seed=10, eval_num=None, download=False):
     """ Stream-51 continual scenario generator
 
         root (string): Root directory path of dataset.
-        scenario (string): Stream-51 main scenario. Can be chosen between 'instance', or 'class_instance.'
+        scenario (string): Stream-51 main scenario. Can be chosen between
+        'instance', or 'class_instance.'
         (default: 'class_instance')
         transform: A function/transform that takes in
             a sample and returns a transformed version.
@@ -36,7 +39,8 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform, se
         bbox_crop: crop images to object bounding box (default: True)
         ratio: padding for bbox crop (default: 1.10)
         seed: random seed for shuffling classes or instances (default=10)
-        eval_num: how many samples to see before evaluating the network (default=None)
+        eval_num: how many samples to see before evaluating the network
+        (default=None)
         download: automatically download the dataset (default=False)
 
     :returns: it returns a :class:`GenericCLScenario` instance that can be
@@ -50,13 +54,16 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform, se
     # compute number of tasks
     if eval_num is None and scenario == 'instance':
         eval_num = 30000
-        num_tasks = math.ceil(len(train_set) / eval_num)  # evaluate every 30000 samples
+        num_tasks = math.ceil(
+            len(train_set) / eval_num)  # evaluate every 30000 samples
     elif eval_num is None and scenario == 'class_instance':
         eval_num = 10
         num_tasks = math.ceil(
-            51 / eval_num)  # evaluate every 10 classes # todo: support num_samples or num_classes for eval_num
+            51 / eval_num)  # evaluate every 10 classes # todo: support
+        # num_samples or num_classes for eval_num
     else:
-        num_tasks = math.ceil(len(train_set) / eval_num)  # evaluate every eval_num samples
+        num_tasks = math.ceil(
+            len(train_set) / eval_num)  # evaluate every eval_num samples
 
     if scenario == 'instance':
         # break files into task lists based on eval_num samples
@@ -64,25 +71,30 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform, se
         start = 0
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
-            train_filelists_paths.append([os.path.join(root, train_set.samples[j][-1]) for j in range(start, end)])
+            train_filelists_paths.append(
+                [os.path.join(root, train_set.samples[j][-1]) for j in
+                 range(start, end)])
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = [os.path.join(root, test_set.samples[i][-1]) for i in range(len(test_set))]
+        test_filelists_paths = [os.path.join(root, test_set.samples[i][-1]) for
+                                i in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
         # break files into task lists based on classes
         train_filelists_paths = []
         test_filelists_paths = []
         test_ood_filelists_paths = []
-        class_change = [i for i in range(1, len(train_set.targets)) if train_set.targets[i] != train_set.targets[i - 1]]
+        class_change = [i for i in range(1, len(train_set.targets)) if
+                        train_set.targets[i] != train_set.targets[i - 1]]
         unique_so_far = []
         start = 0
         for i in range(num_tasks):
             if i == num_tasks - 1:
                 end = len(train_set)
             else:
-                end = class_change[min(eval_num + eval_num * i - 1, len(class_change) - 1)]
+                end = class_change[
+                    min(eval_num + eval_num * i - 1, len(class_change) - 1)]
             unique_labels = [train_set.targets[k] for k in range(start, end)]
             unique_labels = list(set(unique_labels))
             unique_so_far += unique_labels
@@ -93,9 +105,15 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform, se
                     test_files.append(ix)
                 else:
                     test_ood_files.append(ix)
-            test_filelists_paths.append([os.path.join(root, test_set.samples[j][-1]) for j in test_files])
-            test_ood_filelists_paths.append([os.path.join(root, test_set.samples[j][-1]) for j in test_ood_files])
-            train_filelists_paths.append([os.path.join(root, train_set.samples[j][-1]) for j in range(start, end)])
+            test_filelists_paths.append(
+                [os.path.join(root, test_set.samples[j][-1]) for j in
+                 test_files])
+            test_ood_filelists_paths.append(
+                [os.path.join(root, test_set.samples[j][-1]) for j in
+                 test_ood_files])
+            train_filelists_paths.append(
+                [os.path.join(root, train_set.samples[j][-1]) for j in
+                 range(start, end)])
             start = end
     else:
         raise NotImplementedError
@@ -104,7 +122,8 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform, se
         root, train_file_lists=train_filelists_paths,
         test_file_lists=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
-        complete_test_set_only=scenario == 'instance',  # return entire test set for 'instance' ordering
+        complete_test_set_only=scenario == 'instance',
+        # return entire test set for 'instance' ordering
         train_transform=transform,
         test_transform=transform)
 
