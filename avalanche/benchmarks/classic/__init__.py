@@ -8,3 +8,4 @@ from .comniglot import *
 from .core50 import CORe50
 from .ctiny_imagenet import *
 from .openloris import *
+from .stream51 import *
