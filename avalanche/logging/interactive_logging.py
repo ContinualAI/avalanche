@@ -20,13 +20,14 @@ from tqdm import tqdm
 
 
 class InteractiveLogger(TextLogger):
-    def __init__(self):
+    def __init__(self, disable_pbar=False):
         """
         Logger for interactive output to the standard output. Shows a progress
         bar and prints metric values.
         """
         super().__init__(file=sys.stdout)
         self._pbar = None
+        self.disable_pbar = disable_pbar
 
     def before_training_epoch(self, strategy: PluggableStrategy,
                               metric_values: List['MetricValue'], **kwargs):
@@ -63,7 +64,7 @@ class InteractiveLogger(TextLogger):
     @property
     def _progress(self):
         if self._pbar is None:
-            self._pbar = tqdm(leave=True, position=0, file=sys.stdout)
+            self._pbar = tqdm(leave=True, position=0, file=sys.stdout, disable=self.disable_pbar)
         return self._pbar
 
     def _end_progress(self):
