@@ -12,7 +12,7 @@
 # from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_filelists
+    create_generic_scenario_from_lists_of_files
 from torchvision import transforms
 import math
 import os
@@ -72,13 +72,15 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
             train_filelists_paths.append(
-                [os.path.join(root, train_set.samples[j][-1]) for j in
+                [(os.path.join(root, train_set.samples[j][-1]),
+                  train_set.samples[j][0]) for j in
                  range(start, end)])
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = [os.path.join(root, test_set.samples[i][-1]) for
-                                i in range(len(test_set))]
+        test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
+                                 test_set.samples[j][0]) for
+                                j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
         # break files into task lists based on classes
@@ -106,24 +108,26 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
                 else:
                     test_ood_files.append(ix)
             test_filelists_paths.append(
-                [os.path.join(root, test_set.samples[j][-1]) for j in
+                [(os.path.join(root, test_set.samples[j][-1]),
+                  test_set.samples[j][0]) for j in
                  test_files])
             test_ood_filelists_paths.append(
-                [os.path.join(root, test_set.samples[j][-1]) for j in
+                [(os.path.join(root, test_set.samples[j][-1]),
+                  test_set.samples[j][0]) for j in
                  test_ood_files])
             train_filelists_paths.append(
-                [os.path.join(root, train_set.samples[j][-1]) for j in
+                [(os.path.join(root, train_set.samples[j][-1]),
+                  train_set.samples[j][0]) for j in
                  range(start, end)])
             start = end
     else:
         raise NotImplementedError
 
-    scenario_obj = create_generic_scenario_from_filelists(
-        root, train_file_lists=train_filelists_paths,
-        test_file_lists=test_filelists_paths,
+    scenario_obj = create_generic_scenario_from_lists_of_files(
+        train_list_of_files=train_filelists_paths,
+        test_list_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
         complete_test_set_only=scenario == 'instance',
-        # return entire test set for 'instance' ordering
         train_transform=transform,
         test_transform=transform)
 
