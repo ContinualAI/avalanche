@@ -18,11 +18,11 @@ except ImportError:
         Generic
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.benchmarks.utils import TransformationDataset
+from avalanche.benchmarks.utils import AvalancheDataset
 
 
-TrainSet = TypeVar('TrainSet', bound=TransformationDataset)
-TestSet = TypeVar('TestSet', bound=TransformationDataset)
+TrainSet = TypeVar('TrainSet', bound=AvalancheDataset)
+TestSet = TypeVar('TestSet', bound=AvalancheDataset)
 TScenario = TypeVar('TScenario')
 TStepInfo = TypeVar('TStepInfo', bound='IStepInfo')
 TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
@@ -67,7 +67,7 @@ class IStepInfo(Protocol[TScenario, TScenarioStream]):
     """
     @property
     @abstractmethod
-    def dataset(self) -> TransformationDataset:
+    def dataset(self) -> AvalancheDataset:
         """
         The dataset containing the patterns available in this step.
         """

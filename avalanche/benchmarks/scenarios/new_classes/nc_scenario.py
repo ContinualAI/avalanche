@@ -14,7 +14,7 @@ from typing import Sequence, List, Optional, Dict, Generic, Any, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSet, TestSet
-from avalanche.benchmarks.utils import TransformationSubset
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
 
@@ -55,13 +55,13 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCStepInfo'],
         not None.
 
         :param train_dataset: The training dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``train_dataset=TransformationDataset(torchvision_dataset)``.
+            ``train_dataset=AvalancheDataset(torchvision_dataset)``.
         :param test_dataset: The test dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``test_dataset=TransformationDataset(torchvision_dataset)``.
+            ``test_dataset=AvalancheDataset(torchvision_dataset)``.
         :param n_steps: The number of steps.
         :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
@@ -307,9 +307,9 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCStepInfo'],
 
         original_training_dataset = train_dataset
         original_test_dataset = test_dataset
-        train_dataset = TransformationSubset(
+        train_dataset = AvalancheSubset(
             train_dataset, class_mapping=self.class_mapping)
-        test_dataset = TransformationSubset(
+        test_dataset = AvalancheSubset(
             test_dataset, class_mapping=self.class_mapping)
 
         # Populate the _classes_in_step and original_classes_in_step lists

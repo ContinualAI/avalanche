@@ -17,7 +17,7 @@ from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSet, TestSet
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
     _step_structure_from_assignment
-from avalanche.benchmarks.utils import TransformationSubset
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericStepInfo
 
@@ -56,13 +56,13 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIStepInfo'],
         the number of steps.
 
         :param train_dataset: The training dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``train_dataset=TransformationDataset(torchvision_dataset)``.
+            ``train_dataset=AvalancheDataset(torchvision_dataset)``.
         :param test_dataset: The test dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``test_dataset=TransformationDataset(torchvision_dataset)``.
+            ``test_dataset=AvalancheDataset(torchvision_dataset)``.
         :param n_steps: The number of steps.
         :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
@@ -139,8 +139,8 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIStepInfo'],
             included_patterns = list()
             for step_def in fixed_step_assignment:
                 included_patterns.extend(step_def)
-            subset = TransformationSubset(train_dataset,
-                                          indices=included_patterns)
+            subset = AvalancheSubset(train_dataset,
+                                     indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True)
 

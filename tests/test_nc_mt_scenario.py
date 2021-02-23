@@ -3,7 +3,7 @@ import unittest
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios.new_classes import NCStepInfo
-from avalanche.benchmarks.utils import TransformationSubset
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import nc_scenario, GenericScenarioStream
@@ -148,15 +148,15 @@ class MultiTaskTests(unittest.TestCase):
             mnist_train, None, None, range(3))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10))
-        train_part2 = TransformationSubset(
+        train_part2 = AvalancheSubset(
             train_part2, class_mapping=split_mapping)
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3))
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10))
-        test_part2 = TransformationSubset(test_part2,
-                                          class_mapping=split_mapping)
+        test_part2 = AvalancheSubset(test_part2,
+                                     class_mapping=split_mapping)
         my_nc_scenario = nc_scenario(
             [train_part1, train_part2], [test_part1, test_part2], 2,
             task_labels=True, seed=1234,

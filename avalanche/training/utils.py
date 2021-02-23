@@ -325,14 +325,24 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
         batch_size = len(dataset)
     loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
                         num_workers=num_workers)
+    has_task_labels = False
     batches_x = []
     batches_y = []
-    for batch_x, batch_y in loader:
-        batches_x.append(batch_x)
-        batches_y.append(batch_y)
+    batches_t = []
+    for loaded_element in loader:
+        batches_x.append(loaded_element[0])
+        batches_y.append(loaded_element[1])
+        if len(loaded_element) > 2:
+            has_task_labels = True
+            batches_t.append(loaded_element[2])
 
     x, y = torch.cat(batches_x), torch.cat(batches_y)
-    return x, y
+
+    if has_task_labels:
+        t = torch.cat(batches_t)
+        return x, y, t
+    else:
+        return x, y
 
 
 def zerolike_params_dict(model):

@@ -4,7 +4,7 @@ import torch
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios import NIStepInfo, GenericScenarioStream
-from avalanche.benchmarks.utils import TransformationSubset
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import ni_scenario
@@ -101,15 +101,15 @@ class NISITTests(unittest.TestCase):
             mnist_train, None, None, range(5))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10))
-        train_part2 = TransformationSubset(
+        train_part2 = AvalancheSubset(
             train_part2, class_mapping=split_mapping)
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(5))
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(5, 10))
-        test_part2 = TransformationSubset(test_part2,
-                                          class_mapping=split_mapping)
+        test_part2 = AvalancheSubset(test_part2,
+                                     class_mapping=split_mapping)
         my_ni_scenario = ni_scenario(
             [train_part1, train_part2], [test_part1, test_part2], 5,
             shuffle=True, seed=1234, balance_steps=True)

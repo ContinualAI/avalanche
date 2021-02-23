@@ -27,7 +27,7 @@ from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import \
     concat_datasets_sequentially, as_transformation_dataset
-from avalanche.benchmarks.utils.transform_dataset import SupportedDataset
+from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -170,7 +170,7 @@ def nc_scenario(
             n_steps = len(train_dataset)
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
-    # Datasets should be instances of TransformationDataset
+    # Datasets should be instances of AvalancheDataset
     train_dataset = as_transformation_dataset(train_dataset).train()
     test_dataset = as_transformation_dataset(test_dataset).eval()
 
@@ -258,7 +258,7 @@ def ni_scenario(
         seq_train_dataset, seq_test_dataset, _ = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
-    # Datasets should be instances of TransformationDataset
+    # Datasets should be instances of AvalancheDataset
     seq_train_dataset = as_transformation_dataset(seq_train_dataset).train()
     seq_test_dataset = as_transformation_dataset(seq_test_dataset).eval()
 

@@ -6,8 +6,8 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TStepInfo, IScenarioStream, TScenarioStream, IStepInfo, TScenario, \
     TrainSet, TestSet
-from avalanche.benchmarks.utils import TransformationDataset, \
-    TransformationSubset
+from avalanche.benchmarks.utils import AvalancheDataset, \
+    AvalancheSubset
 
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
 TGenericStepInfo = TypeVar('TGenericStepInfo', bound='GenericStepInfo')
@@ -34,8 +34,8 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TStepInfo]):
     def __init__(self: TGenericCLScenario,
                  original_train_dataset: TrainSet,
                  original_test_dataset: TestSet,
-                 train_dataset: TransformationDataset,
-                 test_dataset: TransformationDataset,
+                 train_dataset: AvalancheDataset,
+                 test_dataset: AvalancheDataset,
                  train_steps_patterns_assignment: Sequence[Sequence[int]],
                  test_steps_patterns_assignment: Sequence[Sequence[int]],
                  task_labels: Sequence[int],
@@ -50,13 +50,13 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TStepInfo]):
         assignment of patterns to steps (batches/tasks).
 
         :param train_dataset: The training dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``train_dataset=TransformationDataset(torchvision_dataset)``.
+            ``train_dataset=AvalancheDataset(torchvision_dataset)``.
         :param test_dataset: The test dataset. The dataset must be a
-            subclass of :class:`TransformationDataset`. For instance, one can
+            subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
-            ``test_dataset=TransformationDataset(torchvision_dataset)``.
+            ``test_dataset=AvalancheDataset(torchvision_dataset)``.
         :param train_steps_patterns_assignment: A list of steps. Each step is
             in turn defined by a list of integers describing the pattern index
             inside the training dataset.
@@ -100,10 +100,10 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TStepInfo]):
         self.original_test_dataset: TestSet = original_test_dataset
         """ The original test set. """
 
-        self.train_dataset: TransformationDataset = train_dataset
+        self.train_dataset: AvalancheDataset = train_dataset
         """ The training set used to generate the incremental steps. """
 
-        self.test_dataset: TransformationDataset = test_dataset
+        self.test_dataset: AvalancheDataset = test_dataset
         """ The test set used to generate the incremental steps. """
 
         self.train_steps_patterns_assignment: Sequence[Sequence[int]]
@@ -482,7 +482,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
         return self.scenario.task_labels[step]
 
     @property
-    def dataset(self) -> TransformationDataset:
+    def dataset(self) -> AvalancheDataset:
         if self._is_train():
             dataset = self.scenario.train_dataset
             patterns_indexes = \
@@ -495,7 +495,7 @@ class GenericStepInfo(AbstractStepInfo[TGenericCLScenario,
                 patterns_indexes = self.scenario.test_steps_patterns_assignment[
                     self.current_step]
 
-        return TransformationSubset(dataset, indices=patterns_indexes)
+        return AvalancheSubset(dataset, indices=patterns_indexes)
 
     @property
     def task_label(self) -> int:
