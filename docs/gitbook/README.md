@@ -218,11 +218,11 @@ Having completed these two sections, you will already feel with _superpowers_ âš
 If you used _Avalanche_ in your research project, please remember to cite our white paper. This will help us make _Avalanche_ better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```text
-@article{lomonaco2020,
+@article{...,
    title = {Avalanche: an End-to-End Framework for Continual Learning Research},
    author = {...},
    journal = {Arxiv preprint arXiv:xxxx.xxxx},
-   year = {2020}
+   year = {2021}
 }
 ```
 
