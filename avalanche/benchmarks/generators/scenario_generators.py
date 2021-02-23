@@ -572,5 +572,6 @@ __all__ = [
     'ni_scenario',
     'dataset_scenario',
     'filelist_scenario',
+    'list_of_files_scenario',
     'tensor_scenario'
 ]
