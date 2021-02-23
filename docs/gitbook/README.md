@@ -16,7 +16,7 @@ Avalanche can help _Continual Learning_ researchers and practitioners in several
 * _Increase code efficiency, scalability & portability_
 * _Augment impact and usability of your research products_
 
-The framework is organized in five main modules:
+The library is organized in five main modules:
 
 * **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
@@ -219,7 +219,7 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 ```text
 @article{...,
-   title = {Avalanche: an End-to-End Framework for Continual Learning Research},
+   title = {Avalanche: an End-to-End Library for Continual Learning},
    author = {...},
    journal = {Arxiv preprint arXiv:xxxx.xxxx},
    year = {2021}
