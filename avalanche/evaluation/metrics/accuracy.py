@@ -17,7 +17,8 @@ from torch import Tensor
 
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
@@ -323,8 +324,12 @@ class StreamAccuracy(PluginMetric[float]):
             MetricResult:
         metric_value = self.result()
 
-        metric_name = get_metric_name(self, strategy)
-
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.step_info)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]

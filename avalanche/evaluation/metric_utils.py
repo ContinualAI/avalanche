@@ -188,5 +188,6 @@ __all__ = [
     'default_cm_image_creator',
     'get_task_label',
     'phase_and_task',
+    'stream_type',
     'bytes2human',
     'get_metric_name']
