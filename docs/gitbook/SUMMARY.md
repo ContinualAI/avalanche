@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Avalanche: an End-to-End Framework for Continual Learning Research](README.md)
+* [Avalanche: an End-to-End Library for Continual Learning](README.md)
 
 ## 📌 Getting Started <a id="getting-started-1"></a>
 
