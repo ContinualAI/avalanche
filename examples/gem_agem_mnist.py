@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
