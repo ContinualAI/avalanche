@@ -168,12 +168,12 @@ def get_metric_name(metric: 'PluginMetric',
     stream = stream_type(strategy.step_info)
     if add_step:
         step_label = strategy.eval_step_id
-        metric_name = '{}/Step{:03}/{}_phase/{}_stream/Task{:03}' \
+        metric_name = '{}/{}_phase/{}_stream/Task{:03}/Step{:03}' \
             .format(str(metric),
-                    step_label,
                     phase_name,
                     stream,
-                    task_label)
+                    task_label,
+                    step_label)
     else:
         metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
             .format(str(metric),
