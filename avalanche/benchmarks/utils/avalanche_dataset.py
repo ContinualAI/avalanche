@@ -39,7 +39,7 @@ except ImportError:
 T_co = TypeVar('T_co', covariant=True)
 TTransform_co = TypeVar('TTransform_co', covariant=True)
 TAvalancheDataset = TypeVar('TAvalancheDataset',
-                                 bound='AvalancheDataset')
+                            bound='AvalancheDataset')
 XTransform = Optional[Callable[[T_co], Any]]
 YTransform = Optional[Callable[[int], int]]
 
@@ -212,7 +212,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def train(self):
         """
-        Returns a new dataset with the transformations of a the 'train' group
+        Returns a new dataset with the transformations of the 'train' group
         loaded.
 
         The current dataset will not be affected.
@@ -223,7 +223,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def eval(self):
         """
-        Returns a new dataset with the transformations of a the 'test' group
+        Returns a new dataset with the transformations of the 'test' group
         loaded.
 
         Test transformations usually don't contain augmentation procedures.
@@ -344,11 +344,9 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         The given transformations will replace the ones of the current
         transformations group. Other transformation groups will not be affected.
 
-        If this dataset was created with ``chain_transformations`` set to True
-        and if the original dataset is an instance of
-        :class:`AvalancheDataset`, then the transformations of the
-        original set will be overwritten as well. This operation will create a
-        copy of this dataset.
+        If the original dataset is an instance of :class:`AvalancheDataset`,
+        then transformations of the original set will be considered as well
+        (the original dataset will be left untouched).
 
         The current dataset will not be affected.
 
@@ -364,8 +362,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         """
 
         dataset_copy = self._fork_dataset()
-        dataset_copy._replace_original_dataset_group(transform,
-                                                     target_transform)
+        dataset_copy._replace_original_dataset_group(None, None)
 
         dataset_copy.transform = transform
         dataset_copy.target_transform = target_transform

@@ -541,7 +541,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
     def test_replace_transforms(self):
         original_dataset = MNIST('./data/mnist', download=True)
-        x, _ = original_dataset[0]
+        x, y = original_dataset[0]
         dataset = AvalancheDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
         dataset_reset = dataset.replace_transforms(None, None)
@@ -560,6 +560,12 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         x5, *_ = dataset_reset[0]
         self.assertIsInstance(x5, Tensor)
+
+        dataset_other = AvalancheDataset(dataset_reset)
+        dataset_other = dataset_other.replace_transforms(None, lambda l: l + 1)
+
+        _, y6, _ = dataset_other[0]
+        self.assertEqual(y+1, y6)
 
     def test_transforms_replace_freeze_mix(self):
         original_dataset = MNIST('./data/mnist', download=True)

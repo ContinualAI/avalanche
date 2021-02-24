@@ -484,7 +484,7 @@ class LazySubsequence(Sequence[int]):
 
 
 def optimize_sequence(sequence: Sequence[int]) -> Sequence[int]:
-    if len(sequence) == 0:
+    if len(sequence) == 0 or isinstance(sequence, ConstantSequence):
         return sequence
 
     concat_ranges = []
