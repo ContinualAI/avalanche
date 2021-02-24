@@ -268,11 +268,11 @@ The metrics already available in the current _Avalanche_ release are:
 
 ```python
 from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
-EpochAccuracy, RunningEpochAccuracy, TaskAccuracy, ConfusionMatrix, \
+EpochAccuracy, RunningEpochAccuracy, StepAccuracy, ConfusionMatrix, \
 TaskConfusionMatrix, CpuUsage, MinibatchCpuUsage, EpochCpuUsage, \
 AverageEpochCpuUsage, StepCpuUsage, DiskUsage, DiskUsageMonitor, \
-Forgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
-EpochLoss, RunningEpochLoss, TaskLoss, MAC, Mean, RamUsage, RamUsageMonitor, \
+StepForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
+EpochLoss, RunningEpochLoss, StepLoss, MAC, Mean, RamUsage, RamUsageMonitor, \
 Sum, ElapsedTime, MinibatchTime, EpochTime, AverageEpochTime, StepTime, \
 timing_metrics
 ```
@@ -301,7 +301,7 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics,
+from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics,
 
 loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix,
 DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
@@ -330,11 +330,11 @@ text_logger = TextLogger(open('log.txt', 'a'))
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
+    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
-    Forgetting(),
+    StepForgetting(),
     TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]

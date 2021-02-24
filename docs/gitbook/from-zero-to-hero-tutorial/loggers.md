@@ -26,7 +26,7 @@ _Avalanche_ at the moment supports three main Loggers:
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics,
+from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics,
 
 loss_metrics, timing_metrics, cpu_usage_metrics, TaskConfusionMatrix,
 DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
@@ -55,11 +55,11 @@ text_logger = TextLogger(open('log.txt', 'a'))
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
+    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
-    Forgetting(),
+    StepForgetting(),
     TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
