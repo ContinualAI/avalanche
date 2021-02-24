@@ -111,14 +111,12 @@ class AccuracyMetricTests(unittest.TestCase):
         self.assertEqual(5.0/12.0, uut.result())
 
     def test_accuracy_helper(self):
-        metrics = accuracy_metrics(minibatch=True, epoch_running=True)
+        metrics = accuracy_metrics(minibatch=True, epoch=True)
         self.assertEqual(2, len(metrics))
         self.assertIsInstance(metrics, List)
         self.assertIsInstance(metrics[0], PluginMetric)
         self.assertIsInstance(metrics[1], PluginMetric)
 
-        with self.assertRaises(ValueError):
-            accuracy_metrics(epoch=True, step=True, stream=True)
 
 
 class LossMetricTests(unittest.TestCase):
@@ -160,14 +158,11 @@ class LossMetricTests(unittest.TestCase):
         self.assertAlmostEqual(expected_mean, uut.result())
 
     def test_loss_helper(self):
-        metrics = loss_metrics(minibatch=True, epoch_running=True)
+        metrics = loss_metrics(minibatch=True, epoch=True)
         self.assertEqual(2, len(metrics))
         self.assertIsInstance(metrics, List)
         self.assertIsInstance(metrics[0], PluginMetric)
         self.assertIsInstance(metrics[1], PluginMetric)
-
-        with self.assertRaises(ValueError):
-            loss_metrics(epoch=True, step=True, stream=True)
 
 
 class ConfusionMatrixMetricTests(unittest.TestCase):
