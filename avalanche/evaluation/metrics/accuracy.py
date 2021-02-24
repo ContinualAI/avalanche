@@ -262,14 +262,14 @@ class StepAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def before_training_step(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
-    def after_training_step(self, strategy: 'PluggableStrategy') -> \
+    def after_eval_step(self, strategy: 'PluggableStrategy') -> \
             'MetricResult':
         return self._package_result(strategy)
 
