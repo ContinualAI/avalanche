@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ################################################################################
-# Copyright (c) 2020 ContinualAI                                               #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -32,6 +29,7 @@ from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import JointTraining
 
+
 def main(args):
 
     # Config
@@ -57,8 +55,10 @@ def main(args):
 
     # train and test loop
     results = []
+    print("Starting training.")
     joint_train.train(train_stream)
     results.append(joint_train.eval(test_stream))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

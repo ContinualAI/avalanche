@@ -12,7 +12,7 @@ click                     7.1.2              pyh9f0ad1d_0    conda-forge
 cpuonly                   1.0                           0    pytorch
 cycler                    0.10.0                     py_2    conda-forge
 cython                    0.29.21          py36ha357f81_1    conda-forge
-dataclasses               0.7                      py36_0  
+dataclasses               0.7              py36h06a4308_0  
 dbus                      1.13.6               he372182_0    conda-forge
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge

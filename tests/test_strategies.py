@@ -1,6 +1,6 @@
 ################################################################################
-# Copyright (c) 2020 ContinualAI Research                                      #
-# Copyrights licensed under the CC BY 4.0 License.                             #
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-06-2020                                                              #
@@ -27,7 +27,7 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, AR1
+    SynapticIntelligence, AR1, JointTraining
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 
@@ -96,6 +96,24 @@ class StrategyTest(unittest.TestCase):
                                             use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
+    def test_joint(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device, eval_mb_size=50, train_epochs=2)
+        self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = Naive(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device, eval_mb_size=50, train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                      use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
     def test_cwrstar(self):
         model = self.get_model(fast_test=self.fast_test)
         optimizer = SGD(model.parameters(), lr=1e-3)
@@ -158,7 +176,6 @@ class StrategyTest(unittest.TestCase):
         scenario = self.load_scenario(fast_test=self.fast_test,
                                             use_task_labels=True)
         self.run_strategy(scenario, strategy)
-
 
     def test_cumulative(self):
         model = self.get_model(fast_test=self.fast_test)
