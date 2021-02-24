@@ -183,10 +183,20 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         :return: The next "x" value to use.
         """
         if metric_name not in self._metric_x_counters:
-            self._metric_x_counters[metric_name] = initial_x
+            self.reset_x_position(metric_name, initial_x)
         x_result = self._metric_x_counters[metric_name]
         self._metric_x_counters[metric_name] += 1
         return x_result
+
+    def reset_x_position(self, metric_name: str, initial_x: int = 0) -> int:
+        """
+        :param metric_name: The metric value name.
+        :param initial_x: The initial "x" value to reset to. Defaults to 0.
+
+        :return initial_x: the initial value for that metric
+        """
+        self._metric_x_counters[metric_name] = initial_x
+        return initial_x
 
 
 __all__ = ['Metric', 'PluginMetric']
