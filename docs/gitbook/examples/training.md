@@ -23,9 +23,9 @@ scenario = SplitMNIST(n_steps=5, return_task_id=False)
 
 interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
-    Forgetting(),
+    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    StepForgetting(),
     loggers=[interactive_logger])
 
 # create strategy

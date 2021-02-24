@@ -65,9 +65,9 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        Forgetting(compute_for_step=True),
+        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+        StepForgetting(),
         loggers=[interactive_logger])
 
     # create strategy

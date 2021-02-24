@@ -25,7 +25,7 @@ from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metrics import Forgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
@@ -73,9 +73,9 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, task=True),
-        loss_metrics(minibatch=True, epoch=True, task=True),
-        Forgetting(compute_for_step=True),
+        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+        StepForgetting(),
         loggers=[my_logger, interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)

@@ -21,11 +21,11 @@ scenario = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
+    accuracy_metrics(minibatch=False, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=False, epoch=True, step=True, stream=True),
     timing_metrics(epoch=True, epoch_average=True, test=False),
     cpu_usage_metrics(step=True),
-    Forgetting(),
+    StepForgetting(),
     loggers=[interactive_logger])
 
 # Than we can extract the parallel train and test streams
