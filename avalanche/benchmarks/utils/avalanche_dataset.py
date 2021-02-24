@@ -638,9 +638,9 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def _initialize_tasks_dict(self, dataset, task_labels: Sequence[int]) \
             -> Dict[int, Sequence[int]]:
-        if isinstance(task_labels, ConstantSequence) and len(dataset) > 0:
+        if isinstance(task_labels, ConstantSequence) and len(task_labels) > 0:
             # Shortcut :)
-            return {task_labels[0]: range(len(dataset))}
+            return {task_labels[0]: range(len(task_labels))}
 
         result = dict()
         for i, x in enumerate(task_labels):
@@ -649,7 +649,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
             result[x].append(i)
 
         if len(result) == 1:
-            result[next(iter(result.keys()))] = range(len(dataset))
+            result[next(iter(result.keys()))] = range(len(task_labels))
 
         return result
 
