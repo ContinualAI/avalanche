@@ -16,7 +16,7 @@ import torch
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import StrategyLogger
 from avalanche.training.plugins import PluggableStrategy
-
+from avalanche.evaluation.metric_utils import stream_type
 
 class TextLogger(StrategyLogger):
     def __init__(self, file=sys.stdout):
@@ -31,7 +31,6 @@ class TextLogger(StrategyLogger):
         self.metric_vals = {}
 
     def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
-        # m_orig = metric_value.origin
         name = metric_value.name
         x = metric_value.x_plot
         val = metric_value.value
@@ -73,7 +72,9 @@ class TextLogger(StrategyLogger):
                         metric_values: List['MetricValue'], **kwargs):
         super().after_eval_step(strategy, metric_values, **kwargs)
         print(f'> Eval on step {strategy.eval_step_id} (Task '
-              f'{strategy.eval_task_label}) ended.', file=self.file, flush=True)
+              f'{strategy.eval_task_label}) '
+              f'from {stream_type(strategy.step_info)} stream ended.',
+              file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
@@ -105,5 +106,6 @@ class TextLogger(StrategyLogger):
             else strategy.eval_step_id
         task_id = strategy.train_task_label if strategy.is_training \
             else strategy.eval_task_label
-        print('-- Starting {} on step {} (Task {}) --'.format(
-            action_name, step_id, task_id), file=self.file, flush=True)
+        stream = stream_type(strategy.step_info)
+        print('-- Starting {} on step {} (Task {}) from {} stream --'.format(
+            action_name, step_id, task_id, stream), file=self.file, flush=True)
