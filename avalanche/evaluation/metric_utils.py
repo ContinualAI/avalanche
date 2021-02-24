@@ -145,7 +145,9 @@ def bytes2human(n):
     return "%sB" % n
 
 
-def get_metric_name(metric: 'PluginMetric', strategy: 'PluggableStrategy'):
+def get_metric_name(metric: 'PluginMetric',
+                    strategy: 'PluggableStrategy',
+                    add_step=False):
     """
     Return the complete metric name used to report its current value.
     The name is composed by:
@@ -155,15 +157,29 @@ def get_metric_name(metric: 'PluginMetric', strategy: 'PluggableStrategy'):
     is training (train) or evaluating (eval), stream type describes
     the type of stream the current step belongs to (e.g. train, test)
     and task id is the current task label.
+
+    :param metric: the metric object for which return the complete name
+    :param strategy: the current strategy object
+    :param add_step: if True, add eval_step_id to the main metric name.
+            Default to False.
     """
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.step_info)
-    metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
-        .format(str(metric),
-                phase_name,
-                stream,
-                task_label)
+    if add_step:
+        step_label = strategy.eval_step_id
+        metric_name = '{}/Step{:03}/{}_phase/{}_stream/Task{:03}' \
+            .format(str(metric),
+                    step_label,
+                    phase_name,
+                    stream,
+                    task_label)
+    else:
+        metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
+            .format(str(metric),
+                    phase_name,
+                    stream,
+                    task_label)
 
     return metric_name
 

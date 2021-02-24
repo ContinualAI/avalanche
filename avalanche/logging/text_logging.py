@@ -18,6 +18,7 @@ from avalanche.logging import StrategyLogger
 from avalanche.training.plugins import PluggableStrategy
 from avalanche.evaluation.metric_utils import stream_type
 
+
 class TextLogger(StrategyLogger):
     def __init__(self, file=sys.stdout):
         """

@@ -249,7 +249,7 @@ class StepLoss(PluginMetric[float]):
             MetricResult:
         metric_value = self.result()
 
-        metric_name = get_metric_name(self, strategy)
+        metric_name = get_metric_name(self, strategy, add_step=True)
 
         plot_x_position = self._next_x_position(metric_name)
 

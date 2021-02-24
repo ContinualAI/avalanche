@@ -153,7 +153,7 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
             -> MetricResult:
 
         forgetting = self.result()
-        metric_name = get_metric_name(self, strategy)
+        metric_name = get_metric_name(self, strategy, add_step=True)
         plot_x_position = self._next_x_position(metric_name)
 
         metric_values = [MetricValue(
