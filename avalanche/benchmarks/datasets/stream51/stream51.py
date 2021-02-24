@@ -37,7 +37,7 @@ class Stream51(Dataset):
     """ Stream-51 Pytorch Dataset """
 
     def __init__(self, root, train=True, transform=ToTensor(),
-                 target_transform=None, loader=pil_loader, download=True):
+                 target_transform=None, loader=pil_loader, download=False):
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -46,39 +46,29 @@ class Stream51(Dataset):
         self.loader = loader
         self.log = logging.getLogger("avalanche")
 
-        # any scenario and run is good here since we want just to load the
-        # train images and targets with no particular order
-        ordering = 'class_instance'
-        seed = 10
-        bbox_crop = True
-        ratio = 1.10
-
         if download:
-            print('DOWNLOAD')
             self.log.info("Downloading Stream-51...")
             self.stream51_data = STREAM51_DATA(data_folder=root)
 
         self.log.info("Loading files...")
         if train:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_train.json')))
+                open(os.path.join(root, 'Stream-51_meta_train.json')))
         else:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_test.json')))
-
-        samples = self._make_dataset(data_list, ordering, seed=seed)
+                open(os.path.join(root, 'Stream-51_meta_test.json')))
 
         self.root = root
         self.loader = default_loader
 
-        self.samples = samples
-        self.targets = [s[0] for s in samples]
+        self.samples = data_list
+        self.targets = [s[0] for s in data_list]
 
         self.transform = transform
         self.target_transform = target_transform
 
-        self.bbox_crop = bbox_crop
-        self.ratio = ratio
+        self.bbox_crop = True
+        self.ratio = 1.1
 
     def _instance_ordering(self, data_list, seed):
         # organize data by video
@@ -105,7 +95,7 @@ class Stream51(Dataset):
         return data_list
 
     def _class_ordering(self, data_list, class_type, seed):
-        # organize by class
+        # organize data by class
         new_data_list = []
         for class_id in range(data_list[-1][0] + 1):
             class_data_list = [x for x in data_list if x[0] == class_id]

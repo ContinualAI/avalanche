@@ -17,16 +17,41 @@ from torchvision import transforms
 import math
 import os
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+mu = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
 _default_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    normalize])
+    transforms.Normalize(mean=mu,
+                         std=std)
+])
+
+
+def adjust_bbox(img_shapes, bbox, ratio=1.1):
+    """
+    put bounding box coordinates in appropriate order for
+    torchvision.transforms.functional.crop function and pad bounding box
+    with ratio size
+    :img_shapes (list): [img.shape[0], img.shape[1]]
+    :bbox (list): [right, left, top, bottom]
+    :ratio (float): percentage pad (default=1.1)
+
+    :returns: corrected bounding box coordinates (list)
+    """
+    cw = bbox[0] - bbox[1]
+    ch = bbox[2] - bbox[3]
+    center = [int(bbox[1] + cw / 2), int(bbox[3] + ch / 2)]
+    bbox = [
+        min([int(center[0] + (cw * ratio / 2)), img_shapes[0]]),
+        max([int(center[0] - (cw * ratio / 2)), 0]),
+        min([int(center[1] + (ch * ratio / 2)), img_shapes[1]]),
+        max([int(center[1] - (ch * ratio / 2)), 0])]
+    return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
 def CLStream51(root, scenario="class_instance", transform=_default_transform,
-               seed=10, eval_num=None, download=False):
+               seed=10, eval_num=None, bbox_crop=True, ratio=1.10,
+               download=False):
     """ Stream-51 continual scenario generator
 
         root (string): Root directory path of dataset.
@@ -39,7 +64,9 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
         bbox_crop: crop images to object bounding box (default: True)
         ratio: padding for bbox crop (default: 1.10)
         seed: random seed for shuffling classes or instances (default=10)
-        eval_num: how many samples to see before evaluating the network
+        eval_num: how many samples to see before evaluating the network for
+        instance ordering and how many classes to see before evaluating the
+        network for the class_instance ordering
         (default=None)
         download: automatically download the dataset (default=False)
 
@@ -47,9 +74,15 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
         iterated.
     """
 
+    # get train and test sets and order them by scenario
     train_set = Stream51(root, train=True, download=download)
     test_set = Stream51(root, train=False, download=download)
-    train_set._make_dataset(train_set.samples, ordering=scenario, seed=seed)
+    samples = train_set._make_dataset(train_set.samples, ordering=scenario,
+                                      seed=seed)
+
+    # set appropriate train parameters
+    train_set.samples = samples
+    train_set.targets = [s[0] for s in samples]
 
     # compute number of tasks
     if eval_num is None and scenario == 'instance':
@@ -59,11 +92,13 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
     elif eval_num is None and scenario == 'class_instance':
         eval_num = 10
         num_tasks = math.ceil(
-            51 / eval_num)  # evaluate every 10 classes # todo: support
-        # num_samples or num_classes for eval_num
-    else:
+            51 / eval_num)  # evaluate every 10 classes
+    elif scenario == 'instance':
         num_tasks = math.ceil(
             len(train_set) / eval_num)  # evaluate every eval_num samples
+    else:
+        num_tasks = math.ceil(
+            51 / eval_num)  # evaluate every eval_num classes
 
     if scenario == 'instance':
         # break files into task lists based on eval_num samples
@@ -73,13 +108,19 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
             end = min(start + eval_num, len(train_set))
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
-                  train_set.samples[j][0]) for j in
+                  train_set.samples[j][0],
+                  adjust_bbox(train_set.samples[j][-3],
+                              train_set.samples[j][-2],
+                              ratio)) for j in
                  range(start, end)])
             start = end
 
         # use all test data for instance ordering
         test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
-                                 test_set.samples[j][0]) for
+                                 test_set.samples[j][0],
+                                 adjust_bbox(test_set.samples[j][-3],
+                                             test_set.samples[j][-2],
+                                             ratio)) for
                                 j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
@@ -109,19 +150,33 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
                     test_ood_files.append(ix)
             test_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
-                  test_set.samples[j][0]) for j in
+                  test_set.samples[j][0],
+                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                              ratio)) for j in
                  test_files])
             test_ood_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
-                  test_set.samples[j][0]) for j in
+                  test_set.samples[j][0],
+                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                              ratio)) for j in
                  test_ood_files])
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
-                  train_set.samples[j][0]) for j in
+                  train_set.samples[j][0],
+                  adjust_bbox(train_set.samples[j][-3],
+                              train_set.samples[j][-2],
+                              ratio)) for j in
                  range(start, end)])
             start = end
     else:
         raise NotImplementedError
+
+    if not bbox_crop:
+        # remove bbox coordinates from lists
+        train_filelists_paths = [[[j[0], j[1]] for j in i] for i in
+                                 train_filelists_paths]
+        test_filelists_paths = [[[j[0], j[1]] for j in i] for i in
+                                test_filelists_paths]
 
     scenario_obj = create_generic_scenario_from_lists_of_files(
         train_list_of_files=train_filelists_paths,
@@ -140,20 +195,35 @@ __all__ = [
 
 if __name__ == "__main__":
 
-    # this below can be taken as a usage example or a simple test script
-    import sys
+    # this code can be taken as a usage example or a simple test script
     from torch.utils.data.dataloader import DataLoader
     from torchvision import transforms
+    import matplotlib.pyplot as plt
 
     root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    scenario = CLStream51(root=root_dir, scenario="class_instance")
+    scenario = CLStream51(root=root_dir, scenario="class_instance", seed=10)
+
+    train_imgs_count = 0
     for i, batch in enumerate(scenario.train_stream):
         print(i, batch)
         dataset, t = batch.dataset, batch.task_label
-        dl = DataLoader(dataset, batch_size=300)
+        train_imgs_count += len(dataset)
+        dl = DataLoader(dataset, batch_size=1)
 
-        for mb in dl:
+        for j, mb in enumerate(dl):
+            if j == 2:
+                break
             x, y = mb
+
+            # show a few un-normalized images from data stream
+            # this code is for debugging purposes
+            x_np = x[0, :, :, :].numpy().transpose(1, 2, 0)
+            x_np = x_np * std + mu
+            plt.imshow(x_np)
+            plt.show()
+
             print(x.shape)
             print(y.shape)
-        sys.exit(0)
+
+    # make sure all of the training data was loaded properly
+    assert train_imgs_count == 150736
