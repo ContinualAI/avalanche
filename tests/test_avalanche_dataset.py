@@ -123,6 +123,13 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertListEqual([1] * len(dataset_mnist),
                              list(dataset.targets_tlabels))
 
+        subset_task1 = dataset.task_set[1]
+        self.assertIsInstance(subset_task1, AvalancheDataset)
+        self.assertEqual(len(dataset), len(subset_task1))
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[0]
+
     def test_avalanche_dataset_mixed_task_labels(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x, y = dataset_mnist[0]
@@ -142,6 +149,19 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         self.assertListEqual(random_task_labels,
                              list(dataset.targets_tlabels))
+
+        u_labels, counts = np.unique(random_task_labels, return_counts=True)
+        for i, task_label in enumerate(u_labels.tolist()):
+            subset_task = dataset.task_set[task_label]
+            self.assertIsInstance(subset_task, AvalancheDataset)
+            self.assertEqual(int(counts[i]), len(subset_task))
+
+            unique_task_labels = list(subset_task.targets_tlabels)
+            self.assertListEqual([task_label] * int(counts[i]),
+                                 unique_task_labels)
+
+        with self.assertRaises(KeyError):
+            subset_task11 = dataset.task_set[11]
 
     def test_avalanche_dataset_task_labels_inheritance(self):
         dataset_mnist = MNIST('./data/mnist', download=True)

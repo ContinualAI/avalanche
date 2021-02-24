@@ -16,7 +16,7 @@ being a child class of the PyTorch Dataset, the AvalancheDataset (and its
 derivatives) is much more powerful as it offers many more features
 out-of-the-box.
 """
-
+import collections
 import copy
 
 import torch
@@ -56,7 +56,8 @@ class AvalancheDataset(DatasetWithTargets[T_co],
     to apply transformations before returning patterns/targets, it supports
     slicing and advanced indexing and it also contains useful fields as
     `targets`, which contains the pattern labels, and `targets_tlabels`, which
-    contains the pattern task labels.
+    contains the pattern task labels. The `task_set` field can be used to
+    obtain a the subset of patterns labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
     transformations. For instance, it allows the user to add and replace
@@ -150,9 +151,24 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         in the dataset.
         """
 
+        self.tasks_pattern_indices: Dict[int, Sequence[int]] = \
+            self._initialize_tasks_dict(dataset, self.targets_tlabels)
+        """
+        A dictionary mapping task labels to the indices of the patterns with 
+        that task label. If you need to obtain the subset of patterns labeled
+        with a certain task label, consider using the `task_set` field.
+        """
+
         # Compress targets and task labels to save some memory
         self._optimize_targets()
         self._optimize_task_labels()
+        self._optimize_task_dict()
+
+        self.task_set = TaskSubsetDict(self)
+        """
+        A dictionary that can be used to obtain the subset of patterns given
+        a specific task label.
+        """
 
         self.current_transform_group = initial_transform_group
         """
@@ -620,6 +636,23 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         # No task labels found. Set all task labels to 0 (in a lazy way).
         return ConstantSequence(0, len(dataset))
 
+    def _initialize_tasks_dict(self, dataset, task_labels: Sequence[int]) \
+            -> Dict[int, Sequence[int]]:
+        if isinstance(task_labels, ConstantSequence) and len(dataset) > 0:
+            # Shortcut :)
+            return {task_labels[0]: range(len(dataset))}
+
+        result = dict()
+        for i, x in enumerate(task_labels):
+            if x not in result:
+                result[x] = []
+            result[x].append(i)
+
+        if len(result) == 1:
+            result[next(iter(result.keys()))] = range(len(dataset))
+
+        return result
+
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
@@ -654,6 +687,37 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def _optimize_task_labels(self):
         self.targets_tlabels = optimize_sequence(self.targets_tlabels)
+
+    def _optimize_task_dict(self):
+        for task_label in self.tasks_pattern_indices:
+            self.tasks_pattern_indices[task_label] = optimize_sequence(
+                self.tasks_pattern_indices[task_label])
+
+
+class TaskSubsetDict(dict):
+
+    def __init__(self, avalanche_dataset: AvalancheDataset):
+        self._full_dataset = avalanche_dataset
+        task_ids = self._full_dataset.tasks_pattern_indices.keys()
+        base_dict = dict()
+        for x in task_ids:
+            base_dict[x] = x
+        super().__init__(base_dict)
+
+    def __getitem__(self, task_id: int):
+        if task_id not in self._full_dataset.tasks_pattern_indices:
+            raise KeyError('No pattern with ' + str(task_id) + ' found')
+        pattern_indices = self._full_dataset.tasks_pattern_indices[task_id]
+        return self._make_subset(pattern_indices)
+
+    def or_empty(self, task_id: int):
+        try:
+            return self[task_id]
+        except KeyError:
+            return self._make_subset([])
+
+    def _make_subset(self, indices: Sequence[int]):
+        return AvalancheSubset(self._full_dataset, indices=indices)
 
 
 class AvalancheSubset(AvalancheDataset[T_co]):
@@ -746,8 +810,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
                     'number of patterns in the dataset or of the desired '
                     'subset. Got {}, expected {} or {}!'.format(
                         len(task_labels), len(self._original_dataset),
-                        len(dataset)
-                ))
+                        len(dataset)))
 
         if hasattr(self._original_dataset, 'targets_tlabels'):
             # The original dataset is probably a dataset of this class
