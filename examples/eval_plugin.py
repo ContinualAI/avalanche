@@ -27,7 +27,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics
+    loss_metrics, cpu_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -80,6 +80,7 @@ def main(args):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+        cpu_usage_metrics(minibatch=True, epoch=True, step=True, stream=True),
         StepForgetting(),
         loggers=[interactive_logger, text_logger])
 

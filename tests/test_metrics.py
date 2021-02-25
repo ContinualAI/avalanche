@@ -12,7 +12,7 @@ from torch import nn
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, accuracy_metrics, loss_metrics
-from avalanche.evaluation.metrics.cpu_usage import CpuUsage, cpu_usage_metrics
+from avalanche.evaluation.metrics.cpu_usage import CPUUsage, cpu_usage_metrics
 from avalanche.evaluation.metrics.ram_usage import RamUsage
 
 
@@ -267,7 +267,7 @@ class ConfusionMatrixMetricTests(unittest.TestCase):
 
 class CpuUsageMetricTests(unittest.TestCase):
     def test_standalone_cpu_usage(self):
-        uut = CpuUsage()
+        uut = CPUUsage()
 
         # Assert result is 0 when created
         self.assertEqual(0.0, uut.result())
@@ -316,9 +316,6 @@ class CpuUsageMetricTests(unittest.TestCase):
         self.assertIsInstance(metrics, List)
         self.assertIsInstance(metrics[0], PluginMetric)
         self.assertIsInstance(metrics[1], PluginMetric)
-
-        with self.assertRaises(ValueError):
-            cpu_usage_metrics(train=False, eval=False)
 
 
 class RamUsageMetricTests(unittest.TestCase):
