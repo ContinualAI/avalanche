@@ -30,7 +30,7 @@ gst-plugins-base          1.14.0               hbbd80ab_1
 gstreamer                 1.14.0               h28cd5cc_2  
 icu                       58.2              hf484d3e_1000    conda-forge
 idna                      2.10               pyh9f0ad1d_0    conda-forge
-importlib-metadata        3.6.0            py38h578d9bd_0    conda-forge
+importlib-metadata        3.7.0            py38h578d9bd_0    conda-forge
 intel-openmp              2020.2                      254  
 joblib                    1.0.1              pyhd8ed1ab_0    conda-forge
 jpeg                      9b                   h024ee3a_2  
