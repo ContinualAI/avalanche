@@ -16,7 +16,8 @@ the generic ones: filelist_scenario, tensor_scenario, dataset_scenario.
 """
 
 from pathlib import Path
-from typing import Sequence, Optional, Dict, SupportsInt, Union, Any, List
+from typing import Sequence, Optional, Dict, SupportsInt, Union, Any, List, \
+    Tuple
 
 import torch
 
@@ -387,6 +388,86 @@ def filelist_scenario(
     )
 
 
+FileAndLabel = Tuple[Union[str, Path], int]
+
+
+def paths_scenario(
+        train_list_of_files: Sequence[Sequence[FileAndLabel]],
+        test_list_of_files: Union[Sequence[FileAndLabel],
+                                  Sequence[Sequence[FileAndLabel]]],
+        task_labels: Sequence[int],
+        complete_test_set_only: bool = False,
+        train_transform=None, train_target_transform=None,
+        test_transform=None, test_target_transform=None) -> GenericCLScenario:
+    """
+    Creates a generic scenario given a list of files and class labels.
+    A separate dataset will be created for each list and each of
+    those training datasets will be considered a separate training step.
+    Contents of the datasets will not be changed, including the targets.
+
+    This is very similar to `filelist_scenario`, with the main difference being
+    that `filelist_scenario` accepts, for each step, a file list formatted in
+    Caffe-style. On the contrary, this accepts a list of tuples where each tuple
+    contains two elements: the full path to the pattern and its label.
+    Optionally, the tuple may contain a third element describing the bounding
+    box of the element to crop. This last bounding box may be useful when trying
+    to extract the part of the image depicting the desired element.
+
+    In its base form, this function accepts a list of lists of tuples for the
+    test datsets that must contain the same amount of lists of the training
+    list. Those pairs of datasets are then used to create the "past",
+    "cumulative" (a.k.a. growing) and "future" test sets. However, in certain
+    Continual Learning scenarios only the concept of "complete" test set makes
+    sense. In that case, the ``complete_test_set_only`` should be set to True
+    (see the parameter description for more info).
+
+    :param train_list_of_files: A list of lists. Each list describes the paths
+        and labels of patterns to include in that training step as tuples. Each
+        tuple must contain two elements: the full path to the pattern and its
+        class label. Optionally, the tuple may contain a third element
+        describing the bounding box to use for cropping (top, left, height,
+        width).
+    :param test_list_of_files: A list of lists. Each list describes the paths
+        and labels of patterns to include in that test step as tuples. Each
+        tuple must contain two elements: the full path to the pattern and its
+        class label. Optionally, the tuple may contain a third element
+        describing the bounding box to use for cropping (top, left, height,
+        width).
+    :param task_labels: A list of task labels. Must contain the same amount of
+        elements of the ``train_file_lists`` parameter. For
+        Single-Incremental-Task (a.k.a. Task-Free) scenarios, this is usually
+        a list of zeros. For Multi Task scenario, this is usually a list of
+        ascending task labels (starting from 0).
+    :param complete_test_set_only: If True, only the complete test set will
+        be returned by the scenario. This means that the ``test_file_lists``
+        parameter must be list with a single element (the complete test set).
+        Alternatively, can be a plain string or :class:`Path` object.
+        Defaults to False, which means that ``train_file_lists`` and
+        ``test_file_lists`` must contain the same amount of filelists paths.
+    :param train_transform: The transformation to apply to training patterns.
+        Defaults to None.
+    :param train_target_transform: The transformation to apply to training
+        patterns targets. Defaults to None.
+    :param test_transform: The transformation to apply to test patterns.
+        Defaults to None.
+    :param test_target_transform: The transformation to apply to test
+        patterns targets. Defaults to None.
+
+    :returns: A :class:`GenericCLScenario` instance.
+    """
+
+    return create_generic_scenario_from_paths(
+        train_list_of_files=train_list_of_files,
+        test_list_of_files=test_list_of_files,
+        task_labels=task_labels,
+        complete_test_set_only=complete_test_set_only,
+        train_transform=train_transform,
+        train_target_transform=train_target_transform,
+        test_transform=test_transform,
+        test_target_transform=test_target_transform
+    )
+
+
 def tensor_scenario(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
@@ -498,5 +579,6 @@ __all__ = [
     'ni_scenario',
     'dataset_scenario',
     'filelist_scenario',
+    'paths_scenario',
     'tensor_scenario'
 ]
