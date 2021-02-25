@@ -12,7 +12,7 @@
 # from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_lists_of_files
+    create_generic_scenario_from_paths
 from torchvision import transforms
 import math
 import os
@@ -177,8 +177,11 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
                                  train_filelists_paths]
         test_filelists_paths = [[[j[0], j[1]] for j in i] for i in
                                 test_filelists_paths]
+        if scenario == 'class_instance':
+            test_ood_filelists_paths = [[[j[0], j[1]] for j in i] for i in
+                                        test_ood_filelists_paths]
 
-    scenario_obj = create_generic_scenario_from_lists_of_files(
+    scenario_obj = create_generic_scenario_from_paths(
         train_list_of_files=train_filelists_paths,
         test_list_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
@@ -201,7 +204,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    scenario = CLStream51(root=root_dir, scenario="class_instance", seed=10)
+    scenario = CLStream51(root=root_dir, scenario="class_instance", seed=10,
+                          bbox_crop=True)
 
     train_imgs_count = 0
     for i, batch in enumerate(scenario.train_stream):
