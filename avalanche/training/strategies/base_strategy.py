@@ -166,7 +166,7 @@ class BaseStrategy:
         self.model.to(self.device)
 
         self.adapted_dataset = step_info.dataset
-        self.adapted_dataset.train()
+        self.adapted_dataset = self.adapted_dataset.train()
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
@@ -200,7 +200,7 @@ class BaseStrategy:
             self.eval_step_id = step_info.current_step
 
             self.adapted_dataset = step_info.dataset
-            self.adapted_dataset.eval()
+            self.adapted_dataset = self.adapted_dataset.eval()
 
             self.adapt_eval_dataset(**kwargs)
             self.make_eval_dataloader(**kwargs)

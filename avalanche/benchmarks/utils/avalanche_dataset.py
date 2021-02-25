@@ -16,7 +16,6 @@ being a child class of the PyTorch Dataset, the AvalancheDataset (and its
 derivatives) is much more powerful as it offers many more features
 out-of-the-box.
 """
-import collections
 import copy
 
 import torch
@@ -55,8 +54,8 @@ class AvalancheDataset(DatasetWithTargets[T_co],
     also be used in a completely standalone manner. This dataset can be used
     to apply transformations before returning patterns/targets, it supports
     slicing and advanced indexing and it also contains useful fields as
-    `targets`, which contains the pattern labels, and `targets_tlabels`, which
-    contains the pattern task labels. The `task_set` field can be used to
+    `targets`, which contains the pattern labels, and `targets_task_labels`,
+    which contains the pattern task labels. The `task_set` field can be used to
     obtain a the subset of patterns labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
@@ -144,7 +143,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         dataset.
         """
 
-        self.targets_tlabels: Sequence[int] = \
+        self.targets_task_labels: Sequence[int] = \
             self._initialize_task_labels_sequence(dataset, task_labels)
         """
         A sequence of ints describing the task label of each pattern contained 
@@ -152,7 +151,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         """
 
         self.tasks_pattern_indices: Dict[int, Sequence[int]] = \
-            self._initialize_tasks_dict(dataset, self.targets_tlabels)
+            self._initialize_tasks_dict(dataset, self.targets_task_labels)
         """
         A dictionary mapping task labels to the indices of the patterns with 
         that task label. If you need to obtain the subset of patterns labeled
@@ -526,7 +525,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
             label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label, self.targets_tlabels[idx]
+        return pattern, label, self.targets_task_labels[idx]
 
     def _apply_transforms(self, pattern: T_co, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
@@ -628,10 +627,10 @@ class AvalancheDataset(DatasetWithTargets[T_co],
                     '{}!'.format(len(task_labels), len(dataset)))
             return task_labels
 
-        if hasattr(dataset, 'targets_tlabels'):
+        if hasattr(dataset, 'targets_task_labels'):
             # Dataset is probably a dataset of this class
             # Suppose that it is
-            return LazyTargetsConversion(dataset.targets_tlabels)
+            return LazyTargetsConversion(dataset.targets_task_labels)
 
         # No task labels found. Set all task labels to 0 (in a lazy way).
         return ConstantSequence(0, len(dataset))
@@ -686,7 +685,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         self.targets = optimize_sequence(self.targets)
 
     def _optimize_task_labels(self):
-        self.targets_tlabels = optimize_sequence(self.targets_tlabels)
+        self.targets_task_labels = optimize_sequence(self.targets_task_labels)
 
     def _optimize_task_dict(self):
         for task_label in self.tasks_pattern_indices:
@@ -812,9 +811,9 @@ class AvalancheSubset(AvalancheDataset[T_co]):
                         len(task_labels), len(self._original_dataset),
                         len(dataset)))
 
-        if hasattr(self._original_dataset, 'targets_tlabels'):
+        if hasattr(self._original_dataset, 'targets_task_labels'):
             # The original dataset is probably a dataset of this class
-            return LazyClassMapping(self._original_dataset.targets_tlabels,
+            return LazyClassMapping(self._original_dataset.targets_task_labels,
                                     indices=self._indices)
 
         # No task labels found. Set all task labels to 0 (in a lazy way).
@@ -958,7 +957,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label, self.targets_tlabels[idx]
+        return pattern, label, self.targets_task_labels[idx]
 
     def _fork_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = super()._fork_dataset()

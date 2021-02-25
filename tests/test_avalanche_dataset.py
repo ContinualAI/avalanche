@@ -121,7 +121,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y, y2)
 
         self.assertListEqual([1] * len(dataset_mnist),
-                             list(dataset.targets_tlabels))
+                             list(dataset.targets_task_labels))
 
         subset_task1 = dataset.task_set[1]
         self.assertIsInstance(subset_task1, AvalancheDataset)
@@ -148,7 +148,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y, y2)
 
         self.assertListEqual(random_task_labels,
-                             list(dataset.targets_tlabels))
+                             list(dataset.targets_task_labels))
 
         u_labels, counts = np.unique(random_task_labels, return_counts=True)
         for i, task_label in enumerate(u_labels.tolist()):
@@ -156,7 +156,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertIsInstance(subset_task, AvalancheDataset)
             self.assertEqual(int(counts[i]), len(subset_task))
 
-            unique_task_labels = list(subset_task.targets_tlabels)
+            unique_task_labels = list(subset_task.targets_task_labels)
             self.assertListEqual([task_label] * int(counts[i]),
                                  unique_task_labels)
 
@@ -181,10 +181,10 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(random_task_labels[0], t3)
 
         self.assertListEqual(random_task_labels,
-                             list(dataset_orig.targets_tlabels))
+                             list(dataset_orig.targets_task_labels))
 
         self.assertListEqual(random_task_labels,
-                             list(dataset_child.targets_tlabels))
+                             list(dataset_child.targets_task_labels))
 
     def test_transform_dataset_tensor_dataset_input(self):
         train_x = torch.rand(500, 3, 28, 28)
@@ -358,11 +358,11 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(random_task_labels[1007], t6)
 
         self.assertListEqual(random_task_labels,
-                             list(dataset_orig.targets_tlabels))
+                             list(dataset_orig.targets_task_labels))
 
         self.assertListEqual([random_task_labels[1000],
                               random_task_labels[1007]],
-                             list(dataset_child.targets_tlabels))
+                             list(dataset_child.targets_task_labels))
 
 
 class TransformationTensorDatasetTests(unittest.TestCase):
