@@ -391,7 +391,7 @@ def filelist_scenario(
 FileAndLabel = Tuple[Union[str, Path], int]
 
 
-def list_of_files_scenario(
+def paths_scenario(
         train_list_of_files: Sequence[Sequence[FileAndLabel]],
         test_list_of_files: Union[Sequence[FileAndLabel],
                                   Sequence[Sequence[FileAndLabel]]],
@@ -409,6 +409,9 @@ def list_of_files_scenario(
     that `filelist_scenario` accepts, for each step, a file list formatted in
     Caffe-style. On the contrary, this accepts a list of tuples where each tuple
     contains two elements: the full path to the pattern and its label.
+    Optionally, the tuple may contain a third element describing the bounding
+    box of the element to crop. This last bounding box may be useful when trying
+    to extract the part of the image depicting the desired element.
 
     In its base form, this function accepts a list of lists of tuples for the
     test datsets that must contain the same amount of lists of the training
@@ -420,12 +423,16 @@ def list_of_files_scenario(
 
     :param train_list_of_files: A list of lists. Each list describes the paths
         and labels of patterns to include in that training step as tuples. Each
-        tuples must contain two elements: the full path to the pattern and its
-        class label.
+        tuple must contain two elements: the full path to the pattern and its
+        class label. Optionally, the tuple may contain a third element
+        describing the bounding box to use for cropping (top, left, height,
+        width).
     :param test_list_of_files: A list of lists. Each list describes the paths
         and labels of patterns to include in that test step as tuples. Each
-        tuples must contain two elements: the full path to the pattern and its
-        class label.
+        tuple must contain two elements: the full path to the pattern and its
+        class label. Optionally, the tuple may contain a third element
+        describing the bounding box to use for cropping (top, left, height,
+        width).
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_file_lists`` parameter. For
         Single-Incremental-Task (a.k.a. Task-Free) scenarios, this is usually
@@ -449,7 +456,7 @@ def list_of_files_scenario(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    return create_generic_scenario_from_lists_of_files(
+    return create_generic_scenario_from_paths(
         train_list_of_files=train_list_of_files,
         test_list_of_files=test_list_of_files,
         task_labels=task_labels,
@@ -572,6 +579,6 @@ __all__ = [
     'ni_scenario',
     'dataset_scenario',
     'filelist_scenario',
-    'list_of_files_scenario',
+    'paths_scenario',
     'tensor_scenario'
 ]

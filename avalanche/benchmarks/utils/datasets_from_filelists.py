@@ -21,6 +21,9 @@ from PIL import Image
 import os
 import os.path
 
+from torch import Tensor
+from torchvision.transforms.functional import crop
+
 from avalanche.benchmarks.utils import TransformationDataset
 
 
@@ -56,7 +59,7 @@ def default_flist_reader(flist, root):
     return imlist
 
 
-class FileDataset(data.Dataset):
+class PathsDataset(data.Dataset):
     """
     This class extends the basic Pytorch Dataset class to handle list of paths
     as the main data source.
@@ -70,7 +73,9 @@ class FileDataset(data.Dataset):
 
         :param root: root path where the data to load are stored. May be None.
         :param files: list of tuples. Each tuple must contain two elements: the
-            full path to the pattern and its class label.
+            full path to the pattern and its class label. Optionally, the tuple
+            may contain a third element describing the bounding box to use for
+            cropping (top, left, height, width).
         :param transform: eventual transformation to add to the input data (x)
         :param target_transform: eventual transformation to add to the targets
             (y)
@@ -95,10 +100,24 @@ class FileDataset(data.Dataset):
         :return: loaded item.
         """
 
-        impath, target = self.imgs[index]
+        img_description = self.imgs[index]
+        impath = img_description[0]
+        target = img_description[1]
+        bbox = None
+        if len(img_description) > 2:
+            bbox = img_description[2]
+
         if self.root is not None:
             impath = os.path.join(self.root, impath)
         img = self.loader(impath)
+
+        # If a bounding box is provided, crop the image before passing it to
+        # any user-defined transformation.
+        if bbox is not None:
+            if isinstance(bbox, Tensor):
+                bbox = bbox.tolist()
+            img = crop(img, *bbox)
+
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
@@ -116,7 +135,7 @@ class FileDataset(data.Dataset):
         return len(self.imgs)
 
 
-class FilelistDataset(FileDataset):
+class FilelistDataset(PathsDataset):
     """
     This class extends the basic Pytorch Dataset class to handle filelists as
     main data source.
@@ -163,7 +182,7 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
 
     Beware that the parameters must be **list of paths to Caffe-style
     filelists**. If you need to create a dataset given a list of
-    **pattern paths**, use `datasets_from_list_of_files` instead.
+    **pattern paths**, use `datasets_from_paths` instead.
 
     :param root: root path where the data to load are stored. May be None.
     :param train_filelists: list of paths to train filelists. The flist format
@@ -222,13 +241,15 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
     return train_inc_datasets, test_inc_datasets
 
 
-def datasets_from_list_of_files(
+def datasets_from_paths(
         train_list, test_list, complete_test_set_only=False,
         train_transform=None, train_target_transform=None,
         test_transform=None, test_target_transform=None):
     """
     This utility takes, for each dataset to generate, a list of tuples each
     containing two elements: the full path to the pattern and its class label.
+    Optionally, the tuple may contain a third element describing the bounding
+    box to use for cropping.
 
     This is equivalent to `datasets_from_filelists`, which description
     contains more details on the behaviour of this utility. The two utilities
@@ -237,13 +258,17 @@ def datasets_from_list_of_files(
     list.
 
     Note: this utility may try to detect (and strip) the common root path of
-    all patterns in order to save some RAM memory
+    all patterns in order to save some RAM memory.
 
     :param train_list: list of lists. Each list must contain tuples of two
-        elements: the full path to the pattern and its class label.
+        elements: the full path to the pattern and its class label. Optionally,
+        the tuple may contain a third element describing the bounding box to use
+        for cropping (top, left, height, width).
     :param test_list: list of lists. Each list must contain tuples of two
-        elements: the full path to the pattern and its class label. It can be
-        also a single list when the test dataset is the same for each step.
+        elements: the full path to the pattern and its class label. Optionally,
+        the tuple may contain a third element describing the bounding box to use
+        for cropping (top, left, height, width). It can be also a single list
+        when the test dataset is the same for each step.
     :param complete_test_set_only: if True, test_list must contain a single list
         that will serve as the complete test set. If False, train_list and
         test_list must describe the same amount of datasets. Defaults to False.
@@ -308,30 +333,49 @@ def datasets_from_list_of_files(
         # print(f'Common root found: {common_root}!')
         # All paths have a common filesystem root
         # Remove it from all paths!
+        single_path_case = False
         tr_list = list()
         te_list = list()
 
         for idx_step_list in range(len(train_list)):
+            if single_path_case:
+                break
             st_list = list()
             for x in train_list[idx_step_list]:
-                st_list.append((os.path.relpath(x[0], common_root), x[1]))
+                rel = os.path.relpath(x[0], common_root)
+                if len(rel) == 0 or rel == '.':
+                    # May happen if the dataset has a single path
+                    single_path_case = True
+                    break
+                st_list.append((rel, *x[1:]))
             tr_list.append(st_list)
-        train_list = tr_list
 
         for idx_step_list in range(len(test_list)):
+            if single_path_case:
+                break
             st_list = list()
             for x in test_list[idx_step_list]:
-                st_list.append((os.path.relpath(x[0], common_root), x[1]))
+                rel = os.path.relpath(x[0], common_root)
+                if len(rel) == 0 or rel == '.':
+                    # May happen if the dataset has a single path
+                    single_path_case = True
+                    break
+                st_list.append((rel, *x[1:]))
             te_list.append(st_list)
-        test_list = te_list
+        if not single_path_case:
+            train_list = tr_list
+            test_list = te_list
+        else:
+            has_common_root = False
+            common_root = None
 
     train_inc_datasets = \
-        [TransformationDataset(FileDataset(common_root, tr_flist),
+        [TransformationDataset(PathsDataset(common_root, tr_flist),
                                transform_groups=transform_groups,
                                initial_transform_group='train')
          for tr_flist in train_list]
     test_inc_datasets = \
-        [TransformationDataset(FileDataset(common_root, te_flist),
+        [TransformationDataset(PathsDataset(common_root, te_flist),
                                transform_groups=transform_groups,
                                initial_transform_group='test')
          for te_flist in test_list]
@@ -342,8 +386,8 @@ def datasets_from_list_of_files(
 __all__ = [
     'default_image_loader',
     'default_flist_reader',
-    'FileDataset',
+    'PathsDataset',
     'FilelistDataset',
     'datasets_from_filelists',
-    'datasets_from_list_of_files'
+    'datasets_from_paths'
 ]
