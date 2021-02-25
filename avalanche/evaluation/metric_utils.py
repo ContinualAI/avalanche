@@ -23,6 +23,10 @@ if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
 
 
+EVAL = "eval"
+TRAIN = "train"
+
+
 def default_cm_image_creator(confusion_matrix_tensor: Tensor,
                              display_labels=None,
                              include_values=True,
@@ -123,9 +127,9 @@ def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
     """
 
     if strategy.is_eval:
-        return "Eval", strategy.eval_task_label
+        return EVAL, strategy.eval_task_label
 
-    return "Train", strategy.train_task_label
+    return TRAIN, strategy.train_task_label
 
 
 def bytes2human(n):
@@ -167,7 +171,9 @@ def get_metric_name(metric: 'PluginMetric',
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.step_info)
     if add_step:
-        step_label = strategy.eval_step_id
+
+        step_label = strategy.eval_step_id if phase_name == EVAL \
+            else strategy.training_step_counter
         metric_name = '{}/{}_phase/{}_stream/Task{:03}/Step{:03}' \
             .format(str(metric),
                     phase_name,
