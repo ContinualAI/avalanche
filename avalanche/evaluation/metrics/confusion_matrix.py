@@ -10,7 +10,7 @@
 ################################################################################
 
 from typing_extensions import Literal
-from typing import Callable, Union, Optional, Dict, Mapping, TYPE_CHECKING
+from typing import Callable, Union, Optional, Mapping, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -21,7 +21,8 @@ from torch.nn.functional import pad
 from avalanche.evaluation import PluginMetric, Metric
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import default_cm_image_creator
+from avalanche.evaluation.metric_utils import default_cm_image_creator, \
+    get_metric_name
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
@@ -157,48 +158,38 @@ class ConfusionMatrix(Metric[Tensor]):
         self._cm_tensor = None
 
 
-class TaskConfusionMatrix(PluginMetric[Tensor]):
+class StreamConfusionMatrix(PluginMetric[Tensor]):
     """
-    The Confusion Matrix metric.
+    The Stream Confusion Matrix metric.
+    This metric only works on the eval phase.
 
-    This metric logs the confusion matrix for each task at the end of
-    each phase. By default this metric computes the matrix on the eval phase
-    (on the eval set) only but this behaviour can be changed by passing
-    `train=True` in the constructor.
+    At the end of the eval phase, this metric logs the confusion matrix
+    relative to all the patterns seen during eval.
 
-    The metric will log both a Tensor and PIL Image both representing the
-    confusion matrices. The Logger will decide which one to use depending on its
-    internal implementation.
+    The metric can log either a Tensor or a PIL Image representing the
+    confusion matrix.
     """
+
     def __init__(self, *,
-                 train: bool = False,
-                 eval: bool = True,
                  num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
                  image_creator: Callable[[Tensor], Image] =
                  default_cm_image_creator):
         """
-        Creates an instance of the Confusion Matrix metric.
+        Creates an instance of the Stream Confusion Matrix metric.
 
-        The train and eval parameters can be True at the same time. However,
-        at least one of them must be True.
-
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to False.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to True.
         :param num_classes: When not None, is used to properly define the
             amount of rows/columns in the confusion matrix. When None, the
             matrix will have many rows/columns as the maximum value of the
             predicted and true pattern labels. Can be either an int, in which
-            case the same value will be used across all tasks, or a dictionary
-            defining the amount of classes for each task (key = task label,
+            case the same value will be used across all steps, or a dictionary
+            defining the amount of classes for each step (key = step label,
             value = amount of classes). Defaults to None.
         :param normalize: Normalizes confusion matrix over the true (rows),
             predicted (columns) conditions or all the population. If None,
             confusion matrix will not be normalized. Valid values are: 'true',
-            'pred' and 'all'.
+            'pred' and 'all' or None.
         :param save_image: If True, a graphical representation of the confusion
             matrix will be logged, too. If False, only the Tensor representation
             will be logged. Defaults to True.
@@ -208,12 +199,8 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         """
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
-
         self._save_image: bool = save_image
-        self._task_matrices: Dict[int, ConfusionMatrix] = dict()
+        self._matrix: ConfusionMatrix = ConfusionMatrix()
         self._num_classes: Optional[Union[int, Mapping[int, int]]] = num_classes
         self._normalize: Optional[Literal['true', 'pred', 'all']] = normalize
 
@@ -221,85 +208,53 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             image_creator = default_cm_image_creator
         self._image_creator: Callable[[Tensor], Image] = image_creator
 
-        self._keep_train_matrix = train
-        self._keep_eval_matrix = eval
-
     def reset(self) -> None:
-        self._task_matrices = dict()
+        self._matrix = ConfusionMatrix()
 
-    def result(self) -> Dict[int, Tensor]:
-        result_dict = dict()
-        for task_id in self._task_matrices:
-            task_cm = self._task_matrices[task_id].result()
-            if self._normalize is not None:
-                task_cm = TaskConfusionMatrix._normalize_cm(task_cm,
-                                                            self._normalize)
-            result_dict[task_id] = task_cm
-        return result_dict
+    def result(self) -> Tensor:
+        step_cm = self._matrix.result()
+        if self._normalize is not None:
+            step_cm = StreamConfusionMatrix._normalize_cm(step_cm,
+                                                          self._normalize)
+        return step_cm
 
-    def update(self, true_y: Tensor, predicted_y: Tensor, task_label: int) \
-            -> None:
-
-        if task_label not in self._task_matrices:
-            self._task_matrices[task_label] = ConfusionMatrix(
-                num_classes=self._class_num_for_task(task_label))
-        self._task_matrices[task_label].update(true_y, predicted_y)
-
-    def before_training(self, strategy) -> None:
-        if self._keep_train_matrix:
-            self.reset()
+    def update(self, true_y: Tensor, predicted_y: Tensor) -> None:
+        self._matrix.update(true_y, predicted_y)
 
     def before_eval(self, strategy) -> None:
-        if self._keep_eval_matrix:
-            self.reset()
-
-    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._keep_train_matrix:
-            self.update(strategy.mb_y,
-                        strategy.logits,
-                        strategy.train_task_label)
+        self.reset()
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        if self._keep_eval_matrix:
-            self.update(strategy.mb_y,
-                        strategy.logits,
-                        strategy.train_task_label)
-
-    def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if self._keep_train_matrix:
-            return self._package_result(strategy)
+        self.update(strategy.mb_y,
+                    strategy.logits)
 
     def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
-        if self._keep_eval_matrix:
-            return self._package_result(strategy)
+        return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        phase_name = 'Eval' if strategy.is_eval else 'Train'
-        metric_values = []
-        for task_label, task_cm in self.result().items():
-            metric_name = 'ConfusionMatrix/{}/Task{:03}'.format(phase_name,
-                                                                task_label)
-            plot_x_position = self._next_x_position(metric_name)
+        step_cm = self.result()
+        metric_name = get_metric_name(self, strategy)
+        plot_x_position = self._next_x_position(metric_name)
 
-            if self._save_image:
-                cm_image = self._image_creator(task_cm)
-                metric_representation = MetricValue(
-                    self, metric_name, AlternativeValues(cm_image, task_cm),
-                    plot_x_position)
-            else:
-                metric_representation = MetricValue(
-                    self, metric_name, task_cm, plot_x_position)
-            metric_values.append(metric_representation)
-        return metric_values
+        if self._save_image:
+            cm_image = self._image_creator(step_cm)
+            metric_representation = MetricValue(
+                self, metric_name, AlternativeValues(cm_image, step_cm),
+                plot_x_position)
+        else:
+            metric_representation = MetricValue(
+                self, metric_name, step_cm, plot_x_position)
 
-    def _class_num_for_task(self, task_label: int) -> Optional[int]:
+        return [metric_representation]
+
+    def _class_num_for_step(self, step_label: int) -> Optional[int]:
         if self._num_classes is None or isinstance(self._num_classes, int):
             return self._num_classes
 
-        if task_label not in self._num_classes:
+        if step_label not in self._num_classes:
             return None
 
-        return self._num_classes[task_label]
+        return self._num_classes[step_label]
 
     @staticmethod
     def _normalize_cm(cm: Tensor,
@@ -314,7 +269,7 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
             cm = cm / cm.sum(dim=0, keepdim=True, dtype=torch.float64)
         elif normalization == 'all':
             cm = cm / cm.sum(dtype=torch.float64)
-        cm = TaskConfusionMatrix.nan_to_num(cm)
+        cm = StreamConfusionMatrix.nan_to_num(cm)
         return cm
 
     @staticmethod
@@ -327,8 +282,11 @@ class TaskConfusionMatrix(PluginMetric[Tensor]):
         numpy_ndarray = np.nan_to_num(numpy_ndarray)
         return torch.tensor(numpy_ndarray, dtype=matrix.dtype)
 
+    def __str__(self):
+        return "ConfusionMatrix_Stream"
+
 
 __all__ = [
     'ConfusionMatrix',
-    'TaskConfusionMatrix'
+    'StreamConfusionMatrix'
 ]
