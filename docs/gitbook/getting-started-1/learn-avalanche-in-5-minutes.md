@@ -93,8 +93,9 @@ Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that
 _Avalanche_ maintains a set of commonly used benchmarks built on top of one or multiple datasets.
 
 ```python
-from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
-SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, PermutedMNIST, \
+from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet,
+
+SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, PermutedMNIST,
 SplitCUB200
 
 # creating the benchmark (scenario object)
@@ -109,9 +110,8 @@ test_stream = perm_mnist.test_stream
 
 # iterating over the train stream
 for step in train_stream:
-
     print("Start of task ", step.task_label)
-    print('Classes in this task:', step.classes_in_this_step)
+    print('Classes in this task:', step.classes_in_this_experience)
 
     # The current Pytorch training set can be easily recovered through the step
     current_training_set = step.dataset
@@ -120,7 +120,7 @@ for step in train_stream:
     print('This task contains', len(current_training_set), 'training examples')
 
     # we can recover the corresponding test step in the test stream
-    current_test_set = test_stream[step.current_step].dataset
+    current_test_set = test_stream[step.current_experience].dataset
     print('This task contains', len(current_test_set), 'test examples')
 ```
 
@@ -134,11 +134,11 @@ The _specific_ scenario generators are useful when starting from one or multiple
 from avalanche.benchmarks.generators import nc_scenario, ni_scenario
 
 scenario = ni_scenario(
-    mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
-    balance_steps=True
+    mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
+    balance_experiences=True
 )
 scenario = nc_scenario(
-    mnist_train, mnist_test, n_steps=10, shuffle=True, seed=1234,
+    mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
     task_labels=False
 )
 ```
@@ -239,13 +239,13 @@ cl_strategy = MyStrategy(
 print('Starting experiment...')
 
 for step in scenario.train_stream:
-    print("Start of step ", step.current_step)
+    print("Start of step ", step.current_experience)
 
     cl_strategy.train(step)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    cl_strategy.eval(scenario.test_stream[step.current_step])
+    cl_strategy.eval(scenario.test_stream[step.current_experience])
 ```
 
 While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
@@ -350,8 +350,8 @@ cl_strategy = Naive(
 print('Starting experiment...')
 results = []
 for step in scenario.train_stream:
-    print("Start of step: ", step.current_step)
-    print("Current Classes: ", step.classes_in_this_step)
+    print("Start of step: ", step.current_experience)
+    print("Current Classes: ", step.classes_in_this_experience)
 
     # train returns a dictionary which contains all the metric values
     res = cl_strategy.train(step, num_workers=4)

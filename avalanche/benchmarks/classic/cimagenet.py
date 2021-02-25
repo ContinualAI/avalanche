@@ -60,7 +60,7 @@ def SplitImageNet(root,
         if you want to include 50 classes in the first step
         while equally distributing remaining classes across remaining
         steps, just pass the "{0: 50}" dictionary as the
-        per_step_classes parameter. Defaults to None.
+        per_experience_classes parameter. Defaults to None.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -98,19 +98,19 @@ def SplitImageNet(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
-            per_step_classes=per_step_classes,
+            per_exp_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_step=True)
+            class_ids_from_zero_in_each_exp=True)
     else:
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
-            per_step_classes=per_step_classes,
+            per_exp_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order)
 
@@ -131,6 +131,6 @@ __all__ = [
 if __name__ == "__main__":
     scenario = SplitImageNet("/ssd2/datasets/imagenet/")
     for step in scenario.train_stream:
-        print("step: ", step.current_step)
-        print("classes number: ", len(step.classes_in_this_step))
-        print("classes: ", step.classes_in_this_step)
+        print("step: ", step.current_experience)
+        print("classes number: ", len(step.classes_in_this_experience))
+        print("classes: ", step.classes_in_this_experience)

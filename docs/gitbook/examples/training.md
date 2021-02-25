@@ -5,6 +5,7 @@ description: Baselines and Strategies Code Examples
 # Training
 
 {% code title="\"LWF\" Example" %}
+
 ```python
 model = SimpleMLP(hidden_size=args.hs)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -14,7 +15,7 @@ criterion = torch.nn.CrossEntropyLoss()
 assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
 if args.cuda >= 0:
     assert torch.cuda.device_count() > args.cuda,
-        f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
+    f"{args.cuda + 1} GPU needed. Found {torch.cuda.device_count()}."
 device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
 print(f'Using device: {device}')
 
@@ -30,7 +31,7 @@ eval_plugin = EvaluationPlugin(
 
 # create strategy
 assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,
-    'Alpha must be a non-empty list.'
+'Alpha must be a non-empty list.'
 lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 else args.lwf_alpha
 
 strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
@@ -42,10 +43,10 @@ strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
 print('Starting experiment...')
 results = []
 for train_batch_info in scenario.train_stream:
-    print("Start training on step ", train_batch_info.current_step)
+    print("Start training on step ", train_batch_info.current_experience)
 
     strategy.train(train_batch_info, num_workers=4)
-    print("End training on step ", train_batch_info.current_step)
+    print("End training on step ", train_batch_info.current_experience)
     print('Computing accuracy on the test set')
     results.append(strategy.eval(scenario.test_stream[:]))
 ```

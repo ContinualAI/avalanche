@@ -17,6 +17,7 @@ derivatives) is much more powerful as it offers many more features
 out-of-the-box.
 """
 import copy
+from collections import OrderedDict
 
 import torch
 from torchvision.transforms import Compose
@@ -693,12 +694,13 @@ class AvalancheDataset(DatasetWithTargets[T_co],
                 self.tasks_pattern_indices[task_label])
 
 
-class TaskSubsetDict(dict):
+class TaskSubsetDict(OrderedDict):
 
     def __init__(self, avalanche_dataset: AvalancheDataset):
         self._full_dataset = avalanche_dataset
         task_ids = self._full_dataset.tasks_pattern_indices.keys()
-        base_dict = dict()
+        task_ids = sorted(list(task_ids))
+        base_dict = OrderedDict()
         for x in task_ids:
             base_dict[x] = x
         super().__init__(base_dict)

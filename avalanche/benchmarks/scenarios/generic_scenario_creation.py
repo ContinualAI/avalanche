@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Sequence, Union, SupportsInt, Any
+from typing import Sequence, Union, SupportsInt, Any, List
 
 from torch import Tensor
 
@@ -16,6 +16,7 @@ def create_multi_dataset_generic_scenario(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False) -> GenericCLScenario:
     """
+    TODO: doc
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
     step. Contents of the datasets will not be changed, including the targets.
@@ -86,12 +87,17 @@ def create_multi_dataset_generic_scenario(
             next_idx = end_idx
     concat_test_dataset = concat_test_dataset.eval()
 
+    pattern_train_task_labels = []
+    # TODO: continue
+
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.
     return GenericCLScenario(
         concat_train_dataset, concat_test_dataset,
         concat_train_dataset, concat_test_dataset, train_structure,
         test_structure, task_labels,
+        pattern_train_task_labels,
+        pattern_test_task_labels,
         complete_test_set_only=complete_test_set_only)
 
 

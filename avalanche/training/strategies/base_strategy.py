@@ -14,7 +14,7 @@ from typing import Optional, Sequence, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios import IStepInfo
+from avalanche.benchmarks.scenarios import IExperience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.logging import default_logger
@@ -129,19 +129,19 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, step_infos: Union[IStepInfo, Sequence[IStepInfo]],
+    def train(self, step_infos: Union[IExperience, Sequence[IExperience]],
               **kwargs):
         """ Training loop. if step_infos is a single element trains on it.
         If it is a sequence, trains the model on each step in order.
         This is different from joint training on the entire stream.
 
-        :param step_infos: single IStepInfo or sequence.
+        :param step_infos: single IExperience or sequence.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(step_infos, IStepInfo):
+        if isinstance(step_infos, IExperience):
             step_infos = [step_infos]
 
         res = []
@@ -154,9 +154,9 @@ class BaseStrategy:
         self.after_training(**kwargs)
         return res
 
-    def train_step(self, step_info: IStepInfo, **kwargs):
+    def train_step(self, step_info: IExperience, **kwargs):
         """
-        Training loop over a single IStepInfo object.
+        Training loop over a single IExperience object.
 
         :param step_info: CL step information.
         :param kwargs: custom arguments.
@@ -178,7 +178,7 @@ class BaseStrategy:
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
 
-    def eval(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
+    def eval(self, step_list: Union[IExperience, Sequence[IExperience]], **kwargs):
         """
         Evaluate the current model on a series of steps.
 
@@ -189,7 +189,7 @@ class BaseStrategy:
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(step_list, IStepInfo):
+        if isinstance(step_list, IExperience):
             step_list = [step_list]
 
         res = []
@@ -197,7 +197,7 @@ class BaseStrategy:
         for step_info in step_list:
             self.eval_task_label = step_info.task_label
             self.step_info = step_info
-            self.eval_step_id = step_info.current_step
+            self.eval_step_id = step_info.current_experience
 
             self.adapted_dataset = step_info.dataset
             self.adapted_dataset = self.adapted_dataset.eval()

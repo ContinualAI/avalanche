@@ -5,6 +5,7 @@ description: Benchmarks and DatasetCode Examples
 # Benchmarks
 
 {% code title="\"All MNIST\" Example" %}
+
 ```python
 # Device config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -13,9 +14,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = SimpleMLP(num_classes=10)
 
 # Here we show all the MNIST variation we offer in the "classic" benchmarks
-# scenario = PermutedMNIST(n_steps=5, seed=1)
+# scenario = PermutedMNIST(n_experiences=5, seed=1)
 scenario = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
-# scenario = SplitMNIST(n_steps=5, seed=1)
+# scenario = SplitMNIST(n_experiences=5, seed=1)
 
 # choose some metrics and evaluation method
 interactive_logger = InteractiveLogger()
@@ -45,7 +46,7 @@ cl_strategy = Naive(
 # train and test loop
 results = []
 for train_task in train_stream:
-    print("Current Classes: ", train_task.classes_in_this_step)
+    print("Current Classes: ", train_task.classes_in_this_experience)
     cl_strategy.train(train_task, num_workers=4)
     mresults.append(cl_strategy.eval(test_stream))
 ```

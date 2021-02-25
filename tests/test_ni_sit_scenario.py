@@ -3,7 +3,7 @@ import unittest
 import torch
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.scenarios import NIStepInfo, GenericScenarioStream
+from avalanche.benchmarks.scenarios import NIExperience, GenericScenarioStream
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
@@ -16,22 +16,22 @@ class NISITTests(unittest.TestCase):
         mnist_test = MNIST('./data/mnist', train=False, download=True)
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234,
-            balance_steps=True)
+            balance_experiences=True)
 
-        self.assertEqual(5, my_ni_scenario.n_steps)
+        self.assertEqual(5, my_ni_scenario.n_experiences)
         self.assertEqual(10, my_ni_scenario.n_classes)
         for batch_id in range(5):
-            self.assertEqual(10, len(my_ni_scenario.classes_in_step[batch_id]))
+            self.assertEqual(10, len(my_ni_scenario.classes_in_experience[batch_id]))
 
         _, unique_count = torch.unique(torch.as_tensor(mnist_train.targets),
                                        return_counts=True)
 
         min_batch_size = torch.sum(unique_count //
-                                   my_ni_scenario.n_steps).item()
+                                   my_ni_scenario.n_experiences).item()
         max_batch_size = min_batch_size + my_ni_scenario.n_classes
 
         pattern_count = 0
-        batch_info: NIStepInfo
+        batch_info: NIExperience
         for batch_id, batch_info in enumerate(my_ni_scenario.train_stream):
             cur_train_set = batch_info.dataset
             t = batch_info.task_label
@@ -59,19 +59,19 @@ class NISITTests(unittest.TestCase):
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
         reference_assignment = ni_scenario_reference.\
-            train_steps_patterns_assignment
+            train_exps_patterns_assignment
 
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=4321,
-            fixed_step_assignment=reference_assignment)
+            fixed_exp_assignment=reference_assignment)
 
-        self.assertEqual(ni_scenario_reference.n_steps, my_ni_scenario.n_steps)
+        self.assertEqual(ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences)
 
-        self.assertEqual(ni_scenario_reference.train_steps_patterns_assignment,
-                         my_ni_scenario.train_steps_patterns_assignment)
+        self.assertEqual(ni_scenario_reference.train_exps_patterns_assignment,
+                         my_ni_scenario.train_exps_patterns_assignment)
 
-        self.assertEqual(ni_scenario_reference.step_structure,
-                         my_ni_scenario.step_structure)
+        self.assertEqual(ni_scenario_reference.exp_structure,
+                         my_ni_scenario.exp_structure)
 
     def test_ni_sit_single_dataset_reproducibility_data(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
@@ -84,13 +84,13 @@ class NISITTests(unittest.TestCase):
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 0, reproducibility_data=rep_data)
 
-        self.assertEqual(ni_scenario_reference.n_steps, my_ni_scenario.n_steps)
+        self.assertEqual(ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences)
 
-        self.assertEqual(ni_scenario_reference.train_steps_patterns_assignment,
-                         my_ni_scenario.train_steps_patterns_assignment)
+        self.assertEqual(ni_scenario_reference.train_exps_patterns_assignment,
+                         my_ni_scenario.train_exps_patterns_assignment)
 
-        self.assertEqual(ni_scenario_reference.step_structure,
-                         my_ni_scenario.step_structure)
+        self.assertEqual(ni_scenario_reference.exp_structure,
+                         my_ni_scenario.exp_structure)
 
     def test_ni_sit_multi_dataset_merge(self):
         split_mapping = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
@@ -112,16 +112,16 @@ class NISITTests(unittest.TestCase):
                                      class_mapping=split_mapping)
         my_ni_scenario = ni_scenario(
             [train_part1, train_part2], [test_part1, test_part2], 5,
-            shuffle=True, seed=1234, balance_steps=True)
+            shuffle=True, seed=1234, balance_experiences=True)
 
-        self.assertEqual(5, my_ni_scenario.n_steps)
+        self.assertEqual(5, my_ni_scenario.n_experiences)
         self.assertEqual(10, my_ni_scenario.n_classes)
         for batch_id in range(5):
-            self.assertEqual(10, len(my_ni_scenario.classes_in_step[batch_id]))
+            self.assertEqual(10, len(my_ni_scenario.classes_in_experience[batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(my_ni_scenario.classes_in_step[batch_id])
+            all_classes.update(my_ni_scenario.classes_in_experience[batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -133,15 +133,15 @@ class NISITTests(unittest.TestCase):
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        step_info: NIStepInfo
+        step_info: NIExperience
         for batch_id, step_info in enumerate(my_ni_scenario.train_stream):
             self.assertEqual(batch_id, step_info.current_step)
-            self.assertIsInstance(step_info, NIStepInfo)
+            self.assertIsInstance(step_info, NIExperience)
 
         self.assertEqual(1, len(my_ni_scenario.test_stream))
         for batch_id, step_info in enumerate(my_ni_scenario.test_stream):
             self.assertEqual(batch_id, step_info.current_step)
-            self.assertIsInstance(step_info, NIStepInfo)
+            self.assertIsInstance(step_info, NIExperience)
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_ni_scenario.train_stream[iterable_slice]
@@ -151,7 +151,7 @@ class NISITTests(unittest.TestCase):
 
         for batch_id, step_info in enumerate(sliced_stream):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
-            self.assertIsInstance(step_info, NIStepInfo)
+            self.assertIsInstance(step_info, NIExperience)
 
         with self.assertRaises(IndexError):
             # The test stream only has one element (the complete test set)
@@ -165,7 +165,7 @@ class NISITTests(unittest.TestCase):
 
         for batch_id, step_info in enumerate(sliced_stream):
             self.assertEqual(iterable_slice[batch_id], step_info.current_step)
-            self.assertIsInstance(step_info, NIStepInfo)
+            self.assertIsInstance(step_info, NIExperience)
 
 
 if __name__ == '__main__':

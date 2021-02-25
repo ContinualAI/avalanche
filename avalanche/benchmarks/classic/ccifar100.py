@@ -54,7 +54,7 @@ def SplitCIFAR100(n_steps: int,
         If it's True, a pretraining step with half of the classes (50 for
         cifar100) is used. If this parameter is False no pretraining task
         will be used, and the dataset is simply split into a the number of
-        steps defined by the parameter n_steps. Default to False.
+        steps defined by the parameter n_experiences. Default to False.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -92,21 +92,21 @@ def SplitCIFAR100(n_steps: int,
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 50} if first_step_with_half_classes else None,
-            class_ids_from_zero_in_each_step=True)
+            per_exp_classes={0: 50} if first_step_with_half_classes else None,
+            class_ids_from_zero_in_each_exp=True)
     else:
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 50} if first_step_with_half_classes else None)
+            per_exp_classes={0: 50} if first_step_with_half_classes else None)
 
 
 def SplitCIFAR110(
@@ -176,12 +176,12 @@ def SplitCIFAR110(
 
     return nc_scenario(
         cifar_10_100_train, cifar_10_100_test,
-        n_steps=n_steps,
+        n_experiences=n_steps,
         task_labels=False,
         shuffle=False,
         seed=None,
         fixed_class_order=class_order,
-        per_step_classes={0: 10})
+        per_exp_classes={0: 10})
 
 
 def _get_cifar100_dataset(train_transformation, test_transformation):

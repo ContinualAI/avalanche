@@ -5,6 +5,7 @@ description: Examples for the Loggers module offered in Avalanche
 # Loggers
 
 {% code title="\"Loggers\" Example" %}
+
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -69,8 +70,8 @@ cl_strategy = Naive(
 print('Starting experiment...')
 results = []
 for step in scenario.train_stream:
-    print("Start of step: ", step.current_step)
-    print("Current Classes: ", step.classes_in_this_step)
+    print("Start of step: ", step.current_experience)
+    print("Current Classes: ", step.classes_in_this_experience)
 
     # train returns a dictionary which contains all the metric values
     res = cl_strategy.train(step, num_workers=4)

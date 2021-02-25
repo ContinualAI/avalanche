@@ -379,9 +379,9 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
         self.assertEqual(5, len(cl_scenario.train_stream))
         self.assertEqual(5, len(cl_scenario.test_stream))
-        self.assertEqual(5, cl_scenario.n_steps)
+        self.assertEqual(5, cl_scenario.n_experiences)
 
-        for step_id in range(cl_scenario.n_steps):
+        for step_id in range(cl_scenario.n_experiences):
             scenario_train_x, scenario_train_y, _ = \
                 load_all_dataset(cl_scenario.train_stream[step_id].dataset)
             scenario_test_x, scenario_test_y, _ = \
@@ -424,9 +424,9 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
         self.assertEqual(5, len(cl_scenario.train_stream))
         self.assertEqual(5, len(cl_scenario.test_stream))
-        self.assertEqual(5, cl_scenario.n_steps)
+        self.assertEqual(5, cl_scenario.n_experiences)
 
-        for step_id in range(cl_scenario.n_steps):
+        for step_id in range(cl_scenario.n_experiences):
             scenario_train_x, scenario_train_y, _ = \
                 load_all_dataset(cl_scenario.train_stream[step_id].dataset)
             scenario_test_x, scenario_test_y, _ = \

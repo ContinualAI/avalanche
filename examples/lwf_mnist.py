@@ -51,10 +51,10 @@ def main(args):
     print('Starting experiment...')
     results = []
     for train_batch_info in scenario.train_stream:
-        print("Start training on step ", train_batch_info.current_step)
+        print("Start training on step ", train_batch_info.current_experience)
 
         strategy.train(train_batch_info, num_workers=4)
-        print("End training on step ", train_batch_info.current_step)
+        print("End training on step ", train_batch_info.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 

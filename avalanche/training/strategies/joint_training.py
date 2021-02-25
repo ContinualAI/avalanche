@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, ConcatDataset
 import torch
 import logging
 
-from avalanche.benchmarks.scenarios import IStepInfo
+from avalanche.benchmarks.scenarios import IExperience
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -131,20 +131,20 @@ class JointTraining:
         new_layer = Linear(in_features, n_output_units, bias=has_bias)
         return new_layer
 
-    def train(self, step_infos: Sequence[IStepInfo], **kwargs):
+    def train(self, step_infos: Sequence[IExperience], **kwargs):
         """ Training loop. it trains only on a sequence of steps (a stream).
         WARNING: Please take in mind that it trains on it "in parallel" not
         iteratively as in the BaseStrategy train method. This is the main
         difference from the JointTraining and BaseStrategy classes.
 
-        :param step_infos: sequence of IStepInfo (a stream).
+        :param step_infos: sequence of IExperience (a stream).
         :return:
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(step_infos, IStepInfo):
+        if isinstance(step_infos, IExperience):
             step_infos = [step_infos]
 
         self.before_training(**kwargs)
@@ -281,7 +281,7 @@ class JointTraining:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def eval(self, step_list: Union[IStepInfo, Sequence[IStepInfo]], **kwargs):
+    def eval(self, step_list: Union[IExperience, Sequence[IExperience]], **kwargs):
         """
         Evaluate the current model on a series of steps.
 
@@ -293,14 +293,14 @@ class JointTraining:
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(step_list, IStepInfo):
+        if isinstance(step_list, IExperience):
             step_list = [step_list]
 
         self.before_eval(**kwargs)
         for step_info in step_list:
             self.eval_task_label = step_info.task_label
             self.step_info = step_info
-            self.eval_step_id = step_info.current_step
+            self.eval_step_id = step_info.current_experience
 
             self.current_data = step_info.dataset
             self.adapt_eval_dataset(**kwargs)
