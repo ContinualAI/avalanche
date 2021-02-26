@@ -8,6 +8,6 @@ from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 
 default_logger = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
+    accuracy_metrics(minibatch=False, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=False, epoch=True, step=True, stream=True),
     loggers=[InteractiveLogger()])

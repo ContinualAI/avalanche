@@ -19,6 +19,12 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
+    from avalanche.benchmarks.scenarios import IStepInfo
+    from avalanche.evaluation import PluginMetric
+
+
+EVAL = "eval"
+TRAIN = "train"
 
 
 def default_cm_image_creator(confusion_matrix_tensor: Tensor,
@@ -95,6 +101,17 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
     return strategy.train_task_label
 
 
+def stream_type(step_info: 'IStepInfo') -> str:
+    """
+    Returns the stream name from which the step_info belongs to.
+    e.g. the step can be part of train or test stream.
+
+    :param step_info: the instance of the step
+    """
+
+    return step_info.origin_stream.name
+
+
 def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
     """
     Returns the current phase name and the associated task label.
@@ -110,9 +127,9 @@ def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
     """
 
     if strategy.is_eval:
-        return "Eval", strategy.eval_task_label
+        return EVAL, strategy.eval_task_label
 
-    return "Train", strategy.train_task_label
+    return TRAIN, strategy.train_task_label
 
 
 def bytes2human(n):
@@ -132,8 +149,51 @@ def bytes2human(n):
     return "%sB" % n
 
 
+def get_metric_name(metric: 'PluginMetric',
+                    strategy: 'PluggableStrategy',
+                    add_step=False):
+    """
+    Return the complete metric name used to report its current value.
+    The name is composed by:
+    metric string representation /phase type/stream type/task id
+    where metric string representation is a synthetic string
+    describing the metric, phase type describe if the user
+    is training (train) or evaluating (eval), stream type describes
+    the type of stream the current step belongs to (e.g. train, test)
+    and task id is the current task label.
+
+    :param metric: the metric object for which return the complete name
+    :param strategy: the current strategy object
+    :param add_step: if True, add eval_step_id to the main metric name.
+            Default to False.
+    """
+
+    phase_name, task_label = phase_and_task(strategy)
+    stream = stream_type(strategy.step_info)
+    if add_step:
+
+        step_label = strategy.eval_step_id if phase_name == EVAL \
+            else strategy.training_step_counter
+        metric_name = '{}/{}_phase/{}_stream/Task{:03}/Step{:03}' \
+            .format(str(metric),
+                    phase_name,
+                    stream,
+                    task_label,
+                    step_label)
+    else:
+        metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
+            .format(str(metric),
+                    phase_name,
+                    stream,
+                    task_label)
+
+    return metric_name
+
+
 __all__ = [
     'default_cm_image_creator',
     'get_task_label',
     'phase_and_task',
-    'bytes2human']
+    'stream_type',
+    'bytes2human',
+    'get_metric_name']

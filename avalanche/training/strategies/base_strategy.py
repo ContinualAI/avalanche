@@ -229,6 +229,7 @@ class BaseStrategy:
         """
         self.current_dataloader = MultiTaskMultiBatchDataLoader(
             self.adapted_dataset,
+            oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=self.train_mb_size,
             shuffle=shuffle)
@@ -241,9 +242,11 @@ class BaseStrategy:
         :return:
         """
         self.current_dataloader = MultiTaskDataLoader(
-              self.adapted_dataset,
-              num_workers=num_workers,
-              batch_size=self.eval_mb_size)
+            self.adapted_dataset,
+            oversample_small_tasks=False,
+            num_workers=num_workers,
+            batch_size=self.eval_mb_size,
+        )
 
     def adapt_train_dataset(self, **kwargs):
         """

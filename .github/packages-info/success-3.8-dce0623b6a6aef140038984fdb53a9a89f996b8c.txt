@@ -30,7 +30,7 @@ gst-plugins-base          1.14.0               hbbd80ab_1
 gstreamer                 1.14.0               h28cd5cc_2  
 icu                       58.2              hf484d3e_1000    conda-forge
 idna                      2.10               pyh9f0ad1d_0    conda-forge
-importlib-metadata        3.4.0            py38h578d9bd_0    conda-forge
+importlib-metadata        3.7.0            py38h578d9bd_0    conda-forge
 intel-openmp              2020.2                      254  
 joblib                    1.0.1              pyhd8ed1ab_0    conda-forge
 jpeg                      9b                   h024ee3a_2  
@@ -68,7 +68,7 @@ numpy                     1.19.2           py38h54aff64_0
 numpy-base                1.19.2           py38hfa32c7d_0  
 oauthlib                  3.0.1                      py_0    conda-forge
 olefile                   0.46                       py_0  
-openssl                   1.1.1h               h516909a_0    conda-forge
+openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
 pillow                    8.1.0            py38he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
@@ -83,7 +83,7 @@ pyopenssl                 20.0.1             pyhd8ed1ab_0    conda-forge
 pyparsing                 2.4.7              pyh9f0ad1d_0    conda-forge
 pyqt                      5.9.2            py38h05f1152_4  
 pysocks                   1.7.1            py38h578d9bd_3    conda-forge
-python                    3.8.5                h7579374_1  
+python                    3.8.8                hdb3f193_4  
 python-dateutil           2.8.1                      py_0    conda-forge
 python_abi                3.8                      1_cp38    conda-forge
 pytorch                   1.7.1               py3.8_cpu_0  [cpuonly]  pytorch
@@ -93,7 +93,7 @@ quadprog                  0.1.8            py38h82cb98a_0    conda-forge
 readline                  8.1                  h27cfd23_0  
 requests                  2.25.1             pyhd3deb0d_0    conda-forge
 requests-oauthlib         1.3.0              pyh9f0ad1d_0    conda-forge
-rsa                       4.7.1              pyh44b312d_0    conda-forge
+rsa                       4.7.2              pyh44b312d_0    conda-forge
 scikit-learn              0.23.2           py38h5d63f67_3    conda-forge
 scipy                     1.5.3            py38h828c644_0    conda-forge
 setuptools                52.0.0           py38h06a4308_0  
@@ -106,7 +106,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               hbc83047_0  
 torchvision               0.8.2                  py38_cpu  [cpuonly]  pytorch
 tornado                   6.1              py38h25fe258_0    conda-forge
-tqdm                      4.57.0             pyhd8ed1ab_0    conda-forge
+tqdm                      4.58.0             pyhd8ed1ab_0    conda-forge
 typing_extensions         3.7.4.3            pyha847dfd_0  
 urllib3                   1.26.3             pyhd8ed1ab_0    conda-forge
 werkzeug                  1.0.1              pyh9f0ad1d_0    conda-forge

@@ -51,12 +51,12 @@ text_logger = TextLogger(open('log.txt', 'a'))
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, task=True),
-    loss_metrics(minibatch=True, epoch=True, task=True),
-    timing_metrics(epoch=True, epoch_average=True, test=False),
+    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    timing_metrics(epoch=True, epoch_running=True),
     cpu_usage_metrics(step=True),
-    Forgetting(),
-    TaskConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    StepForgetting(),
+    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger])
 

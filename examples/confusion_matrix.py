@@ -3,14 +3,14 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 26-01-2021                                                            #
-# Author(s): Lorenzo Pellegrini                                                #
+# Date: 24-05-2020                                                             #
+# Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
 
 """
-This is a simple example on how to use the Synaptic Intelligence Plugin.
+This example shows how to produce confusion matrix during training and evaluation.
 """
 
 from __future__ import absolute_import
@@ -20,20 +20,18 @@ from __future__ import print_function
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
+from torch.optim import SGD
 from torchvision import transforms
-from torchvision.transforms import ToTensor, Resize
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor, RandomCrop
 
-from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics
+from avalanche.benchmarks import nc_scenario
+from avalanche.models import SimpleMLP
+from avalanche.training.strategies import Naive
+from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
+from avalanche.evaluation.metrics import StreamConfusionMatrix, \
+    accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
-from avalanche.logging.tensorboard_logger import TensorboardLogger
-from avalanche.models.mobilenetv1 import MobilenetV1
-from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies.strategies import SynapticIntelligence
-from avalanche.training.utils import adapt_classification_layer
-
 
 def main(args):
     # --- CONFIG
@@ -44,52 +42,50 @@ def main(args):
 
     # --- TRANSFORMATIONS
     train_transform = transforms.Compose([
-        Resize(224),
+        RandomCrop(28, padding=4),
         ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     test_transform = transforms.Compose([
-        Resize(224),
         ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = SplitCIFAR10(5, train_transform=train_transform,
-                            test_transform=test_transform)
+    mnist_train = MNIST('./data/mnist', train=True,
+                        download=True, transform=train_transform)
+    mnist_test = MNIST('./data/mnist', train=False,
+                       download=True, transform=test_transform)
+    scenario = nc_scenario(
+        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
-    model = MobilenetV1()
-    adapt_classification_layer(model, scenario.n_classes, bias=False)
+    model = SimpleMLP(num_classes=scenario.n_classes)
 
-    # DEFINE THE EVALUATION PLUGIN AND LOGGER
+    eval_plugin = EvaluationPlugin(
+        accuracy_metrics(epoch=True, step=True, stream=True),
+        loss_metrics(epoch=True, step=True, stream=True),
+        # save image should be False to appropriately view
+        # results in Interactive Logger.
+        # a tensor will be printed
+        StreamConfusionMatrix(save_image=False, normalize='all'),
+        loggers=InteractiveLogger()
+    )
 
-    my_logger = TensorboardLogger(
-        tb_log_dir="logs", tb_log_exp_name="logging_example")
-
-    # print to stdout
-    interactive_logger = InteractiveLogger()
-
-    evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
-        loggers=[my_logger, interactive_logger])
-
-    # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
-    cl_strategy = SynapticIntelligence(
-        model, Adam(model.parameters(), lr=0.001), CrossEntropyLoss(),
-        si_lambda=0.0001, train_mb_size=128, train_epochs=4, eval_mb_size=128,
-        device=device, evaluator=evaluation_plugin)
+    # CREATE THE STRATEGY INSTANCE (NAIVE)
+    cl_strategy = Naive(
+        model, SGD(model.parameters(), lr=0.001, momentum=0.9),
+        CrossEntropyLoss(), train_mb_size=100, train_epochs=4, eval_mb_size=100,
+        device=device, evaluator=eval_plugin, plugins=[ReplayPlugin(5000)])
 
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
     for step in scenario.train_stream:
-        print("Start of step: ", step.current_experience)
-        print("Current Classes: ", step.classes_in_this_experience)
+        print("Start of step: ", step.current_step)
+        print("Current Classes: ", step.classes_in_this_step)
 
         cl_strategy.train(step)
         print('Training completed')
