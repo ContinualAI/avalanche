@@ -1,4 +1,4 @@
-# Avalanche: a Comprehensive Framework for Continual Learning Research
+# Avalanche: an End-to-End Library for Continual Learning
 **[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Tutorial]()** | **[API Doc]()**
 
 ![unit test](https://github.com/vlomonaco/avalanche/workflows/unit%20test/badge.svg)
@@ -9,7 +9,7 @@
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
 </p>
 
-**Avalanche** is an *end-to-end Continual Learning research framework* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
+**Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
 open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
 Avalanche can help Continual Learning researchers in several ways:
 
@@ -19,13 +19,16 @@ Avalanche can help Continual Learning researchers in several ways:
 - *Increase code efficiency, scalability & portability*
 - *Augment impact and usability of your research products*
 
-The framework is organized in four main modules:
+The library is organized in four main modules:
 
 - [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 - [Evaluation](avalanche/training): This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
 - [Extras](avalanche/extras): In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
-Avalanche is one of the first experiments of a End-to-end Research Framework for reproducible machine learning research where you can find benchmarks, algorithms and evaluation protocols in the same place.
+- [Models](avalanche/models): In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in torchvision.models).
+- [Logging](avalanche/logging): It includes advanced logging and plotting features, including native stdout, file and TensorBoard support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
+
+_Avalanche_ the first experiment of a **End-to-end Library** for reproducible continual learning research & development where you can find benchmarks, algorithms, evaluation metrics and much more, in the same place.
 
 Let's make it together :people_holding_hands: a wonderful ride! :balloon:
 
@@ -96,11 +99,11 @@ If you used Avalanche in your research project, please remember to cite our whit
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```
-@article{lomonaco2020,
-   title = {Avalanche: an End-to-End Framework for Continual Learning Research},
+@article{...,
+   title = {Avalanche: an End-to-End Library for Continual Learning},
    author = {...},
    journal = {Arxiv preprint arXiv:xxxx.xxxx},
-   year = {2020}
+   year = {2021}
 }
 ```
 
