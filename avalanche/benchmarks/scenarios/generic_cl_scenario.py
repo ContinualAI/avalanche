@@ -46,7 +46,6 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
                  experience_factory: Callable[['GenericScenarioStream', int],
                                               TExperience] = None):
         """
-        TODO: doc
         Creates an instance of a Continual Learning scenario.
 
         The scenario is defined by the train and test datasets plus the
@@ -68,6 +67,10 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
             pattern index inside the test dataset.
         :param task_labels: The mapping from experience IDs to task labels,
             usually as a list of integers.
+        :param pattern_train_task_labels: The list of task labels of each
+            pattern in the `train_dataset`.
+        :param pattern_test_task_labels: The list of task labels of each
+            pattern in the `test_dataset`.
         :param complete_test_set_only: If True, only the complete test
             set will be returned from test set related methods of the linked
             :class:`GenericExperience` instances. This also means that the

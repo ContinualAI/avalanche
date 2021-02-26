@@ -36,7 +36,7 @@ class NISITTests(unittest.TestCase):
             cur_train_set = batch_info.dataset
             t = batch_info.task_label
             self.assertEqual(0, t)
-            self.assertEqual(batch_id, batch_info.current_step)
+            self.assertEqual(batch_id, batch_info.current_experience)
             self.assertGreaterEqual(len(cur_train_set), min_batch_size)
             self.assertLessEqual(len(cur_train_set), max_batch_size)
             pattern_count += len(cur_train_set)
@@ -48,7 +48,7 @@ class NISITTests(unittest.TestCase):
             cur_test_set = batch_info.dataset
             t = batch_info.task_label
             self.assertEqual(0, t)
-            self.assertEqual(batch_id, batch_info.current_step)
+            self.assertEqual(batch_id, batch_info.current_experience)
             pattern_count += len(cur_test_set)
         self.assertEqual(len(mnist_test), pattern_count)
 
@@ -135,12 +135,12 @@ class NISITTests(unittest.TestCase):
 
         step_info: NIExperience
         for batch_id, step_info in enumerate(my_ni_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NIExperience)
 
         self.assertEqual(1, len(my_ni_scenario.test_stream))
         for batch_id, step_info in enumerate(my_ni_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NIExperience)
 
         iterable_slice = [3, 4, 1]
@@ -150,7 +150,7 @@ class NISITTests(unittest.TestCase):
         self.assertEqual('train', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
             self.assertIsInstance(step_info, NIExperience)
 
         with self.assertRaises(IndexError):
@@ -164,7 +164,7 @@ class NISITTests(unittest.TestCase):
         self.assertEqual('test', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
             self.assertIsInstance(step_info, NIExperience)
 
 

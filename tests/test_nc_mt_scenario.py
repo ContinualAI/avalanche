@@ -214,11 +214,11 @@ class MultiTaskTests(unittest.TestCase):
 
         step_info: NCExperience
         for batch_id, step_info in enumerate(my_nc_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         for batch_id, step_info in enumerate(my_nc_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         iterable_slice = [3, 4, 1]
@@ -228,7 +228,7 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual('train', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         sliced_stream = my_nc_scenario.test_stream[iterable_slice]
@@ -237,7 +237,7 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual('test', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
 

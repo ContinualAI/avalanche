@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Sequence, Union, SupportsInt, Any, List
+from typing import Sequence, Union, SupportsInt, Any
 
 from torch import Tensor
 
@@ -8,6 +8,8 @@ from avalanche.benchmarks.utils import AvalancheTensorDataset, \
     SupportedDataset
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
+from avalanche.benchmarks.utils.dataset_utils import LazyConcatTargets,\
+    ConstantSequence
 
 
 def create_multi_dataset_generic_scenario(
@@ -16,7 +18,6 @@ def create_multi_dataset_generic_scenario(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False) -> GenericCLScenario:
     """
-    TODO: doc
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
     step. Contents of the datasets will not be changed, including the targets.
@@ -58,12 +59,17 @@ def create_multi_dataset_generic_scenario(
     # Each dataset describes a different step so the lists of indexes will
     # just be ranges of ascending indexes.
     train_structure = []
+    pattern_train_task_labels = []
     concat_train_dataset = AvalancheConcatDataset(train_dataset_list)
     next_idx = 0
-    for train_dataset in train_dataset_list:
+    for dataset_idx, train_dataset in enumerate(train_dataset_list):
         end_idx = next_idx + len(train_dataset)
         train_structure.append(range(next_idx, end_idx))
+        pattern_train_task_labels.append(
+            ConstantSequence(task_labels[dataset_idx], len(train_dataset)))
         next_idx = end_idx
+
+    pattern_train_task_labels = LazyConcatTargets(pattern_train_task_labels)
 
     test_structure = []
     if complete_test_set_only:
@@ -77,18 +83,22 @@ def create_multi_dataset_generic_scenario(
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
         concat_test_dataset = as_transformation_dataset(test_dataset_list[0])
+        pattern_test_task_labels = ConstantSequence(0, len(concat_test_dataset))
     else:
         concat_test_dataset = AvalancheConcatDataset(test_dataset_list)
         test_structure = []
+        pattern_test_task_labels = []
         next_idx = 0
-        for test_dataset in test_dataset_list:
+        for dataset_idx, test_dataset in enumerate(test_dataset_list):
             end_idx = next_idx + len(test_dataset)
             test_structure.append(range(next_idx, end_idx))
+            pattern_test_task_labels.append(
+                ConstantSequence(task_labels[dataset_idx], len(test_dataset)))
             next_idx = end_idx
+        pattern_test_task_labels = LazyConcatTargets(pattern_test_task_labels)
     concat_test_dataset = concat_test_dataset.eval()
 
-    pattern_train_task_labels = []
-    # TODO: continue
+    task_labels = [[x] for x in task_labels]
 
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.

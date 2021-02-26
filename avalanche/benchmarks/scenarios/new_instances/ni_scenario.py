@@ -98,11 +98,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             test datasets must be used. Defaults to None.
         """
 
-        task_ids: List[List[int]]
-        if task_labels:
-            task_ids = [[x] for x in range(n_experiences)]
-        else:
-            task_ids = [[0]] * n_experiences
+        self._has_task_labels = task_labels
 
         if reproducibility_data is not None:
             super(NIScenario, self).__init__(
@@ -112,9 +108,14 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                 complete_test_set_only=True,
                 reproducibility_data=reproducibility_data,
                 experience_factory=NIExperience)
+            self._has_task_labels = reproducibility_data['has_task_labels']
             n_experiences = self.n_experiences
-            task_ids = self.task_labels
-            task_labels = len(set(self.task_labels)) > 1
+
+        task_ids: List[List[int]]
+        if self._has_task_labels:
+            task_ids = [[x] for x in range(n_experiences)]
+        else:
+            task_ids = [[0]] * n_experiences
 
         if n_experiences < 1:
             raise ValueError('Invalid number of steps (n_experiences '
@@ -378,7 +379,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             super(NIScenario, self).__init__(
                 train_dataset, test_dataset,  # Original dataset
                 train_dataset, test_dataset,  # Adapted datasets
-                step_patterns, [], # train assignment, test assignment
+                step_patterns, [],  # train assignment, test assignment
                 task_ids,  # Task label of each experience
                 pattern_train_task_labels,  # Task label of each train pattern
                 ConstantSequence(0, len(test_dataset)),  # of each test pattern
@@ -398,9 +399,9 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
         return self._classes_in_exp
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
-        # In fact, the only data required for reproducibility of a NI Scenario
-        # is the one already included in the GenericCLScenario!
-        return super().get_reproducibility_data()
+        super_rep = super().get_reproducibility_data()
+        super_rep['has_task_labels'] = self._has_task_labels
+        return super_rep
 
 
 class NIExperience(GenericExperience[NIScenario[TrainSet, TestSet],

@@ -22,7 +22,8 @@ class SITTests(unittest.TestCase):
         self.assertEqual(5, my_nc_scenario.n_experiences)
         self.assertEqual(10, my_nc_scenario.n_classes)
         for batch_id in range(my_nc_scenario.n_experiences):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
@@ -56,7 +57,8 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(4):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[batch_id]))
             all_classes.update(my_nc_scenario.classes_in_experience[batch_id])
 
         self.assertEqual(set(order), all_classes)
@@ -73,7 +75,8 @@ class SITTests(unittest.TestCase):
 
         all_classes = []
         for batch_id in range(4):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[batch_id]))
             all_classes.extend(my_nc_scenario.classes_in_experience[batch_id])
         self.assertEqual(list(range(8)), all_classes)
 
@@ -111,7 +114,8 @@ class SITTests(unittest.TestCase):
 
         all_classes = []
         for batch_id in range(4):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[batch_id]))
             all_classes.extend(my_nc_scenario.classes_in_experience[batch_id])
         self.assertEqual(8, len(all_classes))
         self.assertListEqual([0, 1], sorted(set(all_classes)))
@@ -226,7 +230,8 @@ class SITTests(unittest.TestCase):
         self.assertEqual(5, my_nc_scenario.n_experiences)
         self.assertEqual(10, my_nc_scenario.n_classes)
         for batch_id in range(5):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
@@ -245,11 +250,11 @@ class SITTests(unittest.TestCase):
 
         step_info: NCExperience
         for batch_id, step_info in enumerate(my_nc_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         for batch_id, step_info in enumerate(my_nc_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_step)
+            self.assertEqual(batch_id, step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         iterable_slice = [3, 4, 1]
@@ -259,7 +264,8 @@ class SITTests(unittest.TestCase):
         self.assertEqual('train', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id],
+                             step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
         sliced_stream = my_nc_scenario.test_stream[iterable_slice]
@@ -268,7 +274,8 @@ class SITTests(unittest.TestCase):
         self.assertEqual('test', sliced_stream.name)
 
         for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_step)
+            self.assertEqual(iterable_slice[batch_id],
+                             step_info.current_experience)
             self.assertIsInstance(step_info, NCExperience)
 
 

@@ -332,12 +332,12 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
         train_steps_patterns_assignment = []
         test_steps_patterns_assignment = []
 
+        self._has_task_labels = task_labels
         if reproducibility_data is not None:
-            rep_task_labels = reproducibility_data['task_labels']
+            self._has_task_labels = bool(
+                reproducibility_data['has_task_labels'])
 
-            task_labels = len(set(rep_task_labels)) > 1
-
-        if task_labels:
+        if self._has_task_labels:
             pattern_train_task_labels = [-1] * len(train_dataset)
             pattern_test_task_labels = [-1] * len(test_dataset)
         else:
@@ -350,14 +350,14 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             for idx, element in enumerate(original_training_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_train.append(idx)
-                    if task_labels:
+                    if self._has_task_labels:
                         pattern_train_task_labels[idx] = step_id
 
             selected_indexes_test = []
             for idx, element in enumerate(original_test_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_test.append(idx)
-                    if task_labels:
+                    if self._has_task_labels:
                         pattern_test_task_labels[idx] = step_id
 
             train_steps_patterns_assignment.append(selected_indexes_train)
@@ -369,7 +369,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             test_dataset, class_mapping=self.class_mapping)
 
         task_ids: List[List[int]]
-        if task_labels:
+        if self._has_task_labels:
             task_ids = [[x] for x in range(n_experiences)]
         else:
             task_ids = [[0]] * n_experiences
@@ -400,7 +400,8 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                 self.class_ids_from_zero_in_each_exp),
             'classes_order': self.classes_order,
             'classes_order_original_ids': self.classes_order_original_ids,
-            'n_experiences': int(self.n_experiences)}
+            'n_experiences': int(self.n_experiences),
+            'has_task_labels': self._has_task_labels}
         return reproducibility_data
 
     def classes_in_exp_range(self, exp_start: int,
