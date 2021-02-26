@@ -273,7 +273,7 @@ StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
 AverageEpochCPUUsage, StepCPUUsage, DiskUsage, DiskUsageMonitor, \
 StepForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
 EpochLoss, RunningEpochLoss, StepLoss, MAC, Mean, RamUsage, RamUsageMonitor, \
-Sum, ElapsedTime, MinibatchTime, EpochTime, AverageEpochTime, StepTime, \
+Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, StepTime, \
 timing_metrics
 ```
 
@@ -332,7 +332,7 @@ interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
     accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
     loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-    timing_metrics(epoch=True, epoch_average=True, test=False),
+    timing_metrics(epoch=True, epoch_running=True),
     cpu_usage_metrics(step=True),
     StepForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
