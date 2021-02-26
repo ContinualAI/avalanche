@@ -106,7 +106,7 @@ threadpoolctl             2.1.0              pyh5ca1d4c_0    conda-forge
 tk                        8.6.10               hbc83047_0  
 torchvision               0.8.2                  py38_cpu  [cpuonly]  pytorch
 tornado                   6.1              py38h25fe258_0    conda-forge
-tqdm                      4.57.0             pyhd8ed1ab_0    conda-forge
+tqdm                      4.58.0             pyhd8ed1ab_0    conda-forge
 typing_extensions         3.7.4.3            pyha847dfd_0  
 urllib3                   1.26.3             pyhd8ed1ab_0    conda-forge
 werkzeug                  1.0.1              pyh9f0ad1d_0    conda-forge
