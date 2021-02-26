@@ -181,7 +181,8 @@ class RunningEpochTime(PluginMetric[float]):
     The running epoch time metric.
     This metric only works at training time.
 
-    For each iteration, this metric logs the average time between the start of the
+    For each iteration, this metric logs the average time
+    between the start of the
     epoch and the current iteration.
     """
 
