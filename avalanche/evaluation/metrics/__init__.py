@@ -1,5 +1,4 @@
 from .mean import *
-from .sum import *
 from .accuracy import *
 from .confusion_matrix import *
 from .cpu_usage import *

@@ -23,7 +23,7 @@ interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
     accuracy_metrics(minibatch=False, epoch=True, step=True, stream=True),
     loss_metrics(minibatch=False, epoch=True, step=True, stream=True),
-    timing_metrics(epoch=True, epoch_average=True, test=False),
+    timing_metrics(epoch=True, epoch_running=True),
     cpu_usage_metrics(step=True),
     StepForgetting(),
     loggers=[interactive_logger])
