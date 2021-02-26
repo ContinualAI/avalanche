@@ -10,7 +10,7 @@ description: All the People that Made Avalanche Great
 
 The Project is maintained mostly by [ContinualAI Research](https://www.continualai.org/research) members, with the core mission of supporting the production, organization and dissemination of original research on CL with **technical research**, **open source projects** and **tools** that can make the life of a CL researcher easier.
 
-* \*\*\*\*[**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com/) 
+* [**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com/) 
 * Lorenzo Pellegrini 
 * [Andrea Cossu](https://andreacossu.github.io/)
 * Gabriele Graffieti
@@ -29,10 +29,10 @@ _Avalanche_ is a large community effort. It is only fair to list here all the pe
 
 _Avalanche_ is a great tool also thanks to its many users. Here we list some research groups using _Avalanche_ for their continual learning research:
 
-* \*\*\*\*[**ContinualAI Lab**](https://www.continualai.org/lab/) _\*\*_\(Director: Vincenzo Lomonaco\)
-* \*\*\*\*[**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(Director: Davide Maltoni, University of Bologna\)
+* [**ContinualAI Lab**](https://www.continualai.org/lab/) \(Director: Vincenzo Lomonaco\)
+* [**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(Director: Davide Maltoni, University of Bologna\)
 * [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) \(Director: Alessio Micheli, University of Pisa\)
-* \*\*\*\*[**Italian Association for Machine Learning**](https://iaml.it/) _\*\*_\(President: Simone Scardapane,  Sapienza University\)
+* [**Italian Association for Machine Learning**](https://iaml.it/) \(President: Simone Scardapane,  Sapienza University\)
 * [**AIforPeople**](https://www.aiforpeople.org/) \(President: Marta Ziosi, University of Oxford\)
 
 ## 📫 Contacts

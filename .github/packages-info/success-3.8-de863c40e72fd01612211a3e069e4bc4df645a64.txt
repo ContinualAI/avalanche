@@ -68,7 +68,7 @@ numpy                     1.19.2           py38h54aff64_0
 numpy-base                1.19.2           py38hfa32c7d_0  
 oauthlib                  3.0.1                      py_0    conda-forge
 olefile                   0.46                       py_0  
-openssl                   1.1.1h               h516909a_0    conda-forge
+openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
 pillow                    8.1.0            py38he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
@@ -83,7 +83,7 @@ pyopenssl                 20.0.1             pyhd8ed1ab_0    conda-forge
 pyparsing                 2.4.7              pyh9f0ad1d_0    conda-forge
 pyqt                      5.9.2            py38h05f1152_4  
 pysocks                   1.7.1            py38h578d9bd_3    conda-forge
-python                    3.8.5                h7579374_1  
+python                    3.8.8                hdb3f193_4  
 python-dateutil           2.8.1                      py_0    conda-forge
 python_abi                3.8                      1_cp38    conda-forge
 pytorch                   1.7.1               py3.8_cpu_0  [cpuonly]  pytorch
