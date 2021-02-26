@@ -178,11 +178,13 @@ class BaseStrategy:
             self.after_training_epoch(**kwargs)
         self.after_training_step(**kwargs)
 
-    def eval(self, step_list: Union[IExperience, Sequence[IExperience]], **kwargs):
+    def eval(self,
+             step_list: Union[IExperience, Sequence[IExperience]],
+             **kwargs):
         """
         Evaluate the current model on a series of steps.
 
-        :param step_info: CL step information.
+        :param step_list: CL step information.
         :param kwargs: custom arguments.
         """
         self.is_training = False
