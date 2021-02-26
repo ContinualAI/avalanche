@@ -49,7 +49,7 @@ class MultiTaskDataLoader:
                 for t in self.data_dict.keys():
                     t_loader = iter_dataloaders[t]
                     try:
-                        x, y = next(t_loader)
+                        x, y, *_ = next(t_loader)
                         yield t, x, y
                     except StopIteration:
                         # StopIteration is thrown if dataset ends.
@@ -104,7 +104,7 @@ class MultiTaskMultiBatchDataLoader:
                 for t in self.data_dict.keys():
                     t_loader = iter_dataloaders[t]
                     try:
-                        x, y = next(t_loader)
+                        x, y, *_ = next(t_loader)
                     except StopIteration:
                         # StopIteration is thrown if dataset ends.
                         # reinitialize data loader

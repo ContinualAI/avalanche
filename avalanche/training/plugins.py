@@ -187,7 +187,7 @@ class ReplayPlugin(StrategyPlugin):
         # replace patterns in random memory
         ext_mem = self.ext_mem
         if curr_task_id not in ext_mem:
-            ext_mem[curr_task_id] = copy.deepcopy(self.rm_add)
+            ext_mem[curr_task_id] = self.rm_add
         else:
             rem_len = len(ext_mem[curr_task_id]) - len(self.rm_add)
             _, saved_part = random_split(ext_mem[curr_task_id],
@@ -229,7 +229,7 @@ class GDumbPlugin(StrategyPlugin):
         dataset = strategy.step_info.dataset
         current_counter = self.counter[strategy.step_info.task_label]
         current_mem = self.ext_mem[strategy.step_info.task_label]
-        for i, (pattern, target_value) in enumerate(dataset):
+        for i, (pattern, target_value, _) in enumerate(dataset):
             target = torch.tensor(target_value)
             if len(pattern.size()) == 1:
                 pattern = pattern.unsqueeze(0)
@@ -1037,7 +1037,7 @@ class GEMPlugin(StrategyPlugin):
         """
         dataloader = DataLoader(dataset, batch_size=batch_size)
         tot = 0
-        for x, y in dataloader:
+        for x, y, _ in dataloader:
             if tot + x.size(0) <= self.patterns_per_step:
                 if t not in self.memory_x:
                     self.memory_x[t] = x.clone()
@@ -1184,7 +1184,7 @@ class EWCPlugin(StrategyPlugin):
         # list of list
         importances = zerolike_params_dict(model)
         dataloader = DataLoader(dataset, batch_size=batch_size)
-        for i, (x, y) in enumerate(dataloader):
+        for i, (x, y, _) in enumerate(dataloader):
             x, y = x.to(device), y.to(device)
 
             optimizer.zero_grad()
