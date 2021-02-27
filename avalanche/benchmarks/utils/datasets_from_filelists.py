@@ -24,7 +24,7 @@ import os.path
 from torch import Tensor
 from torchvision.transforms.functional import crop
 
-from avalanche.benchmarks.utils import TransformationDataset
+from avalanche.benchmarks.utils import AvalancheDataset
 
 
 def default_image_loader(path):
@@ -228,14 +228,14 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
     transform_groups = dict(train=(train_transform, train_target_transform),
                             test=(test_transform, test_target_transform))
     train_inc_datasets = \
-        [TransformationDataset(FilelistDataset(root, tr_flist),
-                               transform_groups=transform_groups,
-                               initial_transform_group='train')
+        [AvalancheDataset(FilelistDataset(root, tr_flist),
+                          transform_groups=transform_groups,
+                          initial_transform_group='train')
          for tr_flist in train_filelists]
     test_inc_datasets = \
-        [TransformationDataset(FilelistDataset(root, te_flist),
-                               transform_groups=transform_groups,
-                               initial_transform_group='test')
+        [AvalancheDataset(FilelistDataset(root, te_flist),
+                          transform_groups=transform_groups,
+                          initial_transform_group='test')
          for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets
@@ -370,14 +370,14 @@ def datasets_from_paths(
             common_root = None
 
     train_inc_datasets = \
-        [TransformationDataset(PathsDataset(common_root, tr_flist),
-                               transform_groups=transform_groups,
-                               initial_transform_group='train')
+        [AvalancheDataset(PathsDataset(common_root, tr_flist),
+                          transform_groups=transform_groups,
+                          initial_transform_group='train')
          for tr_flist in train_list]
     test_inc_datasets = \
-        [TransformationDataset(PathsDataset(common_root, te_flist),
-                               transform_groups=transform_groups,
-                               initial_transform_group='test')
+        [AvalancheDataset(PathsDataset(common_root, te_flist),
+                          transform_groups=transform_groups,
+                          initial_transform_group='test')
          for te_flist in test_list]
 
     return train_inc_datasets, test_inc_datasets

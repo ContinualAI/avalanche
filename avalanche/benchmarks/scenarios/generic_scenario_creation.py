@@ -3,11 +3,13 @@ from typing import Sequence, Union, SupportsInt, Any, Tuple
 
 from torch import Tensor
 
-from avalanche.benchmarks.utils import TransformationTensorDataset, \
-    TransformationConcatDataset, as_transformation_dataset, \
+from avalanche.benchmarks.utils import AvalancheTensorDataset, \
+    AvalancheConcatDataset, as_transformation_dataset, \
     SupportedDataset, datasets_from_paths
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
+from avalanche.benchmarks.utils.dataset_utils import LazyConcatTargets,\
+    ConstantSequence
 
 
 def create_multi_dataset_generic_scenario(
@@ -57,12 +59,17 @@ def create_multi_dataset_generic_scenario(
     # Each dataset describes a different step so the lists of indexes will
     # just be ranges of ascending indexes.
     train_structure = []
-    concat_train_dataset = TransformationConcatDataset(train_dataset_list)
+    pattern_train_task_labels = []
+    concat_train_dataset = AvalancheConcatDataset(train_dataset_list)
     next_idx = 0
-    for train_dataset in train_dataset_list:
+    for dataset_idx, train_dataset in enumerate(train_dataset_list):
         end_idx = next_idx + len(train_dataset)
         train_structure.append(range(next_idx, end_idx))
+        pattern_train_task_labels.append(
+            ConstantSequence(task_labels[dataset_idx], len(train_dataset)))
         next_idx = end_idx
+
+    pattern_train_task_labels = LazyConcatTargets(pattern_train_task_labels)
 
     test_structure = []
     if complete_test_set_only:
@@ -76,15 +83,22 @@ def create_multi_dataset_generic_scenario(
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
         concat_test_dataset = as_transformation_dataset(test_dataset_list[0])
+        pattern_test_task_labels = ConstantSequence(0, len(concat_test_dataset))
     else:
-        concat_test_dataset = TransformationConcatDataset(test_dataset_list)
+        concat_test_dataset = AvalancheConcatDataset(test_dataset_list)
         test_structure = []
+        pattern_test_task_labels = []
         next_idx = 0
-        for test_dataset in test_dataset_list:
+        for dataset_idx, test_dataset in enumerate(test_dataset_list):
             end_idx = next_idx + len(test_dataset)
             test_structure.append(range(next_idx, end_idx))
+            pattern_test_task_labels.append(
+                ConstantSequence(task_labels[dataset_idx], len(test_dataset)))
             next_idx = end_idx
+        pattern_test_task_labels = LazyConcatTargets(pattern_test_task_labels)
     concat_test_dataset = concat_test_dataset.eval()
+
+    task_labels = [[x] for x in task_labels]
 
     # GenericCLScenario constructor will also check that the same amount of
     # train/test sets + task_labels have been defined.
@@ -92,6 +106,8 @@ def create_multi_dataset_generic_scenario(
         concat_train_dataset, concat_test_dataset,
         concat_train_dataset, concat_test_dataset, train_structure,
         test_structure, task_labels,
+        pattern_train_task_labels,
+        pattern_test_task_labels,
         complete_test_set_only=complete_test_set_only)
 
 
@@ -321,7 +337,7 @@ def create_generic_scenario_from_tensors(
                             test=(test_transform, test_target_transform))
 
     train_datasets = [
-        TransformationTensorDataset(
+        AvalancheTensorDataset(
             dataset_x, dataset_y,
             transform_groups=transform_groups,
             initial_transform_group='train')
@@ -329,7 +345,7 @@ def create_generic_scenario_from_tensors(
         zip(train_data_x, train_data_y)]
 
     test_datasets = [
-        TransformationTensorDataset(
+        AvalancheTensorDataset(
             dataset_x, dataset_y,
             transform_groups=transform_groups,
             initial_transform_group='test')

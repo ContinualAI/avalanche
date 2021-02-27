@@ -92,20 +92,20 @@ def SplitCUB200(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
-            per_step_classes=per_step_classes,
+            per_exp_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
-            one_dataset_per_step=True)
+            one_dataset_per_exp=True)
     else:
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
-            per_step_classes=per_step_classes,
+            per_exp_classes=per_step_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle)
@@ -126,6 +126,6 @@ __all__ = [
 if __name__ == "__main__":
     scenario = SplitCUB200("~/.avalanche/data/cub200/")
     for step in scenario.train_stream:
-        print("step: ", step.current_step)
-        print("classes number: ", len(step.classes_in_this_step))
-        print("classes: ", step.classes_in_this_step)
+        print("step: ", step.current_experience)
+        print("classes number: ", len(step.classes_in_this_experience))
+        print("classes: ", step.classes_in_this_experience)

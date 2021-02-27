@@ -96,8 +96,8 @@ def main(args):
     print('Starting experiment...')
     results = []
     for step in scenario.train_stream:
-        print("Start of step: ", step.current_step)
-        print("Current Classes: ", step.classes_in_this_step)
+        print("Start of step: ", step.current_experience)
+        print("Current Classes: ", step.classes_in_this_experience)
 
         # train returns a list of dictionaries (one for each step). Each
         # dictionary stores the last value of each metric curve emitted

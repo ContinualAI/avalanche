@@ -440,7 +440,7 @@ class StrategyTest(unittest.TestCase):
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
         for train_batch_info in scenario.train_stream:
-            print("Start of step ", train_batch_info.current_step)
+            print("Start of step ", train_batch_info.current_experience)
 
             cl_strategy.train(train_batch_info)
             print('Training completed')

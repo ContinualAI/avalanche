@@ -45,7 +45,8 @@ class IDataset(Protocol[T_co]):
     Note: no __add__ method is defined.
     """
 
-    def __getitem__(self, index: int) -> Tuple[T_co, int]:
+    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
+                                               Tuple[T_co, int, int]]:
         ...
 
     def __len__(self) -> int:
@@ -66,7 +67,8 @@ class IDatasetWithTargets(IDataset[T_co], Protocol):
     label of each pattern contained in the dataset.
     """
 
-    def __getitem__(self, index: int) -> Tuple[T_co, int]:
+    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
+                                               Tuple[T_co, int, int]]:
         ...
 
     def __len__(self) -> int:
@@ -86,7 +88,8 @@ class ITensorDataset(IDataset[T_co], Protocol):
     A sequence of PyTorch Tensors describing the contents of the Dataset.
     """
 
-    def __getitem__(self, index: int) -> Tuple[T_co, int]:
+    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
+                                               Tuple[T_co, int, int]]:
         ...
 
     def __len__(self) -> int:
@@ -106,7 +109,8 @@ class IDatasetWithIntTargets(IDatasetWithTargets[T_co], Protocol):
     dataset.
     """
 
-    def __getitem__(self, index: int) -> Tuple[T_co, int]:
+    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
+                                               Tuple[T_co, int, int]]:
         ...
 
     def __len__(self) -> int:
@@ -208,6 +212,29 @@ class LazyTargetsConversion(Sequence[int]):
 
     def __getitem__(self, item_idx) -> int:
         return int(self._targets[item_idx])
+
+    def __str__(self):
+        return '[' + \
+               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
+               ']'
+
+
+class ConstantSequence(Sequence[int]):
+    """
+    Defines a lazy conversion of targets defined in some other format.
+    """
+    def __init__(self, constant_value: int, size: int):
+        self._constant_value = constant_value
+        self._size = size
+
+    def __len__(self):
+        return self._size
+
+    def __getitem__(self, item_idx) -> int:
+        if item_idx >= len(self):
+            raise IndexError()
+
+        return self._constant_value
 
     def __str__(self):
         return '[' + \
@@ -375,6 +402,8 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
     """
     patterns: List[Any] = []
     labels: List[Tensor] = []
+    task_labels: List[int] = []
+    has_task_labels = False
     indexes_iterator: Iterable[int]
 
     treat_as_tensors: bool = True
@@ -391,23 +420,117 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
         indexes_iterator = idx
 
     for single_idx in indexes_iterator:
-        pattern, label = single_element_getter(int(single_idx))
+        single_element = single_element_getter(int(single_idx))
+        task_label = 0
+        if len(single_element) > 2:
+            has_task_labels = True
+            pattern, label, task_label = single_element
+        else:
+            pattern, label = single_element
+
         if not isinstance(pattern, Tensor):
             treat_as_tensors = False
 
         patterns.append(pattern)
         labels.append(label)
+        if has_task_labels:
+            task_labels.append(task_label)
 
     if len(patterns) == 1:
-        return patterns[0], labels[0]
+        if has_task_labels:
+            return patterns[0], labels[0], task_labels[0]
+        else:
+            return patterns[0], labels[0]
 
+    task_labels_cat = None
     labels_cat = torch.tensor(labels)
+    if has_task_labels:
+        task_labels_cat = torch.tensor(task_labels)
     patterns_cat = patterns
 
     if treat_as_tensors:
         patterns_cat = torch.stack(patterns)
+    if has_task_labels:
+        return patterns_cat, labels_cat, task_labels_cat
+    else:
+        return patterns_cat, labels_cat
 
-    return patterns_cat, labels_cat
+
+class LazySubsequence(Sequence[int]):
+    """
+    TODO: doc
+    """
+    def __init__(self,
+                 sequence: Sequence[int],
+                 start_idx: int,
+                 end_idx: int):
+        self._sequence = sequence
+        self._start_idx = start_idx
+        self._end_idx = end_idx
+
+    def __len__(self):
+        return self._end_idx - self._start_idx
+
+    def __getitem__(self, item_idx) -> int:
+        if item_idx >= len(self):
+            raise IndexError()
+
+        return self._sequence[self._start_idx + item_idx]
+
+    def __str__(self):
+        return '[' + \
+               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
+               ']'
+
+
+def optimize_sequence(sequence: Sequence[int]) -> Sequence[int]:
+    if len(sequence) == 0 or isinstance(sequence, ConstantSequence):
+        return sequence
+
+    concat_ranges = []
+    streak_value = None
+    start_idx = -1
+    streak_start_idx = 0
+
+    for i, x in enumerate(sequence):
+        if i - streak_start_idx == 50 and streak_start_idx != start_idx:
+            concat_ranges.append(LazySubsequence(sequence, start_idx,
+                                                 streak_start_idx))
+            start_idx = streak_start_idx
+
+        if i == 0:
+            streak_start_idx = i
+            start_idx = i
+            streak_value = x
+        elif x != streak_value:
+            if i - streak_start_idx >= 50:
+                concat_ranges.append(ConstantSequence(streak_value,
+                                                      i - streak_start_idx))
+                start_idx = i
+
+            streak_start_idx = i
+            streak_value = x
+        else:  # x == last_value
+            pass
+
+    i = len(sequence)
+    if i - streak_start_idx < 50:
+        concat_ranges.append(LazySubsequence(sequence, start_idx, i))
+    else:
+        if streak_start_idx != start_idx:
+            concat_ranges.append(LazySubsequence(sequence, start_idx,
+                                                 streak_start_idx))
+
+        concat_ranges.append(ConstantSequence(streak_value,
+                                              i - streak_start_idx))
+
+    if len(concat_ranges) == 1:
+        if isinstance(concat_ranges[0], LazySubsequence):
+            # Couldn't optimize
+            return sequence
+        return concat_ranges[0]  # Best situation ever: we got a single range!
+
+    return LazyConcatTargets(concat_ranges)
 
 
 __all__ = [
@@ -419,10 +542,12 @@ __all__ = [
     'LazyClassMapping',
     'LazyConcatTargets',
     'LazyTargetsConversion',
+    'ConstantSequence',
     'SubsetWithTargets',
     'ConcatDatasetWithTargets',
     'SequenceDataset',
     'TensorDatasetWrapper',
     'find_list_from_index',
-    'manage_advanced_indexing'
+    'manage_advanced_indexing',
+    'optimize_sequence'
 ]

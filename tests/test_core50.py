@@ -14,7 +14,7 @@
 import unittest
 
 from avalanche.benchmarks.classic import CORe50
-from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
+from avalanche.benchmarks.scenarios.generic_definitions import IExperience
 
 
 class CORe50Test(unittest.TestCase):
@@ -26,7 +26,7 @@ class CORe50Test(unittest.TestCase):
 
         # scenario = CORe50(scenario="ni")
         # for task_info in scenario:
-        #     self.assertIsInstance(task_info, IStepInfo)
+        #     self.assertIsInstance(task_info, IExperience)
 
 
 if __name__ == '__main__':

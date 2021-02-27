@@ -15,7 +15,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
-from avalanche.benchmarks.scenarios import IStepInfo
+from avalanche.benchmarks.scenarios import IExperience
 from avalanche.logging import default_logger
 from avalanche.training.strategies import BaseStrategy
 
@@ -53,19 +53,19 @@ class JointTraining(BaseStrategy):
         super().__init__(model, optimizer, criterion, train_mb_size,
                          train_epochs, eval_mb_size, device, plugins, evaluator)
 
-    def train(self, step_infos: Union[IStepInfo, Sequence[IStepInfo]],
+    def train(self, step_infos: Union[IExperience, Sequence[IExperience]],
               **kwargs):
         """ Training loop. if step_infos is a single element trains on it.
         If it is a sequence, trains the model on each step in order.
         This is different from joint training on the entire stream.
 
-        :param step_infos: single IStepInfo or sequence.
+        :param step_infos: single IExperience or sequence.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(step_infos, IStepInfo):
+        if isinstance(step_infos, IExperience):
             step_infos = [step_infos]
 
         res = []

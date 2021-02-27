@@ -18,37 +18,38 @@ except ImportError:
         Generic
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.benchmarks.utils import TransformationDataset
+from avalanche.benchmarks.utils import AvalancheDataset
 
 
-TrainSet = TypeVar('TrainSet', bound=TransformationDataset)
-TestSet = TypeVar('TestSet', bound=TransformationDataset)
+TrainSet = TypeVar('TrainSet', bound=AvalancheDataset)
+TestSet = TypeVar('TestSet', bound=AvalancheDataset)
 TScenario = TypeVar('TScenario')
-TStepInfo = TypeVar('TStepInfo', bound='IStepInfo')
+TExperience = TypeVar('TExperience', bound='IExperience')
 TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
 
 
 @runtime_checkable
-class IStepInfo(Protocol[TScenario, TScenarioStream]):
+class IExperience(Protocol[TScenario, TScenarioStream]):
     """
-    Definition of a learning step. A learning step contains a set of patterns
+    Definition of an experience. An experience contains a set of patterns
     which has become available at a particular time instant. The content and
-    size of a Step is defined by the specific benchmark that creates the
-    IStepInfo instance.
+    size of an Experience is defined by the specific benchmark that creates the
+    IExperience instance.
 
-    For instance, a step of a New Classes scenario will contain all patterns
-    belonging to a subset of classes of the original training set. A step of a
-    New Instance scenario will contain patterns from previously seen classes.
+    For instance, an experience of a New Classes scenario will contain all
+    patterns belonging to a subset of classes of the original training set. An
+    experience of a New Instance scenario will contain patterns from previously
+    seen classes.
 
-    Steps of  Single Incremental Task (a.k.a. task-free) scenarios are usually
-    called "batches" while in Multi Task scenarios a Step is usually associated
-    to a "task". Finally, in a Multi Incremental Task scenario the Step may be
-    composed by patterns from different tasks.
+    Experiences of Single Incremental Task (a.k.a. task-free) scenarios are
+    usually called "batches" while in Multi Task scenarios an Experience is
+    usually associated to a "task". Finally, in a Multi Incremental Task
+    scenario the Experience may be composed by patterns from different tasks.
     """
 
     origin_stream: TScenarioStream
     """
-    A reference to the original stream from which this step was obtained.
+    A reference to the original stream from which this experience was obtained.
     """
 
     scenario: TScenario
@@ -56,20 +57,32 @@ class IStepInfo(Protocol[TScenario, TScenarioStream]):
     A reference to the scenario.
     """
 
-    current_step: int
+    current_experience: int
     """
-    The current step. This is an incremental, 0-indexed, value used to
-    keep track of the position of current step in the original stream.
+    This is an incremental, 0-indexed, value used to keep track of the position 
+    of current experience in the original stream.
     
-    Beware that this value only describes the step position in the original
-    stream and may be unrelated to the order in which the strategy will
-    receive steps
+    Beware that this value only describes the experience position in the 
+    original stream and may be unrelated to the order in which the strategy will
+    encounter experiences.
     """
     @property
     @abstractmethod
-    def dataset(self) -> TransformationDataset:
+    def dataset(self) -> AvalancheDataset:
         """
-        The dataset containing the patterns available in this step.
+        The dataset containing the patterns available in this experience.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def task_labels(self) -> List[int]:
+        """
+        This list will contain the unique task labels of the patterns contained
+        in this experience. In the most common scenarios this will be a list
+        with a single value. Note: for scenarios that don't produce task labels,
+        a placeholder task label value like 0 is usually set to each pattern
+        (see the description of the originating scenario for details).
         """
         ...
 
@@ -79,17 +92,20 @@ class IStepInfo(Protocol[TScenario, TScenarioStream]):
         """
         The task label. This value will never have value "None". However,
         for scenarios that don't produce task labels a placeholder value like 0
-        is usually set.
+        is usually set. Beware that this field is meant as a shortcut to obtain
+        a unique task label: it assumes that only patterns labeled with a
+        single task label are present. If this experience contains patterns from
+        multiple tasks, accessing this property will result in an exception.
         """
         ...
 
 
-class IScenarioStream(Protocol[TScenario, TStepInfo]):
+class IScenarioStream(Protocol[TScenario, TExperience]):
     """
-    A scenario stream describes a sequence of incremental steps. Steps are
-    described as :class:`IStepInfo` instances. They contain a set of patterns
-    which has become available at a particular time instant along with any
-    optional, scenario specific, metadata.
+    A scenario stream describes a sequence of incremental experiences.
+    Experiences are described as :class:`IExperience` instances. They contain a
+    set of patterns which has become available at a particular time instant
+    along with any optional, scenario specific, metadata.
 
     Most scenario expose two different streams: the training stream and the test
     stream.
@@ -107,15 +123,15 @@ class IScenarioStream(Protocol[TScenario, TStepInfo]):
 
     def __getitem__(self: TScenarioStream,
                     step_idx: Union[int, slice, Iterable[int]]) \
-            -> Union[TStepInfo, TScenarioStream]:
+            -> Union[TExperience, TScenarioStream]:
         """
-        Gets a step given its step index (or a stream slice given the step
-        order).
+        Gets an experience given its experience index (or a stream slice given
+        the experience order).
 
-        :param step_idx: An int describing the step index or an iterable/slice
-            object describing a slice of this stream.
-        :return: The step instance associated to the given step index or
-            a sliced stream instance.
+        :param step_idx: An int describing the experience index or an
+            iterable/slice object describing a slice of this stream.
+        :return: The Experience instance associated to the given experience
+            index or a sliced stream instance.
         """
         ...
 
@@ -126,8 +142,8 @@ class IScenarioStream(Protocol[TScenario, TStepInfo]):
 __all__ = [
     'TrainSet',
     'TestSet',
-    'IStepInfo',
-    'TStepInfo',
+    'IExperience',
+    'TExperience',
     'TScenario',
     'IScenarioStream',
     'TScenarioStream'

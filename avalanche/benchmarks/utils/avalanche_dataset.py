@@ -10,14 +10,14 @@
 ################################################################################
 
 """
-This module contains the implementation of the Transformation Dataset,
+This module contains the implementation of the Avalanche Dataset,
 which is the standard Avalanche implementation of a PyTorch dataset. Despite
-being a child class of the PyTorch Dataset, the TransfomationDataset (and its
+being a child class of the PyTorch Dataset, the AvalancheDataset (and its
 derivatives) is much more powerful as it offers many more features
 out-of-the-box.
 """
-
 import copy
+from collections import OrderedDict
 
 import torch
 from torchvision.transforms import Compose
@@ -25,7 +25,8 @@ from torchvision.transforms import Compose
 from .dataset_utils import IDatasetWithTargets, \
     DatasetWithTargets, manage_advanced_indexing, \
     SequenceDataset, SubsetWithTargets, LazyTargetsConversion, \
-    LazyConcatTargets, find_list_from_index, ITensorDataset
+    LazyConcatTargets, find_list_from_index, ITensorDataset, ConstantSequence, \
+    LazyClassMapping, optimize_sequence
 
 try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
@@ -37,21 +38,28 @@ except ImportError:
 
 T_co = TypeVar('T_co', covariant=True)
 TTransform_co = TypeVar('TTransform_co', covariant=True)
-TTransformationDataset = TypeVar('TTransformationDataset',
-                                 bound='TransformationDataset')
+TAvalancheDataset = TypeVar('TAvalancheDataset',
+                            bound='AvalancheDataset')
 XTransform = Optional[Callable[[T_co], Any]]
 YTransform = Optional[Callable[[int], int]]
 
 SupportedDataset = Union[IDatasetWithTargets[T_co], ITensorDataset[T_co]]
 
 
-class TransformationDataset(DatasetWithTargets[T_co],
-                            Generic[T_co]):
+class AvalancheDataset(DatasetWithTargets[T_co],
+                       Generic[T_co]):
     """
-    A Dataset that applies transformations before returning patterns/targets.
-    Also, this Dataset supports slicing and advanced indexing.
+    The Dataset used as the base implementation for Avalanche.
 
-    This dataset can also be used to apply several operations involving
+    Instances of this dataset are usually returned from scenarios, but it can
+    also be used in a completely standalone manner. This dataset can be used
+    to apply transformations before returning patterns/targets, it supports
+    slicing and advanced indexing and it also contains useful fields as
+    `targets`, which contains the pattern labels, and `targets_task_labels`,
+    which contains the pattern task labels. The `task_set` field can be used to
+    obtain a the subset of patterns labeled with a given task label.
+
+    This dataset can also be used to apply several advanced operations involving
     transformations. For instance, it allows the user to add and replace
     transformations, freeze them so that they can't be changed, etc.
 
@@ -67,8 +75,12 @@ class TransformationDataset(DatasetWithTargets[T_co],
     between transformations can be easily achieved by using the
     :func:`train` and :func:`eval` method.
 
-    However, consider that arbitrary groups can be used. For more info see
-    the constructor and the :func:`with_transforms` method.
+    Moreover, arbitrary transformation groups can be added and used. For more
+    info see the constructor and the :func:`with_transforms` method.
+
+    This dataset will try to inherit the task labels from the input
+    dataset. If none are available and none are given, each pattern will be
+    assigned a default task label "0". See the constructor for more details.
     """
     def __init__(self,
                  dataset: SupportedDataset[T_co],
@@ -77,12 +89,13 @@ class TransformationDataset(DatasetWithTargets[T_co],
                  target_transform: YTransform = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train'):
+                 initial_transform_group='train',
+                 task_labels: Sequence[int] = None):
         """
-        Creates a ``TransformationDataset`` instance.
+        Creates a ``AvalancheDataset`` instance.
 
         :param dataset: The dataset to decorate. Beware that
-            TransformationDataset will not overwrite transformations already
+            AvalancheDataset will not overwrite transformations already
             applied by this dataset.
         :param transform: A function/transform that takes the X value of a
             pattern from the original dataset and returns a transformed version.
@@ -92,13 +105,18 @@ class TransformationDataset(DatasetWithTargets[T_co],
             Transform groups are used to quickly switch between training and
             test transformations. This becomes useful when in need to test on
             the training dataset as test transformations usually don't contain
-            random augmentations. ``TransformDataset`` natively supports the
+            random augmentations. ``AvalancheDataset`` natively supports the
             'train' and 'test' groups by calling the ``train()`` and ``eval()``
             methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
             handle both 'train' and 'test' groups (just like in standard
             ``torchvision`` datasets).
+        :param task_labels: The task labels for each pattern. Must be a sequence
+            of ints, one for each pattern in the dataset. Defaults to None,
+            which means that the dataset will try to obtain the task labels
+            from the original dataset. If no task labels could be found, a
+            default task label "0" will be applied to all patterns.
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
         """
@@ -110,20 +128,46 @@ class TransformationDataset(DatasetWithTargets[T_co],
                              'and target_transform values')
 
         if transform_groups is not None:
-            TransformationDataset._check_groups_dict_format(transform_groups)
+            AvalancheDataset._check_groups_dict_format(transform_groups)
 
         self._dataset: SupportedDataset[T_co] = dataset
         """
         The original dataset.
         """
 
-        # Here LazyTargetsConversion is needed because we can receive
+        # Here a conversion may be needed because we can receive
         # a torchvision dataset (in which targets may be a Tensor instead of a
         # sequence if int).
         self.targets: Sequence[int] = self._initialize_targets_sequence(dataset)
         """
         A sequence of ints describing the label of each pattern contained in the
         dataset.
+        """
+
+        self.targets_task_labels: Sequence[int] = \
+            self._initialize_task_labels_sequence(dataset, task_labels)
+        """
+        A sequence of ints describing the task label of each pattern contained 
+        in the dataset.
+        """
+
+        self.tasks_pattern_indices: Dict[int, Sequence[int]] = \
+            self._initialize_tasks_dict(dataset, self.targets_task_labels)
+        """
+        A dictionary mapping task labels to the indices of the patterns with 
+        that task label. If you need to obtain the subset of patterns labeled
+        with a certain task label, consider using the `task_set` field.
+        """
+
+        # Compress targets and task labels to save some memory
+        self._optimize_targets()
+        self._optimize_task_labels()
+        self._optimize_task_dict()
+
+        self.task_set = TaskSubsetDict(self)
+        """
+        A dictionary that can be used to obtain the subset of patterns given
+        a specific task label.
         """
 
         self.current_transform_group = initial_transform_group
@@ -140,7 +184,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         This becomes useful when in need to test on the training dataset as test
         transformations usually don't contain random augmentations.
 
-        TransformDataset natively supports switching between the 'train' and
+        AvalancheDataset natively supports switching between the 'train' and
         'test' groups by calling the ``train()`` and ``eval()`` methods. When
         using custom groups one can use the ``with_transforms(group_name)``
         method instead.
@@ -184,7 +228,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
     def train(self):
         """
-        Returns a new dataset with the transformations of a the 'train' group
+        Returns a new dataset with the transformations of the 'train' group
         loaded.
 
         The current dataset will not be affected.
@@ -195,7 +239,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
     def eval(self):
         """
-        Returns a new dataset with the transformations of a the 'test' group
+        Returns a new dataset with the transformations of the 'test' group
         loaded.
 
         Test transformations usually don't contain augmentation procedures.
@@ -208,8 +252,8 @@ class TransformationDataset(DatasetWithTargets[T_co],
         """
         return self.with_transforms('test')
 
-    def freeze_transforms(self: TTransformationDataset) -> \
-            TTransformationDataset:
+    def freeze_transforms(self: TAvalancheDataset) -> \
+            TAvalancheDataset:
         """
         Returns a new dataset where the current transformations are frozen.
 
@@ -231,13 +275,13 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset_copy = self._fork_dataset()
 
         for group_name in dataset_copy.transform_groups.keys():
-            TransformationDataset._freeze_dataset_group(dataset_copy,
-                                                        group_name)
+            AvalancheDataset._freeze_dataset_group(dataset_copy,
+                                                   group_name)
 
         return dataset_copy
 
-    def freeze_group_transforms(self: TTransformationDataset,
-                                group_name: str) -> TTransformationDataset:
+    def freeze_group_transforms(self: TAvalancheDataset,
+                                group_name: str) -> TAvalancheDataset:
         """
         Returns a new dataset where the transformations for a specific group
         are frozen.
@@ -258,15 +302,15 @@ class TransformationDataset(DatasetWithTargets[T_co],
         """
         dataset_copy = self._fork_dataset()
 
-        TransformationDataset._freeze_dataset_group(dataset_copy, group_name)
+        AvalancheDataset._freeze_dataset_group(dataset_copy, group_name)
 
         return dataset_copy
 
     def add_transforms(
-            self: TTransformationDataset,
+            self: TAvalancheDataset,
             transform: Callable[[T_co], Any] = None,
             target_transform: Callable[[int], int] = None) -> \
-            TTransformationDataset:
+            TAvalancheDataset:
         """
         Returns a new dataset with the given transformations added to
         the existing ones.
@@ -306,9 +350,9 @@ class TransformationDataset(DatasetWithTargets[T_co],
         return dataset_copy
 
     def replace_transforms(
-            self: TTransformationDataset,
+            self: TAvalancheDataset,
             transform: XTransform,
-            target_transform: YTransform) -> TTransformationDataset:
+            target_transform: YTransform) -> TAvalancheDataset:
         """
         Returns a new dataset with the existing transformations replaced with
         the given ones.
@@ -316,17 +360,15 @@ class TransformationDataset(DatasetWithTargets[T_co],
         The given transformations will replace the ones of the current
         transformations group. Other transformation groups will not be affected.
 
-        If this dataset was created with ``chain_transformations`` set to True
-        and if the original dataset is an instance of
-        :class:`TransformationDataset`, then the transformations of the
-        original set will be overwritten as well. This operation will create a
-        copy of this dataset.
+        If the original dataset is an instance of :class:`AvalancheDataset`,
+        then transformations of the original set will be considered as well
+        (the original dataset will be left untouched).
 
         The current dataset will not be affected.
 
         Note that this function will not override frozen transformations. This
         will also not affect transformations found in datasets that are not
-        instances of :class:`TransformationDataset`.
+        instances of :class:`AvalancheDataset`.
 
         :param transform: A function/transform that takes the X value of a
             pattern from the original dataset and returns a transformed version.
@@ -336,16 +378,15 @@ class TransformationDataset(DatasetWithTargets[T_co],
         """
 
         dataset_copy = self._fork_dataset()
-        dataset_copy._replace_original_dataset_group(transform,
-                                                     target_transform)
+        dataset_copy._replace_original_dataset_group(None, None)
 
         dataset_copy.transform = transform
         dataset_copy.target_transform = target_transform
 
         return dataset_copy
 
-    def with_transforms(self: TTransformationDataset, group_name: str) -> \
-            TTransformationDataset:
+    def with_transforms(self: TAvalancheDataset, group_name: str) -> \
+            TAvalancheDataset:
         """
         Returns a new dataset with the transformations of a different group
         loaded.
@@ -373,11 +414,11 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
         return dataset_copy
 
-    def add_transforms_group(self: TTransformationDataset,
+    def add_transforms_group(self: TAvalancheDataset,
                              group_name: str,
                              transform: XTransform,
                              target_transform: YTransform) -> \
-            TTransformationDataset:
+            TAvalancheDataset:
         """
         Returns a new dataset with a new transformations group.
 
@@ -401,7 +442,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset_copy.transform_groups[group_name] = \
             (transform, target_transform)
 
-        TransformationDataset._check_groups_dict_format(
+        AvalancheDataset._check_groups_dict_format(
             dataset_copy.transform_groups)
 
         dataset_copy._frozen_transforms[group_name] = (None, None)
@@ -411,7 +452,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
 
         return dataset_copy
 
-    def _fork_dataset(self: TTransformationDataset) -> TTransformationDataset:
+    def _fork_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = copy.copy(self)
         dataset_copy._frozen_transforms = dict(dataset_copy._frozen_transforms)
         dataset_copy.transform_groups = dict(dataset_copy.transform_groups)
@@ -419,7 +460,7 @@ class TransformationDataset(DatasetWithTargets[T_co],
         return dataset_copy
 
     @staticmethod
-    def _freeze_dataset_group(dataset_copy: TTransformationDataset,
+    def _freeze_dataset_group(dataset_copy: TAvalancheDataset,
                               group_name: str):
         # Freeze the current transformations. Frozen transformations are saved
         # in a separate dict.
@@ -475,14 +516,17 @@ class TransformationDataset(DatasetWithTargets[T_co],
         dataset_copy._freeze_original_dataset(group_name)
 
     def _get_single_item(self, idx: int):
-        pattern, label = self._dataset[idx]
+        single_element = self._dataset[idx]
+        pattern = single_element[0]
+        label = single_element[1]
+
         if _is_tensor_dataset(self._dataset):
             # Manages the fact that TensorDataset may return a single element
             # Tensor instead of an int.
             label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label
+        return pattern, label, self.targets_task_labels[idx]
 
     def _apply_transforms(self, pattern: T_co, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
@@ -572,37 +616,112 @@ class TransformationDataset(DatasetWithTargets[T_co],
     def _initialize_targets_sequence(self, dataset) -> Sequence[int]:
         return _make_target_from_supported_dataset(dataset)
 
+    def _initialize_task_labels_sequence(
+            self, dataset, task_labels: Optional[Sequence[int]]) \
+            -> Sequence[int]:
+        if task_labels is not None:
+            # task_labels has priority over the dataset fields
+            if len(task_labels) != len(dataset):
+                raise ValueError(
+                    'Invalid amount of task labels. It must be equal to the '
+                    'number of patterns in the dataset. Got {}, expected '
+                    '{}!'.format(len(task_labels), len(dataset)))
+            return task_labels
+
+        if hasattr(dataset, 'targets_task_labels'):
+            # Dataset is probably a dataset of this class
+            # Suppose that it is
+            return LazyTargetsConversion(dataset.targets_task_labels)
+
+        # No task labels found. Set all task labels to 0 (in a lazy way).
+        return ConstantSequence(0, len(dataset))
+
+    def _initialize_tasks_dict(self, dataset, task_labels: Sequence[int]) \
+            -> Dict[int, Sequence[int]]:
+        if isinstance(task_labels, ConstantSequence) and len(task_labels) > 0:
+            # Shortcut :)
+            return {task_labels[0]: range(len(task_labels))}
+
+        result = dict()
+        for i, x in enumerate(task_labels):
+            if x not in result:
+                result[x] = []
+            result[x].append(i)
+
+        if len(result) == 1:
+            result[next(iter(result.keys()))] = range(len(task_labels))
+
+        return result
+
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
-        if isinstance(self._dataset, TransformationDataset):
+        if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.with_transforms(group_name)
 
     def _freeze_original_dataset(
             self, group_name: str) -> None:
-        if isinstance(self._dataset, TransformationDataset):
+        if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.freeze_group_transforms(group_name)
 
     def _replace_original_dataset_group(
             self, transform: XTransform, target_transform: YTransform) -> None:
-        if isinstance(self._dataset, TransformationDataset):
+        if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.replace_transforms(
                 transform, target_transform)
 
     def _add_original_dataset_group(
             self, group_name: str) -> None:
-        if isinstance(self._dataset, TransformationDataset):
+        if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.add_transforms_group(
                 group_name, None, None)
 
     def _add_groups_from_original_dataset(
             self, dataset, transform_groups) -> None:
-        if isinstance(dataset, TransformationDataset):
+        if isinstance(dataset, AvalancheDataset):
             for original_dataset_group in dataset.transform_groups.keys():
                 if original_dataset_group not in transform_groups:
                     transform_groups[original_dataset_group] = (None, None)
 
+    def _optimize_targets(self):
+        self.targets = optimize_sequence(self.targets)
 
-class TransformationSubset(TransformationDataset[T_co]):
+    def _optimize_task_labels(self):
+        self.targets_task_labels = optimize_sequence(self.targets_task_labels)
+
+    def _optimize_task_dict(self):
+        for task_label in self.tasks_pattern_indices:
+            self.tasks_pattern_indices[task_label] = optimize_sequence(
+                self.tasks_pattern_indices[task_label])
+
+
+class TaskSubsetDict(OrderedDict):
+
+    def __init__(self, avalanche_dataset: AvalancheDataset):
+        self._full_dataset = avalanche_dataset
+        task_ids = self._full_dataset.tasks_pattern_indices.keys()
+        task_ids = sorted(list(task_ids))
+        base_dict = OrderedDict()
+        for x in task_ids:
+            base_dict[x] = x
+        super().__init__(base_dict)
+
+    def __getitem__(self, task_id: int):
+        if task_id not in self._full_dataset.tasks_pattern_indices:
+            raise KeyError('No pattern with ' + str(task_id) + ' found')
+        pattern_indices = self._full_dataset.tasks_pattern_indices[task_id]
+        return self._make_subset(pattern_indices)
+
+    def or_empty(self, task_id: int):
+        try:
+            return self[task_id]
+        except KeyError:
+            return self._make_subset([])
+
+    def _make_subset(self, indices: Sequence[int]):
+        return AvalancheSubset(self._full_dataset, indices=indices)
+
+
+class AvalancheSubset(AvalancheDataset[T_co]):
     """
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
@@ -617,7 +736,8 @@ class TransformationSubset(TransformationDataset[T_co]):
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train'):
+                 initial_transform_group='train',
+                 task_labels: Sequence[int] = None):
         """
         Creates a ``TransformationSubset`` instance.
 
@@ -634,26 +754,75 @@ class TransformationSubset(TransformationDataset[T_co]):
             Transform groups are used to quickly switch between training and
             test transformations. This becomes useful when in need to test on
             the training dataset as test transformations usually don't contain
-            random augmentations. ``TransformDataset`` natively supports the
+            random augmentations. ``AvalancheDataset`` natively supports the
             'train' and 'test' groups by calling the ``train()`` and ``eval()``
             methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
             handle both 'train' and 'test' groups (just like in standard
             ``torchvision`` datasets).
+        :param task_labels: The task labels for each pattern. Must be a sequence
+            of ints, one for each pattern in the dataset. This can either be a
+            list of task labels for the original dataset or the list of task
+            labels for the patterns of the subset (an automatic detection will
+            be made) Defaults to None, which means that the dataset will try to
+            obtain the task labels from the original dataset. If no task labels
+            could be found, a default task label "0" will be applied to all
+            patterns.
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
         """
+
         subset = SubsetWithTargets(dataset, indices=indices,
                                    class_mapping=class_mapping)
+        self._original_dataset = dataset
+        self._indices = indices
+
         super().__init__(subset,
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group)
+                         initial_transform_group=initial_transform_group,
+                         task_labels=task_labels)
+
+    def _initialize_task_labels_sequence(
+            self, dataset,
+            task_labels: Optional[Sequence[int]]) -> Sequence[int]:
+
+        if task_labels is not None:
+            # The task_labels parameter is kind of ambiguous...
+            # it may either be the list of task labels of the required subset
+            # or it may be the list of task labels of the original dataset.
+            # Simple solution: check the length of task_labels!
+
+            if len(task_labels) == len(self._original_dataset):
+                # task_labels refers to the original dataset ...
+                # or, corner case, len(original) == len(subset), in which
+                # case the user just wants to obtain a dataset in which the
+                # position of the patterns has been changed according to
+                # "indices". This "if" will take care of the corner case, too.
+                return LazyClassMapping(task_labels, indices=self._indices)
+            elif len(task_labels) == len(dataset):
+                # task_labels refers to the subset
+                return task_labels
+            else:
+                raise ValueError(
+                    'Invalid amount of task labels. It must be equal to the '
+                    'number of patterns in the dataset or of the desired '
+                    'subset. Got {}, expected {} or {}!'.format(
+                        len(task_labels), len(self._original_dataset),
+                        len(dataset)))
+
+        if hasattr(self._original_dataset, 'targets_task_labels'):
+            # The original dataset is probably a dataset of this class
+            return LazyClassMapping(self._original_dataset.targets_task_labels,
+                                    indices=self._indices)
+
+        # No task labels found. Set all task labels to 0 (in a lazy way).
+        return ConstantSequence(0, len(dataset))
 
 
-class TransformationTensorDataset(TransformationDataset[T_co]):
+class AvalancheTensorDataset(AvalancheDataset[T_co]):
     """
     A Dataset that wraps existing ndarrays, Tensors, lists... to provide
     basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
@@ -668,7 +837,8 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train'):
+                 initial_transform_group='train',
+                 task_labels: Sequence[int] = None):
         """
         Creates a ``TransformationTensorDataset`` instance.
 
@@ -684,13 +854,17 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
             Transform groups are used to quickly switch between training and
             test transformations. This becomes useful when in need to test on
             the training dataset as test transformations usually don't contain
-            random augmentations. ``TransformDataset`` natively supports the
+            random augmentations. ``AvalancheDataset`` natively supports the
             'train' and 'test' groups by calling the ``train()`` and ``eval()``
             methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
             handle both 'train' and 'test' groups (just like in standard
             ``torchvision`` datasets).
+        :param task_labels: The task labels for each pattern. Must be a sequence
+            of ints, one for each pattern in the dataset. Defaults to None,
+            which means that a default task label "0" will be applied to all
+            patterns.
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
         """
@@ -698,10 +872,11 @@ class TransformationTensorDataset(TransformationDataset[T_co]):
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group)
+                         initial_transform_group=initial_transform_group,
+                         task_labels=task_labels)
 
 
-class TransformationConcatDataset(TransformationDataset[T_co]):
+class AvalancheConcatDataset(AvalancheDataset[T_co]):
     """
     A Dataset that behaves like a PyTorch
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
@@ -709,7 +884,7 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
 
     This dataset guarantees that the operations involving the transformations
     and transformations groups are consistent across the concatenated dataset
-    (if they are subclasses of :class:`TransformationDataset`).
+    (if they are subclasses of :class:`AvalancheDataset`).
     """
     def __init__(self,
                  datasets: Sequence[SupportedDataset[T_co]],
@@ -718,7 +893,9 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train'):
+                 initial_transform_group='train',
+                 task_labels: Union[Sequence[int],
+                                    Sequence[Sequence[int]]] = None):
         """
         Creates a ``TransformationConcatDataset`` instance.
 
@@ -731,13 +908,21 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
             Transform groups are used to quickly switch between training and
             test transformations. This becomes useful when in need to test on
             the training dataset as test transformations usually don't contain
-            random augmentations. ``TransformDataset`` natively supports the
+            random augmentations. ``AvalancheDataset`` natively supports the
             'train' and 'test' groups by calling the ``train()`` and ``eval()``
             methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
             handle both 'train' and 'test' groups (just like in standard
             ``torchvision`` datasets).
+        :param task_labels: The task labels for each pattern. Must be a sequence
+            of ints, one for each pattern in the dataset. Alternatively, task
+            labels can be expressed as a sequence containing sequences of ints
+            (one for each dataset to be concatenated). Defaults to None,
+            which means that the dataset will try to obtain the task labels
+            from the original datasets. If no task labels could be found for a
+            dataset, a default task label "0" will be applied to all patterns
+            of that dataset.
         :param initial_transform_group: The name of the transform group
             to be used. Defaults to 'train'.
         """
@@ -746,13 +931,17 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
         self._datasets_lengths = [len(dataset) for dataset in datasets]
         self._overall_length = sum(self._datasets_lengths)
 
+        if task_labels is not None:
+            task_labels = self._concat_task_labels(task_labels)
+
         self._adapt_concat_datasets()
 
         super().__init__(DatasetWithTargets(),
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group)
+                         initial_transform_group=initial_transform_group,
+                         task_labels=task_labels)
 
     def __len__(self) -> int:
         return self._overall_length
@@ -761,16 +950,18 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
         dataset_idx, internal_idx = find_list_from_index(
             idx, self._datasets_lengths, self._overall_length)
 
-        pattern, label = self._dataset_list[dataset_idx][internal_idx]
+        single_element = self._dataset_list[dataset_idx][internal_idx]
+        pattern = single_element[0]
+        label = single_element[1]
         if _is_tensor_dataset(self._dataset_list[dataset_idx]):
             # Manages the fact that TensorDataset may return a single element
             # Tensor instead of an int.
             label = int(label)
         pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label
+        return pattern, label, self.targets_task_labels[idx]
 
-    def _fork_dataset(self: TTransformationDataset) -> TTransformationDataset:
+    def _fork_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = super()._fork_dataset()
 
         dataset_copy._dataset_list = list(dataset_copy._dataset_list)
@@ -789,38 +980,58 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
 
         return LazyConcatTargets(targets_list)
 
+    def _initialize_task_labels_sequence(
+            self, dataset, task_labels: Optional[Sequence[int]]) \
+            -> Sequence[int]:
+        if task_labels is not None:
+            # task_labels has priority over the dataset fields
+            if len(task_labels) != len(dataset):
+                raise ValueError(
+                    'Invalid amount of task labels. It must be equal to the '
+                    'number of patterns in the dataset. Got {}, expected '
+                    '{}!'.format(len(task_labels), len(dataset)))
+            return task_labels
+
+        concat_t_labels = []
+        for single_dataset in self._dataset_list:
+            concat_t_labels.append(super()._initialize_task_labels_sequence(
+                single_dataset, None
+            ))
+
+        return LazyConcatTargets(concat_t_labels)
+
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 self._dataset_list[dataset_idx] = \
                     dataset.with_transforms(group_name)
 
     def _freeze_original_dataset(
             self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 self._dataset_list[dataset_idx] = \
                     dataset.freeze_group_transforms(group_name)
 
     def _replace_original_dataset_group(
             self, transform: XTransform, target_transform: YTransform) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 self._dataset_list[dataset_idx] = \
                     dataset.replace_transforms(transform, target_transform)
 
     def _add_original_dataset_group(
             self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 self._dataset_list[dataset_idx] = \
                     dataset.add_transforms_group(group_name, None, None)
 
     def _add_groups_from_original_dataset(
             self, dataset, transform_groups) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 for original_dataset_group in dataset.transform_groups.keys():
                     if original_dataset_group not in transform_groups:
                         transform_groups[original_dataset_group] = (None, None)
@@ -829,26 +1040,37 @@ class TransformationConcatDataset(TransformationDataset[T_co]):
         all_groups = set()
 
         for dataset in self._dataset_list:
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 all_groups.update(dataset.transform_groups.keys())
 
         for dataset in self._dataset_list:
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 all_groups.update(dataset.transform_groups.keys())
 
         for dataset_idx, dataset in enumerate(self._dataset_list):
-            if isinstance(dataset, TransformationDataset):
+            if isinstance(dataset, AvalancheDataset):
                 for group_name in all_groups:
                     if group_name not in dataset.transform_groups:
                         self._dataset_list[dataset_idx] = \
                             dataset.add_transforms_group(group_name, None, None)
 
+    @staticmethod
+    def _concat_task_labels(task_labels: Union[Sequence[int],
+                                               Sequence[Sequence[int]]]):
+        if isinstance(task_labels[0], int):
+            # Flat list of task labels -> just return it.
+            # The constructor will check if it has the correct size.
+            return task_labels
+        else:
+            # One list for each dataset, concat them.
+            return LazyConcatTargets(task_labels)
+
 
 def concat_datasets_sequentially(
         train_dataset_list: Sequence[IDatasetWithTargets[T_co]],
         test_dataset_list: Sequence[IDatasetWithTargets[T_co]]) -> \
-        Tuple[TransformationConcatDataset[T_co],
-              TransformationConcatDataset[T_co],
+        Tuple[AvalancheConcatDataset[T_co],
+              AvalancheConcatDataset[T_co],
               List[list]]:
     """
     Concatenates a list of datasets. This is completely different from
@@ -922,22 +1144,22 @@ def concat_datasets_sequentially(
         # Remember, the class_mapping parameter must be a list in which:
         # new_class_id = class_mapping[original_class_id]
         remapped_train_datasets.append(
-            TransformationSubset(train_set, class_mapping=class_mapping))
+            AvalancheSubset(train_set, class_mapping=class_mapping))
         remapped_test_datasets.append(
-            TransformationSubset(test_set, class_mapping=class_mapping))
+            AvalancheSubset(test_set, class_mapping=class_mapping))
         next_remapped_idx += classes_per_dataset[dataset_idx]
 
-    return (TransformationConcatDataset(remapped_train_datasets),
-            TransformationConcatDataset(remapped_test_datasets),
+    return (AvalancheConcatDataset(remapped_train_datasets),
+            AvalancheConcatDataset(remapped_test_datasets),
             new_class_ids_per_dataset)
 
 
 def as_transformation_dataset(dataset: IDatasetWithTargets[T_co]) -> \
-        TransformationDataset[T_co]:
-    if isinstance(dataset, TransformationDataset):
+        AvalancheDataset[T_co]:
+    if isinstance(dataset, AvalancheDataset):
         return dataset
 
-    return TransformationDataset(dataset)
+    return AvalancheDataset(dataset)
 
 
 def train_test_transformation_datasets(
@@ -945,13 +1167,13 @@ def train_test_transformation_datasets(
         test_dataset: IDatasetWithTargets[T_co],
         train_transformation,
         test_transformation):
-    train = TransformationDataset(
+    train = AvalancheDataset(
         train_dataset,
         transform_groups=dict(train=(train_transformation, None),
                               test=(test_transformation, None)),
         initial_transform_group='train')
 
-    test = TransformationDataset(
+    test = AvalancheDataset(
         test_dataset,
         transform_groups=dict(train=(train_transformation, None),
                               test=(test_transformation, None)),
@@ -981,10 +1203,10 @@ def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
 
 __all__ = [
     'SupportedDataset',
-    'TransformationDataset',
-    'TransformationSubset',
-    'TransformationTensorDataset',
-    'TransformationConcatDataset',
+    'AvalancheDataset',
+    'AvalancheSubset',
+    'AvalancheTensorDataset',
+    'AvalancheConcatDataset',
     'concat_datasets_sequentially',
     'as_transformation_dataset',
     'train_test_transformation_datasets'

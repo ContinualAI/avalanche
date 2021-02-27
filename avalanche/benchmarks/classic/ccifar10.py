@@ -53,7 +53,7 @@ def SplitCIFAR10(n_steps: int,
         If it's True, the first step will use half of the classes (5 for
         cifar100). If this parameter is False no pretraining step will be
         used, and the dataset is simply split into a the number of steps
-        defined by the parameter n_steps. Default to False.
+        defined by the parameter n_experiences. Default to False.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
@@ -90,21 +90,21 @@ def SplitCIFAR10(n_steps: int,
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 5} if first_step_with_half_classes else None,
-            class_ids_from_zero_in_each_step=True)
+            per_exp_classes={0: 5} if first_step_with_half_classes else None,
+            class_ids_from_zero_in_each_exp=True)
     else:
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 5} if first_step_with_half_classes else None)
+            per_exp_classes={0: 5} if first_step_with_half_classes else None)
 
 
 def _get_cifar10_dataset(train_transformation, test_transformation):

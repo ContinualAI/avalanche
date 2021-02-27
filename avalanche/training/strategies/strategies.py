@@ -624,7 +624,7 @@ class AR1(BaseStrategy):
             batch_size=current_batch_mb_size, shuffle=shuffle)
 
     def training_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y) in \
+        for self.mb_it, (self.mb_x, self.mb_y, _) in \
                 enumerate(self.current_dataloader):
             self.before_training_iteration(**kwargs)
 

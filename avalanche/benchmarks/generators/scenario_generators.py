@@ -28,7 +28,7 @@ from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import \
     concat_datasets_sequentially, as_transformation_dataset
-from avalanche.benchmarks.utils.transform_dataset import SupportedDataset
+from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -36,16 +36,16 @@ def nc_scenario(
             Sequence[SupportedDataset], SupportedDataset],
         test_dataset: Union[
             Sequence[SupportedDataset], SupportedDataset],
-        n_steps: int,
+        n_experiences: int,
         task_labels: bool,
         *,
         shuffle: bool = True,
         seed: Optional[int] = None,
         fixed_class_order: Sequence[int] = None,
-        per_step_classes: Dict[int, int] = None,
-        class_ids_from_zero_from_first_step: bool = False,
-        class_ids_from_zero_in_each_step: bool = False,
-        one_dataset_per_step: bool = False,
+        per_exp_classes: Dict[int, int] = None,
+        class_ids_from_zero_from_first_exp: bool = False,
+        class_ids_from_zero_in_each_exp: bool = False,
+        one_dataset_per_exp: bool = False,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
 
     """
@@ -70,8 +70,8 @@ def nc_scenario(
 
     :param train_dataset: A list of training datasets, or a single dataset.
     :param test_dataset: A list of test datasets, or a single test dataset.
-    :param n_steps: The number of incremental steps. This is not used when
-        using multiple train/test datasets with the ``one_dataset_per_step``
+    :param n_experiences: The number of incremental steps. This is not used when
+        using multiple train/test datasets with the ``one_dataset_per_exp``
         parameter set to True.
     :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
@@ -84,7 +84,7 @@ def nc_scenario(
     :param fixed_class_order: If not None, the class order to use (overrides
         the shuffle argument). Very useful for enhancing reproducibility.
         Defaults to None.
-    :param per_step_classes: Is not None, a dictionary whose keys are
+    :param per_exp_classes: Is not None, a dictionary whose keys are
         (0-indexed) step IDs and their values are the number of classes
         to include in the respective steps. The dictionary doesn't
         have to contain a key for each step! All the remaining steps
@@ -94,27 +94,27 @@ def nc_scenario(
         if you want to include 50 classes in the first step
         while equally distributing remaining classes across remaining
         steps, just pass the "{0: 50}" dictionary as the
-        per_step_classes parameter. Defaults to None.
-    :param class_ids_from_zero_from_first_step: If True, original class IDs
+        per_experience_classes parameter. Defaults to None.
+    :param class_ids_from_zero_from_first_exp: If True, original class IDs
         will be remapped so that they will appear as having an ascending
         order. For instance, if the resulting class order after shuffling
         (or defined by fixed_class_order) is [23, 34, 11, 7, 6, ...] and
-        class_ids_from_zero_from_first_step is True, then all the patterns
+        class_ids_from_zero_from_first_exp is True, then all the patterns
         belonging to class 23 will appear as belonging to class "0",
         class "34" will be mapped to "1", class "11" to "2" and so on.
         This is very useful when drawing confusion matrices and when dealing
         with algorithms with dynamic head expansion. Defaults to False.
-        Mutually exclusive with the ``class_ids_from_zero_in_each_step``
+        Mutually exclusive with the ``class_ids_from_zero_in_each_exp``
         parameter.
-    :param class_ids_from_zero_in_each_step: If True, original class IDs
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
         will be mapped to range [0, n_classes_in_step) for each step.
         Defaults to False. Mutually exclusive with the
-        ``class_ids_from_zero_from_first_step`` parameter.
-    :param one_dataset_per_step: available only when multiple train-test
+        ``class_ids_from_zero_from_first_exp`` parameter.
+    :param one_dataset_per_exp: available only when multiple train-test
         datasets are provided. If True, each dataset will be treated as a step.
-        Mutually exclusive with the ``per_step_classes`` and
-        ``fixed_class_order`` parameters. Overrides the ``n_steps`` parameter.
-        Defaults to False.
+        Mutually exclusive with the ``per_experience_classes`` and
+        ``fixed_class_order`` parameters. Overrides the ``n_experiences`` 
+        parameter. Defaults to False.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options. This is usually a dictionary containing
         data used to reproduce a specific experiment. One can use the
@@ -129,9 +129,9 @@ def nc_scenario(
         instance initialized for the the SIT or MT scenario.
     """
 
-    if class_ids_from_zero_from_first_step and class_ids_from_zero_in_each_step:
+    if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
         raise ValueError('Invalid mutually exclusive options '
-                         'class_ids_from_zero_from_first_step and '
+                         'class_ids_from_zero_from_first_exp and '
                          'classes_ids_from_zero_in_each_step set at the '
                          'same time')
 
@@ -142,24 +142,24 @@ def nc_scenario(
             raise ValueError('Train/test dataset lists must contain the '
                              'exact same number of datasets')
 
-        if per_step_classes and one_dataset_per_step:
+        if per_exp_classes and one_dataset_per_exp:
             raise ValueError(
-                'Both per_step_classes and one_dataset_per_step are'
+                'Both per_experience_classes and one_dataset_per_exp are'
                 'used, but those options are mutually exclusive')
 
-        if fixed_class_order and one_dataset_per_step:
+        if fixed_class_order and one_dataset_per_exp:
             raise ValueError(
-                'Both fixed_class_order and one_dataset_per_step are'
+                'Both fixed_class_order and one_dataset_per_exp are'
                 'used, but those options are mutually exclusive')
 
         seq_train_dataset, seq_test_dataset, mapping = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
-        if one_dataset_per_step:
-            # If one_dataset_per_step is True, each dataset will be treated as
+        if one_dataset_per_exp:
+            # If one_dataset_per_exp is True, each dataset will be treated as
             # a step. In this scenario, shuffle refers to the step order,
             # not to the class one.
-            fixed_class_order, per_step_classes = \
+            fixed_class_order, per_exp_classes = \
                 _one_dataset_per_step_class_order(mapping, shuffle, seed)
 
             # We pass a fixed_class_order to the NCGenericScenario
@@ -167,18 +167,18 @@ def nc_scenario(
             shuffle = False
             seed = None
 
-            # Overrides n_steps (and per_step_classes, already done)
-            n_steps = len(train_dataset)
+            # Overrides n_experiences (and per_experience_classes, already done)
+            n_experiences = len(train_dataset)
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
-    # Datasets should be instances of TransformationDataset
+    # Datasets should be instances of AvalancheDataset
     train_dataset = as_transformation_dataset(train_dataset).train()
     test_dataset = as_transformation_dataset(test_dataset).eval()
 
-    return NCScenario(train_dataset, test_dataset, n_steps, task_labels,
-                      shuffle, seed, fixed_class_order, per_step_classes,
-                      class_ids_from_zero_from_first_step,
-                      class_ids_from_zero_in_each_step,
+    return NCScenario(train_dataset, test_dataset, n_experiences, task_labels,
+                      shuffle, seed, fixed_class_order, per_exp_classes,
+                      class_ids_from_zero_from_first_exp,
+                      class_ids_from_zero_in_each_exp,
                       reproducibility_data)
 
 
@@ -187,14 +187,14 @@ def ni_scenario(
             Sequence[SupportedDataset], SupportedDataset],
         test_dataset: Union[
             Sequence[SupportedDataset], SupportedDataset],
-        n_steps: int,
+        n_experiences: int,
         *,
         task_labels: bool = False,
         shuffle: bool = True,
         seed: Optional[int] = None,
-        balance_steps: bool = False,
-        min_class_patterns_in_step: int = 0,
-        fixed_step_assignment: Optional[Sequence[Sequence[int]]] = None,
+        balance_experiences: bool = False,
+        min_class_patterns_in_exp: int = 0,
+        fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
     """
@@ -218,26 +218,26 @@ def ni_scenario(
 
     :param train_dataset: A list of training datasets, or a single dataset.
     :param test_dataset: A list of test datasets, or a single test dataset.
-    :param n_steps: The number of steps.
+    :param n_experiences: The number of steps.
     :param task_labels: If True, each step will have an ascending task
             label. If False, the task label will be 0 for all the steps.
     :param shuffle: If True, patterns order will be shuffled.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
-    :param balance_steps: If True, pattern of each class will be equally
+    :param balance_experiences: If True, pattern of each class will be equally
         spread across all steps. If False, patterns will be assigned to
         steps in a complete random way. Defaults to False.
-    :param min_class_patterns_in_step: The minimum amount of patterns of
+    :param min_class_patterns_in_exp: The minimum amount of patterns of
         every class that must be assigned to every step. Compatible with
-        the ``balance_steps`` parameter. An exception will be raised if
+        the ``balance_experiences`` parameter. An exception will be raised if
         this constraint can't be satisfied. Defaults to 0.
-    :param fixed_step_assignment: If not None, the pattern assignment
+    :param fixed_exp_assignment: If not None, the pattern assignment
         to use. It must be a list with an entry for each step. Each entry
         is a list that contains the indexes of patterns belonging to that
-        step. Overrides the ``shuffle``, ``balance_steps`` and
-        ``min_class_patterns_in_step`` parameters.
+        step. Overrides the ``shuffle``, ``balance_experiences`` and
+        ``min_class_patterns_in_exp`` parameters.
     :param reproducibility_data: If not None, overrides all the other
-        scenario definition options, including ``fixed_step_assignment``.
+        scenario definition options, including ``fixed_exp_assignment``.
         This is usually a dictionary containing data used to
         reproduce a specific experiment. One can use the
         ``get_reproducibility_data`` method to get (and even distribute)
@@ -259,18 +259,18 @@ def ni_scenario(
         seq_train_dataset, seq_test_dataset, _ = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
-    # Datasets should be instances of TransformationDataset
+    # Datasets should be instances of AvalancheDataset
     seq_train_dataset = as_transformation_dataset(seq_train_dataset).train()
     seq_test_dataset = as_transformation_dataset(seq_test_dataset).eval()
 
     return NIScenario(
         seq_train_dataset, seq_test_dataset,
-        n_steps,
+        n_experiences,
         task_labels,
         shuffle=shuffle, seed=seed,
-        balance_steps=balance_steps,
-        min_class_patterns_in_step=min_class_patterns_in_step,
-        fixed_step_assignment=fixed_step_assignment,
+        balance_experiences=balance_experiences,
+        min_class_patterns_in_exp=min_class_patterns_in_exp,
+        fixed_exp_assignment=fixed_exp_assignment,
         reproducibility_data=reproducibility_data)
 
 
@@ -542,14 +542,14 @@ def tensor_scenario(
 
 
 def _one_dataset_per_step_class_order(
-        class_list_per_step: Sequence[Sequence[int]],
+        class_list_per_exp: Sequence[Sequence[int]],
         shuffle: bool, seed: Union[int, None]) -> (List[int], Dict[int, int]):
     """
     Utility function that shuffles the class order by keeping classes from the
     same step together. Each step is defined by a different entry in the
     class_list_per_step parameter.
 
-    :param class_list_per_step: A list of class lists, one for each step
+    :param class_list_per_exp: A list of class lists, one for each step
     :param shuffle: If True, the step order will be shuffled. If False,
         this function will return the concatenation of lists from the
         class_list_per_step parameter.
@@ -559,7 +559,7 @@ def _one_dataset_per_step_class_order(
     :returns: A class order that keeps class IDs from the same step together
         (adjacent).
     """
-    dataset_order = list(range(len(class_list_per_step)))
+    dataset_order = list(range(len(class_list_per_exp)))
     if shuffle:
         if seed is not None:
             torch.random.manual_seed(seed)
@@ -568,9 +568,9 @@ def _one_dataset_per_step_class_order(
     fixed_class_order = []
     classes_per_step = {}
     for dataset_position, dataset_idx in enumerate(dataset_order):
-        fixed_class_order.extend(class_list_per_step[dataset_idx])
+        fixed_class_order.extend(class_list_per_exp[dataset_idx])
         classes_per_step[dataset_position] = \
-            len(class_list_per_step[dataset_idx])
+            len(class_list_per_exp[dataset_idx])
     return fixed_class_order, classes_per_step
 
 

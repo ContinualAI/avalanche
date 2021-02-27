@@ -115,16 +115,16 @@ def SplitOmniglot(
         return nc_scenario(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_step=True)
+            class_ids_from_zero_in_each_exp=True)
     else:
         return nc_scenario(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
@@ -138,7 +138,7 @@ def PermutedOmniglot(
     """
     This helper create a permuted OMNIGLOT scenario: where a given number of
     random pixel permutations is used to permute the OMNIGLOT images in
-    ``n_steps`` different manners, creating an equal number of tasks.
+    ``n_experiences`` different manners, creating an equal number of tasks.
     Each task is composed of all the original OMNIGLOT classes, but the pixel
     in the images are permuted in different ways in every task.
     If the dataset is not present in the computer the method automatically
@@ -196,11 +196,11 @@ def PermutedOmniglot(
     return nc_scenario(
         list_train_dataset,
         list_test_dataset,
-        n_steps=len(list_train_dataset),
+        n_experiences=len(list_train_dataset),
         task_labels=True,
         shuffle=False,
-        class_ids_from_zero_in_each_step=True,
-        one_dataset_per_step=True)
+        class_ids_from_zero_in_each_exp=True,
+        one_dataset_per_exp=True)
 
 
 def RotatedOmniglot(
@@ -212,7 +212,7 @@ def RotatedOmniglot(
     """
     This helper create a rotated OMNIGLOT scenario: where a given number of
     random rotations are used to rotate the OMNIGLOT images in
-    ``n_steps`` different manners, creating an equal number of tasks.
+    ``n_experiences`` different manners, creating an equal number of tasks.
     Each task is composed of all the original OMNIGLOT classes, but the images
     are rotated in different ways and using different values in every task.
     If the dataset is not present in the computer the method automatically
@@ -286,11 +286,11 @@ def RotatedOmniglot(
     return nc_scenario(
         list_train_dataset,
         list_test_dataset,
-        n_steps=len(list_train_dataset),
+        n_experiences=len(list_train_dataset),
         task_labels=True,
         shuffle=False,
-        class_ids_from_zero_in_each_step=True,
-        one_dataset_per_step=True)
+        class_ids_from_zero_in_each_exp=True,
+        one_dataset_per_exp=True)
 
 
 def _get_omniglot_dataset(train_transformation, test_transform):

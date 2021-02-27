@@ -1,5 +1,5 @@
 import unittest
-from avalanche.benchmarks import PermutedMNIST, IStepInfo
+from avalanche.benchmarks import PermutedMNIST, IExperience
 
 
 class PermutedMNISTTests(unittest.TestCase):
@@ -10,11 +10,11 @@ class PermutedMNISTTests(unittest.TestCase):
         self.assertEqual(3, len(scenario.test_stream))
 
         for task_info in scenario.train_stream:
-            self.assertIsInstance(task_info, IStepInfo)
+            self.assertIsInstance(task_info, IExperience)
             self.assertEqual(60000, len(task_info.dataset))
 
         for task_info in scenario.test_stream:
-            self.assertIsInstance(task_info, IStepInfo)
+            self.assertIsInstance(task_info, IExperience)
             self.assertEqual(10000, len(task_info.dataset))
 
 

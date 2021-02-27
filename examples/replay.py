@@ -88,7 +88,7 @@ def main(args):
     print('Starting experiment...')
     results = []
     for batch_info in scenario.train_stream:
-        print("Start of step ", batch_info.current_step)
+        print("Start of step ", batch_info.current_experience)
         cl_strategy.train(batch_info)
         print('Training completed')
 

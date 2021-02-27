@@ -58,7 +58,7 @@ def SplitFMNIST(n_steps: int,
         If it's True, a pretraining batch with half of the classes (5 for
         cifar100) is used. If this parameter is False no pretraining task
         will be used, and the dataset is simply split into
-        a the number of steps defined by the parameter n_steps.
+        a the number of steps defined by the parameter n_experiences.
         Default to False.
     :param return_task_id: if True, for every step the task id is returned and
         the Scenario is Multi Task. This means that the scenario returned
@@ -96,20 +96,20 @@ def SplitFMNIST(n_steps: int,
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 5} if first_batch_with_half_classes else None)
+            per_exp_classes={0: 5} if first_batch_with_half_classes else None)
     else:
         return nc_scenario(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_step_classes={0: 5} if first_batch_with_half_classes else None)
+            per_exp_classes={0: 5} if first_batch_with_half_classes else None)
 
 
 def _get_fmnist_dataset(train_transformation, test_transformation):

@@ -75,16 +75,16 @@ def SplitTinyImageNet(n_steps=10, return_task_id=False, seed=0,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_step=True)
+            class_ids_from_zero_in_each_exp=True)
     else:
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_steps=n_steps,
+            n_experiences=n_steps,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)

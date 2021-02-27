@@ -14,7 +14,7 @@ import logging
 import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
-from avalanche.benchmarks.scenarios.generic_definitions import IStepInfo
+from avalanche.benchmarks.scenarios.generic_definitions import IExperience
 
 
 class TinyImagenetTest(unittest.TestCase):
@@ -26,10 +26,10 @@ class TinyImagenetTest(unittest.TestCase):
 
         scenario = SplitTinyImageNet()
         for task_info in scenario.train_stream:
-            self.assertIsInstance(task_info, IStepInfo)
+            self.assertIsInstance(task_info, IExperience)
 
         for task_info in scenario.test_stream:
-            self.assertIsInstance(task_info, IStepInfo)
+            self.assertIsInstance(task_info, IExperience)
 
 
 if __name__ == '__main__':
