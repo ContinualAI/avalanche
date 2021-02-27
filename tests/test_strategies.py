@@ -229,14 +229,14 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = AGEM(model, optimizer, criterion,
-                        patterns_per_step=250, sample_size=256,
+                        patterns_per_exp=250, sample_size=256,
                         train_mb_size=10, eval_mb_size=50,
                         train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
         # MT scenario
         strategy = AGEM(model, optimizer, criterion,
-                        patterns_per_step=250, sample_size=256,
+                        patterns_per_exp=250, sample_size=256,
                         train_mb_size=10, eval_mb_size=50,
                         train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
@@ -251,7 +251,7 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = GEM(model, optimizer, criterion,
-                       patterns_per_step=256,
+                       patterns_per_exp=256,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
 
@@ -259,7 +259,7 @@ class StrategyTest(unittest.TestCase):
 
         # MT scenario
         strategy = GEM(model, optimizer, criterion,
-                       patterns_per_step=256,
+                       patterns_per_exp=256,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
@@ -345,8 +345,8 @@ class StrategyTest(unittest.TestCase):
 
     def load_ar1_scenario(self, fast_test=False):
         """
-        Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
-        2 classes per step. This toy scenario is intended
+        Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
+        2 classes per experience. This toy scenario is intended
 
         :param fast_test: if True loads fake data, MNIST otherwise.
         """
@@ -389,8 +389,8 @@ class StrategyTest(unittest.TestCase):
 
     def load_scenario(self, fast_test=False, use_task_labels=False):
         """
-        Returns a NC Scenario from a fake dataset of 10 classes, 5 steps,
-        2 classes per step.
+        Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
+        2 classes per experience.
 
         :param fast_test: if True loads fake data, MNIST otherwise.
         """
@@ -440,7 +440,7 @@ class StrategyTest(unittest.TestCase):
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
         for train_batch_info in scenario.train_stream:
-            print("Start of step ", train_batch_info.current_experience)
+            print("Start of experience ", train_batch_info.current_experience)
 
             cl_strategy.train(train_batch_info)
             print('Training completed')

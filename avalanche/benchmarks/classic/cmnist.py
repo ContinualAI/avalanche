@@ -64,7 +64,7 @@ class PixelsPermutation(object):
 
 
 def SplitMNIST(
-        n_steps: int,
+        n_experiences: int,
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
@@ -73,18 +73,19 @@ def SplitMNIST(
     """
     Creates a CL scenario using the MNIST dataset.
     This helper create the basic split MNIST scenario, where the 10 classes of
-    the MNIST dataset are evenly splitted into the given nuber of tasks.
+    the MNIST dataset are evenly splitted into the given number of tasks (or
+    experiences, more in general).
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of incremental steps in the current
+    :param n_experiences: The number of incremental experiences in the current
         scenario.
         The value of this parameter should be a divisor of 10.
-    :param return_task_id: if True, for every step the task id is returned and
-        the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, for every experience the task id is
+        returned and the Scenario is Multi Task. This means that the scenario
+        returned will be of type ``NCMultiTaskScenario``. If false the task
+        index is not returned (default to 0 for every batch) and the returned
+        scenario is of type ``NCSingleTaskScenario``.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -117,7 +118,7 @@ def SplitMNIST(
         return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
@@ -126,14 +127,14 @@ def SplitMNIST(
         return nc_scenario(
             train_dataset=mnist_train,
             test_dataset=mnist_test,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
 
 
 def PermutedMNIST(
-        n_steps: int,
+        n_experiences: int,
         seed: Optional[int] = None,
         train_transform: Any = _default_mnist_train_transform,
         test_transform: Any = _default_mnist_test_transform) -> NCScenario:
@@ -146,7 +147,7 @@ def PermutedMNIST(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of steps (tasks) in the current
+    :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different permutations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
@@ -173,8 +174,8 @@ def PermutedMNIST(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
-    # for every incremental step
-    for _ in range(n_steps):
+    # for every incremental experience
+    for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
         idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
             torch.int64)
@@ -206,7 +207,7 @@ def PermutedMNIST(
 
 
 def RotatedMNIST(
-        n_steps: int,
+        n_experiences: int,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
@@ -220,7 +221,7 @@ def RotatedMNIST(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of steps (tasks) in the current
+    :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different rotations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
@@ -250,9 +251,9 @@ def RotatedMNIST(
         MT rotated MNIST scenario.
     """
 
-    assert len(rotations_list) == n_steps, "The number of rotations" \
-                                           " should match the number" \
-                                           " of incremental steps."
+    assert len(rotations_list) == n_experiences, "The number of rotations" \
+                                                 " should match the number" \
+                                                 " of incremental experiences."
     assert all(-180 <= rotations_list[i] <= 180
                for i in range(len(rotations_list))), "The value of a rotation" \
                                                      " should be between -180" \
@@ -262,10 +263,10 @@ def RotatedMNIST(
     list_test_dataset = []
     rng_rotate = np.random.RandomState(seed)
 
-    # for every incremental step
-    for step in range(n_steps):
+    # for every incremental experience
+    for exp in range(n_experiences):
         if rotations_list is not None:
-            rotation_angle = rotations_list[step]
+            rotation_angle = rotations_list[exp]
         else:
             # choose a random rotation of the pixels in the image
             rotation_angle = rng_rotate.randint(-180, 181)

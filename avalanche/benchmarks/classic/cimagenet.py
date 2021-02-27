@@ -36,8 +36,8 @@ _default_test_transform = transforms.Compose([
 
 
 def SplitImageNet(root,
-                  n_steps=10,
-                  per_step_classes=None,
+                  n_experiences=10,
+                  per_exp_classes=None,
                   return_task_id=False,
                   seed=0,
                   fixed_class_order=None,
@@ -49,20 +49,20 @@ def SplitImageNet(root,
     download it and store the data in the data folder.
 
     :param root: Base path where Imagenet data are stored.
-    :param n_steps: The number of  steps in the current scenario.
-    :param per_step_classes: Is not None, a dictionary whose keys are
-        (0-indexed) step IDs and their values are the number of classes
-        to include in the respective steps. The dictionary doesn't
-        have to contain a key for each step! All the remaining steps
+    :param n_experiences: The number of experience in the current scenario.
+    :param per_exp_classes: Is not None, a dictionary whose keys are
+        (0-indexed) experience IDs and their values are the number of classes
+        to include in the respective experiences. The dictionary doesn't
+        have to contain a key for each experience! All the remaining exps
         will contain an equal amount of the remaining classes. The
         remaining number of classes must be divisible without remainder
-        by the remaining number of steps. For instance,
-        if you want to include 50 classes in the first step
+        by the remaining number of experiences. For instance,
+        if you want to include 50 classes in the first experience
         while equally distributing remaining classes across remaining
-        steps, just pass the "{0: 50}" dictionary as the
+        experiences, just pass the "{0: 50}" dictionary as the
         per_experience_classes parameter. Defaults to None.
-    :param return_task_id: if True, for every step the task id is returned and
-        the Scenario is Multi Task. This means that the scenario returned
+    :param return_task_id: if True, for every experience the task id is returned
+        and the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
         not returned (default to 0 for every batch) and the returned scenario
         is of type ``NCSingleTaskScenario``.
@@ -98,9 +98,9 @@ def SplitImageNet(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=True,
-            per_exp_classes=per_step_classes,
+            per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
             class_ids_from_zero_in_each_exp=True)
@@ -108,9 +108,9 @@ def SplitImageNet(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=False,
-            per_exp_classes=per_step_classes,
+            per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order)
 
@@ -130,7 +130,7 @@ __all__ = [
 
 if __name__ == "__main__":
     scenario = SplitImageNet("/ssd2/datasets/imagenet/")
-    for step in scenario.train_stream:
-        print("step: ", step.current_experience)
-        print("classes number: ", len(step.classes_in_this_experience))
-        print("classes: ", step.classes_in_this_experience)
+    for exp in scenario.train_stream:
+        print("experience: ", exp.current_experience)
+        print("classes number: ", len(exp.classes_in_this_experience))
+        print("classes: ", exp.classes_in_this_experience)

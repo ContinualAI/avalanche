@@ -61,7 +61,7 @@ class PixelsPermutation(object):
 
 
 def SplitOmniglot(
-        n_steps: int,
+        n_experiences: int,
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
@@ -75,11 +75,10 @@ def SplitOmniglot(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of incremental steps in the current
-        scenario.
-        The value of this parameter should be a divisor of 10.
-    :param return_task_id: if True, for every step the task id is returned and
-        the Scenario is Multi Task. This means that the scenario returned
+    :param n_experiences: The number of incremental experiences in the current
+        scenario. The value of this parameter should be a divisor of 10.
+    :param return_task_id: if True, for every experience the task id is returned
+        and the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
         not returned (default to 0 for every batch) and the returned scenario
         is of type ``NCSingleTaskScenario``.
@@ -115,7 +114,7 @@ def SplitOmniglot(
         return nc_scenario(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
@@ -124,14 +123,14 @@ def SplitOmniglot(
         return nc_scenario(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order)
 
 
 def PermutedOmniglot(
-        n_steps: int,
+        n_experiences: int,
         seed: Optional[int] = None,
         train_transform: Any = _default_omniglot_train_transform,
         test_transform: Any = _default_omniglot_test_transform) -> NCScenario:
@@ -144,7 +143,7 @@ def PermutedOmniglot(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of steps (tasks) in the current
+    :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different permutations of the MNIST
         dataset have to be created.
     :param seed: A valid int used to initialize the random number generator.
@@ -170,8 +169,8 @@ def PermutedOmniglot(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
-    # for every incremental step
-    for _ in range(n_steps):
+    # for every incremental experience
+    for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
         idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
             torch.int64)
@@ -204,7 +203,7 @@ def PermutedOmniglot(
 
 
 def RotatedOmniglot(
-        n_steps: int,
+        n_experiences: int,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_omniglot_train_transform,
@@ -218,7 +217,7 @@ def RotatedOmniglot(
     If the dataset is not present in the computer the method automatically
     download it and store the data in the data folder.
 
-    :param n_steps: The number of steps (tasks) in the current
+    :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different rotations of the OMNIGLOT
         dataset have to be created.
     :param seed: A valid int used to initialize the random number generator.
@@ -249,11 +248,12 @@ def RotatedOmniglot(
 
     if rotations_list is None:
         rng_rotate = np.random.RandomState(seed)
-        rotations_list = [rng_rotate.randint(-180, 181) for _ in range(n_steps)]
+        rotations_list = [rng_rotate.randint(-180, 181) for _ in range(
+            n_experiences)]
     else:
-        assert len(rotations_list) == n_steps, "The number of rotations" \
+        assert len(rotations_list) == n_experiences, "The number of rotations" \
                                                " should match the number" \
-                                               " of incremental steps."
+                                               " of incremental experiences."
     assert all(-180 <= rotations_list[i] <= 180
                for i in range(len(rotations_list))), "The value of a rotation" \
                                                      " should be between -180" \
@@ -262,9 +262,9 @@ def RotatedOmniglot(
     list_train_dataset = []
     list_test_dataset = []
 
-    # for every incremental step
-    for step in range(n_steps):
-        rotation_angle = rotations_list[step]
+    # for every incremental experience
+    for experience in range(n_experiences):
+        rotation_angle = rotations_list[experience]
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
@@ -315,4 +315,4 @@ __all__ = [
 if __name__ == '__main__':
     _get_omniglot_dataset(_default_omniglot_train_transform,
                           _default_omniglot_test_transform)
-    rot = RotatedOmniglot(n_steps=10, seed=1)
+    rot = RotatedOmniglot(n_experiences=10, seed=1)

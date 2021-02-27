@@ -52,15 +52,15 @@ class TextLogger(StrategyLogger):
             val = self._val_to_str(val)
             print(f'\t{name} = {val}', file=self.file, flush=True)
 
-    def before_training_step(self, strategy: 'PluggableStrategy',
-                             metric_values: List['MetricValue'], **kwargs):
-        super().before_training_step(strategy, metric_values, **kwargs)
-        self._on_step_start(strategy)
+    def before_training_exp(self, strategy: 'PluggableStrategy',
+                            metric_values: List['MetricValue'], **kwargs):
+        super().before_training_exp(strategy, metric_values, **kwargs)
+        self._on_exp_start(strategy)
 
-    def before_eval_step(self, strategy: PluggableStrategy,
-                         metric_values: List['MetricValue'], **kwargs):
-        super().before_eval_step(strategy, metric_values, **kwargs)
-        self._on_step_start(strategy)
+    def before_eval_exp(self, strategy: PluggableStrategy,
+                        metric_values: List['MetricValue'], **kwargs):
+        super().before_eval_exp(strategy, metric_values, **kwargs)
+        self._on_exp_start(strategy)
 
     def after_training_epoch(self, strategy: 'PluggableStrategy',
                              metric_values: List['MetricValue'], **kwargs):
@@ -69,12 +69,12 @@ class TextLogger(StrategyLogger):
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def after_eval_step(self, strategy: 'PluggableStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
-        super().after_eval_step(strategy, metric_values, **kwargs)
-        print(f'> Eval on step {strategy.eval_step_id} (Task '
+    def after_eval_exp(self, strategy: 'PluggableStrategy',
+                       metric_values: List['MetricValue'], **kwargs):
+        super().after_eval_exp(strategy, metric_values, **kwargs)
+        print(f'> Eval on experience {strategy.eval_exp_id} (Task '
               f'{strategy.eval_task_label}) '
-              f'from {stream_type(strategy.step_info)} stream ended.',
+              f'from {stream_type(strategy.experience)} stream ended.',
               file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
@@ -101,12 +101,13 @@ class TextLogger(StrategyLogger):
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def _on_step_start(self, strategy: 'PluggableStrategy'):
+    def _on_exp_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'eval'
-        step_id = strategy.training_step_counter if strategy.is_training \
-            else strategy.eval_step_id
+        exp_id = strategy.training_exp_counter if strategy.is_training \
+            else strategy.eval_exp_id
         task_id = strategy.train_task_label if strategy.is_training \
             else strategy.eval_task_label
-        stream = stream_type(strategy.step_info)
-        print('-- Starting {} on step {} (Task {}) from {} stream --'.format(
-            action_name, step_id, task_id, stream), file=self.file, flush=True)
+        stream = stream_type(strategy.experience)
+        print('-- Starting {} on experience {} (Task {}) from {} stream --'
+              .format(action_name, exp_id, task_id, stream), file=self.file,
+              flush=True)

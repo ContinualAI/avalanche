@@ -267,46 +267,47 @@ class RunningEpochCPUUsage(PluginMetric[float]):
         return "RunningCPUUsage_Epoch"
 
 
-class StepCPUUsage(PluginMetric[float]):
+class ExperienceCPUUsage(PluginMetric[float]):
     """
-    The average step CPU usage metric.
+    The average experience CPU usage metric.
     This metric works only at eval time.
 
-    After each step, this metric emits the average CPU usage on that step.
+    After each experience, this metric emits the average CPU usage on that
+    experienc.
     """
 
     def __init__(self):
         """
-        Creates an instance of the step CPU usage metric.
+        Creates an instance of the experience CPU usage metric.
         """
         super().__init__()
 
-        self._step_cpu = CPUUsage()
+        self._exp_cpu = CPUUsage()
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
-        self._step_cpu.update()
+        self._exp_cpu.update()
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
-        self._step_cpu.update()
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+        self._exp_cpu.update()
         return self._package_result(strategy)
 
     def reset(self) -> None:
-        self._step_cpu.reset()
+        self._exp_cpu.reset()
 
     def result(self) -> float:
-        return self._step_cpu.result()
+        return self._exp_cpu.result()
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        step_cpu = self.result()
+        exp_cpu = self.result()
 
-        metric_name = get_metric_name(self, strategy, add_step=True)
+        metric_name = get_metric_name(self, strategy, add_experience=True)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_cpu, plot_x_position)]
+        return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
 
     def __str__(self):
-        return "CPUUsage_Step"
+        return "CPUUsage_Exp"
 
 
 class StreamCPUUsage(PluginMetric[float]):
@@ -315,7 +316,7 @@ class StreamCPUUsage(PluginMetric[float]):
     This metric works only at eval time.
 
     After the entire evaluation stream, this metric emits
-    the average CPU usage on all steps.
+    the average CPU usage on all experiences.
     """
 
     def __init__(self):
@@ -324,36 +325,36 @@ class StreamCPUUsage(PluginMetric[float]):
         """
         super().__init__()
 
-        self._step_cpu = CPUUsage()
+        self._exp_cpu = CPUUsage()
 
     def before_eval(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
-        self._step_cpu.update()
+        self._exp_cpu.update()
 
     def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
-        self._step_cpu.update()
+        self._exp_cpu.update()
         return self._package_result(strategy)
 
     def reset(self) -> None:
-        self._step_cpu.reset()
+        self._exp_cpu.reset()
 
     def result(self) -> float:
-        return self._step_cpu.result()
+        return self._exp_cpu.result()
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        step_cpu = self.result()
+        exp_cpu = self.result()
 
         metric_name = get_metric_name(self, strategy)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_cpu, plot_x_position)]
+        return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
 
     def __str__(self):
         return "CPUUsage_Stream"
 
 
 def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                      step=False, stream=False) -> List[PluginMetric]:
+                      experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -363,7 +364,7 @@ def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         CPU usage
     :param epoch_running: If True, will return a metric able to log the running
         epoch CPU usage.
-    :param step: If True, will return a metric able to log the step
+    :param experience: If True, will return a metric able to log the experience
         CPU usage.
     :param stream: If True, will return a metric able to log the evaluation
         stream CPU usage.
@@ -381,8 +382,8 @@ def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if epoch_running:
         metrics.append(RunningEpochCPUUsage())
 
-    if step:
-        metrics.append(StepCPUUsage())
+    if experience:
+        metrics.append(ExperienceCPUUsage())
 
     if stream:
         metrics.append(StreamCPUUsage())
@@ -395,7 +396,7 @@ __all__ = [
     'MinibatchCPUUsage',
     'EpochCPUUsage',
     'RunningEpochCPUUsage',
-    'StepCPUUsage',
+    'ExperienceCPUUsage',
     'StreamCPUUsage',
     'cpu_usage_metrics'
 ]

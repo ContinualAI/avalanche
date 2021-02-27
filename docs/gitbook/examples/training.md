@@ -20,13 +20,13 @@ device = 'cpu' if args.cuda == -1 else f'cuda:{args.cuda}'
 print(f'Using device: {device}')
 
 # create split scenario
-scenario = SplitMNIST(n_steps=5, return_task_id=False)
+scenario = SplitMNIST(n_experiences=5, return_task_id=False)
 
 interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-    StepForgetting(),
+    accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    ExperienceForgetting(),
     loggers=[interactive_logger])
 
 # create strategy
@@ -43,10 +43,10 @@ strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
 print('Starting experiment...')
 results = []
 for train_batch_info in scenario.train_stream:
-    print("Start training on step ", train_batch_info.current_experience)
+    print("Start training on experience ", train_batch_info.current_experience)
 
     strategy.train(train_batch_info, num_workers=4)
-    print("End training on step ", train_batch_info.current_experience)
+    print("End training on experience ", train_batch_info.current_experience)
     print('Computing accuracy on the test set')
     results.append(strategy.eval(scenario.test_stream[:]))
 ```

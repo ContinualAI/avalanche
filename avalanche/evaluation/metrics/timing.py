@@ -230,27 +230,28 @@ class RunningEpochTime(PluginMetric[float]):
         return "RunningTime_Epoch"
 
 
-class StepTime(PluginMetric[float]):
+class ExperienceTime(PluginMetric[float]):
     """
-    The step time metric.
+    The experience time metric.
     This metric only works at eval time.
 
-    After each step, this metric emits the average time of that step.
+    After each experience, this metric emits the average time of that
+    experience.
     """
 
     def __init__(self):
         """
-        Creates an instance of the step time metric.
+        Creates an instance of the experience time metric.
         """
         super().__init__()
 
         self._elapsed_time = ElapsedTime()
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
         self.reset()
         self._elapsed_time.update()
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
 
@@ -261,15 +262,15 @@ class StepTime(PluginMetric[float]):
         return self._elapsed_time.result()
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        step_time = self.result()
+        exp_time = self.result()
 
-        metric_name = get_metric_name(self, strategy, add_step=True)
+        metric_name = get_metric_name(self, strategy, add_experience=True)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_time, plot_x_position)]
+        return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 
     def __str__(self):
-        return "Time_Step"
+        return "Time_Exp"
 
 
 class StreamTime(PluginMetric[float]):
@@ -304,19 +305,19 @@ class StreamTime(PluginMetric[float]):
         return self._elapsed_time.result()
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        step_time = self.result()
+        exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_time, plot_x_position)]
+        return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 
     def __str__(self):
         return "Time_Stream"
 
 
 def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                   step=False, stream=False) -> List[PluginMetric]:
+                   experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -324,10 +325,10 @@ def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         minibatch elapsed time.
     :param epoch: If True, will return a metric able to log the train epoch
         elapsed time.
-    :param epoch_average: If True, will return a metric able to log the running
+    :param epoch_running: If True, will return a metric able to log the running
         train epoch elapsed time.
-    :param step: If True, will return a metric able to log the eval step
-        elapsed time.
+    :param experience: If True, will return a metric able to log the eval
+        experience elapsed time.
     :param stream: If True, will return a metric able to log the eval stream
         elapsed time.
 
@@ -344,8 +345,8 @@ def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if epoch_running:
         metrics.append(RunningEpochTime())
 
-    if step:
-        metrics.append(StepTime())
+    if experience:
+        metrics.append(ExperienceTime())
 
     if stream:
         metrics.append(StreamTime)
@@ -358,7 +359,7 @@ __all__ = [
     'MinibatchTime',
     'EpochTime',
     'RunningEpochTime',
-    'StepTime',
+    'ExperienceTime',
     'StreamTime',
     'timing_metrics'
 ]

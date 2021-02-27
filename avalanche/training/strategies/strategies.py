@@ -181,8 +181,9 @@ class Cumulative(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger):
-        """ Cumulative strategy. At each step,
-            train model with data from all previous steps and current step.
+        """ Cumulative strategy. At each experience,
+            train model with data from all previous experiences and current
+            experience.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -208,8 +209,8 @@ class Cumulative(BaseStrategy):
 
         super().adapt_train_dataset(**kwargs)
 
-        curr_task_id = self.step_info.task_label
-        curr_data = self.step_info.dataset
+        curr_task_id = self.experience.task_label
+        curr_data = self.experience.dataset
         if curr_task_id in self.dataset:
             cat_data = ConcatDataset([self.dataset[curr_task_id],
                                       curr_data])
@@ -235,7 +236,7 @@ class LwF(BaseStrategy):
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
         :param alpha: distillation hyperparameter. It can be either a float
-                number or a list containing alpha for each step.
+                number or a list containing alpha for each experience.
         :param temperature: softmax temperature for distillation
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
@@ -262,7 +263,7 @@ class LwF(BaseStrategy):
 class AGEM(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 patterns_per_step: int, sample_size: int = 64,
+                 patterns_per_exp: int, sample_size: int = 64,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
@@ -274,7 +275,7 @@ class AGEM(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
-        :param patterns_per_step: number of patterns per step in the memory
+        :param patterns_per_exp: number of patterns per experience in the memory
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.
         :param train_mb_size: The train minibatch size. Defaults to 1.
@@ -286,7 +287,7 @@ class AGEM(BaseStrategy):
             and metric computations.
         """
 
-        agem = AGEMPlugin(patterns_per_step, sample_size)
+        agem = AGEMPlugin(patterns_per_exp, sample_size)
         if plugins is None:
             plugins = [agem]
         else:
@@ -302,7 +303,7 @@ class AGEM(BaseStrategy):
 class GEM(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 patterns_per_step: int, memory_strength: float = 0.5,
+                 patterns_per_exp: int, memory_strength: float = 0.5,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
@@ -314,7 +315,7 @@ class GEM(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
-        :param patterns_per_step: number of patterns per step in the memory
+        :param patterns_per_exp: number of patterns per experience in the memory
         :param memory_strength: offset to add to the projection direction
             in order to favour backward transfer (gamma in original paper).
         :param train_mb_size: The train minibatch size. Defaults to 1.
@@ -326,7 +327,7 @@ class GEM(BaseStrategy):
             and metric computations.
         """
 
-        gem = GEMPlugin(patterns_per_step, memory_strength)
+        gem = GEMPlugin(patterns_per_exp, memory_strength)
         if plugins is None:
             plugins = [gem]
         else:
@@ -359,7 +360,7 @@ class EWC(BaseStrategy):
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
         :param mode: `standard` to keep a separate penalty for each previous
-               step. `onlinesum` to keep a single penalty summed over all
+               experience. `onlinesum` to keep a single penalty summed over all
                previous tasks. `onlineweightedsum` to keep a single penalty
                summed with a decay factor over all previous tasks.
         :param decay_factor: used only if mode is `onlineweightedsum`.
@@ -543,12 +544,12 @@ class AR1(BaseStrategy):
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator)
 
-    def before_training_step(self, **kwargs):
+    def before_training_exp(self, **kwargs):
         self.model.eval()
         self.model.end_features.train()
         self.model.output.train()
 
-        if self.training_step_counter > 0:
+        if self.training_exp_counter > 0:
             # In AR1 batch 0 is treated differently as the feature extractor is
             # left more free to learn.
             # This if is executed for batch > 0, in which we freeze layers
@@ -573,10 +574,10 @@ class AR1(BaseStrategy):
                 weight_decay=self.l2)
 
         # super()... will run S.I. and CWR* plugin callbacks
-        super().before_training_step(**kwargs)
+        super().before_training_exp(**kwargs)
 
         # Update cur_j of CWR* to consider latent patterns
-        if self.training_step_counter > 0:
+        if self.training_exp_counter > 0:
             for class_id, count in examples_per_class(self.rm[1]).items():
                 self.model.cur_j[class_id] += count
             self.cwr_plugin.cur_class = [
@@ -608,7 +609,7 @@ class AR1(BaseStrategy):
 
         current_batch_mb_size = self.train_mb_size
 
-        if self.training_step_counter > 0:
+        if self.training_exp_counter > 0:
             train_patterns = len(self.adapted_dataset)
             current_batch_mb_size = train_patterns // (
                     (train_patterns + self.rm_sz) // self.train_mb_size)
@@ -632,7 +633,7 @@ class AR1(BaseStrategy):
             self.mb_x = self.mb_x.to(self.device)
             self.mb_y = self.mb_y.to(self.device)
 
-            if self.training_step_counter > 0:
+            if self.training_exp_counter > 0:
                 lat_mb_x = self.rm[0][self.mb_it * self.replay_mb_size:
                                       (self.mb_it + 1) * self.replay_mb_size]
                 lat_mb_x = lat_mb_x.to(self.device)
@@ -675,11 +676,11 @@ class AR1(BaseStrategy):
 
             self.after_training_iteration(**kwargs)
 
-    def after_training_step(self, **kwargs):
-        h = min(self.rm_sz // (self.training_step_counter + 1),
+    def after_training_exp(self, **kwargs):
+        h = min(self.rm_sz // (self.training_exp_counter + 1),
                 self.cur_acts.size(0))
 
-        curr_data = self.step_info.dataset
+        curr_data = self.experience.dataset
         idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
         rm_add_y = torch.tensor(
             [curr_data.targets[idx_cur] for idx_cur in idxs_cur])
@@ -687,7 +688,7 @@ class AR1(BaseStrategy):
         rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 
         # replace patterns in random memory
-        if self.training_step_counter == 0:
+        if self.training_exp_counter == 0:
             self.rm = rm_add
         else:
             idxs_2_replace = torch.randperm(self.rm[0].size(0))[:h]
@@ -699,7 +700,7 @@ class AR1(BaseStrategy):
         self.cur_acts = None
 
         # Runs S.I. and CWR* plugin callbacks
-        super().after_training_step(**kwargs)
+        super().after_training_exp(**kwargs)
 
     @staticmethod
     def filter_bn_and_brn(param_def: LayerAndParameter):

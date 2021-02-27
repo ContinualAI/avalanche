@@ -122,13 +122,13 @@ class IScenarioStream(Protocol[TScenario, TExperience]):
     """
 
     def __getitem__(self: TScenarioStream,
-                    step_idx: Union[int, slice, Iterable[int]]) \
+                    experience_idx: Union[int, slice, Iterable[int]]) \
             -> Union[TExperience, TScenarioStream]:
         """
         Gets an experience given its experience index (or a stream slice given
         the experience order).
 
-        :param step_idx: An int describing the experience index or an
+        :param experience_idx: An int describing the experience index or an
             iterable/slice object describing a slice of this stream.
         :return: The Experience instance associated to the given experience
             index or a sliced stream instance.

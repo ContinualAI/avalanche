@@ -38,15 +38,15 @@ class InteractiveLogger(TextLogger):
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
 
-    def before_eval_step(self, strategy: PluggableStrategy,
-                         metric_values: List['MetricValue'], **kwargs):
-        super().before_eval_step(strategy, metric_values, **kwargs)
+    def before_eval_exp(self, strategy: PluggableStrategy,
+                        metric_values: List['MetricValue'], **kwargs):
+        super().before_eval_exp(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.current_dataloader)
 
-    def after_eval_step(self, strategy: 'PluggableStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def after_eval_exp(self, strategy: 'PluggableStrategy',
+                       metric_values: List['MetricValue'], **kwargs):
         self._end_progress()
-        super().after_eval_step(strategy, metric_values, **kwargs)
+        super().after_eval_exp(strategy, metric_values, **kwargs)
 
     def after_training_iteration(self, strategy: 'PluggableStrategy',
                                  metric_values: List['MetricValue'], **kwargs):

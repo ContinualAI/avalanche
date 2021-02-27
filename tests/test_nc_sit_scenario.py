@@ -81,8 +81,8 @@ class SITTests(unittest.TestCase):
         self.assertEqual(list(range(8)), all_classes)
 
         # Regression test for issue #258
-        for i, step_info in enumerate(my_nc_scenario.train_stream):
-            unique_dataset_classes = sorted(set(step_info.dataset.targets))
+        for i, experience in enumerate(my_nc_scenario.train_stream):
+            unique_dataset_classes = sorted(set(experience.dataset.targets))
             expected_dataset_classes = list(range(2 * i, 2 * (i+1)))
 
             self.assertListEqual(expected_dataset_classes,
@@ -92,7 +92,7 @@ class SITTests(unittest.TestCase):
                 sorted(my_nc_scenario.original_classes_in_exp[i]))
         # End regression test for issue #258
 
-    def test_sit_single_dataset_remap_indexes_each_step(self):
+    def test_sit_single_dataset_remap_indexes_each_exp(self):
         order = [2, 3, 5, 8, 9, 1, 4, 6]
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
@@ -121,8 +121,8 @@ class SITTests(unittest.TestCase):
         self.assertListEqual([0, 1], sorted(set(all_classes)))
 
         # Regression test for issue #258
-        for i, step_info in enumerate(my_nc_scenario.train_stream):
-            unique_dataset_classes = sorted(set(step_info.dataset.targets))
+        for i, experience in enumerate(my_nc_scenario.train_stream):
+            unique_dataset_classes = sorted(set(experience.dataset.targets))
             expected_dataset_classes = [0, 1]
             self.assertListEqual(expected_dataset_classes,
                                  unique_dataset_classes)
@@ -248,14 +248,14 @@ class SITTests(unittest.TestCase):
             mnist_train, mnist_test, 5, task_labels=False, shuffle=True,
             seed=1234)
 
-        step_info: NCExperience
-        for batch_id, step_info in enumerate(my_nc_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        experience: NCExperience
+        for batch_id, experience in enumerate(my_nc_scenario.train_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
-        for batch_id, step_info in enumerate(my_nc_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        for batch_id, experience in enumerate(my_nc_scenario.test_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_nc_scenario.train_stream[iterable_slice]
@@ -263,20 +263,20 @@ class SITTests(unittest.TestCase):
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('train', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
+        for batch_id, experience in enumerate(sliced_stream):
             self.assertEqual(iterable_slice[batch_id],
-                             step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+                             experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_scenario.test_stream[iterable_slice]
         self.assertIsInstance(sliced_stream, GenericScenarioStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('test', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
+        for batch_id, experience in enumerate(sliced_stream):
             self.assertEqual(iterable_slice[batch_id],
-                             step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+                             experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
 
 if __name__ == '__main__':

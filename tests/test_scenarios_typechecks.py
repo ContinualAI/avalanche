@@ -48,7 +48,7 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             self.assertIsInstance(batch_info, IExperience)
 
     def test_tensor_scenario_type(self):
-        n_steps = 3
+        n_experiences = 3
         test_data_x = [[torch.zeros(2, 3)], torch.zeros(2, 3)]
         test_data_y = [[torch.zeros(2)], torch.zeros(2)]
 
@@ -57,11 +57,12 @@ class ScenariosTypeChecksTests(unittest.TestCase):
                 try:                
                     tensor_scenario(
                         train_data_x=[torch.randn(2, 3)
-                                      for _ in range(n_steps)],
-                        train_data_y=[torch.zeros(2) for _ in range(n_steps)],
+                                      for _ in range(n_experiences)],
+                        train_data_y=[torch.zeros(2)
+                                      for _ in range(n_experiences)],
                         test_data_x=tdx,
                         test_data_y=tdy,
-                        task_labels=[0]*n_steps,
+                        task_labels=[0]*n_experiences,
                         complete_test_set_only=complete_test)
                 except ValueError:
                     if complete_test and \

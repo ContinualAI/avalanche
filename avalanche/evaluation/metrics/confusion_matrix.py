@@ -183,9 +183,9 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             amount of rows/columns in the confusion matrix. When None, the
             matrix will have many rows/columns as the maximum value of the
             predicted and true pattern labels. Can be either an int, in which
-            case the same value will be used across all steps, or a dictionary
-            defining the amount of classes for each step (key = step label,
-            value = amount of classes). Defaults to None.
+            case the same value will be used across all experiences, or a
+            dictionary defining the amount of classes for each experience (key =
+             experience label, value = amount of classes). Defaults to None.
         :param normalize: Normalizes confusion matrix over the true (rows),
             predicted (columns) conditions or all the population. If None,
             confusion matrix will not be normalized. Valid values are: 'true',
@@ -212,11 +212,11 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         self._matrix = ConfusionMatrix()
 
     def result(self) -> Tensor:
-        step_cm = self._matrix.result()
+        exp_cm = self._matrix.result()
         if self._normalize is not None:
-            step_cm = StreamConfusionMatrix._normalize_cm(step_cm,
-                                                          self._normalize)
-        return step_cm
+            exp_cm = StreamConfusionMatrix._normalize_cm(exp_cm,
+                                                         self._normalize)
+        return exp_cm
 
     def update(self, true_y: Tensor, predicted_y: Tensor) -> None:
         self._matrix.update(true_y, predicted_y)
@@ -232,29 +232,29 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
-        step_cm = self.result()
+        exp_cm = self.result()
         metric_name = get_metric_name(self, strategy)
         plot_x_position = self._next_x_position(metric_name)
 
         if self._save_image:
-            cm_image = self._image_creator(step_cm)
+            cm_image = self._image_creator(exp_cm)
             metric_representation = MetricValue(
-                self, metric_name, AlternativeValues(cm_image, step_cm),
+                self, metric_name, AlternativeValues(cm_image, exp_cm),
                 plot_x_position)
         else:
             metric_representation = MetricValue(
-                self, metric_name, step_cm, plot_x_position)
+                self, metric_name, exp_cm, plot_x_position)
 
         return [metric_representation]
 
-    def _class_num_for_step(self, step_label: int) -> Optional[int]:
+    def _class_num_for_exp(self, exp_label: int) -> Optional[int]:
         if self._num_classes is None or isinstance(self._num_classes, int):
             return self._num_classes
 
-        if step_label not in self._num_classes:
+        if exp_label not in self._num_classes:
             return None
 
-        return self._num_classes[step_label]
+        return self._num_classes[exp_label]
 
     @staticmethod
     def _normalize_cm(cm: Tensor,

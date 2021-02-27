@@ -55,7 +55,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = SimpleMLP(num_classes=10)
 
 # CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_steps=3)
+perm_mnist = PermutedMNIST(n_experiences=3)
 train_stream = perm_mnist.train_stream
 test_stream = perm_mnist.test_stream
 

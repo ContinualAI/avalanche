@@ -203,12 +203,12 @@ class DiskUsageMonitor(AnyEventMetric[float]):
 
     def _package_result(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         phase_name, _ = phase_and_task(strategy)
-        step_cpu = self.result()
+        experience_cpu = self.result()
 
         metric_name = 'Disk_usage/{}'.format(phase_name)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_cpu, plot_x_position)]
+        return [MetricValue(self, metric_name, experience_cpu, plot_x_position)]
 
 
 __all__ = [

@@ -19,7 +19,7 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
-    from avalanche.benchmarks.scenarios import IStepInfo
+    from avalanche.benchmarks.scenarios import IExperience
     from avalanche.evaluation import PluginMetric
 
 
@@ -101,15 +101,15 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
     return strategy.train_task_label
 
 
-def stream_type(step_info: 'IStepInfo') -> str:
+def stream_type(experience: 'IExperience') -> str:
     """
-    Returns the stream name from which the step_info belongs to.
-    e.g. the step can be part of train or test stream.
+    Returns the stream name from which the experience belongs to.
+    e.g. the experience can be part of train or test stream.
 
-    :param step_info: the instance of the step
+    :param experience: the instance of the experience
     """
 
-    return step_info.origin_stream.name
+    return experience.origin_stream.name
 
 
 def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
@@ -151,7 +151,7 @@ def bytes2human(n):
 
 def get_metric_name(metric: 'PluginMetric',
                     strategy: 'PluggableStrategy',
-                    add_step=False):
+                    add_experience=False):
     """
     Return the complete metric name used to report its current value.
     The name is composed by:
@@ -159,27 +159,27 @@ def get_metric_name(metric: 'PluginMetric',
     where metric string representation is a synthetic string
     describing the metric, phase type describe if the user
     is training (train) or evaluating (eval), stream type describes
-    the type of stream the current step belongs to (e.g. train, test)
+    the type of stream the current experience belongs to (e.g. train, test)
     and task id is the current task label.
 
     :param metric: the metric object for which return the complete name
     :param strategy: the current strategy object
-    :param add_step: if True, add eval_step_id to the main metric name.
+    :param add_experience: if True, add eval_exp_id to the main metric name.
             Default to False.
     """
 
     phase_name, task_label = phase_and_task(strategy)
-    stream = stream_type(strategy.step_info)
-    if add_step:
+    stream = stream_type(strategy.experience)
+    if add_experience:
 
-        step_label = strategy.eval_step_id if phase_name == EVAL \
-            else strategy.training_step_counter
-        metric_name = '{}/{}_phase/{}_stream/Task{:03}/Step{:03}' \
+        experience_label = strategy.eval_exp_id if phase_name == EVAL \
+            else strategy.training_exp_counter
+        metric_name = '{}/{}_phase/{}_stream/Task{:03}/Exp{:03}' \
             .format(str(metric),
                     phase_name,
                     stream,
                     task_label,
-                    step_label)
+                    experience_label)
     else:
         metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
             .format(str(metric),

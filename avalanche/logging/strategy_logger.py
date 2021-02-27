@@ -49,10 +49,10 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         for val in metric_values:
             self.log_metric(val, 'before_training')
 
-    def before_training_step(self, strategy: PluggableStrategy,
-                             metric_values: List['MetricValue'], **kwargs):
+    def before_training_exp(self, strategy: PluggableStrategy,
+                            metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'before_training_step')
+            self.log_metric(val, 'before_training_exp')
 
     def adapt_train_dataset(self, strategy: PluggableStrategy,
                             metric_values: List['MetricValue'], **kwargs):
@@ -110,10 +110,10 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         for val in metric_values:
             self.log_metric(val, 'after_training_epoch')
 
-    def after_training_step(self, strategy: PluggableStrategy,
-                            metric_values: List['MetricValue'], **kwargs):
+    def after_training_exp(self, strategy: PluggableStrategy,
+                           metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_training_step')
+            self.log_metric(val, 'after_training_exp')
 
     def after_training(self, strategy: PluggableStrategy,
                        metric_values: List['MetricValue'], **kwargs):
@@ -130,15 +130,15 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         for val in metric_values:
             self.log_metric(val, 'adapt_eval_dataset')
 
-    def before_eval_step(self, strategy: PluggableStrategy,
-                         metric_values: List['MetricValue'], **kwargs):
-        for val in metric_values:
-            self.log_metric(val, 'before_eval_step')
-
-    def after_eval_step(self, strategy: PluggableStrategy,
+    def before_eval_exp(self, strategy: PluggableStrategy,
                         metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
-            self.log_metric(val, 'after_eval_step')
+            self.log_metric(val, 'before_eval_exp')
+
+    def after_eval_exp(self, strategy: PluggableStrategy,
+                       metric_values: List['MetricValue'], **kwargs):
+        for val in metric_values:
+            self.log_metric(val, 'after_eval_exp')
 
     def after_eval(self, strategy: PluggableStrategy,
                    metric_values: List['MetricValue'], **kwargs):

@@ -55,7 +55,7 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def before_training(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
+    def before_training_exp(self, strategy: PluggableStrategy, **kwargs):
         pass
 
     def adapt_train_dataset(self, strategy: PluggableStrategy, **kwargs):
@@ -91,7 +91,7 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def after_training_epoch(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
+    def after_training_exp(self, strategy: PluggableStrategy, **kwargs):
         pass
 
     def after_training(self, strategy: PluggableStrategy, **kwargs):
@@ -103,10 +103,10 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def adapt_eval_dataset(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def before_eval_step(self, strategy: PluggableStrategy, **kwargs):
+    def before_eval_exp(self, strategy: PluggableStrategy, **kwargs):
         pass
 
-    def after_eval_step(self, strategy: PluggableStrategy, **kwargs):
+    def after_eval_exp(self, strategy: PluggableStrategy, **kwargs):
         pass
 
     def after_eval(self, strategy: PluggableStrategy, **kwargs):
@@ -151,14 +151,14 @@ class ReplayPlugin(StrategyPlugin):
         Expands the current training set with datapoint from
         the external memory before training.
         """
-        curr_data = strategy.step_info.dataset
+        curr_data = strategy.experience.dataset
 
         # Additional set of the current batch to be concatenated to the ext.
         # memory at the end of the training
         self.rm_add = None
 
         # how many patterns to save for next iter
-        h = min(self.mem_size // (strategy.training_step_counter + 1),
+        h = min(self.mem_size // (strategy.training_exp_counter + 1),
                 len(curr_data))
 
         # We recover it using the random_split method and getting rid of the
@@ -167,7 +167,7 @@ class ReplayPlugin(StrategyPlugin):
             curr_data, [h, len(curr_data) - h]
         )
 
-        if strategy.training_step_counter > 0:
+        if strategy.training_exp_counter > 0:
             # We update the train_dataset concatenating the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.
@@ -179,10 +179,10 @@ class ReplayPlugin(StrategyPlugin):
                 else:
                     strategy.adapted_dataset[mem_task_id] = mem_data
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """ After training we update the external memory with the patterns of
          the current training batch/task. """
-        curr_task_id = strategy.step_info.task_label
+        curr_task_id = strategy.experience.task_label
 
         # replace patterns in random memory
         ext_mem = self.ext_mem
@@ -199,9 +199,9 @@ class ReplayPlugin(StrategyPlugin):
 
 class GDumbPlugin(StrategyPlugin):
     """
-    A GDumb plugin. At each step the model
+    A GDumb plugin. At each experience the model
     is trained with all and only the data of the external memory.
-    The memory is updated at the end of each step to add new classes or
+    The memory is updated at the end of each experience to add new classes or
     new examples of already encountered classes.
     In multitask scenarios, mem_size is the memory size for each task.
 
@@ -226,9 +226,9 @@ class GDumbPlugin(StrategyPlugin):
         """
 
         # for each pattern, add it to the memory or not
-        dataset = strategy.step_info.dataset
-        current_counter = self.counter[strategy.step_info.task_label]
-        current_mem = self.ext_mem[strategy.step_info.task_label]
+        dataset = strategy.experience.dataset
+        current_counter = self.counter[strategy.experience.task_label]
+        current_mem = self.ext_mem[strategy.experience.task_label]
         for i, (pattern, target_value, _) in enumerate(dataset):
             target = torch.tensor(target_value)
             if len(pattern.size()) == 1:
@@ -272,7 +272,7 @@ class GDumbPlugin(StrategyPlugin):
 
                 current_counter[target_value] += 1
 
-        self.ext_mem[strategy.step_info.task_label] = current_mem
+        self.ext_mem[strategy.experience.task_label] = current_mem
         strategy.adapted_dataset = self.ext_mem
 
 
@@ -352,8 +352,8 @@ class EvaluationPlugin(StrategyPlugin):
     def before_training(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'before_training')
 
-    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_training_step')
+    def before_training_exp(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_training_exp')
 
     def adapt_train_dataset(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'adapt_train_dataset')
@@ -388,8 +388,8 @@ class EvaluationPlugin(StrategyPlugin):
     def after_training_epoch(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_training_epoch')
 
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_training_step')
+    def after_training_exp(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_training_exp')
 
     def after_training(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_training')
@@ -401,11 +401,11 @@ class EvaluationPlugin(StrategyPlugin):
     def adapt_eval_dataset(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'adapt_eval_dataset')
 
-    def before_eval_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'before_eval_step')
+    def before_eval_exp(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'before_eval_exp')
 
-    def after_eval_step(self, strategy: PluggableStrategy, **kwargs):
-        self._update_metrics(strategy, 'after_eval_step')
+    def after_eval_exp(self, strategy: PluggableStrategy, **kwargs):
+        self._update_metrics(strategy, 'after_eval_exp')
 
     def after_eval(self, strategy: PluggableStrategy, **kwargs):
         self._update_metrics(strategy, 'after_eval')
@@ -453,16 +453,16 @@ class CWRStarPlugin(StrategyPlugin):
         # to be updated
         self.cur_class = None
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         self.consolidate_weights()
         self.set_consolidate_weights()
 
-    def before_training_step(self, strategy, **kwargs):
-        if self.freeze_remaining_model and strategy.training_step_counter > 0:
+    def before_training_exp(self, strategy, **kwargs):
+        if self.freeze_remaining_model and strategy.training_exp_counter > 0:
             self.freeze_other_layers()
 
         # Count current classes and number of samples for each of them.
-        data = strategy.step_info.dataset
+        data = strategy.experience.dataset
         self.model.cur_j = examples_per_class(data.targets)
         self.cur_class = [cls for cls in set(self.model.cur_j.keys()) if
                           self.model.cur_j[cls] > 0]
@@ -576,20 +576,20 @@ class MultiHeadPlugin(StrategyPlugin):
 
     def before_training_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
-        self.set_task_layer(strategy, strategy.step_info)
+        self.set_task_layer(strategy, strategy.experience)
 
     def before_eval_iteration(self, strategy, **kwargs):
         self._optimizer = strategy.optimizer
-        self.set_task_layer(strategy, strategy.step_info)
+        self.set_task_layer(strategy, strategy.experience)
 
     @torch.no_grad()
-    def set_task_layer(self, strategy, step_info: IExperience):
+    def set_task_layer(self, strategy, experience: IExperience):
         """
         Sets the correct task layer. Creates a new head for previously
         unseen tasks.
 
         :param strategy: the CL strategy.
-        :param step_info: the step info object.
+        :param experience: the experience info object.
         :return: None
         """
 
@@ -598,8 +598,8 @@ class MultiHeadPlugin(StrategyPlugin):
         if hasattr(strategy, 'mb_task_id'):
             task_label = strategy.mb_task_id
         else:
-            task_label = step_info.task_label
-        n_output_units = max(step_info.dataset.targets) + 1
+            task_label = experience.task_label
+        n_output_units = max(experience.dataset.targets) + 1
 
         if task_label not in self.task_layers:
             # create head for unseen tasks
@@ -775,7 +775,7 @@ class LwFPlugin(StrategyPlugin):
     def __init__(self, alpha=1, temperature=2):
         """
         :param alpha: distillation hyperparameter. It can be either a float
-                number or a list containing alpha for each step.
+                number or a list containing alpha for each experience.
         :param temperature: softmax temperature for distillation
         """
 
@@ -812,14 +812,14 @@ class LwFPlugin(StrategyPlugin):
         """
         Add distillation loss
         """
-        alpha = self.alpha[strategy.training_step_counter] \
+        alpha = self.alpha[strategy.training_exp_counter] \
             if isinstance(self.alpha, (list, tuple)) else self.alpha
         penalty = self.penalty(strategy.logits, strategy.mb_x, alpha)
         strategy.loss += penalty
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """
-        Save a copy of the model after each step
+        Save a copy of the model after each experience
         """
 
         self.prev_model = copy.deepcopy(strategy.model)
@@ -829,22 +829,23 @@ class AGEMPlugin(StrategyPlugin):
     """
     Average Gradient Episodic Memory Plugin.
     AGEM projects the gradient on the current minibatch by using an external
-    episodic memory of patterns from previous steps. If the dot product
+    episodic memory of patterns from previous experiences. If the dot product
     between the current gradient and the (average) gradient of a randomly
     sampled set of memory examples is negative, the gradient is projected.
     This plugin does not use task identities.
     """
 
-    def __init__(self, patterns_per_step: int, sample_size: int):
+    def __init__(self, patterns_per_experience: int, sample_size: int):
         """
-        :param patterns_per_step: number of patterns per step in the memory
+        :param patterns_per_experience: number of patterns per experience in the
+            memory.
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.
         """
 
         super().__init__()
 
-        self.patterns_per_step = int(patterns_per_step)
+        self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
 
         self.reference_gradients = None
@@ -889,9 +890,9 @@ class AGEMPlugin(StrategyPlugin):
                 if dotg < 0:
                     p1.grad -= (dotg / dotref) * refg
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """
-        Save a copy of the model after each step
+        Save a copy of the model after each experience
         """
 
         self.update_memory(strategy.current_dataloader)
@@ -914,13 +915,13 @@ class AGEMPlugin(StrategyPlugin):
     @torch.no_grad()
     def update_memory(self, dataloader):
         """
-        Update replay memory with patterns from current step.
+        Update replay memory with patterns from current experience.
         """
 
         tot = 0
         for batches in dataloader:
             for _, (x, y) in batches.items():
-                if tot + x.size(0) <= self.patterns_per_step:
+                if tot + x.size(0) <= self.patterns_per_experience:
                     if self.memory_x is None:
                         self.memory_x = x.clone()
                         self.memory_y = y.clone()
@@ -928,7 +929,7 @@ class AGEMPlugin(StrategyPlugin):
                         self.memory_x = torch.cat((self.memory_x, x), dim=0)
                         self.memory_y = torch.cat((self.memory_y, y), dim=0)
                 else:
-                    diff = self.patterns_per_step - tot
+                    diff = self.patterns_per_experience - tot
                     if self.memory_x is None:
                         self.memory_x = x[:diff].clone()
                         self.memory_y = y[:diff].clone()
@@ -945,22 +946,23 @@ class GEMPlugin(StrategyPlugin):
     """
     Gradient Episodic Memory Plugin.
     GEM projects the gradient on the current minibatch by using an external
-    episodic memory of patterns from previous steps. The gradient on the current
-    minibatch is projected so that the dot product with all the reference
-    gradients of previous tasks remains positive.
+    episodic memory of patterns from previous experiences. The gradient on
+    the current minibatch is projected so that the dot product with all the
+    reference gradients of previous tasks remains positive.
     This plugin does not use task identities.
     """
 
-    def __init__(self, patterns_per_step: int, memory_strength: float):
+    def __init__(self, patterns_per_experience: int, memory_strength: float):
         """
-        :param patterns_per_step: number of patterns per step in the memory
+        :param patterns_per_experience: number of patterns per experience in the
+            memory.
         :param memory_strength: offset to add to the projection direction
             in order to favour backward transfer (gamma in original paper).
         """
 
         super().__init__()
 
-        self.patterns_per_step = int(patterns_per_step)
+        self.patterns_per_experience = int(patterns_per_experience)
         self.memory_strength = memory_strength
 
         self.memory_x, self.memory_y = {}, {}
@@ -969,13 +971,14 @@ class GEMPlugin(StrategyPlugin):
 
     def before_training_iteration(self, strategy, **kwargs):
         """
-        Compute gradient constraints on previous memory samples from all steps.
+        Compute gradient constraints on previous memory samples from all
+        experiences.
         """
 
-        if strategy.training_step_counter > 0:
+        if strategy.training_exp_counter > 0:
             G = []
             strategy.model.train()
-            for t in range(strategy.training_step_counter):
+            for t in range(strategy.training_exp_counter):
                 strategy.optimizer.zero_grad()
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
@@ -987,7 +990,7 @@ class GEMPlugin(StrategyPlugin):
                                     for p in strategy.model.parameters()
                                     if p.grad is not None], dim=0))
 
-            self.G = torch.stack(G)  # (steps, parameters)
+            self.G = torch.stack(G)  # (experiences, parameters)
 
     @torch.no_grad()
     def after_backward(self, strategy, **kwargs):
@@ -995,7 +998,7 @@ class GEMPlugin(StrategyPlugin):
         Project gradient based on reference gradients
         """
 
-        if strategy.training_step_counter > 0:
+        if strategy.training_exp_counter > 0:
             g = torch.cat([p.grad.flatten()
                            for p in strategy.model.parameters()
                            if p.grad is not None], dim=0)
@@ -1021,24 +1024,24 @@ class GEMPlugin(StrategyPlugin):
 
             assert num_pars == v_star.numel(), "Error in projecting gradient"
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """
-        Save a copy of the model after each step
+        Save a copy of the model after each experience
         """
 
-        self.update_memory(strategy.step_info.dataset,
-                           strategy.training_step_counter,
+        self.update_memory(strategy.experience.dataset,
+                           strategy.training_exp_counter,
                            strategy.train_mb_size)
 
     @torch.no_grad()
     def update_memory(self, dataset, t, batch_size):
         """
-        Update replay memory with patterns from current step.
+        Update replay memory with patterns from current experience.
         """
         dataloader = DataLoader(dataset, batch_size=batch_size)
         tot = 0
         for x, y, _ in dataloader:
-            if tot + x.size(0) <= self.patterns_per_step:
+            if tot + x.size(0) <= self.patterns_per_experience:
                 if t not in self.memory_x:
                     self.memory_x[t] = x.clone()
                     self.memory_y[t] = y.clone()
@@ -1046,7 +1049,7 @@ class GEMPlugin(StrategyPlugin):
                     self.memory_x[t] = torch.cat((self.memory_x[t], x), dim=0)
                     self.memory_y[t] = torch.cat((self.memory_y[t], y), dim=0)
             else:
-                diff = self.patterns_per_step - tot
+                diff = self.patterns_per_experience - tot
                 if t not in self.memory_x:
                     self.memory_x[t] = x[:diff].clone()
                     self.memory_y[t] = y[:diff].clone()
@@ -1084,11 +1087,11 @@ class EWCPlugin(StrategyPlugin):
     """
     Elastic Weight Consolidation (EWC) plugin.
     EWC computes importance of each weight at the end of training on current
-    step. During training on each minibatch, the loss is augmented
+    experience. During training on each minibatch, the loss is augmented
     with a penalty which keeps the value of the current weights close to the
-    value they had on previous steps in proportion to their importance on that
-    step. Importances are computed with an additional pass on the training set.
-    This plugin does not use task identities.
+    value they had on previous experiences in proportion to their importance
+    on that experience. Importances are computed with an additional pass on the
+    training set. This plugin does not use task identities.
     """
 
     def __init__(self, ewc_lambda, mode='separate', decay_factor=None,
@@ -1097,7 +1100,7 @@ class EWCPlugin(StrategyPlugin):
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
         :param mode: `separate` to keep a separate penalty for each previous 
-               step. 
+               experience.
                `online` to keep a single penalty summed with a decay factor 
                over all previous tasks.
         :param decay_factor: used only if mode is `online`. 
@@ -1131,47 +1134,47 @@ class EWCPlugin(StrategyPlugin):
         Compute EWC penalty and add it to the loss.
         """
 
-        if strategy.training_step_counter == 0:
+        if strategy.training_exp_counter == 0:
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
 
         if self.mode == 'separate':
-            for step in range(strategy.training_step_counter):
+            for experience in range(strategy.training_exp_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
                         strategy.model.named_parameters(),
-                        self.saved_params[step],
-                        self.importances[step]):
+                        self.saved_params[experience],
+                        self.importances[experience]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
                     strategy.model.named_parameters(),
-                    self.saved_params[strategy.training_step_counter],
-                    self.importances[strategy.training_step_counter]):
+                    self.saved_params[strategy.training_exp_counter],
+                    self.importances[strategy.training_exp_counter]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
 
         strategy.loss += self.ewc_lambda * penalty
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """
-        Compute importances of parameters after each step.
+        Compute importances of parameters after each experience.
         """
 
         importances = self.compute_importances(strategy.model,
                                                strategy.criterion,
                                                strategy.optimizer,
-                                               strategy.step_info.dataset,
+                                               strategy.experience.dataset,
                                                strategy.device,
                                                strategy.train_mb_size)
-        self.update_importances(importances, strategy.training_step_counter)
-        self.saved_params[strategy.training_step_counter] = \
+        self.update_importances(importances, strategy.training_exp_counter)
+        self.saved_params[strategy.training_exp_counter] = \
             copy_params_dict(strategy.model)
         # clear previuos parameter values
-        if strategy.training_step_counter > 0 and \
+        if strategy.training_exp_counter > 0 and \
                 (not self.keep_importance_data):
-            del self.saved_params[strategy.training_step_counter - 1]
+            del self.saved_params[strategy.training_exp_counter - 1]
 
     def compute_importances(self, model, criterion, optimizer,
                             dataset, device, batch_size):
@@ -1255,10 +1258,10 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         Creates an instance of the Synaptic Intelligence plugin.
 
         :param si_lambda: Synaptic Intelligence lambda term.
-        :param device: The device to use to run the S.I. steps. Defaults to
-            "as_strategy", which means that the `device` field of the strategy
-            will be used. Using a different device may lead to a performance
-            drop due to the required data transfer.
+        :param device: The device to use to run the S.I. experiences.
+            Defaults to "as_strategy", which means that the `device` field of
+            the strategy will be used. Using a different device may lead to a
+            performance drop due to the required data transfer.
         """
 
         super().__init__()
@@ -1286,8 +1289,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
         self._device = device
 
-    def before_training_step(self, strategy: PluggableStrategy, **kwargs):
-        super().before_training_step(strategy, **kwargs)
+    def before_training_exp(self, strategy: PluggableStrategy, **kwargs):
+        super().before_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.create_syn_data(
             strategy.model, self.ewc_data, self.syn_data,
             self.excluded_parameters)
@@ -1315,8 +1318,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data,
                                                self.excluded_parameters)
 
-    def after_training_step(self, strategy: PluggableStrategy, **kwargs):
-        super().after_training_step(strategy, **kwargs)
+    def after_training_exp(self, strategy: PluggableStrategy, **kwargs):
+        super().after_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.update_ewc_data(
             strategy.model, self.ewc_data, self.syn_data, 0.001,
             self.excluded_parameters, 1)

@@ -242,16 +242,16 @@ class RunningEpochAccuracy(EpochAccuracy):
         return "Top1_RunningAcc_Epoch"
 
 
-class StepAccuracy(PluginMetric[float]):
+class ExperienceAccuracy(PluginMetric[float]):
     """
-    At the end of each step, this metric reports
-    the average accuracy over all patterns seen in that step.
+    At the end of each experience, this metric reports
+    the average accuracy over all patterns seen in that experience.
     This metric only works at eval time.
     """
 
     def __init__(self):
         """
-        Creates an instance of StepAccuracy metric
+        Creates an instance of ExperienceAccuracy metric
         """
         super().__init__()
 
@@ -263,14 +263,14 @@ class StepAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> \
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> \
             'MetricResult':
         return self._package_result(strategy)
 
@@ -278,20 +278,20 @@ class StepAccuracy(PluginMetric[float]):
             MetricResult:
         metric_value = self.result()
 
-        metric_name = get_metric_name(self, strategy, add_step=True)
+        metric_name = get_metric_name(self, strategy, add_experience=True)
 
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
     def __str__(self):
-        return "Top1_Acc_Step"
+        return "Top1_Acc_Exp"
 
 
 class StreamAccuracy(PluginMetric[float]):
     """
-    At the end of the entire stream of steps, this metric reports the average
-    accuracy over all patterns seen in all steps.
+    At the end of the entire stream of experiences, this metric reports the
+    average accuracy over all patterns seen in all experiences.
     This metric only works at eval time.
     """
 
@@ -325,7 +325,7 @@ class StreamAccuracy(PluginMetric[float]):
         metric_value = self.result()
 
         phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.step_info)
+        stream = stream_type(strategy.experience)
         metric_name = '{}/{}_phase/{}_stream' \
             .format(str(self),
                     phase_name,
@@ -339,7 +339,7 @@ class StreamAccuracy(PluginMetric[float]):
 
 
 def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                     step=False, stream=False) -> List[PluginMetric]:
+                     experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
@@ -349,10 +349,10 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         the epoch accuracy at training time.
     :param epoch_running: If True, will return a metric able to log
         the running epoch accuracy at training time.
-    :param step: If True, will return a metric able to log
-        the accuracy on each evaluation step.
+    :param experience: If True, will return a metric able to log
+        the accuracy on each evaluation experience.
     :param stream: If True, will return a metric able to log
-        the accuracy averaged over the entire evaluation stream of steps.
+        the accuracy averaged over the entire evaluation stream of experiences.
 
     :return: A list of plugin metrics.
     """
@@ -367,8 +367,8 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if epoch_running:
         metrics.append(RunningEpochAccuracy())
 
-    if step:
-        metrics.append(StepAccuracy())
+    if experience:
+        metrics.append(ExperienceAccuracy())
 
     if stream:
         metrics.append(StreamAccuracy())
@@ -381,7 +381,7 @@ __all__ = [
     'MinibatchAccuracy',
     'EpochAccuracy',
     'RunningEpochAccuracy',
-    'StepAccuracy',
+    'ExperienceAccuracy',
     'StreamAccuracy',
     'accuracy_metrics'
 ]

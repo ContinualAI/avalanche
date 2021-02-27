@@ -10,31 +10,30 @@
 ################################################################################
 
 from typing import Sequence
-
 import torch
-
 from avalanche.benchmarks.utils import IDatasetWithTargets
 
 
-def _step_structure_from_assignment(dataset: IDatasetWithTargets,
-                                    assignment: Sequence[Sequence[int]],
-                                    n_classes: int):
-    n_steps = len(assignment)
-    step_structure = [[0 for _ in range(n_classes)] for _ in range(n_steps)]
+def _exp_structure_from_assignment(dataset: IDatasetWithTargets,
+                                   assignment: Sequence[Sequence[int]],
+                                   n_classes: int):
+    n_experiences = len(assignment)
+    exp_structure = [[0 for _ in range(n_classes)]
+                     for _ in range(n_experiences)]
 
-    for step_id in range(n_steps):
-        step_targets = [int(dataset.targets[pattern_idx])
-                        for pattern_idx in assignment[step_id]]
+    for exp_id in range(n_experiences):
+        exp_targets = [int(dataset.targets[pattern_idx])
+                       for pattern_idx in assignment[exp_id]]
         cls_ids, cls_counts = torch.unique(torch.as_tensor(
-            step_targets), return_counts=True)
+            exp_targets), return_counts=True)
 
         for unique_idx in range(len(cls_ids)):
-            step_structure[step_id][int(cls_ids[unique_idx])] += \
+            exp_structure[exp_id][int(cls_ids[unique_idx])] += \
                 int(cls_counts[unique_idx])
 
-    return step_structure
+    return exp_structure
 
 
 __all__ = [
-    '_step_structure_from_assignment'
+    '_exp_structure_from_assignment'
 ]

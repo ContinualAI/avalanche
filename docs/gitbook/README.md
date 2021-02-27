@@ -50,7 +50,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = SimpleMLP(num_classes=10)
 
 # CL Benchmark Creation
-perm_mnist = PermutedMNIST(n_steps=3)
+perm_mnist = PermutedMNIST(n_experiences=3)
 train_stream = perm_mnist.train_stream
 test_stream = perm_mnist.test_stream
 
@@ -124,7 +124,7 @@ test_transform = transforms.Compose([
     transforms.Normalize((0.1307,), (0.3081,))
 ])
 
-# for every incremental step
+# for every incremental experience
 for _ in range(n_tasks):
     # choose a random permutation of the pixels in the image
     idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)

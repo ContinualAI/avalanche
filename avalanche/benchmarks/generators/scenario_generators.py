@@ -51,14 +51,14 @@ def nc_scenario(
     """
     This method is the high-level specific scenario generator for the
     "New Classes" (NC) case. Given a sequence of train and test datasets creates
-    the continual stream of data as a series of steps. Each step will contain
-    all the patterns belonging to a certain set of classes and a class won't be
-    assigned to more than one step.
+    the continual stream of data as a series of experiences. Each experience
+    will contain all the patterns belonging to a certain set of classes and a
+    class won't be assigned to more than one experience.
 
-    The ``task_labels`` parameter determines if each incremental step has
+    The ``task_labels`` parameter determines if each incremental experience has
     an increasing task label or if, at the contrary, a default task label "0"
-    has to be assigned to all steps. This can be useful when differentiating
-    between Single-Incremental-Task and Multi-Task scenarios.
+    has to be assigned to all experiences. This can be useful when
+    differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
     There are other important parameters that can be specified in order to tweak
     the behaviour of the resulting scenario. Please take a few minutes to read
@@ -70,30 +70,30 @@ def nc_scenario(
 
     :param train_dataset: A list of training datasets, or a single dataset.
     :param test_dataset: A list of test datasets, or a single test dataset.
-    :param n_experiences: The number of incremental steps. This is not used when
-        using multiple train/test datasets with the ``one_dataset_per_exp``
+    :param n_experiences: The number of incremental experience. This is not used
+        when using multiple train/test datasets with the ``one_dataset_per_exp``
         parameter set to True.
-    :param task_labels: If True, each step will have an ascending task
-            label. If False, the task label will be 0 for all the steps.
-    :param shuffle: If True, the class (or step) order will be shuffled.
+    :param task_labels: If True, each experience will have an ascending task
+            label. If False, the task label will be 0 for all the experiences.
+    :param shuffle: If True, the class (or experience) order will be shuffled.
         Defaults to True.
     :param seed: If ``shuffle`` is True and seed is not None, the class (or
-        step) order will be shuffled according to the seed. When None, the
+        experience) order will be shuffled according to the seed. When None, the
         current PyTorch random number generator state will be used. Defaults to
         None.
     :param fixed_class_order: If not None, the class order to use (overrides
         the shuffle argument). Very useful for enhancing reproducibility.
         Defaults to None.
     :param per_exp_classes: Is not None, a dictionary whose keys are
-        (0-indexed) step IDs and their values are the number of classes
-        to include in the respective steps. The dictionary doesn't
-        have to contain a key for each step! All the remaining steps
+        (0-indexed) experience IDs and their values are the number of classes
+        to include in the respective experiences. The dictionary doesn't
+        have to contain a key for each experience! All the remaining experiences
         will contain an equal amount of the remaining classes. The
         remaining number of classes must be divisible without remainder
-        by the remaining number of steps. For instance,
-        if you want to include 50 classes in the first step
+        by the remaining number of experiences. For instance,
+        if you want to include 50 classes in the first experience
         while equally distributing remaining classes across remaining
-        steps, just pass the "{0: 50}" dictionary as the
+        experiences, just pass the "{0: 50}" dictionary as the
         per_experience_classes parameter. Defaults to None.
     :param class_ids_from_zero_from_first_exp: If True, original class IDs
         will be remapped so that they will appear as having an ascending
@@ -107,12 +107,12 @@ def nc_scenario(
         Mutually exclusive with the ``class_ids_from_zero_in_each_exp``
         parameter.
     :param class_ids_from_zero_in_each_exp: If True, original class IDs
-        will be mapped to range [0, n_classes_in_step) for each step.
+        will be mapped to range [0, n_classes_in_exp) for each experience.
         Defaults to False. Mutually exclusive with the
         ``class_ids_from_zero_from_first_exp`` parameter.
     :param one_dataset_per_exp: available only when multiple train-test
-        datasets are provided. If True, each dataset will be treated as a step.
-        Mutually exclusive with the ``per_experience_classes`` and
+        datasets are provided. If True, each dataset will be treated as a
+        experience. Mutually exclusive with the ``per_experience_classes`` and
         ``fixed_class_order`` parameters. Overrides the ``n_experiences`` 
         parameter. Defaults to False.
     :param reproducibility_data: If not None, overrides all the other
@@ -132,7 +132,7 @@ def nc_scenario(
     if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
         raise ValueError('Invalid mutually exclusive options '
                          'class_ids_from_zero_from_first_exp and '
-                         'classes_ids_from_zero_in_each_step set at the '
+                         'classes_ids_from_zero_in_each_exp set at the '
                          'same time')
 
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
@@ -157,10 +157,10 @@ def nc_scenario(
 
         if one_dataset_per_exp:
             # If one_dataset_per_exp is True, each dataset will be treated as
-            # a step. In this scenario, shuffle refers to the step order,
-            # not to the class one.
+            # a experience. In this scenario, shuffle refers to the experience
+            # order, not to the class one.
             fixed_class_order, per_exp_classes = \
-                _one_dataset_per_step_class_order(mapping, shuffle, seed)
+                _one_dataset_per_exp_class_order(mapping, shuffle, seed)
 
             # We pass a fixed_class_order to the NCGenericScenario
             # constructor, so we don't need shuffling.
@@ -200,13 +200,13 @@ def ni_scenario(
     """
     This method is the high-level specific scenario generator for the
     "New Instances" (NI) case. Given a sequence of train and test datasets
-    creates the continual stream of data as a series of steps. Each step will
-    contain patterns belonging to the same classes.
+    creates the continual stream of data as a series of experiences. Each
+    experience will contain patterns belonging to the same classes.
 
-    The ``task_labels`` parameter determines if each incremental step has
+    The ``task_labels`` parameter determines if each incremental experience has
     an increasing task label or if, at the contrary, a default task label "0"
-    has to be assigned to all steps. This can be useful when differentiating
-    between Single-Incremental-Task and Multi-Task scenarios.
+    has to be assigned to all experiences. This can be useful when
+    differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
     There are other important parameters that can be specified in order to tweak
     the behaviour of the resulting scenario. Please take a few minutes to read
@@ -218,23 +218,23 @@ def ni_scenario(
 
     :param train_dataset: A list of training datasets, or a single dataset.
     :param test_dataset: A list of test datasets, or a single test dataset.
-    :param n_experiences: The number of steps.
-    :param task_labels: If True, each step will have an ascending task
-            label. If False, the task label will be 0 for all the steps.
+    :param n_experiences: The number of experiences.
+    :param task_labels: If True, each experience will have an ascending task
+            label. If False, the task label will be 0 for all the experiences.
     :param shuffle: If True, patterns order will be shuffled.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param balance_experiences: If True, pattern of each class will be equally
-        spread across all steps. If False, patterns will be assigned to
-        steps in a complete random way. Defaults to False.
+        spread across all experiences. If False, patterns will be assigned to
+        experiences in a complete random way. Defaults to False.
     :param min_class_patterns_in_exp: The minimum amount of patterns of
-        every class that must be assigned to every step. Compatible with
+        every class that must be assigned to every experience. Compatible with
         the ``balance_experiences`` parameter. An exception will be raised if
         this constraint can't be satisfied. Defaults to 0.
     :param fixed_exp_assignment: If not None, the pattern assignment
-        to use. It must be a list with an entry for each step. Each entry
+        to use. It must be a list with an entry for each experience. Each entry
         is a list that contains the indexes of patterns belonging to that
-        step. Overrides the ``shuffle``, ``balance_experiences`` and
+        experience. Overrides the ``shuffle``, ``balance_experiences`` and
         ``min_class_patterns_in_exp`` parameters.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options, including ``fixed_exp_assignment``.
@@ -282,7 +282,8 @@ def dataset_scenario(
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
-    step. Contents of the datasets will not be changed, including the targets.
+    experience. Contents of the datasets will not be changed, including the
+    targets.
 
     When loading the datasets from a set of fixed file lists, consider using
     the :func:`filelist_scenario` helper method instead.
@@ -333,7 +334,7 @@ def filelist_scenario(
     """
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
-    those training datasets will be considered a separate training step.
+    those training datasets will be considered a separate training experience.
     Contents of the datasets will not be changed, including the targets.
 
     In its base form, this function accepts a list of filelists for the test
@@ -349,9 +350,9 @@ def filelist_scenario(
 
     :param root: The root path of the dataset.
     :param train_file_lists: A list of filelists describing the
-        paths of the training patterns for each step.
+        paths of the training patterns for each experience.
     :param test_file_lists: A list of filelists describing the
-        paths of the test patterns for each step.
+        paths of the test patterns for each experience.
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_file_lists`` parameter. For
         Single-Incremental-Task (a.k.a. Task-Free) scenarios, this is usually
@@ -402,13 +403,13 @@ def paths_scenario(
     """
     Creates a generic scenario given a list of files and class labels.
     A separate dataset will be created for each list and each of
-    those training datasets will be considered a separate training step.
+    those training datasets will be considered a separate training experience.
     Contents of the datasets will not be changed, including the targets.
 
     This is very similar to `filelist_scenario`, with the main difference being
-    that `filelist_scenario` accepts, for each step, a file list formatted in
-    Caffe-style. On the contrary, this accepts a list of tuples where each tuple
-    contains two elements: the full path to the pattern and its label.
+    that `filelist_scenario` accepts, for each experience, a file list formatted
+    in Caffe-style. On the contrary, this accepts a list of tuples where each
+    tuple contains two elements: the full path to the pattern and its label.
     Optionally, the tuple may contain a third element describing the bounding
     box of the element to crop. This last bounding box may be useful when trying
     to extract the part of the image depicting the desired element.
@@ -422,15 +423,15 @@ def paths_scenario(
     (see the parameter description for more info).
 
     :param train_list_of_files: A list of lists. Each list describes the paths
-        and labels of patterns to include in that training step as tuples. Each
-        tuple must contain two elements: the full path to the pattern and its
-        class label. Optionally, the tuple may contain a third element
+        and labels of patterns to include in that training experience as tuples.
+        Each tuple must contain two elements: the full path to the pattern
+        and its class label. Optionally, the tuple may contain a third element
         describing the bounding box to use for cropping (top, left, height,
         width).
     :param test_list_of_files: A list of lists. Each list describes the paths
-        and labels of patterns to include in that test step as tuples. Each
-        tuple must contain two elements: the full path to the pattern and its
-        class label. Optionally, the tuple may contain a third element
+        and labels of patterns to include in that test experience as tuples.
+        Each tuple must contain two elements: the full path to the pattern
+        and its class label. Optionally, the tuple may contain a third element
         describing the bounding box to use for cropping (top, left, height,
         width).
     :param task_labels: A list of task labels. Must contain the same amount of
@@ -481,8 +482,8 @@ def tensor_scenario(
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)
     and each of those training datasets will be considered a separate
-    training step. Contents of the datasets will not be changed, including the
-    targets. Using this helper function is the lower level way to create a
+    training experience. Contents of the datasets will not be changed, including
+    the targets. Using this helper function is the lower level way to create a
     Continual Learning scenario. When possible, consider using higher level
     helpers.
 
@@ -494,13 +495,13 @@ def tensor_scenario(
     ``complete_test_set_only`` should be set to True (see the parameter
     description for more info).
 
-    :param train_data_x: A list of Tensors (one per step) containing the
+    :param train_data_x: A list of Tensors (one per experience) containing the
         patterns of the training sets.
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A Tensor or a list of Tensors (one per step) containing
-        the patterns of the test sets.
+    :param test_data_x: A Tensor or a list of Tensors (one per experience)
+        containing the patterns of the test sets.
     :param test_data_y: A Tensor or a list of Tensors or int lists containing
         the labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
@@ -541,23 +542,23 @@ def tensor_scenario(
     )
 
 
-def _one_dataset_per_step_class_order(
+def _one_dataset_per_exp_class_order(
         class_list_per_exp: Sequence[Sequence[int]],
         shuffle: bool, seed: Union[int, None]) -> (List[int], Dict[int, int]):
     """
     Utility function that shuffles the class order by keeping classes from the
-    same step together. Each step is defined by a different entry in the
-    class_list_per_step parameter.
+    same experience together. Each experience is defined by a different entry in
+    the class_list_per_exp parameter.
 
-    :param class_list_per_exp: A list of class lists, one for each step
-    :param shuffle: If True, the step order will be shuffled. If False,
+    :param class_list_per_exp: A list of class lists, one for each experience
+    :param shuffle: If True, the experience order will be shuffled. If False,
         this function will return the concatenation of lists from the
-        class_list_per_step parameter.
+        class_list_per_exp parameter.
     :param seed: If not None, an integer used to initialize the random
         number generator.
 
-    :returns: A class order that keeps class IDs from the same step together
-        (adjacent).
+    :returns: A class order that keeps class IDs from the same experience
+        together (adjacent).
     """
     dataset_order = list(range(len(class_list_per_exp)))
     if shuffle:
@@ -566,12 +567,12 @@ def _one_dataset_per_step_class_order(
         dataset_order = torch.as_tensor(dataset_order)[
             torch.randperm(len(dataset_order))].tolist()
     fixed_class_order = []
-    classes_per_step = {}
+    classes_per_exp = {}
     for dataset_position, dataset_idx in enumerate(dataset_order):
         fixed_class_order.extend(class_list_per_exp[dataset_idx])
-        classes_per_step[dataset_position] = \
+        classes_per_exp[dataset_position] = \
             len(class_list_per_exp[dataset_idx])
-    return fixed_class_order, classes_per_step
+    return fixed_class_order, classes_per_exp
 
 
 __all__ = [
