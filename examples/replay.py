@@ -28,8 +28,8 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import ReplayPlugin
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, \
+    accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -71,9 +71,10 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
@@ -87,9 +88,9 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for batch_info in scenario.train_stream:
-        print("Start of step ", batch_info.current_experience)
-        cl_strategy.train(batch_info)
+    for experience in scenario.train_stream:
+        print("Start of experience ", experience.current_experience)
+        cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

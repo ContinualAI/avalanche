@@ -22,7 +22,7 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def before_training(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_training_step(self, *args, **kwargs) -> CallbackResult:
+    def before_training_exp(self, *args, **kwargs) -> CallbackResult:
         pass
 
     def adapt_train_dataset(self, *args, **kwargs) -> CallbackResult:
@@ -58,7 +58,7 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def after_training_epoch(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_training_step(self, *args, **kwargs) -> CallbackResult:
+    def after_training_exp(self, *args, **kwargs) -> CallbackResult:
         pass
 
     def after_training(self, *args, **kwargs) -> CallbackResult:
@@ -70,10 +70,10 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def adapt_eval_dataset(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def before_eval_step(self, *args, **kwargs) -> CallbackResult:
+    def before_eval_exp(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def after_eval_step(self, *args, **kwargs) -> CallbackResult:
+    def after_eval_exp(self, *args, **kwargs) -> CallbackResult:
         pass
 
     def after_eval(self, *args, **kwargs) -> CallbackResult:

@@ -60,7 +60,7 @@ matplotlib                3.3.4            py37h89c1867_0    conda-forge
 matplotlib-base           3.3.4            py37h62a2d02_0  
 mkl                       2020.2                      256  
 mkl-service               2.3.0            py37he8ac12f_0  
-mkl_fft                   1.2.1            py37h54f3939_0  
+mkl_fft                   1.3.0            py37h54f3939_0  
 mkl_random                1.1.1            py37h0573a6f_0  
 ncurses                   6.2                  he6710b0_1  
 ninja                     1.10.2           py37hff7bd54_0  
@@ -68,7 +68,7 @@ numpy                     1.19.2           py37h54aff64_0
 numpy-base                1.19.2           py37hfa32c7d_0  
 oauthlib                  3.0.1                      py_0    conda-forge
 olefile                   0.46                     py37_0  
-openssl                   1.1.1h               h516909a_0    conda-forge
+openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
 pillow                    8.1.0            py37he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
@@ -83,7 +83,7 @@ pyopenssl                 20.0.1             pyhd8ed1ab_0    conda-forge
 pyparsing                 2.4.7              pyh9f0ad1d_0    conda-forge
 pyqt                      5.9.2            py37hcca6a23_4    conda-forge
 pysocks                   1.7.1            py37h89c1867_3    conda-forge
-python                    3.7.9                h7579374_0  
+python                    3.7.10               hdb3f193_0  
 python-dateutil           2.8.1                      py_0    conda-forge
 python_abi                3.7                     1_cp37m    conda-forge
 pytorch                   1.7.1               py3.7_cpu_0  [cpuonly]  pytorch

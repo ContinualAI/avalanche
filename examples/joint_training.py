@@ -40,7 +40,7 @@ def main(args):
     model = SimpleMLP(num_classes=10)
 
     # CL Benchmark Creation
-    perm_mnist = PermutedMNIST(n_steps=5)
+    perm_mnist = PermutedMNIST(n_experiences=5)
     train_stream = perm_mnist.train_stream
     test_stream = perm_mnist.test_stream
 

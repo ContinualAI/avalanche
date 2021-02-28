@@ -268,7 +268,7 @@ def datasets_from_paths(
         elements: the full path to the pattern and its class label. Optionally,
         the tuple may contain a third element describing the bounding box to use
         for cropping (top, left, height, width). It can be also a single list
-        when the test dataset is the same for each step.
+        when the test dataset is the same for each experience.
     :param complete_test_set_only: if True, test_list must contain a single list
         that will serve as the complete test set. If False, train_list and
         test_list must describe the same amount of datasets. Defaults to False.
@@ -310,10 +310,10 @@ def datasets_from_paths(
 
     # Detect common root
     try:
-        all_paths = [pattern_tuple[0] for step_list in train_list
-                     for pattern_tuple in step_list] + \
-                    [pattern_tuple[0] for step_list in test_list
-                     for pattern_tuple in step_list]
+        all_paths = [pattern_tuple[0] for exp_list in train_list
+                     for pattern_tuple in exp_list] + \
+                    [pattern_tuple[0] for exp_list in test_list
+                     for pattern_tuple in exp_list]
 
         common_root = os.path.commonpath(all_paths)
     except ValueError:
@@ -337,11 +337,11 @@ def datasets_from_paths(
         tr_list = list()
         te_list = list()
 
-        for idx_step_list in range(len(train_list)):
+        for idx_exp_list in range(len(train_list)):
             if single_path_case:
                 break
             st_list = list()
-            for x in train_list[idx_step_list]:
+            for x in train_list[idx_exp_list]:
                 rel = os.path.relpath(x[0], common_root)
                 if len(rel) == 0 or rel == '.':
                     # May happen if the dataset has a single path
@@ -350,11 +350,11 @@ def datasets_from_paths(
                 st_list.append((rel, *x[1:]))
             tr_list.append(st_list)
 
-        for idx_step_list in range(len(test_list)):
+        for idx_exp_list in range(len(test_list)):
             if single_path_case:
                 break
             st_list = list()
-            for x in test_list[idx_step_list]:
+            for x in test_list[idx_exp_list]:
                 rel = os.path.relpath(x[0], common_root)
                 if len(rel) == 0 or rel == '.':
                     # May happen if the dataset has a single path

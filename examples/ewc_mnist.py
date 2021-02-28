@@ -3,8 +3,8 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, \
+    accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -37,9 +37,9 @@ def main(args):
 
     # create scenario
     if args.scenario == 'pmnist':
-        scenario = PermutedMNIST(n_steps=args.permutations)
+        scenario = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == 'smnist':
-        scenario = SplitMNIST(n_steps=5, return_task_id=False)
+        scenario = SplitMNIST(n_experiences=5, return_task_id=False)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
@@ -47,9 +47,10 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger])
 
     # create strategy
@@ -61,11 +62,11 @@ def main(args):
     # train on the selected scenario with the chosen strategy
     print('Starting experiment...')
     results = []
-    for train_batch_info in scenario.train_stream:
-        print("Start training on step ", train_batch_info.current_experience)
+    for experience in scenario.train_stream:
+        print("Start training on experience ", experience.current_experience)
 
-        strategy.train(train_batch_info)
-        print("End training on step ", train_batch_info.current_experience)
+        strategy.train(experience)
+        print("End training on experience", experience.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--minibatch_size', type=int, default=128,
                         help='Minibatch size.')
     parser.add_argument('--permutations', type=int, default=5,
-                        help='Number of steps in Permuted MNIST.')
+                        help='Number of experiences in Permuted MNIST.')
     parser.add_argument('--cuda', type=int, default=0,
                         help='Specify GPU id to use. Use CPU if -1.')
     args = parser.parse_args()

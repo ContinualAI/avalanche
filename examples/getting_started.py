@@ -70,11 +70,11 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for step in scenario.train_stream:
-        print("Start of step: ", step.current_experience)
-        print("Current Classes: ", step.classes_in_this_experience)
+    for experience in scenario.train_stream:
+        print("Start of experience: ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
 
-        cl_strategy.train(step)
+        cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

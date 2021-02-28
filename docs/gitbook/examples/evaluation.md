@@ -51,11 +51,11 @@ text_logger = TextLogger(open('log.txt', 'a'))
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     timing_metrics(epoch=True, epoch_running=True),
-    cpu_usage_metrics(step=True),
-    StepForgetting(),
+    cpu_usage_metrics(experience=True),
+    ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger])
@@ -69,12 +69,12 @@ cl_strategy = Naive(
 # TRAINING LOOP
 print('Starting experiment...')
 results = []
-for step in scenario.train_stream:
-    print("Start of step: ", step.current_experience)
-    print("Current Classes: ", step.classes_in_this_experience)
+for experience in scenario.train_stream:
+    print("Start of experience: ", experience.current_experience)
+    print("Current Classes: ", experience.classes_in_this_experience)
 
     # train returns a dictionary which contains all the metric values
-    res = cl_strategy.train(step, num_workers=4)
+    res = cl_strategy.train(experience, num_workers=4)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')

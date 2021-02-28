@@ -73,7 +73,7 @@ def main(args):
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
-    # for every incremental step
+    # for every incremental experience
     idx_permutations = []
     for i in range(2):
         idx_permutations.append(torch.from_numpy(

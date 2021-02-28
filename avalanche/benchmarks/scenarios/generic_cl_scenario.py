@@ -170,11 +170,11 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
         elif len(self.train_exps_patterns_assignment) != \
                 len(self.test_exps_patterns_assignment):
             raise ValueError('There must be the same amount of train and '
-                             'test steps')
+                             'test experiences')
 
         if len(self.train_exps_patterns_assignment) != len(self.task_labels):
-            raise ValueError('There must be the same number of train steps '
-                             'and task labels')
+            raise ValueError('There must be the same number of train '
+                             'experiences and task labels')
 
         self.train_dataset: AvalancheDataset = AvalancheDataset(
             train_dataset, task_labels=self.pattern_train_task_labels)
@@ -188,16 +188,16 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
             TExperience, TGenericCLScenario] = GenericScenarioStream('train',
                                                                      self)
         """
-        The stream used to obtain the training steps. This stream can be sliced
-        in order to obtain a subset of this stream.
+        The stream used to obtain the training experiences. 
+        This stream can be sliced in order to obtain a subset of this stream.
         """
 
         self.test_stream: GenericScenarioStream[
             TExperience, TGenericCLScenario] = GenericScenarioStream('test',
                                                                      self)
         """
-        The stream used to obtain the test steps. This stream can be sliced
-        in order to obtain a subset of this stream.
+        The stream used to obtain the test experiences. This stream can be 
+        sliced in order to obtain a subset of this stream.
         
         Beware that, in certain scenarios, this stream may contain a single
         element. Check the ``complete_test_set_only`` field for more details.
@@ -217,15 +217,15 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
         :return: A dictionary containing the data needed to reproduce the
             experiment.
         """
-        train_steps = []
-        for train_step_id in range(len(self.train_exps_patterns_assignment)):
-            train_step = self.train_exps_patterns_assignment[train_step_id]
-            train_steps.append(list(train_step))
-        test_steps = []
-        for test_step_id in range(len(self.test_exps_patterns_assignment)):
-            test_step = self.test_exps_patterns_assignment[test_step_id]
-            test_steps.append(list(test_step))
-        return {'train': train_steps, 'test': test_steps,
+        train_exps = []
+        for train_exp_id in range(len(self.train_exps_patterns_assignment)):
+            train_exp = self.train_exps_patterns_assignment[train_exp_id]
+            train_exps.append(list(train_exp))
+        test_exps = []
+        for test_exp_id in range(len(self.test_exps_patterns_assignment)):
+            test_exp = self.test_exps_patterns_assignment[test_exp_id]
+            test_exps.append(list(test_exp))
+        return {'train': train_exps, 'test': test_exps,
                 'task_labels': list(self.task_labels),
                 'complete_test_only': bool(self.complete_test_set_only),
                 'pattern_train_task_labels': list(
@@ -236,37 +236,38 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
         """
         Returns the classes timeline for a this scenario.
 
-        Given a step ID, this method returns the classes in this step,
-        previously seen classes, the cumulative class list and a list
-        of classes that will be encountered in next steps.
+        Given a experience ID, this method returns the classes in this
+        experience, previously seen classes, the cumulative class list and a
+        list of classes that will be encountered in next experiences.
 
-        :param current_experience: The reference step ID.
+        :param current_experience: The reference experience ID.
         :return: A tuple composed of four lists: the first list contains the
-            IDs of classes in this step, the second contains IDs of classes seen
-            in previous steps, the third returns a cumulative list of classes
-            (that is, the union of the first two list) while the last one
-            returns a list of classes that will be encountered in next steps.
+            IDs of classes in this experience, the second contains IDs of
+            classes seen in previous experiences, the third returns a cumulative
+            list of classes (that is, the union of the first two list) while the
+            last one returns a list of classes that will be encountered in next
+            experiences.
         """
-        train_steps_patterns_assignment: Sequence[Sequence[int]]
+        train_exps_patterns_assignment: Sequence[Sequence[int]]
 
-        class_set_current_step = self.classes_in_experience[current_experience]
+        class_set_current_exp = self.classes_in_experience[current_experience]
 
-        classes_in_this_step = list(class_set_current_step)
+        classes_in_this_exp = list(class_set_current_exp)
 
-        class_set_prev_steps = set()
-        for step_id in range(0, current_experience):
-            class_set_prev_steps.update(self.classes_in_experience[step_id])
-        previous_classes = list(class_set_prev_steps)
+        class_set_prev_exps = set()
+        for exp_id in range(0, current_experience):
+            class_set_prev_exps.update(self.classes_in_experience[exp_id])
+        previous_classes = list(class_set_prev_exps)
 
         classes_seen_so_far = \
-            list(class_set_current_step.union(class_set_prev_steps))
+            list(class_set_current_exp.union(class_set_prev_exps))
 
-        class_set_future_steps = set()
-        for step_id in range(current_experience, self.n_experiences):
-            class_set_prev_steps.update(self.classes_in_experience[step_id])
-        future_classes = list(class_set_future_steps)
+        class_set_future_exps = set()
+        for exp_id in range(current_experience, self.n_experiences):
+            class_set_prev_exps.update(self.classes_in_experience[exp_id])
+        future_classes = list(class_set_future_exps)
 
-        return (classes_in_this_step, previous_classes, classes_seen_so_far,
+        return (classes_in_this_exp, previous_classes, classes_seen_so_far,
                 future_classes)
 
     @property
@@ -288,7 +289,7 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
                  slice_ids: List[int] = None):
         self.slice_ids: Optional[List[int]] = slice_ids
         """
-        Describes which steps are contained in the current stream slice. 
+        Describes which experiences are contained in the current stream slice. 
         Can be None, which means that this object is the original stream. """
 
         self.name: str = name
@@ -296,9 +297,9 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
 
     def __len__(self) -> int:
         """
-        Gets the number of steps this scenario it's made of.
+        Gets the number of experiences this scenario it's made of.
 
-        :return: The number of steps in this scenario.
+        :return: The number of experiences in this scenario.
         """
         if self.slice_ids is None:
             if self.name == 'train':
@@ -313,14 +314,14 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
     def __getitem__(self, exp_idx: Union[int, slice, Iterable[int]]) -> \
             Union[TExperience, TScenarioStream]:
         """
-        Gets a step given its step index (or a stream slice given the step
-        order).
+        Gets a experience given its experience index (or a stream slice given
+        the experience order).
 
-        :param exp_idx: An int describing the step index or an iterable/slice
-            object describing a slice of this stream.
+        :param exp_idx: An int describing the experience index or an
+            iterable/slice object describing a slice of this stream.
 
-        :return: The step instance associated to the given step index or
-            a sliced stream instance.
+        :return: The experience instance associated to the given experience
+            index or a sliced stream instance.
         """
         if isinstance(exp_idx, int):
             if exp_idx < len(self):
@@ -329,7 +330,8 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
                 else:
                     return self.scenario.experience_factory(
                         self, self.slice_ids[exp_idx])
-            raise IndexError('Step index out of bounds' + str(int(exp_idx)))
+            raise IndexError('Experience index out of bounds' +
+                             str(int(exp_idx)))
         else:
             return self._create_slice(exp_idx)
 
@@ -376,27 +378,29 @@ class LazyClassesInExps(Sequence[Set[int]]):
 
 def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
                    sliceable_len: int) -> List[int]:
-    # Obtain steps list from slice object (or any iterable)
-    steps_list: List[int]
+    # Obtain experiences list from slice object (or any iterable)
+    exps_list: List[int]
     if isinstance(slice_definition, slice):
-        steps_list = list(
+        exps_list = list(
             range(*slice_definition.indices(sliceable_len)))
     elif isinstance(slice_definition, int):
-        steps_list = [slice_definition]
+        exps_list = [slice_definition]
     elif hasattr(slice_definition, 'shape') and \
             len(getattr(slice_definition, 'shape')) == 0:
-        steps_list = [int(slice_definition)]
+        exps_list = [int(slice_definition)]
     else:
-        steps_list = list(slice_definition)
+        exps_list = list(slice_definition)
 
-    # Check step id(s) boundaries
-    if max(steps_list) >= sliceable_len:
-        raise IndexError('Step index out of range: ' + str(max(steps_list)))
+    # Check experience id(s) boundaries
+    if max(exps_list) >= sliceable_len:
+        raise IndexError(
+            'Experience index out of range: ' + str(max(exps_list)))
 
-    if min(steps_list) < 0:
-        raise IndexError('Step index out of range: ' + str(min(steps_list)))
+    if min(exps_list) < 0:
+        raise IndexError(
+            'Experience index out of range: ' + str(min(exps_list)))
 
-    return steps_list
+    return exps_list
 
 
 class AbstractExperience(IExperience[TScenario, TScenarioStream], ABC):
@@ -498,8 +502,9 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
         Creates an instance of a generic experience given the stream from this
         experience was taken and and the current experience ID.
 
-        :param origin_stream: The stream from which this step was obtained.
-        :param current_experience: The current step ID, as an integer.
+        :param origin_stream: The stream from which this experience was
+            obtained.
+        :param current_experience: The current experience ID, as an integer.
         """
 
         (classes_in_this_exp, previous_classes, classes_seen_so_far,

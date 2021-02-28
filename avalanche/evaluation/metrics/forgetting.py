@@ -22,46 +22,47 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class StepForgetting(PluginMetric[Dict[int, float]]):
+class ExperienceForgetting(PluginMetric[Dict[int, float]]):
     """
     The Forgetting metric, describing the accuracy loss detected for a
-    certain step.
+    certain experience.
 
-    This metric, computed separately for each step,
+    This metric, computed separately for each experience,
     is the difference between the accuracy result obtained after
-    first training on a step and the accuracy result obtained
-    on the same step at the end of successive steps.
+    first training on a experience and the accuracy result obtained
+    on the same experience at the end of successive experiences.
 
     This metric is computed during the eval phase only.
     """
 
     def __init__(self):
         """
-        Creates an instance of the StepForgetting metric.
+        Creates an instance of the ExperienceForgetting metric.
         """
 
         super().__init__()
 
         self._initial_accuracy: Dict[int, float] = dict()
         """
-        The initial accuracy of each step.
+        The initial accuracy of each experience.
         """
 
         self._current_accuracy: Dict[int, Accuracy] = dict()
         """
-        The current accuracy of each step.
+        The current accuracy of each experience.
         """
 
-        self.eval_step_id = None
+        self.eval_exp_id = None
         """
-        The current evaluation step id
+        The current evaluation experience id
         """
 
     def reset(self) -> None:
         """
         Resets the metric.
 
-        Beware that this will also reset the initial accuracy of each step!
+        Beware that this will also reset the initial accuracy of each
+        experience!
 
         :return: None.
         """
@@ -72,8 +73,8 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
         """
         Resets the current accuracy.
 
-        This will preserve the initial accuracy value of each step.
-        To be used at the beginning of each eval step.
+        This will preserve the initial accuracy value of each experience.
+        To be used at the beginning of each eval experience.
 
         :return: None.
         """
@@ -82,14 +83,14 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
     def update(self, true_y: Tensor, predicted_y: Tensor, label: int) \
             -> None:
         """
-        Updates the running accuracy of a step given the ground truth and
+        Updates the running accuracy of a experience given the ground truth and
         predicted labels of a minibatch.
 
         :param true_y: The ground truth. Both labels and one-hot vectors
             are supported.
         :param predicted_y: The ground truth. Both labels and logit vectors
             are supported.
-        :param label: The step label.
+        :param label: The experience label.
         :return: None.
         """
         if label not in self._current_accuracy:
@@ -99,53 +100,53 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
     def before_eval(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> None:
-        self.eval_step_id = strategy.eval_step_id
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+        self.eval_exp_id = strategy.eval_exp_id
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.eval_step_id
+        label = strategy.eval_exp_id
         self.update(strategy.mb_y,
                     strategy.logits,
                     label)
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') \
+    def after_eval_exp(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        # eval step never encountered during training
-        # or eval step is the current training step
+        # eval experience never encountered during training
+        # or eval experience is the current training experience
         # forgetting not reported in both cases
-        if self.eval_step_id not in self._initial_accuracy:
-            train_label = strategy.training_step_counter
-            # the test accuracy on the training step we have just
+        if self.eval_exp_id not in self._initial_accuracy:
+            train_label = strategy.training_exp_counter
+            # the test accuracy on the training experience we have just
             # trained on. This is the initial accuracy.
             if train_label not in self._initial_accuracy:
                 self._initial_accuracy[train_label] = \
                     self._current_accuracy[train_label].result()
             return None
 
-        # eval step previously encountered during training
-        # which is not the most recent training step
+        # eval experience previously encountered during training
+        # which is not the most recent training experience
         # return forgetting
         return self._package_result(strategy)
 
     def result(self) -> float:
         """
-        Return the amount of forgetting for the eval step
+        Return the amount of forgetting for the eval experience
         associated to `eval_label`.
 
         The forgetting is computed as the accuracy difference between the
-        initial step accuracy (when first encountered
+        initial experience accuracy (when first encountered
         in the training stream) and the current accuracy.
         A positive value means that forgetting occurred. A negative value
-        means that the accuracy on that step increased.
+        means that the accuracy on that experience increased.
 
-        :param eval_label: integer label describing the eval step
+        :param eval_label: integer label describing the eval experience
                 of which measuring the forgetting
-        :return: The amount of forgetting on `eval_step` step
+        :return: The amount of forgetting on `eval_exp` experience
                  (as float in range [-1, 1]).
         """
 
-        prev_accuracy: float = self._initial_accuracy[self.eval_step_id]
-        accuracy: Accuracy = self._current_accuracy[self.eval_step_id]
+        prev_accuracy: float = self._initial_accuracy[self.eval_exp_id]
+        accuracy: Accuracy = self._current_accuracy[self.eval_exp_id]
         forgetting = prev_accuracy - accuracy.result()
         return forgetting
 
@@ -153,7 +154,7 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
             -> MetricResult:
 
         forgetting = self.result()
-        metric_name = get_metric_name(self, strategy, add_step=True)
+        metric_name = get_metric_name(self, strategy, add_experience=True)
         plot_x_position = self._next_x_position(metric_name)
 
         metric_values = [MetricValue(
@@ -161,7 +162,7 @@ class StepForgetting(PluginMetric[Dict[int, float]]):
         return metric_values
 
     def __str__(self):
-        return "StepForgetting"
+        return "ExperienceForgetting"
 
 
-__all__ = ['StepForgetting']
+__all__ = ['ExperienceForgetting']

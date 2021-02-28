@@ -65,8 +65,8 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(epoch=True, step=True, stream=True),
-        loss_metrics(epoch=True, step=True, stream=True),
+        accuracy_metrics(epoch=True, experience=True, stream=True),
+        loss_metrics(epoch=True, experience=True, stream=True),
         # save image should be False to appropriately view
         # results in Interactive Logger.
         # a tensor will be printed
@@ -83,11 +83,11 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for step in scenario.train_stream:
-        print("Start of step: ", step.current_step)
-        print("Current Classes: ", step.classes_in_this_step)
+    for experience in scenario.train_stream:
+        print("Start of experience: ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
 
-        cl_strategy.train(step)
+        cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

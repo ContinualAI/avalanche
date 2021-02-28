@@ -16,7 +16,7 @@ import torch
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TrainSet, TestSet
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
-    _step_structure_from_assignment
+    _exp_structure_from_assignment
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
@@ -28,7 +28,8 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
-    the step sequence under the form of instances of :class:`NIExperience`.
+    the experience sequence under the form of instances of
+    :class:`NIExperience`.
 
     Instances of this class can be created using the constructor directly.
     However, we recommend using facilities like
@@ -54,7 +55,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             reproducibility_data: Optional[Dict[str, Any]] = None):
         """
         Creates a NIScenario instance given the training and test Datasets and
-        the number of steps.
+        the number of experiences.
 
         :param train_dataset: The training dataset. The dataset must be a
             subclass of :class:`AvalancheDataset`. For instance, one can
@@ -64,9 +65,9 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
             ``test_dataset=AvalancheDataset(torchvision_dataset)``.
-        :param n_experiences: The number of steps.
-        :param task_labels: If True, each step will have an ascending task
-            label. If False, the task label will be 0 for all the steps.
+        :param n_experiences: The number of experiences.
+        :param task_labels: If True, each experience will have an ascending task
+            label. If False, the task label will be 0 for all the experiences.
             Defaults to False.
         :param shuffle: If True, the patterns order will be shuffled. Defaults
             to True.
@@ -75,17 +76,17 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             PyTorch random number generator state will be used.
             Defaults to None.
         :param balance_experiences: If True, pattern of each class will be
-            equally spread across all steps. If False, patterns will be assigned
-            to steps in a complete random way. Defaults to False.
+            equally spread across all experiences. If False, patterns will be
+            assigned to experiences in a complete random way. Defaults to False.
         :param min_class_patterns_in_exp: The minimum amount of patterns of
-            every class that must be assigned to every step. Compatible with
-            the ``balance_experiences`` parameter. An exception will be raised
-            if this constraint can't be satisfied. Defaults to 0.
+            every class that must be assigned to every experience. Compatible
+            with the ``balance_experiences`` parameter. An exception will be
+            raised if this constraint can't be satisfied. Defaults to 0.
         :param fixed_exp_assignment: If not None, the pattern assignment
-            to use. It must be a list with an entry for each step. Each entry
-            is a list that contains the indexes of patterns belonging to that
-            step. Overrides the ``shuffle``, ``balance_experiences`` and
-            ``min_class_patterns_in_exp`` parameters.
+            to use. It must be a list with an entry for each experience. Each
+            entry is a list that contains the indexes of patterns belonging to
+            that experience. Overrides the ``shuffle``, ``balance_experiences``
+            and ``min_class_patterns_in_exp`` parameters.
         :param reproducibility_data: If not None, overrides all the other
             scenario definition options, including ``fixed_exp_assignment``.
             This is usually a dictionary containing data used to
@@ -118,7 +119,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             task_ids = [[0]] * n_experiences
 
         if n_experiences < 1:
-            raise ValueError('Invalid number of steps (n_experiences '
+            raise ValueError('Invalid number of experiences (n_experiences '
                              'parameter): must be greater than 0')
 
         if min_class_patterns_in_exp < 0 and reproducibility_data is None:
@@ -137,8 +138,8 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
 
         if fixed_exp_assignment:
             included_patterns = list()
-            for step_def in fixed_exp_assignment:
-                included_patterns.extend(step_def)
+            for exp_def in fixed_exp_assignment:
+                included_patterns.extend(exp_def)
             subset = AvalancheSubset(train_dataset,
                                      indices=included_patterns)
             unique_targets, unique_count = torch.unique(
@@ -149,13 +150,14 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             class_count = int(unique_count[unique_idx])
             self.n_patterns_per_class[class_id] = class_count
 
-        # The number of patterns in each step
+        # The number of patterns in each experience
         self.n_patterns_per_experience: List[int] = []
         # self.exp_structure[exp_id][class_id] is the amount of patterns
-        # of class "class_id" in step "exp_id
+        # of class "class_id" in experience "exp_id
         self.exp_structure: List[List[int]] = []
-        # step_patterns contains, for each step, the list of patterns
-        # assigned to that step (as indexes of elements from the training set)
+        # exp_patterns contains, for each experience, the list of patterns
+        # assigned to that experience (as indexes of elements from the training
+        # set)
 
         if reproducibility_data or fixed_exp_assignment:
             # fixed_patterns_assignment/reproducibility_data is the user
@@ -165,19 +167,19 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             # so we only need to fill exp_structure.
 
             if reproducibility_data:
-                step_patterns = self.train_exps_patterns_assignment
+                exp_patterns = self.train_exps_patterns_assignment
             else:
-                step_patterns = fixed_exp_assignment
-            self.exp_structure = _step_structure_from_assignment(
-                train_dataset, step_patterns, self.n_classes
+                exp_patterns = fixed_exp_assignment
+            self.exp_structure = _exp_structure_from_assignment(
+                train_dataset, exp_patterns, self.n_classes
             )
         else:
-            # All steps will all contain the same amount of patterns
+            # All experiences will all contain the same amount of patterns
             # The amount of patterns doesn't need to be divisible without
-            # remainder by the number of steps, so we distribute remaining
-            # patterns across randomly selected steps (when shuffling) or
-            # the first N steps (when not shuffling). However, we first have
-            # to check if the min_class_patterns_in_exp constraint is
+            # remainder by the number of experience, so we distribute remaining
+            # patterns across randomly selected experience (when shuffling) or
+            # the first N experiences (when not shuffling). However, we first
+            # have to check if the min_class_patterns_in_exp constraint is
             # satisfiable.
             min_class_patterns = min(self.n_patterns_per_class)
             if min_class_patterns < n_experiences * min_class_patterns_in_exp:
@@ -202,48 +204,51 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                     ].tolist() for cls_patterns in classes_to_patterns_idx
                 ]
 
-            # Here we assign patterns to each step. Two different strategies
-            # are required in order to manage the balance_experiences parameter.
+            # Here we assign patterns to each experience. Two different
+            # strategies are required in order to manage the
+            # balance_experiences parameter.
             if balance_experiences:
                 # If balance_experiences is True we have to make sure that
-                # patterns of each class are equally distributed across steps.
+                # patterns of each class are equally distributed across
+                # experiences.
                 #
                 # To do this, populate self.exp_structure, which will
                 # describe how many patterns of each class are assigned to each
-                # step. Then, for each step, assign the required amount of
-                # patterns of each class.
+                # experience. Then, for each experience, assign the required
+                # amount of patterns of each class.
                 #
                 # We already checked that there are enough patterns for each
                 # class to satisfy the min_class_patterns_in_exp param so here
                 # we don't need to explicitly enforce that constraint.
 
                 # First, count how many patterns of each class we have to assign
-                # to all the steps (avg). We also get the number of remaining
-                # patterns which we'll have to assign in a second step.
-                class_patterns_per_step = [
+                # to all the experiences (avg). We also get the number of
+                # remaining patterns which we'll have to assign in a second
+                # experience.
+                class_patterns_per_exp = [
                     ((n_class_patterns // n_experiences),
                      (n_class_patterns % n_experiences))
                     for n_class_patterns in self.n_patterns_per_class
                 ]
 
                 # Remember: exp_structure[exp_id][class_id] is the amount of
-                # patterns of class "class_id" in step "exp_id"
+                # patterns of class "class_id" in experience "exp_id"
                 #
-                # This is the easier step: just assign the average amount of
-                # class patterns to each step.
+                # This is the easier experience: just assign the average amount
+                # of class patterns to each experience.
                 self.exp_structure = [
-                    [class_patterns_this_step[0]
-                     for class_patterns_this_step
-                     in class_patterns_per_step] for _ in range(n_experiences)
+                    [class_patterns_this_exp[0]
+                     for class_patterns_this_exp
+                     in class_patterns_per_exp] for _ in range(n_experiences)
                 ]
 
                 # Now we have to distribute the remaining patterns of each class
                 #
                 # This means that, for each class, we can (randomly) select
-                # "n_class_patterns % n_experiences" steps to assign a single
-                # additional pattern of that class.
+                # "n_class_patterns % n_experiences" experiences to assign a
+                # single additional pattern of that class.
                 for class_id in range(self.n_classes):
-                    n_remaining = class_patterns_per_step[class_id][1]
+                    n_remaining = class_patterns_per_exp[class_id][1]
                     if n_remaining == 0:
                         continue
                     if shuffle:
@@ -251,47 +256,48 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                             n_experiences).tolist()[:n_remaining]
                     else:
                         assignment_of_remaining_patterns = range(n_remaining)
-                    for step_id in assignment_of_remaining_patterns:
-                        self.exp_structure[step_id][class_id] += 1
+                    for exp_id in assignment_of_remaining_patterns:
+                        self.exp_structure[exp_id][class_id] += 1
 
                 # Following the self.exp_structure definition, assign
-                # the actual patterns to each step.
+                # the actual patterns to each experience.
                 #
-                # For each step we assign exactly
+                # For each experience we assign exactly
                 # self.exp_structure[exp_id][class_id] patterns of
                 # class "class_id"
-                step_patterns = [[] for _ in range(n_experiences)]
+                exp_patterns = [[] for _ in range(n_experiences)]
                 next_idx_per_class = [0 for _ in range(self.n_classes)]
-                for step_id in range(n_experiences):
+                for exp_id in range(n_experiences):
                     for class_id in range(self.n_classes):
                         start_idx = next_idx_per_class[class_id]
-                        n_patterns = self.exp_structure[step_id][class_id]
+                        n_patterns = self.exp_structure[exp_id][class_id]
                         end_idx = start_idx + n_patterns
-                        step_patterns[step_id].extend(
+                        exp_patterns[exp_id].extend(
                             classes_to_patterns_idx[class_id][start_idx:end_idx]
                         )
                         next_idx_per_class[class_id] = end_idx
             else:
                 # If balance_experiences if False, we just randomly shuffle the
-                # patterns indexes and pick N patterns for each step.
+                # patterns indexes and pick N patterns for each experience.
                 #
                 # However, we have to enforce the min_class_patterns_in_exp
                 # constraint, which makes things difficult.
                 # In the balance_experiences scenario, that constraint is
                 # implicitly enforced by equally distributing class patterns in
-                # each step (we already checked that there are enough overall
-                # patterns for each class to satisfy min_class_patterns_in_exp)
+                # each experience (we already checked that there are enough
+                # overall patterns for each class to satisfy
+                # min_class_patterns_in_exp)
 
                 # Here we have to assign the minimum required amount of class
-                # patterns to each step first, then we can move to randomly
-                # assign the remaining patterns to each step.
+                # patterns to each experience first, then we can move to
+                # randomly assign the remaining patterns to each experience.
 
-                # First, initialize step_patterns and exp_structure
-                step_patterns = [[] for _ in range(n_experiences)]
+                # First, initialize exp_patterns and exp_structure
+                exp_patterns = [[] for _ in range(n_experiences)]
                 self.exp_structure = [[0 for _ in range(self.n_classes)]
                                       for _ in range(n_experiences)]
 
-                # For each step we assign exactly
+                # For each experience we assign exactly
                 # min_class_patterns_in_exp patterns from each class
                 #
                 # Very similar to the loop found in the balance_experiences
@@ -300,14 +306,14 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                 next_idx_per_class = [0 for _ in range(self.n_classes)]
                 remaining_patterns = set(range(len(train_dataset)))
 
-                for step_id in range(n_experiences):
+                for exp_id in range(n_experiences):
                     for class_id in range(self.n_classes):
                         next_idx = next_idx_per_class[class_id]
                         end_idx = next_idx + min_class_patterns_in_exp
                         selected_patterns = \
                             classes_to_patterns_idx[next_idx:end_idx]
-                        step_patterns[step_id].extend(selected_patterns)
-                        self.exp_structure[step_id][class_id] += \
+                        exp_patterns[exp_id].extend(selected_patterns)
+                        self.exp_structure[exp_id][class_id] += \
                             min_class_patterns_in_exp
                         remaining_patterns.difference_update(selected_patterns)
                         next_idx_per_class[class_id] = end_idx
@@ -318,7 +324,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                 # now we assign the remaining patterns
                 #
                 # We'll work on remaining_patterns, which contains indexes of
-                # patterns not assigned in the previous step.
+                # patterns not assigned in the previous experience.
                 if shuffle:
                     patterns_order = torch.as_tensor(remaining_patterns)[
                         torch.randperm(len(remaining_patterns))
@@ -329,12 +335,12 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                 targets_order = [train_dataset.targets[pattern_idx]
                                  for pattern_idx in patterns_order]
 
-                avg_step_size = len(patterns_order) // n_experiences
+                avg_exp_size = len(patterns_order) // n_experiences
                 n_remaining = len(patterns_order) % n_experiences
                 prev_idx = 0
-                for step_id in range(n_experiences):
-                    next_idx = prev_idx + avg_step_size
-                    step_patterns[step_id].extend(
+                for exp_id in range(n_experiences):
+                    next_idx = prev_idx + avg_exp_size
+                    exp_patterns[exp_id].extend(
                         patterns_order[prev_idx:next_idx])
                     cls_ids, cls_counts = torch.unique(torch.as_tensor(
                         targets_order[prev_idx:next_idx]), return_counts=True)
@@ -343,7 +349,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                     cls_counts = cls_counts.tolist()
 
                     for unique_idx in range(len(cls_ids)):
-                        self.exp_structure[step_id][cls_ids[unique_idx]] += \
+                        self.exp_structure[exp_id][cls_ids[unique_idx]] += \
                             cls_counts[unique_idx]
                     prev_idx = next_idx
 
@@ -354,23 +360,23 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
                             n_experiences).tolist()[:n_remaining]
                     else:
                         assignment_of_remaining_patterns = range(n_remaining)
-                    for step_id in assignment_of_remaining_patterns:
+                    for exp_id in assignment_of_remaining_patterns:
                         pattern_idx = patterns_order[prev_idx]
                         pattern_target = targets_order[prev_idx]
-                        step_patterns[step_id].append(pattern_idx)
+                        exp_patterns[exp_id].append(pattern_idx)
 
-                        self.exp_structure[step_id][pattern_target] += 1
+                        self.exp_structure[exp_id][pattern_target] += 1
                         prev_idx += 1
 
-        self.n_patterns_per_experience = [len(step_patterns[step_id])
-                                          for step_id in range(n_experiences)]
+        self.n_patterns_per_experience = [len(exp_patterns[exp_id])
+                                          for exp_id in range(n_experiences)]
 
         self._classes_in_exp = None  # Will be lazy initialized later
 
         if task_labels:
             pattern_train_task_labels = [-1] * len(train_dataset)
-            for t_id, step_def in enumerate(step_patterns):
-                for p_idx in step_def:
+            for t_id, exp_def in enumerate(exp_patterns):
+                for p_idx in exp_def:
                     pattern_train_task_labels[p_idx] = t_id
         else:
             pattern_train_task_labels = ConstantSequence(0, len(train_dataset))
@@ -379,7 +385,7 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             super(NIScenario, self).__init__(
                 train_dataset, test_dataset,  # Original dataset
                 train_dataset, test_dataset,  # Adapted datasets
-                step_patterns, [],  # train assignment, test assignment
+                exp_patterns, [],  # train assignment, test assignment
                 task_ids,  # Task label of each experience
                 pattern_train_task_labels,  # Task label of each train pattern
                 ConstantSequence(0, len(test_dataset)),  # of each test pattern
@@ -390,12 +396,12 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
     def classes_in_experience(self) -> Sequence[Set[int]]:
         if self._classes_in_exp is None:
             self._classes_in_exp = []
-            for step_id in range(self.n_experiences):
+            for exp_id in range(self.n_experiences):
                 self._classes_in_exp.append(set())
-                step_s = self.exp_structure[step_id]
-                for class_id, n_patterns_of_class in enumerate(step_s):
+                exp_s = self.exp_structure[exp_id]
+                for class_id, n_patterns_of_class in enumerate(exp_s):
                     if n_patterns_of_class > 0:
-                        self._classes_in_exp[step_id].add(class_id)
+                        self._classes_in_exp[exp_id].add(class_id)
         return self._classes_in_exp
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
@@ -410,19 +416,20 @@ class NIExperience(GenericExperience[NIScenario[TrainSet, TestSet],
                                      NIScenario[TrainSet, TestSet]]],
                    Generic[TrainSet, TestSet]):
     """
-    Defines a "New Instances" step. It defines fields to obtain the current
-    dataset and the associated task label. It also keeps a reference to the
-    stream from which this step was taken.
+    Defines a "New Instances" experience. It defines fields to obtain the
+    current dataset and the associated task label. It also keeps a reference
+    to the stream from which this experience was taken.
     """
     def __init__(self, origin_stream: GenericScenarioStream[
         'NIExperience', NIScenario[TrainSet, TestSet]],
                  current_experience: int):
         """
         Creates a ``NIExperience`` instance given the stream from this
-        step was taken and and the current step ID.
+        experience was taken and and the current experience ID.
 
-        :param origin_stream: The stream from which this step was obtained.
-        :param current_experience: The current step ID, as an integer.
+        :param origin_stream: The stream from which this experience was
+            obtained.
+        :param current_experience: The current experience ID, as an integer.
         """
         super(NIExperience, self).__init__(
             origin_stream, current_experience)

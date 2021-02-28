@@ -22,7 +22,7 @@ class MockPlugin(StrategyPlugin):
         self.count = 0
         self.activated = [False for _ in range(22)]
 
-    def before_training_step(self, strategy, **kwargs):
+    def before_training_exp(self, strategy, **kwargs):
         self.activated[0] = True
 
     def adapt_train_dataset(self, strategy, **kwargs):
@@ -58,7 +58,7 @@ class MockPlugin(StrategyPlugin):
     def after_training_epoch(self, strategy, **kwargs):
         self.activated[11] = True
 
-    def after_training_step(self, strategy, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         self.activated[12] = True
 
     def before_eval(self, strategy, **kwargs):
@@ -67,10 +67,10 @@ class MockPlugin(StrategyPlugin):
     def adapt_eval_dataset(self, strategy, **kwargs):
         self.activated[14] = True
 
-    def before_eval_step(self, strategy, **kwargs):
+    def before_eval_exp(self, strategy, **kwargs):
         self.activated[15] = True
 
-    def after_eval_step(self, strategy, **kwargs):
+    def after_eval_exp(self, strategy, **kwargs):
         self.activated[16] = True
 
     def after_eval(self, strategy, **kwargs):

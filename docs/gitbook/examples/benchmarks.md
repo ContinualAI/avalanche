@@ -15,18 +15,18 @@ model = SimpleMLP(num_classes=10)
 
 # Here we show all the MNIST variation we offer in the "classic" benchmarks
 # scenario = PermutedMNIST(n_experiences=5, seed=1)
-scenario = RotatedMNIST(n_steps=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
+scenario = RotatedMNIST(n_experiences=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
 # scenario = SplitMNIST(n_experiences=5, seed=1)
 
 # choose some metrics and evaluation method
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=False, epoch=True, step=True, stream=True),
-    loss_metrics(minibatch=False, epoch=True, step=True, stream=True),
+    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     timing_metrics(epoch=True, epoch_running=True),
-    cpu_usage_metrics(step=True),
-    StepForgetting(),
+    cpu_usage_metrics(experience=True),
+    ExperienceForgetting(),
     loggers=[interactive_logger])
 
 # Than we can extract the parallel train and test streams

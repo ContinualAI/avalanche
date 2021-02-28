@@ -26,8 +26,8 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics, cpu_usage_metrics, timing_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, \
+    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -78,11 +78,14 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        cpu_usage_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        timing_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        cpu_usage_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        timing_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger, text_logger])
 
 
@@ -95,14 +98,14 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for step in scenario.train_stream:
-        print("Start of step: ", step.current_experience)
-        print("Current Classes: ", step.classes_in_this_experience)
+    for experience in scenario.train_stream:
+        print("Start of experience: ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
 
-        # train returns a list of dictionaries (one for each step). Each
+        # train returns a list of dictionaries (one for each experience). Each
         # dictionary stores the last value of each metric curve emitted
         # during training.
-        res = cl_strategy.train(step)
+        res = cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

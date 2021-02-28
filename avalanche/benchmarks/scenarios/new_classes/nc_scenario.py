@@ -24,7 +24,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                  Generic[TrainSet, TestSet]):
     """
     This class defines a "New Classes" scenario. Once created, an instance
-    of this class can be iterated in order to obtain the step sequence
+    of this class can be iterated in order to obtain the experience sequence
     under the form of instances of :class:`NCExperience`.
 
     This class can be used directly. However, we recommend using facilities like
@@ -44,7 +44,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                  reproducibility_data: Optional[Dict[str, Any]] = None):
         """
         Creates a ``NCGenericScenario`` instance given the training and test
-        Datasets and the number of steps.
+        Datasets and the number of experiences.
 
         By default, the number of classes will be automatically detected by
         looking at the training Dataset ``targets`` field. Classes will be
@@ -52,8 +52,8 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
         ``per_experience_classes`` argument is specified.
 
         The number of classes must be divisible without remainder by the number
-        of steps. This also applies when the ``per_experience_classes`` argument
-        is not None.
+        of experiences. This also applies when the ``per_experience_classes``
+        argument is not None.
 
         :param train_dataset: The training dataset. The dataset must be a
             subclass of :class:`AvalancheDataset`. For instance, one can
@@ -63,9 +63,9 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             subclass of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
             ``test_dataset=AvalancheDataset(torchvision_dataset)``.
-        :param n_experiences: The number of steps.
-        :param task_labels: If True, each step will have an ascending task
-            label. If False, the task label will be 0 for all the steps.
+        :param n_experiences: The number of experiences.
+        :param task_labels: If True, each experience will have an ascending task
+            label. If False, the task label will be 0 for all the experiences.
         :param shuffle: If True, the class order will be shuffled. Defaults to
             True.
         :param seed: If shuffle is True and seed is not None, the class order
@@ -76,15 +76,15 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             the shuffle argument). Very useful for enhancing
             reproducibility. Defaults to None.
         :param per_experience_classes: Is not None, a dictionary whose keys are
-            (0-indexed) step IDs and their values are the number of classes
-            to include in the respective steps. The dictionary doesn't
-            have to contain a key for each step! All the remaining steps
-            will contain an equal amount of the remaining classes. The
-            remaining number of classes must be divisible without remainder
-            by the remaining number of steps. For instance,
-            if you want to include 50 classes in the first step
+            (0-indexed) experience IDs and their values are the number of
+            classes to include in the respective experiences. The dictionary
+            doesn't have to contain a key for each experience! All the remaining
+            experiences will contain an equal amount of the remaining classes.
+            The remaining number of classes must be divisible without remainder
+            by the remaining number of experiences. For instance,
+            if you want to include 50 classes in the first experience
             while equally distributing remaining classes across remaining
-            steps, just pass the "{0: 50}" dictionary as the
+            experiences, just pass the "{0: 50}" dictionary as the
             per_experience_classes parameter. Defaults to None.
         :param class_ids_from_zero_from_first_exp: If True, original class IDs
             will be remapped so that they will appear as having an ascending
@@ -98,7 +98,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             Mutually exclusive with the ``class_ids_from_zero_in_each_exp``
             parameter.
         :param class_ids_from_zero_in_each_exp: If True, original class IDs
-            will be mapped to range [0, n_classes_in_step) for each step.
+            will be mapped to range [0, n_classes_in_exp) for each experience.
             Defaults to False. Mutually exclusive with the
             ``class_ids_from_zero_from_first_exp parameter``.
         :param reproducibility_data: If not None, overrides all the other
@@ -121,7 +121,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             n_experiences = reproducibility_data['n_experiences']
 
         if n_experiences < 1:
-            raise ValueError('Invalid number of steps (n_experiences '
+            raise ValueError('Invalid number of experiences (n_experiences '
                              'parameter): must be greater than 0')
 
         self.classes_order: List[int] = []
@@ -146,15 +146,15 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
         """
 
         self.n_classes_per_exp: List[int] = []
-        """ A list that, for each step (identified by its index/ID),
-            stores the number of classes assigned to that step. """
+        """ A list that, for each experience (identified by its index/ID),
+            stores the number of classes assigned to that experience. """
 
         self._classes_in_exp: List[Set[int]] = []
 
         self.original_classes_in_exp: List[Set[int]] = []
-        """ A list that, for each step (identified by its index/ID),
+        """ A list that, for each experience (identified by its index/ID),
             stores a list of the original IDs of classes assigned 
-            to that step. """
+            to that experience. """
 
         self.class_ids_from_zero_from_first_exp: bool = \
             class_ids_from_zero_from_first_exp
@@ -163,7 +163,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
         self.class_ids_from_zero_in_each_exp: bool = \
             class_ids_from_zero_in_each_exp
         """ If True the class IDs have been remapped to start from zero in 
-        each step """
+        each experience """
 
         # Note: if fixed_class_order is None and shuffle is False,
         # the class order will be the one encountered
@@ -205,67 +205,69 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                 reproducibility_data['n_classes_per_exp']
         elif per_experience_classes is not None:
             # per_experience_classes is a user-defined dictionary that defines
-            # the number of classes to include in some (or all) steps.
-            # Remaining classes are equally distributed across the other steps
+            # the number of classes to include in some (or all) experiences.
+            # Remaining classes are equally distributed across the other
+            # experiences.
             #
             # Format of per_experience_classes dictionary:
-            #   - key = step id
-            #   - value = number of classes for this step
+            #   - key = experience id
+            #   - value = number of classes for this experience
 
             if max(per_experience_classes.keys()) >= n_experiences or min(
                     per_experience_classes.keys()) < 0:
-                # The dictionary contains a key (that is, a step id) >=
-                # the number of requested steps... or < 0
+                # The dictionary contains a key (that is, a experience id) >=
+                # the number of requested experiences... or < 0
                 raise ValueError(
-                    'Invalid step id in per_experience_classes parameter: '
-                    'step ids must be in range [0, n_experiences)')
+                    'Invalid experience id in per_experience_classes parameter:'
+                    ' experience ids must be in range [0, n_experiences)')
             if min(per_experience_classes.values()) < 0:
-                # One or more values (number of classes for each step) < 0
+                # One or more values (number of classes for each experience) < 0
                 raise ValueError('Wrong number of classes defined for one or '
-                                 'more steps: must be a non-negative value')
+                                 'more experiences: must be a non-negative '
+                                 'value')
 
             if sum(per_experience_classes.values()) > self.n_classes:
-                # The sum of dictionary values (n. of classes for each step)
-                # >= the number of classes
+                # The sum of dictionary values (n. of classes for each
+                # experience) >= the number of classes
                 raise ValueError('Insufficient number of classes: '
                                  'per_experience_classes parameter can\'t '
                                  'be satisfied')
 
-            # Remaining classes are equally distributed across remaining steps
-            # This amount of classes must be be divisible without remainder by
-            # the number of remaining steps
-            remaining_steps = n_experiences - len(per_experience_classes)
-            if remaining_steps > 0 and (self.n_classes - sum(
-                    per_experience_classes.values())) % remaining_steps > 0:
-                raise ValueError('Invalid number of steps: remaining classes '
-                                 'cannot be divided by n_experiences')
+            # Remaining classes are equally distributed across remaining
+            # experiences. This amount of classes must be be divisible without
+            # remainder by the number of remaining experiences
+            remaining_exps = n_experiences - len(per_experience_classes)
+            if remaining_exps > 0 and (self.n_classes - sum(
+                    per_experience_classes.values())) % remaining_exps > 0:
+                raise ValueError('Invalid number of experiences: remaining '
+                                 'classes cannot be divided by n_experiences')
 
-            # default_per_step_classes is the default amount of classes
-            # for the remaining steps
-            if remaining_steps > 0:
-                default_per_step_classes = (self.n_classes - sum(
-                    per_experience_classes.values())) // remaining_steps
+            # default_per_exp_classes is the default amount of classes
+            # for the remaining experiences
+            if remaining_exps > 0:
+                default_per_exp_classes = (self.n_classes - sum(
+                    per_experience_classes.values())) // remaining_exps
             else:
-                default_per_step_classes = 0
+                default_per_exp_classes = 0
 
             # Initialize the self.n_classes_per_exp list using
-            # "default_per_step_classes" as the default
-            # amount of classes per step. Then, loop through the
+            # "default_per_exp_classes" as the default
+            # amount of classes per experience. Then, loop through the
             # per_experience_classes dictionary to set the customized,
-            # user defined, classes for the required steps.
+            # user defined, classes for the required experiences.
             self.n_classes_per_exp = \
-                [default_per_step_classes] * n_experiences
-            for step_id in per_experience_classes:
-                self.n_classes_per_exp[step_id] = per_experience_classes[
-                    step_id]
+                [default_per_exp_classes] * n_experiences
+            for exp_id in per_experience_classes:
+                self.n_classes_per_exp[exp_id] = per_experience_classes[
+                    exp_id]
         else:
-            # Classes will be equally distributed across the steps
+            # Classes will be equally distributed across the experiences
             # The amount of classes must be be divisible without remainder
-            # by the number of steps
+            # by the number of experiences
             if self.n_classes % n_experiences > 0:
                 raise ValueError(
-                    'Invalid number of steps: classes contained in dataset '
-                    'cannot be divided by n_experiences')
+                    'Invalid number of experiences: classes contained in '
+                    'dataset cannot be divided by n_experiences')
             self.n_classes_per_exp = \
                 [self.n_classes // n_experiences] * n_experiences
 
@@ -277,7 +279,7 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             self.class_mapping = reproducibility_data['class_mapping']
         elif self.class_ids_from_zero_from_first_exp:
             # Method 1: remap class IDs so that they appear in ascending order
-            # over all steps
+            # over all experiences
             self.classes_order = list(range(0, self.n_classes))
             self.class_mapping = [-1] * n_original_classes
             for class_id in range(n_original_classes):
@@ -289,18 +291,18 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                         self.classes_order_original_ids.index(class_id)
         elif self.class_ids_from_zero_in_each_exp:
             # Method 2: remap class IDs so that they appear in range [0, N] in
-            # each step
+            # each experience
             self.classes_order = []
             self.class_mapping = [-1] * n_original_classes
             next_class_idx = 0
-            for step_id, step_n_classes in enumerate(self.n_classes_per_exp):
-                self.classes_order += list(range(step_n_classes))
-                for step_class_idx in range(step_n_classes):
-                    original_class_position = next_class_idx + step_class_idx
+            for exp_id, exp_n_classes in enumerate(self.n_classes_per_exp):
+                self.classes_order += list(range(exp_n_classes))
+                for exp_class_idx in range(exp_n_classes):
+                    original_class_position = next_class_idx + exp_class_idx
                     original_class_id = self.classes_order_original_ids[
                         original_class_position]
-                    self.class_mapping[original_class_id] = step_class_idx
-                next_class_idx += step_n_classes
+                    self.class_mapping[original_class_id] = exp_class_idx
+                next_class_idx += exp_n_classes
         else:
             # Method 3: no remapping of any kind
             # remapped_id = class_mapping[class_id] -> class_id == remapped_id
@@ -312,13 +314,13 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
 
         # Populate the _classes_in_exp and original_classes_in_exp lists
         # "_classes_in_exp[exp_id]": list of (remapped) class IDs assigned
-        # to step "exp_id"
+        # to experience "exp_id"
         # "original_classes_in_exp[exp_id]": list of original class IDs
-        # assigned to step "exp_id"
-        for step_id in range(n_experiences):
-            classes_start_idx = sum(self.n_classes_per_exp[:step_id])
+        # assigned to experience "exp_id"
+        for exp_id in range(n_experiences):
+            classes_start_idx = sum(self.n_classes_per_exp[:exp_id])
             classes_end_idx = classes_start_idx + self.n_classes_per_exp[
-                step_id]
+                exp_id]
 
             self._classes_in_exp.append(
                 set(self.classes_order[classes_start_idx:classes_end_idx]))
@@ -326,11 +328,11 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
                 set(self.classes_order_original_ids[classes_start_idx:
                                                     classes_end_idx]))
 
-        # Finally, create the step -> patterns assignment.
+        # Finally, create the experience -> patterns assignment.
         # In order to do this, we don't load all the patterns
         # instead we use the targets field.
-        train_steps_patterns_assignment = []
-        test_steps_patterns_assignment = []
+        train_exps_patterns_assignment = []
+        test_exps_patterns_assignment = []
 
         self._has_task_labels = task_labels
         if reproducibility_data is not None:
@@ -344,24 +346,24 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             pattern_train_task_labels = ConstantSequence(0, len(train_dataset))
             pattern_test_task_labels = ConstantSequence(0, len(test_dataset))
 
-        for step_id in range(n_experiences):
-            selected_classes = self.original_classes_in_exp[step_id]
+        for exp_id in range(n_experiences):
+            selected_classes = self.original_classes_in_exp[exp_id]
             selected_indexes_train = []
             for idx, element in enumerate(original_training_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_train.append(idx)
                     if self._has_task_labels:
-                        pattern_train_task_labels[idx] = step_id
+                        pattern_train_task_labels[idx] = exp_id
 
             selected_indexes_test = []
             for idx, element in enumerate(original_test_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_test.append(idx)
                     if self._has_task_labels:
-                        pattern_test_task_labels[idx] = step_id
+                        pattern_test_task_labels[idx] = exp_id
 
-            train_steps_patterns_assignment.append(selected_indexes_train)
-            test_steps_patterns_assignment.append(selected_indexes_test)
+            train_exps_patterns_assignment.append(selected_indexes_train)
+            test_exps_patterns_assignment.append(selected_indexes_test)
 
         train_dataset = AvalancheSubset(
             train_dataset, class_mapping=self.class_mapping)
@@ -379,8 +381,8 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             original_test_dataset,
             train_dataset,
             test_dataset,
-            train_steps_patterns_assignment,
-            test_steps_patterns_assignment,
+            train_exps_patterns_assignment,
+            test_exps_patterns_assignment,
             task_ids,
             pattern_train_task_labels,
             pattern_test_task_labels,
@@ -407,15 +409,15 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
     def classes_in_exp_range(self, exp_start: int,
                              exp_end: Optional[int] = None) -> List[int]:
         """
-        Gets a list of classes contained in the given steps. The steps are
-        defined by range. This means that only the classes in range
-        [step_start, exp_end) will be included.
+        Gets a list of classes contained in the given experiences. The
+        experiences are defined by range. This means that only the classes in
+        range [exp_start, exp_end) will be included.
 
-        :param exp_start: The starting step ID.
-        :param exp_end: The final step ID. Can be None, which means that all
-            the remaining steps will be taken.
+        :param exp_start: The starting experience ID.
+        :param exp_end: The final experience ID. Can be None, which means that
+            all the remaining experiences will be taken.
 
-        :returns: The classes contained in the required step range.
+        :returns: The classes contained in the required experience range.
         """
         # Ref: https://stackoverflow.com/a/952952
         if exp_end is None:
@@ -436,9 +438,9 @@ class NCExperience(GenericExperience[NCScenario[TrainSet, TestSet],
                                      NCScenario[TrainSet, TestSet]]],
                    Generic[TrainSet, TestSet]):
     """
-    Defines a "New Classes" step. It defines fields to obtain the current
+    Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
-    stream from which this step was taken.
+    stream from which this experience was taken.
     """
     def __init__(self,
                  origin_stream: GenericScenarioStream[
@@ -446,10 +448,11 @@ class NCExperience(GenericExperience[NCScenario[TrainSet, TestSet],
                  current_experience: int):
         """
         Creates a ``NCExperience`` instance given the stream from this
-        step was taken and and the current step ID.
+        experience was taken and and the current experience ID.
 
-        :param origin_stream: The stream from which this step was obtained.
-        :param current_experience: The current step ID, as an integer.
+        :param origin_stream: The stream from which this experience was
+            obtained.
+        :param current_experience: The current experience ID, as an integer.
         """
         super(NCExperience, self).__init__(origin_stream, current_experience)
 

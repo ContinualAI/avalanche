@@ -167,8 +167,8 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(2, len(my_nc_scenario.train_stream))
         self.assertEqual(2, len(my_nc_scenario.test_stream))
 
-        step_classes_train = []
-        step_classes_test = []
+        exp_classes_train = []
+        exp_classes_test = []
 
         all_classes_train = set()
         all_classes_test = set()
@@ -177,13 +177,13 @@ class MultiTaskTests(unittest.TestCase):
         for task_id, task_info in enumerate(my_nc_scenario.train_stream):
             self.assertLessEqual(task_id, 1)
             all_classes_train.update(my_nc_scenario.classes_in_experience[task_id])
-            step_classes_train.append(task_info.classes_in_this_experience)
+            exp_classes_train.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_train))
 
         for task_id, task_info in enumerate(my_nc_scenario.test_stream):
             self.assertLessEqual(task_id, 1)
             all_classes_test.update(my_nc_scenario.classes_in_experience[task_id])
-            step_classes_test.append(task_info.classes_in_this_experience)
+            exp_classes_test.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_test))
 
         self.assertTrue(
@@ -192,16 +192,16 @@ class MultiTaskTests(unittest.TestCase):
             (my_nc_scenario.classes_in_experience[0] == set(range(0, 7)) and
              my_nc_scenario.classes_in_experience[1] == {0, 1, 2}))
 
-        step_classes_ref1 = [list(range(3)), list(range(7))]
-        step_classes_ref2 = [list(range(7)), list(range(3))]
+        exp_classes_ref1 = [list(range(3)), list(range(7))]
+        exp_classes_ref2 = [list(range(7)), list(range(3))]
 
-        self.assertTrue(step_classes_train == step_classes_ref1 or
-                        step_classes_train == step_classes_ref2)
+        self.assertTrue(exp_classes_train == exp_classes_ref1 or
+                        exp_classes_train == exp_classes_ref2)
 
-        if step_classes_train == step_classes_ref1:
-            self.assertTrue(step_classes_test == step_classes_ref1)
+        if exp_classes_train == exp_classes_ref1:
+            self.assertTrue(exp_classes_test == exp_classes_ref1)
         else:
-            self.assertTrue(step_classes_test == step_classes_ref2)
+            self.assertTrue(exp_classes_test == exp_classes_ref2)
 
     def test_nc_mt_slicing(self):
         mnist_train = MNIST(
@@ -212,14 +212,14 @@ class MultiTaskTests(unittest.TestCase):
             mnist_train, mnist_test, 5, task_labels=True, shuffle=True,
             seed=1234)
 
-        step_info: NCExperience
-        for batch_id, step_info in enumerate(my_nc_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        experience: NCExperience
+        for batch_id, experience in enumerate(my_nc_scenario.train_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
-        for batch_id, step_info in enumerate(my_nc_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        for batch_id, experience in enumerate(my_nc_scenario.test_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_nc_scenario.train_stream[iterable_slice]
@@ -227,18 +227,19 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('train', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        for batch_id, experience in enumerate(sliced_stream):
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_scenario.test_stream[iterable_slice]
         self.assertIsInstance(sliced_stream, GenericScenarioStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('test', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
-            self.assertIsInstance(step_info, NCExperience)
+        for batch_id, experience in enumerate(sliced_stream):
+            self.assertEqual(
+                iterable_slice[batch_id], experience.current_experience)
+            self.assertIsInstance(experience, NCExperience)
 
 
 if __name__ == '__main__':

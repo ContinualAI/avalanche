@@ -31,7 +31,7 @@ _default_test_transform = transforms.Compose([
 
 
 def SplitCUB200(root,
-                n_steps=11,
+                n_experiences=11,
                 classes_first_batch=100,
                 return_task_id=False,
                 seed=0,
@@ -45,11 +45,11 @@ def SplitCUB200(root,
     download it and store the data in the data folder.
 
     :param root: Base path where Imagenet data are stored.
-    :param n_steps: The number of steps in the current scenario.
+    :param n_experiences: The number of experiences in the current scenario.
     :param classes_first_batch: Number of classes in the first batch.
     Usually this is set to 500. Default to None.
-    :param return_task_id: if True, for every step the task id is returned and
-        the Scenario is Multi Task. This means that the scenario returned
+    :param return_task_id: if True, for every experience the task id is returned
+        and the Scenario is Multi Task. This means that the scenario returned
         will be of type ``NCMultiTaskScenario``. If false the task index is
         not returned (default to 0 for every batch) and the returned scenario
         is of type ``NCSingleTaskScenario``.
@@ -59,7 +59,7 @@ def SplitCUB200(root,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
-    :param shuffle: If true, the class order in the incremental steps is
+    :param shuffle: If true, the class order in the incremental experiences is
         randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
@@ -84,17 +84,17 @@ def SplitCUB200(root,
         root, train_transform, test_transform)
 
     if classes_first_batch is not None:
-        per_step_classes = {0: classes_first_batch}
+        per_exp_classes = {0: classes_first_batch}
     else:
-        per_step_classes = None
+        per_exp_classes = None
 
     if return_task_id:
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=True,
-            per_exp_classes=per_step_classes,
+            per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
@@ -103,9 +103,9 @@ def SplitCUB200(root,
         return nc_scenario(
             train_dataset=train_set,
             test_dataset=test_set,
-            n_experiences=n_steps,
+            n_experiences=n_experiences,
             task_labels=False,
-            per_exp_classes=per_step_classes,
+            per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle)
@@ -125,7 +125,7 @@ __all__ = [
 
 if __name__ == "__main__":
     scenario = SplitCUB200("~/.avalanche/data/cub200/")
-    for step in scenario.train_stream:
-        print("step: ", step.current_experience)
-        print("classes number: ", len(step.classes_in_this_experience))
-        print("classes: ", step.classes_in_this_experience)
+    for exp in scenario.train_stream:
+        print("Experience: ", exp.current_experience)
+        print("classes number: ", len(exp.classes_in_this_experience))
+        print("classes: ", exp.classes_in_this_experience)

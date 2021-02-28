@@ -311,7 +311,7 @@ class CpuUsageMetricTests(unittest.TestCase):
         self.assertEqual(last_result, uut.result())
 
     def test_cpu_usage_helper(self):
-        metrics = cpu_usage_metrics(epoch=True, step=True)
+        metrics = cpu_usage_metrics(epoch=True, experience=True)
         self.assertEqual(2, len(metrics))
         self.assertIsInstance(metrics, List)
         self.assertIsInstance(metrics[0], PluginMetric)

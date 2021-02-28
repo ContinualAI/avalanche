@@ -34,9 +34,9 @@ class BaseStrategy:
         """
         BaseStrategy is the super class of all task-based continual learning
         strategies. It implements a basic training loop and callback system
-        that allows to execute code at each step of the training loop. Plugins
-        can be used to implement callbacks to augment the training loop with
-        additional behavior (e.g. a memory buffer for replay).
+        that allows to execute code at each experience of the training loop.
+        Plugins can be used to implement callbacks to augment the training
+        loop with additional behavior (e.g. a memory buffer for replay).
 
         This strategy supports several continual learning scenarios:
         - class-incremental scenarios (no task labels)
@@ -72,13 +72,13 @@ class BaseStrategy:
         self.evaluator = evaluator
 
         # Flow state variables
-        self.training_step_counter = 0  # +1 at the end of each step.
-        self.eval_step_id = None  # eval-flow only
+        self.training_exp_counter = 0  # +1 at the end of each experience.
+        self.eval_exp_id = None  # eval-flow only
         self.epoch = None
-        self.step_info = None
+        self.experience = None
         # data used to train. May be modified by plugins. In general, plugins
         # can append data to it but should not read it (e.g. for replay)
-        # because it may contain extra samples from previous steps.
+        # because it may contain extra samples from previous experiences.
         self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None  # train-flow only. minibatch iteration.
@@ -129,99 +129,99 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, step_infos: Union[IExperience, Sequence[IExperience]],
+    def train(self, experiences: Union[IExperience, Sequence[IExperience]],
               **kwargs):
-        """ Training loop. if step_infos is a single element trains on it.
-        If it is a sequence, trains the model on each step in order.
+        """ Training loop. if experiences is a single element trains on it.
+        If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
 
-        :param step_infos: single IExperience or sequence.
+        :param experiences: single IExperience or sequence.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(step_infos, IExperience):
-            step_infos = [step_infos]
+        if isinstance(experiences, IExperience):
+            experiences = [experiences]
 
         res = []
         self.before_training(**kwargs)
-        for step_info in step_infos:
-            self.train_task_label = step_info.task_label
-            self.train_step(step_info, **kwargs)
+        for exp in experiences:
+            self.train_task_label = exp.task_label
+            self.train_exp(exp, **kwargs)
             res.append(self.evaluator.current_metrics.copy())
 
         self.after_training(**kwargs)
         return res
 
-    def train_step(self, step_info: IExperience, **kwargs):
+    def train_exp(self, experience: IExperience, **kwargs):
         """
         Training loop over a single IExperience object.
 
-        :param step_info: CL step information.
+        :param experience: CL experience information.
         :param kwargs: custom arguments.
         """
-        self.step_info = step_info
+        self.experience = experience
         self.model.train()
         self.model.to(self.device)
 
-        self.adapted_dataset = step_info.dataset
+        self.adapted_dataset = experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
         self.adapt_train_dataset(**kwargs)
         self.make_train_dataloader(**kwargs)
 
-        self.before_training_step(**kwargs)
+        self.before_training_exp(**kwargs)
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
-        self.after_training_step(**kwargs)
+        self.after_training_exp(**kwargs)
 
     def eval(self,
-             step_list: Union[IExperience, Sequence[IExperience]],
+             exp_list: Union[IExperience, Sequence[IExperience]],
              **kwargs):
         """
-        Evaluate the current model on a series of steps.
+        Evaluate the current model on a series of experiences.
 
-        :param step_list: CL step information.
+        :param exp_list: CL experience information.
         :param kwargs: custom arguments.
         """
         self.is_training = False
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(step_list, IExperience):
-            step_list = [step_list]
+        if isinstance(exp_list, IExperience):
+            exp_list = [exp_list]
 
         res = []
         self.before_eval(**kwargs)
-        for step_info in step_list:
-            self.eval_task_label = step_info.task_label
-            self.step_info = step_info
-            self.eval_step_id = step_info.current_experience
+        for exp in exp_list:
+            self.eval_task_label = exp.task_label
+            self.experience = exp
+            self.eval_exp_id = exp.current_experience
 
-            self.adapted_dataset = step_info.dataset
+            self.adapted_dataset = exp.dataset
             self.adapted_dataset = self.adapted_dataset.eval()
 
             self.adapt_eval_dataset(**kwargs)
             self.make_eval_dataloader(**kwargs)
 
-            self.before_eval_step(**kwargs)
+            self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
-            self.after_eval_step(**kwargs)
+            self.after_eval_exp(**kwargs)
             res.append(self.evaluator.current_metrics.copy())
 
         self.after_eval(**kwargs)
         return res
 
-    def before_training_step(self, **kwargs):
+    def before_training_exp(self, **kwargs):
         """
         Called  after the dataset and data loader creation and
         before the training loop.
         """
         for p in self.plugins:
-            p.before_training_step(self, **kwargs)
+            p.before_training_exp(self, **kwargs)
 
     def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
         """
@@ -257,7 +257,8 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        self.adapted_dataset = {self.step_info.task_label: self.adapted_dataset}
+        self.adapted_dataset = {
+            self.experience.task_label: self.adapted_dataset}
         for p in self.plugins:
             p.adapt_train_dataset(self, **kwargs)
 
@@ -349,13 +350,13 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_training_epoch(self, **kwargs)
 
-    def after_training_step(self, **kwargs):
+    def after_training_exp(self, **kwargs):
         for p in self.plugins:
-            p.after_training_step(self, **kwargs)
+            p.after_training_exp(self, **kwargs)
 
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
-        self.step_info = None
+        self.experience = None
         self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None
@@ -367,12 +368,13 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_eval(self, **kwargs)
 
-    def before_eval_step(self, **kwargs):
+    def before_eval_exp(self, **kwargs):
         for p in self.plugins:
-            p.before_eval_step(self, **kwargs)
+            p.before_eval_exp(self, **kwargs)
 
     def adapt_eval_dataset(self, **kwargs):
-        self.adapted_dataset = {self.step_info.task_label: self.adapted_dataset}
+        self.adapted_dataset = {
+            self.experience.task_label: self.adapted_dataset}
         for p in self.plugins:
             p.adapt_eval_dataset(self, **kwargs)
 
@@ -391,16 +393,16 @@ class BaseStrategy:
 
             self.after_eval_iteration(**kwargs)
 
-    def after_eval_step(self, **kwargs):
+    def after_eval_exp(self, **kwargs):
         for p in self.plugins:
-            p.after_eval_step(self, **kwargs)
+            p.after_eval_exp(self, **kwargs)
 
     def after_eval(self, **kwargs):
         for p in self.plugins:
             p.after_eval(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.eval_step_id = None
-        self.step_info = None
+        self.eval_exp_id = None
+        self.experience = None
         self.adapted_dataset = None
         self.current_dataloader = None
         self.mb_it = None
@@ -408,7 +410,7 @@ class BaseStrategy:
         self.loss = None
         self.logits = None
 
-        self.training_step_counter += 1
+        self.training_exp_counter += 1
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:

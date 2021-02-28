@@ -42,7 +42,7 @@ class AnyEventMetric(PluginMetric[TResult], ABC):
     def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return self.on_event(strategy)
 
-    def before_training_step(self, strategy: 'PluggableStrategy') \
+    def before_training_exp(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return self.on_event(strategy)
 
@@ -84,7 +84,7 @@ class AnyEventMetric(PluginMetric[TResult], ABC):
             -> 'MetricResult':
         return self.on_event(strategy)
 
-    def after_training_step(self, strategy: 'PluggableStrategy') \
+    def after_training_exp(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         return self.on_event(strategy)
 
@@ -98,10 +98,10 @@ class AnyEventMetric(PluginMetric[TResult], ABC):
             -> 'MetricResult':
         return self.on_event(strategy)
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return self.on_event(strategy)
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         return self.on_event(strategy)
 
     def after_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':

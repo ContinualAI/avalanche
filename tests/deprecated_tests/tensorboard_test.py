@@ -42,7 +42,7 @@ for c in ["{", "}", '"']:
 hyper = hyper.replace(",","<br>")
 writer.add_text('hyper', hyper, 0)
 
-# We only need to specify the layout once (instead of per step).
+# We only need to specify the layout once (instead of per experience).
 for n_iter in range(100):
 
     writer.add_scalar('Loss/train', np.random.random(), n_iter)

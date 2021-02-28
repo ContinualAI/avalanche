@@ -10,7 +10,7 @@
 ################################################################################
 """
 This example trains on Split CIFAR10 with Naive strategy.
-In this example each step has a different task label.
+In this example each experience has a different task label.
 The task label, although available, is not used at test time.
 """
 
@@ -38,7 +38,7 @@ def main(args):
     model = SimpleMLP(input_size=32*32*3, num_classes=10)
 
     # CL Benchmark Creation
-    scenario = SplitCIFAR10(n_steps=5, return_task_id=True)
+    scenario = SplitCIFAR10(n_experiences=5, return_task_id=True)
     train_stream = scenario.train_stream
     test_stream = scenario.test_stream
 

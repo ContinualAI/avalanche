@@ -9,8 +9,9 @@
 # Website: clair.continualai.org                                               #
 ################################################################################
 """
-This example trains a Multi-head model on Split MNIST with Elastich Weight Consolidation.
-Each step has a different task label, which is used at test time to select the appropriate head.
+This example trains a Multi-head model on Split MNIST with Elastich Weight
+Consolidation. Each experience has a different task label, which is used at test
+time to select the appropriate head.
 """
 
 from __future__ import absolute_import
@@ -26,7 +27,7 @@ from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import EWC
 from avalanche.training.plugins import MultiHeadPlugin
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -40,7 +41,7 @@ def main(args):
     model = SimpleMLP(num_classes=10)
 
     # CL Benchmark Creation
-    scenario = SplitMNIST(n_steps=5, return_task_id=True)
+    scenario = SplitMNIST(n_experiences=5, return_task_id=True)
     train_stream = scenario.train_stream
     test_stream = scenario.test_stream
 
@@ -52,8 +53,9 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger])
 
     # Choose a CL strategy

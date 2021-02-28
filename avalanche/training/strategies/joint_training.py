@@ -53,30 +53,30 @@ class JointTraining(BaseStrategy):
         super().__init__(model, optimizer, criterion, train_mb_size,
                          train_epochs, eval_mb_size, device, plugins, evaluator)
 
-    def train(self, step_infos: Union[IExperience, Sequence[IExperience]],
+    def train(self, experiences: Union[IExperience, Sequence[IExperience]],
               **kwargs):
-        """ Training loop. if step_infos is a single element trains on it.
-        If it is a sequence, trains the model on each step in order.
+        """ Training loop. if experiences is a single element trains on it.
+        If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
 
-        :param step_infos: single IExperience or sequence.
+        :param experiences: single IExperience or sequence.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(step_infos, IExperience):
-            step_infos = [step_infos]
+        if isinstance(experiences, IExperience):
+            experiences = [experiences]
 
         res = []
         self.before_training(**kwargs)
 
-        self.step_info = step_infos[0]
-        self.train_task_label = self.step_info.task_label
+        self.experience = experiences[0]
+        self.train_task_label = self.experience.task_label
         self.model.train()
         self.model.to(self.device)
 
-        self.adapted_dataset = step_infos[0].dataset
+        self.adapted_dataset = experiences[0].dataset
         self.adapted_dataset.train()
         # DO NOT CALL adapt_train_dataset.
         # JointTraining adapts its own data in a custom manner.
@@ -84,23 +84,23 @@ class JointTraining(BaseStrategy):
         # waiting for https://github.com/vlomonaco/avalanche/issues/320
         # self.adapt_train_dataset(**kwargs)
         ext_mem = {}
-        for step in step_infos:
-            if step.task_label in ext_mem:
-                curr_task_data = ext_mem[step.task_label]
-                cat_data = ConcatDataset([step.dataset, curr_task_data])
-                ext_mem[step.task_label] = cat_data
+        for exp in experiences:
+            if exp.task_label in ext_mem:
+                curr_task_data = ext_mem[exp.task_label]
+                cat_data = ConcatDataset([exp.dataset, curr_task_data])
+                ext_mem[exp.task_label] = cat_data
             else:
-                ext_mem[step.task_label] = step.dataset
+                ext_mem[exp.task_label] = exp.dataset
         self.adapted_dataset = ext_mem
 
         self.make_train_dataloader(**kwargs)
-        self.before_training_step(**kwargs)
+        self.before_training_exp(**kwargs)
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
-        self.after_training_step(**kwargs)
+        self.after_training_exp(**kwargs)
 
         res.append(self.evaluator.current_metrics.copy())
         self.after_training(**kwargs)

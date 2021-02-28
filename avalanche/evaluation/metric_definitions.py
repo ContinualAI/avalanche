@@ -76,7 +76,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         Creates an instance of a plugin metric.
 
         Child classes can safely invoke this (super) constructor as the first
-        step.
+        experience.
         """
         super().__init__()
         self._metric_x_counters: Dict[str, int] = dict()
@@ -92,7 +92,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def before_training_step(self, strategy: 'PluggableStrategy') \
+    def before_training_exp(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
@@ -134,7 +134,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
             -> 'MetricResult':
         pass
 
-    def after_training_step(self, strategy: 'PluggableStrategy') \
+    def after_training_exp(self, strategy: 'PluggableStrategy') \
             -> 'MetricResult':
         pass
 
@@ -148,10 +148,10 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
             -> 'MetricResult':
         pass
 
-    def before_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
-    def after_eval_step(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         pass
 
     def after_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':

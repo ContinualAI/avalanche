@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -19,24 +19,28 @@ Warning2: GEM is much slower than A-GEM.
 
 Results (learning rate is always 0.1):
 
-GEM-PMNIST (5 steps):
-Hidden size 512. 1 training epoch. 512 patterns per step, 0.5 memory strength.
-Average Accuracy over all steps at the end of training on the last step: 92.6%
+GEM-PMNIST (5 experiences):
+Hidden size 512. 1 training epoch. 512 patterns per experience, 0.5 memory 
+strength. Average Accuracy over all experiences at the end of training on the 
+last experience: 92.6%
 
 GEM-SMNIST:
-Patterns per step: 256, Memory strength: 0.5, hidden size: 256
-Average Accuracy over all steps at the end of training on the last step: 93.3%
+Patterns per experience: 256, Memory strength: 0.5, hidden size: 256
+Average Accuracy over all experiences at the end of training on the last 
+experience: 93.3%
 
-AGEM-PMNIST (5 steps):
-Patterns per step = sample size: 256. 256 hidden size, 1 training epoch.
-Average Accuracy over all steps at the end of training on the last step: 51.4%
+AGEM-PMNIST (5 experiences):
+Patterns per experience = sample size: 256. 256 hidden size, 1 training epoch.
+Average Accuracy over all experiences at the end of training on the last 
+experience: 51.4%
 
 AGEM-SMNIST:
-Patterns per step = sample size: 256, 512, 1024. Performance on previous tasks
+Patterns per experience = sample size: 256, 512, 1024. Performance on previous tasks
 remains very bad in terms of forgetting. Training epochs do not change result.
 Hidden size 256.
-Results for 1024 patterns per step and sample size, 1 training epoch.
-Average Accuracy over all steps at the end of training on the last step: 23.5%
+Results for 1024 patterns per experience and sample size, 1 training epoch.
+Average Accuracy over all experiences at the end of training on the last 
+experience: 23.5%
 
 """
 
@@ -55,9 +59,9 @@ def main(args):
 
     # create scenario
     if args.scenario == 'pmnist':
-        scenario = PermutedMNIST(n_steps=args.permutations)
+        scenario = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == 'smnist':
-        scenario = SplitMNIST(n_steps=5, return_task_id=False)
+        scenario = SplitMNIST(n_experiences=5, return_task_id=False)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
@@ -65,18 +69,18 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger])
 
     # create strategy
     if args.strategy == 'gem':
-        strategy = GEM(model, optimizer, criterion, args.patterns_per_step,
+        strategy = GEM(model, optimizer, criterion, args.patterns_per_exp,
                        args.memory_strength, train_epochs=args.epochs,
                        device=device, train_mb_size=10, evaluator=eval_plugin)
     elif args.strategy == 'agem':
-        strategy = AGEM(model, optimizer, criterion, args.patterns_per_step,
+        strategy = AGEM(model, optimizer, criterion, args.patterns_per_exp,
                         args.sample_size, train_epochs=args.epochs, device=device,
                         train_mb_size=10, evaluator=eval_plugin)
     else:
@@ -84,11 +88,11 @@ def main(args):
     # train on the selected scenario with the chosen strategy
     print('Starting experiment...')
     results = []
-    for train_batch_info in scenario.train_stream:
-        print("Start training on step ", train_batch_info.current_experience)
+    for experience in scenario.train_stream:
+        print("Start training on experience ", experience.current_experience)
 
-        strategy.train(train_batch_info)
-        print("End training on step ", train_batch_info.current_experience)
+        strategy.train(experience)
+        print("End training on experience ", experience.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 
@@ -99,8 +103,9 @@ if __name__ == '__main__':
     parser.add_argument('--scenario', type=str,
                         choices=['pmnist', 'smnist'], default='smnist',
                         help='Choose between Permuted MNIST, Split MNIST.')
-    parser.add_argument('--patterns_per_step', type=int, default=256,
-                        help='Patterns to store in the memory for each step')
+    parser.add_argument('--patterns_per_exp', type=int, default=256,
+                        help='Patterns to store in the memory for each'
+                             ' experience')
     parser.add_argument('--sample_size', type=int, default=256,
                         help='Number of patterns to sample from memory when \
                         projecting gradient. A-GEM only.')
@@ -111,7 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=1,
                         help='Number of training epochs.')
     parser.add_argument('--permutations', type=int, default=5,
-                        help='Number of steps in Permuted MNIST.')
+                        help='Number of experiences in Permuted MNIST.')
     parser.add_argument('--cuda', type=int, default=0,
                         help='Specify GPU id to use. Use CPU if -1.')
     args = parser.parse_args()

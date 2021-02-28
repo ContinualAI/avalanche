@@ -25,7 +25,7 @@ from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
@@ -73,9 +73,10 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[my_logger, interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (NAIVE with the Synaptic Intelligence plugin)
@@ -87,11 +88,11 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for step in scenario.train_stream:
-        print("Start of step: ", step.current_experience)
-        print("Current Classes: ", step.classes_in_this_experience)
+    for experience in scenario.train_stream:
+        print("Start of experience: ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
 
-        cl_strategy.train(step)
+        cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

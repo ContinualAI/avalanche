@@ -133,15 +133,15 @@ class NISITTests(unittest.TestCase):
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
-        step_info: NIExperience
-        for batch_id, step_info in enumerate(my_ni_scenario.train_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NIExperience)
+        experience: NIExperience
+        for batch_id, experience in enumerate(my_ni_scenario.train_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NIExperience)
 
         self.assertEqual(1, len(my_ni_scenario.test_stream))
-        for batch_id, step_info in enumerate(my_ni_scenario.test_stream):
-            self.assertEqual(batch_id, step_info.current_experience)
-            self.assertIsInstance(step_info, NIExperience)
+        for batch_id, experience in enumerate(my_ni_scenario.test_stream):
+            self.assertEqual(batch_id, experience.current_experience)
+            self.assertIsInstance(experience, NIExperience)
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_ni_scenario.train_stream[iterable_slice]
@@ -149,9 +149,10 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('train', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
-            self.assertIsInstance(step_info, NIExperience)
+        for batch_id, experience in enumerate(sliced_stream):
+            self.assertEqual(
+                iterable_slice[batch_id], experience.current_experience)
+            self.assertIsInstance(experience, NIExperience)
 
         with self.assertRaises(IndexError):
             # The test stream only has one element (the complete test set)
@@ -163,9 +164,10 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual('test', sliced_stream.name)
 
-        for batch_id, step_info in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], step_info.current_experience)
-            self.assertIsInstance(step_info, NIExperience)
+        for batch_id, experience in enumerate(sliced_stream):
+            self.assertEqual(
+                iterable_slice[batch_id], experience.current_experience)
+            self.assertIsInstance(experience, NIExperience)
 
 
 if __name__ == '__main__':

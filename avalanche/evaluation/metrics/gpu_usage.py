@@ -260,12 +260,12 @@ class GpuUsageMonitor(AnyEventMetric[float]):
 
     def _package_result(self, strategy: 'PluggableStrategy') -> 'MetricResult':
         phase_name, _ = phase_and_task(strategy)
-        step_gpu = self.result()
+        experience_gpu = self.result()
 
         metric_name = 'GPU_usage/{}'.format(phase_name)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, step_gpu, plot_x_position)]
+        return [MetricValue(self, metric_name, experience_gpu, plot_x_position)]
 
 
 __all__ = [

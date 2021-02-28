@@ -3,8 +3,8 @@ import argparse
 from avalanche.benchmarks import SplitMNIST
 from avalanche.training.strategies import LwF
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics, \
-    loss_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, \
+    accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -28,13 +28,14 @@ def main(args):
     print(f'Using device: {device}')
 
     # create split scenario
-    scenario = SplitMNIST(n_steps=5, return_task_id=False)
+    scenario = SplitMNIST(n_experiences=5, return_task_id=False)
 
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
-        StepForgetting(),
+        accuracy_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         loggers=[interactive_logger])
 
     # create strategy
@@ -51,10 +52,12 @@ def main(args):
     print('Starting experiment...')
     results = []
     for train_batch_info in scenario.train_stream:
-        print("Start training on step ", train_batch_info.current_experience)
+        print("Start training on experience ",
+              train_batch_info.current_experience)
 
         strategy.train(train_batch_info, num_workers=4)
-        print("End training on step ", train_batch_info.current_experience)
+        print("End training on experience ",
+              train_batch_info.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 
@@ -64,8 +67,9 @@ if __name__ == '__main__':
     parser.add_argument('--lwf_alpha', nargs='+', type=float,
                         default=[0, 0.5, 1.333, 2.25, 3.2],
                         help='Penalty hyperparameter for LwF. It can be either'
-                             'a list with multiple elements (one alpha per step)'
-                             'or a list of one element (same alpha for all steps).')
+                             'a list with multiple elements (one alpha per '
+                             'experience) or a list of one element (same alpha '
+                             'for all experiences).')
     parser.add_argument('--softmax_temperature', type=float, default=1,
                         help='Temperature for softmax used in distillation')
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate.')

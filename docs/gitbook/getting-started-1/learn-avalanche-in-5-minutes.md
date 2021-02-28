@@ -86,7 +86,7 @@ The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains sever
 
 In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
 
-Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **steps**. Steps are batch of data \(or "_tasks_"\) that can be provided with or without a specific task label.
+Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **experiences**. Experiences are batch of data \(or "_tasks_"\) that can be provided with or without a specific task label.
 
 ### **Classic Benchmarks**
 
@@ -100,7 +100,7 @@ SplitCUB200
 
 # creating the benchmark (scenario object)
 perm_mnist = PermutedMNIST(
-    n_steps=3,
+    n_experiences=3,
     seed=1234,
 )
 
@@ -109,18 +109,19 @@ train_stream = perm_mnist.train_stream
 test_stream = perm_mnist.test_stream
 
 # iterating over the train stream
-for step in train_stream:
-    print("Start of task ", step.task_label)
-    print('Classes in this task:', step.classes_in_this_experience)
+for experience in train_stream:
+    print("Start of task ", experience.task_label)
+    print('Classes in this task:', experience.classes_in_this_experience)
 
-    # The current Pytorch training set can be easily recovered through the step
-    current_training_set = step.dataset
+    # The current Pytorch training set can be easily recovered through the 
+    # experience
+    current_training_set = experience.dataset
     # ...as well as the task_label
-    print('Task {}'.format(step.task_label))
+    print('Task {}'.format(experience.task_label))
     print('This task contains', len(current_training_set), 'training examples')
 
-    # we can recover the corresponding test step in the test stream
-    current_test_set = test_stream[step.current_experience].dataset
+    # we can recover the corresponding test experience in the test stream
+    current_test_set = test_stream[experience.current_experience].dataset
     print('This task contains', len(current_test_set), 'test examples')
 ```
 
@@ -196,12 +197,12 @@ class MyStrategy():
         self.optimizer = optimizer
         self.criterion = criterion
 
-    def train(self, step):
-        # here you can implement your own training loop for each step (i.e. 
+    def train(self, experience):
+        # here you can implement your own training loop for each experience (i.e. 
         # batch or task).
 
-        train_dataset = step.dataset
-        t = step.task_label
+        train_dataset = experience.dataset
+        t = experience.task_label
         train_data_loader = DataLoader(
             train_dataset, num_workers=4, batch_size=128
         )
@@ -211,12 +212,12 @@ class MyStrategy():
                 # you magin here...
                 pass
 
-    def test(self, step):
-        # here you can implement your own test loop for each step (i.e. 
+    def test(self, experience):
+        # here you can implement your own test loop for each experience (i.e. 
         # batch or task).
 
-        test_dataset = step.dataset
-        t = step.task_label
+        test_dataset = experience.dataset
+        t = experience.task_label
         test_data_loader = DataLoader(
             test_dataset, num_workers=4, batch_size=128
         )
@@ -238,14 +239,14 @@ cl_strategy = MyStrategy(
 # TRAINING LOOP
 print('Starting experiment...')
 
-for step in scenario.train_stream:
-    print("Start of step ", step.current_experience)
+for experience in scenario.train_stream:
+    print("Start of experience ", experience.current_experience)
 
-    cl_strategy.train(step)
+    cl_strategy.train(experience)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    cl_strategy.eval(scenario.test_stream[step.current_experience])
+    cl_strategy.eval(scenario.test_stream[experience.current_experience])
 ```
 
 While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
@@ -268,13 +269,13 @@ The metrics already available in the current _Avalanche_ release are:
 
 ```python
 from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
-EpochAccuracy, RunningEpochAccuracy, StepAccuracy, ConfusionMatrix, \
+EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
 StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
-AverageEpochCPUUsage, StepCPUUsage, DiskUsage, DiskUsageMonitor, \
-StepForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
-EpochLoss, RunningEpochLoss, StepLoss, MAC, Mean, RamUsage, RamUsageMonitor, \
-Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, StepTime, \
-timing_metrics
+AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, DiskUsageMonitor, \
+ExperienceForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
+EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, RamUsage, \ 
+RamUsageMonitor, Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
+ExperienceTime, timing_metrics
 ```
 
 We can use each metric similarly to [tf.keras.metrics](https://www.tensorflow.org/api_docs/python/tf/keras/metrics), being them simply python classes. For example the **Accuracy** metric works as follows:
@@ -301,7 +302,7 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import StepForgetting, accuracy_metrics,
+from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
 
 loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
 DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
@@ -310,7 +311,7 @@ from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
-scenario = SplitMNIST(n_steps=5)
+scenario = SplitMNIST(n_experiences=5)
 
 # MODEL CREATION
 model = SimpleMLP(num_classes=scenario.n_classes)
@@ -330,11 +331,11 @@ text_logger = TextLogger(open('log.txt', 'a'))
 interactive_logger = InteractiveLogger()
 
 eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=True, epoch=True, step=True, stream=True),
-    loss_metrics(minibatch=True, epoch=True, step=True, stream=True),
+    accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     timing_metrics(epoch=True, epoch_running=True),
-    cpu_usage_metrics(step=True),
-    StepForgetting(),
+    cpu_usage_metrics(experience=True),
+    ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
@@ -349,12 +350,12 @@ cl_strategy = Naive(
 # TRAINING LOOP
 print('Starting experiment...')
 results = []
-for step in scenario.train_stream:
-    print("Start of step: ", step.current_experience)
-    print("Current Classes: ", step.classes_in_this_experience)
+for experience in scenario.train_stream:
+    print("Start of experience: ", experience.current_experience)
+    print("Current Classes: ", experience.classes_in_this_experience)
 
     # train returns a dictionary which contains all the metric values
-    res = cl_strategy.train(step, num_workers=4)
+    res = cl_strategy.train(experience, num_workers=4)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')

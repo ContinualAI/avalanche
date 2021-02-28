@@ -20,7 +20,8 @@ def create_multi_dataset_generic_scenario(
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
-    step. Contents of the datasets will not be changed, including the targets.
+    experience. Contents of the datasets will not be changed, including the
+    targets.
 
     When loading the datasets from a set of fixed filelist, consider using
     the :func:`create_generic_scenario_from_filelists` helper method instead.
@@ -53,10 +54,10 @@ def create_multi_dataset_generic_scenario(
     """
 
     # GenericCLScenario accepts a single training+test sets couple along with
-    # the respective list of patterns indexes to include in each step.
+    # the respective list of patterns indexes to include in each experience.
     # This means that we have to concat the list of train and test sets
-    # and create, for each step, a of indexes.
-    # Each dataset describes a different step so the lists of indexes will
+    # and create, for each experience, a of indexes.
+    # Each dataset describes a different experience so the lists of indexes will
     # just be ranges of ascending indexes.
     train_structure = []
     pattern_train_task_labels = []
@@ -122,7 +123,7 @@ def create_generic_scenario_from_filelists(
     """
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
-    those training datasets will be considered a separate training step.
+    those training datasets will be considered a separate training experience.
     Contents of the datasets will not be changed, including the targets.
 
     In its base form, this function accepts a list of filelists for the test
@@ -138,9 +139,9 @@ def create_generic_scenario_from_filelists(
 
     :param root: The root path of the dataset.
     :param train_file_lists: A list of filelists describing the
-        paths of the training patterns for each step.
+        paths of the training patterns for each experience.
     :param test_file_lists: A list of filelists describing the
-        paths of the test patterns for each step.
+        paths of the test patterns for each experience.
     :param task_labels: A list of task labels. Must contain the same amount of
         elements of the ``train_file_lists`` parameter. For
         Single-Incremental-Task (a.k.a. Task-Free) scenarios, this is usually
@@ -191,11 +192,11 @@ def create_generic_scenario_from_paths(
     """
     Creates a generic scenario given a sequence of lists of files. A separate
     dataset will be created for each list. Each of those training datasets
-    will be considered a separate training step.
+    will be considered a separate training experience.
 
     This is very similar to `create_generic_scenario_from_filelists`, with the
     main difference being that `create_generic_scenario_from_filelists`
-    accepts, for each step, a file list formatted in Caffe-style.
+    accepts, for each experience, a file list formatted in Caffe-style.
     On the contrary, this accepts a list of tuples where each tuple contains
     two elements: the full path to the pattern and its label.
     Optionally, the tuple may contain a third element describing the bounding
@@ -211,15 +212,15 @@ def create_generic_scenario_from_paths(
     parameter description for more info).
 
     :param train_list_of_files: A list of lists. Each list describes the paths
-        and labels of patterns to include in that training step, as tuples. Each
-        tuple must contain two elements: the full path to the pattern and its
-        class label. Optionally, the tuple may contain a third element
-        describing the bounding box to use for cropping (top, left, height,
-        width).
+        and labels of patterns to include in that training experience, as
+        tuples. Each tuple must contain two elements: the full path to the
+        pattern and its class label. Optionally, the tuple may contain a
+        third element describing the bounding box to use for cropping (top,
+        left, height, width).
     :param test_list_of_files: A list of lists. Each list describes the paths
-        and labels of patterns to include in that test step, as tuples. Each
-        tuple must contain two elements: the full path to the pattern and its
-        class label. Optionally, the tuple may contain a third element
+        and labels of patterns to include in that test experience, as tuples.
+        Each tuple must contain two elements: the full path to the pattern
+        and its class label. Optionally, the tuple may contain a third element
         describing the bounding box to use for cropping (top, left, height,
         width).
     :param task_labels: A list of task labels. Must contain the same amount of
@@ -271,8 +272,8 @@ def create_generic_scenario_from_tensors(
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)
     and each of those training datasets will be considered a separate
-    training step. Contents of the datasets will not be changed, including the
-    targets. Using this helper function is the lower level way to create a
+    training experience. Contents of the datasets will not be changed, including
+    the targets. Using this helper function is the lower level way to create a
     Continual Learning scenario. When possible, consider using higher level
     helpers.
 
@@ -284,13 +285,13 @@ def create_generic_scenario_from_tensors(
     ``complete_test_set_only`` should be set to True (see the parameter
     description for more info).
 
-    :param train_data_x: A list of Tensors (one per step) containing the
+    :param train_data_x: A list of Tensors (one per experience) containing the
         patterns of the training sets.
     :param train_data_y: A list of Tensors or int lists containing the
         labels of the patterns of the training sets. Must contain the same
         number of elements of ``train_datasets_x``.
-    :param test_data_x: A Tensor or a list of Tensors (one per step) containing
-        the patterns of the test sets.
+    :param test_data_x: A Tensor or a list of Tensors (one per experience)
+        containing the patterns of the test sets.
     :param test_data_y: A Tensor or a list of Tensors or int lists containing
         the labels of the patterns of the test sets. Must contain the same
         number of elements of ``test_datasets_x``.
