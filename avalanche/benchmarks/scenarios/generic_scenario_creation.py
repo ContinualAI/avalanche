@@ -4,7 +4,7 @@ from typing import Sequence, Union, SupportsInt, Any, Tuple
 from torch import Tensor
 
 from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    AvalancheConcatDataset, as_transformation_dataset, \
+    AvalancheConcatDataset, as_avalanche_dataset, \
     SupportedDataset, datasets_from_paths
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
@@ -83,7 +83,7 @@ def create_multi_dataset_generic_scenario(
         if len(test_dataset_list) != 1:
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
-        concat_test_dataset = as_transformation_dataset(test_dataset_list[0])
+        concat_test_dataset = as_avalanche_dataset(test_dataset_list[0])
         pattern_test_task_labels = ConstantSequence(0, len(concat_test_dataset))
     else:
         concat_test_dataset = AvalancheConcatDataset(test_dataset_list)

@@ -15,7 +15,7 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
@@ -61,11 +61,8 @@ def SplitImageNet(root,
         while equally distributing remaining classes across remaining
         experiences, just pass the "{0: 50}" dictionary as the
         per_experience_classes parameter. Defaults to None.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -120,7 +117,7 @@ def _get_imagenet_dataset(root, train_transformation, test_transformation):
 
     test_set = ImageNet(root, split="val")
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

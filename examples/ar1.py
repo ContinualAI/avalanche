@@ -49,7 +49,7 @@ def main(args):
 
     # --- SCENARIO CREATION
     scenario = SplitCIFAR10(5, train_transform=train_transform,
-                            test_transform=test_transform)
+                            eval_transform=test_transform)
     # ---------
 
     # CREATE THE STRATEGY INSTANCE

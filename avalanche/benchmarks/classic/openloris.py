@@ -37,7 +37,10 @@ fac2dirs = {
 
 def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
               factor="clutter"):
-    """ OpenLORIS continual scenario generator
+    """
+    OpenLORIS continual scenario generator.
+
+    The task label "0" will be assigned to each experience.
 
     :param root: Path indicating where to store the dataset and related
         metadata. By default they will be stored in
@@ -48,8 +51,7 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
         included in the ICRA 2020 paper and the last factor (mixture-iros) is
         the benchmark setting for IROS 2019 Lifelong robotic vision competition.
 
-    :returns: it returns a :class:`GenericCLScenario` instance that can be
-        iterated.
+    :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
 
     assert (factor in nbatch.keys()), "The selected factor is note " \

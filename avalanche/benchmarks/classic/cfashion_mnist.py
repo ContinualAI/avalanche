@@ -18,7 +18,7 @@ from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -60,11 +60,8 @@ def SplitFMNIST(n_experiences: int,
         will be used, and the dataset is simply split into
         a the number of experiences defined by the parameter n_experiences.
         Default to False.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -117,7 +114,7 @@ def _get_fmnist_dataset(train_transformation, test_transformation):
                              train=True, download=True)
     test_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
                             train=False, download=True)
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

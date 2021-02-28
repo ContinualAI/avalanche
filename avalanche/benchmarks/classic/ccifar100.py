@@ -14,9 +14,10 @@ from typing import Sequence, Optional
 from os.path import expanduser
 from torchvision.datasets import CIFAR100
 from torchvision import transforms
+
+from avalanche.benchmarks.datasets import CIFAR10
 from avalanche.benchmarks.utils.avalanche_dataset import \
-    concat_datasets_sequentially, train_test_transformation_datasets
-from avalanche.benchmarks.classic.ccifar10 import _get_cifar10_dataset
+    concat_datasets_sequentially, train_eval_avalanche_datasets
 from avalanche.benchmarks import nc_scenario, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose([
@@ -55,11 +56,8 @@ def SplitCIFAR100(n_experiences: int,
         cifar100) is used. If this parameter is False no pretraining task
         will be used, and the dataset is simply split into a the number of
         experiences defined by the parameter n_experiences. Default to False.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -114,8 +112,8 @@ def SplitCIFAR110(
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         train_transform=_default_cifar100_train_transform,
-        test_transform=_default_cifar100_test_transform) \
-        -> NCScenario:
+        test_transform=_default_cifar100_test_transform) -> NCScenario:
+    # TODO: add task labels parameter
     """
     Creates a Single Incremental Task (SIT) scenario using the CIFAR100 dataset,
     with a pretrain first batch using CIFAR10.
@@ -184,6 +182,17 @@ def SplitCIFAR110(
         per_exp_classes={0: 10})
 
 
+def _get_cifar10_dataset(train_transformation, test_transformation):
+    train_set = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
+                        train=True, download=True)
+
+    test_set = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
+                       train=False, download=True)
+
+    return train_eval_avalanche_datasets(
+        train_set, test_set, train_transformation, test_transformation)
+
+
 def _get_cifar100_dataset(train_transformation, test_transformation):
     train_set = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
                          train=True, download=True)
@@ -191,7 +200,7 @@ def _get_cifar100_dataset(train_transformation, test_transformation):
     test_set = CIFAR100(expanduser("~") + "/.avalanche/data/cifar100/",
                         train=False, download=True)
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

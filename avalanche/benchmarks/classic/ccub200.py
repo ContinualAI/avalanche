@@ -14,7 +14,7 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -48,11 +48,8 @@ def SplitCUB200(root,
     :param n_experiences: The number of experiences in the current scenario.
     :param classes_first_batch: Number of classes in the first batch.
     Usually this is set to 500. Default to None.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -115,7 +112,7 @@ def _get_cub200_dataset(root, train_transformation, test_transformation):
     train_set = CUB200(root, train=True)
     test_set = CUB200(root, train=False)
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

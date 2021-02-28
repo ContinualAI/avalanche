@@ -12,7 +12,7 @@
 from torchvision import transforms
 from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.generators import nc_scenario
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -38,11 +38,8 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
     download it and store the data in the data folder.
 
     :param n_experiences: The number of experiences in the current scenario.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -95,7 +92,7 @@ def _get_tiny_imagenet_dataset(train_transformation, test_transformation):
 
     test_set = TinyImagenet(train=False)
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

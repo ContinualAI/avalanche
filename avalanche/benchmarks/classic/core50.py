@@ -39,7 +39,11 @@ scen2dirs = {
 
 def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
            scenario="nicv2_391", run=0):
-    """ CORe50 continual scenario generator
+    """
+    CORe50 continual scenario generator.
+
+    This generator can be used to obtain the NI, NC, NIC and NICv2-* scenarios.
+    The task label "0" will be assigned to each experience.
 
     :param root: Path indicating where to store the dataset and related
         metadata. By default they will be stored in
@@ -49,8 +53,7 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
     :param run: number of run for the scenario. Batch ordering change based
         on this parameter (a number between 0 and 9).
 
-    :returns: it returns a :class:`GenericCLScenario` instance that can be
-        iterated.
+    :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
 
     assert (0 <= run <= 9), "Pre-defined run of CORe50 are only 10. Indicate " \

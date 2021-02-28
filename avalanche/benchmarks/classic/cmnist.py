@@ -21,7 +21,7 @@ from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
 import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_scenario
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_mnist_train_transform = Compose([
     ToTensor(),
@@ -81,11 +81,8 @@ def SplitMNIST(
     :param n_experiences: The number of incremental experiences in the current
         scenario.
         The value of this parameter should be a divisor of 10.
-    :param return_task_id: if True, for every experience the task id is
-        returned and the Scenario is Multi Task. This means that the scenario
-        returned will be of type ``NCMultiTaskScenario``. If false the task
-        index is not returned (default to 0 for every batch) and the returned
-        scenario is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -138,6 +135,7 @@ def PermutedMNIST(
         seed: Optional[int] = None,
         train_transform: Any = _default_mnist_train_transform,
         test_transform: Any = _default_mnist_test_transform) -> NCScenario:
+    # TODO: add task label parameter (should default to True)
     """
     This helper create a permuted MNIST scenario: where a given number of random
     pixel permutations is used to permute the MNIST images in
@@ -212,6 +210,7 @@ def RotatedMNIST(
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
         test_transform=_default_mnist_test_transform) -> NCScenario:
+    # TODO: task label param (default True)
     """
     This helper create a rotated MNIST scenario: where a given number of random
     rotations are used to rotate the MNIST images in
@@ -304,7 +303,7 @@ def _get_mnist_dataset(train_transformation, test_transformation):
     test_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                      train=False, download=True)
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
         train_set, test_set, train_transformation, test_transformation)
 
 

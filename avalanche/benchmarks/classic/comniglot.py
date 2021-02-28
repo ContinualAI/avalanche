@@ -17,7 +17,7 @@ from PIL.Image import Image
 
 from avalanche.benchmarks import nc_scenario, NCScenario
 from avalanche.benchmarks.datasets.omniglot import Omniglot
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 import numpy as np
 
 _default_omniglot_train_transform = Compose([
@@ -77,11 +77,8 @@ def SplitOmniglot(
 
     :param n_experiences: The number of incremental experiences in the current
         scenario. The value of this parameter should be a divisor of 10.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -134,6 +131,7 @@ def PermutedOmniglot(
         seed: Optional[int] = None,
         train_transform: Any = _default_omniglot_train_transform,
         test_transform: Any = _default_omniglot_test_transform) -> NCScenario:
+    # TODO: task label param (default True)
     """
     This helper create a permuted OMNIGLOT scenario: where a given number of
     random pixel permutations is used to permute the OMNIGLOT images in
@@ -208,6 +206,7 @@ def RotatedOmniglot(
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_omniglot_train_transform,
         test_transform=_default_omniglot_test_transform) -> NCScenario:
+    # TODO: task label param (default True)
     """
     This helper create a rotated OMNIGLOT scenario: where a given number of
     random rotations are used to rotate the OMNIGLOT images in
@@ -299,11 +298,11 @@ def _get_omniglot_dataset(train_transformation, test_transform):
     test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
                     train=False, download=True)
 
-    return train_test_transformation_datasets(
+    return train_eval_avalanche_datasets(
                                     train_dataset=train,
                                     test_dataset=test,
                                     train_transformation=train_transformation,
-                                    test_transformation=test_transform)
+                                    eval_transformation=test_transform)
 
 
 __all__ = [

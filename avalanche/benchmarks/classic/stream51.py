@@ -17,17 +17,18 @@ from torchvision import transforms
 import math
 import os
 
-mu = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
+_mu = [0.485, 0.456, 0.406]
+_std = [0.229, 0.224, 0.225]
 _default_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=mu,
-                         std=std)
+    transforms.Normalize(mean=_mu,
+                         std=_std)
 ])
 
 
-def adjust_bbox(img_shapes, bbox, ratio=1.1):
+def _adjust_bbox(img_shapes, bbox, ratio=1.1):
+    # TODO: fix documentation style
     """
     put bounding box coordinates in appropriate order for
     torchvision.transforms.functional.crop function and pad bounding box
@@ -52,26 +53,27 @@ def adjust_bbox(img_shapes, bbox, ratio=1.1):
 def CLStream51(root, scenario="class_instance", transform=_default_transform,
                seed=10, eval_num=None, bbox_crop=True, ratio=1.10,
                download=False):
-    """ Stream-51 continual scenario generator
+    # TODO: fix documentation style
+    """
+    Stream-51 continual scenario generator
 
-        root (string): Root directory path of dataset.
-        scenario (string): Stream-51 main scenario. Can be chosen between
-        'instance', or 'class_instance.'
-        (default: 'class_instance')
-        transform: A function/transform that takes in
-            a sample and returns a transformed version.
-            E.g, ``transforms.RandomCrop`` for images.
-        bbox_crop: crop images to object bounding box (default: True)
-        ratio: padding for bbox crop (default: 1.10)
-        seed: random seed for shuffling classes or instances (default=10)
-        eval_num: how many samples to see before evaluating the network for
-        instance ordering and how many classes to see before evaluating the
-        network for the class_instance ordering
-        (default=None)
-        download: automatically download the dataset (default=False)
+    root (string): Root directory path of dataset.
+    scenario (string): Stream-51 main scenario. Can be chosen between
+    'instance', or 'class_instance.'
+    (default: 'class_instance')
+    transform: A function/transform that takes in
+        a sample and returns a transformed version.
+        E.g, ``transforms.RandomCrop`` for images.
+    bbox_crop: crop images to object bounding box (default: True)
+    ratio: padding for bbox crop (default: 1.10)
+    seed: random seed for shuffling classes or instances (default=10)
+    eval_num: how many samples to see before evaluating the network for
+    instance ordering and how many classes to see before evaluating the
+    network for the class_instance ordering
+    (default=None)
+    download: automatically download the dataset (default=False)
 
-    :returns: it returns a :class:`GenericCLScenario` instance that can be
-        iterated.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     # get train and test sets and order them by scenario
@@ -109,18 +111,18 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
-                  adjust_bbox(train_set.samples[j][-3],
-                              train_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(train_set.samples[j][-3],
+                               train_set.samples[j][-2],
+                               ratio)) for j in
                  range(start, end)])
             start = end
 
         # use all test data for instance ordering
         test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
                                  test_set.samples[j][0],
-                                 adjust_bbox(test_set.samples[j][-3],
-                                             test_set.samples[j][-2],
-                                             ratio)) for
+                                 _adjust_bbox(test_set.samples[j][-3],
+                                              test_set.samples[j][-2],
+                                              ratio)) for
                                 j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
@@ -151,21 +153,21 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
             test_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
-                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                               ratio)) for j in
                  test_files])
             test_ood_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
-                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                               ratio)) for j in
                  test_ood_files])
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
-                  adjust_bbox(train_set.samples[j][-3],
-                              train_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(train_set.samples[j][-3],
+                               train_set.samples[j][-2],
+                               ratio)) for j in
                  range(start, end)])
             start = end
     else:
@@ -217,12 +219,12 @@ if __name__ == "__main__":
         for j, mb in enumerate(dl):
             if j == 2:
                 break
-            x, y = mb
+            x, y, *_ = mb
 
             # show a few un-normalized images from data stream
             # this code is for debugging purposes
             x_np = x[0, :, :, :].numpy().transpose(1, 2, 0)
-            x_np = x_np * std + mu
+            x_np = x_np * _std + _mu
             plt.imshow(x_np)
             plt.show()
 
