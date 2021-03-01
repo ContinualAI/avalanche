@@ -11,44 +11,38 @@
 
 import os
 import time
-from typing import Optional, TYPE_CHECKING
-
+from typing import Optional, List, TYPE_CHECKING
+from threading import Thread
 from psutil import Process
 
-from avalanche.evaluation import Metric
+from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
-from avalanche.evaluation.metric_utils import phase_and_task
-from avalanche.evaluation.metrics._any_event_metric import AnyEventMetric
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class RamUsage(Metric[float]):
+class MaxRAM(Metric[float]):
     """
     The RAM usage metric.
 
-    Instances of this metric compute the punctual RAM usage as a float value.
-    The metric updates the value each time the `update` method is called.
+    Instances of this metric keeps the maximum RAM usage detected.
+    The update method starts the usage tracking. The reset method stops
+    the tracking.
 
-    The result, obtained using the `result` method, is the usage in bytes.
+    The result, obtained using the `result` method, is the usage in mega-bytes.
 
     The reset method will bring the metric to its initial state. By default
-    this metric in its initial state will return an usage value of `None`.
+    this metric in its initial state will return an usage value of 0.
     """
 
-    def __init__(self, two_read_average=False):
+    def __init__(self, delay=1):
         """
         Creates an instance of the RAM usage metric.
-
-        By default this metric in its initial state will return a RAM usage
-        value of `None`. The metric can be updated by using the `update` method
-        while the average usage value can be retrieved using the `result`
-        method.
-
-        :param two_read_average: If True, the value resulting from calling
-            `update` more than once will set the result to the average between
-            the last read and the current RAM usage value.
+        :param delay: seconds after which update the maximum RAM
+            usage
         """
 
         self._process_handle: Optional[Process] = None
@@ -56,43 +50,36 @@ class RamUsage(Metric[float]):
         The process handle, lazily initialized.
         """
 
-        self._last_values = None
+        self.delay = delay
+
+        self.thread = None
         """
-        The last detected RAM usage.
+        Thread executing RAM monitoring code
         """
 
-        self._first_update = True
+        self.stop_f = False
         """
-        An internal flag to keep track of the first call to the `update` method.
-        """
-
-        self._two_read_average = two_read_average
-        """
-        If True, the value resulting from calling `update` more than once will
-        set the result to the average between the last read and the current RAM
-        usage value.
+        Flag to stop the thread
         """
 
-    def update(self) -> None:
+        self.max_usage = 0
         """
-        Update the RAM usage.
-
-        :return: None.
+        Main metric result. Max RAM usage.
         """
-        if self._first_update:
-            self._process_handle = Process(os.getpid())
-        memory_usage = self._process_handle.memory_info().rss
 
-        if self._first_update:
-            self._last_values = [memory_usage]
-            self._first_update = False
-        else:
-            if self._two_read_average:
-                if len(self._last_values) > 1:
-                    self._last_values.pop(0)
-                self._last_values.append(memory_usage)
-            else:
-                self._last_values = [memory_usage]
+    def _f(self):
+        """
+        Until a stop signal is encountered,
+        this function monitors each `delay` seconds
+        the maximum amount of RAM used by the process
+        """
+        start_time = time.monotonic()
+        while not self.stop_f:
+            # ram usage in MB
+            ram_usage = self._process_handle.memory_info().rss / 1024 / 1024
+            if ram_usage > self.max_usage:
+                self.max_usage = ram_usage
+            time.sleep(self.delay - ((time.monotonic() - start_time) % self.delay))
 
     def result(self) -> Optional[float]:
         """
@@ -102,9 +89,12 @@ class RamUsage(Metric[float]):
 
         :return: The average RAM usage in bytes, as a float value.
         """
-        if self._first_update:
-            return None
-        return sum(self._last_values) / len(self._last_values)
+        return self.max_usage
+
+    def update(self):
+        self._process_handle = Process(os.getpid())
+        self.thread = Thread(target=self._f, daemon=True)
+        self.thread.start()
 
     def reset(self) -> None:
         """
@@ -112,90 +102,237 @@ class RamUsage(Metric[float]):
 
         :return: None.
         """
+        if self.thread:
+            self.stop_f = True
+            self.thread.join()
+            self.thread = None
+        self.stop_f = False
+        self.max_usage = 0
         self._process_handle = None
-        self._first_update = True
-        self._last_values = None
 
 
-class RamUsageMonitor(AnyEventMetric[float]):
+class MinibatchMaxRAM(PluginMetric[float]):
     """
-    The RAM usage metric.
-
-    This metric logs the RAM usage.
-
-    The logged value is in MiB.
-
-    The metric can be either configured to log after a certain timeout or
-    at each event.
-
-    RAM usage is logged separately for the train and eval phases.
+    The Minibatch Max RAM metric.
+    This metric only works at training time.
     """
 
-    def __init__(self, *, timeout: float = 5.0, train=True, eval=False):
+    def __init__(self, delay=1):
         """
-        Creates an instance of the RAM usage metric.
-
-        The train and eval parameters can be True at the same time. However,
-        at least one of them must be True.
-
-        :param timeout: The timeout between each RAM usage check, in seconds.
-            If None, the RAM usage is checked at every possible event (not
-            recommended). Defaults to 5 seconds.
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        Creates an instance of the Minibatch Max RAM metric
+        :param delay: seconds after which update the maximum RAM
+            usage
         """
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
+        self._ram = MaxRAM(delay)
 
-        self._ram_sensor = RamUsage()
-        self._timeout = timeout
-        self._last_time = None
-        self._track_train_usage = train
-        self._track_eval_usage = eval
+    def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+        self._ram.update()
 
-    def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_eval and not self._track_eval_usage):
-            return None
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
 
-        is_elapsed = False
-        if self._timeout is not None:
-            current_time = time.time()
-            is_elapsed = self._last_time is None or (
-                    (current_time - self._last_time) >= self._timeout)
-            if is_elapsed:
-                self._last_time = current_time
-
-        if self._timeout is None or is_elapsed:
-            self._ram_sensor.update()
-            return self._package_result(strategy)
-
-    def result(self) -> Optional[float]:
-        byte_value = self._ram_sensor.result()
-        if byte_value is None:
-            return None
-        return byte_value / (1024 * 1204)  # MiB
+    def after_training(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
 
     def reset(self) -> None:
-        self._ram_sensor.reset()
-        self._last_time = None
+        self._ram.reset()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        phase_name, _ = phase_and_task(strategy)
-        exp_ram = self.result()
+    def result(self) -> float:
+        return self._ram.result()
 
-        metric_name = 'RAM_usage/{}'.format(phase_name)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        ram_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, exp_ram, plot_x_position)]
+        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
+
+    def __str__(self):
+        return "MaxRAMUsage_MB"
+
+
+class EpochMaxRAM(PluginMetric[float]):
+    """
+    The Epoch Max RAM metric.
+    This metric only works at training time.
+    """
+
+    def __init__(self, delay=1):
+        """
+        Creates an instance of the epoch Max RAM metric.
+        :param delay: seconds after which update the maximum RAM
+            usage
+        """
+        super().__init__()
+
+        self._ram = MaxRAM(delay)
+
+    def before_training_epoch(self, strategy) -> MetricResult:
+        self.reset()
+        self._ram.update()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
+
+    def after_training(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._ram.reset()
+
+    def result(self) -> float:
+        return self._ram.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        ram_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
+
+    def __str__(self):
+        return "MaxRAMUsage_Epoch"
+
+
+class ExperienceMaxRAM(PluginMetric[float]):
+    """
+    The Experience Max RAM metric.
+    This metric only works at eval time.
+    """
+
+    def __init__(self, delay=1):
+        """
+        Creates an instance of the Experience CPU usage metric.
+        :param delay: seconds after which update the maximum RAM
+            usage
+        """
+        super().__init__()
+
+        self._ram = MaxRAM(delay)
+
+    def before_eval_exp(self, strategy) -> MetricResult:
+        self.reset()
+        self._ram.update()
+
+    def after_eval_exp(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
+
+    def after_eval(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._ram.reset()
+
+    def result(self) -> float:
+        return self._ram.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        ram_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy, add_experience=True)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
+
+    def __str__(self):
+        return "MaxRAMUsage_Experience"
+
+
+class StreamMaxRAM(PluginMetric[float]):
+    """
+    The Stream Max RAM metric.
+    This metric only works at eval time.
+    """
+
+    def __init__(self, delay=1):
+        """
+        Creates an instance of the Experience CPU usage metric.
+        :param delay: seconds after which update the maximum RAM
+            usage
+        """
+        super().__init__()
+
+        self._ram = MaxRAM(delay)
+
+    def before_eval(self, strategy) -> MetricResult:
+        self.reset()
+        self._ram.update()
+
+    def after_eval(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        packed = self._package_result(strategy)
+        self.reset()
+        return packed
+
+    def reset(self) -> None:
+        self._ram.reset()
+
+    def result(self) -> float:
+        return self._ram.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        ram_usage = self.result()
+
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
+
+    def __str__(self):
+        return "MaxRAMUsage_Stream"
+
+
+def max_ram_metrics(*, minibatch=False, epoch=False,
+                    experience=False, stream=False) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param minibatch: If True, will return a metric able to log the minibatch
+        max RAM usage.
+    :param epoch: If True, will return a metric able to log the epoch
+        max RAM usage.
+    :param experience: If True, will return a metric able to log the experience
+        max RAM usage.
+    :param stream: If True, will return a metric able to log the evaluation
+        max stream RAM usage.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchMaxRAM())
+
+    if epoch:
+        metrics.append(EpochMaxRAM())
+
+    if experience:
+        metrics.append(ExperienceMaxRAM())
+
+    if stream:
+        metrics.append(StreamMaxRAM())
+
+    return metrics
 
 
 __all__ = [
-    'RamUsage',
-    'RamUsageMonitor'
+    'MaxRAM',
+    'MinibatchMaxRAM',
+    'EpochMaxRAM',
+    'ExperienceMaxRAM',
+    'StreamMaxRAM',
+    'max_ram_metrics'
 ]

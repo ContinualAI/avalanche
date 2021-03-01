@@ -10,15 +10,15 @@
 ################################################################################
 
 import os
-import time
 import warnings
-from typing import Optional, Callable, TYPE_CHECKING, List
+from typing import Optional, TYPE_CHECKING, List
 
 from psutil import Process
 
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
-from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 from avalanche.evaluation.metrics import Mean
 
 if TYPE_CHECKING:
@@ -66,11 +66,6 @@ class CPUUsage(Metric[float]):
         self._first_update = True
         """
         An internal flag to keep track of the first call to the `update` method.
-        """
-
-        self._timer: Callable[[], float] = getattr(time, 'monotonic', time.time)
-        """
-        The timer implementation (aligned with the one used by psutil).
         """
 
     def update(self) -> None:
@@ -344,7 +339,12 @@ class StreamCPUUsage(PluginMetric[float]):
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
         exp_cpu = self.result()
 
-        metric_name = get_metric_name(self, strategy)
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
