@@ -31,7 +31,7 @@
 
 ## 💻 Code Documentation
 
-* [Avalanche API](https://continualai.github.io/avalanche)
+* [Avalanche API](https://avalanche-api.continualai.org)
 
 ## How to Contribute
 
