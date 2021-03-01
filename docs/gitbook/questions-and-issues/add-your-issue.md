@@ -10,7 +10,7 @@ If you encounter a problem in _Avalanche_, please do not give up on us and help 
 
 Check current _Avalanche_ issue or **submit a new one** here:
 
-{% embed url="https://github.com/vlomonaco/avalanche/issues" caption="" %}
+{% embed url="https://github.com/ContinualAI/avalanche" %}
 
 Please try to use the _appropriate tags_ and explain your issue with a simple _code snippet_ to reproduce it.
 

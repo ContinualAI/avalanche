@@ -6,7 +6,7 @@
 
 * [Introduction](getting-started/why-avalanche.md)
 * [Current Release](getting-started/alpha-version.md)
-* [How to Install](getting-started/1.-how-to-install.md)
+* [How to Install](getting-started/how-to-install.md)
 * [Learn Avalanche in 5 Minutes](getting-started/learn-avalanche-in-5-minutes.md)
 
 ## 📝 Examples
