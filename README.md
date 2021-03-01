@@ -1,5 +1,5 @@
 # Avalanche: an End-to-End Library for Continual Learning
-**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://continualai.github.io/avalanche)**
+**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
 
 ![unit test](https://github.com/vlomonaco/avalanche/workflows/unit%20test/badge.svg)
 ![syntax checking](https://github.com/vlomonaco/avalanche/workflows/syntax%20checking/badge.svg)
