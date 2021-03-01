@@ -48,15 +48,15 @@ jobs:
         run: |
           sphinx-build -b dirhtml docs/ doc_html/
       - name: Clone gh-pages branch
-        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
+        if: github.repository == 'ContinualAI/avalanche' && github.event_name == 'push'
         uses: actions/checkout@v2
         with:
-          repository: 'vlomonaco/avalanche'
+          repository: 'ContinualAI/avalanche'
           ref: 'gh-pages'
           path: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: commit to gh pages
-        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
+        if: github.repository == 'ContinualAI/avalanche' && github.event_name == 'push'
         run: |
           cp -r doc_html/. gh-pages/
           cd gh-pages
@@ -67,7 +67,7 @@ jobs:
           # The above command will fail if no changes were present, so we ignore
           # that.
       - name: Push changes (deploy)
-        if: github.repository == 'vlomonaco/avalanche' && github.event_name == 'push'
+        if: github.repository == 'ContinualAI/avalanche' && github.event_name == 'push'
         uses: ad-m/github-push-action@master
         with:
           branch: gh-pages
