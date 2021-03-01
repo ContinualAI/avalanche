@@ -40,7 +40,7 @@ Avalanche
 In this series of tutorials, you'll get the chance to learn in-depth all the features offered by each module and sub-module of _Avalanche_, how to put them together and how to master _Avalanche_, for a **stress-free continual learning prototyping experience**!
 
 {% hint style="info" %}
-In the following tutorials we will assume you have already installed _Avalanche on your computer_ or server. If you haven't yet, check out how you can do it following our [How to Install](../getting-started-1/1.-how-to-install.md) guide.
+In the following tutorials we will assume you have already installed _Avalanche on your computer_ or server. If you haven't yet, check out how you can do it following our [How to Install](../getting-started/1.-how-to-install.md) guide.
 {% endhint %}
 
 ## 🤝 Run it on Google Colab
