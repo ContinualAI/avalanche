@@ -2,16 +2,16 @@
 
 * [Avalanche: an End-to-End Library for Continual Learning](README.md)
 
-## 📌 Getting Started <a id="getting-started-1"></a>
+## 📌 Getting Started
 
-* [Introduction](getting-started-1/why-avalanche.md)
-* [Current Release](getting-started-1/alpha-version.md)
-* [How to Install](getting-started-1/1.-how-to-install.md)
-* [Learn Avalanche in 5 Minutes](getting-started-1/learn-avalanche-in-5-minutes.md)
+* [Introduction](getting-started/why-avalanche.md)
+* [Current Release](getting-started/alpha-version.md)
+* [How to Install](getting-started/how-to-install.md)
+* [Learn Avalanche in 5 Minutes](getting-started/learn-avalanche-in-5-minutes.md)
 
 ## 📝 Examples
 
-* [Models](examples/extras.md)
+* [Models](examples/models.md)
 * [Benchmarks](examples/benchmarks.md)
 * [Training](examples/training.md)
 * [Evaluation](examples/evaluation.md)

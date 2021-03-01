@@ -8,9 +8,9 @@ _Avalanche_ has been designed for extreme **portability** and **usability**. Ind
 
 In order to install _Avalanche_ we have three main options:
 
-1. [Installing it with Anaconda](1.-how-to-install.md#install-avalanche-with-anaconda).
-2. [Installing it with Pip.](1.-how-to-install.md#installing-avalanche-with-pip)
-3. [Developer Mode Install](1.-how-to-install.md#developer-mode-install) \(for contributing to _Avalanche_!\)
+1. [Installing it with Anaconda](how-to-install.md#install-avalanche-with-anaconda).
+2. [Installing it with Pip.](how-to-install.md#installing-avalanche-with-pip)
+3. [Developer Mode Install](how-to-install.md#developer-mode-install) \(for contributing to _Avalanche_!\)
 
 ## 🔂 Avalanche Dependencies
 
@@ -83,7 +83,7 @@ Within an Anaconda environment or not you can install _Avalanche_ also with Pip 
 Step 1. can be done with the following line of code:
 
 ```bash
-pip install git+https://vlomonaco:****@github.com/vlomonaco/avalanche.git
+pip install git+https://github.com/ContinualAI/avalanche.git
 ```
 
 That's it. now we have _Avalanche_ up and running and we can start using it!

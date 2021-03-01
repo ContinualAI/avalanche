@@ -5,7 +5,6 @@ description: Baselines and Strategies Code Examples
 # Training
 
 {% code title="\"LWF\" Example" %}
-
 ```python
 model = SimpleMLP(hidden_size=args.hs)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)

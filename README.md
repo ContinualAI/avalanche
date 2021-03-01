@@ -1,5 +1,5 @@
 # Avalanche: an End-to-End Library for Continual Learning
-**[Avalanche Website]()** | **[Getting Started]()** | **[Examples]()** | **[Tutorial]()** | **[API Doc]()**
+**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
 
 ![unit test](https://github.com/vlomonaco/avalanche/workflows/unit%20test/badge.svg)
 ![syntax checking](https://github.com/vlomonaco/avalanche/workflows/syntax%20checking/badge.svg)
@@ -62,12 +62,11 @@ test_stream = perm_mnist.test_stream
 # Prepare for training & testing
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
-evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
 # Continual learning strategy
 cl_strategy = Naive(
     model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-    eval_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+    eval_mb_size=32, device=device)
 
 # train and test loop
 results = []
@@ -76,22 +75,31 @@ for train_task in train_stream:
     results.append(cl_strategy.eval(test_stream))
 ```
 
+Current Release
+----------------
+
+Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
+
+A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [a number of *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that makes it, we believe, the best tool out there for your continual learning research! 💪
+
+*Please note that, at the moment we support stable releases and packaged versions of the library.*
+
 Getting Started
 ----------------
 
 We know that learning a new tool may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.
 For example, you may start with our 5-minutes guide that will let you acquire the basics about Avalanche and how you can use it in your research project:
 
-- [Getting Started Guide]()
+- [Getting Started Guide](https://avalanche.continualai.org/getting-started)
 
 We have also prepared for you a large set of examples & snippets you can plug-in directly into your code and play with:
 
-- [Avalanche Examples]()
+- [Avalanche Examples](https://avalanche.continualai.org/examples)
 
 Having completed these two sections, you will already feel with superpowers ⚡, this is why we have also created an in-depth tutorial that will cover all the aspect of Avalanche in 
 details and make you a true Continual Learner! :woman_student:
 
-- [From Zero to Hero Tutorial]()
+- [From Zero to Hero Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)
 
 Cite Avalanche
 ----------------
@@ -110,10 +118,12 @@ This will help us make Avalanche better known in the machine learning community,
 Maintained by ContinualAI Lab
 ----------------
 
-*Avalanche* is the flagship open-source collaborative project of ContinuaAI: a non profit research organziation and the largest open community on Continual Learning for AI. 
+*Avalanche* is the flagship open-source collaborative project of [ContinuaAI](https://www.continualai.org/): a non profit research organization and the largest open community on Continual Learning for AI.
 
-Do you have a question, do you want to report an issue or simply ask for a new feture? Check out the [Questions & Issues center](). Do you want to improve Avalanche yourself? Follow these simple rules on [How to Contribute]().
+Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](https://avalanche.continualai.org/questions-and-issues/ask-your-question) center. Do you want to improve Avalanche yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
-The Avalanche project is maintained by the collaborative research team [ContinualAI Lab](). We are always looking for new awesome members, so check out our official website if you want to learn more about us and our activities.
+The Avalanche project is maintained by the collaborative research team [ContinualAI Lab](https://www.continualai.org/lab/) and used extensively by the Units of the [ContinualAI Research (CLAIR)](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world.
 
-Learn more about the [Avalanche Team and all the people who made it great]()!
+We are always looking for new awesome members willing to join the ContinualAI Lab, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](https://avalanche.continualai.org/contacts-and-links/the-team#contacts).
+
+Learn more about the [Avalanche team and all the people who made it great](https://avalanche.continualai.org/contacts-and-links/the-team)!

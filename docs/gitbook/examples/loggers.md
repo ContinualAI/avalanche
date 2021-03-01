@@ -4,8 +4,9 @@ description: Examples for the Loggers module offered in Avalanche
 
 # Loggers
 
-{% code title="\"Loggers\" Example" %}
 
+
+{% code title="\"Loggers\" Example" %}
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

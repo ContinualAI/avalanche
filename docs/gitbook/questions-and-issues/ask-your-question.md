@@ -12,7 +12,7 @@ Don't be afraid to ask questions, there are no stupid questions and we will alwa
 
 However, in order to help you, we need you to help us first.   
   
-First of all, if the question is more of a _code issue_ or a [_feature request_](request-a-feature.md), **please use** [**GitHub**](https://github.com/vlomonaco/avalanche) **for them**.  
+First of all, if the question is more of a _code issue_ or a [_feature request_](request-a-feature.md), **please use** [**GitHub**](https://github.com/ContinualAI/avalanche) **for them**.  
 If instead, this is a _general question about Avalanche_, in this case you can ask us directly [on slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) \(**\#avalanche** channel\) for a quick one or on [our forum](https://continualai.discourse.group), using the "_**avalanche**_" tag.  
   
 In any case, please make sure to follow the steps below:
