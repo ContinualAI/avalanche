@@ -31,7 +31,7 @@
 
 ## 💻 Code Documentation
 
-* [Avalanche API](https://vlomonaco.github.io/avalanche)
+* [Avalanche API](https://continualai.github.io/avalanche)
 
 ## How to Contribute
 

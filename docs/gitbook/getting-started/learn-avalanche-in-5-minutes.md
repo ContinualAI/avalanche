@@ -158,8 +158,6 @@ from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario,
 
 You can read more about how to use them the full _Benchmarks_ module tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/2.-benchmarks.md" %}
-
 ## 💪Training
 
 The `training` module in _Avalanche_ is build on modularity and it has two main goals:
@@ -253,8 +251,6 @@ for experience in scenario.train_stream:
 While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat, modular** and **reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
-
-{% page-ref page="../from-zero-to-hero-tutorial/3.-training.md" %}
 
 ## 📈 Evaluation
 
