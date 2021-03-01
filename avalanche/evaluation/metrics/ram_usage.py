@@ -27,10 +27,13 @@ if TYPE_CHECKING:
 class MaxRAM(Metric[float]):
     """
     The RAM usage metric.
+    Important: this metric approximates the real maximum RAM usage since
+    it sample at discrete amount of time the RAM values.
 
     Instances of this metric keeps the maximum RAM usage detected.
     The update method starts the usage tracking. The reset method stops
     the tracking.
+
 
     The result, obtained using the `result` method, is the usage in mega-bytes.
 
@@ -79,7 +82,8 @@ class MaxRAM(Metric[float]):
             ram_usage = self._process_handle.memory_info().rss / 1024 / 1024
             if ram_usage > self.max_usage:
                 self.max_usage = ram_usage
-            time.sleep(self.delay - ((time.monotonic() - start_time) % self.delay))
+            time.sleep(self.delay - ((time.monotonic() - start_time)
+                                     % self.delay))
 
     def result(self) -> Optional[float]:
         """

@@ -28,7 +28,7 @@ _Avalanche_ at the moment supports three main Loggers:
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ExperienceForgetting, \ 
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
-StreamConfusionMatrix, DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+StreamConfusionMatrix, DiskUsageMonitor, GpuUsageMonitor
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -60,7 +60,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+    DiskUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 
