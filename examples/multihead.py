@@ -6,7 +6,7 @@
 # Date: 01-12-2020                                                             #
 # Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 """
 This example trains a Multi-head model on Split MNIST with Elastich Weight

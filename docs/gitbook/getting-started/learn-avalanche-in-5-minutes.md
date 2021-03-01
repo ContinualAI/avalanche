@@ -158,8 +158,6 @@ from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario,
 
 You can read more about how to use them the full _Benchmarks_ module tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/2.-benchmarks.md" %}
-
 ## 💪Training
 
 The `training` module in _Avalanche_ is build on modularity and it has two main goals:
@@ -254,8 +252,6 @@ While this is the easiest possible way to add your own strategy, _Avalanche_ sup
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/3.-training.md" %}
-
 ## 📈 Evaluation
 
 The `evaluation` module is quite straightforward at the moment as it offers all the basic functionalities to evaluate keep track of a continual learning experiment.
@@ -274,8 +270,8 @@ EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
 StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
 AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, DiskUsageMonitor, \
 ExperienceForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
-EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, RamUsage, \ 
-RamUsageMonitor, Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
+EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, MaxRAM, \ 
+Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
 ExperienceTime, timing_metrics
 ```
 
@@ -306,7 +302,7 @@ from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
 
 loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
-DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+DiskUsageMonitor, GpuUsageMonitor
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -338,7 +334,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+    DiskUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 

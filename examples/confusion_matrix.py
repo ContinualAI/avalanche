@@ -6,7 +6,7 @@
 # Date: 24-05-2020                                                             #
 # Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """

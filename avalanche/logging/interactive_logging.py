@@ -6,7 +6,7 @@
 # Date: 2020-01-25                                                             #
 # Author(s): Antonio Carta, Lorenzo Pellegrini                                 #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 import sys
 from typing import List

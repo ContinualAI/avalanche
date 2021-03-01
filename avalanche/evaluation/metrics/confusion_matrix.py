@@ -22,7 +22,7 @@ from avalanche.evaluation import PluginMetric, Metric
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
-    get_metric_name
+    phase_and_task, stream_type
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
@@ -233,7 +233,12 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
         exp_cm = self.result()
-        metric_name = get_metric_name(self, strategy)
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
         plot_x_position = self._next_x_position(metric_name)
 
         if self._save_image:
