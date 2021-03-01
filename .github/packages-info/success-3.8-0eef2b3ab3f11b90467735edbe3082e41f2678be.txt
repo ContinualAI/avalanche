@@ -55,7 +55,7 @@ libuv                     1.40.0               h7b6447c_0
 libxcb                    1.13              h14c3975_1002    conda-forge
 libxml2                   2.9.9                h13577e0_2    conda-forge
 lz4-c                     1.9.3                h2531618_0  
-markdown                  3.3.3              pyh9f0ad1d_0    conda-forge
+markdown                  3.3.4              pyhd8ed1ab_0    conda-forge
 matplotlib                3.3.4            py38h578d9bd_0    conda-forge
 matplotlib-base           3.3.4            py38h62a2d02_0  
 mkl                       2020.2                      256  
