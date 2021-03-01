@@ -82,7 +82,8 @@ Avalanche is a framework in constant development. Thanks to the support of the [
 
 A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [a number of *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that makes it, we believe, the best tool out there for your continual learning research! 💪
 
-*Please note that, at the moment we support stable releases and packaged versions of the library.*
+*Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
+*We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
 
 Getting Started
 ----------------
