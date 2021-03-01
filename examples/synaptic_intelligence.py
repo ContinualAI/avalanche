@@ -6,7 +6,7 @@
 # Date: 26-01-2021                                                            #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """

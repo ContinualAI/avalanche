@@ -6,7 +6,7 @@
 # Date: 1-05-2020                                                              #
 # Author(s): Vincenzo Lomonaco                                                 #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """ Batch Renorm implementation """
