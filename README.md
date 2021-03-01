@@ -75,6 +75,15 @@ for train_task in train_stream:
     results.append(cl_strategy.eval(test_stream))
 ```
 
+Current Release
+----------------
+
+Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
+
+A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [a number of *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that makes it, we believe, the best tool out there for your continual learning research! 💪
+
+*Please note that, at the moment we support stable releases and packaged versions of the library.*
+
 Getting Started
 ----------------
 
