@@ -13,6 +13,7 @@
 
 python="3.8"
 cuda_version="none"
+help=false
 
 while test $# -gt 0; do
          case "$1" in
@@ -26,12 +27,32 @@ while test $# -gt 0; do
                   cuda_version=$1
                   shift
                   ;;
+              --help)
+                  help=true
+                  shift
+                  ;;
               *)
-                 echo "$1 is not a recognized flag! Use --python and/or --cuda_version."
+                 echo "$1 is not a recognized flag! Use --python and/or --cuda_version. Use --help to open the guide."
                  exit 1;
                  ;;
         esac
-done  
+done
+
+if [ "$help" = true ] ; then
+    echo 'Usage: bash -i ./install_script_dev.sh [OPTION]...'
+    echo 'Install the avalanche development environment using conda'
+    echo ''
+    echo 'The scrip takes the following arguments:'
+    echo ''
+    echo '   --python         set the python version. Can take the values [3.6, 3.7, 3.8], default 3.8.'
+    echo '   --cuda_version   set the cuda version. You have to check the current version of cuda installed on your system and pass it as argument. If cuda is not installed or you want to use cpu pass "none". Can take the values [9.2, 10.1, 10.2, 11.0, none], default none.'
+    echo '   --help           display this help and exit.'
+    echo ''
+    echo 'Examples:'
+    echo '   bash -i install_script_dev.sh --python 3.7 --cuda_version 10.2'
+    echo '   bash -i install_script_dev.sh --cuda_version none'
+    exit 0
+fi
 
 echo "python version : $python";
 echo "cuda version : $cuda_version";
