@@ -30,14 +30,16 @@ class JointTraining(BaseStrategy):
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger):
         """
-        JointStrategy performs joint training on the entire stream of data.
-        This means that it is not a continual learning strategy but it can be
-        used as an "offline" upper bound for them.
+        JointTraining performs joint training (also called offline training) on
+        the entire stream of data. This means that it is not a continual
+        learning strategy but it can be used as an "offline" upper bound for
+        them.
 
-        WARNING: JointTraining adapts its own dataset.
-        Please check that the plugins you are using do not implement
-        `adapt_trainin_dataset`. Otherwise, they are incompatible with
-        `JointTraining`.
+        .. warnings also::
+            Currently :py:class:`JointTraining` adapts its own dataset.
+            Please check that the plugins you are using do not implement
+            :py:meth:`adapt_trainin_dataset`. Otherwise, they are incompatible
+            with :py:class:`JointTraining`.
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -57,7 +59,8 @@ class JointTraining(BaseStrategy):
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
-        This is different from joint training on the entire stream.
+        Joint training uses the entire stream and it is not a proper CL
+        strategy.
 
         :param experiences: single IExperience or sequence.
         """

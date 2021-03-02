@@ -11,7 +11,7 @@
 
 """
 
-General useful functions for pytorch.
+General utility functions for pytorch.
 
 """
 from collections import defaultdict

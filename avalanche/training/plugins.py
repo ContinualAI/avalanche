@@ -8,6 +8,16 @@
 # E-mail: contact@continualai.org                                              #
 # Website: clair.continualai.org                                               #
 ################################################################################
+"""
+Plugins allow to add custom behavior at specific points of the train/eval loops.
+For example, :py:meth:`before_training_exp` can be used to adapt the model
+before training on a new experience. Similarly, other methods allow to
+completely customize the training loop to easily implement any strategy.
+
+Plugins are used by strategies (e.g., the :py:class:`BaseStrategy`) by calling
+each method at the correct point of the train/eval loops and they can be
+easily combined together to create custom strategies.
+"""
 import copy
 import logging
 import random

@@ -11,9 +11,44 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     the callbacks of the BaseStrategy with an empty function.
     Subclasses must override the desired callbacks.
 
-    The main two direct subclasses are :class:`StrategyPlugin` and
-    :class:`StrategyLogger`. The first defines a common interface for all
-    plugins
+    The main two direct subclasses are :class:`StrategyPlugin`, which are used
+    to implement continual strategies, and :class:`StrategyLogger`, which are
+    used for logging.
+
+    **Training loop**
+    The training loop and its callbacks are organized as follows::
+        train
+            before_training
+            before_training_exp
+            adapt_train_dataset
+            make_train_dataloader
+            before_training_epoch
+                before_training_iteration
+                    before_forward
+                    after_forward
+                    before_backward
+                    after_backward
+                after_training_iteration
+                before_update
+                after_update
+            after_training_epoch
+            after_training_exp
+            after_training
+
+    **Evaluation loop**
+    The evaluation loop and its callbacks are organized as follows::
+        eval
+            before_eval
+            adapt_eval_dataset
+            make_eval_dataloader
+            before_eval_exp
+                eval_epoch
+                    before_eval_iteration
+                    before_eval_forward
+                    after_eval_forward
+                    after_eval_iteration
+            after_eval_exp
+            after_eval
     """
 
     def __init__(self):
