@@ -31,7 +31,7 @@ In the Table below, we list all the Pytorch datasets used in _Continual Learning
 | **CUB200** | ✔️ | ❌ | ❌ | n.a. |
 | **CRIB** | ❌ | ❌ | ❌ | n.a. |
 | **OpenLORIS** | ✔️ | ❌ | ❌ | n.a. |
-| **Stream-51** | ✔️ | ❌ | ❌ | n.a. |
+| **Stream-51** | ✔️ | ❌ | ✔️ | n.a. |
 | **KMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
 | **EMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
 | **QMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
