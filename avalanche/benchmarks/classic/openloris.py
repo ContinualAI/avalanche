@@ -34,22 +34,45 @@ fac2dirs = {
     'mixture-iros': "batches_filelists/domain/iros"
 }
 
-
 def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
-              factor="clutter"):
+              factor="clutter",
+              train_transform=None,
+              eval_transform=None):
     """
-    OpenLORIS continual scenario generator.
+    Creates a CL scenario for OpenLORIS.
+
+    If the dataset is not present in the computer, **this method will NOT be
+    able automatically download** and store it.
+
+    This generator can be used to obtain scenarios based on different "factors".
+    Valid factors include 'clutter', 'illumination', 'occlusion', 'pixel', or
+    'mixture-iros'.
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
 
     The task label "0" will be assigned to each experience.
 
-    :param root: Path indicating where to store the dataset and related
-        metadata. By default they will be stored in
-        avalanche/datasets/openloris/data/.
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
+
+    :param root: Base path where OpenLORIS data is stored.
     :param factor: OpenLORIS main factors, indicating different environmental
         variations. It can be chosen between 'clutter', 'illumination',
         'occlusion', 'pixel', or 'mixture-iros'. The first three factors are
         included in the ICRA 2020 paper and the last factor (mixture-iros) is
         the benchmark setting for IROS 2019 Lifelong robotic vision competition.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
 
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
@@ -78,8 +101,8 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
         root + filelists_bp + "test.txt",
         [0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
-        train_transform=transforms.ToTensor(),
-        test_transform=transforms.ToTensor())
+        train_transform=train_transform,
+        test_transform=eval_transform)
 
     return factor_obj
 
@@ -93,7 +116,6 @@ if __name__ == "__main__":
     # this below can be taken as a usage example or a simple test script
     import sys
     from torch.utils.data.dataloader import DataLoader
-    from torchvision import transforms
 
     factor = OpenLORIS(factor="clutter")
     for i, batch in enumerate(factor.train_stream):

@@ -28,7 +28,7 @@ _default_mnist_train_transform = Compose([
     Normalize((0.1307,), (0.3081,))
 ])
 
-_default_mnist_test_transform = Compose([
+_default_mnist_eval_transform = Compose([
     ToTensor(),
     Normalize((0.1307,), (0.3081,))
 ])
@@ -69,14 +69,32 @@ def SplitMNIST(
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform):
+        eval_transform=_default_mnist_eval_transform):
     """
     Creates a CL scenario using the MNIST dataset.
-    This helper create the basic split MNIST scenario, where the 10 classes of
-    the MNIST dataset are evenly splitted into the given number of tasks (or
-    experiences, more in general).
-    If the dataset is not present in the computer the method automatically
-    download it and store the data in the data folder.
+
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
+
+    The returned scenario will return experiences containing all patterns of a
+    subset of classes, which means that each class is only seen "once".
+    This is one of the most common scenarios in the Continual Learning
+    literature. Common names used in literature to describe this kind of
+    scenario are "Class Incremental", "New Classes", etc. By default,
+    an equal amount of classes will be assigned to each experience.
+
+    This generator doesn't force a choice on the availability of task labels,
+    a choice that is left to the user (see the `return_task_id` parameter for
+    more info on task labels).
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of incremental experiences in the current
         scenario.
@@ -95,21 +113,18 @@ def SplitMNIST(
         comprehensive list of possible transformations).
         If no transformation is passed, the default train transformation
         will be used.
-    :param test_transform: The transformation to apply to the test data,
+    :param eval_transform: The transformation to apply to the test data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
 
-    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
-        MT split MNIST scenario if the parameter ``return_task_id`` is True,
-        a :class:`NCSingleTaskScenario` initialized for the SIT split MNIST
-        scenario otherwise.
+    :returns: A properly initialized :class:`NCScenario` instance.
     """
 
     mnist_train, mnist_test = _get_mnist_dataset(
-        train_transform, test_transform)
+        train_transform, eval_transform)
 
     if return_task_id:
         return nc_scenario(
@@ -134,16 +149,28 @@ def PermutedMNIST(
         n_experiences: int,
         seed: Optional[int] = None,
         train_transform: Any = _default_mnist_train_transform,
-        test_transform: Any = _default_mnist_test_transform) -> NCScenario:
-    # TODO: add task label parameter (should default to True)
+        eval_transform: Any = _default_mnist_eval_transform) -> NCScenario:
     """
-    This helper create a permuted MNIST scenario: where a given number of random
-    pixel permutations is used to permute the MNIST images in
-    ``n_experiences`` different manners, creating an equal number of tasks.
-    Each task is composed of all the original MNIST 10 classes, but the pixel
-    in the images are permuted in different ways in every task.
-    If the dataset is not present in the computer the method automatically
-    download it and store the data in the data folder.
+    Creates a Permuted MNIST scenario.
+
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
+
+    Random pixel permutations are used to permute the MNIST images in
+    ``n_experiences`` different manners. This means that each experience is
+    composed of all the original 10 MNIST classes, but the pixel in the images
+    are permuted in a different way.
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
+    A progressive task label, starting from "0", is applied to each experience.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different permutations of the MNIST
@@ -157,15 +184,14 @@ def PermutedMNIST(
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default train transformation
         will be used.
-    :param test_transform: The transformation to apply to the test data
+    :param eval_transform: The transformation to apply to the test data
         before the random permutation, e.g. a random crop, a normalization or a
         concatenation of different transformations (see torchvision.transform
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
 
-    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
-        MT permuted MNIST scenario.
+    :returns: A properly initialized :class:`NCScenario` instance.
     """
 
     list_train_dataset = []
@@ -189,7 +215,7 @@ def PermutedMNIST(
 
         permuted_test = mnist_test \
             .freeze_transforms() \
-            .add_transforms(test_transform)
+            .add_transforms(eval_transform)
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -209,16 +235,27 @@ def RotatedMNIST(
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
         train_transform=_default_mnist_train_transform,
-        test_transform=_default_mnist_test_transform) -> NCScenario:
-    # TODO: task label param (default True)
+        eval_transform=_default_mnist_eval_transform) -> NCScenario:
     """
-    This helper create a rotated MNIST scenario: where a given number of random
-    rotations are used to rotate the MNIST images in
-    ``n_experiences`` different manners, creating an equal number of tasks.
-    Each task is composed of all the original MNIST 10 classes, but the images
-    are rotated in different ways and using different values in every task.
-    If the dataset is not present in the computer the method automatically
-    download it and store the data in the data folder.
+    Creates a Rotated MNIST scenario.
+
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
+
+    Random angles are used to rotate the MNIST images in ``n_experiences``
+    different manners. This means that each experience is composed of all the
+    original 10 MNIST classes, but each image is rotated in a different way.
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
+    A progressive task label, starting from "0", is applied to each experience.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of experiences (tasks) in the current
         scenario. It indicates how many different rotations of the MNIST
@@ -228,8 +265,8 @@ def RotatedMNIST(
         Can be None.
     :param rotations_list: A list of rotations values in degrees (from -180 to
         180) used to define the rotations. The rotation specified in position
-        0 of the list will be applieed to the task 0, the rotation specified in
-        position 1 will be applyed to task 1 and so on.
+        0 of the list will be applied to the task 0, the rotation specified in
+        position 1 will be applied to task 1 and so on.
         If None, value of ``seed`` will be used to define the rotations.
         If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
@@ -239,15 +276,14 @@ def RotatedMNIST(
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default train transformation
         will be used.
-    :param test_transform: The transformation to apply to the test data
+    :param eval_transform: The transformation to apply to the test data
         after the random rotation, e.g. a random crop, a normalization or a
         concatenation of different transformations (see torchvision.transform
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
 
-    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
-        MT rotated MNIST scenario.
+    :returns: A properly initialized :class:`NCScenario` instance.
     """
 
     assert len(rotations_list) == n_experiences, "The number of rotations" \
@@ -281,7 +317,7 @@ def RotatedMNIST(
 
         rotated_test = mnist_test \
             .freeze_transforms() \
-            .add_transforms(test_transform)
+            .add_transforms(eval_transform)
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
@@ -296,7 +332,7 @@ def RotatedMNIST(
         one_dataset_per_exp=True)
 
 
-def _get_mnist_dataset(train_transformation, test_transformation):
+def _get_mnist_dataset(train_transformation, eval_transformation):
     train_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                       train=True, download=True)
 
@@ -304,7 +340,7 @@ def _get_mnist_dataset(train_transformation, test_transformation):
                      train=False, download=True)
 
     return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, test_transformation)
+        train_set, test_set, train_transformation, eval_transformation)
 
 
 __all__ = [
@@ -319,7 +355,7 @@ if __name__ == "__main__":
     import numpy as np
     from PIL import Image
 
-    scenario = PermutedMNIST(5, train_transform=None, test_transform=None)
+    scenario = PermutedMNIST(5, train_transform=None, eval_transform=None)
     for i, (img, label) in enumerate(scenario.train_stream[0].dataset):
         plt.imshow(np.asarray(img))
         plt.show()

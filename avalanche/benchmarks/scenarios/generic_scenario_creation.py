@@ -12,6 +12,7 @@ from avalanche.benchmarks.utils.dataset_utils import LazyConcatTargets,\
     ConstantSequence
 
 
+# TODO: add transforms
 def create_multi_dataset_generic_scenario(
         train_dataset_list: Sequence[SupportedDataset],
         test_dataset_list: Sequence[SupportedDataset],
@@ -111,7 +112,7 @@ def create_multi_dataset_generic_scenario(
         pattern_test_task_labels,
         complete_test_set_only=complete_test_set_only)
 
-
+# TODO: transform name
 def create_generic_scenario_from_filelists(
         root: Union[str, Path],
         train_file_lists: Sequence[Union[str, Path]],
@@ -180,7 +181,7 @@ def create_generic_scenario_from_filelists(
 
 FileAndLabel = Tuple[Union[str, Path], int]
 
-
+# TODO: transform name
 def create_generic_scenario_from_paths(
         train_list_of_files: Sequence[Sequence[FileAndLabel]],
         test_list_of_files: Union[Sequence[FileAndLabel],
@@ -258,7 +259,7 @@ def create_generic_scenario_from_paths(
         train_datasets, test_dataset, task_labels,
         complete_test_set_only=complete_test_set_only)
 
-
+# TODO: transform name
 def create_generic_scenario_from_tensors(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],

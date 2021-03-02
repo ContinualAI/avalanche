@@ -12,7 +12,8 @@
 """ In this module the high-level benchmark generators are listed. They are
 based on the methods already implemented in the "scenario" module. For the
 specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
-the generic ones: filelist_scenario, tensor_scenario, dataset_scenario.
+the generic ones: filelist_scenario, tensor_scenario, dataset_scenario
+and paths_scenario.
 """
 
 from pathlib import Path
@@ -47,7 +48,7 @@ def nc_scenario(
         class_ids_from_zero_in_each_exp: bool = False,
         one_dataset_per_exp: bool = False,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
-
+    # TODO: doc check (returns!!)
     """
     This method is the high-level specific scenario generator for the
     "New Classes" (NC) case. Given a sequence of train and test datasets creates
@@ -197,6 +198,7 @@ def ni_scenario(
         fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
+    # TODO: doc check (returns!!)
     """
     This method is the high-level specific scenario generator for the
     "New Instances" (NI) case. Given a sequence of train and test datasets
@@ -279,6 +281,7 @@ def dataset_scenario(
         test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
         complete_test_set_only: bool = False) -> GenericCLScenario:
+    # TODO: doc check (returns!!)
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -331,6 +334,7 @@ def filelist_scenario(
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
         test_transform=None, test_target_transform=None) -> GenericCLScenario:
+    # TODO: doc check (returns!!)
     """
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
@@ -400,6 +404,7 @@ def paths_scenario(
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
         test_transform=None, test_target_transform=None) -> GenericCLScenario:
+    # TODO: doc check (returns!!)
     """
     Creates a generic scenario given a list of files and class labels.
     A separate dataset will be created for each list and each of
@@ -478,6 +483,7 @@ def tensor_scenario(
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
         test_transform=None, test_target_transform=None) -> GenericCLScenario:
+    # TODO: doc check (returns!!)
     """
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)

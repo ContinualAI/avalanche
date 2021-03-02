@@ -38,20 +38,44 @@ scen2dirs = {
 
 
 def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
-           scenario="nicv2_391", run=0):
+           scenario="nicv2_391",
+           run=0,
+           train_transform=None,
+           eval_transform=None):
     """
-    CORe50 continual scenario generator.
+    Creates a CL scenario for CORe50.
+
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
 
     This generator can be used to obtain the NI, NC, NIC and NICv2-* scenarios.
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
     The task label "0" will be assigned to each experience.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
 
     :param root: Path indicating where to store the dataset and related
         metadata. By default they will be stored in
-        avalanche/datasets/core50/data/.
-    :param scenario: CORe50 main scanario. I can be chosen between 'ni', 'nc',
+        "~/.avalanche/datasets/core50/data/".
+    :param scenario: CORe50 main scenario. It can be chosen between 'ni', 'nc',
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
-    :param run: number of run for the scenario. Batch ordering change based
-        on this parameter (a number between 0 and 9).
+    :param run: number of run for the scenario. Each run defines a different
+        ordering. Must be a number between 0 and 9.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
 
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
@@ -82,8 +106,8 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
         root + filelists_bp + "test_filelist.txt",
         [0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
-        train_transform=transforms.ToTensor(),
-        test_transform=transforms.ToTensor())
+        train_transform=train_transform,
+        test_transform=eval_transform)
 
     return scenario_obj
 
@@ -97,7 +121,6 @@ if __name__ == "__main__":
     # this below can be taken as a usage example or a simple test script
     import sys
     from torch.utils.data.dataloader import DataLoader
-    from torchvision import transforms
 
     scenario = CORe50(scenario="nicv2_79")
     for i, batch in enumerate(scenario.train_stream):
