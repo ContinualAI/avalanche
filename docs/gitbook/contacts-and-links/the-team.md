@@ -26,6 +26,12 @@ _Avalanche_ is a large community effort. It is only fair to list here all the pe
 * Davide Maltoni
 * Prashant Kumar Rai
 * Tyler Hayes
+* Marc Masana
+* Eden Belouadah
+* Adrian Popescu
+* Gido van de Ven
+* Martin Mundt
+* Matthias De Lange
 * _...see the_ [_full list on GitHub_](https://github.com/ContinualAI/avalanche/graphs/contributors)_!_
 
 ## 👪 Users
