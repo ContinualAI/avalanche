@@ -9,7 +9,6 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-# from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_paths
@@ -51,7 +50,7 @@ def adjust_bbox(img_shapes, bbox, ratio=1.1):
 
 def CLStream51(root, scenario="class_instance", transform=_default_transform,
                seed=10, eval_num=None, bbox_crop=True, ratio=1.10,
-               download=False):
+               download=True):
     """ Stream-51 continual scenario generator
 
         root (string): Root directory path of dataset.
@@ -217,7 +216,7 @@ if __name__ == "__main__":
         for j, mb in enumerate(dl):
             if j == 2:
                 break
-            x, y = mb
+            x, y, t = mb
 
             # show a few un-normalized images from data stream
             # this code is for debugging purposes
