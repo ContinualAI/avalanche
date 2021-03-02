@@ -21,41 +21,41 @@ In the Table below, we list all the Pytorch datasets used in _Continual Learning
 | Name | Dataset Support | From Torch Vision | Automatic Download | References |
 | :--- | :--- | :--- | :--- | :--- |
 | **CORe50** | ✔️ | ✔️ | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **MNIST** | ✔️ | ✔️ | ✔️ |  |
-| **CIFAR-10** | ✔️ | ✔️ | ✔️ |  |
-| **CIFAR-100** | ✔️ | ✔️ | ✔️ |  |
-| **FashionMNIST** | ✔️ | ✔️ | ✔️ |  |
-| **TinyImagenet** | ✔️ | ✔️ | ✔️ |  |
-| **MiniImagenet** | ❌ | ❌ | ❌ |  |
-| **Imagenet** | ✔️ | ✔️ | ❌ |  |
-| **CUB200** | ✔️ | ❌ | ❌ |  |
-| **CRIB** | ❌ | ❌ | ❌ |  |
-| **OpenLORIS** | ✔️ | ❌ | ❌ |  |
-| **Stream-51** | ❌ | ❌ | ❌ |  |
-| **KMNIST** | ✔️ | ✔️ | ✔️ |  |
-| **EMNIST** | ✔️ | ✔️ | ✔️ |  |
-| **QMNIST** | ✔️ | ✔️ | ✔️ |  |
-| **FakeData** | ✔️ | ✔️ | ✔️ |  |
-| **CocoCaption** | ✔️ | ✔️ | ❌ |  |
-| **CocoDetection** | ✔️ | ❌ | ❌ |  |
-| **LSUN** | ✔️ | ❌ | ❌ |  |
-| **STL10** | ✔️ | ❌ | ✔️ |  |
-| **SVHN** | ✔️ | ❌ | ✔️ |  |
-| **PhotoTour** | ✔️ | ❌ | ✔️ |  |
-| **SBU** | ✔️ | ✔️ | ✔️ |  |
-| **Flickr8k** | ✔️ | ✔️ | ❌ |  |
-| **Flickr30k** | ✔️ | ✔️ | ❌ |  |
-| **VOCDetection** | ✔️ | ✔️ | ✔️ |  |
-| **VOCSegmentation** | ✔️ | ✔️ | ✔️ |  |
-| **Cityscapes** | ✔️ | ✔️ | ❌ |  |
-| **SBDataset** | ✔️ | ✔️ | ✔️ |  |
-| **USPS** | ✔️ | ✔️ | ✔️ |  |
-| **Kinetics400** | ✔️ | ✔️ | ❌ |  |
-| **HMDB51** | ✔️ | ✔️ | ❌ |  |
-| **UCF101** | ✔️ | ✔️ | ❌ |  |
-| **CelebA** | ✔️ | ✔️ | ✔️ |  |
-| **Caltech101** | ❌ | ❌ | ❌ |  |
-| **Caltech256** | ❌ | ❌ | ❌ |  |
+| **MNIST** | ✔️ | ✔️ | ✔️ | n.a. |
+| **CIFAR-10** | ✔️ | ✔️ | ✔️ | n.a. |
+| **CIFAR-100** | ✔️ | ✔️ | ✔️ | n.a. |
+| **FashionMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
+| **TinyImagenet** | ✔️ | ✔️ | ✔️ | n.a. |
+| **MiniImagenet** | ✔️ | ❌ | ❌ | n.a. |
+| **Imagenet** | ✔️ | ✔️ | ❌ | n.a. |
+| **CUB200** | ✔️ | ❌ | ❌ | n.a. |
+| **CRIB** | ❌ | ❌ | ❌ | n.a. |
+| **OpenLORIS** | ✔️ | ❌ | ❌ | n.a. |
+| **Stream-51** | ✔️ | ❌ | ❌ | n.a. |
+| **KMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
+| **EMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
+| **QMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
+| **FakeData** | ✔️ | ✔️ | ✔️ | n.a. |
+| **CocoCaption** | ✔️ | ✔️ | ❌ | n.a. |
+| **CocoDetection** | ✔️ | ❌ | ❌ | n.a. |
+| **LSUN** | ✔️ | ❌ | ❌ | n.a. |
+| **STL10** | ✔️ | ❌ | ✔️ | n.a. |
+| **SVHN** | ✔️ | ❌ | ✔️ | n.a. |
+| **PhotoTour** | ✔️ | ❌ | ✔️ | n.a. |
+| **SBU** | ✔️ | ✔️ | ✔️ | n.a. |
+| **Flickr8k** | ✔️ | ✔️ | ❌ | n.a. |
+| **Flickr30k** | ✔️ | ✔️ | ❌ | n.a. |
+| **VOCDetection** | ✔️ | ✔️ | ✔️ | n.a. |
+| **VOCSegmentation** | ✔️ | ✔️ | ✔️ | n.a. |
+| **Cityscapes** | ✔️ | ✔️ | ❌ | n.a. |
+| **SBDataset** | ✔️ | ✔️ | ✔️ | n.a. |
+| **USPS** | ✔️ | ✔️ | ✔️ | n.a. |
+| **Kinetics400** | ✔️ | ✔️ | ❌ | n.a. |
+| **HMDB51** | ✔️ | ✔️ | ❌ | n.a. |
+| **UCF101** | ✔️ | ✔️ | ❌ | n.a. |
+| **CelebA** | ✔️ | ✔️ | ✔️ | n.a. |
+| **Caltech101** | ❌ | ❌ | ❌ | n.a. |
+| **Caltech256** | ❌ | ❌ | ❌ | n.a. |
 
 ## 📚 Supported Benchmarks
 
@@ -66,20 +66,20 @@ _"Dataset Support"_ is checked if an easy-to-use PyTorch version of the dataset 
 | Name | Benchmark Support | References |
 | :--- | :--- | :--- |
 | **CORe50** | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **RotatedMNIST** | ✔️ |  |
-| **PermutedMNIST** | ✔️ |  |
-| **SplitMNIST** | ✔️ |  |
-| **FashionMNIST** | ✔️ |  |
-| **CIFAR-10** | ✔️ |  |
-| **CIFAR-100** | ✔️ |  |
-| **CIFAR-110** | ✔️ |  |
-| **TinyImagenet** | ✔️ |  |
-| **CUB200** | ✔️ |  |
-| **SplitImagenet** | ✔️ |  |
-| **CRIB** | ❌ |  |
-| **OpenLORIS** | ✔️ |  |
-| **MiniImagenet** | ❌ |  |
-| **Stream-51** | ❌ |  |
+| **RotatedMNIST** | ✔️ | n.a. |
+| **PermutedMNIST** | ✔️ | n.a. |
+| **SplitMNIST** | ✔️ | n.a. |
+| **FashionMNIST** | ✔️ | n.a. |
+| **CIFAR-10** | ✔️ | n.a. |
+| **CIFAR-100** | ✔️ | n.a. |
+| **CIFAR-110** | ✔️ | n.a. |
+| **TinyImagenet** | ✔️ | n.a. |
+| **CUB200** | ✔️ | n.a. |
+| **SplitImagenet** | ✔️ | n.a. |
+| **CRIB** | ❌ | n.a. |
+| **OpenLORIS** | ✔️ | n.a. |
+| **MiniImagenet** | ❌ | n.a. |
+| **Stream-51** | ✔️ | n.a. |
 
 ## 📈 Supported Strategies
 
@@ -89,20 +89,20 @@ _"Strategy Support"_ is checked if the algorithm is already available in _Avalan
 
 | Name | Strategy Support | Plugin Support | References |
 | :--- | :--- | :--- | :--- |
-| **Naive \(a.k.a. "Finetuning"\)** | ✔️ | ❌ |  |
-| **Naive Multi-Head** | ✔️ | ✔️ |  |
-| **Joint Training \(a.k.a. "Multi-Task"\)** | ✔️ | ❌ |  |
-| **Cumulative** | ✔️ | ❌ |  |
-| **GDumb** | ✔️ | ✔️ |  |
-| **Experience Replay \(a.k.a. "Rehearsal"\)** | ✔️ | ✔️ |  |
-| **EWC** | ✔️ | ✔️ |  |
-| **LWF** | ✔️ | ✔️ |  |
-| **GEM** | ✔️ | ✔️ |  |
-| **AGEM** | ✔️ | ✔️ |  |
-| **CWR** | ✔️ | ✔️ |  |
-| **SI** | ❌ | ❌ |  |
-| **iCaRL** | ❌ | ❌ |  |
-| **AR1** | ❌ | ❌ |  |
+| **Naive \(a.k.a. "Finetuning"\)** | ✔️ | ❌ | n.a. |
+| **Naive Multi-Head** | ✔️ | ✔️ | n.a. |
+| **Joint Training \(a.k.a. "Multi-Task"\)** | ✔️ | ❌ | n.a. |
+| **Cumulative** | ✔️ | ❌ | n.a. |
+| **GDumb** | ✔️ | ✔️ | n.a. |
+| **Experience Replay \(a.k.a. "Rehearsal"\)** | ✔️ | ✔️ | n.a. |
+| **EWC** | ✔️ | ✔️ | n.a. |
+| **LWF** | ✔️ | ✔️ | n.a. |
+| **GEM** | ✔️ | ✔️ | n.a. |
+| **AGEM** | ✔️ | ✔️ | n.a. |
+| **CWR** | ✔️ | ✔️ | n.a. |
+| **SI** | ✔️ | ✔️ | n.a. |
+| **iCaRL** | ❌ | ❌ | n.a. |
+| **AR1** | ✔️ | ❌ | n.a. |
 
 ## 📊 Supported Metrics
 
@@ -112,23 +112,24 @@ With _"Tensorboard"_ is checked if the metrics can be also visualized in **Tenso
 
 | Name | Support | Tensorboard | Wandb | References |
 | :--- | :--- | :--- | :--- | :--- |
-| **Accuracy** | ✔️ | ✔️ | ❌ | \*\*\*\* |
+| **Accuracy** | ✔️ | ✔️ | ❌ | n.a. |
+| **Loss** | ✔️ | ✔️ | ❌ | n.a. |
 | **ACC** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
 | **BWT** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
 | **FWT** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
-| **Catastrophic Forgetting** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **Remembering** | ❌ | ❌ | ❌ |  |
+| **Catastrophic Forgetting** | ✔️ | ✔️ | ❌ | n.a. |
+| **Remembering** | ❌ | ❌ | ❌ | n.a. |
 | **A** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **MS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **SSS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **CE** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **Confusion Matrix** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **MAC** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **CPU Usage** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **Disk Usage** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **GPU Usage** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **RAM Usage** | ✔️ | ✔️ | ❌ | \*\*\*\* |
-| **Running Time** | ✔️ | ✔️ | ❌ |  |
+| **Confusion Matrix** | ✔️ | ✔️ | ❌ | n.a. |
+| **MAC** | ✔️ | ✔️ | ❌ | n.a. |
+| **CPU Usage** | ✔️ | ✔️ | ❌ | n.a. |
+| **Disk Usage** | ✔️ | ✔️ | ❌ | n.a. |
+| **GPU Usage** | ✔️ | ✔️ | ❌ | n.a. |
+| **RAM Usage** | ✔️ | ✔️ | ❌ | n.a. |
+| **Running Time** | ✔️ | ✔️ | ❌ | n.a. |
 | **CLScore** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 | **CLStability** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
 

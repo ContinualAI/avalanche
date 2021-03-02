@@ -6,7 +6,7 @@
 # Date: 28-05-2020                                                             #
 # Author(s): Lorenzo Pellegrini                                                #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 from typing import Sequence

@@ -6,7 +6,7 @@
 # Date: 03-12-2020                                                             #
 # Author(s): Antonio Carta, Andrea Cossu                                       #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 import copy
 import logging

@@ -5,7 +5,6 @@ description: Protocols and Metrics Code Examples
 # Evaluation
 
 {% code title="\"Evaluation Pluging\" Example" %}
-
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -57,7 +56,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+    DiskUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger])
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)

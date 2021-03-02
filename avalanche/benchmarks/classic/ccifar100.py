@@ -6,7 +6,7 @@
 # Date: 24-06-2020                                                             #
 # Author(s): Gabriele Graffieti                                                #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 import random
