@@ -17,7 +17,7 @@ _Avalanche_ is mostly about making the life of a continual learning researcher e
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
 {% hint style="info" %}
-In this short guide we assume you have already installed _Avalanche_. If you haven't yet, check out how you can do it following our [How to Install](1.-how-to-install.md) guide.
+In this short guide we assume you have already installed _Avalanche_. If you haven't yet, check out how you can do it following our [How to Install](how-to-install.md) guide.
 {% endhint %}
 
 ## 🏛️ General Architecture
@@ -54,7 +54,7 @@ Avalanche
 ```
 {% endcode %}
 
-We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://vlomonaco.github.io/avalanche) is your friend as well!
+We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://continualai.github.io/avalanche) is your friend as well!
 
 All right, let's start with the _benchmarks_ module right away 👇
 
@@ -75,7 +75,7 @@ from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
 QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
 CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
 VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
+CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS, MiniImageNetDataset, Stream51
 ```
 
 Of course, you can use them as you would use any _PyTorch Dataset_.
@@ -86,7 +86,7 @@ The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains sever
 
 In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
 
-Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **experiences**. Experiences are batch of data \(or "_tasks_"\) that can be provided with or without a specific task label.
+Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **experiences**. Experiences are batch of data \(or "_tasks_"\) that can be provided with or without a specific _task label_.
 
 ### **Classic Benchmarks**
 
@@ -147,17 +147,16 @@ scenario = nc_scenario(
 Finally, if your ideal benchmark does not fit well in the aforementioned _Domain-Incremental_, _Class-Incremental or Task-Incremental_ scenarios, you can always use our **generic generators**:
 
 * **filelist\_scenario**
+* **paths\_scenario**
 * **dataset\_scenario**
 * **tensor\_scenario**
 
 ```python
 from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario, \
-                                            tensor_scenario
+                                            tensor_scenario, paths_scenario
 ```
 
 You can read more about how to use them the full _Benchmarks_ module tutorial!
-
-{% page-ref page="../from-zero-to-hero-tutorial/2.-benchmarks.md" %}
 
 ## 💪Training
 
@@ -173,7 +172,7 @@ If you want to compare your strategy with other classic continual learning algor
 ```python
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb,
-    Cumulative, LwF, GEM, AGEM, EWC
+    Cumulative, LwF, GEM, AGEM, EWC, AR1
 
 model = SimpleMLP(num_classes=10)
 cl_strategy = Naive(
@@ -228,15 +227,15 @@ class MyStrategy():
 Then, we can use our strategy as we would do for the pre-implemented ones:
 
 ```python
-# MODEL CREATION
+# Model Creation
 model = SimpleMLP(num_classes=scenario.n_classes)
 
-# CREATE THE STRATEGY INSTANCE (NAIVE)
+# Create the Strategy Instance (MyStrategy)
 cl_strategy = MyStrategy(
     model, SGD(model.parameters(), lr=0.001, momentum=0.9),
     CrossEntropyLoss())
 
-# TRAINING LOOP
+# Training Loop
 print('Starting experiment...')
 
 for experience in scenario.train_stream:
@@ -249,11 +248,9 @@ for experience in scenario.train_stream:
     cl_strategy.eval(scenario.test_stream[experience.current_experience])
 ```
 
-While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat and reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
+While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat, modular** and **reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
-
-{% page-ref page="../from-zero-to-hero-tutorial/3.-training.md" %}
 
 ## 📈 Evaluation
 
@@ -273,8 +270,8 @@ EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
 StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
 AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, DiskUsageMonitor, \
 ExperienceForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
-EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, RamUsage, \ 
-RamUsageMonitor, Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
+EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, MaxRAM, \ 
+Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
 ExperienceTime, timing_metrics
 ```
 
@@ -305,7 +302,7 @@ from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
 
 loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
-DiskUsageMonitor, GpuUsageMonitor, RamUsageMonitor
+DiskUsageMonitor, GpuUsageMonitor
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -337,7 +334,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(), RamUsageMonitor(), GpuUsageMonitor(0),
+    DiskUsageMonitor(), GpuUsageMonitor(0),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 

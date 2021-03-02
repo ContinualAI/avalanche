@@ -6,7 +6,7 @@
 # Date: 01-12-2020                                                             #
 # Author(s): Antonio Carta                                                     #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 from collections import defaultdict
 from typing import Optional, Sequence, Union

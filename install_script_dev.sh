@@ -8,7 +8,7 @@
 # Date: 09-02-2021                                                             #
 # Author(s): Gabriele Graffieti                                                #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 
 python="3.8"

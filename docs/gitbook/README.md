@@ -57,12 +57,11 @@ test_stream = perm_mnist.test_stream
 # Prepare for training & testing
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
-evaluation_protocol = EvalProtocol(metrics=[ACC(num_class=10)])
 
 # Continual learning strategy
 cl_strategy = Naive(
     model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-    eval_mb_size=32, evaluation_protocol=evaluation_protocol, device=device)
+    eval_mb_size=32, device=device)
 
 # train and test loop
 results = []
@@ -209,6 +208,8 @@ We know that learning a new tool _may be tough at first_. This is why we made _A
 
 For example, you may start with our _**5-minutes**_ **guide** that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
+{% page-ref page="getting-started/learn-avalanche-in-5-minutes.md" %}
+
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
@@ -230,7 +231,7 @@ If you used _Avalanche_ in your research project, please remember to cite our wh
 
 ![](.gitbook/assets/continualai_lab_logo%20%281%29.png)
 
-_Avalanche_ is the flagship open-source collaborative project of [**ContinuaAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
+_Avalanche_ is the flagship open-source collaborative project of [**ContinualAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
 
 Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 

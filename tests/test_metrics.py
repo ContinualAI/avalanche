@@ -13,7 +13,7 @@ from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, accuracy_metrics, loss_metrics
 from avalanche.evaluation.metrics.cpu_usage import CPUUsage, cpu_usage_metrics
-from avalanche.evaluation.metrics.ram_usage import RamUsage
+from avalanche.evaluation.metrics.ram_usage import MaxRAM
 
 
 class MACMetricTests(unittest.TestCase):
@@ -320,10 +320,10 @@ class CpuUsageMetricTests(unittest.TestCase):
 
 class RamUsageMetricTests(unittest.TestCase):
     def test_standalone_cpu_usage(self):
-        uut = RamUsage()
+        uut = MaxRAM()
 
         # Assert result is None when created
-        self.assertEqual(None, uut.result())
+        self.assertEqual(0, uut.result())
 
         # Base usage
         uut.update()
@@ -337,7 +337,7 @@ class RamUsageMetricTests(unittest.TestCase):
 
         # Assert reset actually resets
         uut.reset()
-        self.assertEqual(None, uut.result())
+        self.assertEqual(0, uut.result())
 
 
 class DiskUsageMetricTests(unittest.TestCase):

@@ -6,7 +6,7 @@
 # Date: 03-12-2020                                                             #
 # Author(s): Antonio Carta, Andrea Cossu                                       #
 # E-mail: contact@continualai.org                                              #
-# Website: clair.continualai.org                                               #
+# Website: avalanche.continualai.org                                           #
 ################################################################################
 """
 Plugins allow to add custom behavior at specific points of the train/eval loops.
