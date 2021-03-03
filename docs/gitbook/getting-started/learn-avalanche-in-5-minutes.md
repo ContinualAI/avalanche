@@ -183,7 +183,7 @@ cl_strategy = Naive(
 
 ### Create your own Strategy
 
-The simplest way to build your own strategy is to create a python class that implements the main `train` and `test` methods.
+The simplest way to build your own strategy is to create a python class that implements the main `train` and `eval` methods.
 
 Let's define our Continual Learning algorithm "_MyStrategy_" as a simple python class:
 
@@ -211,17 +211,17 @@ class MyStrategy():
                 # you magin here...
                 pass
 
-    def test(self, experience):
-        # here you can implement your own test loop for each experience (i.e. 
+    def eval(self, experience):
+        # here you can implement your own eval loop for each experience (i.e. 
         # batch or task).
 
-        test_dataset = experience.dataset
+        eval_dataset = experience.dataset
         t = experience.task_label
-        test_data_loader = DataLoader(
-            test_dataset, num_workers=4, batch_size=128
+        eval_data_loader = DataLoader(
+            eval_dataset, num_workers=4, batch_size=128
         )
 
-        # test here
+        # eval here
 ```
 
 Then, we can use our strategy as we would do for the pre-implemented ones:
@@ -356,7 +356,7 @@ for experience in scenario.train_stream:
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    # test also returns a dictionary which contains all the metric values
+    # eval also returns a dictionary which contains all the metric values
     results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 ```
 
