@@ -45,7 +45,6 @@ def main(args):
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
-    text_logger = TextLogger(open('log.txt', 'a'))
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
