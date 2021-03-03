@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = u'Avalanche'
-copyright = u'2020, ContinualAI Research'
-author = u'ContinualAI Research'
+copyright = u'2021, ContinualAI'
+author = u'ContinualAI'
 
 # The short X.Y version
 version = u''
