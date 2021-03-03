@@ -1,3 +1,16 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 3-02-2021                                                              #
+# Author(s): Vincenzo Lomonaco                                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+""" Basic Multi-Layer Perceptron (MLP) used in TinyImageNet Experiments. """
+
 import torch.nn as nn
 
 

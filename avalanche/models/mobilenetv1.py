@@ -10,9 +10,7 @@
 ################################################################################
 
 """
-
 This is the definition od the Mid-caffenet high resolution in Pythorch
-
 """
 
 import torch.nn as nn
