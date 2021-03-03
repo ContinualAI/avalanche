@@ -4,7 +4,7 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
     Dict, Any, Iterable, List, Set
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
-    TExperience, IScenarioStream, TScenarioStream, IExperience, TScenario, \
+    TExperience, ScenarioStream, TScenarioStream, Experience, TScenario, \
     TrainSet, TestSet
 from avalanche.benchmarks.utils import AvalancheDataset, \
     AvalancheSubset
@@ -279,7 +279,7 @@ class GenericCLScenario(Generic[TrainSet, TestSet, TExperience]):
 
 
 class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
-                            IScenarioStream[TGenericCLScenario, TExperience],
+                            ScenarioStream[TGenericCLScenario, TExperience],
                             Sequence[TExperience]):
 
     def __init__(self: TGenericScenarioStream,
@@ -403,7 +403,7 @@ def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
     return exps_list
 
 
-class AbstractExperience(IExperience[TScenario, TScenarioStream], ABC):
+class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
     """
     Definition of a learning experience. A learning experience contains a set of
     patterns which has become available at a particular time instant. The

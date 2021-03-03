@@ -183,7 +183,7 @@ cl_strategy = Naive(
 
 ### Create your own Strategy
 
-The simplest way to build your own strategy is to create a python class that implements the main `train` and `test` methods.
+The simplest way to build your own strategy is to create a python class that implements the main `train` and `eval` methods.
 
 Let's define our Continual Learning algorithm "_MyStrategy_" as a simple python class:
 
@@ -211,17 +211,17 @@ class MyStrategy():
                 # you magin here...
                 pass
 
-    def test(self, experience):
-        # here you can implement your own test loop for each experience (i.e. 
+    def eval(self, experience):
+        # here you can implement your own eval loop for each experience (i.e. 
         # batch or task).
 
-        test_dataset = experience.dataset
+        eval_dataset = experience.dataset
         t = experience.task_label
-        test_data_loader = DataLoader(
-            test_dataset, num_workers=4, batch_size=128
+        eval_data_loader = DataLoader(
+            eval_dataset, num_workers=4, batch_size=128
         )
 
-        # test here
+        # eval here
 ```
 
 Then, we can use our strategy as we would do for the pre-implemented ones:
@@ -268,8 +268,8 @@ The metrics already available in the current _Avalanche_ release are:
 from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
 EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
 StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
-AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, DiskUsageMonitor, \
-ExperienceForgetting, GpuUsage, GpuUsageMonitor, Loss, MinibatchLoss, \
+AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, disk_usage_metrics, \
+ExperienceForgetting, MaxGPU, gpu_usage_metrics, Loss, MinibatchLoss, \
 EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, MaxRAM, \ 
 Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
 ExperienceTime, timing_metrics
@@ -300,9 +300,8 @@ Here we show how you can use all these modules together to **design your experim
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
-
 loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
-DiskUsageMonitor, GpuUsageMonitor
+disk_usage_metrics, gpu_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -334,7 +333,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(), GpuUsageMonitor(0),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 
@@ -356,7 +355,7 @@ for experience in scenario.train_stream:
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
-    # test also returns a dictionary which contains all the metric values
+    # eval also returns a dictionary which contains all the metric values
     results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 ```
 

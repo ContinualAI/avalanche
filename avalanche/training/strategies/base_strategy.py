@@ -14,7 +14,7 @@ from typing import Optional, Sequence, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios import IExperience
+from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.logging import default_logger
@@ -38,13 +38,50 @@ class BaseStrategy:
         Plugins can be used to implement callbacks to augment the training
         loop with additional behavior (e.g. a memory buffer for replay).
 
+        **Scenarios**
         This strategy supports several continual learning scenarios:
-        - class-incremental scenarios (no task labels)
-        - multi-task scenarios, where task labels are provided)
-        - multi-incremental scenarios, where the same task may be revisited
+
+        * class-incremental scenarios (no task labels)
+        * multi-task scenarios, where task labels are provided)
+        * multi-incremental scenarios, where the same task may be revisited
 
         The exact scenario depends on the data stream and whether it provides
         the task labels.
+
+        **Training loop**
+        The training loop and its callbacks are organized as follows::
+            train
+                before_training
+                before_training_exp
+                adapt_train_dataset
+                make_train_dataloader
+                before_training_epoch
+                    before_training_iteration
+                        before_forward
+                        after_forward
+                        before_backward
+                        after_backward
+                    after_training_iteration
+                    before_update
+                    after_update
+                after_training_epoch
+                after_training_exp
+                after_training
+
+        **Evaluation loop**
+        The evaluation loop and its callbacks are organized as follows::
+            eval
+                before_eval
+                adapt_eval_dataset
+                make_eval_dataloader
+                before_eval_exp
+                    eval_epoch
+                        before_eval_iteration
+                        before_eval_forward
+                        after_eval_forward
+                        after_eval_iteration
+                after_eval_exp
+                after_eval
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -52,45 +89,96 @@ class BaseStrategy:
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
-        :param device: PyTorch device to run the model.
+        :param device: PyTorch device where the model will be allocated.
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations. None to remove logging.
         """
-        self.model = model
+        self.model: Module = model
+        """ PyTorch model. """
+
         self.criterion = criterion
+        """ Loss function. """
+
         self.optimizer = optimizer
-        self.train_epochs = train_epochs
-        self.train_mb_size = train_mb_size
-        self.eval_mb_size = train_mb_size if eval_mb_size is None \
+        """ PyTorch optimizer. """
+
+        self.train_epochs: int = train_epochs
+        """ Number of training epochs. """
+
+        self.train_mb_size: int = train_mb_size
+        """ Training mini-batch size. """
+
+        self.eval_mb_size: int = train_mb_size if eval_mb_size is None \
             else eval_mb_size
+        """ Eval mini-batch size. """
+
         self.device = device
+        """ PyTorch device where the model will be allocated. """
+
         self.plugins = [] if plugins is None else plugins
+        """ List of `StrategyPlugin`s. """
+
         if evaluator is None:
             evaluator = EvaluationPlugin()
         self.plugins.append(evaluator)
         self.evaluator = evaluator
+        """ EvaluationPlugin used for logging and metric computations. """
 
         # Flow state variables
-        self.training_exp_counter = 0  # +1 at the end of each experience.
+        self.training_exp_counter = 0
+        """ Counts the number of training steps. +1 at the end of each 
+        experience. """
+
         self.eval_exp_id = None  # eval-flow only
-        self.epoch = None
+        """ Label of the currently evaluated experience. Only at eval time. """
+
+        self.epoch: Optional[int] = None
+        """ Epoch counter. """
+
         self.experience = None
-        # data used to train. May be modified by plugins. In general, plugins
-        # can append data to it but should not read it (e.g. for replay)
-        # because it may contain extra samples from previous experiences.
+        """ Current experience. """
+
         self.adapted_dataset = None
+        """ Data used to train. It may be modified by plugins. Plugins can 
+        append data to it (e.g. for replay). 
+         
+        .. note:: 
+            This dataset may contain samples from different experiences. If you 
+            want the original data for the current experience  
+            use :attr:`.BaseStrategy.experience`.
+        """
+
         self.current_dataloader = None
-        self.mb_it = None  # train-flow only. minibatch iteration.
-        self.mb_x, self.mb_y = None, None
+        """ Dataloader. """
+
+        self.mb_it = None
+        """ Iteration counter. Reset at the start of a new epoch. """
+
+        self.mb_x = None
+        """ Current mini-batch input. """
+
+        self.mb_y = None
+        """ Current mini-batch target. """
+
         self.loss = None
+        """ Loss of the current mini-batch. """
+
         self.logits = None
+        """ Logits computed on the current mini-batch. """
+
         self.train_task_label: Optional[int] = None
+        """ Label of the current experience (train time). """
+
         self.eval_task_label: Optional[int] = None
+        """ Label of the current experience (eval time). """
+
         self.is_training: bool = False
+        """ True if the strategy is in training mode. """
 
     @property
     def is_eval(self):
+        """ True if the strategy is in evaluation mode. """
         return not self.is_training
 
     def update_optimizer(self, old_params, new_params, reset_state=True):
@@ -129,7 +217,7 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, experiences: Union[IExperience, Sequence[IExperience]],
+    def train(self, experiences: Union[Experience, Sequence[Experience]],
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
@@ -141,7 +229,7 @@ class BaseStrategy:
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(experiences, IExperience):
+        if isinstance(experiences, Experience):
             experiences = [experiences]
 
         res = []
@@ -154,7 +242,7 @@ class BaseStrategy:
         self.after_training(**kwargs)
         return res
 
-    def train_exp(self, experience: IExperience, **kwargs):
+    def train_exp(self, experience: Experience, **kwargs):
         """
         Training loop over a single IExperience object.
 
@@ -179,7 +267,7 @@ class BaseStrategy:
         self.after_training_exp(**kwargs)
 
     def eval(self,
-             exp_list: Union[IExperience, Sequence[IExperience]],
+             exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
         """
         Evaluate the current model on a series of experiences.
@@ -191,7 +279,7 @@ class BaseStrategy:
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(exp_list, IExperience):
+        if isinstance(exp_list, Experience):
             exp_list = [exp_list]
 
         res = []

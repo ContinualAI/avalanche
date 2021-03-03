@@ -226,7 +226,7 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
                 'train_filelists must contain the same number of elements.')
 
     transform_groups = dict(train=(train_transform, train_target_transform),
-                            test=(test_transform, test_target_transform))
+                            eval=(test_transform, test_target_transform))
     train_inc_datasets = \
         [AvalancheDataset(FilelistDataset(root, tr_flist),
                           transform_groups=transform_groups,
@@ -235,7 +235,7 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
     test_inc_datasets = \
         [AvalancheDataset(FilelistDataset(root, te_flist),
                           transform_groups=transform_groups,
-                          initial_transform_group='test')
+                          initial_transform_group='eval')
          for te_flist in test_filelists]
 
     return train_inc_datasets, test_inc_datasets
@@ -304,7 +304,7 @@ def datasets_from_paths(
                 'train_list must contain the same number of elements.')
 
     transform_groups = dict(train=(train_transform, train_target_transform),
-                            test=(test_transform, test_target_transform))
+                            eval=(test_transform, test_target_transform))
 
     common_root = None
 
@@ -377,7 +377,7 @@ def datasets_from_paths(
     test_inc_datasets = \
         [AvalancheDataset(PathsDataset(common_root, te_flist),
                           transform_groups=transform_groups,
-                          initial_transform_group='test')
+                          initial_transform_group='eval')
          for te_flist in test_list]
 
     return train_inc_datasets, test_inc_datasets

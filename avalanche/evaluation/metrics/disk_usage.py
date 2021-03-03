@@ -10,15 +10,12 @@
 ################################################################################
 
 import os
-import time
 from pathlib import Path
-from typing import Union, Sequence, List, Optional, Tuple, TYPE_CHECKING
+from typing import Union, Sequence, List, Optional, TYPE_CHECKING
 
-import psutil
-
-from avalanche.evaluation import Metric
-from avalanche.evaluation.metric_utils import phase_and_task
-from avalanche.evaluation.metrics._any_event_metric import AnyEventMetric
+from avalanche.evaluation import Metric, PluginMetric
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 
 if TYPE_CHECKING:
@@ -26,37 +23,25 @@ if TYPE_CHECKING:
 
 PathAlike = Union[Union[str, Path]]
 
-DiskUsageResult = Union[int, Tuple[int, int, int, int, int]]
 
-
-class DiskUsage(Metric[DiskUsageResult]):
+class DiskUsage(Metric[float]):
     """
     The disk usage metric.
 
-    This metric can be used to monitor the size of a set of directories. This
-    can be useful to monitor the size of a replay buffer,
-
-    This metric can also be used to get info regarding the overall amount of
-    other system-wide disk stats (see the constructor for more details).
+    This metric can be used to monitor the size of a set of directories.
+    e.g. This can be useful to monitor the size of a replay buffer,
     """
     def __init__(self,
-                 paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None,
-                 monitor_disk_io: bool = False):
+                 paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
+                 ):
         """
         Creates an instance of the disk usage metric.
 
-        By default invoking the `result` method will return the sum of the size
-        of the directories specified as the first parameter. By passing
-        `monitor_disk_io` as true the `result` method will return a 5 elements
-        tuple containing 1) the sum of the size of the directories,
-        the system-wide 2) read count, 3) write count, 4) read bytes and
-        5) written bytes.
+        The `result` method will return the sum of the size
+        of the directories specified as the first parameter in KiloBytes.
 
         :param paths_to_monitor: a path or a list of paths to monitor. If None,
             the current working directory is used. Defaults to None.
-        :param monitor_disk_io: If True enables monitoring of I/O operations on
-            disk. WARNING: Reports are system-wide, grouping all disks. Defaults
-            to False.
         """
 
         if paths_to_monitor is None:
@@ -65,8 +50,8 @@ class DiskUsage(Metric[DiskUsageResult]):
             paths_to_monitor = [paths_to_monitor]
 
         self._paths_to_monitor: List[str] = [str(p) for p in paths_to_monitor]
-        self._track_disk_io: bool = monitor_disk_io
-        self._last_result: Optional[DiskUsageResult] = None
+
+        self.total_usage = 0
 
     def update(self):
         """
@@ -79,30 +64,19 @@ class DiskUsage(Metric[DiskUsageResult]):
         for directory in self._paths_to_monitor:
             dirs_size += DiskUsage.get_dir_size(directory)
 
-        if self._track_disk_io:
-            counters = psutil.disk_io_counters()
-            read_count, write_count = counters.read_count, counters.write_count
-            read_bytes, write_bytes = counters.read_bytes, counters.write_bytes
-            self._last_result = (dirs_size, read_count, write_count, read_bytes,
-                                 write_bytes)
-        else:
-            self._last_result = dirs_size
+        self.total_usage = dirs_size
 
-    def result(self) -> Optional[DiskUsageResult]:
+    def result(self) -> Optional[float]:
         """
         Retrieves the disk usage as computed during the last call to the
         `update` method.
 
         Calling this method will not change the internal state of the metric.
 
-        The info returned may vary depending on whether the constructor was
-        invoked with `monitor_disk_io` to True. See the constructor for more
-        details.
-
         :return: The disk usage or None if `update` was not invoked yet.
         """
 
-        return self._last_result
+        return self.total_usage
 
     def reset(self) -> None:
         """
@@ -110,7 +84,7 @@ class DiskUsage(Metric[DiskUsageResult]):
 
         :return: None.
         """
-        self._last_result = None
+        self.total_usage = 0
 
     @staticmethod
     def get_dir_size(path: str):
@@ -120,98 +94,231 @@ class DiskUsage(Metric[DiskUsageResult]):
                 fp = os.path.join(dirpath, f)
                 # skip if it is symbolic link
                 if not os.path.islink(fp):
-                    total_size += os.path.getsize(fp)
+                    # in KB
+                    s = os.path.getsize(fp) / 1024
+                    total_size += s
 
         return total_size
 
 
-class DiskUsageMonitor(AnyEventMetric[float]):
+class MinibatchDiskUsage(PluginMetric[float]):
     """
-    The disk usage metric.
+    The minibatch Disk usage metric.
+    This metric only works at training time.
 
-    This metric logs the disk usage (directory size) of the given list of paths.
+    At the end of each iteration, this metric logs the total
+    size (in KB) of all the monitored paths.
 
-    The logged value is in MiB.
-
-    The metric can be either configured to log after a certain timeout or
-    at each event.
-
-    Disk usage is logged separately for the train and eval phases.
+    If a more coarse-grained logging is needed, consider using
+    :class:`EpochDiskUsage`.
     """
 
-    def __init__(self,
-                 *paths: PathAlike,
-                 timeout: float = 5.0,
-                 train=True, eval=False):
+    def __init__(self, paths_to_monitor):
         """
-        Creates an instance of the disk usage metric.
-
-        The train and eval parameters can be True at the same time. However,
-        at least one of them must be True.
-
-        :param paths: A list of paths to monitor. If no paths are defined,
-            the current working directory is used.
-        :param timeout: The timeout between each disk usage check, in seconds.
-            If None, the disk usage is checked at every possible event (not
-            recommended). Defaults to 5 seconds.
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        Creates an instance of the minibatch Disk usage metric.
         """
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
+        self._minibatch_disk = DiskUsage(paths_to_monitor)
 
-        if len(paths) == 0:
-            paths = None  # Use current working directory
-
-        self._disk_sensor = DiskUsage(paths)
-        self._timeout = timeout
-        self._last_time = None
-        self._track_train_usage = train
-        self._track_eval_usage = eval
-
-    def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_eval and not self._track_eval_usage):
-            return None
-
-        is_elapsed = False
-        if self._timeout is not None:
-            current_time = time.time()
-            is_elapsed = self._last_time is None or (
-                    (current_time - self._last_time) >= self._timeout)
-            if is_elapsed:
-                self._last_time = current_time
-
-        if self._timeout is None or is_elapsed:
-            self._disk_sensor.update()
-            return self._package_result(strategy)
-
-    def result(self) -> Optional[float]:
-        byte_value = self._disk_sensor.result()
-        if byte_value is None:
-            return None
-        return byte_value / (1024 * 1204)  # MiB
+    def result(self) -> float:
+        return self._minibatch_disk.result()
 
     def reset(self) -> None:
-        self._disk_sensor.reset()
-        self._last_time = None
+        self._minibatch_disk.reset()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        phase_name, _ = phase_and_task(strategy)
-        experience_cpu = self.result()
+    def before_training_iteration(self, strategy) -> MetricResult:
+        self.reset()
 
-        metric_name = 'Disk_usage/{}'.format(phase_name)
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        self._minibatch_disk.update()
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        metric_value = self.result()
+
+        metric_name = get_metric_name(self, strategy)
+
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, experience_cpu, plot_x_position)]
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+    def __str__(self):
+        return "DiskUsage_MB"
+
+
+class EpochDiskUsage(PluginMetric[float]):
+    """
+    The Epoch Disk usage metric.
+    This metric only works at training time.
+
+    At the end of each epoch, this metric logs the total
+    size (in KB) of all the monitored paths.
+    """
+
+    def __init__(self, paths_to_monitor):
+        """
+        Creates an instance of the epoch Disk usage metric.
+        """
+        super().__init__()
+
+        self._epoch_disk = DiskUsage(paths_to_monitor)
+
+    def before_training_epoch(self, strategy) -> MetricResult:
+        self.reset()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        self._epoch_disk.update()
+        return self._package_result(strategy)
+
+    def reset(self) -> None:
+        self._epoch_disk.reset()
+
+    def result(self) -> float:
+        return self._epoch_disk.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        disk_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, disk_usage, plot_x_position)]
+
+    def __str__(self):
+        return "DiskUsage_Epoch"
+
+
+class ExperienceDiskUsage(PluginMetric[float]):
+    """
+    The average experience Disk usage metric.
+    This metric works only at eval time.
+
+    At the end of each experience, this metric logs the total
+    size (in KB) of all the monitored paths.
+    """
+
+    def __init__(self, paths_to_monitor):
+        """
+        Creates an instance of the experience Disk usage metric.
+        """
+        super().__init__()
+
+        self._exp_disk = DiskUsage(paths_to_monitor)
+
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+        self._exp_disk.update()
+        return self._package_result(strategy)
+
+    def reset(self) -> None:
+        self._exp_disk.reset()
+
+    def result(self) -> float:
+        return self._exp_disk.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        exp_disk = self.result()
+
+        metric_name = get_metric_name(self, strategy, add_experience=True)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, exp_disk, plot_x_position)]
+
+    def __str__(self):
+        return "DiskUsage_Exp"
+
+
+class StreamDiskUsage(PluginMetric[float]):
+    """
+    The average stream Disk usage metric.
+    This metric works only at eval time.
+
+    At the end of the eval stream, this metric logs the total
+    size (in KB) of all the monitored paths.
+    """
+
+    def __init__(self, paths_to_monitor):
+        """
+        Creates an instance of the stream Disk usage metric.
+        """
+        super().__init__()
+
+        self._exp_disk = DiskUsage(paths_to_monitor)
+
+    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+        self._exp_disk.update()
+        return self._package_result(strategy)
+
+    def reset(self) -> None:
+        self._exp_disk.reset()
+
+    def result(self) -> float:
+        return self._exp_disk.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        exp_disk = self.result()
+
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, exp_disk, plot_x_position)]
+
+    def __str__(self):
+        return "DiskUsage_Stream"
+
+
+def disk_usage_metrics(*, paths_to_monitor=None, minibatch=False, epoch=False,
+                       experience=False, stream=False) \
+        -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param minibatch: If True, will return a metric able to log the minibatch
+        Disk usage
+    :param epoch: If True, will return a metric able to log the epoch
+        Disk usage
+    :param experience: If True, will return a metric able to log the experience
+        Disk usage.
+    :param stream: If True, will return a metric able to log the evaluation
+        stream Disk usage.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchDiskUsage(paths_to_monitor=paths_to_monitor))
+
+    if epoch:
+        metrics.append(EpochDiskUsage(paths_to_monitor=paths_to_monitor))
+
+    if experience:
+        metrics.append(ExperienceDiskUsage(paths_to_monitor=paths_to_monitor))
+
+    if stream:
+        metrics.append(StreamDiskUsage(paths_to_monitor=paths_to_monitor))
+
+    return metrics
 
 
 __all__ = [
     'DiskUsage',
-    'DiskUsageMonitor'
+    'MinibatchDiskUsage',
+    'EpochDiskUsage',
+    'ExperienceDiskUsage',
+    'StreamDiskUsage',
+    'disk_usage_metrics'
 ]

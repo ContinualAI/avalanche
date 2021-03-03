@@ -8,6 +8,16 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+"""
+Plugins allow to add custom behavior at specific points of the train/eval loops.
+For example, :py:meth:`before_training_exp` can be used to adapt the model
+before training on a new experience. Similarly, other methods allow to
+completely customize the training loop to easily implement any strategy.
+
+Plugins are used by strategies (e.g., the :py:class:`BaseStrategy`) by calling
+each method at the correct point of the train/eval loops and they can be
+easily combined together to create custom strategies.
+"""
 import copy
 import logging
 import random
@@ -27,7 +37,7 @@ from torch.nn.modules.batchnorm import _NormBase
 from torch.utils.data import random_split, ConcatDataset, TensorDataset, \
     DataLoader
 
-from avalanche.benchmarks.scenarios import IExperience
+from avalanche.benchmarks.scenarios import Experience
 from avalanche.training.strategy_callbacks import StrategyCallbacks
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
     get_layers_and_params, freeze_everything, get_last_fc_layer, \
@@ -583,7 +593,7 @@ class MultiHeadPlugin(StrategyPlugin):
         self.set_task_layer(strategy, strategy.experience)
 
     @torch.no_grad()
-    def set_task_layer(self, strategy, experience: IExperience):
+    def set_task_layer(self, strategy, experience: Experience):
         """
         Sets the correct task layer. Creates a new head for previously
         unseen tasks.

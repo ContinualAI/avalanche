@@ -55,29 +55,29 @@ class OpenLORIS(Dataset):
         if download:
             # self.core_data = OPENLORIS_DATA(data_folder=root)
             self.log.error(
-                  "Download is not supported for this Dataset."
-                  "You need to download the following files "
-                  "manually:\n"
-                  "- train.zip: "
-                  "https://drive.google.com/u/0/uc?id"
-                  "=11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF&export=download\n"
-                  "- validation.zip: https://drive.google.com/u/0/uc?id="
-                  "1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga&export=download\n"
-                  "- test.zip: https://drive.google.com/u/0/uc?id="
-                  "1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x&export=download\n"
-                  "- LUP.pkl: https://drive.google.com/u/0/uc?id="
-                  "1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV&export=download\n"
-                  "- Paths.pkl: https://drive.google.com/u/0/uc?id="
-                  "1KnuYLdlG3VQrhgbtIANLki81ah8Thezj&export=download\n"
-                  "- Labels.pkl: https://drive.google.com/u/0/uc?id="
-                  "1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H&export=download\n"
-                  "- batches_filelists.zip: "
-                  "https://drive.google.com/u/0/uc?id="
-                  "1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp&export=download\n"                  
-                  "For more details, check the official website: "
-                  "https://lifelong-robotic-vision.github.io/dataset/object\n"
-            )
-            sys.exit(0)
+                "%s",
+                "Download is not supported for this Dataset."
+                "You need to download the following files "
+                "manually:\n"
+                "- train.zip: "
+                "https://drive.google.com/u/0/uc?id"
+                "=11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF&export=download\n"
+                "- validation.zip: https://drive.google.com/u/0/uc?id="
+                "1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga&export=download\n"
+                "- test.zip: https://drive.google.com/u/0/uc?id="
+                "1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x&export=download\n"
+                "- LUP.pkl: https://drive.google.com/u/0/uc?id="
+                "1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV&export=download\n"
+                "- Paths.pkl: https://drive.google.com/u/0/uc?id="
+                "1KnuYLdlG3VQrhgbtIANLki81ah8Thezj&export=download\n"
+                "- Labels.pkl: https://drive.google.com/u/0/uc?id="
+                "1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H&export=download\n"
+                "- batches_filelists.zip: "
+                "https://drive.google.com/u/0/uc?id="
+                "1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp&export=download\n"                  
+                "For more details, check the official website: "
+                "https://lifelong-robotic-vision.github.io/dataset/object")
+            raise NotImplementedError()
 
         self.log.info("Loading paths...")
         with open(os.path.join(root, 'Paths.pkl'), 'rb') as f:

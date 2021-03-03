@@ -1,3 +1,8 @@
+"""
+Strategies define the basic train/eval loops. A strategy can be used as is or
+customized by adding plugins, which may be used to combine multiple basic
+strategies (e.g., EWC + replay).
+"""
 from .base_strategy import *
 from .joint_training import *
 from .strategies import *

@@ -25,6 +25,7 @@ glib                      2.67.4               h36276a3_1
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
+gputil                    1.4.0              pyh9f0ad1d_0    conda-forge
 grpcio                    1.33.2           py37haffed2e_2    conda-forge
 gst-plugins-base          1.14.0               hbbd80ab_1  
 gstreamer                 1.14.0               h28cd5cc_2  
@@ -70,7 +71,7 @@ oauthlib                  3.0.1                      py_0    conda-forge
 olefile                   0.46                     py37_0  
 openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
-pillow                    8.1.0            py37he98fc37_0  
+pillow                    8.1.1            py37he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
 protobuf                  3.13.0.1         py37h745909e_1    conda-forge
 psutil                    5.7.3            py37hb5d75c8_0    conda-forge

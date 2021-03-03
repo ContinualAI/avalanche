@@ -29,7 +29,7 @@ TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
 
 
 @runtime_checkable
-class IExperience(Protocol[TScenario, TScenarioStream]):
+class Experience(Protocol[TScenario, TScenarioStream]):
     """
     Definition of an experience. An experience contains a set of patterns
     which has become available at a particular time instant. The content and
@@ -100,7 +100,7 @@ class IExperience(Protocol[TScenario, TScenarioStream]):
         ...
 
 
-class IScenarioStream(Protocol[TScenario, TExperience]):
+class ScenarioStream(Protocol[TScenario, TExperience]):
     """
     A scenario stream describes a sequence of incremental experiences.
     Experiences are described as :class:`IExperience` instances. They contain a
@@ -136,15 +136,20 @@ class IScenarioStream(Protocol[TScenario, TExperience]):
         ...
 
     def __len__(self) -> int:
+        """
+        Used to get the length of this stream (the amount of experiences).
+
+        :return: The amount of experiences in this stream.
+        """
         ...
 
 
 __all__ = [
     'TrainSet',
     'TestSet',
-    'IExperience',
+    'Experience',
     'TExperience',
     'TScenario',
-    'IScenarioStream',
+    'ScenarioStream',
     'TScenarioStream'
 ]

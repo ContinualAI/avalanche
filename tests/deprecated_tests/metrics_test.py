@@ -29,7 +29,6 @@ if __name__ == '__main__':
         'cf': CF(),
         'ramu': RAMU(),
         'disk': DiskUsage(),
-        'disk_io': DiskUsage(disk_io=True),
         'cm': CM(),
         'time': TimeUsage(),
         'gpu': GPUUsage(gpu_id=0),

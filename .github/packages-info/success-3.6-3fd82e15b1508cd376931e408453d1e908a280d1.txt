@@ -12,7 +12,7 @@ click                     7.1.2              pyh9f0ad1d_0    conda-forge
 cpuonly                   1.0                           0    pytorch
 cycler                    0.10.0                     py_2    conda-forge
 cython                    0.29.21          py36ha357f81_1    conda-forge
-dataclasses               0.7              py36h06a4308_0  
+dataclasses               0.8                pyh4f3eec9_6  
 dbus                      1.13.6               he372182_0    conda-forge
 expat                     2.2.9                he1b5a44_2    conda-forge
 fontconfig                2.13.1            he4413a7_1000    conda-forge
@@ -21,6 +21,7 @@ glib                      2.67.4               h36276a3_1
 google-auth               1.21.3                     py_0    conda-forge
 google-auth-oauthlib      0.4.1                      py_2    conda-forge
 googledrivedownloader     0.4                      pypi_0    pypi
+gputil                    1.4.0              pyh9f0ad1d_0    conda-forge
 grpcio                    1.33.2           py36he0f7d3b_2    conda-forge
 gst-plugins-base          1.14.0               hbbd80ab_1  
 gstreamer                 1.14.0               h28cd5cc_2  
@@ -65,7 +66,7 @@ oauthlib                  2.0.1                    py36_0    conda-forge
 olefile                   0.46                     py36_0  
 openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
-pillow                    8.1.0            py36he98fc37_0  
+pillow                    8.1.1            py36he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
 protobuf                  3.13.0.1         py36h201607c_1    conda-forge
 psutil                    5.7.3            py36he6145b8_0    conda-forge

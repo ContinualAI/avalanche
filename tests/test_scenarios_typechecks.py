@@ -6,10 +6,14 @@ from torchvision.datasets import MNIST
 from avalanche.benchmarks.generators import tensor_scenario, nc_scenario, \
     ni_scenario
 
-from avalanche.benchmarks.scenarios.generic_definitions import IExperience
+from avalanche.benchmarks.scenarios.generic_definitions import Experience
+from tests.unit_tests_utils import common_setups
 
 
 class ScenariosTypeChecksTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_nc_mt_type(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
@@ -18,10 +22,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             class_ids_from_zero_in_each_exp=True)
 
         for task_info in my_nc_scenario.train_stream:
-            self.assertIsInstance(task_info, IExperience)
+            self.assertIsInstance(task_info, Experience)
 
         for task_info in my_nc_scenario.test_stream:
-            self.assertIsInstance(task_info, IExperience)
+            self.assertIsInstance(task_info, Experience)
 
     def test_nc_sit_type(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
@@ -30,10 +34,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             mnist_train, mnist_test, 5, task_labels=False)
 
         for batch_info in my_nc_scenario.train_stream:
-            self.assertIsInstance(batch_info, IExperience)
+            self.assertIsInstance(batch_info, Experience)
 
         for batch_info in my_nc_scenario.test_stream:
-            self.assertIsInstance(batch_info, IExperience)
+            self.assertIsInstance(batch_info, Experience)
 
     def test_ni_sit_type(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
@@ -42,10 +46,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             mnist_train, mnist_test, 5)
 
         for batch_info in my_nc_scenario.train_stream:
-            self.assertIsInstance(batch_info, IExperience)
+            self.assertIsInstance(batch_info, Experience)
 
         for batch_info in my_nc_scenario.test_stream:
-            self.assertIsInstance(batch_info, IExperience)
+            self.assertIsInstance(batch_info, Experience)
 
     def test_tensor_scenario_type(self):
         n_experiences = 3
