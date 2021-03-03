@@ -9,128 +9,100 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-import atexit
-import collections
-import subprocess
-import threading
+
+import GPUtil
+from threading import Thread
 import time
 import warnings
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 
+from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import phase_and_task
-from avalanche.evaluation.metrics import Mean
-from avalanche.evaluation.metrics._any_event_metric import AnyEventMetric
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
-class GpuUsage:
+class MaxGPU(Metric[float]):
     """
-    GPU usage metric measured as average usage percentage over time.
+    The GPU usage metric.
+    Important: this metric approximates the real maximum GPU percentage
+     usage since it sample at discrete amount of time the GPU values.
 
-    This metric will actively poll the system to get the GPU usage over time
-    starting from the first call to `update`. Subsequent calls to the `update`
-    method will consolidate the values gathered since the last call.
+    Instances of this metric keeps the maximum GPU usage percentage detected.
+    The update method starts the usage tracking. The reset method stops
+    the tracking.
 
-    The `result` method will return `None` until the `update` method is invoked
-    at least two times.
+    The result, obtained using the `result` method, is the usage in mega-bytes.
 
-    Invoking the `reset` method will stop the measurement and reset the metric
-    to its initial state.
+    The reset method will bring the metric to its initial state. By default
+    this metric in its initial state will return an usage value of 0.
     """
 
-    MAX_BUFFER = 10000
-    SMI_NOT_FOUND_MSG = 'No GPU available: nvidia-smi command not ' \
-                        'found. Gpu Usage logging will be disabled.'
-
-    def __init__(self, gpu_id, every=2.0):
+    def __init__(self, gpu_id, every=0.5):
         """
         Creates an instance of the GPU usage metric.
 
-        For more info about the usage see the class description.
-
         :param gpu_id: GPU device ID.
-        :param every: time delay (in seconds) between measurements.
+        :param every: seconds after which update the maximum GPU
+            usage
         """
-        # 'nvidia-smi --loop=1 --query-gpu=utilization.gpu --format=csv'
-        self._cmd = ['nvidia-smi', f'--loop={every}',
-                     '--query-gpu=utilization.gpu', '--format=csv',
-                     f'--id={gpu_id}']
 
-        self._values_queue = collections.deque(maxlen=GpuUsage.MAX_BUFFER)
-        self._last_result: Optional[float] = None
+        self.every = every
+        self.gpu_id = gpu_id
 
-        # Long running process
-        self._p = None
-        self._read_thread = None
-        self._nvidia_smi_error: bool = False
-        self._nvidia_smi_found: bool = False
+        n_gpus = len(GPUtil.getGPUs())
+        if n_gpus == 0:
+            warnings.warn("Your system has no GPU!")
+            self.gpu_id = None
+        elif gpu_id < 0:
+            warnings.warn("GPU metric called with negative GPU id."
+                          "GPU logging disabled")
+            self.gpu_id = None
+        else:
+            if gpu_id >= n_gpus:
+                warnings.warn(f"GPU {gpu_id} not found. Using GPU 0.")
+                self.gpu_id = 0
+
+        self.thread = None
+        """
+        Thread executing GPU monitoring code
+        """
+
+        self.stop_f = False
+        """
+        Flag to stop the thread
+        """
+
+        self.max_usage = 0
+        """
+        Main metric result. Max GPU usage.
+        """
+
+    def _f(self):
+        """
+        Until a stop signal is encountered,
+        this function monitors each `every` seconds
+        the maximum amount of GPU used by the process
+        """
+        start_time = time.monotonic()
+        while not self.stop_f:
+            # GPU percentage
+            gpu_perc = GPUtil.getGPUs()[self.gpu_id].load * 100
+            if gpu_perc > self.max_usage:
+                self.max_usage = gpu_perc
+            time.sleep(self.every - ((time.monotonic() - start_time)
+                                     % self.every))
 
     def update(self) -> None:
         """
-        Consolidates the values got from the GPU sensor.
-
-        This will store the average for retrieval through the `update` method.
-
-        The previously consolidated value will be discarded.
-
+        Update the max GPU usage.
         :return: None
         """
-        if self._p is None:
-            self._start_watch()
-            return None
-
-        mean_usage = Mean()
-        for _ in range(GpuUsage.MAX_BUFFER):
-            try:
-                queue_element = self._values_queue.popleft()
-                mean_usage.update(queue_element[0], queue_element[1])
-            except IndexError:
-                break
-        self._last_result = mean_usage.result()
-
-    def _start_watch(self):
-        if self._nvidia_smi_error:
-            return
-        try:
-            self._p = subprocess.Popen(self._cmd, bufsize=1,
-                                       stdout=subprocess.PIPE)
-            self._read_thread = threading.Thread(target=self._push_lines,
-                                                 daemon=True)
-            self._read_thread.start()
-            atexit.register(self.reset)
-            self._nvidia_smi_error = False
-            self._nvidia_smi_found = True
-        except (subprocess.SubprocessError, OSError):
-            self._nvidia_smi_error = True
-            self._nvidia_smi_found = False
-            warnings.warn(GpuUsage.SMI_NOT_FOUND_MSG)
-
-    def _push_lines(self) -> None:
-        last_time = None
-        last_usage = None
-        values_queue = self._values_queue
-        for line in iter(self._p.stdout.readline, b''):
-            decoded = line.decode('ascii')
-
-            if decoded[0] == 'u':  # skip first line 'utilization.gpu [%]'
-                continue
-            current_time = time.time()
-            # [:-1] removes the trailing "%"
-            current_usage = float(decoded.strip()[:-1].strip()) / 100
-
-            if last_usage is None:
-                last_time = current_time
-                last_usage = current_usage
-                continue
-
-            # last_usage not None -> also last_time not None
-            queue_element = ((last_usage + current_usage) / 2,
-                             current_time - last_time)
-            values_queue.append(queue_element)
-            last_time = current_time
-            last_usage = current_usage
+        if self.gpu_id is not None:
+            self.thread = Thread(target=self._f, daemon=True)
+            self.thread.start()
 
     def reset(self) -> None:
         """
@@ -138,137 +110,259 @@ class GpuUsage:
 
         :return: None.
         """
-        if self._p is None:
-            return None
-
-        self._p.terminate()
-        try:
-            self._p.wait(0.5)
-        except subprocess.TimeoutExpired:
-            self._p.kill()
-        self._p = None
-
-        self._read_thread.join()
-        self._last_result = None
-        self._values_queue.clear()
-        self._values_queue = collections.deque(maxlen=GpuUsage.MAX_BUFFER)
+        if self.thread:
+            self.stop_f = True
+            self.thread.join()
+            self.thread = None
+        self.stop_f = False
+        self.max_usage = 0
 
     def result(self) -> Optional[float]:
         """
-        Returns the last consolidated GPU usage value.
-
-        For more info about the returned value see the class description.
+        Returns the max GPU percentage value.
 
         :return: The percentage GPU usage as a float value in range [0, 1].
-            Returns None if the `update` method was invoked less than twice.
         """
-        return self._last_result
-
-    def gpu_found(self) -> bool:
-        """
-        Checks if nvidia-smi could me executed.
-
-        This method is experimental. Please use at you own risk.
-
-        :return: True if nvidia-smi could be launched, False otherwise.
-        """
-        return self._nvidia_smi_found
+        return self.max_usage
 
 
-class GpuUsageMonitor(AnyEventMetric[float]):
+class MinibatchMaxGPU(PluginMetric[float]):
     """
-    The GPU usage metric.
-
-    This metric logs the percentage GPU usage.
-
-    The metric can be either configured to log after a certain timeout or
-    at each event.
-
-    GPU usage is logged separately for the train and eval phases.
+    The Minibatch Max GPU metric.
+    This metric only works at training time.
     """
 
-    def __init__(self, gpu_id: int, *, timeout: int = 2,
-                 train=True, eval=False):
+    def __init__(self, gpu_id, every=0.5):
         """
-        Creates an instance of the GPU usage metric.
+        Creates an instance of the Minibatch Max GPU metric
 
-        The train and eval parameters can be True at the same time. However,
-        at least one of them must be True.
-
-        :param gpu_id: The GPU to monitor.
-        :param timeout: The timeout between each GPU usage log, in seconds.
-             Defaults to 2 seconds. Must be an int.
-        :param train: When True, the metric will be computed on the training
-            phase. Defaults to True.
-        :param eval: When True, the metric will be computed on the eval
-            phase. Defaults to False.
+        :param gpu_id: GPU device ID.
+        :param every: seconds after which update the maximum GPU
+            usage
         """
         super().__init__()
 
-        if not train and not eval:
-            raise ValueError('train and eval can\'t be both False at the same'
-                             ' time.')
+        self.gpu_id = gpu_id
+        self._gpu = MaxGPU(gpu_id, every)
 
-        self._gpu_sensor = GpuUsage(gpu_id, every=1)
-        self._timeout = timeout
-        self._last_time = None
-        self._track_train_usage = train
-        self._track_eval_usage = eval
+    def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+        self._gpu.update()
 
-    def on_event(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if (strategy.is_training and not self._track_train_usage) or \
-                (strategy.is_eval and not self._track_eval_usage):
-            return None
+    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
 
-        is_elapsed = False
-        if self._timeout is not None:
-            current_time = time.time()
-            is_elapsed = self._last_time is None or (
-                    (current_time - self._last_time) >= self._timeout)
-            if is_elapsed:
-                self._last_time = current_time
-
-        if self._timeout is None or is_elapsed:
-            self._gpu_sensor.update()
-            return self._package_result(strategy)
-
-    def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if not self._track_train_usage:
-            self._gpu_sensor.reset()
-        else:
-            self._gpu_sensor.update()
-
-        return super().before_training(strategy)
-
-    def before_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        if not self._track_train_usage:
-            self._gpu_sensor.reset()
-        else:
-            self._gpu_sensor.update()
-
-        return super().before_eval(strategy)
-
-    def result(self) -> Optional[float]:
-        gpu_result = self._gpu_sensor.result()
-        if gpu_result is None:
-            return None
-        return gpu_result * 100.0
+    def after_training(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
 
     def reset(self) -> None:
-        self._gpu_sensor.reset()
-        self._last_time = None
+        self._gpu.reset()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> 'MetricResult':
-        phase_name, _ = phase_and_task(strategy)
-        experience_gpu = self.result()
+    def result(self) -> float:
+        return self._gpu.result()
 
-        metric_name = 'GPU_usage/{}'.format(phase_name)
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        gpu_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy)
         plot_x_position = self._next_x_position(metric_name)
 
-        return [MetricValue(self, metric_name, experience_gpu, plot_x_position)]
+        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
+
+    def __str__(self):
+        return f"MaxGPU{self.gpu_id}Usage_MB"
+
+
+class EpochMaxGPU(PluginMetric[float]):
+    """
+    The Epoch Max GPU metric.
+    This metric only works at training time.
+    """
+
+    def __init__(self, gpu_id, every=0.5):
+        """
+        Creates an instance of the epoch Max GPU metric.
+
+        :param gpu_id: GPU device ID.
+        :param every: seconds after which update the maximum GPU
+            usage
+        """
+        super().__init__()
+
+        self.gpu_id = gpu_id
+        self._gpu = MaxGPU(gpu_id, every)
+
+    def before_training_epoch(self, strategy) -> MetricResult:
+        self.reset()
+        self._gpu.update()
+
+    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
+
+    def after_training(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._gpu.reset()
+
+    def result(self) -> float:
+        return self._gpu.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        gpu_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
+
+    def __str__(self):
+        return f"MaxGPU{self.gpu_id}Usage_Epoch"
+
+
+class ExperienceMaxGPU(PluginMetric[float]):
+    """
+    The Experience Max GPU metric.
+    This metric only works at eval time.
+    """
+
+    def __init__(self, gpu_id, every=0.5):
+        """
+        Creates an instance of the Experience CPU usage metric.
+
+        :param gpu_id: GPU device ID.
+        :param every: seconds after which update the maximum GPU
+            usage
+        """
+        super().__init__()
+
+        self.gpu_id = gpu_id
+        self._gpu = MaxGPU(gpu_id, every)
+
+    def before_eval_exp(self, strategy) -> MetricResult:
+        self.reset()
+        self._gpu.update()
+
+    def after_eval_exp(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        return self._package_result(strategy)
+
+    def after_eval(self, strategy: 'PluggableStrategy') -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._gpu.reset()
+
+    def result(self) -> float:
+        return self._gpu.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        gpu_usage = self.result()
+
+        metric_name = get_metric_name(self, strategy, add_experience=True)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
+
+    def __str__(self):
+        return f"MaxGPU{self.gpu_id}Usage_Experience"
+
+
+class StreamMaxGPU(PluginMetric[float]):
+    """
+    The Stream Max GPU metric.
+    This metric only works at eval time.
+    """
+
+    def __init__(self, gpu_id, every=0.5):
+        """
+        Creates an instance of the Experience CPU usage metric.
+
+        :param gpu_id: GPU device ID.
+        :param every: seconds after which update the maximum GPU
+            usage
+        """
+        super().__init__()
+
+        self.gpu_id = gpu_id
+        self._gpu = MaxGPU(gpu_id, every)
+
+    def before_eval(self, strategy) -> MetricResult:
+        self.reset()
+        self._gpu.update()
+
+    def after_eval(self, strategy: 'PluggableStrategy') \
+            -> MetricResult:
+        packed = self._package_result(strategy)
+        self.reset()
+        return packed
+
+    def reset(self) -> None:
+        self._gpu.reset()
+
+    def result(self) -> float:
+        return self._gpu.result()
+
+    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+        gpu_usage = self.result()
+
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
+
+    def __str__(self):
+        return f"MaxGPU{self.gpu_id}Usage_Stream"
+
+
+def gpu_usage_metrics(gpu_id, every=0.5, minibatch=False, epoch=False,
+                      experience=False, stream=False) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of metric.
+
+    :param gpu_id: GPU device ID.
+    :param every: seconds after which update the maximum GPU
+        usage
+    :param minibatch: If True, will return a metric able to log the minibatch
+        max GPU usage.
+    :param epoch: If True, will return a metric able to log the epoch
+        max GPU usage.
+    :param experience: If True, will return a metric able to log the experience
+        max GPU usage.
+    :param stream: If True, will return a metric able to log the evaluation
+        max stream GPU usage.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+    if minibatch:
+        metrics.append(MinibatchMaxGPU(gpu_id, every))
+
+    if epoch:
+        metrics.append(EpochMaxGPU(gpu_id, every))
+
+    if experience:
+        metrics.append(ExperienceMaxGPU(gpu_id, every))
+
+    if stream:
+        metrics.append(StreamMaxGPU(gpu_id, every))
+
+    return metrics
 
 
 __all__ = [
-    'GpuUsage',
-    'GpuUsageMonitor'
+    'MaxGPU',
+    'MinibatchMaxGPU',
+    'EpochMaxGPU',
+    'ExperienceMaxGPU',
+    'StreamMaxGPU',
+    'gpu_usage_metrics'
 ]

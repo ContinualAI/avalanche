@@ -34,17 +34,16 @@ class MaxRAM(Metric[float]):
     The update method starts the usage tracking. The reset method stops
     the tracking.
 
-
     The result, obtained using the `result` method, is the usage in mega-bytes.
 
     The reset method will bring the metric to its initial state. By default
     this metric in its initial state will return an usage value of 0.
     """
 
-    def __init__(self, delay=1):
+    def __init__(self, every=1):
         """
         Creates an instance of the RAM usage metric.
-        :param delay: seconds after which update the maximum RAM
+        :param every: seconds after which update the maximum RAM
             usage
         """
 
@@ -53,7 +52,7 @@ class MaxRAM(Metric[float]):
         The process handle, lazily initialized.
         """
 
-        self.delay = delay
+        self.every = every
 
         self.thread = None
         """
@@ -73,7 +72,7 @@ class MaxRAM(Metric[float]):
     def _f(self):
         """
         Until a stop signal is encountered,
-        this function monitors each `delay` seconds
+        this function monitors each `every` seconds
         the maximum amount of RAM used by the process
         """
         start_time = time.monotonic()
@@ -82,8 +81,8 @@ class MaxRAM(Metric[float]):
             ram_usage = self._process_handle.memory_info().rss / 1024 / 1024
             if ram_usage > self.max_usage:
                 self.max_usage = ram_usage
-            time.sleep(self.delay - ((time.monotonic() - start_time)
-                                     % self.delay))
+            time.sleep(self.every - ((time.monotonic() - start_time)
+                                     % self.every))
 
     def result(self) -> Optional[float]:
         """
@@ -121,15 +120,15 @@ class MinibatchMaxRAM(PluginMetric[float]):
     This metric only works at training time.
     """
 
-    def __init__(self, delay=1):
+    def __init__(self, every=1):
         """
         Creates an instance of the Minibatch Max RAM metric
-        :param delay: seconds after which update the maximum RAM
+        :param every: seconds after which update the maximum RAM
             usage
         """
         super().__init__()
 
-        self._ram = MaxRAM(delay)
+        self._ram = MaxRAM(every)
 
     def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
@@ -166,15 +165,15 @@ class EpochMaxRAM(PluginMetric[float]):
     This metric only works at training time.
     """
 
-    def __init__(self, delay=1):
+    def __init__(self, every=1):
         """
         Creates an instance of the epoch Max RAM metric.
-        :param delay: seconds after which update the maximum RAM
+        :param every: seconds after which update the maximum RAM
             usage
         """
         super().__init__()
 
-        self._ram = MaxRAM(delay)
+        self._ram = MaxRAM(every)
 
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
@@ -211,15 +210,15 @@ class ExperienceMaxRAM(PluginMetric[float]):
     This metric only works at eval time.
     """
 
-    def __init__(self, delay=1):
+    def __init__(self, every=1):
         """
         Creates an instance of the Experience CPU usage metric.
-        :param delay: seconds after which update the maximum RAM
+        :param every: seconds after which update the maximum RAM
             usage
         """
         super().__init__()
 
-        self._ram = MaxRAM(delay)
+        self._ram = MaxRAM(every)
 
     def before_eval_exp(self, strategy) -> MetricResult:
         self.reset()
@@ -256,15 +255,15 @@ class StreamMaxRAM(PluginMetric[float]):
     This metric only works at eval time.
     """
 
-    def __init__(self, delay=1):
+    def __init__(self, every=1):
         """
         Creates an instance of the Experience CPU usage metric.
-        :param delay: seconds after which update the maximum RAM
+        :param every: seconds after which update the maximum RAM
             usage
         """
         super().__init__()
 
-        self._ram = MaxRAM(delay)
+        self._ram = MaxRAM(every)
 
     def before_eval(self, strategy) -> MetricResult:
         self.reset()
@@ -299,11 +298,13 @@ class StreamMaxRAM(PluginMetric[float]):
         return "MaxRAMUsage_Stream"
 
 
-def max_ram_metrics(*, minibatch=False, epoch=False,
-                    experience=False, stream=False) -> List[PluginMetric]:
+def ram_usage_metrics(*, every=1, minibatch=False, epoch=False,
+                      experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
 
+    :param every: seconds after which update the maximum RAM
+        usage
     :param minibatch: If True, will return a metric able to log the minibatch
         max RAM usage.
     :param epoch: If True, will return a metric able to log the epoch
@@ -318,16 +319,16 @@ def max_ram_metrics(*, minibatch=False, epoch=False,
 
     metrics = []
     if minibatch:
-        metrics.append(MinibatchMaxRAM())
+        metrics.append(MinibatchMaxRAM(every=every))
 
     if epoch:
-        metrics.append(EpochMaxRAM())
+        metrics.append(EpochMaxRAM(every=every))
 
     if experience:
-        metrics.append(ExperienceMaxRAM())
+        metrics.append(ExperienceMaxRAM(every=every))
 
     if stream:
-        metrics.append(StreamMaxRAM())
+        metrics.append(StreamMaxRAM(every=every))
 
     return metrics
 
@@ -338,5 +339,5 @@ __all__ = [
     'EpochMaxRAM',
     'ExperienceMaxRAM',
     'StreamMaxRAM',
-    'max_ram_metrics'
+    'ram_usage_metrics'
 ]

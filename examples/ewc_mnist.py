@@ -4,8 +4,9 @@ from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import ExperienceForgetting, \
-    accuracy_metrics, loss_metrics
-from avalanche.logging import InteractiveLogger
+    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
+    gpu_usage_metrics, ram_usage_metrics
+from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 """
@@ -45,13 +46,31 @@ def main(args):
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
+    text_logger = TextLogger(open('log.txt', 'a'))
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        cpu_usage_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True),
+        #timing_metrics(
+        #    minibatch=True, epoch=True, experience=True, stream=True),
+        ram_usage_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True),
+        gpu_usage_metrics(
+            args.cuda, minibatch=False, epoch=True, experience=True, stream=True),
         ExperienceForgetting(),
-        loggers=[interactive_logger])
+        loggers=[interactive_logger, text_logger])
+
+    # eval_plugin = EvaluationPlugin(
+    #     accuracy_metrics(
+    #         minibatch=True, epoch=True, experience=True, stream=True),
+    #     loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    #     ExperienceForgetting(),
+    #     ram_usage_metrics(experience=True, epoch=True, stream=True),
+    #     gpu_usage_metrics(args.cuda, every=0.5, experience=True, epoch=True, stream=True),
+    #     loggers=[interactive_logger])
 
     # create strategy
     strategy = EWC(model, optimizer, criterion, args.ewc_lambda,
@@ -69,6 +88,7 @@ def main(args):
         print("End training on experience", experience.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
