@@ -324,9 +324,9 @@ class RamUsageMetricTests(unittest.TestCase):
 
         # Assert result is None when created
         self.assertEqual(0, uut.result())
+        uut.start_thread()
 
         # Base usage
-        uut.update()
         last_result = uut.result()
         self.assertLessEqual(0.0, last_result)
 
@@ -346,7 +346,7 @@ class DiskUsageMetricTests(unittest.TestCase):
             uut = DiskUsage(tmp_dir)
 
             # Assert result is None when created
-            self.assertEqual(None, uut.result())
+            self.assertEqual(0, uut.result())
 
             # Base usage
             uut.update()
@@ -354,7 +354,7 @@ class DiskUsageMetricTests(unittest.TestCase):
 
             # Assert reset actually resets
             uut.reset()
-            self.assertEqual(None, uut.result())
+            self.assertEqual(0, uut.result())
 
             uut.update()
             base_value = uut.result()

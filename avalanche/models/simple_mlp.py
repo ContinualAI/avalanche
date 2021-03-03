@@ -10,9 +10,7 @@
 ################################################################################
 
 """
-
-This is the definition od the Mid-caffenet high resolution in Pythorch
-
+This is the definition od the Mid-caffenet high resolution in Pytorch.
 """
 
 # Python 2-3 compatible

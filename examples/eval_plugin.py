@@ -27,7 +27,8 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import ExperienceForgetting, \
-    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics
+    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
+    gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -81,11 +82,17 @@ def main(args):
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        ram_usage_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        gpu_usage_metrics(
+            args.cuda, minibatch=True, epoch=True, experience=True, stream=True),
+        disk_usage_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger, text_logger])
 
 
@@ -119,8 +126,6 @@ def main(args):
     # metrics without avalanche.
     all_metrics = cl_strategy.evaluator.all_metrics
     print(f"Stored metrics: {list(all_metrics.keys())}")
-    mname = 'Top1_Acc_Task/Task000'
-    print(f"{mname}: {cl_strategy.evaluator.all_metrics[mname]}")
 
 
 if __name__ == '__main__':
