@@ -1,8 +1,12 @@
 import unittest
 from avalanche.benchmarks import PermutedMNIST, Experience
+from tests.unit_tests_utils import common_setups
 
 
 class PermutedMNISTTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_PermutedMNIST_scenario(self):
 
         scenario = PermutedMNIST(3)
