@@ -373,7 +373,7 @@ def create_generic_scenario_from_tensors(
                              ' the same amount of elements')
 
     transform_groups = dict(train=(train_transform, train_target_transform),
-                            test=(eval_transform, eval_target_transform))
+                            eval=(eval_transform, eval_target_transform))
 
     train_datasets = [
         AvalancheTensorDataset(
@@ -387,7 +387,7 @@ def create_generic_scenario_from_tensors(
         AvalancheTensorDataset(
             dataset_x, dataset_y,
             transform_groups=transform_groups,
-            initial_transform_group='test')
+            initial_transform_group='eval')
         for dataset_x, dataset_y in
         zip(test_data_x, test_data_y)]
 

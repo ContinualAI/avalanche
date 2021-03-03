@@ -105,7 +105,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test (eval) transformations. This becomes useful when in need to
+            eval (test) transformations. This becomes useful when in need to
             test on the training dataset as test transformations usually don't
             contain random augmentations. ``AvalancheDataset`` natively supports
             the 'train' and 'eval' groups by calling the ``train()`` and
@@ -761,7 +761,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test (eval) transformations. This becomes useful when in need to
+            eval (test) transformations. This becomes useful when in need to
             test on the training dataset as test transformations usually don't
             contain random augmentations. ``AvalancheDataset`` natively supports
             the 'train' and 'eval' groups by calling the ``train()`` and
@@ -862,7 +862,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test (eval) transformations. This becomes useful when in need to
+            eval (test) transformations. This becomes useful when in need to
             test on the training dataset as test transformations usually don't
             contain random augmentations. ``AvalancheDataset`` natively supports
             the 'train' and 'eval' groups by calling the ``train()`` and
@@ -917,7 +917,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test (eval) transformations. This becomes useful when in need to
+            eval (test) transformations. This becomes useful when in need to
             test on the training dataset as test transformations usually don't
             contain random augmentations. ``AvalancheDataset`` natively supports
             the 'train' and 'eval' groups by calling the ``train()`` and
