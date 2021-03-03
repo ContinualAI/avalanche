@@ -8,6 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+from os.path import expanduser
 
 from typing_extensions import Literal
 
@@ -53,7 +54,7 @@ def _adjust_bbox(img_shapes, bbox, ratio=1.1):
     return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
-def CLStream51(root: str,
+def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
                scenario: Literal[
                    'iid', 'class_iid', 'instance',
                    'class_instance'] = "class_instance",
@@ -82,7 +83,9 @@ def CLStream51(root: str,
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Base path where Stream51 data is stored.
+    :param root: Path indicating where to store the dataset and related
+        metadata. By default they will be stored in
+        "~/.avalanche/datasets/stream51/data/".
     :param scenario: A string defining which Stream-51 scenario to return.
         Can be chosen between 'iid', 'class_iid', 'instance', and
         'class_instance'. Defaults to 'class_instance'.
@@ -244,8 +247,8 @@ if __name__ == "__main__":
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    scenario = CLStream51(root=root_dir, scenario="class_instance", seed=10,
+    # root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
+    scenario = CLStream51(scenario="class_instance", seed=10,
                           bbox_crop=True)
 
     train_imgs_count = 0
