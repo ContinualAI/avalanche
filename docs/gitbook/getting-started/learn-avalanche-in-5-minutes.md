@@ -268,7 +268,7 @@ The metrics already available in the current _Avalanche_ release are:
 from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
 EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
 StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
-AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, DiskUsageMonitor, \
+AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, disk_usage_metrics, \
 ExperienceForgetting, MaxGPU, gpu_usage_metrics, Loss, MinibatchLoss, \
 EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, MaxRAM, \ 
 Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
@@ -301,7 +301,7 @@ Here we show how you can use all these modules together to **design your experim
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
 loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
-DiskUsageMonitor, gpu_usage_metrics
+disk_usage_metrics, gpu_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -333,7 +333,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    DiskUsageMonitor(),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 

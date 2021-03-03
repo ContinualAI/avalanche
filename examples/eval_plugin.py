@@ -28,7 +28,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks import nc_scenario
 from avalanche.evaluation.metrics import ExperienceForgetting, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
-    gpu_usage_metrics, ram_usage_metrics
+    gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -82,15 +82,17 @@ def main(args):
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        ExperienceForgetting(),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         ram_usage_metrics(
-            minibatch=False, epoch=True, experience=True, stream=True),
+            minibatch=True, epoch=True, experience=True, stream=True),
         gpu_usage_metrics(
-            args.cuda, minibatch=False, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+            args.cuda, minibatch=True, epoch=True, experience=True, stream=True),
+        disk_usage_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger, text_logger])
 
 

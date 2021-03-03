@@ -47,17 +47,12 @@ class MaxRAM(Metric[float]):
             usage
         """
 
-        self._process_handle: Optional[Process] = None
+        self._process_handle: Optional[Process] = Process(os.getpid())
         """
         The process handle, lazily initialized.
         """
 
         self.every = every
-
-        self.thread = None
-        """
-        Thread executing RAM monitoring code
-        """
 
         self.stop_f = False
         """
@@ -67,6 +62,11 @@ class MaxRAM(Metric[float]):
         self.max_usage = 0
         """
         Main metric result. Max RAM usage.
+        """
+
+        self.thread = None
+        """
+        Thread executing RAM monitoring code
         """
 
     def _f(self):
@@ -94,10 +94,18 @@ class MaxRAM(Metric[float]):
         """
         return self.max_usage
 
-    def update(self):
-        self._process_handle = Process(os.getpid())
+    def start_thread(self):
+        assert not self.thread, "Trying to start thread " \
+                                "without joining the previous."
         self.thread = Thread(target=self._f, daemon=True)
         self.thread.start()
+
+    def stop_thread(self):
+        if self.thread:
+            self.stop_f = True
+            self.thread.join()
+            self.stop_f = False
+            self.thread = None
 
     def reset(self) -> None:
         """
@@ -105,13 +113,7 @@ class MaxRAM(Metric[float]):
 
         :return: None.
         """
-        if self.thread:
-            self.stop_f = True
-            self.thread.join()
-            self.thread = None
-        self.stop_f = False
         self.max_usage = 0
-        self._process_handle = None
 
 
 class MinibatchMaxRAM(PluginMetric[float]):
@@ -130,16 +132,19 @@ class MinibatchMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
+    def before_training(self, strategy: 'PluggableStrategy') \
+            -> None:
+        self._ram.start_thread()
+
     def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
         self.reset()
-        self._ram.update()
 
     def after_training_iteration(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
     def after_training(self, strategy: 'PluggableStrategy') -> None:
-        self.reset()
+        self._ram.stop_thread()
 
     def reset(self) -> None:
         self._ram.reset()
@@ -175,16 +180,19 @@ class EpochMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
+    def before_training(self, strategy: 'PluggableStrategy') \
+            -> None:
+        self._ram.start_thread()
+
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
-        self._ram.update()
 
     def after_training_epoch(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
     def after_training(self, strategy: 'PluggableStrategy') -> None:
-        self.reset()
+        self._ram.stop_thread()
 
     def reset(self) -> None:
         self._ram.reset()
@@ -220,16 +228,19 @@ class ExperienceMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
+    def before_eval(self, strategy: 'PluggableStrategy') \
+            -> None:
+        self._ram.start_thread()
+
     def before_eval_exp(self, strategy) -> MetricResult:
         self.reset()
-        self._ram.update()
 
     def after_eval_exp(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
     def after_eval(self, strategy: 'PluggableStrategy') -> None:
-        self.reset()
+        self._ram.stop_thread()
 
     def reset(self) -> None:
         self._ram.reset()
@@ -267,12 +278,12 @@ class StreamMaxRAM(PluginMetric[float]):
 
     def before_eval(self, strategy) -> MetricResult:
         self.reset()
-        self._ram.update()
+        self._ram.start_thread()
 
     def after_eval(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
         packed = self._package_result(strategy)
-        self.reset()
+        self._ram.stop_thread()
         return packed
 
     def reset(self) -> None:
