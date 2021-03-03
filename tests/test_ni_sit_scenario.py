@@ -8,9 +8,13 @@ from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import ni_scenario
+from tests.unit_tests_utils import common_setups
 
 
 class NISITTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_ni_sit_single_dataset(self):
         mnist_train = MNIST('./data/mnist', train=True, download=True)
         mnist_test = MNIST('./data/mnist', train=False, download=True)
