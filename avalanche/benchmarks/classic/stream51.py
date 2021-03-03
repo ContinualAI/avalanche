@@ -9,7 +9,6 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-# from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 from typing import Literal
 
 from avalanche.benchmarks.datasets import Stream51
@@ -261,7 +260,7 @@ if __name__ == "__main__":
         for j, mb in enumerate(dl):
             if j == 2:
                 break
-            x, y, *_ = mb
+            x, y, t = mb
 
             # show a few un-normalized images from data stream
             # this code is for debugging purposes
