@@ -13,6 +13,7 @@ channels:
 - conda-forge
 dependencies:
 - psutil
+- conda-forge::gputil
 - tensorboard
 - scikit-learn
 - matplotlib

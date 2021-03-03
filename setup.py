@@ -38,6 +38,7 @@ setuptools.setup(
     install_requires=[
         'typing-extensions',
         'psutil',
+        'gputil',
         'tensorboard',
         'scikit-learn',
         'matplotlib',
