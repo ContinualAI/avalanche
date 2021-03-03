@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Set, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING
 
 from torch import Tensor
 
