@@ -17,6 +17,7 @@ from torchvision import transforms
 from avalanche.benchmarks import nc_scenario, NCScenario
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
+
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),

@@ -19,7 +19,7 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
-    from avalanche.benchmarks.scenarios import IExperience
+    from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 
 
@@ -101,7 +101,7 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
     return strategy.train_task_label
 
 
-def stream_type(experience: 'IExperience') -> str:
+def stream_type(experience: 'Experience') -> str:
     """
     Returns the stream name from which the experience belongs to.
     e.g. the experience can be part of train or test stream.

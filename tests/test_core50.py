@@ -14,7 +14,7 @@
 import unittest
 
 from avalanche.benchmarks.classic import CORe50
-from avalanche.benchmarks.scenarios.generic_definitions import IExperience
+from avalanche.benchmarks.scenarios.generic_definitions import Experience
 
 
 class CORe50Test(unittest.TestCase):

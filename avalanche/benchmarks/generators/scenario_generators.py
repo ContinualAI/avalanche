@@ -48,7 +48,6 @@ def nc_scenario(
         class_ids_from_zero_in_each_exp: bool = False,
         one_dataset_per_exp: bool = False,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
-    # TODO: doc check (returns!!)
     """
     This method is the high-level specific scenario generator for the
     "New Classes" (NC) case. Given a sequence of train and test datasets creates
@@ -65,7 +64,7 @@ def nc_scenario(
     the behaviour of the resulting scenario. Please take a few minutes to read
     and understand them as they may save you a lot of work.
 
-    This generator features an integrated reproducibility mechanism that allows
+    This generator features a integrated reproducibility mechanism that allows
     the user to store and later re-load a scenario. For more info see the
     ``reproducibility_data`` parameter.
 
@@ -126,8 +125,7 @@ def nc_scenario(
         Beware that, in order to reproduce an experiment, the same train and
         test datasets must be used. Defaults to None.
 
-    :return: A :class:`NCMultiTaskScenario` or :class:`NCSingleTaskScenario`
-        instance initialized for the the SIT or MT scenario.
+    :return: A properly initialized :class:`NCScenario` instance.
     """
 
     if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
@@ -198,7 +196,6 @@ def ni_scenario(
         fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
-    # TODO: doc check (returns!!)
     """
     This method is the high-level specific scenario generator for the
     "New Instances" (NI) case. Given a sequence of train and test datasets
@@ -249,7 +246,7 @@ def ni_scenario(
         Beware that, in order to reproduce an experiment, the same train and
         test datasets must be used. Defaults to None.
 
-    :return: A :class:`NIScenario` instance.
+    :return: A properly initialized :class:`NIScenario` instance.
     """
 
     seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
@@ -280,8 +277,8 @@ def dataset_scenario(
         train_dataset_list: Sequence[SupportedDataset],
         test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
+        *,
         complete_test_set_only: bool = False) -> GenericCLScenario:
-    # TODO: doc check (returns!!)
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -289,15 +286,16 @@ def dataset_scenario(
     targets.
 
     When loading the datasets from a set of fixed file lists, consider using
-    the :func:`filelist_scenario` helper method instead.
+    the :func:`filelist_scenario` helper method instead. Also, loading from
+    a list of paths is supported through the :func:`paths_scenario` helper.
 
     In its base form, this function accepts a list of test datasets that must
     contain the same amount of datasets of the training list.
     Those pairs are then used to create the "past", "cumulative"
     (a.k.a. growing) and "future" test sets. However, in certain Continual
     Learning scenarios only the concept of "complete" test set makes sense. In
-    that case, the ``complete_test_set_only`` should be set to True (see the
-    parameter description for more info).
+    that case, the ``complete_test_set_only`` parameter should be set to True
+    (see the parameter description for more info).
 
     Beware that pattern transformations must already be included in the
     datasets (when needed).
@@ -315,15 +313,14 @@ def dataset_scenario(
         Defaults to False, which means that ``train_dataset_list`` and
         ``test_dataset_list`` must contain the same amount of datasets.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     return create_multi_dataset_generic_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
         task_labels=task_labels,
-        complete_test_set_only=complete_test_set_only
-    )
+        complete_test_set_only=complete_test_set_only)
 
 
 def filelist_scenario(
@@ -331,15 +328,14 @@ def filelist_scenario(
         train_file_lists: Sequence[Union[str, Path]],
         test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
         task_labels: Sequence[int],
+        *,
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
-    # TODO: doc check (returns!!)
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
     those training datasets will be considered a separate training experience.
-    Contents of the datasets will not be changed, including the targets.
 
     In its base form, this function accepts a list of filelists for the test
     datsets that must contain the same amount of elements of the training list.
@@ -368,16 +364,20 @@ def filelist_scenario(
         Alternatively, can be a plain string or :class:`Path` object.
         Defaults to False, which means that ``train_file_lists`` and
         ``test_file_lists`` must contain the same amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     return create_generic_scenario_from_filelists(
@@ -388,9 +388,8 @@ def filelist_scenario(
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
-        test_transform=test_transform,
-        test_target_transform=test_target_transform
-    )
+        eval_transform=eval_transform,
+        eval_target_transform=eval_target_transform)
 
 
 FileAndLabel = Tuple[Union[str, Path], int]
@@ -401,15 +400,14 @@ def paths_scenario(
         test_list_of_files: Union[Sequence[FileAndLabel],
                                   Sequence[Sequence[FileAndLabel]]],
         task_labels: Sequence[int],
+        *,
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
-    # TODO: doc check (returns!!)
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given a list of files and class labels.
     A separate dataset will be created for each list and each of
     those training datasets will be considered a separate training experience.
-    Contents of the datasets will not be changed, including the targets.
 
     This is very similar to `filelist_scenario`, with the main difference being
     that `filelist_scenario` accepts, for each experience, a file list formatted
@@ -450,16 +448,20 @@ def paths_scenario(
         Alternatively, can be a plain string or :class:`Path` object.
         Defaults to False, which means that ``train_file_lists`` and
         ``test_file_lists`` must contain the same amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     return create_generic_scenario_from_paths(
@@ -469,9 +471,8 @@ def paths_scenario(
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
-        test_transform=test_transform,
-        test_target_transform=test_target_transform
-    )
+        eval_transform=eval_transform,
+        eval_target_transform=eval_target_transform)
 
 
 def tensor_scenario(
@@ -480,10 +481,10 @@ def tensor_scenario(
         test_data_x: Union[Any, Sequence[Any]],
         test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
         task_labels: Sequence[int],
+        *,
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
-    # TODO: doc check (returns!!)
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)
@@ -522,16 +523,20 @@ def tensor_scenario(
         (the complete test set). Defaults to False, which means that
         ``train_file_lists`` and ``test_file_lists`` must contain the same
         amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     return create_generic_scenario_from_tensors(
@@ -543,9 +548,8 @@ def tensor_scenario(
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
-        test_transform=test_transform,
-        test_target_transform=test_target_transform
-    )
+        eval_transform=eval_transform,
+        eval_target_transform=eval_target_transform)
 
 
 def _one_dataset_per_exp_class_order(

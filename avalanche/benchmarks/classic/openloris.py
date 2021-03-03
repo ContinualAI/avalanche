@@ -102,7 +102,7 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
         [0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
         train_transform=train_transform,
-        test_transform=eval_transform)
+        eval_transform=eval_transform)
 
     return factor_obj
 

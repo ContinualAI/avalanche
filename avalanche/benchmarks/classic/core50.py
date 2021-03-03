@@ -107,7 +107,7 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
         [0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
-        test_transform=eval_transform)
+        eval_transform=eval_transform)
 
     return scenario_obj
 

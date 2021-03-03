@@ -12,12 +12,13 @@ from avalanche.benchmarks.utils.dataset_utils import LazyConcatTargets,\
     ConstantSequence
 
 
-# TODO: add transforms
 def create_multi_dataset_generic_scenario(
         train_dataset_list: Sequence[SupportedDataset],
         test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
-        complete_test_set_only: bool = False) -> GenericCLScenario:
+        complete_test_set_only: bool = False,
+        train_transform=None, train_target_transform=None,
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -50,9 +51,25 @@ def create_multi_dataset_generic_scenario(
         parameter must be list with a single element (the complete test set).
         Defaults to False, which means that ``train_dataset_list`` and
         ``test_dataset_list`` must contain the same amount of datasets.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param train_target_transform: The transformation to apply to training
+        patterns targets. Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
+        patterns targets. Defaults to None.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
+
+    transform_groups = dict(
+        train=(train_transform, train_target_transform),
+        eval=(eval_transform, eval_target_transform))
 
     # GenericCLScenario accepts a single training+test sets couple along with
     # the respective list of patterns indexes to include in each experience.
@@ -62,7 +79,9 @@ def create_multi_dataset_generic_scenario(
     # just be ranges of ascending indexes.
     train_structure = []
     pattern_train_task_labels = []
-    concat_train_dataset = AvalancheConcatDataset(train_dataset_list)
+    concat_train_dataset = AvalancheConcatDataset(
+        train_dataset_list, transform_groups=transform_groups,
+        initial_transform_group='train')
     next_idx = 0
     for dataset_idx, train_dataset in enumerate(train_dataset_list):
         end_idx = next_idx + len(train_dataset)
@@ -85,9 +104,16 @@ def create_multi_dataset_generic_scenario(
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
         concat_test_dataset = as_avalanche_dataset(test_dataset_list[0])
+        concat_test_dataset = concat_test_dataset.train().add_transforms(
+            train_transform, train_target_transform)
+        concat_test_dataset = concat_test_dataset.eval().add_transforms(
+            eval_transform, eval_target_transform)
+
         pattern_test_task_labels = ConstantSequence(0, len(concat_test_dataset))
     else:
-        concat_test_dataset = AvalancheConcatDataset(test_dataset_list)
+        concat_test_dataset = AvalancheConcatDataset(
+            test_dataset_list, transform_groups=transform_groups,
+            initial_transform_group='eval')
         test_structure = []
         pattern_test_task_labels = []
         next_idx = 0
@@ -98,7 +124,6 @@ def create_multi_dataset_generic_scenario(
                 ConstantSequence(task_labels[dataset_idx], len(test_dataset)))
             next_idx = end_idx
         pattern_test_task_labels = LazyConcatTargets(pattern_test_task_labels)
-    concat_test_dataset = concat_test_dataset.eval()
 
     task_labels = [[x] for x in task_labels]
 
@@ -112,7 +137,7 @@ def create_multi_dataset_generic_scenario(
         pattern_test_task_labels,
         complete_test_set_only=complete_test_set_only)
 
-# TODO: transform name
+
 def create_generic_scenario_from_filelists(
         root: Union[str, Path],
         train_file_lists: Sequence[Union[str, Path]],
@@ -120,7 +145,7 @@ def create_generic_scenario_from_filelists(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
@@ -154,13 +179,17 @@ def create_generic_scenario_from_filelists(
         Alternatively, can be a plain string or :class:`Path` object.
         Defaults to False, which means that ``train_file_lists`` and
         ``test_file_lists`` must contain the same amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
     :returns: A :class:`GenericCLScenario` instance.
@@ -171,8 +200,8 @@ def create_generic_scenario_from_filelists(
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
-        test_transform=test_transform,
-        test_target_transform=test_target_transform)
+        test_transform=eval_transform,
+        test_target_transform=eval_target_transform)
 
     return create_multi_dataset_generic_scenario(
         train_datasets, test_dataset, task_labels,
@@ -181,7 +210,7 @@ def create_generic_scenario_from_filelists(
 
 FileAndLabel = Tuple[Union[str, Path], int]
 
-# TODO: transform name
+
 def create_generic_scenario_from_paths(
         train_list_of_files: Sequence[Sequence[FileAndLabel]],
         test_list_of_files: Union[Sequence[FileAndLabel],
@@ -189,7 +218,7 @@ def create_generic_scenario_from_paths(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given a sequence of lists of files. A separate
     dataset will be created for each list. Each of those training datasets
@@ -235,13 +264,17 @@ def create_generic_scenario_from_paths(
         Alternatively, can be a plain string or :class:`Path` object.
         Defaults to False, which means that ``train_file_lists`` and
         ``test_file_lists`` must contain the same amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
     :returns: A :class:`GenericCLScenario` instance.
@@ -252,14 +285,14 @@ def create_generic_scenario_from_paths(
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
-        test_transform=test_transform,
-        test_target_transform=test_target_transform)
+        test_transform=eval_transform,
+        test_target_transform=eval_target_transform)
 
     return create_multi_dataset_generic_scenario(
         train_datasets, test_dataset, task_labels,
         complete_test_set_only=complete_test_set_only)
 
-# TODO: transform name
+
 def create_generic_scenario_from_tensors(
         train_data_x: Sequence[Any],
         train_data_y: Sequence[Sequence[SupportsInt]],
@@ -268,7 +301,7 @@ def create_generic_scenario_from_tensors(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)
@@ -307,13 +340,17 @@ def create_generic_scenario_from_tensors(
         (the complete test set). Defaults to False, which means that
         ``train_file_lists`` and ``test_file_lists`` must contain the same
         amount of filelists paths.
-    :param train_transform: The transformation to apply to training patterns.
-        Defaults to None.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param train_target_transform: The transformation to apply to training
         patterns targets. Defaults to None.
-    :param test_transform: The transformation to apply to test patterns.
-        Defaults to None.
-    :param test_target_transform: The transformation to apply to test
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
     :returns: A :class:`GenericCLScenario` instance.
@@ -336,7 +373,7 @@ def create_generic_scenario_from_tensors(
                              ' the same amount of elements')
 
     transform_groups = dict(train=(train_transform, train_target_transform),
-                            test=(test_transform, test_target_transform))
+                            test=(eval_transform, eval_target_transform))
 
     train_datasets = [
         AvalancheTensorDataset(

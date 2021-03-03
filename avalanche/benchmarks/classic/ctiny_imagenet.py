@@ -21,7 +21,7 @@ _default_train_transform = transforms.Compose([
                              (0.2023, 0.1994, 0.2010))
 ])
 
-_default_test_transform = transforms.Compose([
+_default_eval_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465),
                          (0.2023, 0.1994, 0.2010))
@@ -31,7 +31,7 @@ _default_test_transform = transforms.Compose([
 def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
                       fixed_class_order=None,
                       train_transform=_default_train_transform,
-                      eval_transform=_default_test_transform):
+                      eval_transform=_default_eval_transform):
     """
     Creates a CL scenario using the Tiny ImageNet dataset.
 

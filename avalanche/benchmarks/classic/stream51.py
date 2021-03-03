@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Literal
+from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
@@ -228,7 +228,7 @@ def CLStream51(root: str,
         task_labels=[0 for _ in range(num_tasks)],
         complete_test_set_only=scenario == 'instance',
         train_transform=train_transform,
-        test_transform=eval_transform)
+        eval_transform=eval_transform)
 
     return scenario_obj
 
@@ -251,14 +251,14 @@ if __name__ == "__main__":
     train_imgs_count = 0
     for i, batch in enumerate(scenario.train_stream):
         print(i, batch)
-        dataset, t = batch.dataset, batch.task_label
+        dataset, _ = batch.dataset, batch.task_label
         train_imgs_count += len(dataset)
         dl = DataLoader(dataset, batch_size=1)
 
         for j, mb in enumerate(dl):
             if j == 2:
                 break
-            x, y, t = mb
+            x, y, *_ = mb
 
             # show a few un-normalized images from data stream
             # this code is for debugging purposes
