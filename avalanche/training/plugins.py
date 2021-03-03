@@ -37,7 +37,7 @@ from torch.nn.modules.batchnorm import _NormBase
 from torch.utils.data import random_split, ConcatDataset, TensorDataset, \
     DataLoader
 
-from avalanche.benchmarks.scenarios import IExperience
+from avalanche.benchmarks.scenarios import Experience
 from avalanche.training.strategy_callbacks import StrategyCallbacks
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
     get_layers_and_params, freeze_everything, get_last_fc_layer, \
@@ -593,7 +593,7 @@ class MultiHeadPlugin(StrategyPlugin):
         self.set_task_layer(strategy, strategy.experience)
 
     @torch.no_grad()
-    def set_task_layer(self, strategy, experience: IExperience):
+    def set_task_layer(self, strategy, experience: Experience):
         """
         Sets the correct task layer. Creates a new head for previously
         unseen tasks.

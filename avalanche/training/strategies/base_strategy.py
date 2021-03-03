@@ -14,7 +14,7 @@ from typing import Optional, Sequence, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios import IExperience
+from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.logging import default_logger
@@ -217,7 +217,7 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, experiences: Union[IExperience, Sequence[IExperience]],
+    def train(self, experiences: Union[Experience, Sequence[Experience]],
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
@@ -229,7 +229,7 @@ class BaseStrategy:
         self.model.train()
         self.model.to(self.device)
 
-        if isinstance(experiences, IExperience):
+        if isinstance(experiences, Experience):
             experiences = [experiences]
 
         res = []
@@ -242,7 +242,7 @@ class BaseStrategy:
         self.after_training(**kwargs)
         return res
 
-    def train_exp(self, experience: IExperience, **kwargs):
+    def train_exp(self, experience: Experience, **kwargs):
         """
         Training loop over a single IExperience object.
 
@@ -267,7 +267,7 @@ class BaseStrategy:
         self.after_training_exp(**kwargs)
 
     def eval(self,
-             exp_list: Union[IExperience, Sequence[IExperience]],
+             exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
         """
         Evaluate the current model on a series of experiences.
@@ -279,7 +279,7 @@ class BaseStrategy:
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(exp_list, IExperience):
+        if isinstance(exp_list, Experience):
             exp_list = [exp_list]
 
         res = []

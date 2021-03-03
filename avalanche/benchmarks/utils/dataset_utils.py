@@ -458,7 +458,8 @@ def manage_advanced_indexing(idx, single_element_getter, max_length):
 
 class LazySubsequence(Sequence[int]):
     """
-    TODO: doc
+    LazySubsequence can be used to define a Sequence based on another sequence
+    and a pair of start and end indices.
     """
     def __init__(self,
                  sequence: Sequence[int],

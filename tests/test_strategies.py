@@ -383,7 +383,7 @@ class StrategyTest(unittest.TestCase):
             ])
 
             my_nc_scenario = SplitCIFAR10(5, train_transform=train_transform,
-                                          test_transform=test_transform)
+                                          eval_transform=test_transform)
 
         return my_nc_scenario
 

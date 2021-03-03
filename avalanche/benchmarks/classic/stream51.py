@@ -8,6 +8,9 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+from os.path import expanduser
+
+from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
@@ -16,26 +19,29 @@ from torchvision import transforms
 import math
 import os
 
-mu = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
-_default_transform = transforms.Compose([
+_mu = [0.485, 0.456, 0.406]
+_std = [0.229, 0.224, 0.225]
+_default_stream51_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=mu,
-                         std=std)
+    transforms.Normalize(mean=_mu,
+                         std=_std)
 ])
 
 
-def adjust_bbox(img_shapes, bbox, ratio=1.1):
+def _adjust_bbox(img_shapes, bbox, ratio=1.1):
     """
-    put bounding box coordinates in appropriate order for
-    torchvision.transforms.functional.crop function and pad bounding box
-    with ratio size
-    :img_shapes (list): [img.shape[0], img.shape[1]]
-    :bbox (list): [right, left, top, bottom]
-    :ratio (float): percentage pad (default=1.1)
+    Adapts bounding box coordinates so that they can be used by
+    torchvision.transforms.functional.crop function.
 
-    :returns: corrected bounding box coordinates (list)
+    This also pads each bounding box according to the `ratio` parameter.
+
+    :param img_shapes: a list of shapes, with each element in the format
+        "[img.shape[0], img.shape[1]]".
+    :param bbox: A list of elements in the format "[right, left, top, bottom]".
+    :param ratio: The amount of padding. Defaults to "1.1".
+
+    :returns: A list of adapted bounding box coordinates.
     """
     cw = bbox[0] - bbox[1]
     ch = bbox[2] - bbox[3]
@@ -48,29 +54,68 @@ def adjust_bbox(img_shapes, bbox, ratio=1.1):
     return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
-def CLStream51(root, scenario="class_instance", transform=_default_transform,
-               seed=10, eval_num=None, bbox_crop=True, ratio=1.10,
-               download=True):
-    """ Stream-51 continual scenario generator
+def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
+               scenario: Literal[
+                   'iid', 'class_iid', 'instance',
+                   'class_instance'] = "class_instance",
+               seed=10, eval_num=None, bbox_crop=True, ratio: float = 1.10,
+               download=True,
+               train_transform=_default_stream51_transform,
+               eval_transform=_default_stream51_transform):
+    """
+    Creates a CL scenario for Stream-51.
 
-        root (string): Root directory path of dataset.
-        scenario (string): Stream-51 main scenario. Can be chosen between
-        'instance', or 'class_instance.'
-        (default: 'class_instance')
-        transform: A function/transform that takes in
-            a sample and returns a transformed version.
-            E.g, ``transforms.RandomCrop`` for images.
-        bbox_crop: crop images to object bounding box (default: True)
-        ratio: padding for bbox crop (default: 1.10)
-        seed: random seed for shuffling classes or instances (default=10)
-        eval_num: how many samples to see before evaluating the network for
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
+
+    This generator can be used to obtain the 'iid', 'class_iid', 'instance', and
+    'class_instance' scenarios.
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Avalanche will support the
+    "out of distribution" stream in the near future!
+
+    Each Experience contains the `dataset` and the associated task label, which
+    is always 0 for Stream51.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
+
+    :param root: Path indicating where to store the dataset and related
+        metadata. By default they will be stored in
+        "~/.avalanche/datasets/stream51/data/".
+    :param scenario: A string defining which Stream-51 scenario to return.
+        Can be chosen between 'iid', 'class_iid', 'instance', and
+        'class_instance'. Defaults to 'class_instance'.
+    :param bbox_crop: If True, crops the images by using the bounding boxes
+        defined by Stream51. This is needed to ensure that images depict only
+        the required object (for classification purposes). Defaults to True.
+    :param ratio: A floating point value (>= 1.0) that controls the amount of
+        padding for bounding boxes crop (default: 1.10).
+    :param seed: Random seed for shuffling classes or instances. Defaults to 10.
+    :param eval_num: How many samples to see before evaluating the network for
         instance ordering and how many classes to see before evaluating the
-        network for the class_instance ordering
-        (default=None)
-        download: automatically download the dataset (default=False)
+        network for the class_instance ordering. Defaults to None, which means
+        that "30000" will be used for the 'instance' scenario and "10" for the
+        'class_instance' scenario.
+    :param download: If True, the dataset will automatically downloaded.
+        Defaults to True.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default train transformation
+        will be used.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default eval transformation
+        will be used.
 
-    :returns: it returns a :class:`GenericCLScenario` instance that can be
-        iterated.
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     # get train and test sets and order them by scenario
@@ -108,18 +153,18 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
-                  adjust_bbox(train_set.samples[j][-3],
-                              train_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(train_set.samples[j][-3],
+                               train_set.samples[j][-2],
+                               ratio)) for j in
                  range(start, end)])
             start = end
 
         # use all test data for instance ordering
         test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
                                  test_set.samples[j][0],
-                                 adjust_bbox(test_set.samples[j][-3],
-                                             test_set.samples[j][-2],
-                                             ratio)) for
+                                 _adjust_bbox(test_set.samples[j][-3],
+                                              test_set.samples[j][-2],
+                                              ratio)) for
                                 j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
@@ -150,21 +195,21 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
             test_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
-                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                               ratio)) for j in
                  test_files])
             test_ood_filelists_paths.append(
                 [(os.path.join(root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
-                  adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
+                               ratio)) for j in
                  test_ood_files])
             train_filelists_paths.append(
                 [(os.path.join(root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
-                  adjust_bbox(train_set.samples[j][-3],
-                              train_set.samples[j][-2],
-                              ratio)) for j in
+                  _adjust_bbox(train_set.samples[j][-3],
+                               train_set.samples[j][-2],
+                               ratio)) for j in
                  range(start, end)])
             start = end
     else:
@@ -185,8 +230,8 @@ def CLStream51(root, scenario="class_instance", transform=_default_transform,
         test_list_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
         complete_test_set_only=scenario == 'instance',
-        train_transform=transform,
-        test_transform=transform)
+        train_transform=train_transform,
+        eval_transform=eval_transform)
 
     return scenario_obj
 
@@ -202,26 +247,26 @@ if __name__ == "__main__":
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    scenario = CLStream51(root=root_dir, scenario="class_instance", seed=10,
+    # root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
+    scenario = CLStream51(scenario="class_instance", seed=10,
                           bbox_crop=True)
 
     train_imgs_count = 0
     for i, batch in enumerate(scenario.train_stream):
         print(i, batch)
-        dataset, t = batch.dataset, batch.task_label
+        dataset, _ = batch.dataset, batch.task_label
         train_imgs_count += len(dataset)
         dl = DataLoader(dataset, batch_size=1)
 
         for j, mb in enumerate(dl):
             if j == 2:
                 break
-            x, y, t = mb
+            x, y, *_ = mb
 
             # show a few un-normalized images from data stream
             # this code is for debugging purposes
             x_np = x[0, :, :, :].numpy().transpose(1, 2, 0)
-            x_np = x_np * std + mu
+            x_np = x_np * _std + _mu
             plt.imshow(x_np)
             plt.show()
 

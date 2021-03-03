@@ -48,13 +48,13 @@ class STREAM51_DATA(object):
         try:
             # Create target Directory for STREAM51 data
             os.makedirs(self.data_folder)
-            self.log.info("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory %s created", self.data_folder)
             self.download = True
             self.download_stream51()
 
         except OSError:
             self.download = False
-            self.log.error("Directory ", self.data_folder, " already exists")
+            self.log.error("Directory %s already exists", self.data_folder)
 
     def download_stream51(self):
         self.log.info("Downloading " + name[1] + "...")
