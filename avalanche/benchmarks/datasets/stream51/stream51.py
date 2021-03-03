@@ -36,7 +36,7 @@ def default_loader(path):
 class Stream51(Dataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root, train=True, transform=ToTensor(),
+    def __init__(self, root, train=True, transform=None,
                  target_transform=None, loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
@@ -180,17 +180,14 @@ class Stream51(Dataset):
         fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
         fmt_str += '    Root Location: {}\n'.format(self.root)
         tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(tmp,
-                                     self.transform.__repr__().replace('\n',
-                                                                       '\n' +
-                                                                       ' ' *
-                                                                       len(
-                                                                           tmp)
-                                                                       ))
+        fmt_str += '{0}{1}\n'.format(
+            tmp, self.transform.__repr__().replace(
+                '\n', '\n' + ' ' * len(tmp)))
+
         tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(tmp,
-                                   self.target_transform.__repr__().replace(
-                                       '\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}'.format(
+            tmp, self.target_transform.__repr__().replace(
+                '\n', '\n' + ' ' * len(tmp)))
         return fmt_str
 
 

@@ -58,15 +58,14 @@ def CLStream51(root: str,
                    'iid', 'class_iid', 'instance',
                    'class_instance'] = "class_instance",
                seed=10, eval_num=None, bbox_crop=True, ratio: float = 1.10,
-               download=False,
+               download=True,
                train_transform=_default_stream51_transform,
                eval_transform=_default_stream51_transform):
     """
     Creates a CL scenario for Stream-51.
 
-    If the dataset is not present in the computer, **this method will NOT be
-    able automatically download** and store it. However, Stream-51 may be soon
-    added to the list of automatically downloadable datasets!
+    If the dataset is not present in the computer, this method will
+    automatically download and store it.
 
     This generator can be used to obtain the 'iid', 'class_iid', 'instance', and
     'class_instance' scenarios.
@@ -98,9 +97,8 @@ def CLStream51(root: str,
         network for the class_instance ordering. Defaults to None, which means
         that "30000" will be used for the 'instance' scenario and "10" for the
         'class_instance' scenario.
-    :param download: If True, Avalanche will automatically download the dataset.
-        This is currently unsupported, but will be supported in the near future!
-        Defaults to False. May change to True in the near future.
+    :param download: If True, the dataset will automatically downloaded.
+        Defaults to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
