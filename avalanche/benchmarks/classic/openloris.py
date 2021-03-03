@@ -34,6 +34,7 @@ fac2dirs = {
     'mixture-iros': "batches_filelists/domain/iros"
 }
 
+
 def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
               factor="clutter",
               train_transform=None,
