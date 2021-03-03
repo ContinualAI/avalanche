@@ -115,7 +115,8 @@ html_logo = './_static/img/avalanche_logo.png'
 # documentation.
 #
 html_theme_options = {
-    'collapse_navigation': False
+    'collapse_navigation': False,
+    'logo_only': True
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
