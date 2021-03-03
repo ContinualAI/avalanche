@@ -324,9 +324,9 @@ class RamUsageMetricTests(unittest.TestCase):
 
         # Assert result is None when created
         self.assertEqual(0, uut.result())
+        uut.start_thread()
 
         # Base usage
-        uut.update()
         last_result = uut.result()
         self.assertLessEqual(0.0, last_result)
 
