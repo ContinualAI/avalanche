@@ -614,7 +614,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset = AvalancheDataset(
             original_dataset,
             transform_groups=dict(train=(ToTensor(), None),
-                                  test=(None, Lambda(lambda t: float(t)))))
+                                  eval=(None, Lambda(lambda t: float(t)))))
 
         x, y, _ = dataset[0]
         self.assertIsInstance(x, Tensor)
@@ -646,21 +646,21 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=(ToTensor(), None),
-                                      test=(Lambda(lambda t: float(t)))))
+                                      eval=(Lambda(lambda t: float(t)))))
 
         with self.assertRaises(Exception):
             # Test is not a tuple has only one element
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=(ToTensor(), None),
-                                      test=[None, Lambda(lambda t: float(t))]))
+                                      eval=[None, Lambda(lambda t: float(t))]))
 
         with self.assertRaises(Exception):
             # Train is None
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=None,
-                                      test=(None, Lambda(lambda t: float(t)))))
+                                      eval=(None, Lambda(lambda t: float(t)))))
 
         with self.assertRaises(Exception):
             # transform_groups is not a dictionary
@@ -672,8 +672,8 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         original_dataset = MNIST('./data/mnist', download=True)
         dataset = AvalancheDataset(
             original_dataset,
-            transform_groups=dict(train=(ToTensor(), None), test=(None, None)),
-            initial_transform_group='test')
+            transform_groups=dict(train=(ToTensor(), None), eval=(None, None)),
+            initial_transform_group='eval')
 
         x, *_ = dataset[0]
         self.assertIsInstance(x, Image)
@@ -703,7 +703,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             original_dataset,
             transform_groups=dict(
                 train=(ToTensor(), None),
-                test=(None, None),
+                eval=(None, None),
                 other=(Compose([ToTensor(),
                                Lambda(lambda tensor: tensor.numpy())]), None)))
 
@@ -769,10 +769,10 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
     def test_transformation_concat_dataset_groups(self):
         original_dataset = AvalancheDataset(
             MNIST('./data/mnist', download=True),
-            transform_groups=dict(test=(None, None), train=(ToTensor(), None)))
+            transform_groups=dict(eval=(None, None), train=(ToTensor(), None)))
         original_dataset2 = AvalancheDataset(
             MNIST('./data/mnist', download=True),
-            transform_groups=dict(train=(None, None), test=(ToTensor(), None)))
+            transform_groups=dict(train=(None, None), eval=(ToTensor(), None)))
 
         dataset = AvalancheConcatDataset([original_dataset,
                                           original_dataset2])

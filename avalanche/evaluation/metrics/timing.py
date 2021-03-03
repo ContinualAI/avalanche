@@ -349,7 +349,7 @@ def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         metrics.append(ExperienceTime())
 
     if stream:
-        metrics.append(StreamTime)
+        metrics.append(StreamTime())
 
     return metrics
 

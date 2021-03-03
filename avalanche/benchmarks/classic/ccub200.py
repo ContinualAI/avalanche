@@ -14,7 +14,7 @@ from avalanche.benchmarks import nc_scenario
 
 from torchvision import transforms
 
-from avalanche.benchmarks.utils import train_test_transformation_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -23,7 +23,7 @@ _default_train_transform = transforms.Compose([
                              (0.2023, 0.1994, 0.2010))
 ])
 
-_default_test_transform = transforms.Compose([
+_default_eval_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465),
                          (0.2023, 0.1994, 0.2010))
@@ -38,21 +38,40 @@ def SplitCUB200(root,
                 fixed_class_order=None,
                 shuffle=False,
                 train_transform=_default_train_transform,
-                test_transform=_default_test_transform):
+                eval_transform=_default_eval_transform):
     """
-    Creates a CL scenario using the Tiny ImageNet dataset.
-    If the dataset is not present in the computer the method automatically
-    download it and store the data in the data folder.
+    Creates a CL scenario using the Cub-200 dataset.
 
-    :param root: Base path where Imagenet data are stored.
+    If the dataset is not present in the computer, **this method will NOT be
+    able automatically download** and store it.
+
+    The returned scenario will return experiences containing all patterns of a
+    subset of classes, which means that each class is only seen "once".
+    This is one of the most common scenarios in the Continual Learning
+    literature. Common names used in literature to describe this kind of
+    scenario are "Class Incremental", "New Classes", etc. By default,
+    an equal amount of classes will be assigned to each experience.
+
+    This generator doesn't force a choice on the availability of task labels,
+    a choice that is left to the user (see the `return_task_id` parameter for
+    more info on task labels).
+
+    The scenario instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
+    The scenario API is quite simple and is uniform across all scenario
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
+
+    :param root: Base path where Cub-200 data is stored.
     :param n_experiences: The number of experiences in the current scenario.
+        Defaults to 11.
     :param classes_first_batch: Number of classes in the first batch.
-    Usually this is set to 500. Default to None.
-    :param return_task_id: if True, for every experience the task id is returned
-        and the Scenario is Multi Task. This means that the scenario returned
-        will be of type ``NCMultiTaskScenario``. If false the task index is
-        not returned (default to 0 for every batch) and the returned scenario
-        is of type ``NCSingleTaskScenario``.
+        Usually this is set to 500. Defaults to 100.
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
     :param fixed_class_order: A list of class IDs used to define the class
@@ -67,21 +86,18 @@ def SplitCUB200(root,
         comprehensive list of possible transformations).
         If no transformation is passed, the default train transformation
         will be used.
-    :param test_transform: The transformation to apply to the test data,
+    :param eval_transform: The transformation to apply to the test data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
 
-    :returns: A :class:`NCMultiTaskScenario` instance initialized for the the
-        MT scenario using CIFAR10 if the parameter ``return_task_id`` is True,
-        a :class:`NCSingleTaskScenario` initialized for the SIT scenario using
-        CIFAR10 otherwise.
-        """
+    :returns: A properly initialized :class:`NCScenario` instance.
+    """
 
     train_set, test_set = _get_cub200_dataset(
-        root, train_transform, test_transform)
+        root, train_transform, eval_transform)
 
     if classes_first_batch is not None:
         per_exp_classes = {0: classes_first_batch}
@@ -111,12 +127,12 @@ def SplitCUB200(root,
             shuffle=shuffle)
 
 
-def _get_cub200_dataset(root, train_transformation, test_transformation):
+def _get_cub200_dataset(root, train_transformation, eval_transformation):
     train_set = CUB200(root, train=True)
     test_set = CUB200(root, train=False)
 
-    return train_test_transformation_datasets(
-        train_set, test_set, train_transformation, test_transformation)
+    return train_eval_avalanche_datasets(
+        train_set, test_set, train_transformation, eval_transformation)
 
 
 __all__ = [
