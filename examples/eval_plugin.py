@@ -95,7 +95,8 @@ def main(args):
             experience=True, stream=True),
         disk_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        MAC_metrics(minibatch=True, epoch=True, stream=True),
+        MAC_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger, text_logger])
 
 

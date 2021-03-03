@@ -172,16 +172,16 @@ class EpochMAC(PluginMetric[float]):
         return "MAC_Epoch"
 
 
-class StreamMAC(PluginMetric[float]):
+class ExperienceMAC(PluginMetric[float]):
     """
-    At the end of the entire stream of experiences, this metric reports the
+    At the end of each experience, this metric reports the
     MAC computed on a single pattern.
     This metric only works at eval time.
     """
 
     def __init__(self):
         """
-        Creates an instance of StreamMAC metric
+        Creates an instance of ExperienceMAC metric
         """
         super().__init__()
 
@@ -193,7 +193,7 @@ class StreamMAC(PluginMetric[float]):
     def result(self) -> float:
         return self._MAC_metric.result()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> \
+    def after_eval_exp(self, strategy: 'PluggableStrategy') -> \
             'MetricResult':
         self._MAC_metric.update(strategy.model,
                                 strategy.mb_x[0].unsqueeze(0))
@@ -203,21 +203,17 @@ class StreamMAC(PluginMetric[float]):
             MetricResult:
         metric_value = self.result()
 
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
+        metric_name = get_metric_name(self, strategy, add_experience=True)
+
         plot_x_position = self._next_x_position(metric_name)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
     def __str__(self):
-        return "MAC_Stream"
+        return "MAC_Exp"
 
 
-def MAC_metrics(*, minibatch=False, epoch=False,stream=False) \
+def MAC_metrics(*, minibatch=False, epoch=False, experience=False) \
         -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of metric.
@@ -226,8 +222,8 @@ def MAC_metrics(*, minibatch=False, epoch=False,stream=False) \
         the MAC after each iteration at training time.
     :param epoch: If True, will return a metric able to log
         the MAC after each epoch at training time.
-    :param stream: If True, will return a metric able to log
-        the MAC after the evaluation stream.
+    :param experience: If True, will return a metric able to log
+        the MAC after each eval experience.
 
     :return: A list of plugin metrics.
     """
@@ -239,8 +235,8 @@ def MAC_metrics(*, minibatch=False, epoch=False,stream=False) \
     if epoch:
         metrics.append(EpochMAC())
 
-    if stream:
-        metrics.append(StreamMAC())
+    if experience:
+        metrics.append(ExperienceMAC())
 
     return metrics
 
@@ -249,6 +245,6 @@ __all__ = [
     'MAC',
     'MinibatchMAC',
     'EpochMAC',
-    'StreamMAC',
+    'ExperienceMAC',
     'MAC_metrics'
 ]
