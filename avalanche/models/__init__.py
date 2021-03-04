@@ -4,7 +4,7 @@ that can be used for your continual learning experiments and applications.
 These models are mostly `torchvision.models
 <https://pytorch.org/vision/0.8/models.html#torchvision-models>`_ and `pytorchcv
 <https://pypi.org/project/pytorchcv/>`_ but we plan to add more architectures in
- the near future.
+the near future.
 """
 
 from .simple_cnn import SimpleCNN
