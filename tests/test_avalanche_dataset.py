@@ -19,6 +19,8 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import \
 
 import numpy as np
 
+from tests.unit_tests_utils import common_setups
+
 
 def pil_images_equal(img_a, img_b):
     diff = ImageChops.difference(img_a, img_b)
@@ -27,6 +29,9 @@ def pil_images_equal(img_a, img_b):
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_mnist_no_transforms(self):
         dataset = MNIST('./data/mnist', download=True)
         x, y = dataset[0]
@@ -212,6 +217,9 @@ class AvalancheDatasetTests(unittest.TestCase):
 
 
 class TransformationSubsetTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_transform_subset_transform(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x, y = dataset_mnist[0]
@@ -366,6 +374,9 @@ class TransformationSubsetTests(unittest.TestCase):
 
 
 class TransformationTensorDatasetTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_tensor_dataset_helper_tensor_y(self):
         dataset_train_x = [torch.rand(50, 32, 32) for _ in range(5)]
         dataset_train_y = [torch.randint(0, 100, (50,)) for _ in range(5)]
@@ -456,6 +467,9 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
 
 class AvalancheDatasetTransformOpsTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_freeze_transforms(self):
         original_dataset = MNIST('./data/mnist', download=True)
         x, y = original_dataset[0]

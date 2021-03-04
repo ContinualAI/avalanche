@@ -29,8 +29,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = u'Avalanche'
-copyright = u'2020, ContinualAI Research'
-author = u'ContinualAI Research'
+copyright = u'2021, ContinualAI'
+author = u'ContinualAI'
 
 # The short X.Y version
 version = u''
@@ -101,7 +101,6 @@ autoapi_options = [
     'imported-members'
 ]
 autoapi_python_class_content = 'both'
-autoapi_keep_files = True
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -109,13 +108,15 @@ autoapi_keep_files = True
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+html_logo = './_static/img/avalanche_logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    'collapse_navigation': False
+    'collapse_navigation': False,
+    'logo_only': True
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

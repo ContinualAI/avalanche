@@ -30,9 +30,12 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     SynapticIntelligence, AR1, JointTraining
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
+from tests.unit_tests_utils import common_setups
 
 
 class BaseStrategyTest(unittest.TestCase):
+    def setUp(self):
+        common_setups()
 
     def _is_param_in_optimizer(self, param, optimizer):
         for group in optimizer.param_groups:
@@ -60,6 +63,8 @@ class BaseStrategyTest(unittest.TestCase):
 
 
 class StrategyTest(unittest.TestCase):
+    def setUp(self):
+        common_setups()
 
     if "FAST_TEST" in os.environ:
         fast_test = os.environ['FAST_TEST'].lower() in ["true"]
