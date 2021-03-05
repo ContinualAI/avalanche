@@ -26,9 +26,10 @@ _Qi She, Keeiland Kooper, Jeremy Forest, Davide Maltoni, Prashant Kumar Rai, Tyl
 
 _Avalanche_ is a great tool also thanks to its many users. Here we list some research groups using _Avalanche_ for their continual learning research:
 
-* [**ContinualAI Lab**](https://www.continualai.org/lab/) \(Director: Vincenzo Lomonaco\)
-* [**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(Director: Davide Maltoni, University of Bologna\)
-* [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) \(Director: Alessio Micheli, University of Pisa\)
+* [**ContinualAI Lab**](https://www.continualai.org/lab/) \(PI: Vincenzo Lomonaco\)
+* \*\*\*\*[**Pervasive AI Lab**](http://pai.di.unipi.it/) \(PI: Davide Bacciu\)
+* [**BioLab** ](http://biolab.csr.unibo.it/home.asp)\(PI: Davide Maltoni, University of Bologna\)
+* [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) \(PI: Alessio Micheli, University of Pisa\)
 * [**Italian Association for Machine Learning**](https://iaml.it/) \(President: Simone Scardapane,  Sapienza University\)
 * [**AIforPeople**](https://www.aiforpeople.org/) \(President: Marta Ziosi, University of Oxford\)
 * \*\*\*\*[**Learning and Machine Perception Team**](http://www.cvc.uab.es/lamp/) \(PI: Joost van de Weijer\)
