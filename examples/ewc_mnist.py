@@ -5,7 +5,7 @@ from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import ExperienceForgetting, \
     accuracy_metrics, loss_metrics
-from avalanche.logging import InteractiveLogger, TextLogger
+from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 """

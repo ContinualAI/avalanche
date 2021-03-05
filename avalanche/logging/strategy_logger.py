@@ -15,13 +15,15 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
     from the :class:`EvaluationPlugin` carrying a reference to the strategy
     as well as the values emitted by the metrics.
 
-    Child classes can implement the desired callbacks. An alternative, simpler,
-    mechanism exists: child classes may instead implement the `log_metric`
-    method which will be invoked with each received metric value.
+    Each child class should implement the `log_metric` method, which
+    specifies how to report to the user the metrics gathered during
+    training and evaluation flows. The `log_metric` method is invoked
+    by default on each callback.
+    In addition, child classes may override the desired callbacks
+    to customize the logger behavior.
 
-    Implementing `log_metric` is not mutually exclusive with the callback
-    implementation. Make sure, when implementing the callbacks, to call
-    the proper super method.
+    Make sure, when overriding callbacks, to call
+    the proper `super` method.
     """
 
     def __init__(self):
@@ -29,17 +31,14 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
         """
-        Helper method that will be invoked each time a metric value will become
-        available. To know from which callback the value originated, the
-        callback parameter can be used.
-
-        Implementing this method is a practical, non-exclusive, alternative the
-        implementation of the single callbacks. See the class description for
-        details and hints.
+        This abstract method will has to be implemented by child classes.
+        This method will be invoked on each callback.
+        The `callback` parameter describes the callback from which the metric
+        value is coming from.
 
         :param metric_value: The value to be logged.
-        :param callback: The callback (event) from which the metric value was
-            obtained.
+        :param callback: The name of the callback (event) from which the
+            metric value was obtained.
         :return: None
         """
         pass
