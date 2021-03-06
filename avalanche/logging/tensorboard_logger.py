@@ -24,14 +24,36 @@ from avalanche.logging import StrategyLogger
 
 class TensorboardLogger(StrategyLogger):
     """
-    TensorboardLogger is a simple class to handle the interface with the
-    TensorBoard API offered by Pytorch.
+    The `TensorboardLogger` provides an easy integration with
+    Tensorboard logging. Each monitored metric is automatically
+    logged to Tensorboard.
+    The user can inspect results in real time by appropriately launching
+    tensorboard with `tensorboard --logdir=/path/to/tb_log_exp_name`.
+
+    If no parameters are provided, the default folder in which tensorboard
+    log files are placed is "./runs/".
+    .. note::
+        We rely on PyTorch implementation of Tensorboard. If you
+        don't have Tensorflow installed in your environment,
+        tensorboard will tell you that it is running with reduced
+        feature set. This should not impact on the logger performance.
     """
-    def __init__(self, tb_log_dir=".", tb_log_exp_name="tb_data"):
+
+    def __init__(self, tb_log_dir="./tb_data", filename_suffix=''):
+        """
+        Creates an instance of the `TensorboardLogger`.
+
+        :param tb_log_dir: path to the directory where tensorboard log file
+            will be stored. Default to "./tb_data".
+        :param filename_suffix: string suffix to append at the end of
+            tensorboard log file. Default ''.
+        """
+
         super().__init__()
         tb_log_dir = Path(tb_log_dir)
         tb_log_dir.mkdir(parents=True, exist_ok=True)
-        self.writer = SummaryWriter(tb_log_dir / tb_log_exp_name)
+        self.writer = SummaryWriter(tb_log_dir,
+                                    filename_suffix=filename_suffix)
 
     def log_metric(self, metric_value: MetricValue, callback: str):
         super().log_metric(metric_value, callback)

@@ -20,11 +20,34 @@ from tqdm import tqdm
 
 
 class InteractiveLogger(TextLogger):
+    """
+    The `InteractiveLogger` class provides logging facilities
+    for the console standard output. The logger shows
+    a progress bar during training and evaluation flows and
+    interactively display metric results as soon as they
+    become available. The logger writes metric results after
+    each training epoch, evaluation experience and at the
+    end of the entire evaluation stream.
+
+    .. note::
+        To avoid an excessive amount of printed lines,
+        this logger will **not** print results after
+        each iteration. If the user is monitoring
+        metrics which emit results after each minibatch
+        (e.g., `MinibatchAccuracy`), only the last recorded
+        value of such metrics will be reported at the end
+        of the epoch.
+
+    .. note::
+        Since this logger works on the standard output,
+        metrics producing images or more complex visualizations
+        will be converted to a textual format suitable for
+        console printing. You may want to add more loggers
+        to your `EvaluationPlugin` to better support
+        different formats.
+    """
+
     def __init__(self):
-        """
-        Logger for interactive output to the standard output. Shows a progress
-        bar and prints metric values.
-        """
         super().__init__(file=sys.stdout)
         self._pbar = None
 

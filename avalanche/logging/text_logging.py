@@ -20,12 +20,35 @@ from avalanche.evaluation.metric_utils import stream_type
 
 
 class TextLogger(StrategyLogger):
+    """
+    The `TextLogger` class provides logging facilities
+    printed to a user specified file. The logger writes
+    metric results after each training epoch, evaluation
+    experience and at the end of the entire evaluation stream.
+
+    .. note::
+        To avoid an excessive amount of printed lines,
+        this logger will **not** print results after
+        each iteration. If the user is monitoring
+        metrics which emit results after each minibatch
+        (e.g., `MinibatchAccuracy`), only the last recorded
+        value of such metrics will be reported at the end
+        of the epoch.
+
+    .. note::
+        Since this logger works on the standard output,
+        metrics producing images or more complex visualizations
+        will be converted to a textual format suitable for
+        console printing. You may want to add more loggers
+        to your `EvaluationPlugin` to better support
+        different formats.
+    """
     def __init__(self, file=sys.stdout):
         """
-        Text-based logger that logs metrics in a file.
-        By default it prints to the standard output.
+        Creates an instance of `TextLogger` class.
 
-        :param file: destination file (default=sys.stdout).
+        :param file: destination file to which print metrics
+            (default=sys.stdout).
         """
         super().__init__()
         self.file = file

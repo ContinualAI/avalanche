@@ -40,8 +40,8 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
     `ConfusionMatrixDisplay` to create the matplotlib figure. The figure
     is then converted to a PIL `Image`.
 
-    For more info about the accepted graphic parameters, see:
-    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html#sklearn.metrics.plot_confusion_matrix.
+    For more info about the accepted graphic parameters,
+    see `Scikit learn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html>`_ # noqa
 
     :param confusion_matrix_tensor: The tensor describing the confusion matrix.
         This can be easily obtained through Scikit-learn `confusion_matrix`
