@@ -5,7 +5,7 @@ from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import ExperienceForgetting, \
     accuracy_metrics, loss_metrics
-from avalanche.logging import InteractiveLogger, TextLogger
+from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 """
@@ -45,7 +45,6 @@ def main(args):
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
-    text_logger = TextLogger(open('log.txt', 'a'))
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(

@@ -28,16 +28,22 @@ class Metric(Protocol[TResult]):
     """
     Definition of a metric.
 
-    A metric exposes methods to reset the internal counters as well as
-    a method used to retrieve the result.
+    A metric exposes methods to reset its internal state and
+    to emit a result. Emitting a result does not automatically cause
+    a reset in the internal state.
 
-    The specific metric implementation exposes ways to update the metric
+    The specific metric implementation exposes ways to update the internal
     state. Usually, standalone metrics like :class:`Sum`, :class:`Mean`,
     :class:`Accuracy`, ... expose an `update` method.
 
-    On the other hand, metrics that are to be used by using the
-    :class:`EvaluationPlugin` usually update their value by receiving events
-    from the plugin (see the :class:`PluginMetric` class for more details).
+    The `Metric` class can be used as a stand-alone metric by directly calling
+    its methods.
+    In order to automatically integrate the metric with the training and
+    evaluation flows, you can use :class:`PluginMetric` class. The class
+    receives events directly from the :class:`EvaluationPlugin` and can
+    emits values on each callback. Usually, an instance of `Metric` is
+    created within `PluginMetric`, which is then responsible for its
+    update and results. See :class:`PluginMetric` for more details.
     """
 
     def result(self) -> Optional[TResult]:
@@ -59,17 +65,20 @@ class Metric(Protocol[TResult]):
 
 class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     """
-    A kind of metric that can be used by the :class:`EvaluationPlugin`.
+    A metric that can be used together with :class:`EvaluationPlugin`.
 
     This class leaves the implementation of the `result` and `reset` methods
     to child classes while providing an empty implementation of the callbacks
     invoked by the :class:`EvaluationPlugin`. Subclasses should implement
     the `result`, `reset` and the desired callbacks to compute the specific
     metric.
+    An instance of this class usually leverages a `Metric` instance to update,
+    reset and emit metric results at appropriate times
+    (during specific callbacks).
 
     This class also provides a utility method, `_next_x_position`, which can
-    be used to label each metric value with its appropriate "x" position in the
-    plot.
+    be used to progressively label each metric value with its appropriate "x"
+    position in the plot.
     """
     def __init__(self):
         """

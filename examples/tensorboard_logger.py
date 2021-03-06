@@ -4,13 +4,14 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 24-05-2020                                                             #
-# Author(s): Lorenzo Pellegrini                                                #
+# Author(s): Andrea Cossu                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """
-This is a simple example on how to use the Evaluation Plugin.
+This is a simple example that shows how to use the
+Tensorboard Logger
 """
 
 from __future__ import absolute_import
@@ -26,12 +27,12 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.logging import InteractiveLogger, TensorboardLogger
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.evaluation.metrics import ExperienceForgetting, StreamConfusionMatrix, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger
-from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
 
@@ -66,23 +67,16 @@ def main(args):
     # MODEL CREATION
     model = SimpleMLP(num_classes=scenario.n_classes)
 
-    # DEFINE THE EVALUATION PLUGIN AND LOGGER
-    # The evaluation plugin manages the metrics computation.
-    # It takes as argument a list of metrics and a list of loggers.
-    # The evaluation plugin calls the loggers to serialize the metrics
-    # and save them in persistent memory or print them in the standard output.
-
-    # log to text file
-    text_logger = TextLogger(open('log.txt', 'a'))
-
-    # print to stdout
     interactive_logger = InteractiveLogger()
+    tensorboard_logger = TensorboardLogger()
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
+        loss_metrics(
+            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
         ExperienceForgetting(),
+        StreamConfusionMatrix(),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
@@ -97,13 +91,13 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, text_logger])
-
+        loggers=[interactive_logger, tensorboard_logger]
+    )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-        CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
+        CrossEntropyLoss(), train_mb_size=100, train_epochs=4, eval_mb_size=100,
         device=device, evaluator=eval_plugin)
 
     # TRAINING LOOP
@@ -113,23 +107,11 @@ def main(args):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
-        # train returns a list of dictionaries (one for each experience). Each
-        # dictionary stores the last value of each metric curve emitted
-        # during training.
-        res = cl_strategy.train(experience)
+        cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        # test also returns a dictionary
         results.append(cl_strategy.eval(scenario.test_stream))
-
-    print(f"Test metrics:\n{results}")
-
-    # All the metric curves (x,y values) are stored inside the evaluator
-    # (can be disabled). You can use this dictionary to manipulate the
-    # metrics without avalanche.
-    all_metrics = cl_strategy.evaluator.all_metrics
-    print(f"Stored metrics: {list(all_metrics.keys())}")
 
 
 if __name__ == '__main__':

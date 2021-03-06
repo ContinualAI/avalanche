@@ -8,4 +8,3 @@ data/
 logs/
 *.pyc
 doc_html/*
-docs/autoapi

@@ -9,7 +9,6 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from collections import defaultdict
 from typing import TYPE_CHECKING, List
 
 import torch
