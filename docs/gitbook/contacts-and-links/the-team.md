@@ -4,7 +4,7 @@ description: All the People that Made Avalanche Great
 
 # The People
 
-![Coming soon to your computers! &#x1F602;](../.gitbook/assets/avalanche_maintaners.jpg)
+![Coming soon to your computers screens! &#x1F602;](../.gitbook/assets/avalanche_maintaners.jpg)
 
 ## 🗂️ Maintainers
 
@@ -20,7 +20,7 @@ The Project is maintained mostly by [ContinualAI Research](https://www.continual
 
 _Avalanche_ is a large community effort. It is only fair to list here all the people who made it a great tool that anyone can use without any restrictions at all!
 
-_Qi She, Keiland Cooper, Jeremy Forest, Davide Maltoni, Prashant Kumar Rai, Tyler Hayes, Marc Masana, Eden Belouadah, Adrian Popescu, Gido van de Ven, Martin Mundt, Matthias De Lange, Christopher Kanan, Joost van de Weijer, Tinne Tuytelaars, Fabio Cuzzolin, Davide Bacciu_ _...see the_ [_full list on GitHub_](https://github.com/ContinualAI/avalanche/graphs/contributors)_!_
+_Qi She, Keiland Cooper, Jeremy Forest, Davide Maltoni, Prashant Kumar Rai, Tyler Hayes, Marc Masana, Eden Belouadah, Adrian Popescu, Gido van de Ven, Martin Mundt, Matthias De Lange, Christopher Kanan, Joost van de Weijer, Tinne Tuytelaars, Fabio Cuzzolin, Davide Bacciu, German I. Parisi_ _...see the_ [_full list on GitHub_](https://github.com/ContinualAI/avalanche/graphs/contributors)_!_
 
 ## 👪 Users
 
