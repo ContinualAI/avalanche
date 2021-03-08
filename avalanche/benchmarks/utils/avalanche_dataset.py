@@ -222,6 +222,9 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
         self._set_original_dataset_transform_group(self.current_transform_group)
 
+    def __add__(self, other: 'AvalancheDataset') -> 'AvalancheDataset':
+        return AvalancheConcatDataset([self, other])
+
     def __getitem__(self, idx):
         return manage_advanced_indexing(idx, self._get_single_item, len(self))
 
