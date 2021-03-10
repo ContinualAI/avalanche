@@ -101,10 +101,10 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         self.reset_current_accuracy()
 
     def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
-        self.eval_exp_id = strategy.eval_exp_id
+        self.eval_exp_id = strategy.experience.current_experience
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.eval_exp_id
+        label = strategy.experience.current_experience
         self.update(strategy.mb_y,
                     strategy.logits,
                     label)
