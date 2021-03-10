@@ -189,5 +189,5 @@ __all__ = [
     'get_task_label',
     'phase_and_task',
     'stream_type',
-    'bytes2human',
-    '  ']
+    'bytes2human'
+]

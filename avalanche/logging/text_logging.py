@@ -127,8 +127,7 @@ class TextLogger(StrategyLogger):
 
     def _on_exp_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'eval'
-        exp_id = strategy.training_exp_counter if strategy.is_training \
-            else strategy.experience.current_experience
+        exp_id = strategy.experience.current_experience
         task_id = strategy.experience.task_label
         stream = stream_type(strategy.experience)
         print('-- Starting {} on experience {} (Task {}) from {} stream --'
