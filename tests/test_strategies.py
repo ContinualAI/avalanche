@@ -25,11 +25,33 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks.datasets import MNIST
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, Cumulative, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, AR1, JointTraining
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
+from avalanche.evaluation.metrics import StreamAccuracy
+
+
+def get_fast_scenario():
+    n_samples_per_class = 100
+    dataset = make_classification(
+        n_samples=10 * n_samples_per_class,
+        n_classes=10,
+        n_features=6, n_informative=6, n_redundant=0)
+
+    X = torch.from_numpy(dataset[0]).float()
+    y = torch.from_numpy(dataset[1]).long()
+
+    train_X, test_X, train_y, test_y = train_test_split(
+        X, y, train_size=0.6, shuffle=True, stratify=y)
+
+    train_dataset = TensorDataset(train_X, train_y)
+    test_dataset = TensorDataset(test_X, test_y)
+    my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
+                                 task_labels=False)
+    return my_nc_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -57,6 +79,47 @@ class BaseStrategyTest(unittest.TestCase):
         strategy.update_optimizer([p], [p_new])
         assert self._is_param_in_optimizer(p_new, strategy.optimizer)
         assert not self._is_param_in_optimizer(p, strategy.optimizer)
+
+    def test_periodic_eval(self):
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        scenario = get_fast_scenario()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+        curve_key = 'Top1_Acc_Stream/eval_phase/train_stream'
+
+        ###################
+        # Case #1: No eval
+        ###################
+        # we use stream acc. because it emits a single value
+        # for each eval loop.
+        acc = StreamAccuracy()
+        strategy = Naive(model, optimizer, criterion, train_epochs=2,
+                         eval_every=-1, evaluator=EvaluationPlugin(acc))
+        strategy.train(scenario.train_stream[0])
+        # eval is not called in this case
+        assert len(strategy.evaluator.all_metrics) == 0
+
+        ###################
+        # Case #2: Eval at the end only
+        ###################
+        acc = StreamAccuracy()
+        strategy = Naive(model, optimizer, criterion, train_epochs=2,
+                         eval_every=0, evaluator=EvaluationPlugin(acc))
+        strategy.train(scenario.train_stream[0])
+        # eval is called once at the end of the training loop
+        curve = strategy.evaluator.all_metrics[curve_key][1]
+        assert len(curve) == 1
+
+        ###################
+        # Case #3: Eval after every epoch
+        ###################
+        acc = StreamAccuracy()
+        strategy = Naive(model, optimizer, criterion, train_epochs=2,
+                         eval_every=1, evaluator=EvaluationPlugin(acc))
+        strategy.train(scenario.train_stream[0])
+        # eval is called after every epoch + the end of the training loop
+        curve = strategy.evaluator.all_metrics[curve_key][1]
+        assert len(curve) == 3
 
 
 class StrategyTest(unittest.TestCase):
@@ -396,24 +459,7 @@ class StrategyTest(unittest.TestCase):
         """
 
         if fast_test:
-            n_samples_per_class = 100
-
-            dataset = make_classification(
-                n_samples=10 * n_samples_per_class,
-                n_classes=10,
-                n_features=6, n_informative=6, n_redundant=0)
-
-            X = torch.from_numpy(dataset[0]).float()
-            y = torch.from_numpy(dataset[1]).long()
-
-            train_X, test_X, train_y, test_y = train_test_split(
-                X, y, train_size=0.6, shuffle=True, stratify=y)
-
-            train_dataset = TensorDataset(train_X, train_y)
-            test_dataset = TensorDataset(test_X, test_y)
-            my_nc_scenario = nc_scenario(
-                train_dataset, test_dataset, 5, task_labels=use_task_labels
-            )
+            my_nc_scenario = get_fast_scenario()
         else:
             mnist_train = MNIST(
                 './data/mnist', train=True, download=True,
@@ -429,7 +475,6 @@ class StrategyTest(unittest.TestCase):
         return my_nc_scenario
 
     def get_model(self, fast_test=False):
-
         if fast_test:
             return SimpleMLP(input_size=6, hidden_size=10)
         else:
