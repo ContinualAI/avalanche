@@ -65,7 +65,7 @@ jobs:
           repository: 'ContinualAI/avalanche-report'
           ref: main
           path: 'avalanche-reports'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPORT_TOKEN }}
       - name: test success
         #if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         if: success() && github.event_name == 'push'
@@ -98,4 +98,4 @@ jobs:
           repository: ContinualAI/avalanche-report
           branch: main
           directory: avalanche-reports
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.REPORT_TOKEN }}
