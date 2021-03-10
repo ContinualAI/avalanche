@@ -95,8 +95,9 @@ class TextLogger(StrategyLogger):
     def after_eval_exp(self, strategy: 'PluggableStrategy',
                        metric_values: List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
-        print(f'> Eval on experience {strategy.eval_exp_id} (Task '
-              f'{strategy.eval_task_label}) '
+        exp_id = strategy.experience.current_experience
+        print(f'> Eval on experience {exp_id} (Task '
+              f'{strategy.experience.task_label}) '
               f'from {stream_type(strategy.experience)} stream ended.',
               file=self.file, flush=True)
         self.print_current_metrics()
@@ -127,9 +128,8 @@ class TextLogger(StrategyLogger):
     def _on_exp_start(self, strategy: 'PluggableStrategy'):
         action_name = 'training' if strategy.is_training else 'eval'
         exp_id = strategy.training_exp_counter if strategy.is_training \
-            else strategy.eval_exp_id
-        task_id = strategy.train_task_label if strategy.is_training \
-            else strategy.eval_task_label
+            else strategy.experience.current_experience
+        task_id = strategy.experience.task_label
         stream = stream_type(strategy.experience)
         print('-- Starting {} on experience {} (Task {}) from {} stream --'
               .format(action_name, exp_id, task_id, stream), file=self.file,

@@ -143,9 +143,6 @@ class BaseStrategy:
         """ Counts the number of training steps. +1 at the end of each 
         experience. """
 
-        self.eval_exp_id = None  # eval-flow only
-        """ Label of the currently evaluated experience. Only at eval time. """
-
         self.epoch: Optional[int] = None
         """ Epoch counter. """
 
@@ -179,12 +176,6 @@ class BaseStrategy:
 
         self.logits = None
         """ Logits computed on the current mini-batch. """
-
-        self.train_task_label: Optional[int] = None
-        """ Label of the current experience (train time). """
-
-        self.eval_task_label: Optional[int] = None
-        """ Label of the current experience (eval time). """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
@@ -260,7 +251,6 @@ class BaseStrategy:
         res = []
         self.before_training(**kwargs)
         for exp in experiences:
-            self.train_task_label = exp.task_label
             self.train_exp(exp, eval_streams, **kwargs)
             res.append(self.evaluator.current_metrics.copy())
 
@@ -336,10 +326,7 @@ class BaseStrategy:
         res = []
         self.before_eval(**kwargs)
         for exp in exp_list:
-            self.eval_task_label = exp.task_label
             self.experience = exp
-            self.eval_exp_id = exp.current_experience
-
             self.adapted_dataset = exp.dataset
             self.adapted_dataset = self.adapted_dataset.eval()
 
@@ -493,6 +480,7 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
 
+        self.training_exp_counter += 1
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.experience = None
@@ -540,7 +528,6 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_eval(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.eval_exp_id = None
         self.experience = None
         self.adapted_dataset = None
         self.current_dataloader = None
@@ -548,8 +535,6 @@ class BaseStrategy:
         self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
         self.logits = None
-
-        self.training_exp_counter += 1
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
