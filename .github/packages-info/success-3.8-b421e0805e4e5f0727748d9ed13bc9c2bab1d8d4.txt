@@ -15,7 +15,7 @@ cffi                      1.14.5           py38h261ae71_0
 chardet                   4.0.0            py38h578d9bd_1    conda-forge
 click                     7.1.2              pyh9f0ad1d_0    conda-forge
 cpuonly                   1.0                           0    pytorch
-cryptography              3.2.1            py38h7699a38_0    conda-forge
+cryptography              3.4.5            py38ha5dfef3_1    conda-forge
 cycler                    0.10.0                     py_2    conda-forge
 cython                    0.29.21          py38h348cfbe_1    conda-forge
 dbus                      1.13.16              hb2f20db_0  
@@ -78,7 +78,7 @@ olefile                   0.46                       py_0
 openh264                  2.1.0                hd408876_0  
 openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
-pillow                    8.1.1            py38he98fc37_0  
+pillow                    8.1.2            py38he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
 protobuf                  3.13.0.1         py38hadf7658_1    conda-forge
 psutil                    5.7.3            py38h8df0ef7_0    conda-forge
