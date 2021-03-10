@@ -43,9 +43,15 @@ jobs:
           activate-environment: avalanche-env
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
-      - name: install conda environment
+      - name: install conda environment < 3.9
+        if: matrix.python-version != '3.9'
         run: |
           conda install pytorch torchvision cpuonly -c pytorch -y
+          conda env update --file environment.yml
+      - name: install conda environment = 3.9
+        if: matrix.python-version == '3.9'
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
           conda env update --file environment.yml
       - name: python unit test
         id: unittest
