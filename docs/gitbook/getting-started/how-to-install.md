@@ -38,7 +38,7 @@ Assuming you have [Anaconda](https://www.anaconda.com/) installed on your system
 For example:
 
 ```bash
-bash -i ./install_script.sh --python 3.8 --cuda_version 10.1
+bash -i ./install_environment.sh --python 3.8 --cuda_version 10.1
 ```
 
 You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.
@@ -100,7 +100,7 @@ Assuming you have [Anaconda](https://www.anaconda.com/) installed on your system
 `--cuda_version` can take the values \[9.2, 10.1, 10.2, 11.0, none\], default none.
 
 ```bash
-bash -i ./install_script_dev.sh --python 3.8 --cuda_version 10.1
+bash -i ./install_environment_dev.sh --python 3.8 --cuda_version 10.1
 ```
 
 You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.

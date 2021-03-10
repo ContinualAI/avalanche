@@ -57,19 +57,28 @@ jobs:
         id: unittest
         run: |
           FAST_TEST=True USE_GPU=False python -m unittest
+      - name: clone reports repository
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        uses: actions/checkout@v2
+        with:
+          repository: 'ContinualAI/avalanche-report'
+          ref: main
+          path: 'avalanche-reports'
+          token: ${{ secrets.REPORT_TOKEN }}
       - name: test success
         if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
-          rm -f .github/packages-info/fail-${{ matrix.python-version }}-*
-          rm -f .github/packages-info/success-${{ matrix.python-version }}-*
-          conda list > $".github/packages-info/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+          rm -f avalanche-reports/packages/fail-${{ matrix.python-version }}-*
+          rm -f avalanche-reports/packages/success-${{ matrix.python-version }}-*
+          conda list > $"avalanche-reports/packages/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: test failure
         if: failure() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
-          conda list > $".github/packages-info/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+          conda list > $"avalanche-reports/packages/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: commit changes
         if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
+          cd avalanche-reports
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
           git pull
@@ -81,5 +90,7 @@ jobs:
         continue-on-error: true
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          repository: ContinualAI/avalanche-report
+          branch: main
+          directory: avalanche-reports
+          github_token: ${{ secrets.REPORT_TOKEN }}
