@@ -63,6 +63,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-report'
+          ref: main
           path: 'avalanche-reports'
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: test success
