@@ -21,6 +21,7 @@ from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
 
 from avalanche.training.plugins import EvaluationPlugin
+
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -231,7 +232,8 @@ class BaseStrategy:
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
-                                Sequence[Experience]]]] = None,
+                                                    Sequence[
+                                                        Experience]]]] = None,
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
