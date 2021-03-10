@@ -1,5 +1,6 @@
 import unittest
 
+import PIL
 import torch
 from PIL import ImageChops
 from PIL.Image import Image
@@ -7,10 +8,11 @@ from torch import Tensor
 from torch.utils.data import TensorDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
-    Lambda
+    Lambda, CenterCrop
 
 from avalanche.benchmarks.utils import AvalancheDataset, \
     AvalancheSubset, AvalancheConcatDataset
+from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 from avalanche.training.utils import load_all_dataset
 import random
 
@@ -18,6 +20,8 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import \
     create_generic_scenario_from_tensors
 
 import numpy as np
+
+from tests.unit_tests_utils import common_setups
 
 
 def pil_images_equal(img_a, img_b):
@@ -27,6 +31,9 @@ def pil_images_equal(img_a, img_b):
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_mnist_no_transforms(self):
         dataset = MNIST('./data/mnist', download=True)
         x, y = dataset[0]
@@ -41,7 +48,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(x.shape, (1, 28, 28))
         self.assertIsInstance(y, int)
 
-    def test_transform_dataset_transform(self):
+    def test_avalanche_dataset_transform(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x, y = dataset_mnist[0]
         dataset = AvalancheDataset(dataset_mnist, transform=ToTensor())
@@ -54,7 +61,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
-    def test_transform_dataset_slice(self):
+    def test_avalanche_dataset_slice(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x0, y0 = dataset_mnist[0]
         x1, y1 = dataset_mnist[1]
@@ -70,7 +77,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(0, t2[0].item())
         self.assertEqual(0, t2[1].item())
 
-    def test_transform_dataset_indexing(self):
+    def test_avalanche_dataset_indexing(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x0, y0 = dataset_mnist[0]
         x1, y1 = dataset_mnist[5]
@@ -86,7 +93,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(0, t2[0].item())
         self.assertEqual(0, t2[1].item())
 
-    def test_transform_dataset_composition(self):
+    def test_avalanche_dataset_composition(self):
         dataset_mnist = MNIST('./data/mnist', download=True,
                               transform=RandomCrop(16))
         x, y = dataset_mnist[0]
@@ -105,6 +112,44 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y2, -1)
         self.assertIsInstance(t2, int)
         self.assertEqual(0, t2)
+        
+    def test_avalanche_dataset_add(self):
+        dataset_mnist = MNIST('./data/mnist', download=True,
+                              transform=CenterCrop(16))
+
+        dataset1 = AvalancheDataset(
+            dataset_mnist, transform=ToTensor(),
+            target_transform=lambda target: -1)
+
+        dataset2 = AvalancheDataset(
+            dataset_mnist, target_transform=lambda target: -2,
+            task_labels=ConstantSequence(2, len(dataset_mnist)))
+        
+        dataset3 = dataset1 + dataset2
+        
+        self.assertEqual(len(dataset_mnist)*2, len(dataset3))
+
+        x1, y1, t1 = dataset1[0]
+        x2, y2, t2 = dataset2[0]
+
+        x3, y3, t3 = dataset3[0]
+        x3_2, y3_2, t3_2 = dataset3[len(dataset_mnist)]
+
+        self.assertIsInstance(x1, Tensor)
+        self.assertEqual(x1.shape, (1, 16, 16))
+        self.assertEqual(-1, y1)
+        self.assertEqual(0, t1)
+
+        self.assertIsInstance(x2, PIL.Image.Image)
+        self.assertEqual(x2.size, (16, 16))
+        self.assertEqual(-2, y2)
+        self.assertEqual(2, t2)
+
+        self.assertEqual((y1, t1), (y3, t3))
+        self.assertEqual(16 * 16, torch.sum(torch.eq(x1, x3)).item())
+
+        self.assertEqual((y2, t2), (y3_2, t3_2))
+        self.assertTrue(pil_images_equal(x2, x3_2))
 
     def test_avalanche_dataset_uniform_task_labels(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
@@ -186,7 +231,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertListEqual(random_task_labels,
                              list(dataset_child.targets_task_labels))
 
-    def test_transform_dataset_tensor_dataset_input(self):
+    def test_avalanche_dataset_tensor_dataset_input(self):
         train_x = torch.rand(500, 3, 28, 28)
         train_y = torch.zeros(500)
         test_x = torch.rand(200, 3, 28, 28)
@@ -212,7 +257,10 @@ class AvalancheDatasetTests(unittest.TestCase):
 
 
 class TransformationSubsetTests(unittest.TestCase):
-    def test_transform_subset_transform(self):
+    def setUp(self):
+        common_setups()
+
+    def test_avalanche_subset_transform(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x, y = dataset_mnist[0]
         dataset = AvalancheSubset(dataset_mnist, transform=ToTensor())
@@ -224,7 +272,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y, y2)
         self.assertEqual(0, t2)
 
-    def test_transform_subset_composition(self):
+    def test_avalanche_subset_composition(self):
         dataset_mnist = MNIST('./data/mnist', download=True, transform=RandomCrop(16))
         x, y = dataset_mnist[0]
         self.assertIsInstance(x, Image)
@@ -243,7 +291,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y2, -1)
         self.assertEqual(0, t2)
 
-    def test_transform_subset_indices(self):
+    def test_avalanche_subset_indices(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         x, y = dataset_mnist[1000]
         x2, y2 = dataset_mnist[1007]
@@ -260,7 +308,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    def test_transform_subset_mapping(self):
+    def test_avalanche_subset_mapping(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
         _, y = dataset_mnist[1000]
 
@@ -366,6 +414,9 @@ class TransformationSubsetTests(unittest.TestCase):
 
 
 class TransformationTensorDatasetTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_tensor_dataset_helper_tensor_y(self):
         dataset_train_x = [torch.rand(50, 32, 32) for _ in range(5)]
         dataset_train_y = [torch.randint(0, 100, (50,)) for _ in range(5)]
@@ -456,6 +507,9 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
 
 class AvalancheDatasetTransformOpsTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_freeze_transforms(self):
         original_dataset = MNIST('./data/mnist', download=True)
         x, y = original_dataset[0]
@@ -614,7 +668,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset = AvalancheDataset(
             original_dataset,
             transform_groups=dict(train=(ToTensor(), None),
-                                  test=(None, Lambda(lambda t: float(t)))))
+                                  eval=(None, Lambda(lambda t: float(t)))))
 
         x, y, _ = dataset[0]
         self.assertIsInstance(x, Tensor)
@@ -646,21 +700,21 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=(ToTensor(), None),
-                                      test=(Lambda(lambda t: float(t)))))
+                                      eval=(Lambda(lambda t: float(t)))))
 
         with self.assertRaises(Exception):
             # Test is not a tuple has only one element
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=(ToTensor(), None),
-                                      test=[None, Lambda(lambda t: float(t))]))
+                                      eval=[None, Lambda(lambda t: float(t))]))
 
         with self.assertRaises(Exception):
             # Train is None
             dataset = AvalancheDataset(
                 original_dataset,
                 transform_groups=dict(train=None,
-                                      test=(None, Lambda(lambda t: float(t)))))
+                                      eval=(None, Lambda(lambda t: float(t)))))
 
         with self.assertRaises(Exception):
             # transform_groups is not a dictionary
@@ -672,8 +726,8 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         original_dataset = MNIST('./data/mnist', download=True)
         dataset = AvalancheDataset(
             original_dataset,
-            transform_groups=dict(train=(ToTensor(), None), test=(None, None)),
-            initial_transform_group='test')
+            transform_groups=dict(train=(ToTensor(), None), eval=(None, None)),
+            initial_transform_group='eval')
 
         x, *_ = dataset[0]
         self.assertIsInstance(x, Image)
@@ -703,7 +757,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             original_dataset,
             transform_groups=dict(
                 train=(ToTensor(), None),
-                test=(None, None),
+                eval=(None, None),
                 other=(Compose([ToTensor(),
                                Lambda(lambda tensor: tensor.numpy())]), None)))
 
@@ -769,10 +823,10 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
     def test_transformation_concat_dataset_groups(self):
         original_dataset = AvalancheDataset(
             MNIST('./data/mnist', download=True),
-            transform_groups=dict(test=(None, None), train=(ToTensor(), None)))
+            transform_groups=dict(eval=(None, None), train=(ToTensor(), None)))
         original_dataset2 = AvalancheDataset(
             MNIST('./data/mnist', download=True),
-            transform_groups=dict(train=(None, None), test=(ToTensor(), None)))
+            transform_groups=dict(train=(None, None), eval=(ToTensor(), None)))
 
         dataset = AvalancheConcatDataset([original_dataset,
                                           original_dataset2])

@@ -10,8 +10,20 @@
 ################################################################################
 
 import os
+import sys
 import logging
-from google_drive_downloader import GoogleDriveDownloader as gdd
+from zipfile import ZipFile
+import shutil
+
+if sys.version_info[0] >= 3:
+    from urllib.request import urlretrieve
+else:
+    # Not Python 3 - today, it is most likely to be Python 2
+    # But note that this might need an update when Python 4
+    # might be around one day
+    from urllib import urlretrieve
+
+name = ('Stream-51.zip', 'http://klab.cis.rit.edu/files/Stream-51.zip')
 
 
 class STREAM51_DATA(object):
@@ -36,28 +48,47 @@ class STREAM51_DATA(object):
         try:
             # Create target Directory for STREAM51 data
             os.makedirs(self.data_folder)
-            self.log.info("Directory ", self.data_folder, " Created ")
+            self.log.info("Directory %s created", self.data_folder)
             self.download = True
             self.download_stream51()
 
         except OSError:
             self.download = False
-            self.log.error("Directory ", self.data_folder, " already exists")
+            self.log.error("Directory %s already exists", self.data_folder)
 
     def download_stream51(self):
-        # DEPRECATED: the following function causes an error unless the data
-        # is already archived on the local machine
-        # several issues on github are raised about this problem:
-        # https://github.com/ndrplz/google-drive-downloader
-        # gdd.download_file_from_google_drive(file_id=
-        #                                     '15huZ756N2cp1CCO4HxF-'
-        #                                     'MVDsMx1LMoIn',
-        #                                     dest_path=os.path.join(
-        #                                         self.data_folder,
-        #                                         'Stream-51.zip'),
-        #                                     unzip=True)
-        # self.log.info("Download complete.")
-        raise NotImplementedError
+        self.log.info("Downloading " + name[1] + "...")
+        urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
+
+        if name[1].endswith('.zip'):
+            lfilename = os.path.join(self.data_folder, name[0])
+            with ZipFile(lfilename, 'r') as zipf:
+                for member in zipf.namelist():
+                    filename = os.path.basename(member)
+                    # skip directories
+                    if not filename:
+                        continue
+
+                    # copy file (taken from zipfile's extract)
+                    source = zipf.open(member)
+                    if 'json' in filename:
+                        target = open(os.path.join(self.data_folder, filename),
+                                      "wb")
+                    else:
+                        dest_folder = os.path.join(
+                            *(member.split(os.path.sep)[1:-1]))
+                        dest_folder = os.path.join(self.data_folder,
+                                                   dest_folder)
+                        if not os.path.exists(dest_folder):
+                            os.makedirs(dest_folder)
+                        target = open(os.path.join(dest_folder, filename), "wb")
+                    with source, target:
+                        shutil.copyfileobj(source, target)
+
+                self.log.info('Done!')
+            os.remove(lfilename)
+
+        self.log.info("Download complete.")
 
 
 __all__ = [

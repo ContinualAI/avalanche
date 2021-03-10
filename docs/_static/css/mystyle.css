@@ -12,3 +12,15 @@ div.document {
 code.py.docutils {
     color: #3080B9;
 }
+
+.wy-menu-vertical li.current > a span.toctree-expand, .wy-menu-vertical li.on a span.toctree-expand {
+    font-size: 1.2em;
+    line-height: 1.1em;
+    margin-left: -1em;
+}
+
+.wy-menu-vertical li span.toctree-expand {
+    font-size: 1.2em;
+    line-height: 1.1em;
+    margin-left: -1em;
+}

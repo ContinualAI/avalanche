@@ -36,8 +36,8 @@ def default_loader(path):
 class Stream51(Dataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root, train=True, transform=ToTensor(),
-                 target_transform=None, loader=pil_loader, download=False):
+    def __init__(self, root, train=True, transform=None,
+                 target_transform=None, loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -180,17 +180,14 @@ class Stream51(Dataset):
         fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
         fmt_str += '    Root Location: {}\n'.format(self.root)
         tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(tmp,
-                                     self.transform.__repr__().replace('\n',
-                                                                       '\n' +
-                                                                       ' ' *
-                                                                       len(
-                                                                           tmp)
-                                                                       ))
+        fmt_str += '{0}{1}\n'.format(
+            tmp, self.transform.__repr__().replace(
+                '\n', '\n' + ' ' * len(tmp)))
+
         tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(tmp,
-                                   self.target_transform.__repr__().replace(
-                                       '\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}'.format(
+            tmp, self.target_transform.__repr__().replace(
+                '\n', '\n' + ' ' * len(tmp)))
         return fmt_str
 
 
@@ -204,8 +201,8 @@ if __name__ == "__main__":
     import torch
 
     root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    train_data = Stream51(root=root_dir, download=False)
-    test_data = Stream51(root=root_dir, train=False, download=False)
+    train_data = Stream51(root=root_dir)
+    test_data = Stream51(root=root_dir, train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     dataloader = DataLoader(train_data, batch_size=1)

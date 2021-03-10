@@ -15,8 +15,8 @@ from torchvision.datasets import Omniglot as OmniglotTorch
 
 class Omniglot(OmniglotTorch):
     """
-    Custom class used to interface Omniglot from
-    Torchvision with the method used in Avalanche
+    Custom class used to adapt Omniglot (from Torchvision) and make it
+    compatible with the Avalanche API.
     """
 
     def __init__(

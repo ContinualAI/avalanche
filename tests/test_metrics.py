@@ -14,9 +14,13 @@ from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, accuracy_metrics, loss_metrics
 from avalanche.evaluation.metrics.cpu_usage import CPUUsage, cpu_usage_metrics
 from avalanche.evaluation.metrics.ram_usage import MaxRAM
+from tests.unit_tests_utils import common_setups
 
 
 class MACMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_ff_model(self):
         xn, hn, yn = 50, 100, 10
 
@@ -47,6 +51,9 @@ class MACMetricTests(unittest.TestCase):
 
 
 class AccuracyMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_accuracy(self):
         uut = Accuracy()
 
@@ -120,6 +127,9 @@ class AccuracyMetricTests(unittest.TestCase):
 
 
 class LossMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_forgetting(self):
         uut = Loss()
 
@@ -166,6 +176,9 @@ class LossMetricTests(unittest.TestCase):
 
 
 class ConfusionMatrixMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_cm_fixed_size(self):
         uut = ConfusionMatrix(num_classes=10)
 
@@ -266,6 +279,9 @@ class ConfusionMatrixMetricTests(unittest.TestCase):
 
 
 class CpuUsageMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_cpu_usage(self):
         uut = CPUUsage()
 
@@ -319,14 +335,17 @@ class CpuUsageMetricTests(unittest.TestCase):
 
 
 class RamUsageMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_cpu_usage(self):
         uut = MaxRAM()
 
         # Assert result is None when created
         self.assertEqual(0, uut.result())
+        uut.start_thread()
 
         # Base usage
-        uut.update()
         last_result = uut.result()
         self.assertLessEqual(0.0, last_result)
 
@@ -341,12 +360,15 @@ class RamUsageMetricTests(unittest.TestCase):
 
 
 class DiskUsageMetricTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_standalone_disk_usage(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             uut = DiskUsage(tmp_dir)
 
             # Assert result is None when created
-            self.assertEqual(None, uut.result())
+            self.assertEqual(0, uut.result())
 
             # Base usage
             uut.update()
@@ -354,7 +376,7 @@ class DiskUsageMetricTests(unittest.TestCase):
 
             # Assert reset actually resets
             uut.reset()
-            self.assertEqual(None, uut.result())
+            self.assertEqual(0, uut.result())
 
             uut.update()
             base_value = uut.result()

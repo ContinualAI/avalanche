@@ -14,10 +14,14 @@ import logging
 import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
-from avalanche.benchmarks.scenarios.generic_definitions import IExperience
+from avalanche.benchmarks.scenarios.generic_definitions import Experience
+from tests.unit_tests_utils import common_setups
 
 
 class TinyImagenetTest(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
     def test_tinyimagenet_default_loader(self):
 
         logger = logging.getLogger("avalanche")
@@ -26,10 +30,10 @@ class TinyImagenetTest(unittest.TestCase):
 
         scenario = SplitTinyImageNet()
         for task_info in scenario.train_stream:
-            self.assertIsInstance(task_info, IExperience)
+            self.assertIsInstance(task_info, Experience)
 
         for task_info in scenario.test_stream:
-            self.assertIsInstance(task_info, IExperience)
+            self.assertIsInstance(task_info, Experience)
 
 
 if __name__ == '__main__':

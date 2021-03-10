@@ -19,7 +19,7 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
-    from avalanche.benchmarks.scenarios import IExperience
+    from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 
 
@@ -40,8 +40,8 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
     `ConfusionMatrixDisplay` to create the matplotlib figure. The figure
     is then converted to a PIL `Image`.
 
-    For more info about the accepted graphic parameters, see:
-    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html#sklearn.metrics.plot_confusion_matrix.
+    For more info about the accepted graphic parameters,
+    see `Scikit learn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html>`_ # noqa
 
     :param confusion_matrix_tensor: The tensor describing the confusion matrix.
         This can be easily obtained through Scikit-learn `confusion_matrix`
@@ -101,7 +101,7 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
     return strategy.train_task_label
 
 
-def stream_type(experience: 'IExperience') -> str:
+def stream_type(experience: 'Experience') -> str:
     """
     Returns the stream name from which the experience belongs to.
     e.g. the experience can be part of train or test stream.

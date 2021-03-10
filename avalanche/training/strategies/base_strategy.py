@@ -14,7 +14,7 @@ from typing import Optional, Sequence, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios import IExperience
+from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.logging import default_logger
@@ -229,15 +229,15 @@ class BaseStrategy:
         """
         self.optimizer.add_param_group({'params': new_params})
 
-    def train(self, experiences: Union[IExperience, Sequence[IExperience]],
-              eval_streams: Optional[Sequence[Union[IExperience,
-                                Sequence[IExperience]]]] = None,
+    def train(self, experiences: Union[Experience, Sequence[Experience]],
+              eval_streams: Optional[Sequence[Union[Experience,
+                                Sequence[Experience]]]] = None,
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
 
-        :param experiences: single IExperience or sequence.
+        :param experiences: single Experience or sequence.
         :param eval_streams: list of streams for evaluation.
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
@@ -247,12 +247,12 @@ class BaseStrategy:
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if isinstance(experiences, IExperience):
+        if isinstance(experiences, Experience):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
         for i, exp in enumerate(eval_streams):
-            if isinstance(exp, IExperience):
+            if isinstance(exp, Experience):
                 eval_streams[i] = [exp]
 
         res = []
@@ -265,9 +265,9 @@ class BaseStrategy:
         self.after_training(**kwargs)
         return res
 
-    def train_exp(self, experience: IExperience, eval_streams, **kwargs):
+    def train_exp(self, experience: Experience, eval_streams, **kwargs):
         """
-        Training loop over a single IExperience object.
+        Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param kwargs: custom arguments.
@@ -316,7 +316,7 @@ class BaseStrategy:
         self.model.train()
 
     def eval(self,
-             exp_list: Union[IExperience, Sequence[IExperience]],
+             exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
         """
         Evaluate the current model on a series of experiences.
@@ -328,7 +328,7 @@ class BaseStrategy:
         self.model.eval()
         self.model.to(self.device)
 
-        if isinstance(exp_list, IExperience):
+        if isinstance(exp_list, Experience):
             exp_list = [exp_list]
 
         res = []

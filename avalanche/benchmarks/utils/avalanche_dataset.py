@@ -17,6 +17,7 @@ derivatives) is much more powerful as it offers many more features
 out-of-the-box.
 """
 import copy
+import warnings
 from collections import OrderedDict
 
 import torch
@@ -68,19 +69,20 @@ class AvalancheDataset(DatasetWithTargets[T_co],
     (exactly as in torchvision datasets). This dataset natively supports keeping
     two transformation groups: the first, 'train', contains transformations
     applied to training patterns. Those transformations usually involve some
-    kind of data augmentation. The second one is 'test', that will contain
+    kind of data augmentation. The second one is 'eval', that will contain
     transformations applied to test patterns. Having both groups can be
     useful when, for instance, in need to test on the training data (as this
     process usually involves removing data augmentation operations). Switching
     between transformations can be easily achieved by using the
-    :func:`train` and :func:`eval` method.
+    :func:`train` and :func:`eval` methods.
 
     Moreover, arbitrary transformation groups can be added and used. For more
     info see the constructor and the :func:`with_transforms` method.
 
     This dataset will try to inherit the task labels from the input
-    dataset. If none are available and none are given, each pattern will be
-    assigned a default task label "0". See the constructor for more details.
+    dataset. If none are available and none are given via the `task_labels`
+    parameter, each pattern will be assigned a default task label "0".
+    See the constructor for more details.
     """
     def __init__(self,
                  dataset: SupportedDataset[T_co],
@@ -103,14 +105,14 @@ class AvalancheDataset(DatasetWithTargets[T_co],
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test transformations. This becomes useful when in need to test on
-            the training dataset as test transformations usually don't contain
-            random augmentations. ``AvalancheDataset`` natively supports the
-            'train' and 'test' groups by calling the ``train()`` and ``eval()``
-            methods. When using custom groups one can use the
+            eval (test) transformations. This becomes useful when in need to
+            test on the training dataset as test transformations usually don't
+            contain random augmentations. ``AvalancheDataset`` natively supports
+            the 'train' and 'eval' groups by calling the ``train()`` and
+            ``eval()`` methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
-            handle both 'train' and 'test' groups (just like in standard
+            handle both 'train' and 'eval' groups (just like in standard
             ``torchvision`` datasets).
         :param task_labels: The task labels for each pattern. Must be a sequence
             of ints, one for each pattern in the dataset. Defaults to None,
@@ -164,7 +166,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         self._optimize_task_labels()
         self._optimize_task_dict()
 
-        self.task_set = TaskSubsetDict(self)
+        self.task_set = _TaskSubsetDict(self)
         """
         A dictionary that can be used to obtain the subset of patterns given
         a specific task label.
@@ -180,17 +182,17 @@ class AvalancheDataset(DatasetWithTargets[T_co],
                                          transform, target_transform)
         """
         A dictionary containing the transform groups. Transform groups are
-        used to quickly switch between training and test transformations.
+        used to quickly switch between training and test (eval) transformations.
         This becomes useful when in need to test on the training dataset as test
         transformations usually don't contain random augmentations.
 
         AvalancheDataset natively supports switching between the 'train' and
-        'test' groups by calling the ``train()`` and ``eval()`` methods. When
+        'eval' groups by calling the ``train()`` and ``eval()`` methods. When
         using custom groups one can use the ``with_transforms(group_name)``
         method instead.
 
         May be null, which means that the current transforms will be used to
-        handle both 'train' and 'test' groups.
+        handle both 'train' and 'eval' groups.
         """
 
         if self.current_transform_group not in self.transform_groups:
@@ -220,6 +222,9 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
         self._set_original_dataset_transform_group(self.current_transform_group)
 
+    def __add__(self, other: 'AvalancheDataset') -> 'AvalancheDataset':
+        return AvalancheConcatDataset([self, other])
+
     def __getitem__(self, idx):
         return manage_advanced_indexing(idx, self._get_single_item, len(self))
 
@@ -239,18 +244,18 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def eval(self):
         """
-        Returns a new dataset with the transformations of the 'test' group
+        Returns a new dataset with the transformations of the 'eval' group
         loaded.
 
-        Test transformations usually don't contain augmentation procedures.
+        Eval transformations usually don't contain augmentation procedures.
         This function may be useful when in need to test on training data
         (for instance, in order to run a validation pass).
 
         The current dataset will not be affected.
 
-        :return: A new dataset with the test transformations loaded.
+        :return: A new dataset with the eval transformations loaded.
         """
-        return self.with_transforms('test')
+        return self.with_transforms('eval')
 
     def freeze_transforms(self: TAvalancheDataset) -> \
             TAvalancheDataset:
@@ -566,6 +571,12 @@ class AvalancheDataset(DatasetWithTargets[T_co],
                     'a tuple containing 2 elements: a transformation for the X '
                     'values and a transformation for the Y values')
 
+        if 'test' in groups_dict:
+            warnings.warn(
+                'A transformation group named "test" has been found. Beware '
+                'that by default AvalancheDataset supports test transformations'
+                ' through the "eval" group. Consider using that one!')
+
     def _initialize_groups_dict(
             self,
             transform_groups: Optional[Dict[str, Tuple[XTransform,
@@ -575,14 +586,14 @@ class AvalancheDataset(DatasetWithTargets[T_co],
             target_transform: YTransform) -> Dict[str, Tuple[XTransform,
                                                              YTransform]]:
         """
-        A simple helper method that tries to fill the 'train' and 'test'
+        A simple helper method that tries to fill the 'train' and 'eval'
         groups as those two groups must always exist.
 
         If no transform_groups are passed to the class constructor, then
         the transform and target_transform parameters are used for both groups.
 
-        If train transformations are set and test transformations are not, then
-        train transformations will be used for the test group.
+        If train transformations are set and eval transformations are not, then
+        train transformations will be used for the eval group.
 
         :param dataset: The original dataset. Will be used to detect existing
             groups.
@@ -594,20 +605,20 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         if transform_groups is None:
             transform_groups = {
                 'train': (transform, target_transform),
-                'test': (transform, target_transform)
+                'eval': (transform, target_transform)
             }
         else:
             transform_groups = dict(transform_groups)
 
         if 'train' in transform_groups:
-            if 'test' not in transform_groups:
-                transform_groups['test'] = transform_groups['train']
+            if 'eval' not in transform_groups:
+                transform_groups['eval'] = transform_groups['train']
 
         if 'train' not in transform_groups:
             transform_groups['train'] = (None, None)
 
-        if 'test' not in transform_groups:
-            transform_groups['test'] = (None, None)
+        if 'eval' not in transform_groups:
+            transform_groups['eval'] = (None, None)
 
         self._add_groups_from_original_dataset(dataset, transform_groups)
 
@@ -694,7 +705,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
                 self.tasks_pattern_indices[task_label])
 
 
-class TaskSubsetDict(OrderedDict):
+class _TaskSubsetDict(OrderedDict):
 
     def __init__(self, avalanche_dataset: AvalancheDataset):
         self._full_dataset = avalanche_dataset
@@ -725,7 +736,8 @@ class AvalancheSubset(AvalancheDataset[T_co]):
     """
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
-    the targets field and class mapping.
+    the targets field, class mapping and all the other goodies listed in
+    :class:`AvalancheDataset`.
     """
     def __init__(self,
                  dataset: SupportedDataset[T_co],
@@ -739,7 +751,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None):
         """
-        Creates a ``TransformationSubset`` instance.
+        Creates an ``AvalancheSubset`` instance.
 
         :param dataset: The whole dataset.
         :param indices: Indices in the whole set selected for subset. Can
@@ -752,14 +764,14 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test transformations. This becomes useful when in need to test on
-            the training dataset as test transformations usually don't contain
-            random augmentations. ``AvalancheDataset`` natively supports the
-            'train' and 'test' groups by calling the ``train()`` and ``eval()``
-            methods. When using custom groups one can use the
+            eval (test) transformations. This becomes useful when in need to
+            test on the training dataset as test transformations usually don't
+            contain random augmentations. ``AvalancheDataset`` natively supports
+            the 'train' and 'eval' groups by calling the ``train()`` and
+            ``eval()`` methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
-            handle both 'train' and 'test' groups (just like in standard
+            handle both 'train' and 'eval' groups (just like in standard
             ``torchvision`` datasets).
         :param task_labels: The task labels for each pattern. Must be a sequence
             of ints, one for each pattern in the dataset. This can either be a
@@ -826,8 +838,9 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
     """
     A Dataset that wraps existing ndarrays, Tensors, lists... to provide
     basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
-    this Dataset also supports transformations, slicing, advanced indexing and
-    the targets field.
+    this Dataset also supports transformations, slicing, advanced indexing,
+    the targets field and all the other goodies listed in
+    :class:`AvalancheDataset`.
     """
     def __init__(self,
                  dataset_x: Sequence[T_co],
@@ -840,7 +853,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None):
         """
-        Creates a ``TransformationTensorDataset`` instance.
+        Creates a ``AvalancheTensorDataset`` instance.
 
         :param dataset_x: An sequence, Tensor or ndarray representing the X
             values of the patterns.
@@ -852,14 +865,14 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test transformations. This becomes useful when in need to test on
-            the training dataset as test transformations usually don't contain
-            random augmentations. ``AvalancheDataset`` natively supports the
-            'train' and 'test' groups by calling the ``train()`` and ``eval()``
-            methods. When using custom groups one can use the
+            eval (test) transformations. This becomes useful when in need to
+            test on the training dataset as test transformations usually don't
+            contain random augmentations. ``AvalancheDataset`` natively supports
+            the 'train' and 'eval' groups by calling the ``train()`` and
+            ``eval()`` methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
-            handle both 'train' and 'test' groups (just like in standard
+            handle both 'train' and 'eval' groups (just like in standard
             ``torchvision`` datasets).
         :param task_labels: The task labels for each pattern. Must be a sequence
             of ints, one for each pattern in the dataset. Defaults to None,
@@ -880,7 +893,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
     """
     A Dataset that behaves like a PyTorch
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
-    transformations, slicing, advanced indexing and the targets field.
+    transformations, slicing, advanced indexing and the targets field and all
+    the other goodies listed in :class:`AvalancheDataset`.
 
     This dataset guarantees that the operations involving the transformations
     and transformations groups are consistent across the concatenated dataset
@@ -897,23 +911,23 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
                  task_labels: Union[Sequence[int],
                                     Sequence[Sequence[int]]] = None):
         """
-        Creates a ``TransformationConcatDataset`` instance.
+        Creates a ``AvalancheConcatDataset`` instance.
 
-        :param datasets: An sequence of datasets.
+        :param datasets: A sequence of datasets.
         :param transform: A function/transform that takes the X value of a
             pattern from the original dataset and returns a transformed version.
         :param target_transform: A function/transform that takes in the target
             and transforms it.
         :param transform_groups: A dictionary containing the transform groups.
             Transform groups are used to quickly switch between training and
-            test transformations. This becomes useful when in need to test on
-            the training dataset as test transformations usually don't contain
-            random augmentations. ``AvalancheDataset`` natively supports the
-            'train' and 'test' groups by calling the ``train()`` and ``eval()``
-            methods. When using custom groups one can use the
+            eval (test) transformations. This becomes useful when in need to
+            test on the training dataset as test transformations usually don't
+            contain random augmentations. ``AvalancheDataset`` natively supports
+            the 'train' and 'eval' groups by calling the ``train()`` and
+            ``eval()`` methods. When using custom groups one can use the
             ``with_transforms(group_name)`` method instead. Defaults to None,
             which means that the current transforms will be used to
-            handle both 'train' and 'test' groups (just like in standard
+            handle both 'train' and 'eval' groups (just like in standard
             ``torchvision`` datasets).
         :param task_labels: The task labels for each pattern. Must be a sequence
             of ints, one for each pattern in the dataset. Alternatively, task
@@ -1140,7 +1154,7 @@ def concat_datasets_sequentially(
         train_set = train_dataset_list[dataset_idx]
         test_set = test_dataset_list[dataset_idx]
 
-        # TransformationSubset is used to apply the class IDs transformation.
+        # AvalancheSubset is used to apply the class IDs transformation.
         # Remember, the class_mapping parameter must be a list in which:
         # new_class_id = class_mapping[original_class_id]
         remapped_train_datasets.append(
@@ -1154,7 +1168,7 @@ def concat_datasets_sequentially(
             new_class_ids_per_dataset)
 
 
-def as_transformation_dataset(dataset: IDatasetWithTargets[T_co]) -> \
+def as_avalanche_dataset(dataset: IDatasetWithTargets[T_co]) -> \
         AvalancheDataset[T_co]:
     if isinstance(dataset, AvalancheDataset):
         return dataset
@@ -1162,22 +1176,21 @@ def as_transformation_dataset(dataset: IDatasetWithTargets[T_co]) -> \
     return AvalancheDataset(dataset)
 
 
-def train_test_transformation_datasets(
+def train_eval_avalanche_datasets(
         train_dataset: IDatasetWithTargets[T_co],
         test_dataset: IDatasetWithTargets[T_co],
-        train_transformation,
-        test_transformation):
+        train_transformation, eval_transformation):
     train = AvalancheDataset(
         train_dataset,
         transform_groups=dict(train=(train_transformation, None),
-                              test=(test_transformation, None)),
+                              eval=(eval_transformation, None)),
         initial_transform_group='train')
 
     test = AvalancheDataset(
         test_dataset,
         transform_groups=dict(train=(train_transformation, None),
-                              test=(test_transformation, None)),
-        initial_transform_group='test')
+                              eval=(eval_transformation, None)),
+        initial_transform_group='eval')
     return train, test
 
 
@@ -1208,6 +1221,6 @@ __all__ = [
     'AvalancheTensorDataset',
     'AvalancheConcatDataset',
     'concat_datasets_sequentially',
-    'as_transformation_dataset',
-    'train_test_transformation_datasets'
+    'as_avalanche_dataset',
+    'train_eval_avalanche_datasets'
 ]

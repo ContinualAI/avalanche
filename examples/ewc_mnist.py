@@ -49,7 +49,8 @@ def main(args):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
         ExperienceForgetting(),
         loggers=[interactive_logger])
 
@@ -69,6 +70,7 @@ def main(args):
         print("End training on experience", experience.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
