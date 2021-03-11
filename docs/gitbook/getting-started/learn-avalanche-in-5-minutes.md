@@ -259,11 +259,7 @@ Check out more details about what Avalanche can offer in this module following t
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done through the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
-
-### Metrics
-
-At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
+This is mostly done through the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc. At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
 
 Each metric comes with a general purpose class and more fine-grained classes aimed at emitting metric values on specific moments during training and evaluation.
 
