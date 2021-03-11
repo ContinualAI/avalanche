@@ -30,7 +30,7 @@ grpcio                    1.33.2           py36he0f7d3b_2    conda-forge
 gst-plugins-base          1.14.0               hbbd80ab_1  
 gstreamer                 1.14.0               h28cd5cc_2  
 icu                       58.2              hf484d3e_1000    conda-forge
-importlib-metadata        3.7.0            py36h5fab9bb_0    conda-forge
+importlib-metadata        3.7.2            py36h5fab9bb_0    conda-forge
 intel-openmp              2020.2                      254  
 joblib                    1.0.1              pyhd8ed1ab_0    conda-forge
 jpeg                      9b                   h024ee3a_2  
@@ -73,7 +73,7 @@ olefile                   0.46                     py36_0
 openh264                  2.1.0                hd408876_0  
 openssl                   1.1.1j               h27cfd23_0  
 pcre                      8.44                 he1b5a44_0    conda-forge
-pillow                    8.1.1            py36he98fc37_0  
+pillow                    8.1.2            py36he98fc37_0  
 pip                       21.0.1             pyhd8ed1ab_0    conda-forge
 protobuf                  3.13.0.1         py36h201607c_1    conda-forge
 psutil                    5.7.3            py36he6145b8_0    conda-forge

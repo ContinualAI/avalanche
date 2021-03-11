@@ -21,6 +21,7 @@ from avalanche.logging import default_logger
 from typing import TYPE_CHECKING
 
 from avalanche.training.plugins import EvaluationPlugin
+
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
@@ -30,7 +31,7 @@ class BaseStrategy:
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger):
+                 evaluator=default_logger, eval_every=-1):
         """
         BaseStrategy is the super class of all task-based continual learning
         strategies. It implements a basic training loop and callback system
@@ -93,6 +94,13 @@ class BaseStrategy:
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations. None to remove logging.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
         """
         self.model: Module = model
         """ PyTorch model. """
@@ -125,13 +133,15 @@ class BaseStrategy:
         self.evaluator = evaluator
         """ EvaluationPlugin used for logging and metric computations. """
 
-        # Flow state variables
+        self.eval_every = eval_every
+        """ Frequency of the evaluation during training. """
+
+        ###################################################################
+        # State variables. These are updated during the train/eval loops. #
+        ###################################################################
         self.training_exp_counter = 0
         """ Counts the number of training steps. +1 at the end of each 
         experience. """
-
-        self.eval_exp_id = None  # eval-flow only
-        """ Label of the currently evaluated experience. Only at eval time. """
 
         self.epoch: Optional[int] = None
         """ Epoch counter. """
@@ -166,12 +176,6 @@ class BaseStrategy:
 
         self.logits = None
         """ Logits computed on the current mini-batch. """
-
-        self.train_task_label: Optional[int] = None
-        """ Label of the current experience (train time). """
-
-        self.eval_task_label: Optional[int] = None
-        """ Label of the current experience (eval time). """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
@@ -218,33 +222,44 @@ class BaseStrategy:
         self.optimizer.add_param_group({'params': new_params})
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
+              eval_streams: Optional[Sequence[Union[Experience,
+                                                    Sequence[
+                                                        Experience]]]] = None,
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
 
-        :param experiences: single IExperience or sequence.
+        :param experiences: single Experience or sequence.
+        :param eval_streams: list of streams for evaluation.
+            If None: use training experiences for evaluation.
+            Use [] if you do not want to evaluate during training.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
+        # Normalize training and eval data.
         if isinstance(experiences, Experience):
             experiences = [experiences]
+        if eval_streams is None:
+            eval_streams = [experiences]
+        for i, exp in enumerate(eval_streams):
+            if isinstance(exp, Experience):
+                eval_streams[i] = [exp]
 
         res = []
         self.before_training(**kwargs)
         for exp in experiences:
-            self.train_task_label = exp.task_label
-            self.train_exp(exp, **kwargs)
+            self.train_exp(exp, eval_streams, **kwargs)
             res.append(self.evaluator.current_metrics.copy())
 
         self.after_training(**kwargs)
         return res
 
-    def train_exp(self, experience: Experience, **kwargs):
+    def train_exp(self, experience: Experience, eval_streams, **kwargs):
         """
-        Training loop over a single IExperience object.
+        Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param kwargs: custom arguments.
@@ -263,8 +278,34 @@ class BaseStrategy:
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
+            self._periodic_eval(eval_streams, do_final=False)
             self.after_training_epoch(**kwargs)
+        self._periodic_eval(eval_streams, do_final=True)  # Final evaluation
         self.after_training_exp(**kwargs)
+
+    def _periodic_eval(self, eval_streams, do_final):
+        """ Periodic eval controlled by `self.eval_every`. """
+        # Since we are switching from train to eval model inside the training
+        # loop, we need to save the training state, and restore it after the
+        # eval is done.
+        _prev_state = (
+            self.epoch,
+            self.experience,
+            self.adapted_dataset,
+            self.current_dataloader)
+
+        if self.eval_every == 0 and do_final:
+            # we are outside the epoch loop
+            for stream in eval_streams:
+                self.eval(stream)
+        elif self.eval_every > 0 and self.epoch % self.eval_every == 0:
+            for stream in eval_streams:
+                self.eval(stream)
+
+        # restore train-state variables and training mode.
+        self.epoch, self.experience, self.adapted_dataset = _prev_state[:3]
+        self.current_dataloader = _prev_state[3]
+        self.model.train()
 
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
@@ -285,10 +326,7 @@ class BaseStrategy:
         res = []
         self.before_eval(**kwargs)
         for exp in exp_list:
-            self.eval_task_label = exp.task_label
             self.experience = exp
-            self.eval_exp_id = exp.current_experience
-
             self.adapted_dataset = exp.dataset
             self.adapted_dataset = self.adapted_dataset.eval()
 
@@ -442,6 +480,7 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
 
+        self.training_exp_counter += 1
         # Reset flow-state variables. They should not be used outside the flow
         self.epoch = None
         self.experience = None
@@ -489,7 +528,6 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_eval(self, **kwargs)
         # Reset flow-state variables. They should not be used outside the flow
-        self.eval_exp_id = None
         self.experience = None
         self.adapted_dataset = None
         self.current_dataloader = None
@@ -497,8 +535,6 @@ class BaseStrategy:
         self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
         self.logits = None
-
-        self.training_exp_counter += 1
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
