@@ -33,4 +33,32 @@ jobs:
         with:
           path: 'avalanche'
           fail-under: 1
-          # badge-location: 'badges/interrogate_badge.svg'
+          badge-location: 'interrogate_badge.svg'
+      - name: clone reports repository
+        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        uses: actions/checkout@v2
+        with:
+          repository: 'ContinualAI/avalanche-report'
+          ref: main
+          path: 'avalanche-reports'
+          token: ${{ secrets.REPORT_TOKEN }}
+      - name: commit badge
+        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        run: |
+          mv interrogate_badge.svg avalanche-reports/badge/
+          cd avalanche-reports
+          git config --local user.email ${{ secrets.EMAIL }}
+          git config --local user.name ${{ secrets.NAME }}
+          git pull
+          git add .
+          git commit -m "Update coverage badge" -a || true
+          git pull
+      - name: Push changes
+        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        continue-on-error: true
+        uses: ad-m/github-push-action@master
+        with:
+          repository: ContinualAI/avalanche-report
+          branch: main
+          directory: avalanche-reports
+          github_token: ${{ secrets.REPORT_TOKEN }}
