@@ -43,7 +43,6 @@ Avalanche
 │   └── Utils
 ├── Evaluation
 │   ├── Metrics
-│   ├── Tensorboard
 |   └── Utils
 ├── Training
 │   ├── Strategies
@@ -258,13 +257,13 @@ Check out more details about what Avalanche can offer in this module following t
 
 ## 📈 Evaluation
 
-The `evaluation` module is quite straightforward at the moment as it offers all the basic functionalities to evaluate keep track of a continual learning experiment.
+The `evaluation` module is quite straightforward. At the moment it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done thought the **Metrics**: a set of classes \(one for metric\) which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
+This is mostly done though the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
 
 ### Metrics
 
-In _Avalanche_ we offer at the moment a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
+At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
 
 The metrics already available in the current _Avalanche_ release are:
 
@@ -284,7 +283,7 @@ We can use each metric similarly to [tf.keras.metrics](https://www.tensorflow.or
 ```python
 real_y = np.asarray([1, 2])
 predicted_y = np.asarray([1, 0])
-acc_metric = ACC()
+acc_metric = Accuracy()
 acc, acc_x_class = acc_metric.compute([real_y], [predicted_y])
 
 print("Average Accuracy:", acc)
