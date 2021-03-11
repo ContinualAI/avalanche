@@ -22,7 +22,7 @@ _Avalanche_ at the moment supports three main Loggers:
 * **TextLogger**: This logger, mostly intended for file logging, is the plain text version of the `InteractiveLogger`. Keep in mind that it may be very verbose.
 * **TensorboardLogger**: It logs all the metrics on [Tensorboard](https://www.tensorflow.org/tensorboard) in real-time. Perfect for real-time plotting.
 
-#### How to use Them
+Loggers can be passed directly to the `EvaluationPlugin` by the related `loggers` parameter:
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
