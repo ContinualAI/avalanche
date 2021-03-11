@@ -374,7 +374,7 @@ interactive_logger = InteractiveLogger()
 eval_plugin = EvaluationPlugin(
     accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    timing_metrics(epoch=True, epoch_running=True),
+    timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
