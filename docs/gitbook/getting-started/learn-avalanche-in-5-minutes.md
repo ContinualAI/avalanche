@@ -26,7 +26,7 @@ _Avalanche_ is organized in **five main modules**:
 
 * **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
-* **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [TensorBoard](https://www.tensorflow.org/tensorboard) support.
+* **`Evaluation`**: This modules provides all the utilities and metrics that can help in evaluating a CL algorithm with respect to all the factors we believe to be important for a continually learning system.
 * **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\). 
 * **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
 
@@ -257,37 +257,83 @@ Check out more details about what Avalanche can offer in this module following t
 
 ## 📈 Evaluation
 
-The `evaluation` module is quite straightforward. At the moment it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
+The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done though the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
+This is mostly done through the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.
 
 ### Metrics
 
 At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
 
-The metrics already available in the current _Avalanche_ release are:
+Each metric comes with a general purpose class and more fine-grained classes aimed at emitting metric values on specific moments during training and evaluation.
+
+#### General metric
+
+As an example, the `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
 
 ```python
-from avalanche.evaluation.metrics import Accuracy, MinibatchAccuracy, \
-EpochAccuracy, RunningEpochAccuracy, ExperienceAccuracy, ConfusionMatrix, \
-StreamConfusionMatrix, CPUUsage, MinibatchCPUUsage, EpochCPUUsage, \
-AverageEpochCPUUsage, ExperienceCPUUsage, DiskUsage, disk_usage_metrics, \
-ExperienceForgetting, MaxGPU, gpu_usage_metrics, Loss, MinibatchLoss, \
-EpochLoss, RunningEpochLoss, ExperienceLoss, MAC, Mean, MaxRAM, \ 
-Sum, ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
-ExperienceTime, timing_metrics
+from avalanche.evaluation.metrics import Accuracy
+
+# create an instance of the Accuracy metric
+# initial accuracy is 0
+acc_metric = Accuracy()
+print("Initial Accuracy: ", acc_metric.result()) #  output 0
+
+# two consecutive metric updates
+real_y = torch.tensor([1, 2]).long()
+predicted_y = torch.tensor([1, 0]).float()
+acc_metric.update(real_y, predicted_y)
+acc = acc_metric.result()
+print("Average Accuracy: ", acc) # output 0.5
+predicted_y = torch.tensor([1,2]).float()
+acc_metric.update(real_y, predicted_y)
+acc = acc_metric.result()
+print("Average Accuracy: ", acc) # output 0.75
+
+# reset accuracy to 0
+acc_metric.reset() 
+print("After reset: ", acc_metric.result()) # output 0
+
+ 
 ```
 
-We can use each metric similarly to [tf.keras.metrics](https://www.tensorflow.org/api_docs/python/tf/keras/metrics), being them simply python classes. For example the **Accuracy** metric works as follows:
+#### Fine-grained metric
+
+If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more specific metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience.  In order to simplify the use of these metrics, we provided utility functions with which you can create many different version of the same metric in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
 
 ```python
-real_y = np.asarray([1, 2])
-predicted_y = np.asarray([1, 0])
-acc_metric = Accuracy()
-acc, acc_x_class = acc_metric.compute([real_y], [predicted_y])
+# utility functions to create metrics
+from avalanche.evaluation.metrics import accuracy_metrics, \
+loss_metrics, cpu_usage_metrics, disk_usage_metrics, \
+gpu_usage_metrics, MAC_metrics, ram_usage_metrics, \
+timing_metrics
 
-print("Average Accuracy:", acc)
-print("Accuracy per class:", acc_x_class)
+# you may pass the result to the EvaluationPlugin
+metrics = accuracy_metrics(epoch=True, 
+                           experience=True)
+```
+
+The metrics currently available in the current _Avalanche_ release are:
+
+```python
+from avalanche.evaluation.metrics import Accuracy, \
+MinibatchAccuracy, EpochAccuracy, RunningEpochAccuracy, \
+ExperienceAccuracy, StreamAccuracy, \ # Accuracy
+Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
+ExperienceLoss, StreamLoss, \ # Loss
+ExperienceForgetting, \ # Forgetting
+ConfusionMatrix, StreamConfusionMatrix, \ # Confusion Matrix
+CPUUsage, MinibatchCPUUsage, EpochCPUUsage, AverageEpochCPUUsage, \
+ExperienceCPUUsage, StreamCPUUsage, \ # CPU Usage
+DiskUsage, MinibatchDiskUsage, EpochDiskUsage, \
+ExperienceDiskUsage, StreamDiskUsage, \ # Disk Usage
+MaxGPU, MinibatchMaxGPU, EpochMaxGPU, ExperienceMaxGPU, \
+StreamMaxGPU,\ # Max GPU Usage 
+MAC, MinibatchMAC, EpochMAC, ExperienceMAC, \ # Multiply and Accumulate
+MaxRAM, MinibatchMaxRAM, EpochMaxRAM, ExperienceMaxRAM, \
+StreamMaxRAM, \ # Max RAM Usage
+ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
+ExperienceTime, StreamTime # Timing metrics
 ```
 
 For more details about the evaluation module, check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
