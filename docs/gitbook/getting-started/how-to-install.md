@@ -52,7 +52,7 @@ Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you ca
 These steps can be accomplished with the following lines of code:
 
 ```bash
-# choose you python version
+# choose your python version
 python="3.8"
 
 # Step 1
