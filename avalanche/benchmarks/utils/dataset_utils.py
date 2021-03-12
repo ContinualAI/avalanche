@@ -45,8 +45,7 @@ class IDataset(Protocol[T_co]):
     Note: no __add__ method is defined.
     """
 
-    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
-                                               Tuple[T_co, int, int]]:
+    def __getitem__(self, index: int) -> T_co:
         ...
 
     def __len__(self) -> int:
@@ -67,13 +66,6 @@ class IDatasetWithTargets(IDataset[T_co], Protocol):
     label of each pattern contained in the dataset.
     """
 
-    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
-                                               Tuple[T_co, int, int]]:
-        ...
-
-    def __len__(self) -> int:
-        ...
-
 
 class ITensorDataset(IDataset[T_co], Protocol):
     """
@@ -88,13 +80,6 @@ class ITensorDataset(IDataset[T_co], Protocol):
     A sequence of PyTorch Tensors describing the contents of the Dataset.
     """
 
-    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
-                                               Tuple[T_co, int, int]]:
-        ...
-
-    def __len__(self) -> int:
-        ...
-
 
 class IDatasetWithIntTargets(IDatasetWithTargets[T_co], Protocol):
     """
@@ -108,13 +93,6 @@ class IDatasetWithIntTargets(IDatasetWithTargets[T_co], Protocol):
     A sequence of ints describing the label of each pattern contained in the
     dataset.
     """
-
-    def __getitem__(self, index: int) -> Union[Tuple[T_co, int],
-                                               Tuple[T_co, int, int]]:
-        ...
-
-    def __len__(self) -> int:
-        ...
 
 
 class DatasetWithTargets(IDatasetWithIntTargets[T_co], Dataset):
@@ -265,7 +243,7 @@ class SubsetWithTargets(DatasetWithTargets[T_co]):
             result = self.dataset[idx]
 
         if self.class_mapping is not None:
-            return result[0], self.class_mapping[result[1]]
+            return (result[0], self.class_mapping[result[1]], *result[2:])
 
         return result
 
@@ -304,30 +282,35 @@ class SequenceDataset(DatasetWithTargets[T_co]):
     basic Dataset functionalities. Very similar to TensorDataset.
     """
     def __init__(self,
-                 dataset_x: Sequence[T_co],
-                 dataset_y: Sequence[SupportsInt]):
+                 *sequences: Sequence):
         """
         Creates a ``SequenceDataset`` instance.
 
-        :param dataset_x: An sequence, Tensor or ndarray representing the X
-            values of the patterns.
-        :param dataset_y: An sequence, Tensor int or ndarray of integers
-            representing the Y values of the patterns.
+        Beware that the second sequence, will be used to fill the targets
+        field, which means that it must contain elements that can be cast to
+        int.
+
+        :param sequences: A sequence of sequences, Tensors or ndarrays
+            representing the patterns.
         """
         super().__init__()
-        if len(dataset_x) != len(dataset_y):
-            raise ValueError('dataset_x and dataset_y must contain the same '
-                             'amount of elements')
+        if len(sequences) < 2:
+            raise ValueError('At least 2 sequences are required')
 
-        self.dataset_x = dataset_x
-        self.dataset_y = dataset_y
-        self.targets = LazyTargetsConversion(dataset_y)
+        common_size = len(sequences[0])
+        for seq in sequences:
+            if len(seq) != common_size:
+                raise ValueError('Sequences must contain the same '
+                                 'amount of elements')
+
+        self._sequences = sequences
+        self.targets = LazyTargetsConversion(sequences[1])
 
     def __getitem__(self, idx):
-        return self.dataset_x[idx], self.targets[idx]
+        return tuple(seq[idx] for seq in self._sequences)
 
     def __len__(self) -> int:
-        return len(self.dataset_x)
+        return len(self._sequences[0])
 
 
 class TensorDatasetWrapper(DatasetWithTargets[T_co]):
@@ -360,9 +343,7 @@ class TensorDatasetWrapper(DatasetWithTargets[T_co]):
         self.targets = LazyTargetsConversion(tensor_dataset.tensors[1])
 
     def __getitem__(self, idx):
-        obtained_item = list(self.dataset[idx])
-        obtained_item[1] = int(obtained_item[1])
-        return tuple(obtained_item)
+        return self.dataset[idx]
 
     def __len__(self) -> int:
         return len(self.dataset)

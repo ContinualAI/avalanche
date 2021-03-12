@@ -37,18 +37,14 @@ except ImportError:
         TypeVar, SupportsInt, Generic, Callable, Dict, Tuple
     from typing_extensions import Protocol
 
-T_co = TypeVar('T_co', covariant=True)
-TTransform_co = TypeVar('TTransform_co', covariant=True)
-TAvalancheDataset = TypeVar('TAvalancheDataset',
-                            bound='AvalancheDataset')
-XTransform = Optional[Callable[[T_co], Any]]
+TAvalancheDataset = TypeVar('TAvalancheDataset', bound='AvalancheDataset')
+XTransform = Optional[Callable[[Any], Any]]
 YTransform = Optional[Callable[[int], int]]
 
-SupportedDataset = Union[IDatasetWithTargets[T_co], ITensorDataset[T_co]]
+SupportedDataset = Union[IDatasetWithTargets, ITensorDataset]
 
 
-class AvalancheDataset(DatasetWithTargets[T_co],
-                       Generic[T_co]):
+class AvalancheDataset(DatasetWithTargets[Tuple]):
     """
     The Dataset used as the base implementation for Avalanche.
 
@@ -85,7 +81,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
     See the constructor for more details.
     """
     def __init__(self,
-                 dataset: SupportedDataset[T_co],
+                 dataset: SupportedDataset,
                  *,
                  transform: XTransform = None,
                  target_transform: YTransform = None,
@@ -132,7 +128,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         if transform_groups is not None:
             AvalancheDataset._check_groups_dict_format(transform_groups)
 
-        self._dataset: SupportedDataset[T_co] = dataset
+        self._dataset: SupportedDataset = dataset
         """
         The original dataset.
         """
@@ -313,7 +309,7 @@ class AvalancheDataset(DatasetWithTargets[T_co],
 
     def add_transforms(
             self: TAvalancheDataset,
-            transform: Callable[[T_co], Any] = None,
+            transform: Callable[[Any], Any] = None,
             target_transform: Callable[[int], int] = None) -> \
             TAvalancheDataset:
         """
@@ -521,19 +517,22 @@ class AvalancheDataset(DatasetWithTargets[T_co],
         dataset_copy._freeze_original_dataset(group_name)
 
     def _get_single_item(self, idx: int):
-        single_element = self._dataset[idx]
-        pattern = single_element[0]
-        label = single_element[1]
+        return self._process_pattern(
+            self._dataset[idx], idx,
+            isinstance(self._dataset, AvalancheDataset))
 
-        if _is_tensor_dataset(self._dataset):
-            # Manages the fact that TensorDataset may return a single element
-            # Tensor instead of an int.
-            label = int(label)
+    def _process_pattern(self, element: Tuple, idx: int, has_task_label: bool):
+        if has_task_label:
+            element = element[:-1]
+
+        pattern = element[0]
+        label = element[1]
+
         pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label, self.targets_task_labels[idx]
+        return (pattern, label, *element[2:], self.targets_task_labels[idx])
 
-    def _apply_transforms(self, pattern: T_co, label: int):
+    def _apply_transforms(self, pattern: Any, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
         if frozen_group[0] is not None:
             pattern = frozen_group[0](pattern)
@@ -732,7 +731,7 @@ class _TaskSubsetDict(OrderedDict):
         return AvalancheSubset(self._full_dataset, indices=indices)
 
 
-class AvalancheSubset(AvalancheDataset[T_co]):
+class AvalancheSubset(AvalancheDataset):
     """
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
@@ -740,11 +739,11 @@ class AvalancheSubset(AvalancheDataset[T_co]):
     :class:`AvalancheDataset`.
     """
     def __init__(self,
-                 dataset: SupportedDataset[T_co],
+                 dataset: SupportedDataset,
                  *,
                  indices: Sequence[int] = None,
                  class_mapping: Sequence[int] = None,
-                 transform: Callable[[T_co], Any] = None,
+                 transform: Callable[[Any], Any] = None,
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
@@ -834,7 +833,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         return ConstantSequence(0, len(dataset))
 
 
-class AvalancheTensorDataset(AvalancheDataset[T_co]):
+class AvalancheTensorDataset(AvalancheDataset):
     """
     A Dataset that wraps existing ndarrays, Tensors, lists... to provide
     basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
@@ -843,10 +842,10 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
     :class:`AvalancheDataset`.
     """
     def __init__(self,
-                 dataset_x: Sequence[T_co],
+                 dataset_x: Sequence,
                  dataset_y: Sequence[SupportsInt],
                  *,
-                 transform: Callable[[T_co], Any] = None,
+                 transform: Callable[[Any], Any] = None,
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
@@ -889,7 +888,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co]):
                          task_labels=task_labels)
 
 
-class AvalancheConcatDataset(AvalancheDataset[T_co]):
+class AvalancheConcatDataset(AvalancheDataset):
     """
     A Dataset that behaves like a PyTorch
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
@@ -901,9 +900,9 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
     (if they are subclasses of :class:`AvalancheDataset`).
     """
     def __init__(self,
-                 datasets: Sequence[SupportedDataset[T_co]],
+                 datasets: Sequence[SupportedDataset],
                  *,
-                 transform: Callable[[T_co], Any] = None,
+                 transform: Callable[[Any], Any] = None,
                  target_transform: Callable[[int], int] = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
@@ -965,15 +964,20 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             idx, self._datasets_lengths, self._overall_length)
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
-        pattern = single_element[0]
-        label = single_element[1]
-        if _is_tensor_dataset(self._dataset_list[dataset_idx]):
-            # Manages the fact that TensorDataset may return a single element
-            # Tensor instead of an int.
-            label = int(label)
-        pattern, label = self._apply_transforms(pattern, label)
 
-        return pattern, label, self.targets_task_labels[idx]
+        # pattern = single_element[0]
+        # label = single_element[1]
+        # if _is_tensor_dataset(self._dataset_list[dataset_idx]):
+        #     # Manages the fact that TensorDataset may return a single element
+        #     # Tensor instead of an int.
+        #     label = int(label)
+        # pattern, label = self._apply_transforms(pattern, label)
+        #
+        # return pattern, label, self.targets_task_labels[idx]
+
+        return self._process_pattern(
+            single_element, idx,
+            isinstance(self._dataset_list[dataset_idx], AvalancheDataset))
 
     def _fork_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = super()._fork_dataset()
@@ -1081,10 +1085,10 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
 
 
 def concat_datasets_sequentially(
-        train_dataset_list: Sequence[IDatasetWithTargets[T_co]],
-        test_dataset_list: Sequence[IDatasetWithTargets[T_co]]) -> \
-        Tuple[AvalancheConcatDataset[T_co],
-              AvalancheConcatDataset[T_co],
+        train_dataset_list: Sequence[IDatasetWithTargets],
+        test_dataset_list: Sequence[IDatasetWithTargets]) -> \
+        Tuple[AvalancheConcatDataset,
+              AvalancheConcatDataset,
               List[list]]:
     """
     Concatenates a list of datasets. This is completely different from
@@ -1168,8 +1172,7 @@ def concat_datasets_sequentially(
             new_class_ids_per_dataset)
 
 
-def as_avalanche_dataset(dataset: IDatasetWithTargets[T_co]) -> \
-        AvalancheDataset[T_co]:
+def as_avalanche_dataset(dataset: IDatasetWithTargets) -> AvalancheDataset:
     if isinstance(dataset, AvalancheDataset):
         return dataset
 
@@ -1177,8 +1180,8 @@ def as_avalanche_dataset(dataset: IDatasetWithTargets[T_co]) -> \
 
 
 def train_eval_avalanche_datasets(
-        train_dataset: IDatasetWithTargets[T_co],
-        test_dataset: IDatasetWithTargets[T_co],
+        train_dataset: IDatasetWithTargets,
+        test_dataset: IDatasetWithTargets,
         train_transformation, eval_transformation):
     train = AvalancheDataset(
         train_dataset,
