@@ -94,11 +94,7 @@ def get_task_label(strategy: 'PluggableStrategy') -> int:
     :param strategy: The strategy instance to get the task label from.
     :return: The current train or eval task label.
     """
-
-    if strategy.is_eval:
-        return strategy.eval_task_label
-
-    return strategy.train_task_label
+    return strategy.experience.task_label
 
 
 def stream_type(experience: 'Experience') -> str:
@@ -127,9 +123,9 @@ def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
     """
 
     if strategy.is_eval:
-        return EVAL, strategy.eval_task_label
+        return EVAL, strategy.experience.task_label
 
-    return TRAIN, strategy.train_task_label
+    return TRAIN, strategy.experience.task_label
 
 
 def bytes2human(n):
@@ -171,9 +167,7 @@ def get_metric_name(metric: 'PluginMetric',
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
     if add_experience:
-
-        experience_label = strategy.eval_exp_id if phase_name == EVAL \
-            else strategy.training_exp_counter
+        experience_label = strategy.experience.current_experience
         metric_name = '{}/{}_phase/{}_stream/Task{:03}/Exp{:03}' \
             .format(str(metric),
                     phase_name,
@@ -194,6 +188,7 @@ __all__ = [
     'default_cm_image_creator',
     'get_task_label',
     'phase_and_task',
+    'get_metric_name',
     'stream_type',
-    'bytes2human',
-    'get_metric_name']
+    'bytes2human'
+]

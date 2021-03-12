@@ -57,6 +57,11 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         The current evaluation experience id
         """
 
+        self.train_exp_id = None
+        """
+        The last encountered training experience id
+        """
+
     def reset(self) -> None:
         """
         Resets the metric.
@@ -97,17 +102,17 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
             self._current_accuracy[label] = Accuracy()
         self._current_accuracy[label].update(true_y, predicted_y)
 
+    def before_training_exp(self, strategy: 'PluggableStrategy') -> None:
+        self.train_exp_id = strategy.experience.current_experience
+
     def before_eval(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
-        self.eval_exp_id = strategy.eval_exp_id
-
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
-        label = strategy.eval_exp_id
+        self.eval_exp_id = strategy.experience.current_experience
         self.update(strategy.mb_y,
                     strategy.logits,
-                    label)
+                    self.eval_exp_id)
 
     def after_eval_exp(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
@@ -115,7 +120,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         # or eval experience is the current training experience
         # forgetting not reported in both cases
         if self.eval_exp_id not in self._initial_accuracy:
-            train_label = strategy.training_exp_counter
+            train_label = self.train_exp_id
             # the test accuracy on the training experience we have just
             # trained on. This is the initial accuracy.
             if train_label not in self._initial_accuracy:

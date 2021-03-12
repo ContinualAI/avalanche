@@ -8,15 +8,15 @@ _Avalanche_ has been designed for extreme **portability** and **usability**. Ind
 
 In order to install _Avalanche_ we have three main options:
 
-1. [Installing it with Anaconda](how-to-install.md#install-avalanche-with-anaconda).
-2. [Installing it with Pip.](how-to-install.md#installing-avalanche-with-pip)
+1. [Installing it with Pip](how-to-install.md#installing-avalanche-with-pip)
+2. [Installing it with Anaconda](how-to-install.md#install-avalanche-with-anaconda)
 3. [Developer Mode Install](how-to-install.md#developer-mode-install) \(for contributing to _Avalanche_!\)
 
 ## 🔂 Avalanche Dependencies
 
 The _Avalanche_ dependencies are the following:
 
-`python>=3.6,<3.9`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `googledrivedownloader`.
+`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `googledrivedownloader`.
 
 {% hint style="info" %}
 _Avalanche may work on lower Python versions as well but we don't officially support it, nor recommend it._
@@ -24,56 +24,7 @@ _Avalanche may work on lower Python versions as well but we don't officially sup
 
 At the moment, we cannot provide a swift installation experience as some of the dependencies cannot be installed automatically. However, in the sections below we detail how you can install Avalanche **in a matter of minutes** on any platform!
 
-## 🐍 Install Avalanche with Anaconda 
-
-This is the safest option since it allows you to build an isolated environment for your Avalanche experiments. This means that you'll be able to pin particular versions of your dependencies that may differ from the ones you want to maintain in the rest of your system. This will in turn increase reproducibility of any experiment you may produce.
-
-### **On Linux**
-
-Assuming you have [Anaconda](https://www.anaconda.com/) installed on your system, if you can simply run the `install_script.sh` in the _Avalanche_ home directory.  The script takes 2 arguments: `--python` and `--cuda_version`.  
-  
-`--python` can take the values \[3.6, 3.7, 3.8\], default 3.8.  
-`--cuda_version` can take the values \[9.2, 10.1, 10.2, 11.0, none\], default none.
-
-For example:
-
-```bash
-bash -i ./install_environment.sh --python 3.8 --cuda_version 10.1
-```
-
-You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.
-
-### On Windows or Mac OS
-
-Assuming you have Anaconda installed on your system, you can follow these simple steps:
-
-1. Install the `avalanche.yml` environment and activate it.
-2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\)
-3. Update the Conda Environment
-
-These steps can be accomplished with the following lines of code:
-
-```bash
-# choose you python version
-python="3.8"
-
-# Step 1
-git clone https://github.com/vlomonaco/avalanche.git
-cd avalanche
-conda create -n avalanche-env python=$python -c conda-forge
-conda activate avalanche-env
-
-# Step 2
-# Istall Pytorch with Conda (instructions here: https://pytorch.org/)
-
-# Step 3
-conda env update --file environment-dev.yml
-
-```
-
-You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.
-
-## 📦 Installing Avalanche with Pip 
+## 📦 Installing Avalanche with Pip
 
 Within an Anaconda environment or not you can install _Avalanche_ also with Pip with the following steps:
 
@@ -88,26 +39,46 @@ pip install git+https://github.com/ContinualAI/avalanche.git
 
 That's it. now we have _Avalanche_ up and running and we can start using it!
 
-## 💻 Developer Mode Install
+## 🐍 Install Avalanche with Anaconda
 
-If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/2.-benchmarks.md)" Tutorial\). In this case we suggest to create an environment in _**developer-mode**_ as follows.
+This is the **safest option** since it allows you to build an isolated environment for your Avalanche experiments. This means that you'll be able to _pin particular versions_ of your dependencies that may differ from the ones you want to maintain in the rest of your system. This will in turn increase reproducibility of any experiment you may produce.
 
-### **On Linux**
+Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
 
-Assuming you have [Anaconda](https://www.anaconda.com/) installed on your system, if you can simply run the `install_script_dev.sh` in the _Avalanche_ home directory.  The script takes 2 arguments: `--python` and `--cuda_version`.  
-  
-`--python` can take the values \[3.6, 3.7, 3.8\], default 3.8.  
-`--cuda_version` can take the values \[9.2, 10.1, 10.2, 11.0, none\], default none.
+1. Install the `avalanche.yml` environment and activate it.
+2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\)
+3. Update the Conda Environment
+
+These steps can be accomplished with the following lines of code:
 
 ```bash
-bash -i ./install_environment_dev.sh --python 3.8 --cuda_version 10.1
+# choose your python version
+python="3.8"
+
+# Step 1
+git clone https://github.com/vlomonaco/avalanche.git
+cd avalanche
+conda create -n avalanche-env python=$python -c conda-forge
+conda activate avalanche-env
+
+# Step 2
+# Istall Pytorch with Conda (instructions here: https://pytorch.org/)
+
+# Step 3
+conda env update --file environment.yml
 ```
+
+{% hint style="info" %}
+On **Linux**, alternatively, you can simply run the `install_environment.sh` in the _Avalanche_ home directory. The script takes 2 arguments: `--python` and `--cuda_version`. Check `--help` for details.
+{% endhint %}
 
 You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.
 
-### **On Windows and Mac OS**
+## 💻 Developer Mode Install
 
-Assuming you have Anaconda installed on your system, you can follow these simple steps:
+If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/2.-benchmarks.md)" Tutorial\). In this case we suggest to create an environment in _**developer-mode**_ as follows \(just a couple of more dependencies will be installed\).
+
+Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
 
 1. Install the `avalanche-dev.yml` environment and activate it.
 2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\).
@@ -129,9 +100,12 @@ conda activate avalanche-dev-env
 # Istall Pytorch with Conda (instructions here: https://pytorch.org/)
 
 # Step 3
-conda env update --file environment.yml
-
+conda env update --file environment-dev.yml
 ```
+
+{% hint style="info" %}
+On **Linux**, alternatively, you can simply run the `install_environment_dev.sh` in the _Avalanche_ home directory. The script takes 2 arguments: `--python` and `--cuda_version`. Check `--help` for details.
+{% endhint %}
 
 You can test your installation by running the `examples/test_install.py` script. Make sure to include avalanche into your **$PYTHONPATH** if you are running examples with the command line interface.
 
