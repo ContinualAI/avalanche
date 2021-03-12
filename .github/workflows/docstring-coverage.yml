@@ -49,7 +49,7 @@ jobs:
       - name: commit badge
         # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
-          mv interrogate_badge.svg avalanche-reports/badge/
+          mv interrogate-badge.svg avalanche-reports/badge/
           mv documentation-coverage.txt avalanche-reports/docstring_coverage/
           cd avalanche-reports
           git config --local user.email ${{ secrets.EMAIL }}
