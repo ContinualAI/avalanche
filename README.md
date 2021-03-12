@@ -43,14 +43,11 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 # model
 model = SimpleMLP(num_classes=10)
 
@@ -71,6 +68,8 @@ cl_strategy = Naive(
 # train and test loop
 results = []
 for train_task in train_stream:
+    print("Start of task ", train_task.task_label)
+    print("Task labels: ", train_task.classes_in_this_experience)
     cl_strategy.train(train_task, num_workers=4)
     results.append(cl_strategy.eval(test_stream))
 ```
