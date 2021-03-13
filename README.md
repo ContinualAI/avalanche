@@ -68,8 +68,6 @@ cl_strategy = Naive(
 # train and test loop
 results = []
 for train_task in train_stream:
-    print("Start of task ", train_task.task_label)
-    print("Task labels: ", train_task.classes_in_this_experience)
     cl_strategy.train(train_task, num_workers=4)
     results.append(cl_strategy.eval(test_stream))
 ```
