@@ -5,6 +5,7 @@
 ![syntax checking](https://github.com/ContinualAI/avalanche/workflows/syntax%20checking/badge.svg)
 ![pep8 checking](https://github.com/ContinualAI/avalanche/workflows/PEP8%20checking/badge.svg)
 ![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)
+![test coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/coverage-badge.svg)
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
