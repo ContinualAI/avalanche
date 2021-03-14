@@ -155,8 +155,6 @@ from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario,
 
 You can read more about how to use them the full _Benchmarks_ module tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/2.-benchmarks.md" %}
-
 ## 💪Training
 
 The `training` module in _Avalanche_ is build on modularity and it has two main goals:
@@ -251,8 +249,6 @@ While this is the easiest possible way to add your own strategy, _Avalanche_ sup
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/3.-training.md" %}
-
 ## 📈 Evaluation
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
@@ -287,13 +283,11 @@ print("Average Accuracy: ", acc) # output 0.75
 # reset accuracy to 0
 acc_metric.reset() 
 print("After reset: ", acc_metric.result()) # output 0
-
- 
 ```
 
 #### Fine-grained metric
 
-If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more specific metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience.  In order to simplify the use of these metrics, we provided utility functions with which you can create many different version of the same metric in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
+If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more specific metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. In order to simplify the use of these metrics, we provided utility functions with which you can create many different version of the same metric in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
 
 ```python
 # utility functions to create metrics
