@@ -44,14 +44,11 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 # model
 model = SimpleMLP(num_classes=10)
 

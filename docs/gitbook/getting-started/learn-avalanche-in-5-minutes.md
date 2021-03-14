@@ -92,10 +92,8 @@ Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that
 _Avalanche_ maintains a set of commonly used benchmarks built on top of one or multiple datasets.
 
 ```python
-from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet,
-
-SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, PermutedMNIST,
-SplitCUB200
+from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, SplitCIFAR10,\ 
+    SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, PermutedMNIST, SplitCUB200
 
 # creating the benchmark (scenario object)
 perm_mnist = PermutedMNIST(
@@ -344,13 +342,16 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,
-loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
-disk_usage_metrics, gpu_usage_metrics
+from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,\
+    loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,\
+    disk_usage_metrics, gpu_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
+
+from torch.optim import SGD
+from torch.nn import CrossEntropyLoss
 
 scenario = SplitMNIST(n_experiences=5)
 
