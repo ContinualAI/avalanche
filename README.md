@@ -1,9 +1,11 @@
 # Avalanche: an End-to-End Library for Continual Learning
 **[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
 
-![unit test](https://github.com/vlomonaco/avalanche/workflows/unit%20test/badge.svg)
-![syntax checking](https://github.com/vlomonaco/avalanche/workflows/syntax%20checking/badge.svg)
-![pep8 checking](https://github.com/vlomonaco/avalanche/workflows/PEP8%20checking/badge.svg)
+![unit test](https://github.com/ContinualAI/avalanche/workflows/unit%20test/badge.svg)
+![syntax checking](https://github.com/ContinualAI/avalanche/workflows/syntax%20checking/badge.svg)
+![pep8 checking](https://github.com/ContinualAI/avalanche/workflows/PEP8%20checking/badge.svg)
+![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)
+![test coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/coverage-badge.svg)
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
