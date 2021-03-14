@@ -53,7 +53,7 @@ jobs:
           coverage report > coverage_report.txt
           coverage-badge -o coverage-badge.svg
       - name: clone reports repository
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-report'
@@ -61,7 +61,7 @@ jobs:
           path: 'avalanche-reports'
           token: ${{ secrets.REPORT_TOKEN }}
       - name: commit report and badge
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
           mv coverage-badge.svg avalanche-reports/badge/
           mv coverage_report.txt avalanche-reports/test_coverage/
@@ -73,7 +73,7 @@ jobs:
           git commit -m "Update coverage badge and report" -a || true
           git pull
       - name: Push changes
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         continue-on-error: true
         uses: ad-m/github-push-action@master
         with:

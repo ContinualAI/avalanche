@@ -3,7 +3,7 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 28-01-2021                                                             #
+# Date: 14-03-2021                                                             #
 # Author(s): Gabriele Graffieti                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
@@ -39,7 +39,7 @@ jobs:
           pip install interrogate
           interrogate avalanche -vv --generate-badge interrogate-badge.svg -o documentation-coverage.txt
       - name: clone reports repository
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-report'
@@ -47,7 +47,7 @@ jobs:
           path: 'avalanche-reports'
           token: ${{ secrets.REPORT_TOKEN }}
       - name: commit badge
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
           mv interrogate-badge.svg avalanche-reports/badge/
           mv documentation-coverage.txt avalanche-reports/docstring_coverage/
@@ -59,7 +59,7 @@ jobs:
           git commit -m "Update coverage badge" -a || true
           git pull
       - name: Push changes
-        # if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         continue-on-error: true
         uses: ad-m/github-push-action@master
         with:
