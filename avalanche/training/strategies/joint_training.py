@@ -16,7 +16,7 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
-from avalanche.logging import default_logger
+from avalanche.training import default_logger
 from avalanche.training.strategies import BaseStrategy
 
 if TYPE_CHECKING:

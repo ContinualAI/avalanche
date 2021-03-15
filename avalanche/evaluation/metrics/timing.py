@@ -17,7 +17,7 @@ from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
 if TYPE_CHECKING:
-    from avalanche.training import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ElapsedTime(Metric[float]):
@@ -115,12 +115,12 @@ class MinibatchTime(PluginMetric[float]):
         self.reset()
         self._minibatch_time.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_time.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -153,7 +153,7 @@ class EpochTime(PluginMetric[float]):
         self.reset()
         self._elapsed_time.update()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
@@ -164,7 +164,7 @@ class EpochTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         elapsed_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -199,11 +199,11 @@ class RunningEpochTime(PluginMetric[float]):
         self.reset()
         self._epoch_time.update()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+    def before_training_iteration(self, strategy: 'BaseStrategy') \
             -> None:
         self._epoch_time.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_time.update()
         self._time_mean.update(self._epoch_time.result())
@@ -217,7 +217,7 @@ class RunningEpochTime(PluginMetric[float]):
     def result(self) -> float:
         return self._time_mean.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         average_epoch_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -247,11 +247,11 @@ class ExperienceTime(PluginMetric[float]):
 
         self._elapsed_time = ElapsedTime()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self.reset()
         self._elapsed_time.update()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
 
@@ -261,7 +261,7 @@ class ExperienceTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -290,11 +290,11 @@ class StreamTime(PluginMetric[float]):
 
         self._elapsed_time = ElapsedTime()
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self.reset()
         self._elapsed_time.update()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
 
@@ -304,7 +304,7 @@ class StreamTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy)

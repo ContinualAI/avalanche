@@ -8,7 +8,7 @@ from torch.nn.modules.batchnorm import _NormBase
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
-from avalanche.logging import default_logger
+from avalanche.training import default_logger
 from avalanche.models import MobilenetV1
 from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \

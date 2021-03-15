@@ -19,7 +19,7 @@ from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.metric_utils import get_metric_name
 
 if TYPE_CHECKING:
-    from avalanche.training import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ExperienceForgetting(PluginMetric[Dict[int, float]]):
@@ -102,19 +102,19 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
             self._current_accuracy[label] = Accuracy()
         self._current_accuracy[label].update(true_y, predicted_y)
 
-    def before_training_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_training_exp(self, strategy: 'BaseStrategy') -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
         self.reset_current_accuracy()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.eval_exp_id = strategy.experience.current_experience
         self.update(strategy.mb_y,
                     strategy.logits,
                     self.eval_exp_id)
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') \
+    def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         # eval experience never encountered during training
         # or eval experience is the current training experience
@@ -155,7 +155,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         forgetting = prev_accuracy - accuracy.result()
         return forgetting
 
-    def _package_result(self, strategy: 'PluggableStrategy') \
+    def _package_result(self, strategy: 'BaseStrategy') \
             -> MetricResult:
 
         forgetting = self.result()

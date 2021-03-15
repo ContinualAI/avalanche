@@ -22,7 +22,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metrics import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class CPUUsage(Metric[float]):
@@ -148,12 +148,12 @@ class MinibatchCPUUsage(PluginMetric[float]):
         self.reset()
         self._minibatch_cpu.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_cpu.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -186,7 +186,7 @@ class EpochCPUUsage(PluginMetric[float]):
         self.reset()
         self._epoch_cpu.update()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_cpu.update()
         return self._package_result(strategy)
@@ -197,7 +197,7 @@ class EpochCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._epoch_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         cpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -230,11 +230,11 @@ class RunningEpochCPUUsage(PluginMetric[float]):
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+    def before_training_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         self._epoch_cpu.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> None:
         self._epoch_cpu.update()
         self._cpu_mean.update(self._epoch_cpu.result())
@@ -248,7 +248,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._cpu_mean.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         cpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -279,11 +279,11 @@ class ExperienceCPUUsage(PluginMetric[float]):
 
         self._exp_cpu = CPUUsage()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self.reset()
         self._exp_cpu.update()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_cpu.update()
         return self._package_result(strategy)
 
@@ -293,7 +293,7 @@ class ExperienceCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cpu = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -322,11 +322,11 @@ class StreamCPUUsage(PluginMetric[float]):
 
         self._exp_cpu = CPUUsage()
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval(self, strategy: 'BaseStrategy') -> None:
         self.reset()
         self._exp_cpu.update()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_cpu.update()
         return self._package_result(strategy)
 
@@ -336,7 +336,7 @@ class StreamCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cpu = self.result()
 
         phase_name, _ = phase_and_task(strategy)

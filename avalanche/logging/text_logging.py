@@ -9,14 +9,16 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 import sys
-from typing import List
+from typing import List, TYPE_CHECKING
 
 import torch
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import StrategyLogger
-from avalanche.training import PluggableStrategy
 from avalanche.evaluation.metric_utils import stream_type
+
+if TYPE_CHECKING:
+    from avalanche.training import BaseStrategy
 
 
 class TextLogger(StrategyLogger):
@@ -75,24 +77,24 @@ class TextLogger(StrategyLogger):
             val = self._val_to_str(val)
             print(f'\t{name} = {val}', file=self.file, flush=True)
 
-    def before_training_exp(self, strategy: 'PluggableStrategy',
+    def before_training_exp(self, strategy: 'BaseStrategy',
                             metric_values: List['MetricValue'], **kwargs):
         super().before_training_exp(strategy, metric_values, **kwargs)
         self._on_exp_start(strategy)
 
-    def before_eval_exp(self, strategy: PluggableStrategy,
+    def before_eval_exp(self, strategy: 'BaseStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         super().before_eval_exp(strategy, metric_values, **kwargs)
         self._on_exp_start(strategy)
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy',
+    def after_training_epoch(self, strategy: 'BaseStrategy',
                              metric_values: List['MetricValue'], **kwargs):
         super().after_training_epoch(strategy, metric_values, **kwargs)
         print(f'Epoch {strategy.epoch} ended.', file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy',
+    def after_eval_exp(self, strategy: 'BaseStrategy',
                        metric_values: List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
         exp_id = strategy.experience.current_experience
@@ -103,29 +105,29 @@ class TextLogger(StrategyLogger):
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def before_training(self, strategy: 'PluggableStrategy',
+    def before_training(self, strategy: 'BaseStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         print('-- >> Start of training phase << --', file=self.file, flush=True)
 
-    def before_eval(self, strategy: 'PluggableStrategy',
+    def before_eval(self, strategy: 'BaseStrategy',
                     metric_values: List['MetricValue'], **kwargs):
         super().before_eval(strategy, metric_values, **kwargs)
         print('-- >> Start of eval phase << --', file=self.file, flush=True)
 
-    def after_training(self, strategy: 'PluggableStrategy',
+    def after_training(self, strategy: 'BaseStrategy',
                        metric_values: List['MetricValue'], **kwargs):
         super().after_training(strategy, metric_values, **kwargs)
         print('-- >> End of training phase << --', file=self.file, flush=True)
 
-    def after_eval(self, strategy: 'PluggableStrategy',
+    def after_eval(self, strategy: 'BaseStrategy',
                    metric_values: List['MetricValue'], **kwargs):
         super().after_eval(strategy, metric_values, **kwargs)
         print('-- >> End of eval phase << --', file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def _on_exp_start(self, strategy: 'PluggableStrategy'):
+    def _on_exp_start(self, strategy: 'BaseStrategy'):
         action_name = 'training' if strategy.is_training else 'eval'
         exp_id = strategy.experience.current_experience
         task_id = strategy.experience.task_label
