@@ -5,4 +5,4 @@ strategies (e.g., EWC + replay).
 """
 from .base_strategy import *
 from .joint_training import *
-from .strategies import *
+from .strategy_wrappers import *
