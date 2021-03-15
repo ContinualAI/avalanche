@@ -13,7 +13,6 @@ from .ewc import EwcDataType, ParamDict
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.utils import get_layers_and_params
 
-
 SynDataType = Dict[str, Dict[str, Tensor]]
 
 

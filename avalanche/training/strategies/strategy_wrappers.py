@@ -14,7 +14,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.logging import default_logger
-from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin,\
+from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
     EvaluationPlugin, SynapticIntelligencePlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
