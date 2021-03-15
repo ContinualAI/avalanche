@@ -40,24 +40,24 @@ class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
 
         super().__init__()
 
-        self._initial: Dict[int, float] = dict()
+        self.initial: Dict[int, float] = dict()
         """
         The initial value for each key.
         """
 
-        self._last: Dict[int, float] = dict()
+        self.last: Dict[int, float] = dict()
         """
         The last value detected for each key
         """
 
     def update_initial(self, k, v):
-        self._initial[k] = v
+        self.initial[k] = v
 
     def update_last(self, k, v):
-        self._last[k] = v
+        self.last[k] = v
 
-    def update(self, k, v):
-        if k not in self._initial:
+    def update(self, k, v, initial=False):
+        if initial:
             self.update_initial(k, v)
         else:
             self.update_last(k, v)
@@ -81,25 +81,25 @@ class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
 
         forgetting = {}
         if k is not None:
-            if k in self._initial and k in self._last:
-                return self._initial[k] - self._last[k]
+            if k in self.initial and k in self.last:
+                return self.initial[k] - self.last[k]
             else:
                 return None
 
-        ik = set(self._initial.keys())
-        both_keys = list(ik.intersection(set(self._last.keys())))
+        ik = set(self.initial.keys())
+        both_keys = list(ik.intersection(set(self.last.keys())))
 
         for k in both_keys:
-            forgetting[k] = self._initial[k] - self._last[k]
+            forgetting[k] = self.initial[k] - self.last[k]
 
         return forgetting
 
     def reset_last(self) -> None:
-        self._last: Dict[int, float] = dict()
+        self.last: Dict[int, float] = dict()
 
     def reset(self) -> None:
-        self._initial: Dict[int, float] = dict()
-        self._last: Dict[int, float] = dict()
+        self.initial: Dict[int, float] = dict()
+        self.last: Dict[int, float] = dict()
 
 
 class ExperienceForgetting(PluginMetric[Dict[int, float]]):
@@ -164,6 +164,18 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         """
         self.forgetting.reset_last()
 
+    def update(self, k, v, initial=False):
+        """
+        Update forgetting metric.
+        See `Forgetting` for more detailed information.
+
+        :param k: key to update
+        :param v: value associated to k
+        :param initial: update initial value. If False, update
+            last value.
+        """
+        self.forgetting.update(k, v, initial=initial)
+
     def result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
         See `Forgetting` documentation for more detailed information.
@@ -171,6 +183,9 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         k: optional key from which compute forgetting.
         """
         return self.forgetting.result(k=k)
+
+    def before_training_exp(self, strategy: 'PluggableStrategy') -> None:
+        self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
         self.reset_last_accuracy()
@@ -185,7 +200,17 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
     def after_eval_exp(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        self.forgetting.update(self.eval_exp_id, self._last_accuracy.result())
+        # update experience on which training just ended
+        if self.train_exp_id == self.eval_exp_id:
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result(),
+                        initial=True)
+        else:
+            # update other experiences
+            # if experience has not been encountered in training
+            # its value will not be considered in forgetting
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result())
 
         # this checks if the evaluation experience has been
         # already encountered at training time

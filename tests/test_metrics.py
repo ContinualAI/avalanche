@@ -135,7 +135,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertEqual(f, {})
         f = metric.result(k=0)
         self.assertIsNone(f)
-        metric.update(0, 1)
+        metric.update(0, 1, initial=True)
         f = metric.result(k=0)
         self.assertIsNone(f)
         metric.update(0, 0.4)

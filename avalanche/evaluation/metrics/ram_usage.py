@@ -31,8 +31,8 @@ class MaxRAM(Metric[float]):
     it sample at discrete amount of time the RAM values.
 
     Instances of this metric keeps the maximum RAM usage detected.
-    The `start_thread` method starts the usage tracking. The `stop_thread` method stops
-    the tracking.
+    The `start_thread` method starts the usage tracking.
+    The `stop_thread` method stops the tracking.
 
     The result, obtained using the `result` method, is the usage in mega-bytes.
 
