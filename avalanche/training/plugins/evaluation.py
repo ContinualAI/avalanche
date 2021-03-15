@@ -7,6 +7,8 @@ from typing import Union, Sequence, TYPE_CHECKING
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 if TYPE_CHECKING:
+    from avalanche.evaluation import PluginMetric
+    from avalanche.logging import StrategyLogger
     from avalanche.training import BaseStrategy
 
 

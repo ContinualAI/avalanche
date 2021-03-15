@@ -190,7 +190,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
     def before_eval(self, strategy) -> None:
         self.reset_last_accuracy()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self._last_accuracy.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
