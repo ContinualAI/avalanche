@@ -18,7 +18,7 @@ from sklearn.metrics import ConfusionMatrixDisplay
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import PluggableStrategy
     from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 

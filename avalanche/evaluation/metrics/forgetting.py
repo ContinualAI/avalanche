@@ -19,7 +19,7 @@ from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.metric_utils import get_metric_name
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import PluggableStrategy
 
 
 class ExperienceForgetting(PluginMetric[Dict[int, float]]):

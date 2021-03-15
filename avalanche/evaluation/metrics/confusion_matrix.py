@@ -24,7 +24,7 @@ from avalanche.evaluation.metric_results import AlternativeValues, \
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     phase_and_task, stream_type
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import PluggableStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):

@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
     phase_and_task, stream_type
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import PluggableStrategy
 
 
 class MaxRAM(Metric[float]):

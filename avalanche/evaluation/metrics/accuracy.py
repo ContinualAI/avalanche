@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import PluggableStrategy
 
 
 class Accuracy(Metric[float]):

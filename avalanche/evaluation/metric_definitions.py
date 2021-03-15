@@ -18,7 +18,7 @@ from avalanche.training.strategy_callbacks import StrategyCallbacks
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from avalanche.training.plugins import PluggableStrategy
+    from ..training import PluggableStrategy
 
 TResult = TypeVar('TResult')
 TAggregated = TypeVar('TAggregated', bound='PluginMetric')

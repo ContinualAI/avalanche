@@ -3,7 +3,7 @@ from abc import ABC
 from typing import List
 
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.training.plugins import PluggableStrategy
+from avalanche.training import PluggableStrategy
 from avalanche.training.strategy_callbacks import StrategyCallbacks
 
 

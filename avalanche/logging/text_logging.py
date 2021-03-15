@@ -15,7 +15,7 @@ import torch
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import StrategyLogger
-from avalanche.training.plugins import PluggableStrategy
+from avalanche.training import PluggableStrategy
 from avalanche.evaluation.metric_utils import stream_type
 
 

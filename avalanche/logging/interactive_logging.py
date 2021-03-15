@@ -14,7 +14,7 @@ from typing import List
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import TextLogger
 
-from avalanche.training.plugins import PluggableStrategy
+from avalanche.training import PluggableStrategy
 
 from tqdm import tqdm
 
