@@ -24,8 +24,8 @@ from avalanche.benchmarks.utils import AvalancheDataset
 TrainSet = TypeVar('TrainSet', bound=AvalancheDataset)
 TestSet = TypeVar('TestSet', bound=AvalancheDataset)
 TScenario = TypeVar('TScenario')
-TExperience = TypeVar('TExperience', bound='IExperience')
-TScenarioStream = TypeVar('TScenarioStream', bound='IScenarioStream')
+TExperience = TypeVar('TExperience', bound='Experience')
+TScenarioStream = TypeVar('TScenarioStream', bound='ScenarioStream')
 
 
 @runtime_checkable
