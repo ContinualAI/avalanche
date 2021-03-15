@@ -56,7 +56,6 @@ class GeneralMetricTests(unittest.TestCase):
         metric.update(self.y, self.out)
         cm = metric.result()
         self.assertTrue((cm >= 0).all().item())
-        self.assertTrue((cm <= 1).all().item())
         metric.reset()
         cm = metric.result()
         self.assertTrue((cm == 0).all().item())
