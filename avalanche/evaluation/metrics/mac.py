@@ -34,7 +34,7 @@ class MAC(Metric[int]):
         Creates an instance of the MAC metric.
         """
         self.hooks = []
-        self._compute_cost: Optional[int] = None
+        self._compute_cost: Optional[int] = 0
 
     def update(self, model: Module, dummy_input: Tensor):
         """

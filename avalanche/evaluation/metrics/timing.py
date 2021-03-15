@@ -41,7 +41,7 @@ class ElapsedTime(Metric[float]):
     """
     def __init__(self):
         """
-        Creates an instance of the accuracy metric.
+        Creates an instance of the ElapsedTime metric.
 
         This metric in its initial state (or if the `update` method was invoked
         only once) will return an elapsed time of 0. The metric can be updated
