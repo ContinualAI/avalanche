@@ -309,7 +309,7 @@ MinibatchAccuracy, EpochAccuracy, RunningEpochAccuracy, \
 ExperienceAccuracy, StreamAccuracy, \ # Accuracy
 Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
 ExperienceLoss, StreamLoss, \ # Loss
-ExperienceForgetting, \ # Forgetting
+Forgetting, ExperienceForgetting, \ # Forgetting
 ConfusionMatrix, StreamConfusionMatrix, \ # Confusion Matrix
 CPUUsage, MinibatchCPUUsage, EpochCPUUsage, AverageEpochCPUUsage, \
 ExperienceCPUUsage, StreamCPUUsage, \ # CPU Usage
