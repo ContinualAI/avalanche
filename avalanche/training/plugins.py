@@ -43,6 +43,9 @@ from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
     get_layers_and_params, freeze_everything, get_last_fc_layer, \
     get_layer_by_name, unfreeze_everything, examples_per_class
 
+from avalanche.benchmarks.utils.data_loader import \
+    MultiTaskJoinedBatchDataLoader
+
 if TYPE_CHECKING:
     from avalanche.logging import StrategyLogger
     from avalanche.evaluation import PluginMetric
@@ -143,7 +146,7 @@ class ReplayPlugin(StrategyPlugin):
     patterns and implements the "adapt_train_dataset" callback to add them to
     the training set.
 
-    The :mem_size: attribute controls the number of patterns to be stored in 
+    The :mem_size: attribute controls the number of patterns to be stored in
     the external memory. In multitask scenarios, mem_size is the memory size
     for each task. We assume the training set contains at least :mem_size: data
     points.
@@ -178,16 +181,32 @@ class ReplayPlugin(StrategyPlugin):
         )
 
         if strategy.training_exp_counter > 0:
-            # We update the train_dataset concatenating the external memory.
+            # We update the train_dataset adding the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.
             for mem_task_id in self.ext_mem.keys():
                 mem_data = self.ext_mem[mem_task_id]
                 if mem_task_id in strategy.adapted_dataset:
-                    cat_data = ConcatDataset([curr_data, mem_data])
-                    strategy.adapted_dataset[mem_task_id] = cat_data
+                    # This only happens in the class incremental scenario, so
+                    # when the dataset task_id is always 0 and we need to use
+                    # a memory id other than 0
+                    memory_id = - 1
+                    strategy.adapted_dataset[memory_id] = mem_data
                 else:
                     strategy.adapted_dataset[mem_task_id] = mem_data
+
+    def before_training_exp(self, strategy, num_workers=0, shuffle=True,
+                            **kwargs):
+        """
+        Dataloader to build batches containing examples from both memories and
+        the training dataset
+        """
+        strategy.current_dataloader = MultiTaskJoinedBatchDataLoader(
+            strategy.adapted_dataset,
+            oversample_small_tasks=True,
+            num_workers=num_workers,
+            batch_size=strategy.train_mb_size,
+            shuffle=shuffle)
 
     def after_training_exp(self, strategy, **kwargs):
         """ After training we update the external memory with the patterns of
