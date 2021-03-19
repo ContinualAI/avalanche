@@ -123,7 +123,8 @@ def create_multi_dataset_generic_scenario(
             pattern_test_task_labels.append(
                 ConstantSequence(task_labels[dataset_idx], len(test_dataset)))
             next_idx = end_idx
-        pattern_test_task_labels = LazyConcatIntTargets(pattern_test_task_labels)
+        pattern_test_task_labels = LazyConcatIntTargets(
+            pattern_test_task_labels)
 
     task_labels = [[x] for x in task_labels]
 

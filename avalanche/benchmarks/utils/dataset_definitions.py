@@ -7,16 +7,17 @@ T_co = TypeVar('T_co', covariant=True)
 TTargetType = TypeVar('TTargetType')
 
 
-# General rule: consume ISupportedClassificationDataset, produce ClassificationDataset.
+# General rule: consume ISupportedClassificationDataset,
+# produce ClassificationDataset (applies to non-classification, too).
 #
-# That is, accept ISupportedClassificationDataset as parameter to functions/constructors
-# (when possible), but always expose/return instances of ClassificationDataset to
-# the, user (no matter what). The main difference is that ClassificationDataset is
-# a subclass of the PyTorch Dataset while ISupportedClassificationDataset is just a
-# Protocol. This will allow the user to pass any custom dataset while
-# receiving Dataset subclasses as outputs at the same time. This will allow
-# popular IDEs (like PyCharm) to properly execute type checks and warn the user
-# if something is wrong.
+# That is, accept ISupportedClassificationDataset as parameter to
+# functions/constructors (when possible), but always expose/return instances of
+# ClassificationDataset to the, user (no matter what). The main difference is
+# that ClassificationDataset is a subclass of the PyTorch Dataset while
+# ISupportedClassificationDataset is just a Protocol. This will allow the user
+# to pass any custom dataset while receiving Dataset subclasses as outputs at
+# the same time. This will allow popular IDEs (like PyCharm) to properly execute
+# type checks and warn the user if something is wrong.
 
 
 class IDataset(Protocol[T_co]):
