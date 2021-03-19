@@ -1,9 +1,11 @@
 # Avalanche: an End-to-End Library for Continual Learning
 **[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
 
-![unit test](https://github.com/vlomonaco/avalanche/workflows/unit%20test/badge.svg)
-![syntax checking](https://github.com/vlomonaco/avalanche/workflows/syntax%20checking/badge.svg)
-![pep8 checking](https://github.com/vlomonaco/avalanche/workflows/PEP8%20checking/badge.svg)
+![unit test](https://github.com/ContinualAI/avalanche/workflows/unit%20test/badge.svg)
+![syntax checking](https://github.com/ContinualAI/avalanche/workflows/syntax%20checking/badge.svg)
+![pep8 checking](https://github.com/ContinualAI/avalanche/workflows/PEP8%20checking/badge.svg)
+![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)
+![test coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/coverage-badge.svg)
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
@@ -23,7 +25,7 @@ The library is organized in four main modules:
 
 - [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
-- [Evaluation](avalanche/training): This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
+- [Evaluation](avalanche/evaluation): This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
 - [Extras](avalanche/extras): In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
 - [Models](avalanche/models): In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in torchvision.models).
 - [Logging](avalanche/logging): It includes advanced logging and plotting features, including native stdout, file and TensorBoard support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
@@ -43,14 +45,11 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.evaluation import EvalProtocol
-from avalanche.evaluation.metrics import ACC
-from avalanche.extras.models import SimpleMLP
+from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 # model
 model = SimpleMLP(num_classes=10)
 

@@ -31,8 +31,8 @@ class MaxGPU(Metric[float]):
      usage since it sample at discrete amount of time the GPU values.
 
     Instances of this metric keeps the maximum GPU usage percentage detected.
-    The update method starts the usage tracking. The reset method stops
-    the tracking.
+    The `start_thread` method starts the usage tracking.
+    The `stop_thread` method stops the tracking.
 
     The result, obtained using the `result` method, is the usage in mega-bytes.
 

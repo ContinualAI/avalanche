@@ -10,10 +10,12 @@ We know that learning a new tool may be tough at times. This is why we are here 
 Don't be afraid to ask questions, there are no stupid questions and we will always answer to you.
 {% endhint %}
 
-However, in order to help you, we need you to help us first.   
+_However, in order to help you, we need you to help us first._   
   
-First of all, if the question is more of a _code issue_ or a [_feature request_](request-a-feature.md), **please use** [**GitHub**](https://github.com/ContinualAI/avalanche) **for them**.  
-If instead, this is a _general question about Avalanche_, in this case you can ask us directly [on slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) \(**\#avalanche** channel\) for a quick one or on [our forum](https://continualai.discourse.group), using the "_**avalanche**_" tag.  
+First of all, if the question is more of a _code issue_ or a [_feature request_](request-a-feature.md), **please use the** [**GitHub Issues**](https://github.com/ContinualAI/avalanche/issues).  
+For _general questions, ideas, discussions_ use [**GitHub Discussions**](https://github.com/ContinualAI/avalanche/discussions).
+
+If instead, this is a _quick question about Avalanche or a request for support_, in this case you can ask us directly [on slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) \(**\#avalanche** channel\).  
   
 In any case, please make sure to follow the steps below:
 

@@ -10,7 +10,7 @@
 ################################################################################
 
 
-name: docstring coverage
+name: test coverage
 
 on:
   push:
@@ -22,44 +22,58 @@ on:
 
 jobs:
   build:
-    name: docstring coverage
+    name: test coverage
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
+          activate-environment: avalanche-env
           python-version: 3.8
-          architecture: x64
-      - name: Install and use interrogate
+          auto-activate-base: false
+      - name: install conda environment
         run: |
-          pip install interrogate
-          interrogate avalanche -vv --generate-badge interrogate-badge.svg -o documentation-coverage.txt
+          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda env update --file environment.yml
+      - name: install coverage.py and coverage-badge.py
+        run: |
+          pip install coverage
+          pip install coverage-badge
+      - name: Do unit test with coverage
+        run: |
+          FAST_TEST=True USE_GPU=False coverage run -m unittest
+      - name: Produce report and badge
+        run: |
+          coverage report > coverage_report.txt
+          coverage-badge -o coverage-badge.svg
       - name: clone reports repository
-        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-report'
           ref: main
           path: 'avalanche-reports'
           token: ${{ secrets.REPORT_TOKEN }}
-      - name: commit badge
-        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+      - name: commit report and badge
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
-          mv interrogate-badge.svg avalanche-reports/badge/
-          mv documentation-coverage.txt avalanche-reports/docstring_coverage/
+          mv coverage-badge.svg avalanche-reports/badge/
+          mv coverage_report.txt avalanche-reports/test_coverage/
           cd avalanche-reports
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
           git pull
           git add .
-          git commit -m "Update coverage badge" -a || true
+          git commit -m "Update coverage badge and report" -a || true
           git pull
       - name: Push changes
-        if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         continue-on-error: true
         uses: ad-m/github-push-action@master
         with:
