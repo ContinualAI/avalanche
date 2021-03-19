@@ -68,7 +68,7 @@ class WandBLogger(StrategyLogger):
             return
             
         elif isinstance(value, (float, int)):
-            if name not in ["CPUUsage_MB","CPUUsage_Epoch","RunningCPUUsage_Epoch","CPUUsage_Exp","CPUUsage_Stream","DiskUsage_MB","DiskUsage_Epoch","DiskUsage_Exp","DiskUsage_Stream"]
+            if name not in ["CPUUsage_MB","CPUUsage_Epoch","RunningCPUUsage_Epoch","CPUUsage_Exp","CPUUsage_Stream","DiskUsage_MB","DiskUsage_Epoch","DiskUsage_Exp","DiskUsage_Stream"]:
                 self.wandb.log({name : value})
 
 
