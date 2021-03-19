@@ -12,6 +12,8 @@
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
 
+from PIL.Image import Image
+
 from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
 from avalanche.logging import StrategyLogger
 
