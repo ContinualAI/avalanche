@@ -8,7 +8,7 @@ from avalanche.benchmarks.utils import AvalancheTensorDataset, \
     SupportedDataset, datasets_from_paths
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
-from avalanche.benchmarks.utils.dataset_utils import LazyConcatTargets,\
+from avalanche.benchmarks.utils.dataset_utils import LazyConcatIntTargets,\
     ConstantSequence
 
 
@@ -90,7 +90,7 @@ def create_multi_dataset_generic_scenario(
             ConstantSequence(task_labels[dataset_idx], len(train_dataset)))
         next_idx = end_idx
 
-    pattern_train_task_labels = LazyConcatTargets(pattern_train_task_labels)
+    pattern_train_task_labels = LazyConcatIntTargets(pattern_train_task_labels)
 
     test_structure = []
     if complete_test_set_only:
@@ -123,7 +123,8 @@ def create_multi_dataset_generic_scenario(
             pattern_test_task_labels.append(
                 ConstantSequence(task_labels[dataset_idx], len(test_dataset)))
             next_idx = end_idx
-        pattern_test_task_labels = LazyConcatTargets(pattern_test_task_labels)
+        pattern_test_task_labels = LazyConcatIntTargets(
+            pattern_test_task_labels)
 
     task_labels = [[x] for x in task_labels]
 

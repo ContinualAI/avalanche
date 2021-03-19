@@ -5,7 +5,7 @@ import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, random_split, Subset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda, CenterCrop
@@ -254,6 +254,130 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         self.assertEqual(1, y2)
         self.assertEqual(0, t2)
+
+    def test_avalanche_dataset_multiple_outputs_and_float_y(self):
+        train_x = torch.rand(500, 3, 28, 28)
+        train_y = torch.zeros(500)
+        train_z = torch.ones(500)
+        test_x = torch.rand(200, 3, 28, 28)
+        test_y = torch.ones(200)
+        test_z = torch.full((200,), 5)
+
+        train = TensorDataset(train_x, train_y, train_z)
+        test = TensorDataset(test_x, test_y, test_z)
+        train_dataset = AvalancheDataset(train)
+        test_dataset = AvalancheDataset(test)
+
+        self.assertEqual(500, len(train_dataset))
+        self.assertEqual(200, len(test_dataset))
+
+        x, y, z, t = train_dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertEqual(0, y)
+        self.assertEqual(1, z)
+        self.assertEqual(0, t)
+
+        x2, y2, z2, t2 = test_dataset[0]
+        self.assertIsInstance(x2, Tensor)
+        self.assertEqual(1, y2)
+        self.assertEqual(5, z2)
+        self.assertEqual(0, t2)
+
+    def test_avalanche_dataset_from_pytorch_subset(self):
+        tensor_x = torch.rand(500, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (500,))
+
+        whole_dataset = TensorDataset(tensor_x, tensor_y)
+
+        train = Subset(whole_dataset, indices=list(range(400)))
+        test = Subset(whole_dataset, indices=list(range(400, 500)))
+
+        train_dataset = AvalancheDataset(train)
+        test_dataset = AvalancheDataset(test)
+
+        self.assertEqual(400, len(train_dataset))
+        self.assertEqual(100, len(test_dataset))
+
+        x, y, t = train_dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0], x))
+        self.assertTrue(torch.equal(tensor_y[0], y))
+        self.assertEqual(0, t)
+
+        self.assertTrue(torch.equal(torch.as_tensor(train_dataset.targets),
+                                    tensor_y[:400]))
+
+        x2, y2, t2 = test_dataset[0]
+        self.assertIsInstance(x2, Tensor)
+        self.assertTrue(torch.equal(tensor_x[400], x2))
+        self.assertTrue(torch.equal(tensor_y[400], y2))
+        self.assertEqual(0, t2)
+
+        self.assertTrue(torch.equal(torch.as_tensor(test_dataset.targets),
+                                    tensor_y[400:]))
+
+    def test_avalanche_dataset_from_chained_pytorch_subsets(self):
+        tensor_x = torch.rand(500, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (500,))
+
+        whole_dataset = TensorDataset(tensor_x, tensor_y)
+
+        subset1 = Subset(whole_dataset, indices=list(range(400, 500)))
+        subset2 = Subset(subset1, indices=[5, 7, 0])
+
+        dataset = AvalancheDataset(subset2)
+
+        self.assertEqual(3, len(dataset))
+
+        x, y, t = dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[405], x))
+        self.assertTrue(torch.equal(tensor_y[405], y))
+        self.assertEqual(0, t)
+
+        self.assertTrue(
+            torch.equal(
+                torch.as_tensor(dataset.targets),
+                torch.as_tensor([tensor_y[405], tensor_y[407], tensor_y[400]])
+            )
+        )
+
+    def test_avalanche_dataset_collate_fn(self):
+        tensor_x = torch.rand(500, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (500,))
+        tensor_z = torch.randint(0, 100, (500,))
+
+        def my_collate_fn(patterns):
+            x_values = torch.stack([pat[0] for pat in patterns], 0)
+            y_values = torch.tensor([pat[1] for pat in patterns]) + 1
+            z_values = torch.tensor([-1 for _ in patterns])
+            t_values = torch.tensor([pat[3] for pat in patterns])
+            return x_values, y_values, z_values, t_values
+
+        whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
+        dataset = AvalancheDataset(whole_dataset, collate_fn=my_collate_fn)
+
+        x, y, z, t = dataset[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0], x))
+        self.assertTrue(torch.equal(tensor_y[0], y))
+        self.assertEqual(0, t)
+
+        x2, y2, z2, t2 = dataset[0:5]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0:5], x2))
+        self.assertTrue(torch.equal(tensor_y[0:5]+1, y2))
+        self.assertTrue(torch.equal(torch.full((5,), -1, dtype=torch.long), z2))
+        self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t2))
+
+        inherited = AvalancheDataset(dataset)
+
+        x3, y3, z3, t3 = inherited[0:5]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0:5], x3))
+        self.assertTrue(torch.equal(tensor_y[0:5] + 1, y3))
+        self.assertTrue(torch.equal(torch.full((5,), -1, dtype=torch.long), z3))
+        self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t3))
 
 
 class TransformationSubsetTests(unittest.TestCase):
