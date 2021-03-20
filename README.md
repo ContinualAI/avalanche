@@ -118,7 +118,7 @@ This will help us make Avalanche better known in the machine learning community,
 Maintained by ContinualAI Lab
 ----------------
 
-*Avalanche* is the flagship open-source collaborative project of [ContinuaAI](https://www.continualai.org/): a non profit research organization and the largest open community on Continual Learning for AI.
+*Avalanche* is the flagship open-source collaborative project of [ContinualAI](https://www.continualai.org/): a non profit research organization and the largest open community on Continual Learning for AI.
 
 Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](https://avalanche.continualai.org/questions-and-issues/ask-your-question) center. Do you want to improve Avalanche yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
