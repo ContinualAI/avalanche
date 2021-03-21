@@ -25,7 +25,7 @@ class WandBLogger(StrategyLogger):
     logged to a dedicated Weights & Biases project dashboard.
     """
 
-    def __init__(self, init_kwargs, system = False):
+    def __init__(self, init_kwargs):
         """
         Creates an instance of the `WandBLogger`.
 
@@ -71,11 +71,7 @@ class WandBLogger(StrategyLogger):
             return
             
         elif isinstance(value, (float, int)):
-            if self.system == False:
-                if name not in ["CPUUsage_MB","CPUUsage_Epoch","RunningCPUUsage_Epoch","CPUUsage_Exp","CPUUsage_Stream","DiskUsage_MB","DiskUsage_Epoch","DiskUsage_Exp","DiskUsage_Stream"]:
-                    self.wandb.log({name : value})
-            else:
-                self.wandb.log({name : value})
+            self.wandb.log({name : value})
 
 
 __all__ = [
