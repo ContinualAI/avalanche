@@ -1,8 +1,8 @@
 """
 The :py:mod:`metrics` module provides a set of already
-implemented metrics, ready to be used both stand-alone
+implemented metrics, ready to be used both standalone
 and together with the `EvaluationPlugin`.
-To use a stand-alone metric, please use the class which
+To use a standalone metric, please use the class which
 inherits from `Metric` and manually call the appropriate
 `update`, `reset` and 'result` method.
 To automatically monitor metrics during training and evaluation

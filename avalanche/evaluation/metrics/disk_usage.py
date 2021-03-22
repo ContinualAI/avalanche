@@ -26,7 +26,7 @@ PathAlike = Union[Union[str, Path]]
 
 class DiskUsage(Metric[float]):
     """
-    The disk usage metric.
+    The standalone disk usage metric.
 
     This metric can be used to monitor the size of a set of directories.
     e.g. This can be useful to monitor the size of a replay buffer,
@@ -35,7 +35,7 @@ class DiskUsage(Metric[float]):
                  paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
                  ):
         """
-        Creates an instance of the disk usage metric.
+        Creates an instance of the standalone disk usage metric.
 
         The `result` method will return the sum of the size
         of the directories specified as the first parameter in KiloBytes.
@@ -104,7 +104,7 @@ class DiskUsage(Metric[float]):
 class MinibatchDiskUsage(PluginMetric[float]):
     """
     The minibatch Disk usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At the end of each iteration, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -151,7 +151,7 @@ class MinibatchDiskUsage(PluginMetric[float]):
 class EpochDiskUsage(PluginMetric[float]):
     """
     The Epoch Disk usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At the end of each epoch, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -194,7 +194,7 @@ class EpochDiskUsage(PluginMetric[float]):
 class ExperienceDiskUsage(PluginMetric[float]):
     """
     The average experience Disk usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     At the end of each experience, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -236,7 +236,7 @@ class ExperienceDiskUsage(PluginMetric[float]):
 class StreamDiskUsage(PluginMetric[float]):
     """
     The average stream Disk usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     At the end of the eval stream, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -284,7 +284,8 @@ def disk_usage_metrics(*, paths_to_monitor=None, minibatch=False, epoch=False,
                        experience=False, stream=False) \
         -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    standalone metrics.
 
     :param minibatch: If True, will return a metric able to log the minibatch
         Disk usage

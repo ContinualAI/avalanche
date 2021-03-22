@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 class ConfusionMatrix(Metric[Tensor]):
     """
-    The confusion matrix metric.
+    The standalone confusion matrix metric.
 
     Instances of this metric keep track of the confusion matrix by receiving a
     pair of "ground truth" and "prediction" Tensors describing the labels of a
@@ -52,7 +52,7 @@ class ConfusionMatrix(Metric[Tensor]):
 
     def __init__(self, num_classes: int = None):
         """
-        Creates an instance of the confusion matrix metric.
+        Creates an instance of the standalone confusion matrix metric.
 
         By default this metric in its initial state will return an empty Tensor.
         The metric can be updated by using the `update` method while the running
@@ -161,7 +161,7 @@ class ConfusionMatrix(Metric[Tensor]):
 class StreamConfusionMatrix(PluginMetric[Tensor]):
     """
     The Stream Confusion Matrix metric.
-    This metric only works on the eval phase.
+    This plugin metric only works on the eval phase.
 
     At the end of the eval phase, this metric logs the confusion matrix
     relative to all the patterns seen during eval.

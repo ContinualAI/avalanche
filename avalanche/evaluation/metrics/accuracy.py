@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 class Accuracy(Metric[float]):
     """
-    The Accuracy metric. This is a general metric
+    The Accuracy metric. This is a standalone metric
     used to compute more specific ones.
 
     Instances of this metric keeps the running average accuracy
@@ -44,7 +44,7 @@ class Accuracy(Metric[float]):
 
     def __init__(self):
         """
-        Creates an instance of the Accuracy metric.
+        Creates an instance of the standalone Accuracy metric.
 
         By default this metric in its initial state will return an accuracy
         value of 0. The metric can be updated by using the `update` method
@@ -109,7 +109,7 @@ class Accuracy(Metric[float]):
 
 class MinibatchAccuracy(PluginMetric[float]):
     """
-    The minibatch accuracy metric.
+    The minibatch plugin accuracy metric.
     This metric only works at training time.
 
     This metric computes the average accuracy over patterns
@@ -157,7 +157,7 @@ class MinibatchAccuracy(PluginMetric[float]):
 class EpochAccuracy(PluginMetric[float]):
     """
     The average accuracy over a single training epoch.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The accuracy will be logged after each training epoch by computing
     the number of correctly predicted patterns during the epoch divided by
@@ -205,7 +205,7 @@ class RunningEpochAccuracy(EpochAccuracy):
     """
     The average accuracy across all minibatches up to the current
     epoch iteration.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At each iteration, this metric logs the accuracy averaged over all patterns
     seen so far in the current epoch.
@@ -243,7 +243,7 @@ class RunningEpochAccuracy(EpochAccuracy):
 
 class ExperienceAccuracy(PluginMetric[float]):
     """
-    At the end of each experience, this metric reports
+    At the end of each experience, this plugin metric reports
     the average accuracy over all patterns seen in that experience.
     This metric only works at eval time.
     """
@@ -289,8 +289,8 @@ class ExperienceAccuracy(PluginMetric[float]):
 
 class StreamAccuracy(PluginMetric[float]):
     """
-    At the end of the entire stream of experiences, this metric reports the
-    average accuracy over all patterns seen in all experiences.
+    At the end of the entire stream of experiences, this plugin metric
+    reports the average accuracy over all patterns seen in all experiences.
     This metric only works at eval time.
     """
 
@@ -340,7 +340,8 @@ class StreamAccuracy(PluginMetric[float]):
 def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                      experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log
         the minibatch accuracy at training time.
