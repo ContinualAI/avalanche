@@ -26,9 +26,9 @@ TAggregated = TypeVar('TAggregated', bound='PluginMetric')
 
 class Metric(Protocol[TResult]):
     """
-    Definition of a metric.
+    Definition of a standalone metric.
 
-    A metric exposes methods to reset its internal state and
+    A standalone metric exposes methods to reset its internal state and
     to emit a result. Emitting a result does not automatically cause
     a reset in the internal state.
 
@@ -36,7 +36,7 @@ class Metric(Protocol[TResult]):
     state. Usually, standalone metrics like :class:`Sum`, :class:`Mean`,
     :class:`Accuracy`, ... expose an `update` method.
 
-    The `Metric` class can be used as a stand-alone metric by directly calling
+    The `Metric` class can be used as a standalone metric by directly calling
     its methods.
     In order to automatically integrate the metric with the training and
     evaluation flows, you can use :class:`PluginMetric` class. The class

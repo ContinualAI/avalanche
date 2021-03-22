@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 class MaxRAM(Metric[float]):
     """
-    The RAM usage metric.
+    The standalone RAM usage metric.
     Important: this metric approximates the real maximum RAM usage since
     it sample at discrete amount of time the RAM values.
 
@@ -119,7 +119,7 @@ class MaxRAM(Metric[float]):
 class MinibatchMaxRAM(PluginMetric[float]):
     """
     The Minibatch Max RAM metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
     """
 
     def __init__(self, every=1):
@@ -167,7 +167,7 @@ class MinibatchMaxRAM(PluginMetric[float]):
 class EpochMaxRAM(PluginMetric[float]):
     """
     The Epoch Max RAM metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
     """
 
     def __init__(self, every=1):
@@ -215,7 +215,7 @@ class EpochMaxRAM(PluginMetric[float]):
 class ExperienceMaxRAM(PluginMetric[float]):
     """
     The Experience Max RAM metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self, every=1):
@@ -263,7 +263,7 @@ class ExperienceMaxRAM(PluginMetric[float]):
 class StreamMaxRAM(PluginMetric[float]):
     """
     The Stream Max RAM metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self, every=1):
@@ -312,7 +312,8 @@ class StreamMaxRAM(PluginMetric[float]):
 def ram_usage_metrics(*, every=1, minibatch=False, epoch=False,
                       experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param every: seconds after which update the maximum RAM
         usage

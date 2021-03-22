@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class MAC(Metric[int]):
     """
-    Multiply-and-accumulate metric. Provides a lower bound of the
+    Standalone Multiply-and-accumulate metric. Provides a lower bound of the
     computational cost of a model in a hardware-independent way by
     computing the number of multiplications. Currently supports only
     Linear or Conv2d modules. Other operations are ignored.
@@ -88,7 +88,7 @@ class MAC(Metric[int]):
 class MinibatchMAC(PluginMetric[float]):
     """
     The minibatch MAC metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric computes the MAC over 1 pattern
     from a single minibatch.
@@ -135,7 +135,7 @@ class EpochMAC(PluginMetric[float]):
     """
     The MAC at the end of each epoch computed on a
     single pattern.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The MAC will be logged after each training epoch.
     """
@@ -176,7 +176,7 @@ class ExperienceMAC(PluginMetric[float]):
     """
     At the end of each experience, this metric reports the
     MAC computed on a single pattern.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self):
@@ -216,7 +216,8 @@ class ExperienceMAC(PluginMetric[float]):
 def MAC_metrics(*, minibatch=False, epoch=False, experience=False) \
         -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log
         the MAC after each iteration at training time.

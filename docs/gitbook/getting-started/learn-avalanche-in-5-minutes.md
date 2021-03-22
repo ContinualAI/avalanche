@@ -255,16 +255,16 @@ The `evaluation` module is quite straightforward: it offers all the basic functi
 
 This is mostly done through the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc. At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
 
-Each metric comes with a general purpose class and more fine-grained classes aimed at emitting metric values on specific moments during training and evaluation.
+Each metric comes with a standalone class and a set of plugin classes aimed at emitting metric values on specific moments during training and evaluation.
 
-#### General metric
+#### Standalone metric
 
-As an example, the `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
+As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
 
 ```python
 from avalanche.evaluation.metrics import Accuracy
 
-# create an instance of the Accuracy metric
+# create an instance of the standalone Accuracy metric
 # initial accuracy is 0
 acc_metric = Accuracy()
 print("Initial Accuracy: ", acc_metric.result()) #  output 0
@@ -285,12 +285,12 @@ acc_metric.reset()
 print("After reset: ", acc_metric.result()) # output 0
 ```
 
-#### Fine-grained metric
+#### Plugin metric
 
-If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more specific metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. In order to simplify the use of these metrics, we provided utility functions with which you can create many different version of the same metric in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
+If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more plugin metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. In order to simplify the use of these metrics, we provided utility functions with which you can create different plugin metrics in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
 
 ```python
-# utility functions to create metrics
+# utility functions to create plugin metrics
 from avalanche.evaluation.metrics import accuracy_metrics, \
 loss_metrics, cpu_usage_metrics, disk_usage_metrics, \
 gpu_usage_metrics, MAC_metrics, ram_usage_metrics, \
