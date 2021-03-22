@@ -18,7 +18,7 @@ from sklearn.metrics import ConfusionMatrixDisplay
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
     from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 
@@ -82,7 +82,7 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
     return image
 
 
-def get_task_label(strategy: 'PluggableStrategy') -> int:
+def get_task_label(strategy: 'BaseStrategy') -> int:
     """
     Returns the current task label.
 
@@ -108,7 +108,7 @@ def stream_type(experience: 'Experience') -> str:
     return experience.origin_stream.name
 
 
-def phase_and_task(strategy: 'PluggableStrategy') -> Tuple[str, int]:
+def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
     """
     Returns the current phase name and the associated task label.
 
@@ -146,7 +146,7 @@ def bytes2human(n):
 
 
 def get_metric_name(metric: 'PluginMetric',
-                    strategy: 'PluggableStrategy',
+                    strategy: 'BaseStrategy',
                     add_experience=False):
     """
     Return the complete metric name used to report its current value.

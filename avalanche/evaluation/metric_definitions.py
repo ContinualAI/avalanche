@@ -14,11 +14,11 @@ from typing import TypeVar, Optional, Dict, TYPE_CHECKING
 
 from typing_extensions import Protocol
 
-from avalanche.training.strategy_callbacks import StrategyCallbacks
+from ..core import StrategyCallbacks
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from avalanche.training.plugins import PluggableStrategy
+    from ..training import BaseStrategy
 
 TResult = TypeVar('TResult')
 TAggregated = TypeVar('TAggregated', bound='PluginMetric')
@@ -98,87 +98,87 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     def reset(self) -> None:
         pass
 
-    def before_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_training(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def before_training_exp(self, strategy: 'PluggableStrategy') \
+    def before_training_exp(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def adapt_train_dataset(self, strategy: 'PluggableStrategy') \
+    def adapt_train_dataset(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_training_epoch(self, strategy: 'PluggableStrategy') \
+    def before_training_epoch(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+    def before_training_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_forward(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_forward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_forward(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def before_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_backward(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_backward(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_backward(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_update(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_update(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_update(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_training_exp(self, strategy: 'PluggableStrategy') \
+    def after_training_exp(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_training(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_training(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def adapt_eval_dataset(self, strategy: 'PluggableStrategy') \
+    def adapt_eval_dataset(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> 'MetricResult':
+    def after_eval(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def before_eval_iteration(self, strategy: 'PluggableStrategy') \
+    def before_eval_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def before_eval_forward(self, strategy: 'PluggableStrategy') \
+    def before_eval_forward(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_eval_forward(self, strategy: 'PluggableStrategy') \
+    def after_eval_forward(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') \
+    def after_eval_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 

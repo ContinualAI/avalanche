@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class Accuracy(Metric[float]):
@@ -135,14 +135,14 @@ class MinibatchAccuracy(PluginMetric[float]):
     def reset(self) -> None:
         self._minibatch_accuracy.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self.reset()  # Because this metric computes the accuracy of a single mb
         self._minibatch_accuracy.update(strategy.mb_y,
                                         strategy.logits)
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -178,18 +178,18 @@ class EpochAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
-    def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
+    def before_training_epoch(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -219,17 +219,17 @@ class RunningEpochAccuracy(EpochAccuracy):
 
         super().__init__()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         super().after_training_iteration(strategy)
         return self._package_result(strategy)
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') -> None:
+    def after_training_epoch(self, strategy: 'BaseStrategy') -> None:
         # Overrides the method from EpochAccuracy so that it doesn't
         # emit a metric value on epoch end!
         return None
 
-    def _package_result(self, strategy: 'PluggableStrategy'):
+    def _package_result(self, strategy: 'BaseStrategy'):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -262,18 +262,18 @@ class ExperienceAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> \
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> \
             'MetricResult':
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> \
+    def _package_result(self, strategy: 'BaseStrategy') -> \
             MetricResult:
         metric_value = self.result()
 
@@ -308,18 +308,18 @@ class StreamAccuracy(PluginMetric[float]):
     def result(self) -> float:
         return self._accuracy_metric.result()
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> \
+    def after_eval(self, strategy: 'BaseStrategy') -> \
             'MetricResult':
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> \
+    def _package_result(self, strategy: 'BaseStrategy') -> \
             MetricResult:
         metric_value = self.result()
 
