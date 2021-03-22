@@ -1,0 +1,13 @@
+[tool.interrogate]
+ignore-init-method = false
+ignore-init-module = true
+ignore-magic = true
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = false
+ignore-module = false
+fail-under = 1.0
+verbose = 2
+quiet = false
+whitelist-regex = []
+color = true

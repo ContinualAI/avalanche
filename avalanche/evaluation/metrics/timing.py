@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class ElapsedTime(Metric[float]):
     """
-    The elapsed time metric.
+    The standalone Elapsed Time metric.
 
     Instances of this metric keep track of the time elapsed between calls to the
     `update` method. The starting time is set when the `update` method is called
@@ -41,7 +41,7 @@ class ElapsedTime(Metric[float]):
     """
     def __init__(self):
         """
-        Creates an instance of the accuracy metric.
+        Creates an instance of the ElapsedTime metric.
 
         This metric in its initial state (or if the `update` method was invoked
         only once) will return an elapsed time of 0. The metric can be updated
@@ -89,7 +89,7 @@ class ElapsedTime(Metric[float]):
 class MinibatchTime(PluginMetric[float]):
     """
     The minibatch time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric "logs" the elapsed time for each iteration.
 
@@ -135,7 +135,7 @@ class MinibatchTime(PluginMetric[float]):
 class EpochTime(PluginMetric[float]):
     """
     The epoch elapsed time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The elapsed time will be logged after each epoch.
     """
@@ -179,7 +179,7 @@ class EpochTime(PluginMetric[float]):
 class RunningEpochTime(PluginMetric[float]):
     """
     The running epoch time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     For each iteration, this metric logs the average time
     between the start of the
@@ -233,7 +233,7 @@ class RunningEpochTime(PluginMetric[float]):
 class ExperienceTime(PluginMetric[float]):
     """
     The experience time metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
 
     After each experience, this metric emits the average time of that
     experience.
@@ -279,7 +279,7 @@ class StreamTime(PluginMetric[float]):
     This metric only works at eval time.
 
     After the entire evaluation stream,
-    this metric emits the average time of that stream.
+    this plugin metric emits the average time of that stream.
     """
 
     def __init__(self):
@@ -319,7 +319,8 @@ class StreamTime(PluginMetric[float]):
 def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                    experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log the train
         minibatch elapsed time.

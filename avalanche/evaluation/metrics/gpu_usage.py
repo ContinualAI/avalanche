@@ -26,13 +26,13 @@ if TYPE_CHECKING:
 
 class MaxGPU(Metric[float]):
     """
-    The GPU usage metric.
+    The standalone GPU usage metric.
     Important: this metric approximates the real maximum GPU percentage
      usage since it sample at discrete amount of time the GPU values.
 
     Instances of this metric keeps the maximum GPU usage percentage detected.
-    The update method starts the usage tracking. The reset method stops
-    the tracking.
+    The `start_thread` method starts the usage tracking.
+    The `stop_thread` method stops the tracking.
 
     The result, obtained using the `result` method, is the usage in mega-bytes.
 
@@ -129,7 +129,7 @@ class MaxGPU(Metric[float]):
 class MinibatchMaxGPU(PluginMetric[float]):
     """
     The Minibatch Max GPU metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
     """
 
     def __init__(self, gpu_id, every=0.5):
@@ -180,7 +180,7 @@ class MinibatchMaxGPU(PluginMetric[float]):
 class EpochMaxGPU(PluginMetric[float]):
     """
     The Epoch Max GPU metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
     """
 
     def __init__(self, gpu_id, every=0.5):
@@ -231,7 +231,7 @@ class EpochMaxGPU(PluginMetric[float]):
 class ExperienceMaxGPU(PluginMetric[float]):
     """
     The Experience Max GPU metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self, gpu_id, every=0.5):
@@ -282,7 +282,7 @@ class ExperienceMaxGPU(PluginMetric[float]):
 class StreamMaxGPU(PluginMetric[float]):
     """
     The Stream Max GPU metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self, gpu_id, every=0.5):
@@ -334,7 +334,8 @@ class StreamMaxGPU(PluginMetric[float]):
 def gpu_usage_metrics(gpu_id, every=0.5, minibatch=False, epoch=False,
                       experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param gpu_id: GPU device ID.
     :param every: seconds after which update the maximum GPU

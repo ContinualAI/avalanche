@@ -9,11 +9,9 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, Union
 
-from torch import Tensor
-
-from avalanche.evaluation.metric_definitions import PluginMetric
+from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.metric_utils import get_metric_name
@@ -22,12 +20,94 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import PluggableStrategy
 
 
+class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
+    """
+    The standalone Forgetting metric.
+    This metric returns the forgetting relative to a specific key.
+    Alternatively, this metric returns a dict in which each key is associated
+    to the forgetting.
+    Forgetting is computed as the difference between the first value recorded
+    for a specific key and the last value recorded for that key.
+    The value associated to a key can be update with the `update` method.
+
+    At initialization, this metric returns an empty dictionary.
+    """
+
+    def __init__(self):
+        """
+        Creates an instance of the standalone Forgetting metric
+        """
+
+        super().__init__()
+
+        self.initial: Dict[int, float] = dict()
+        """
+        The initial value for each key.
+        """
+
+        self.last: Dict[int, float] = dict()
+        """
+        The last value detected for each key
+        """
+
+    def update_initial(self, k, v):
+        self.initial[k] = v
+
+    def update_last(self, k, v):
+        self.last[k] = v
+
+    def update(self, k, v, initial=False):
+        if initial:
+            self.update_initial(k, v)
+        else:
+            self.update_last(k, v)
+
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        Forgetting is returned only for keys encountered twice.
+
+        :param k: the key for which returning forgetting. If k has not
+            updated at least twice it returns None. If k is None,
+            forgetting will be returned for all keys encountered at least
+            twice.
+
+        :return: the difference between the first and last value encountered
+            for k, if k is not None. It returns None if k has not been updated
+            at least twice. If k is None, returns a dictionary
+            containing keys whose value has been updated at least twice. The
+            associated value is the difference between the first and last
+            value recorded for that key.
+        """
+
+        forgetting = {}
+        if k is not None:
+            if k in self.initial and k in self.last:
+                return self.initial[k] - self.last[k]
+            else:
+                return None
+
+        ik = set(self.initial.keys())
+        both_keys = list(ik.intersection(set(self.last.keys())))
+
+        for k in both_keys:
+            forgetting[k] = self.initial[k] - self.last[k]
+
+        return forgetting
+
+    def reset_last(self) -> None:
+        self.last: Dict[int, float] = dict()
+
+    def reset(self) -> None:
+        self.initial: Dict[int, float] = dict()
+        self.last: Dict[int, float] = dict()
+
+
 class ExperienceForgetting(PluginMetric[Dict[int, float]]):
     """
-    The Forgetting metric, describing the accuracy loss detected for a
-    certain experience.
+    The ExperienceForgetting metric, describing the accuracy loss
+    detected for a certain experience.
 
-    This metric, computed separately for each experience,
+    This plugin metric, computed separately for each experience,
     is the difference between the accuracy result obtained after
     first training on a experience and the accuracy result obtained
     on the same experience at the end of successive experiences.
@@ -42,14 +122,14 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
         super().__init__()
 
-        self._initial_accuracy: Dict[int, float] = dict()
+        self.forgetting = Forgetting()
         """
-        The initial accuracy of each experience.
+        The general metric to compute forgetting
         """
 
-        self._current_accuracy: Dict[int, Accuracy] = dict()
+        self._last_accuracy = Accuracy()
         """
-        The current accuracy of each experience.
+        The average accuracy over the current evaluation experience
         """
 
         self.eval_exp_id = None
@@ -71,94 +151,78 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
         :return: None.
         """
-        self._initial_accuracy = dict()
-        self._current_accuracy = dict()
+        self.forgetting.reset()
 
-    def reset_current_accuracy(self) -> None:
+    def reset_last_accuracy(self) -> None:
         """
-        Resets the current accuracy.
+        Resets the last accuracy.
 
         This will preserve the initial accuracy value of each experience.
         To be used at the beginning of each eval experience.
 
         :return: None.
         """
-        self._current_accuracy = dict()
+        self.forgetting.reset_last()
 
-    def update(self, true_y: Tensor, predicted_y: Tensor, label: int) \
-            -> None:
+    def update(self, k, v, initial=False):
         """
-        Updates the running accuracy of a experience given the ground truth and
-        predicted labels of a minibatch.
+        Update forgetting metric.
+        See `Forgetting` for more detailed information.
 
-        :param true_y: The ground truth. Both labels and one-hot vectors
-            are supported.
-        :param predicted_y: The ground truth. Both labels and logit vectors
-            are supported.
-        :param label: The experience label.
-        :return: None.
+        :param k: key to update
+        :param v: value associated to k
+        :param initial: update initial value. If False, update
+            last value.
         """
-        if label not in self._current_accuracy:
-            self._current_accuracy[label] = Accuracy()
-        self._current_accuracy[label].update(true_y, predicted_y)
+        self.forgetting.update(k, v, initial=initial)
+
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        See `Forgetting` documentation for more detailed information.
+
+        k: optional key from which compute forgetting.
+        """
+        return self.forgetting.result(k=k)
 
     def before_training_exp(self, strategy: 'PluggableStrategy') -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
-        self.reset_current_accuracy()
+        self.reset_last_accuracy()
+
+    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+        self._last_accuracy.reset()
 
     def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
         self.eval_exp_id = strategy.experience.current_experience
-        self.update(strategy.mb_y,
-                    strategy.logits,
-                    self.eval_exp_id)
+        self._last_accuracy.update(strategy.mb_y,
+                                   strategy.logits)
 
     def after_eval_exp(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
-        # eval experience never encountered during training
-        # or eval experience is the current training experience
-        # forgetting not reported in both cases
-        if self.eval_exp_id not in self._initial_accuracy:
-            train_label = self.train_exp_id
-            # the test accuracy on the training experience we have just
-            # trained on. This is the initial accuracy.
-            if train_label not in self._initial_accuracy:
-                self._initial_accuracy[train_label] = \
-                    self._current_accuracy[train_label].result()
-            return None
+        # update experience on which training just ended
+        if self.train_exp_id == self.eval_exp_id:
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result(),
+                        initial=True)
+        else:
+            # update other experiences
+            # if experience has not been encountered in training
+            # its value will not be considered in forgetting
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result())
 
-        # eval experience previously encountered during training
-        # which is not the most recent training experience
-        # return forgetting
-        return self._package_result(strategy)
-
-    def result(self) -> float:
-        """
-        Return the amount of forgetting for the eval experience
-        associated to `eval_label`.
-
-        The forgetting is computed as the accuracy difference between the
-        initial experience accuracy (when first encountered
-        in the training stream) and the current accuracy.
-        A positive value means that forgetting occurred. A negative value
-        means that the accuracy on that experience increased.
-
-        :param eval_label: integer label describing the eval experience
-                of which measuring the forgetting
-        :return: The amount of forgetting on `eval_exp` experience
-                 (as float in range [-1, 1]).
-        """
-
-        prev_accuracy: float = self._initial_accuracy[self.eval_exp_id]
-        accuracy: Accuracy = self._current_accuracy[self.eval_exp_id]
-        forgetting = prev_accuracy - accuracy.result()
-        return forgetting
+        # this checks if the evaluation experience has been
+        # already encountered at training time
+        # before the last training.
+        # If not, forgetting should not be returned.
+        if self.result(k=self.eval_exp_id) is not None:
+            return self._package_result(strategy)
 
     def _package_result(self, strategy: 'PluggableStrategy') \
             -> MetricResult:
 
-        forgetting = self.result()
+        forgetting = self.result(k=self.eval_exp_id)
         metric_name = get_metric_name(self, strategy, add_experience=True)
         plot_x_position = self._next_x_position(metric_name)
 
@@ -170,4 +234,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         return "ExperienceForgetting"
 
 
-__all__ = ['ExperienceForgetting']
+__all__ = [
+    'Forgetting',
+    'ExperienceForgetting'
+]
