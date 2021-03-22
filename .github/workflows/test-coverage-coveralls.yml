@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-name: unit test
+name: test coverage coverall
 
 on:
   push:
@@ -62,7 +62,7 @@ jobs:
         run: |
           FAST_TEST=True USE_GPU=False python -m unittest
       - name: Upload coverage data to coveralls.io
-        run: coveralls
+        run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
