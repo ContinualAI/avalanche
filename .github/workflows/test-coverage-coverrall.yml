@@ -1,0 +1,82 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 22-03-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+name: unit test
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - docs/gitbook/**
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - docs/gitbook/**
+
+jobs:
+  unit-test:
+    name: unit test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.6", "3.7", "3.8", "3.9"]
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: avalanche-env
+          python-version: ${{ matrix.python-version }}
+          auto-activate-base: false
+      - name: install conda environment < 3.9
+        if: matrix.python-version != '3.9'
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda env update --file environment.yml
+      - name: install conda environment = 3.9
+        if: matrix.python-version == '3.9'
+        run: |
+          conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
+          conda env update --file environment.yml
+      - name: install coverage.py and coverralls
+        run: |
+          pip install coverage
+          pip install coveralls
+      - name: python unit test
+        id: unittest
+        run: |
+          FAST_TEST=True USE_GPU=False python -m unittest
+      - name: Upload coverage data to coveralls.io
+        run: coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+          COVERALLS_PARALLEL: true
+
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: unit-test
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Finished
+        run: |
+          pip3 install --upgrade coveralls
+          coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
