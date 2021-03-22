@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from fnmatch import fnmatch
 from typing import Sequence, Any, Set, List, Tuple, Dict, TYPE_CHECKING
@@ -74,7 +72,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
         self._device = device
 
-    def before_training_exp(self, strategy: BaseStrategy, **kwargs):
+    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         super().before_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.create_syn_data(
             strategy.model, self.ewc_data, self.syn_data,
@@ -84,7 +82,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             strategy.model, self.ewc_data, self.syn_data,
             self.excluded_parameters)
 
-    def after_backward(self, strategy: BaseStrategy, **kwargs):
+    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
         super().after_backward(strategy, **kwargs)
         syn_loss = SynapticIntelligencePlugin.compute_ewc_loss(
             strategy.model, self.ewc_data, self.excluded_parameters,
@@ -93,23 +91,23 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         if syn_loss is not None:
             strategy.loss += syn_loss.to(strategy.device)
 
-    def before_training_iteration(self, strategy: BaseStrategy, **kwargs):
+    def before_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         super().before_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.pre_update(strategy.model, self.syn_data,
                                               self.excluded_parameters)
 
-    def after_training_iteration(self, strategy: BaseStrategy, **kwargs):
+    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         super().after_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.post_update(strategy.model, self.syn_data,
                                                self.excluded_parameters)
 
-    def after_training_exp(self, strategy: BaseStrategy, **kwargs):
+    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         super().after_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.update_ewc_data(
             strategy.model, self.ewc_data, self.syn_data, 0.001,
             self.excluded_parameters, 1)
 
-    def device(self, strategy: BaseStrategy):
+    def device(self, strategy: 'BaseStrategy'):
         if self._device == 'as_strategy':
             return strategy.device
 

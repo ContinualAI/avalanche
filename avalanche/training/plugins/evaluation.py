@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
@@ -85,76 +83,76 @@ class EvaluationPlugin(StrategyPlugin):
             getattr(logger, callback)(strategy, metric_values)
         return metric_values
 
-    def before_training(self, strategy: BaseStrategy, **kwargs):
+    def before_training(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training')
 
-    def before_training_exp(self, strategy: BaseStrategy, **kwargs):
+    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_exp')
 
-    def adapt_train_dataset(self, strategy: BaseStrategy, **kwargs):
+    def adapt_train_dataset(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'adapt_train_dataset')
 
-    def before_training_epoch(self, strategy: BaseStrategy, **kwargs):
+    def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_epoch')
 
-    def before_training_iteration(self, strategy: BaseStrategy, **kwargs):
+    def before_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_iteration')
 
-    def before_forward(self, strategy: BaseStrategy, **kwargs):
+    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_forward')
 
-    def after_forward(self, strategy: BaseStrategy, **kwargs):
+    def after_forward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_forward')
 
-    def before_backward(self, strategy: BaseStrategy, **kwargs):
+    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_backward')
 
-    def after_backward(self, strategy: BaseStrategy, **kwargs):
+    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_backward')
 
-    def after_training_iteration(self, strategy: BaseStrategy, **kwargs):
+    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_training_iteration')
 
-    def before_update(self, strategy: BaseStrategy, **kwargs):
+    def before_update(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_update')
 
-    def after_update(self, strategy: BaseStrategy, **kwargs):
+    def after_update(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_update')
 
-    def after_training_epoch(self, strategy: BaseStrategy, **kwargs):
+    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_training_epoch')
 
-    def after_training_exp(self, strategy: BaseStrategy, **kwargs):
+    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_training_exp')
 
-    def after_training(self, strategy: BaseStrategy, **kwargs):
+    def after_training(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_training')
         self.current_metrics = {}  # reset current metrics
 
-    def before_eval(self, strategy: BaseStrategy, **kwargs):
+    def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval')
 
-    def adapt_eval_dataset(self, strategy: BaseStrategy, **kwargs):
+    def adapt_eval_dataset(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'adapt_eval_dataset')
 
-    def before_eval_exp(self, strategy: BaseStrategy, **kwargs):
+    def before_eval_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval_exp')
 
-    def after_eval_exp(self, strategy: BaseStrategy, **kwargs):
+    def after_eval_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval_exp')
 
-    def after_eval(self, strategy: BaseStrategy, **kwargs):
+    def after_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval')
         self.current_metrics = {}  # reset current metrics
 
-    def before_eval_iteration(self, strategy: BaseStrategy, **kwargs):
+    def before_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval_iteration')
 
-    def before_eval_forward(self, strategy: BaseStrategy, **kwargs):
+    def before_eval_forward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval_forward')
 
-    def after_eval_forward(self, strategy: BaseStrategy, **kwargs):
+    def after_eval_forward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval_forward')
 
-    def after_eval_iteration(self, strategy: BaseStrategy, **kwargs):
+    def after_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval_iteration')

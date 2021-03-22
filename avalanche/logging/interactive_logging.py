@@ -8,8 +8,6 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from __future__ import annotations
-
 import sys
 from typing import List, TYPE_CHECKING
 
@@ -54,33 +52,33 @@ class InteractiveLogger(TextLogger):
         super().__init__(file=sys.stdout)
         self._pbar = None
 
-    def before_training_epoch(self, strategy: BaseStrategy,
+    def before_training_epoch(self, strategy: 'BaseStrategy',
                               metric_values: List['MetricValue'], **kwargs):
         super().before_training_epoch(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.current_dataloader)
 
-    def after_training_epoch(self, strategy: BaseStrategy,
+    def after_training_epoch(self, strategy: 'BaseStrategy',
                              metric_values: List['MetricValue'], **kwargs):
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
 
-    def before_eval_exp(self, strategy: BaseStrategy,
+    def before_eval_exp(self, strategy: 'BaseStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         super().before_eval_exp(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.current_dataloader)
 
-    def after_eval_exp(self, strategy: BaseStrategy,
+    def after_eval_exp(self, strategy: 'BaseStrategy',
                        metric_values: List['MetricValue'], **kwargs):
         self._end_progress()
         super().after_eval_exp(strategy, metric_values, **kwargs)
 
-    def after_training_iteration(self, strategy: BaseStrategy,
+    def after_training_iteration(self, strategy: 'BaseStrategy',
                                  metric_values: List['MetricValue'], **kwargs):
         self._progress.update()
         self._progress.refresh()
         super().after_training_iteration(strategy, metric_values, **kwargs)
 
-    def after_eval_iteration(self, strategy: BaseStrategy,
+    def after_eval_iteration(self, strategy: 'BaseStrategy',
                              metric_values: List['MetricValue'], **kwargs):
         self._progress.update()
         self._progress.refresh()
