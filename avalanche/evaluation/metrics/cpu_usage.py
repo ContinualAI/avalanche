@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 class CPUUsage(Metric[float]):
     """
-    The CPU usage metric.
+    The standalone CPU usage metric.
 
     Instances of this metric compute the average CPU usage as a float value.
     The metric starts tracking the CPU usage when the `update` method is called
@@ -46,7 +46,7 @@ class CPUUsage(Metric[float]):
 
     def __init__(self):
         """
-        Creates an instance of the CPU usage metric.
+        Creates an instance of the standalone CPU usage metric.
 
         By default this metric in its initial state will return a CPU usage
         value of 0. The metric can be updated by using the `update` method
@@ -122,7 +122,7 @@ class CPUUsage(Metric[float]):
 class MinibatchCPUUsage(PluginMetric[float]):
     """
     The minibatch CPU usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric "logs" the CPU usage for each iteration.
 
@@ -169,7 +169,7 @@ class MinibatchCPUUsage(PluginMetric[float]):
 class EpochCPUUsage(PluginMetric[float]):
     """
     The Epoch CPU usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The average usage will be logged after each epoch.
     """
@@ -212,7 +212,7 @@ class EpochCPUUsage(PluginMetric[float]):
 class RunningEpochCPUUsage(PluginMetric[float]):
     """
     The running epoch CPU usage metric.
-    This metric only works at training time
+    This plugin metric only works at training time
 
     After each iteration, the metric logs the average CPU usage up
     to the current epoch iteration.
@@ -265,7 +265,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
 class ExperienceCPUUsage(PluginMetric[float]):
     """
     The average experience CPU usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     After each experience, this metric emits the average CPU usage on that
     experienc.
@@ -308,7 +308,7 @@ class ExperienceCPUUsage(PluginMetric[float]):
 class StreamCPUUsage(PluginMetric[float]):
     """
     The average stream CPU usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     After the entire evaluation stream, this metric emits
     the average CPU usage on all experiences.
@@ -356,7 +356,8 @@ class StreamCPUUsage(PluginMetric[float]):
 def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                       experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log the minibatch
         CPU usage

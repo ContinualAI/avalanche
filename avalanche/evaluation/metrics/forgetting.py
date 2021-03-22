@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
     """
-    The Forgetting metric.
+    The standalone Forgetting metric.
     This metric returns the forgetting relative to a specific key.
     Alternatively, this metric returns a dict in which each key is associated
     to the forgetting.
@@ -35,7 +35,7 @@ class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
 
     def __init__(self):
         """
-        Creates an instance of the Forgetting metric
+        Creates an instance of the standalone Forgetting metric
         """
 
         super().__init__()
@@ -107,7 +107,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
     The ExperienceForgetting metric, describing the accuracy loss
     detected for a certain experience.
 
-    This metric, computed separately for each experience,
+    This plugin metric, computed separately for each experience,
     is the difference between the accuracy result obtained after
     first training on a experience and the accuracy result obtained
     on the same experience at the end of successive experiences.

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 class Loss(Metric[float]):
     """
-    The Loss metric. This is a general metric
+    The standalone Loss metric. This is a general metric
     used to compute more specific ones.
 
     Instances of this metric keeps the running average loss
@@ -84,7 +84,7 @@ class Loss(Metric[float]):
 class MinibatchLoss(PluginMetric[float]):
     """
     The minibatch loss metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric computes the average loss over patterns
     from a single minibatch.
@@ -130,7 +130,7 @@ class MinibatchLoss(PluginMetric[float]):
 class EpochLoss(PluginMetric[float]):
     """
     The average loss over a single training epoch.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The loss will be logged after each training epoch by computing
     the loss on the predicted patterns during the epoch divided by
@@ -178,7 +178,7 @@ class RunningEpochLoss(EpochLoss):
     """
     The average loss across all minibatches up to the current
     epoch iteration.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At each iteration, this metric logs the loss averaged over all patterns
     seen so far in the current epoch.
@@ -218,7 +218,7 @@ class ExperienceLoss(PluginMetric[float]):
     """
     At the end of each experience, this metric reports
     the average loss over all patterns seen in that experience.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self):
@@ -263,7 +263,7 @@ class StreamLoss(PluginMetric[float]):
     """
     At the end of the entire stream of experiences, this metric reports the
     average loss over all patterns seen in all experiences.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
     """
 
     def __init__(self):
@@ -312,7 +312,8 @@ class StreamLoss(PluginMetric[float]):
 def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                  experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log
         the minibatch loss at training time.
