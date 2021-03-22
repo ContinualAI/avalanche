@@ -60,7 +60,7 @@ jobs:
       - name: python unit test
         id: unittest
         run: |
-          FAST_TEST=True USE_GPU=False python -m unittest
+          FAST_TEST=True USE_GPU=False coverage run -m unittest
       - name: Upload coverage data to coveralls.io
         run: coveralls --service=github
         env:
