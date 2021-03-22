@@ -27,9 +27,9 @@ from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import \
-    concat_datasets_sequentially, as_avalanche_dataset
-from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset
+from avalanche.benchmarks.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
+    as_classification_dataset
 
 
 def nc_scenario(
@@ -171,8 +171,8 @@ def nc_scenario(
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
     # Datasets should be instances of AvalancheDataset
-    train_dataset = as_avalanche_dataset(train_dataset).train()
-    test_dataset = as_avalanche_dataset(test_dataset).eval()
+    train_dataset = as_classification_dataset(train_dataset).train()
+    test_dataset = as_classification_dataset(test_dataset).eval()
 
     return NCScenario(train_dataset, test_dataset, n_experiences, task_labels,
                       shuffle, seed, fixed_class_order, per_exp_classes,
@@ -259,8 +259,8 @@ def ni_scenario(
             concat_datasets_sequentially(train_dataset, test_dataset)
 
     # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = as_avalanche_dataset(seq_train_dataset).train()
-    seq_test_dataset = as_avalanche_dataset(seq_test_dataset).eval()
+    seq_train_dataset = as_classification_dataset(seq_train_dataset).train()
+    seq_test_dataset = as_classification_dataset(seq_test_dataset).eval()
 
     return NIScenario(
         seq_train_dataset, seq_test_dataset,

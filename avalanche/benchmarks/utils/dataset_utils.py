@@ -13,10 +13,10 @@ from .dataset_definitions import ITensorDataset, ClassificationDataset, \
 
 try:
     from typing import Protocol, Sequence, List, Any, Iterable, Union, \
-        Optional, SupportsInt, TypeVar, Tuple
+    Optional, SupportsInt, TypeVar, Tuple, Callable
 except ImportError:
     from typing import Sequence, List, Any, Iterable, Union, Optional, \
-         SupportsInt, TypeVar, Tuple
+         SupportsInt, TypeVar, Tuple, Callable
     from typing_extensions import Protocol
 
 T_co = TypeVar('T_co', covariant=True)
@@ -124,20 +124,24 @@ class LazyConcatIntTargets(LazyConcatTargets[int]):
         return int(super().__getitem__(item_idx))
 
 
-class LazyTargetsConversion(Sequence[int]):
+class LazyTargetsConversion(Sequence[TTargetType]):
     """
     Defines a lazy conversion of targets defined in some other format.
 
-    To be used when transforming targets to int (classification).
+    To be used when transforming targets to int, float, etc.
     """
-    def __init__(self, targets: Sequence[SupportsInt]):
-        self._targets = targets
+    def __init__(self, targets: Sequence[Any],
+                 converter: Optional[Callable[[Any], TTargetType]]):
+        self.targets = targets
+        self.converter = converter
 
     def __len__(self):
-        return len(self._targets)
+        return len(self.targets)
 
-    def __getitem__(self, item_idx) -> int:
-        return int(self._targets[item_idx])
+    def __getitem__(self, item_idx) -> TTargetType:
+        if self.converter is None:
+            return self.targets[item_idx]
+        return self.converter(self.targets[item_idx])
 
     def __str__(self):
         return '[' + \
@@ -199,6 +203,8 @@ class ClassificationSubset(SubsetWithTargets[T_co, int]):
     """
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     However, this dataset also supports the targets field and class mapping.
+
+    Targets will be converted to int.
     """
     def __init__(self,
                  dataset: ISupportedClassificationDataset[T_co],

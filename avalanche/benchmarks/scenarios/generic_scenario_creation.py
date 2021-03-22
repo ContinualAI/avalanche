@@ -10,6 +10,7 @@ from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 from avalanche.benchmarks.utils.dataset_utils import LazyConcatIntTargets,\
     ConstantSequence
+from ..utils.avalanche_dataset import AvalancheDatasetType
 
 
 def create_multi_dataset_generic_scenario(
@@ -18,7 +19,9 @@ def create_multi_dataset_generic_scenario(
         task_labels: Sequence[int],
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None,
+        dataset_type: AvalancheDatasetType=None) \
+        -> GenericCLScenario:
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -63,9 +66,15 @@ def create_multi_dataset_generic_scenario(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
+    :param dataset_type: The type of the dataset. Defaults to None, which
+        means that the type will be obtained from the input datasets. If input
+        datasets are not instances of :class:`AvalancheDataset`, the type
+        UNDEFINED will be used.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
+
+    # TODO: adapt (concats, task labels, etc.)
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
@@ -103,7 +112,8 @@ def create_multi_dataset_generic_scenario(
         if len(test_dataset_list) != 1:
             raise ValueError('Test must contain 1 element when'
                              'complete_test_set_only is True')
-        concat_test_dataset = as_avalanche_dataset(test_dataset_list[0])
+        concat_test_dataset = as_avalanche_dataset(test_dataset_list[0],
+                                                   dataset_type=dataset_type)
         concat_test_dataset = concat_test_dataset.train().add_transforms(
             train_transform, train_target_transform)
         concat_test_dataset = concat_test_dataset.eval().add_transforms(
@@ -113,7 +123,7 @@ def create_multi_dataset_generic_scenario(
     else:
         concat_test_dataset = AvalancheConcatDataset(
             test_dataset_list, transform_groups=transform_groups,
-            initial_transform_group='eval')
+            initial_transform_group='eval', dataset_type=dataset_type)
         test_structure = []
         pattern_test_task_labels = []
         next_idx = 0

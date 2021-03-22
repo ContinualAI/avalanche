@@ -19,6 +19,7 @@ out-of-the-box.
 import copy
 import warnings
 from collections import OrderedDict
+from enum import Enum, auto
 
 import torch
 from torch.utils.data.dataloader import default_collate
@@ -28,7 +29,8 @@ from torchvision.transforms import Compose
 from .dataset_utils import manage_advanced_indexing, \
     SequenceDataset, ClassificationSubset, LazyTargetsConversion, \
     LazyConcatIntTargets, find_list_from_index, ConstantSequence, \
-    LazyClassMapping, optimize_sequence, SubSequence, LazyConcatTargets
+    LazyClassMapping, optimize_sequence, SubSequence, LazyConcatTargets, \
+    SubsetWithTargets
 from .dataset_definitions import ITensorDataset, ClassificationDataset, \
     IDatasetWithTargets, ISupportedClassificationDataset
 
@@ -48,6 +50,13 @@ XTransform = Optional[Callable[[Any], Any]]
 YTransform = Optional[Callable[[Any], TTargetType]]
 
 SupportedDataset = Union[IDatasetWithTargets, ITensorDataset, Subset]
+
+
+class AvalancheDatasetType(Enum):
+    UNDEFINED = auto()
+    CLASSIFICATION = auto()
+    REGRESSION = auto()
+    SEGMENTATION = auto()
 
 
 class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
@@ -96,7 +105,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
-                 collate_fn: Callable[[List], Any] = None):
+                 collate_fn: Callable[[List], Any] = None,
+                 dataset_type: AvalancheDatasetType =
+                 AvalancheDatasetType.UNDEFINED,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheDataset`` instance.
 
@@ -133,6 +145,11 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             used in the data loading process, too. If None, the constructor
             will check if a `collate_fn` field exists in the dataset. If no
             such field exists, the default collate function will be used.
+        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+        :param targets_adapter: A function used to convert the values of the
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second value returned by `__getitem__`. It only
+            applies the conversion to values of the targets.
         """
         super().__init__()
 
@@ -149,8 +166,13 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         The original dataset.
         """
 
-        self.targets: Sequence[TTargetType] = \
-            self._initialize_targets_sequence(dataset, targets)
+        self.dataset_type = dataset_type
+        """
+        The type of this dataset (UNDEFINED, CLASSIFICATION, ...).
+        """
+
+        self.targets: Sequence[TTargetType] = self._initialize_targets_sequence(
+            dataset, targets, dataset_type, targets_adapter)
         """
         A sequence of values describing the label of each pattern contained in
         the dataset.
@@ -640,11 +662,15 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return transform_groups
 
-    def _initialize_targets_sequence(self, dataset, targets) -> \
-            Sequence[TTargetType]:
+    def _initialize_targets_sequence(self, dataset, targets,
+                                     dataset_type, targets_adapter) \
+            -> Sequence[TTargetType]:
         if targets is not None:
+            # User defined targets always take precedence
+            # Note: no adapter is applied!
             return targets
-        return _make_target_from_supported_dataset(dataset)
+
+        return _make_target_from_supported_dataset(dataset, targets_adapter)
 
     def _initialize_task_labels_sequence(
             self, dataset, task_labels: Optional[Sequence[int]]) \
@@ -661,7 +687,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         if hasattr(dataset, 'targets_task_labels'):
             # Dataset is probably a dataset of this class
             # Suppose that it is
-            return LazyTargetsConversion(dataset.targets_task_labels)
+            return LazyTargetsConversion(dataset.targets_task_labels, int)
 
         # No task labels found. Set all task labels to 0 (in a lazy way).
         return ConstantSequence(0, len(dataset))
@@ -778,7 +804,10 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
-                 collate_fn: Callable[[List], Any] = None):
+                 collate_fn: Callable[[List], Any] = None,
+                 dataset_type: AvalancheDatasetType =
+                 AvalancheDatasetType.UNDEFINED,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates an ``AvalancheSubset`` instance.
 
@@ -822,10 +851,24 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             used in the data loading process, too. If None, the constructor
             will check if a `collate_fn` field exists in the dataset. If no
             such field exists, the default collate function will be used.
+        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+        :param targets_adapter: A function used to convert the values of the
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second value returned by `__getitem__`. It only
+            applies the conversion to values of the targets.
         """
 
-        subset = ClassificationSubset(dataset, indices=indices,
-                                      class_mapping=class_mapping)
+        if class_mapping is not None and dataset_type not in \
+                [AvalancheDatasetType.CLASSIFICATION,
+                 AvalancheDatasetType.UNDEFINED]:
+            raise ValueError('class_mapping is defined but the dataset type '
+                             'is neither CLASSIFICATION or UNDEFINED.')
+
+        if class_mapping:
+            subset = ClassificationSubset(dataset, indices=indices,
+                                          class_mapping=class_mapping)
+        else:
+            subset = SubsetWithTargets(dataset, indices=indices)
         self._original_dataset = dataset
         self._indices = indices
 
@@ -836,21 +879,24 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn)
+                         collate_fn=collate_fn,
+                         dataset_type=dataset_type,
+                         targets_adapter=targets_adapter)
 
     def _get_single_item(self, idx: int):
         return self._process_pattern(
             self._dataset[idx], idx,
             isinstance(self._original_dataset, AvalancheDataset))
 
-    def _initialize_targets_sequence(self, dataset, targets) \
+    def _initialize_targets_sequence(
+            self, dataset, targets, dataset_type, targets_adapter) \
             -> Sequence[TTargetType]:
         if targets is not None:
             # For the reasoning behind this, have a look at
             # _initialize_task_labels_sequence (it's basically the same).
 
             if len(targets) == len(self._original_dataset):
-                return LazyClassMapping(targets, indices=self._indices)
+                return SubSequence(targets, indices=self._indices)
             elif len(targets) == len(dataset):
                 return targets
             else:
@@ -861,7 +907,8 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                         len(targets), len(self._original_dataset),
                         len(dataset)))
 
-        return _make_target_from_supported_dataset(dataset)
+        return super()._initialize_targets_sequence(
+            dataset, None, dataset_type, targets_adapter)
 
     def _initialize_task_labels_sequence(
             self, dataset,
@@ -908,6 +955,8 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
     the targets field and all the other goodies listed in
     :class:`AvalancheDataset`.
     """
+    # TODO: generalize TensorDataset to take > 2 tensors
+    # TODO: support non-int second tensor
     def __init__(self,
                  dataset_x: Sequence,
                  dataset_y: Sequence[SupportsInt],
@@ -919,7 +968,10 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
-                 collate_fn: Callable[[List], Any] = None):
+                 collate_fn: Callable[[List], Any] = None,
+                 dataset_type: AvalancheDatasetType =
+                 AvalancheDatasetType.UNDEFINED,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheTensorDataset`` instance.
 
@@ -954,6 +1006,11 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
         :param collate_fn: The function to use when slicing to merge single
             patterns. In the future this function may become the function
             used in the data loading process, too.
+        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+        :param targets_adapter: A function used to convert the values of the
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second value returned by `__getitem__`. It only
+            applies the conversion to values of the targets.
         """
         super().__init__(SequenceDataset(dataset_x, dataset_y),
                          transform=transform,
@@ -962,7 +1019,9 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn)
+                         collate_fn=collate_fn,
+                         dataset_type=dataset_type,
+                         targets_adapter=targets_adapter)
 
 
 class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
@@ -988,7 +1047,10 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                                     Sequence[Sequence[int]]] = None,
                  targets: Union[Sequence[TTargetType],
                                 Sequence[Sequence[TTargetType]]] = None,
-                 collate_fn: Callable[[List], Any] = None):
+                 collate_fn: Callable[[List], Any] = None,
+                 dataset_type: AvalancheDatasetType =
+                 AvalancheDatasetType.UNDEFINED,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheConcatDataset`` instance.
 
@@ -1031,7 +1093,16 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             Beware that the chosen collate function will be applied to all
             the concatenated datasets even if a different collate is defined
             in different datasets.
+        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+        :param targets_adapter: A function used to convert the values of the
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second value returned by `__getitem__`. It only
+            applies the conversion to values of the targets.
         """
+
+        # TODO: use dataset_type default value of None
+        # TODO: infer type from datasets
+        # TODO: adapt doc
 
         self._dataset_list = list(datasets)
         self._datasets_lengths = [len(dataset) for dataset in datasets]
@@ -1045,14 +1116,16 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         self._adapt_concat_datasets()
 
-        super().__init__(ClassificationDataset(),
+        super().__init__(ClassificationDataset(),  # not used
                          transform=transform,
                          target_transform=target_transform,
                          transform_groups=transform_groups,
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn)
+                         collate_fn=collate_fn,
+                         dataset_type=dataset_type,
+                         targets_adapter=targets_adapter)
 
     def __len__(self) -> int:
         return self._overall_length
@@ -1062,16 +1135,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             idx, self._datasets_lengths, self._overall_length)
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
-
-        # pattern = single_element[0]
-        # label = single_element[1]
-        # if _is_tensor_dataset(self._dataset_list[dataset_idx]):
-        #     # Manages the fact that TensorDataset may return a single element
-        #     # Tensor instead of an int.
-        #     label = int(label)
-        # pattern, label = self._apply_transforms(pattern, label)
-        #
-        # return pattern, label, self.targets_task_labels[idx]
 
         return self._process_pattern(
             single_element, idx,
@@ -1085,7 +1148,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         return dataset_copy
 
-    def _initialize_targets_sequence(self, dataset, targets) -> \
+    def _initialize_targets_sequence(
+            self, dataset, targets, dataset_type, targets_adapter) -> \
             Sequence[TTargetType]:
         if targets is not None:
             if len(targets) != self._overall_length:
@@ -1102,7 +1166,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         # problematic dataset by using a debugger.
         for dataset_idx, single_dataset in enumerate(self._dataset_list):
             targets_list.append(super()._initialize_targets_sequence(
-                single_dataset, None
+                single_dataset, None, dataset_type, targets_adapter
             ))
 
         return LazyConcatTargets(targets_list)
@@ -1298,12 +1362,56 @@ def concat_datasets_sequentially(
             new_class_ids_per_dataset)
 
 
-def as_avalanche_dataset(dataset: ISupportedClassificationDataset[T_co]) \
-        -> AvalancheDataset:
-    if isinstance(dataset, AvalancheDataset):
+def as_avalanche_dataset(
+        dataset: ISupportedClassificationDataset[T_co],
+        dataset_type: AvalancheDatasetType = None) \
+        -> AvalancheDataset[T_co, TTargetType]:
+
+    if isinstance(dataset, AvalancheDataset) and dataset_type is None:
+        # There is no need to show the warning
         return dataset
 
-    return AvalancheDataset(dataset)
+    if dataset_type is None:
+        warnings.warn('"as_avalanche_dataset" was called without setting '
+                      '"dataset_type": this behaviour is deprecated. Consider '
+                      'setting this value or calling the specific functions '
+                      '"as_classification_dataset", "as_regression_dataset", '
+                      '"as_segmentation_dataset" or "as_undefined_dataset"')
+        dataset_type = AvalancheDatasetType.UNDEFINED
+
+    if isinstance(dataset, AvalancheDataset) and \
+            dataset.dataset_type == dataset_type:
+        return dataset
+
+    if dataset_type == AvalancheDatasetType.CLASSIFICATION:
+        return AvalancheDataset(dataset, dataset_type=dataset_type,
+                                targets_adapter=int)
+
+    return AvalancheDataset(dataset, dataset_type=dataset_type)
+
+
+def as_classification_dataset(dataset: ISupportedClassificationDataset[T_co]) \
+        -> AvalancheDataset[T_co, int]:
+    return as_avalanche_dataset(
+        dataset, dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+
+def as_regression_dataset(dataset: ISupportedClassificationDataset[T_co]) \
+        -> AvalancheDataset[T_co, Any]:
+    return as_avalanche_dataset(
+        dataset, dataset_type=AvalancheDatasetType.REGRESSION)
+
+
+def as_segmentation_dataset(dataset: ISupportedClassificationDataset[T_co]) \
+        -> AvalancheDataset[T_co, Any]:
+    return as_avalanche_dataset(
+        dataset, dataset_type=AvalancheDatasetType.SEGMENTATION)
+
+
+def as_undefined_dataset(dataset: ISupportedClassificationDataset[T_co]) \
+        -> AvalancheDataset[T_co, Any]:
+    return as_avalanche_dataset(
+        dataset, dataset_type=AvalancheDatasetType.UNDEFINED)
 
 
 def train_eval_avalanche_datasets(
@@ -1324,11 +1432,21 @@ def train_eval_avalanche_datasets(
     return train, test
 
 
-def _make_target_from_supported_dataset(dataset: SupportedDataset) -> \
-        Sequence[int]:
+def _make_target_from_supported_dataset(
+        dataset: SupportedDataset,
+        converter: Callable[[Any], TTargetType] = None) -> \
+        Sequence[TTargetType]:
     if isinstance(dataset, AvalancheDataset):
-        return dataset.targets
+        if converter is None:
+            return dataset.targets
+        elif isinstance(dataset.targets, LazyTargetsConversion) and \
+                dataset.targets.converter == converter:
+            return dataset.targets
+        elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
+            # LazyClassMapping already outputs int targets
+            return dataset.targets
 
+    # Support for PyTorch "Subset"
     subset_indices = False
     indices = range(len(dataset))
     while isinstance(dataset, Subset):
@@ -1337,8 +1455,10 @@ def _make_target_from_supported_dataset(dataset: SupportedDataset) -> \
         dataset = dataset.dataset
 
     if hasattr(dataset, 'targets'):
+        # Standard supported dataset
         found_targets = dataset.targets
     elif hasattr(dataset, 'tensors'):
+        # Support for PyTorch TensorDataset
         if len(dataset.tensors) < 2:
             raise ValueError('Tensor dataset has not enough tensors: '
                              'at least 2 are required.')
@@ -1351,7 +1471,7 @@ def _make_target_from_supported_dataset(dataset: SupportedDataset) -> \
     if subset_indices:
         found_targets = SubSequence(found_targets, indices)
 
-    return LazyTargetsConversion(found_targets)
+    return LazyTargetsConversion(found_targets, converter=converter)
 
 
 def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
@@ -1360,11 +1480,16 @@ def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
 
 __all__ = [
     'SupportedDataset',
+    'AvalancheDatasetType'
     'AvalancheDataset',
     'AvalancheSubset',
     'AvalancheTensorDataset',
     'AvalancheConcatDataset',
     'concat_datasets_sequentially',
     'as_avalanche_dataset',
+    'as_classification_dataset',
+    'as_regression_dataset',
+    'as_segmentation_dataset',
+    'as_undefined_dataset',
     'train_eval_avalanche_datasets'
 ]
