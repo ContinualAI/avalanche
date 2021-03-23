@@ -8,12 +8,12 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from .dataset_definitions import ITensorDataset, ClassificationDataset, \
-    IDatasetWithTargets, ISupportedClassificationDataset
+from .dataset_definitions import IDatasetWithTargets, \
+    ISupportedClassificationDataset
 
 try:
     from typing import Protocol, Sequence, List, Any, Iterable, Union, \
-    Optional, SupportsInt, TypeVar, Tuple, Callable
+        Optional, SupportsInt, TypeVar, Tuple, Callable
 except ImportError:
     from typing import Sequence, List, Any, Iterable, Union, Optional, \
          SupportsInt, TypeVar, Tuple, Callable
@@ -295,42 +295,6 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
         return len(self._sequences[0])
 
 
-class TensorDatasetWrapper(ClassificationDataset[T_co]):
-    """
-    A Dataset that wraps a Tensor Dataset to provide the targets field.
-
-    A Tensor Dataset is any dataset with a "tensors" field. The tensors
-    field must be a sequence of Tensor. To provide a valid targets field,
-    the "tensors" field must contain at least 2 tensors. The second tensor
-    must contain elements that can be converted to int.
-
-    Beware that the second element obtained from the wrapped dataset using
-    __getitem__ will always be converted to int, This differs from the
-    behaviour of PyTorch TensorDataset. This is required to keep a better
-    compatibility with torchvision datasets.
-    """
-    def __init__(self, tensor_dataset: ITensorDataset[T_co]):
-        """
-        Creates a ``TensorDatasetWrapper`` instance.
-
-        :param tensor_dataset: An instance of a TensorDataset. See class
-            description for more details.
-        """
-        super().__init__()
-        if len(tensor_dataset.tensors) < 2:
-            raise ValueError('Tensor dataset has not enough tensors: '
-                             'at least 2 are required.')
-
-        self.dataset = tensor_dataset
-        self.targets = LazyTargetsConversion(tensor_dataset.tensors[1])
-
-    def __getitem__(self, idx):
-        return self.dataset[idx]
-
-    def __len__(self) -> int:
-        return len(self.dataset)
-
-
 def find_list_from_index(pattern_idx: int,
                          list_sizes: Sequence[int],
                          max_size: int):
@@ -483,7 +447,6 @@ __all__ = [
     'ClassificationSubset',
     'ConcatDatasetWithTargets',
     'SequenceDataset',
-    'TensorDatasetWrapper',
     'find_list_from_index',
     'manage_advanced_indexing',
     'optimize_sequence'
