@@ -143,13 +143,18 @@ class ReplayPlugin(StrategyPlugin):
     Experience replay plugin.
 
     Handles an external memory filled with randomly selected
-    patterns and implements the "adapt_train_dataset" callback to add them to
-    the training set.
+    patterns and implementing `before_training_exp` and `after_training_exp`
+    callbacks. 
+    The `before_training_exp` callback is implemented in order to use the
+    dataloader that creates mini-batches with examples from both training
+    data and external memory. The examples in the mini-batch is balanced 
+    such that there are the same number of examples for each experience.    
+    
+    The `after_training_exp` callback is implemented in order to add new 
+    patterns to the external memory.
 
-    The :mem_size: attribute controls the number of patterns to be stored in
-    the external memory. In multitask scenarios, mem_size is the memory size
-    for each task. We assume the training set contains at least :mem_size: data
-    points.
+    The :mem_size: attribute controls the total number of patterns to be stored 
+    in the external memory.
     """
 
     def __init__(self, mem_size=200):
@@ -157,43 +162,6 @@ class ReplayPlugin(StrategyPlugin):
 
         self.mem_size = mem_size
         self.ext_mem = {}  # a Dict<task_id, Dataset>
-        self.rm_add = None
-
-    def adapt_train_dataset(self, strategy, **kwargs):
-        """
-        Expands the current training set with datapoint from
-        the external memory before training.
-        """
-        curr_data = strategy.experience.dataset
-
-        # Additional set of the current batch to be concatenated to the ext.
-        # memory at the end of the training
-        self.rm_add = None
-
-        # how many patterns to save for next iter
-        h = min(self.mem_size // (strategy.training_exp_counter + 1),
-                len(curr_data))
-
-        # We recover it using the random_split method and getting rid of the
-        # second split.
-        self.rm_add, _ = random_split(
-            curr_data, [h, len(curr_data) - h]
-        )
-
-        if strategy.training_exp_counter > 0:
-            # We update the train_dataset adding the external memory.
-            # We assume the user will shuffle the data when creating the data
-            # loader.
-            for mem_task_id in self.ext_mem.keys():
-                mem_data = self.ext_mem[mem_task_id]
-                if mem_task_id in strategy.adapted_dataset:
-                    # This only happens in the class incremental scenario, so
-                    # when the dataset task_id is always 0 and we need to use
-                    # a memory id other than 0
-                    memory_id = - 1
-                    strategy.adapted_dataset[memory_id] = mem_data
-                else:
-                    strategy.adapted_dataset[mem_task_id] = mem_data
 
     def before_training_exp(self, strategy, num_workers=0, shuffle=True,
                             **kwargs):
@@ -203,6 +171,7 @@ class ReplayPlugin(StrategyPlugin):
         """
         strategy.current_dataloader = MultiTaskJoinedBatchDataLoader(
             strategy.adapted_dataset,
+            self.ext_mem,
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
@@ -210,19 +179,59 @@ class ReplayPlugin(StrategyPlugin):
 
     def after_training_exp(self, strategy, **kwargs):
         """ After training we update the external memory with the patterns of
-         the current training batch/task. """
+         the current training batch/task, adding the patterns from the new
+         experience and removing those from past experiences to comply the limit
+         of the total number of patterns in memory """
+         
         curr_task_id = strategy.experience.task_label
+        curr_data = strategy.experience.dataset
+        
+        # Additional set of the current batch to be concatenated
+        #  to the external memory.
+        rm_add = None
 
-        # replace patterns in random memory
+        # how many patterns to save for next iter
+        h = min(self.mem_size // (strategy.training_exp_counter + 1),
+                len(curr_data))
+
+        remaining_example = 0
+
+        if h != len(curr_data):
+            remaining_example = self.mem_size % ( 
+                strategy.training_exp_counter + 1)
+
+        # We recover it using the random_split method and getting rid of the
+        # second split.
+        rm_add, _ = random_split(
+            curr_data, [h, len(curr_data) - h]
+        )
+
+        # replace patterns randomly in memory
         ext_mem = self.ext_mem
         if curr_task_id not in ext_mem:
-            ext_mem[curr_task_id] = self.rm_add
+            ext_mem[curr_task_id] = rm_add
         else:
-            rem_len = len(ext_mem[curr_task_id]) - len(self.rm_add)
+            rem_len = len(ext_mem[curr_task_id]) - len(rm_add)
             _, saved_part = random_split(ext_mem[curr_task_id],
-                                         [len(self.rm_add), rem_len]
+                                         [len(rm_add), rem_len]
                                          )
-            ext_mem[curr_task_id] = ConcatDataset([saved_part, self.rm_add])
+            ext_mem[curr_task_id] = ConcatDataset([saved_part, rm_add])
+
+        # remove exceeding patterns, the amount of pattern kept is such that the
+        # sum is equal to mem_size and that the number of patterns between the
+        # tasks is balanced 
+        for task_id in ext_mem.keys():
+            current_mem_size = h if remaining_example <= 0 else h + 1
+            remaining_example -= 1
+
+            if (current_mem_size < len(ext_mem[task_id]) and
+               task_id != curr_task_id):
+                rem_len = len(ext_mem[task_id]) - current_mem_size
+                _, saved_part = random_split(
+                                    ext_mem[task_id],
+                                    [rem_len, current_mem_size])
+                ext_mem[task_id] = saved_part
+
         self.ext_mem = ext_mem
 
 
