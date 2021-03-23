@@ -24,7 +24,7 @@ from torchvision import transforms
 from torchvision.transforms import ToTensor, Resize
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.training.strategies import AR1
+from avalanche.training.strategies.ar1 import AR1
 
 
 def main(args):

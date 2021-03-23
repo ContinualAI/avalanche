@@ -156,7 +156,6 @@ def adapt_classification_layer(model: Module, num_classes: int,
 
 def replace_bn_with_brn(m: Module, momentum=0.1, r_d_max_inc_step=0.0001,
                         r_max=1.0, d_max=0.0, max_r_max=3.0, max_d_max=5.0):
-
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
         if type(target_attr) == torch.nn.BatchNorm2d:
@@ -175,7 +174,7 @@ def replace_bn_with_brn(m: Module, momentum=0.1, r_d_max_inc_step=0.0001,
                         d_max=d_max,
                         max_r_max=max_r_max,
                         max_d_max=max_d_max
-                        )
+                    )
                     )
     for n, ch in m.named_children():
         replace_bn_with_brn(ch, momentum, r_d_max_inc_step, r_max, d_max,

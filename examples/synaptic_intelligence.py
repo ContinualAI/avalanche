@@ -31,7 +31,7 @@ from avalanche.logging import InteractiveLogger
 from avalanche.logging.tensorboard_logger import TensorboardLogger
 from avalanche.models.mobilenetv1 import MobilenetV1
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies.strategies import SynapticIntelligence
+from avalanche.training.strategies.strategy_wrappers import SynapticIntelligence
 from avalanche.training.utils import adapt_classification_layer
 
 

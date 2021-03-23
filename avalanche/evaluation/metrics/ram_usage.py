@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
     phase_and_task, stream_type
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class MaxRAM(Metric[float]):
@@ -132,18 +132,18 @@ class MinibatchMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
-    def before_training(self, strategy: 'PluggableStrategy') \
+    def before_training(self, strategy: 'BaseStrategy') \
             -> None:
         self._ram.start_thread()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def before_training_iteration(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_training(self, strategy: 'PluggableStrategy') -> None:
+    def after_training(self, strategy: 'BaseStrategy') -> None:
         self._ram.stop_thread()
 
     def reset(self) -> None:
@@ -152,7 +152,7 @@ class MinibatchMaxRAM(PluginMetric[float]):
     def result(self) -> float:
         return self._ram.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -180,18 +180,18 @@ class EpochMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
-    def before_training(self, strategy: 'PluggableStrategy') \
+    def before_training(self, strategy: 'BaseStrategy') \
             -> None:
         self._ram.start_thread()
 
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_training(self, strategy: 'PluggableStrategy') -> None:
+    def after_training(self, strategy: 'BaseStrategy') -> None:
         self._ram.stop_thread()
 
     def reset(self) -> None:
@@ -200,7 +200,7 @@ class EpochMaxRAM(PluginMetric[float]):
     def result(self) -> float:
         return self._ram.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -228,18 +228,18 @@ class ExperienceMaxRAM(PluginMetric[float]):
 
         self._ram = MaxRAM(every)
 
-    def before_eval(self, strategy: 'PluggableStrategy') \
+    def before_eval(self, strategy: 'BaseStrategy') \
             -> None:
         self._ram.start_thread()
 
     def before_eval_exp(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') \
+    def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval(self, strategy: 'BaseStrategy') -> None:
         self._ram.stop_thread()
 
     def reset(self) -> None:
@@ -248,7 +248,7 @@ class ExperienceMaxRAM(PluginMetric[float]):
     def result(self) -> float:
         return self._ram.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -280,7 +280,7 @@ class StreamMaxRAM(PluginMetric[float]):
         self.reset()
         self._ram.start_thread()
 
-    def after_eval(self, strategy: 'PluggableStrategy') \
+    def after_eval(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         packed = self._package_result(strategy)
         self._ram.stop_thread()
@@ -292,7 +292,7 @@ class StreamMaxRAM(PluginMetric[float]):
     def result(self) -> float:
         return self._ram.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         ram_usage = self.result()
 
         phase_name, _ = phase_and_task(strategy)

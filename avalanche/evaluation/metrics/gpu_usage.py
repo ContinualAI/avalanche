@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name, \
     phase_and_task, stream_type
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class MaxGPU(Metric[float]):
@@ -145,18 +145,18 @@ class MinibatchMaxGPU(PluginMetric[float]):
         self.gpu_id = gpu_id
         self._gpu = MaxGPU(gpu_id, every)
 
-    def before_training(self, strategy: 'PluggableStrategy') \
+    def before_training(self, strategy: 'BaseStrategy') \
             -> None:
         self._gpu.start_thread()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def before_training_iteration(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_training(self, strategy: 'PluggableStrategy') -> None:
+    def after_training(self, strategy: 'BaseStrategy') -> None:
         self._gpu.stop_thread()
 
     def reset(self) -> None:
@@ -165,7 +165,7 @@ class MinibatchMaxGPU(PluginMetric[float]):
     def result(self) -> float:
         return self._gpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -196,18 +196,18 @@ class EpochMaxGPU(PluginMetric[float]):
         self.gpu_id = gpu_id
         self._gpu = MaxGPU(gpu_id, every)
 
-    def before_training(self, strategy: 'PluggableStrategy') \
+    def before_training(self, strategy: 'BaseStrategy') \
             -> None:
         self._gpu.start_thread()
 
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_training(self, strategy: 'PluggableStrategy') -> None:
+    def after_training(self, strategy: 'BaseStrategy') -> None:
         self._gpu.stop_thread()
 
     def reset(self) -> None:
@@ -216,7 +216,7 @@ class EpochMaxGPU(PluginMetric[float]):
     def result(self) -> float:
         return self._gpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -247,18 +247,18 @@ class ExperienceMaxGPU(PluginMetric[float]):
         self.gpu_id = gpu_id
         self._gpu = MaxGPU(gpu_id, every)
 
-    def before_eval(self, strategy: 'PluggableStrategy') \
+    def before_eval(self, strategy: 'BaseStrategy') \
             -> None:
         self._gpu.start_thread()
 
     def before_eval_exp(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') \
+    def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         return self._package_result(strategy)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval(self, strategy: 'BaseStrategy') -> None:
         self._gpu.stop_thread()
 
     def reset(self) -> None:
@@ -267,7 +267,7 @@ class ExperienceMaxGPU(PluginMetric[float]):
     def result(self) -> float:
         return self._gpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -302,7 +302,7 @@ class StreamMaxGPU(PluginMetric[float]):
         self.reset()
         self._gpu.start_thread()
 
-    def after_eval(self, strategy: 'PluggableStrategy') \
+    def after_eval(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         packed = self._package_result(strategy)
         self._gpu.stop_thread()
@@ -314,7 +314,7 @@ class StreamMaxGPU(PluginMetric[float]):
     def result(self) -> float:
         return self._gpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         gpu_usage = self.result()
 
         phase_name, _ = phase_and_task(strategy)

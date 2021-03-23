@@ -1,6 +1,5 @@
 from abc import ABC
-
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
 CallbackResult = TypeVar('CallbackResult')
 
