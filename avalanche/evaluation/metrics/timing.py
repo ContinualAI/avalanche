@@ -17,12 +17,12 @@ from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ElapsedTime(Metric[float]):
     """
-    The elapsed time metric.
+    The standalone Elapsed Time metric.
 
     Instances of this metric keep track of the time elapsed between calls to the
     `update` method. The starting time is set when the `update` method is called
@@ -89,7 +89,7 @@ class ElapsedTime(Metric[float]):
 class MinibatchTime(PluginMetric[float]):
     """
     The minibatch time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric "logs" the elapsed time for each iteration.
 
@@ -115,12 +115,12 @@ class MinibatchTime(PluginMetric[float]):
         self.reset()
         self._minibatch_time.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_time.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -135,7 +135,7 @@ class MinibatchTime(PluginMetric[float]):
 class EpochTime(PluginMetric[float]):
     """
     The epoch elapsed time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The elapsed time will be logged after each epoch.
     """
@@ -153,7 +153,7 @@ class EpochTime(PluginMetric[float]):
         self.reset()
         self._elapsed_time.update()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
@@ -164,7 +164,7 @@ class EpochTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         elapsed_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -179,7 +179,7 @@ class EpochTime(PluginMetric[float]):
 class RunningEpochTime(PluginMetric[float]):
     """
     The running epoch time metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     For each iteration, this metric logs the average time
     between the start of the
@@ -199,11 +199,11 @@ class RunningEpochTime(PluginMetric[float]):
         self.reset()
         self._epoch_time.update()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+    def before_training_iteration(self, strategy: 'BaseStrategy') \
             -> None:
         self._epoch_time.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_time.update()
         self._time_mean.update(self._epoch_time.result())
@@ -217,7 +217,7 @@ class RunningEpochTime(PluginMetric[float]):
     def result(self) -> float:
         return self._time_mean.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         average_epoch_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -233,7 +233,7 @@ class RunningEpochTime(PluginMetric[float]):
 class ExperienceTime(PluginMetric[float]):
     """
     The experience time metric.
-    This metric only works at eval time.
+    This plugin metric only works at eval time.
 
     After each experience, this metric emits the average time of that
     experience.
@@ -247,11 +247,11 @@ class ExperienceTime(PluginMetric[float]):
 
         self._elapsed_time = ElapsedTime()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self.reset()
         self._elapsed_time.update()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
 
@@ -261,7 +261,7 @@ class ExperienceTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -279,7 +279,7 @@ class StreamTime(PluginMetric[float]):
     This metric only works at eval time.
 
     After the entire evaluation stream,
-    this metric emits the average time of that stream.
+    this plugin metric emits the average time of that stream.
     """
 
     def __init__(self):
@@ -290,11 +290,11 @@ class StreamTime(PluginMetric[float]):
 
         self._elapsed_time = ElapsedTime()
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def before_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self.reset()
         self._elapsed_time.update()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._elapsed_time.update()
         return self._package_result(strategy)
 
@@ -304,7 +304,7 @@ class StreamTime(PluginMetric[float]):
     def result(self) -> float:
         return self._elapsed_time.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -319,7 +319,8 @@ class StreamTime(PluginMetric[float]):
 def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                    experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log the train
         minibatch elapsed time.

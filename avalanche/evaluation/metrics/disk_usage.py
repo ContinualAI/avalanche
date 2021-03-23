@@ -19,14 +19,14 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 PathAlike = Union[Union[str, Path]]
 
 
 class DiskUsage(Metric[float]):
     """
-    The disk usage metric.
+    The standalone disk usage metric.
 
     This metric can be used to monitor the size of a set of directories.
     e.g. This can be useful to monitor the size of a replay buffer,
@@ -35,7 +35,7 @@ class DiskUsage(Metric[float]):
                  paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
                  ):
         """
-        Creates an instance of the disk usage metric.
+        Creates an instance of the standalone disk usage metric.
 
         The `result` method will return the sum of the size
         of the directories specified as the first parameter in KiloBytes.
@@ -104,7 +104,7 @@ class DiskUsage(Metric[float]):
 class MinibatchDiskUsage(PluginMetric[float]):
     """
     The minibatch Disk usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At the end of each iteration, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -130,12 +130,12 @@ class MinibatchDiskUsage(PluginMetric[float]):
     def before_training_iteration(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_disk.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -151,7 +151,7 @@ class MinibatchDiskUsage(PluginMetric[float]):
 class EpochDiskUsage(PluginMetric[float]):
     """
     The Epoch Disk usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     At the end of each epoch, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -168,7 +168,7 @@ class EpochDiskUsage(PluginMetric[float]):
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_disk.update()
         return self._package_result(strategy)
@@ -179,7 +179,7 @@ class EpochDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._epoch_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         disk_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -194,7 +194,7 @@ class EpochDiskUsage(PluginMetric[float]):
 class ExperienceDiskUsage(PluginMetric[float]):
     """
     The average experience Disk usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     At the end of each experience, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -208,10 +208,10 @@ class ExperienceDiskUsage(PluginMetric[float]):
 
         self._exp_disk = DiskUsage(paths_to_monitor)
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_disk.update()
         return self._package_result(strategy)
 
@@ -221,7 +221,7 @@ class ExperienceDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_disk = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -236,7 +236,7 @@ class ExperienceDiskUsage(PluginMetric[float]):
 class StreamDiskUsage(PluginMetric[float]):
     """
     The average stream Disk usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     At the end of the eval stream, this metric logs the total
     size (in KB) of all the monitored paths.
@@ -250,10 +250,10 @@ class StreamDiskUsage(PluginMetric[float]):
 
         self._exp_disk = DiskUsage(paths_to_monitor)
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_disk.update()
         return self._package_result(strategy)
 
@@ -263,7 +263,7 @@ class StreamDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_disk = self.result()
 
         phase_name, _ = phase_and_task(strategy)
@@ -284,7 +284,8 @@ def disk_usage_metrics(*, paths_to_monitor=None, minibatch=False, epoch=False,
                        experience=False, stream=False) \
         -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    standalone metrics.
 
     :param minibatch: If True, will return a metric able to log the minibatch
         Disk usage

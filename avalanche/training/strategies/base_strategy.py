@@ -17,7 +17,7 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
-from avalanche.logging import default_logger
+from avalanche.training import default_logger
 from typing import TYPE_CHECKING
 
 from avalanche.training.plugins import EvaluationPlugin

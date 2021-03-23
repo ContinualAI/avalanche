@@ -16,7 +16,7 @@ from avalanche.evaluation import Metric
 
 class Mean(Metric[float]):
     """
-    The mean metric.
+    The standalone mean metric.
 
     This utility metric is a general purpose metric that can be used to keep
     track of the mean of a sequence of values.
@@ -73,7 +73,7 @@ class Mean(Metric[float]):
 
 class Sum(Metric[float]):
     """
-    The sum metric.
+    The standalone sum metric.
 
     This utility metric is a general purpose metric that can be used to keep
     track of the sum of a sequence of values.

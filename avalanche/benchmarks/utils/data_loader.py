@@ -64,9 +64,8 @@ class MultiTaskDataLoader:
                         # reinitialize data loader
                         if self.oversample_small_tasks:
                             # reinitialize data loader
-                            iter_dataloaders[t] = iter(t_loader)
-                            self.current_dataloader = iter_dataloaders[t]
-                            x, y = next(t_loader)
+                            iter_dataloaders[t] = iter(self.loaders_dict[t])
+                            x, y, *_ = next(iter_dataloaders[t])
                         else:
                             del iter_dataloaders[t]
                             continue
@@ -127,9 +126,8 @@ class MultiTaskMultiBatchDataLoader:
                         # StopIteration is thrown if dataset ends.
                         if self.oversample_small_tasks:
                             # reinitialize data loader
-                            iter_dataloaders[t] = iter(t_loader)
-                            self.current_dataloader = iter_dataloaders[t]
-                            x, y = next(t_loader)
+                            iter_dataloaders[t] = iter(self.loaders_dict[t])
+                            x, y, *_ = next(iter_dataloaders[t])
                         else:
                             del iter_dataloaders[t]
                             continue

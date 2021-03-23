@@ -24,12 +24,12 @@ from avalanche.evaluation.metric_results import AlternativeValues, \
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     phase_and_task, stream_type
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):
     """
-    The confusion matrix metric.
+    The standalone confusion matrix metric.
 
     Instances of this metric keep track of the confusion matrix by receiving a
     pair of "ground truth" and "prediction" Tensors describing the labels of a
@@ -52,7 +52,7 @@ class ConfusionMatrix(Metric[Tensor]):
 
     def __init__(self, num_classes: int = None):
         """
-        Creates an instance of the confusion matrix metric.
+        Creates an instance of the standalone confusion matrix metric.
 
         By default this metric in its initial state will return an empty Tensor.
         The metric can be updated by using the `update` method while the running
@@ -161,7 +161,7 @@ class ConfusionMatrix(Metric[Tensor]):
 class StreamConfusionMatrix(PluginMetric[Tensor]):
     """
     The Stream Confusion Matrix metric.
-    This metric only works on the eval phase.
+    This plugin metric only works on the eval phase.
 
     At the end of the eval phase, this metric logs the confusion matrix
     relative to all the patterns seen during eval.
@@ -224,14 +224,14 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.update(strategy.mb_y,
                     strategy.logits)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
