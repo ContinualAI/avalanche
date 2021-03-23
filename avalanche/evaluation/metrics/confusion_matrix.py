@@ -24,7 +24,7 @@ from avalanche.evaluation.metric_results import AlternativeValues, \
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     phase_and_task, stream_type
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):
@@ -224,14 +224,14 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.update(strategy.mb_y,
                     strategy.logits)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)

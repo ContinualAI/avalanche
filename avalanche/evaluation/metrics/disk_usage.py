@@ -19,7 +19,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 PathAlike = Union[Union[str, Path]]
 
@@ -130,12 +130,12 @@ class MinibatchDiskUsage(PluginMetric[float]):
     def before_training_iteration(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_disk.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -168,7 +168,7 @@ class EpochDiskUsage(PluginMetric[float]):
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_disk.update()
         return self._package_result(strategy)
@@ -179,7 +179,7 @@ class EpochDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._epoch_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         disk_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -208,10 +208,10 @@ class ExperienceDiskUsage(PluginMetric[float]):
 
         self._exp_disk = DiskUsage(paths_to_monitor)
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_disk.update()
         return self._package_result(strategy)
 
@@ -221,7 +221,7 @@ class ExperienceDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_disk = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -250,10 +250,10 @@ class StreamDiskUsage(PluginMetric[float]):
 
         self._exp_disk = DiskUsage(paths_to_monitor)
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval(self, strategy: 'BaseStrategy') -> None:
         self.reset()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_disk.update()
         return self._package_result(strategy)
 
@@ -263,7 +263,7 @@ class StreamDiskUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_disk.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_disk = self.result()
 
         phase_name, _ = phase_and_task(strategy)

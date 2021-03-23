@@ -27,8 +27,10 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, Cumulative, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, AR1, JointTraining
+    GDumb, LwF, AGEM, GEM, EWC, \
+    SynapticIntelligence, JointTraining
+from avalanche.training.strategies.ar1 import AR1
+from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
