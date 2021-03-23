@@ -254,7 +254,8 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
     basic Dataset functionalities. Very similar to TensorDataset.
     """
     def __init__(self,
-                 *sequences: Sequence):
+                 *sequences: Sequence,
+                 targets: Union[int, Sequence[TTargetType]] = 1):
         """
         Creates a ``SequenceDataset`` instance.
 
@@ -263,10 +264,17 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
 
         :param sequences: A sequence of sequences, Tensors or ndarrays
             representing the patterns.
+        :param targets: A sequence representing the targets field of the
+            dataset. Can either be 1) a sequence of values containing as many
+            elements as the number of contained patterns, or 2) the index
+            of the sequence to use as the targets field. Defaults to 1, which
+            means that the second sequence (usually containing the "y" values)
+            will be used for the targets field.
         """
         super().__init__()
-        if len(sequences) < 2:
-            raise ValueError('At least 2 sequences are required')
+
+        if len(sequences) < 1:
+            raise ValueError('At least one sequence must be passed')
 
         common_size = len(sequences[0])
         for seq in sequences:
@@ -275,7 +283,10 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
                                  'amount of elements')
 
         self._sequences = sequences
-        self.targets = sequences[1]
+        if isinstance(targets, int):
+            targets = sequences[targets]
+
+        self.targets: Sequence[TTargetType] = targets
 
     def __getitem__(self, idx):
         return tuple(seq[idx] for seq in self._sequences)

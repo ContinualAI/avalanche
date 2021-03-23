@@ -17,7 +17,8 @@ from avalanche.training.utils import load_all_dataset
 import random
 
 from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_tensors
+    create_generic_scenario_from_tensors, \
+    create_generic_scenario_from_tensor_lists
 
 import numpy as np
 
@@ -542,15 +543,14 @@ class TransformationTensorDatasetTests(unittest.TestCase):
         common_setups()
 
     def test_tensor_dataset_helper_tensor_y(self):
-        dataset_train_x = [torch.rand(50, 32, 32) for _ in range(5)]
-        dataset_train_y = [torch.randint(0, 100, (50,)) for _ in range(5)]
 
-        dataset_test_x = [torch.rand(23, 32, 32) for _ in range(5)]
-        dataset_test_y = [torch.randint(0, 100, (23,)) for _ in range(5)]
+        train_exps = [[torch.rand(50, 32, 32), torch.randint(0, 100, (50,))]
+                      for _ in range(5)]
+        test_exps = [[torch.rand(23, 32, 32), torch.randint(0, 100, (23,))]
+                     for _ in range(5)]
 
-        cl_scenario = create_generic_scenario_from_tensors(
-            dataset_train_x, dataset_train_y, dataset_test_x, dataset_test_y,
-            [0] * 5)
+        cl_scenario = create_generic_scenario_from_tensor_lists(
+            train_exps, test_exps, [0] * 5)
 
         self.assertEqual(5, len(cl_scenario.train_stream))
         self.assertEqual(5, len(cl_scenario.test_stream))
@@ -563,24 +563,24 @@ class TransformationTensorDatasetTests(unittest.TestCase):
                 load_all_dataset(cl_scenario.test_stream[exp_id].dataset)
 
             self.assertTrue(torch.all(torch.eq(
-                dataset_train_x[exp_id],
+                train_exps[exp_id][0],
                 scenario_train_x)))
             self.assertTrue(torch.all(torch.eq(
-                dataset_train_y[exp_id],
+                train_exps[exp_id][1],
                 scenario_train_y)))
             self.assertSequenceEqual(
-                dataset_train_y[exp_id].tolist(),
+                train_exps[exp_id][1].tolist(),
                 cl_scenario.train_stream[exp_id].dataset.targets)
             self.assertEqual(0, cl_scenario.train_stream[exp_id].task_label)
 
             self.assertTrue(torch.all(torch.eq(
-                dataset_test_x[exp_id],
+                test_exps[exp_id][0],
                 scenario_test_x)))
             self.assertTrue(torch.all(torch.eq(
-                dataset_test_y[exp_id],
+                test_exps[exp_id][1],
                 scenario_test_y)))
             self.assertSequenceEqual(
-                dataset_test_y[exp_id].tolist(),
+                test_exps[exp_id][1].tolist(),
                 cl_scenario.test_stream[exp_id].dataset.targets)
             self.assertEqual(0, cl_scenario.test_stream[exp_id].task_label)
 

@@ -15,12 +15,13 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_scenario, tensor_scenario, dataset_scenario
 and paths_scenario.
 """
-
+import warnings
 from pathlib import Path
 from typing import Sequence, Optional, Dict, SupportsInt, Union, Any, List, \
     Tuple
 
 import torch
+from torch import Tensor
 
 from avalanche.benchmarks.scenarios.generic_cl_scenario import GenericCLScenario
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
@@ -29,7 +30,7 @@ from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
-    as_classification_dataset
+    as_classification_dataset, AvalancheDatasetType
 
 
 def nc_scenario(
@@ -278,7 +279,9 @@ def dataset_scenario(
         test_dataset_list: Sequence[SupportedDataset],
         task_labels: Sequence[int],
         *,
-        complete_test_set_only: bool = False) -> GenericCLScenario:
+        complete_test_set_only: bool = False,
+        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
+        -> GenericCLScenario:
     """
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -312,6 +315,10 @@ def dataset_scenario(
         parameter must be list with a single element (the complete test set).
         Defaults to False, which means that ``train_dataset_list`` and
         ``test_dataset_list`` must contain the same amount of datasets.
+    :param dataset_type: The type of the dataset. Defaults to None, which
+        means that the type will be obtained from the input datasets. If input
+        datasets are not instances of :class:`AvalancheDataset`, the type
+        UNDEFINED will be used.
 
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
@@ -320,7 +327,8 @@ def dataset_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
         task_labels=task_labels,
-        complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only,
+        dataset_type=dataset_type)
 
 
 def filelist_scenario(
@@ -347,6 +355,9 @@ def filelist_scenario(
 
     This helper functions is the best shot when loading Caffe-style dataset
     based on filelists.
+
+    The resulting benchmark instance and the intermediate datasets used to
+    populate it will be of type CLASSIFICATION.
 
     :param root: The root path of the dataset.
     :param train_file_lists: A list of filelists describing the
@@ -403,7 +414,9 @@ def paths_scenario(
         *,
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None,
+        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
+        -> GenericCLScenario:
     """
     Creates a generic scenario given a list of files and class labels.
     A separate dataset will be created for each list and each of
@@ -424,6 +437,8 @@ def paths_scenario(
     Continual Learning scenarios only the concept of "complete" test set makes
     sense. In that case, the ``complete_test_set_only`` should be set to True
     (see the parameter description for more info).
+
+    The label of each pattern doesn't have to be an int.
 
     :param train_list_of_files: A list of lists. Each list describes the paths
         and labels of patterns to include in that training experience as tuples.
@@ -460,6 +475,7 @@ def paths_scenario(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
+    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
@@ -472,7 +488,88 @@ def paths_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform)
+        eval_target_transform=eval_target_transform,
+        dataset_type=dataset_type)
+
+
+def tensors_scenario(
+        train_tensors: Sequence[Sequence[Any]],
+        test_tensors: Sequence[Sequence[Any]],
+        task_labels: Sequence[int],
+        *,
+        complete_test_set_only: bool = False,
+        train_transform=None, train_target_transform=None,
+        eval_transform=None, eval_target_transform=None,
+        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
+        -> GenericCLScenario:
+    """
+    Creates a generic scenario given lists of Tensors and the respective task
+    labels. A separate dataset will be created from each Tensor tuple
+    (x, y, ...) and each of those training datasets will be considered a
+    separate training experience. Using this helper function is the lowest-level
+    way to create a Continual Learning scenario. When possible, consider using
+    higher level helpers.
+
+    Experiences are defined by passing lists of tensors as the `train_tensors`
+    and `test_tensors` parameter. Those parameters must be lists containing
+    sub-lists of tensors, one for each experience. Each tensor defines the value
+    of a feature ("x", "y", "z", ...) for all patterns of that experience.
+
+    By default the second tensor of each experience will be used to fill the
+    `targets` value (label of each pattern).
+
+    In its base form, the test lists must contain the same amount of elements of
+    the training lists. Those pairs of datasets are then used to create the
+    "past", "cumulative" (a.k.a. growing) and "future" test sets.
+    However, in certain Continual Learning scenarios only the concept of
+    "complete" test set makes sense. In that case, the
+    ``complete_test_set_only`` should be set to True (see the parameter
+    description for more info).
+
+    :param train_tensors: A list of lists. The first list must contain the
+        tensors for the first training experience (one tensor per feature), the
+        second list must contain the tensors for the second training experience,
+        and so on.
+    :param test_tensors: A list of lists. The first list must contain the
+        tensors for the first test experience (one tensor per feature), the
+        second list must contain the tensors for the second test experience,
+        and so on.
+    :param task_labels: A list of task labels. Must contain a task label for
+        each experience. For Single-Incremental-Task (a.k.a. Task-Free)
+        scenarios, this is usually a list of zeros. For Multi Task scenario,
+        this is usually a list of ascending task labels (starting from 0).
+    :param complete_test_set_only: If True, only the complete test set will
+        be returned by the scenario. This means that ``test_tensors`` must
+        define a single experience. Defaults to False, which means that
+        ``train_tensors`` and ``test_tensors`` must define the same
+        amount of experiences.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param train_target_transform: The transformation to apply to training
+        patterns targets. Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
+        patterns targets. Defaults to None.
+    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+
+    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    """
+
+    return create_generic_scenario_from_tensor_lists(
+        train_tensors=train_tensors,
+        test_tensors=test_tensors,
+        task_labels=task_labels,
+        complete_test_set_only=complete_test_set_only,
+        train_transform=train_transform,
+        train_target_transform=train_target_transform,
+        eval_transform=eval_transform,
+        eval_target_transform=eval_target_transform,
+        dataset_type=dataset_type)
 
 
 def tensor_scenario(
@@ -484,8 +581,16 @@ def tensor_scenario(
         *,
         complete_test_set_only: bool = False,
         train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
+        eval_transform=None, eval_target_transform=None,
+        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
+        -> GenericCLScenario:
     """
+    This helper function is DEPRECATED.
+
+    Please consider using :func:`tensors_scenario` instead. When switching to
+    the new function, please keep in mind that the format of the parameters is
+    completely different!
+
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor pair (x + y)
     and each of those training datasets will be considered a separate
@@ -493,6 +598,9 @@ def tensor_scenario(
     the targets. Using this helper function is the lower level way to create a
     Continual Learning scenario. When possible, consider using higher level
     helpers.
+
+    By default the second tensor of each experience will be used to fill the
+    `targets` value (label of each pattern).
 
     In its base form, the test lists must contain the same amount of elements of
     the training lists. Those pairs of datasets are then used to create the
@@ -535,21 +643,52 @@ def tensor_scenario(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
+    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    return create_generic_scenario_from_tensors(
-        train_data_x=train_data_x,
-        train_data_y=train_data_y,
-        test_data_x=test_data_x,
-        test_data_y=test_data_y,
+    warnings.warn('tensor_scenario is deprecated in favor '
+                  'of tensors_scenario. When switching'
+                  ' to the new function, please keep in mind that the format of'
+                  ' the parameters is completely different!')
+
+    if isinstance(test_data_x, Tensor):
+        test_data_x = [test_data_x]
+        test_data_y = [test_data_y]
+    else:
+        if len(test_data_x) != len(test_data_y):
+            raise ValueError('test_data_x and test_data_y must contain'
+                             ' the same amount of elements')
+
+    if len(train_data_x) != len(train_data_y):
+        raise ValueError('train_data_x and train_data_y must contain'
+                         ' the same amount of elements')
+
+    exp_train_first_structure = []
+    exp_test_first_structure = []
+    for exp_idx in range(len(train_data_x)):
+        exp_x = train_data_x[exp_idx]
+        exp_y = train_data_y[exp_idx]
+
+        exp_train_first_structure.append([exp_x, exp_y])
+
+    for exp_idx in range(len(test_data_x)):
+        exp_x = test_data_x[exp_idx]
+        exp_y = test_data_y[exp_idx]
+
+        exp_test_first_structure.append([exp_x, exp_y])
+
+    return tensors_scenario(
+        train_tensors=exp_train_first_structure,
+        test_tensors=exp_test_first_structure,
         task_labels=task_labels,
         complete_test_set_only=complete_test_set_only,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform)
+        eval_target_transform=eval_target_transform,
+        dataset_type=dataset_type)
 
 
 def _one_dataset_per_exp_class_order(
@@ -591,5 +730,6 @@ __all__ = [
     'dataset_scenario',
     'filelist_scenario',
     'paths_scenario',
+    'tensors_scenario',
     'tensor_scenario'
 ]
