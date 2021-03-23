@@ -58,21 +58,16 @@ class ReplayPlugin(StrategyPlugin):
         rm_add = None
 
         # how many patterns to save for next iter
-        h = min(self.mem_size // (strategy.training_exp_counter + 1),
-                len(curr_data))
+        single_task_mem_size = min(self.mem_size, len(curr_data))
+        h = single_task_mem_size // (strategy.training_exp_counter + 1)
 
-        remaining_example = 0
-
-        if h != len(curr_data):
-            remaining_example = self.mem_size % ( 
-                strategy.training_exp_counter + 1)
-
+        remaining_example = single_task_mem_size % (
+            strategy.training_exp_counter + 1)
         # We recover it using the random_split method and getting rid of the
         # second split.
         rm_add, _ = random_split(
             curr_data, [h, len(curr_data) - h]
         )
-
         # replace patterns randomly in memory
         ext_mem = self.ext_mem
         if curr_task_id not in ext_mem:
@@ -98,5 +93,4 @@ class ReplayPlugin(StrategyPlugin):
                                     ext_mem[task_id],
                                     [rem_len, current_mem_size])
                 ext_mem[task_id] = saved_part
-
         self.ext_mem = ext_mem
