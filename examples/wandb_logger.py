@@ -68,7 +68,7 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    wandb_logger = WandBLogger(init_kwargs = {"project": args.project, "name": args.run}, system = args.system)
+    wandb_logger = WandBLogger(init_kwargs = {"project": args.project, "name": args.run})
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
@@ -120,6 +120,5 @@ if __name__ == '__main__':
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     parser.add_argument('--run', type=str, help='Provide a run name for WandB')
     parser.add_argument('--project', type=str, help='Define the name of the WandB project')
-    parser.add_argument('--system', type=bool, default=False, help='Log Avalanche based System Metrics')
     args = parser.parse_args()
     main(args)

@@ -36,7 +36,6 @@ class WandBLogger(StrategyLogger):
         self.import_wandb()
         self.init_kwargs = init_kwargs
         self.before_run()
-        self.system = system
     
     def import_wandb(self):
         try:
