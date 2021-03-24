@@ -67,8 +67,8 @@ class WandBLogger(StrategyLogger):
             return
 
         if isinstance(value, Image):
-            # WIP
-            return
+            # Confusion Matrix logging
+            self.wandb.log({name : value})
             
         elif isinstance(value, (float, int)):
             self.wandb.log({name : value})
