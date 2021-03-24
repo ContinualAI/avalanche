@@ -44,6 +44,7 @@ setuptools.setup(
         'matplotlib',
         'numpy',
         'pytorchcv',
-        'quadprog'
+        'quadprog',
+        'wandb'
     ]
 )
