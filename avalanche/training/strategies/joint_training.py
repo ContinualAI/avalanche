@@ -61,8 +61,12 @@ class JointTraining(BaseStrategy):
         If it is a sequence, trains the model on each experience in order.
         Joint training uses the entire stream and it is not a proper CL
         strategy.
+        It returns a dictionary with last recorded value for each metric name.
 
         :param experiences: single IExperience or sequence.
+
+        :return: dictionary containing last recorded value for
+            each metric name
         """
         self.is_training = True
         self.model.train()
@@ -104,8 +108,10 @@ class JointTraining(BaseStrategy):
             self.after_training_epoch(**kwargs)
         self.after_training_exp(**kwargs)
 
-        res = self.evaluator.get_last_metrics('train')
         self.after_training(**kwargs)
+
+        res = self.evaluator.get_last_metrics()
+
         return res
 
 

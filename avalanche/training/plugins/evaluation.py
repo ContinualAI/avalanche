@@ -66,11 +66,10 @@ class EvaluationPlugin(StrategyPlugin):
             # has been emitted)
             # second list gathers metric values
             self.all_metric_results = defaultdict(lambda: ([], []))
-        # Dictionary of last values emitted during train
-        # and evaluation: dictionary key
+        # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.
-        self.last_metric_results = {'train': {}, 'eval': {}}
+        self.last_metric_results = {}
 
     def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
         metric_values = []
@@ -81,7 +80,6 @@ class EvaluationPlugin(StrategyPlugin):
             elif metric_result is not None:
                 metric_values.append(metric_result)
 
-        mode = 'train' if strategy.is_training else 'eval'
         for metric_value in metric_values:
             name = metric_value.name
             x = metric_value.x_plot
@@ -90,25 +88,21 @@ class EvaluationPlugin(StrategyPlugin):
                 self.all_metric_results[name][0].append(x)
                 self.all_metric_results[name][1].append(val)
 
-            self.last_metric_results[mode][name] = val
+            self.last_metric_results[name] = val
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)
         return metric_values
 
-    def get_last_metrics(self, mode):
+    def get_last_metrics(self):
         """
-        Return dictionary for metrics computed on training (mode 'train')
-        or evaluation (mode 'eval'). Each internal dictionary has metric
-        names as keys and last metrics value as values.
-
-        :param mode: either 'train' or 'eval'. It returns the corresponding
-            last metric dictionary.
+        Return dictionary with metric names as keys and last metrics
+        value as values.
 
         :return: a dictionary with full metric
             names as keys and last metric value as value.
         """
-        return deepcopy(self.last_metric_results[mode])
+        return deepcopy(self.last_metric_results)
 
     def get_all_metrics(self):
         """
@@ -128,9 +122,15 @@ class EvaluationPlugin(StrategyPlugin):
         else:
             return {}
 
+    def reset_last_metrics(self):
+        """
+        Set the dictionary storing last value for each metric to be
+        empty dict.
+        """
+        self.last_metric_results = {}
+
     def before_training(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training')
-        self.last_metric_results['train'] = {}
 
     def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_exp')
@@ -176,7 +176,6 @@ class EvaluationPlugin(StrategyPlugin):
 
     def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval')
-        self.last_metric_results['eval'] = {}
 
     def adapt_eval_dataset(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'adapt_eval_dataset')

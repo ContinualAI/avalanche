@@ -114,11 +114,8 @@ def main(args):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
-        # train returns a list of dictionaries (one for each training experience).
-        # Each dictionary contains a 'train' and 'eval' part. The 'train' part
-        # contains the last metric values stored during training. The 'eval' part
-        # contains a list of dictionaries, one for each evaluation stream.
-        # Each dictionary contains the last evaluation metrics on that stream.
+        # train returns a dictionary containing last recorded value
+        # for each metric.
         res = cl_strategy.train(experience)
         print('Training completed')
 
