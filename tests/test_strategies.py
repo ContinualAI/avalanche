@@ -103,7 +103,7 @@ class BaseStrategyTest(unittest.TestCase):
                          eval_every=-1, evaluator=EvaluationPlugin(acc))
         strategy.train(scenario.train_stream[0])
         # eval is not called in this case
-        assert len(strategy.evaluator.all_metrics) == 0
+        assert len(strategy.evaluator.get_all_metrics()) == 0
 
         ###################
         # Case #2: Eval at the end only
@@ -113,7 +113,7 @@ class BaseStrategyTest(unittest.TestCase):
                          eval_every=0, evaluator=EvaluationPlugin(acc))
         strategy.train(scenario.train_stream[0])
         # eval is called once at the end of the training loop
-        curve = strategy.evaluator.all_metrics[curve_key][1]
+        curve = strategy.evaluator.get_all_metrics()[curve_key][1]
         assert len(curve) == 1
 
         ###################
@@ -124,7 +124,7 @@ class BaseStrategyTest(unittest.TestCase):
                          eval_every=1, evaluator=EvaluationPlugin(acc))
         strategy.train(scenario.train_stream[0])
         # eval is called after every epoch + the end of the training loop
-        curve = strategy.evaluator.all_metrics[curve_key][1]
+        curve = strategy.evaluator.get_all_metrics()[curve_key][1]
         assert len(curve) == 3
 
 
