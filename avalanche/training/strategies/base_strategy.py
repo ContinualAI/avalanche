@@ -288,8 +288,10 @@ class BaseStrategy:
             eval_res = temp_res if temp_res else eval_res
             self.after_training_epoch(**kwargs)
 
-        res_final = self._periodic_eval(eval_streams, do_final=True)  # Final evaluation
-        eval_res = res_final if res_final else eval_res  # take last valid metric results
+        # Final evaluation
+        res_final = self._periodic_eval(eval_streams, do_final=True)
+        # Take last valid metric results
+        eval_res = res_final if res_final else eval_res
 
         self.after_training_exp(**kwargs)
 

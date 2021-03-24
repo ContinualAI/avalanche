@@ -99,8 +99,8 @@ class EvaluationPlugin(StrategyPlugin):
     def get_last_metrics(self, mode):
         """
         Return dictionary for metrics computed on training (mode 'train')
-        or evaluation (mode 'eval'). Each internal dictionary has metric names as
-        keys and last metrics value as values.
+        or evaluation (mode 'eval'). Each internal dictionary has metric
+        names as keys and last metrics value as values.
 
         :param mode: either 'train' or 'eval'. It returns the corresponding
             last metric dictionary.
