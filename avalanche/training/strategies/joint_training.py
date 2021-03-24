@@ -71,7 +71,6 @@ class JointTraining(BaseStrategy):
         if isinstance(experiences, Experience):
             experiences = [experiences]
 
-        res = []
         self.before_training(**kwargs)
 
         self.experience = experiences[0]
@@ -105,7 +104,7 @@ class JointTraining(BaseStrategy):
             self.after_training_epoch(**kwargs)
         self.after_training_exp(**kwargs)
 
-        res.append(self.evaluator.current_metrics.copy())
+        res = self.evaluator.get_last_metrics('train')
         self.after_training(**kwargs)
         return res
 

@@ -251,8 +251,9 @@ class BaseStrategy:
         res = []
         self.before_training(**kwargs)
         for exp in experiences:
-            self.train_exp(exp, eval_streams, **kwargs)
-            res.append(self.evaluator.current_metrics.copy())
+            eval_res = self.train_exp(exp, eval_streams, **kwargs)
+            res.append({'train': self.evaluator.get_last_metrics('train'),
+                       'eval': eval_res})
 
         self.after_training(**kwargs)
         return res
@@ -262,6 +263,9 @@ class BaseStrategy:
         Training loop over a single Experience object.
 
         :param experience: CL experience information.
+        :param eval_streams: list of streams for evaluation.
+            If None: use training experiences for evaluation.
+            Use [] if you do not want to evaluate during training.
         :param kwargs: custom arguments.
         """
         self.experience = experience
@@ -275,13 +279,21 @@ class BaseStrategy:
 
         self.before_training_exp(**kwargs)
         self.epoch = 0
+        eval_res = []
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
-            self._periodic_eval(eval_streams, do_final=False)
+            temp_res = self._periodic_eval(eval_streams, do_final=False)
+            # update only if eval has been performed
+            eval_res = temp_res if temp_res else eval_res
             self.after_training_epoch(**kwargs)
-        self._periodic_eval(eval_streams, do_final=True)  # Final evaluation
+
+        res_final = self._periodic_eval(eval_streams, do_final=True)  # Final evaluation
+        eval_res = res_final if res_final else eval_res  # take last valid metric results
+
         self.after_training_exp(**kwargs)
+
+        return eval_res
 
     def _periodic_eval(self, eval_streams, do_final):
         """ Periodic eval controlled by `self.eval_every`. """
@@ -294,18 +306,21 @@ class BaseStrategy:
             self.adapted_dataset,
             self.current_dataloader)
 
-        if self.eval_every == 0 and do_final:
-            # we are outside the epoch loop
-            for stream in eval_streams:
-                self.eval(stream)
-        elif self.eval_every > 0 and self.epoch % self.eval_every == 0:
-            for stream in eval_streams:
-                self.eval(stream)
+        res_list = []
+        if (self.eval_every == 0 and do_final) or \
+           (self.eval_every > 0 and self.epoch % self.eval_every == 0):
+            # in the first case we are outside epoch loop
+            # in the second case we are within epoch loop
+            for exp in eval_streams:
+                res_list.append(self.eval(exp))
 
         # restore train-state variables and training mode.
         self.epoch, self.experience, self.adapted_dataset = _prev_state[:3]
         self.current_dataloader = _prev_state[3]
         self.model.train()
+        self.is_training = True
+
+        return res_list
 
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
@@ -323,7 +338,6 @@ class BaseStrategy:
         if isinstance(exp_list, Experience):
             exp_list = [exp_list]
 
-        res = []
         self.before_eval(**kwargs)
         for exp in exp_list:
             self.experience = exp
@@ -336,9 +350,11 @@ class BaseStrategy:
             self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
             self.after_eval_exp(**kwargs)
-            res.append(self.evaluator.current_metrics.copy())
 
         self.after_eval(**kwargs)
+
+        res = self.evaluator.get_last_metrics('eval')
+
         return res
 
     def before_training_exp(self, **kwargs):
