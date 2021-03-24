@@ -34,7 +34,8 @@ from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
-
+from avalanche.benchmarks.utils.data_loader import \
+    MultiTaskJoinedBatchDataLoader
 from tests.unit_tests_utils import common_setups
 
 
@@ -72,6 +73,40 @@ class DataLoaderTests(unittest.TestCase):
             plugins=[replayPlugin]
         )
         for step in scenario.train_stream[:2]:
+            cl_strategy.train(step)
+
+    def test_dataload_batch_balancing(self):
+        scenario = get_fast_scenario()
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        batch_size = 32
+        replayPlugin = ReplayPlugin(mem_size=20)
+        cl_strategy = Naive(
+            model, 
+            SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
+            CrossEntropyLoss(), train_mb_size=batch_size, train_epochs=1,
+            eval_mb_size=100, plugins=[replayPlugin]
+        )
+
+        for step in scenario.train_stream:
+            
+            adapted_dataset = {step.task_label: step.dataset}
+
+            dataloader = MultiTaskJoinedBatchDataLoader(
+                    adapted_dataset,
+                    replayPlugin.ext_mem,
+                    oversample_small_tasks=True,
+                    num_workers=0,
+                    batch_size=batch_size,
+                    shuffle=True)
+
+            for mini_batch in dataloader:
+                lengths = []
+                for task_id in mini_batch.keys():
+                    lengths.append(len(mini_batch[task_id][1]))
+                if sum(lengths) == batch_size:
+                    difference = max(lengths) - min(lengths)
+                    self.assertLessEqual(difference, 1)
+                self.assertLessEqual(sum(lengths), batch_size)
             cl_strategy.train(step)
 
 
