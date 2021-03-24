@@ -50,7 +50,6 @@ XTransform = Optional[Callable[[Any], Any]]
 YTransform = Optional[Callable[[Any], TTargetType]]
 
 SupportedDataset = Union[IDatasetWithTargets, ITensorDataset, Subset]
-AdapterType = Union[Literal['infer'], Callable[[Any], TTargetType]]
 
 
 class AvalancheDatasetType(Enum):
@@ -106,10 +105,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
+                 dataset_type: AvalancheDatasetType = None,
                  collate_fn: Callable[[List], Any] = None,
-                 dataset_type: AvalancheDatasetType =
-                 AvalancheDatasetType.UNDEFINED,
-                 targets_adapter: AdapterType = 'infer'):
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheDataset`` instance.
 
@@ -141,19 +139,22 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         :param targets: The label of each pattern. Defaults to None, which
             means that the targets will be retrieved from the dataset (if
             possible).
+        :param dataset_type: The type of the dataset. Defaults to None,
+            which means that the type will be inferred from the input dataset.
+            When the `dataset_type` is different than UNDEFINED, a
+            proper value for `collate_fn` and `targets_adapter` will be set.
+            If the `dataset_type` is different than UNDEFINED, then
+            `collate_fn` and `targets_adapter` must not be set.
         :param collate_fn: The function to use when slicing to merge single
             patterns. In the future this function may become the function
-            used in the data loading process, too. If None, the constructor
-            will check if a `collate_fn` field exists in the dataset. If no
-            such field exists, the default collate function will be used.
-        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+            used in the data loading process, too. If None and the
+            `dataset_type` is UNDEFINED, the constructor will check if a
+            `collate_fn` field exists in the dataset. If no such field exists,
+            the default collate function will be used.
         :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to 'infer'. At the moment 'infer' means that
-            targets will be converted to int for datasets of type
-            CLASSIFICATION. The targets field for other types will be left
-            unchanged. Note: the adapter will not change the value of the second
-            element returned by `__getitem__`. The adapter is used to adapt the
-            values of the targets field only.
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second element returned by `__getitem__`.
+            The adapter is used to adapt the values of the targets field only.
         """
         super().__init__()
 
@@ -162,8 +163,37 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             raise ValueError('transform_groups can\'t be used with transform'
                              'and target_transform values')
 
+        detected_type = False
+        if dataset_type is None:
+            detected_type = True
+            if isinstance(dataset, AvalancheDataset):
+                dataset_type = dataset.dataset_type
+            else:
+                dataset_type = AvalancheDatasetType.UNDEFINED
+
+        if dataset_type != AvalancheDatasetType.UNDEFINED and \
+                (collate_fn is not None or targets_adapter is not None):
+            if detected_type:
+                raise ValueError(
+                    'dataset_type {} was inferred from the input dataset. '
+                    'This dataset type can\'t be used '
+                    'with custom collate_fn or targets_adapter '
+                    'parameters. Only the UNDEFINED type supports '
+                    'custom collate_fn or targets_adapter '
+                    'parameters'.format(dataset_type))
+            else:
+                raise ValueError(
+                    'dataset_type {} can\'t be used with custom collate_fn '
+                    'or targets_adapter. Only the UNDEFINED type supports '
+                    'custom collate_fn or targets_adapter '
+                    'parameters.'.format(dataset_type))
+
         if transform_groups is not None:
             AvalancheDataset._check_groups_dict_format(transform_groups)
+
+        if not isinstance(dataset_type, AvalancheDatasetType):
+            raise ValueError('dataset_type must be a value of type '
+                             'AvalancheDatasetType')
 
         self._dataset: SupportedDataset = dataset
         """
@@ -197,7 +227,12 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         with a certain task label, consider using the `task_set` field.
         """
 
-        self.collate_fn = self._initialize_collate_fn(dataset, collate_fn)
+        self.collate_fn = self._initialize_collate_fn(
+            dataset, dataset_type, collate_fn)
+        """
+        The collate function to use when creating mini-batches from this
+        dataset.
+        """
 
         # Compress targets and task labels to save some memory
         self._optimize_targets()
@@ -674,7 +709,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             # Note: no adapter is applied!
             return targets
 
-        if targets_adapter == 'infer':
+        if targets_adapter is None:
             if dataset_type == AvalancheDatasetType.CLASSIFICATION:
                 targets_adapter = int
             else:
@@ -701,12 +736,14 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         # No task labels found. Set all task labels to 0 (in a lazy way).
         return ConstantSequence(0, len(dataset))
 
-    def _initialize_collate_fn(self, dataset, collate_fn):
+    def _initialize_collate_fn(self, dataset, dataset_type, collate_fn):
         if collate_fn is not None:
             return collate_fn
 
-        if hasattr(dataset, 'collate_fn'):
-            return getattr(dataset, 'collate_fn')
+        if dataset_type == AvalancheDatasetType.UNDEFINED:
+            if hasattr(dataset, 'collate_fn'):
+                return getattr(dataset, 'collate_fn')
+
         return default_collate
 
     def _initialize_tasks_dict(self, dataset, task_labels: Sequence[int]) \
@@ -813,9 +850,9 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
-                 collate_fn: Callable[[List], Any] = None,
                  dataset_type: AvalancheDatasetType = None,
-                 targets_adapter: AdapterType = 'infer'):
+                 collate_fn: Callable[[List], Any] = None,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates an ``AvalancheSubset`` instance.
 
@@ -856,44 +893,61 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             possible). This can either be a list of labels for the original
             dataset or the list of labels for the patterns of the subset (an
             automatic detection will be made).
+        :param dataset_type: The type of the dataset. Defaults to None,
+            which means that the type will be inferred from the input dataset.
+            When the `dataset_type` is different than UNDEFINED, a
+            proper value for `collate_fn` and `targets_adapter` will be set.
+            If the `dataset_type` is different than UNDEFINED, then
+            `collate_fn` and `targets_adapter` must not be set.
+            The only exception to this rule regards `class_mapping`.
+            If `class_mapping` is set, the final dataset_type
+            (as set by this parameter or detected from the subset) must be
+            CLASSIFICATION or UNDEFINED.
         :param collate_fn: The function to use when slicing to merge single
             patterns. In the future this function may become the function
-            used in the data loading process, too. If None, the constructor
-            will check if a `collate_fn` field exists in the dataset. If no
-            such field exists, the default collate function will be used.
-        :param dataset_type: The type of the dataset. Defaults to None,
-            which means that the type will be inferred from the original
-            dataset. If the original dataset is not an instance of
-            `AvalancheDataset`, the type UNDEFINED will be used unless
-            a class mapping is set. In that case, CLASSIFICATION will be used.
+            used in the data loading process, too. If None and the
+            `dataset_type` is UNDEFINED, the constructor will check if a
+            `collate_fn` field exists in the dataset. If no such field exists,
+            the default collate function will be used.
         :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to 'infer'. 'infer' is usually the best
-            choice when creating an instance of a subset. First, if
-            `dataset_type` is None and the original dataset is an instance of a
-            `AvalancheDataset`, then no adapter will be used (will indirectly
-            use the one from the subset). If `dataset_type` is CLASSIFICATION,
-            targets will be converted to int. The targets field for other types
-            will be left unchanged. Note: the adapter will not change the value
-            of the second element returned by `__getitem__`. The adapter is used
-            to adapt the values of the targets field only.
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second element returned by `__getitem__`.
+            The adapter is used to adapt the values of the targets field only.
         """
 
-        if dataset_type is None and isinstance(dataset, AvalancheDataset):
-            dataset_type = dataset.dataset_type
-            if targets_adapter == 'infer':
-                targets_adapter = None
-
-        if class_mapping is not None and dataset_type is None:
-            dataset_type = AvalancheDatasetType.CLASSIFICATION
-
+        detected_type = False
         if dataset_type is None:
-            dataset_type = AvalancheDatasetType.UNDEFINED
+            detected_type = True
+            if isinstance(dataset, AvalancheDataset):
+                dataset_type = dataset.dataset_type
+                if dataset_type == AvalancheDatasetType.UNDEFINED:
+                    if collate_fn is None:
+                        collate_fn = dataset.collate_fn
+            else:
+                dataset_type = AvalancheDatasetType.UNDEFINED
 
-        if class_mapping is not None and dataset_type not in \
-                [AvalancheDatasetType.CLASSIFICATION,
-                 AvalancheDatasetType.UNDEFINED]:
-            raise ValueError('class_mapping is defined but the dataset type '
-                             'is neither CLASSIFICATION or UNDEFINED.')
+        if dataset_type != AvalancheDatasetType.UNDEFINED and \
+                (collate_fn is not None or targets_adapter is not None):
+            if detected_type:
+                raise ValueError(
+                    'dataset_type {} was inferred from the input dataset. '
+                    'This dataset type can\'t be used '
+                    'with custom collate_fn or targets_adapter '
+                    'parameters. Only the UNDEFINED type supports '
+                    'custom collate_fn or targets_adapter '
+                    'parameters'.format(dataset_type))
+            else:
+                raise ValueError(
+                    'dataset_type {} can\'t be used with custom collate_fn '
+                    'or targets_adapter. Only the UNDEFINED type supports '
+                    'custom collate_fn or targets_adapter '
+                    'parameters.'.format(dataset_type))
+
+        if class_mapping is not None:
+            if dataset_type not in [AvalancheDatasetType.CLASSIFICATION,
+                                    AvalancheDatasetType.UNDEFINED]:
+                raise ValueError('class_mapping is defined but the dataset type'
+                                 ' is neither CLASSIFICATION or UNDEFINED.')
 
         if class_mapping:
             subset = ClassificationSubset(dataset, indices=indices,
@@ -910,8 +964,8 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn,
                          dataset_type=dataset_type,
+                         collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
 
     def _get_single_item(self, idx: int):
@@ -995,10 +1049,10 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
                  initial_transform_group='train',
                  task_labels: Sequence[int] = None,
                  targets: Sequence[TTargetType] = None,
-                 collate_fn: Callable[[List], Any] = None,
                  dataset_type: AvalancheDatasetType =
                  AvalancheDatasetType.UNDEFINED,
-                 targets_adapter: AdapterType = 'infer'):
+                 collate_fn: Callable[[List], Any] = None,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheTensorDataset`` instance.
 
@@ -1033,18 +1087,27 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
             the targets field will be populated using the second
             tensor. If dataset is made of only one tensor, then that tensor will
             be used for the targets field, too.
+        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
+            Setting this parameter will automatically set a proper value for
+            `collate_fn` and `targets_adapter`. If this parameter is set to a
+            value different from UNDEFINED then `collate_fn` and
+            `targets_adapter` must not be set.
         :param collate_fn: The function to use when slicing to merge single
             patterns. In the future this function may become the function
             used in the data loading process, too.
-        :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
         :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to 'infer'. At the moment 'infer' means that
-            targets will be converted to int for datasets of type
-            CLASSIFICATION. The targets field for other types will be left
-            unchanged. Note: the adapter will not change the value of the second
-            value returned by `__getitem__`. The adapter is used to adapt the
-            values of the targets field only.
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second element returned by `__getitem__`.
+            The adapter is used to adapt the values of the targets field only.
         """
+
+        if dataset_type != AvalancheDatasetType.UNDEFINED and \
+                (collate_fn is not None or targets_adapter is not None):
+            raise ValueError(
+                'dataset_type {} can\'t be used with custom collate_fn '
+                'or targets_adapter. Only the UNDEFINED type supports '
+                'custom collate_fn or targets_adapter '
+                'parameters.'.format(dataset_type))
 
         if len(dataset_tensors) < 1:
             raise ValueError('At least one sequence must be passed')
@@ -1066,8 +1129,8 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn,
                          dataset_type=dataset_type,
+                         collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
 
 
@@ -1094,9 +1157,9 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                                     Sequence[Sequence[int]]] = None,
                  targets: Union[Sequence[TTargetType],
                                 Sequence[Sequence[TTargetType]]] = None,
-                 collate_fn: Callable[[List], Any] = None,
                  dataset_type: AvalancheDatasetType = None,
-                 targets_adapter: AdapterType = 'infer'):
+                 collate_fn: Callable[[List], Any] = None,
+                 targets_adapter: Callable[[Any], TTargetType] = None):
         """
         Creates a ``AvalancheConcatDataset`` instance.
 
@@ -1131,6 +1194,18 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             from the original datasets. If no task labels could be found for a
             dataset, a default task label "0" will be applied to all patterns
             of that dataset.
+        :param dataset_type: The type of the dataset. Defaults to None,
+            which means that the type will be inferred from the list of
+            input datasets. When `dataset_type` is None and the list of datasets
+            contains incompatible types, an error will be raised.
+            A list of datasets is compatible if they all have
+            the same type. Datasets that are not instances of `AvalancheDataset`
+            and instances of `AvalancheDataset` with type `UNDEFINED`
+            are always compatible with other types.
+            When the `dataset_type` is different than UNDEFINED, a
+            proper value for `collate_fn` and `targets_adapter` will be set.
+            If the `dataset_type` is different than UNDEFINED, then
+            `collate_fn` and `targets_adapter` must not be set.
         :param collate_fn: The function to use when slicing to merge single
             patterns. In the future this function may become the function
             used in the data loading process, too. If None, the constructor
@@ -1139,26 +1214,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             Beware that the chosen collate function will be applied to all
             the concatenated datasets even if a different collate is defined
             in different datasets.
-        :param dataset_type: The type of the dataset. Defaults to None,
-            which means that the type will be inferred from the list of
-            datasets. When dataset_type is None and the list of datasets
-            contains incompatible types, an error will be raised. On the
-            contrary. if dataset_type is not None the compatibility error will
-            not be raised. A list of datasets is compatible if they all have
-            the same type. Datasets that are not instances of `AvalancheDataset`
-            and instances of `AvalancheDataset` with type `UNDEFINED`
-            are always compatible with other types.
         :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to 'infer'. At the moment 'infer' means that
-            targets will be converted to int for datasets of type
-            CLASSIFICATION. The targets field for other types will be left
-            unchanged. Note: the adapter will not change the value of the second
-            value returned by `__getitem__`. The adapter is used to adapt the
-            values of the targets field only.
+            targets field. Defaults to None. Note: the adapter will not change
+            the value of the second element returned by `__getitem__`.
+            The adapter is used to adapt the values of the targets field only.
         """
+        dataset_type, collate_fn, targets_adapter = \
+            self._get_dataset_type_collate_and_adapter(
+                datasets, dataset_type, collate_fn, targets_adapter)
 
-        dataset_type = self._verify_datasets_concat_compatibility(
-            datasets, dataset_type)
         self._dataset_list = list(datasets)
         self._datasets_lengths = [len(dataset) for dataset in datasets]
         self._overall_length = sum(self._datasets_lengths)
@@ -1178,41 +1242,54 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                          initial_transform_group=initial_transform_group,
                          task_labels=task_labels,
                          targets=targets,
-                         collate_fn=collate_fn,
                          dataset_type=dataset_type,
+                         collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
 
-    def _verify_datasets_concat_compatibility(self, datasets, dataset_type):
+    def _get_dataset_type_collate_and_adapter(
+            self, datasets, dataset_type, collate_fn, targets_adapter):
+
+        if dataset_type is not None:
+            return dataset_type, collate_fn, targets_adapter
+
         identified_types = set()
+        first_collate_fn = None
 
         for dataset in datasets:
             if isinstance(dataset, AvalancheDataset):
                 if dataset.dataset_type != AvalancheDatasetType.UNDEFINED:
                     identified_types.add(dataset.dataset_type)
 
-        if len(identified_types) > 1:
-            if dataset_type is None:
-                raise ValueError(
-                    'Error trying to infer a common dataset type while '
-                    'concatenating different datasets. '
-                    'Incompatible types: {}'.format(list(identified_types)))
-            else:
-                warnings.warn(
-                    'You are concatenating datasets of incompatible types. '
-                    'This does not raise an error because an explicit type '
-                    'was defined. However, consider checking your code. '
-                    'Found types include: {}'.format(list(identified_types)))
+            if first_collate_fn is None:
+                first_collate_fn = getattr(dataset, 'collate_fn', None)
 
-        if dataset_type is None:
-            if len(identified_types) == 0:
-                return AvalancheDatasetType.UNDEFINED
-            else:
-                return next(iter(identified_types))  # identified_types len == 1
+        if len(identified_types) > 1:
+            raise ValueError(
+                'Error trying to infer a common dataset type while '
+                'concatenating different datasets. '
+                'Incompatible types: {}'.format(list(identified_types)))
+        elif len(identified_types) == 0:
+            dataset_type = AvalancheDatasetType.UNDEFINED
         else:
-            if len(identified_types) == 0:
-                return dataset_type
-            else:
-                return dataset_type
+            # len(identified_types) == 1
+            dataset_type = next(iter(identified_types))
+
+        if dataset_type != AvalancheDatasetType.UNDEFINED and \
+                (collate_fn is not None or targets_adapter is not None):
+
+            raise ValueError(
+                'dataset_type {} was inferred from the list of '
+                'concatenated dataset. This dataset type can\'t be used '
+                'with custom collate_fn or targets_adapter '
+                'parameters. Only the UNDEFINED type supports '
+                'custom collate_fn or targets_adapter '
+                'parameters.'.format(dataset_type))
+
+        if collate_fn is None and \
+                dataset_type == AvalancheDatasetType.UNDEFINED:
+            collate_fn = first_collate_fn
+
+        return dataset_type, collate_fn, targets_adapter
 
     def __len__(self) -> int:
         return self._overall_length
@@ -1278,7 +1355,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         return LazyConcatTargets(concat_t_labels)
 
-    def _initialize_collate_fn(self, dataset, collate_fn):
+    def _initialize_collate_fn(self, dataset, dataset_type, collate_fn):
         if collate_fn is not None:
             return collate_fn
 
