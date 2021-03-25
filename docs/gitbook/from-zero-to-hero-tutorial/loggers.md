@@ -6,7 +6,6 @@ description: "Logging... logging everywhere! \U0001F52E"
 
 Welcome to the _"Logging"_ tutorial of the _"From Zero to Hero"_ series. In this part we will present the functionalities offered by the _Avalanche_ `logging` module.
 
-
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
@@ -28,7 +27,6 @@ _Avalanche_ at the moment supports three main Loggers:
 * **TensorboardLogger**: It logs all the metrics on [Tensorboard](https://www.tensorflow.org/tensorboard) in real-time. Perfect for real-time plotting.
 
 #### How to use Them
-
 
 ```python
 from torch.optim import SGD
@@ -102,3 +100,4 @@ This completes the "_Logging_" tutorial for the "_From Zero to Hero_" series. We
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/loggers.ipynb)
+
