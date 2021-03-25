@@ -1,7 +1,7 @@
 import warnings
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
-
+from copy import deepcopy
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 if TYPE_CHECKING:
@@ -14,9 +14,14 @@ class EvaluationPlugin(StrategyPlugin):
     """
     An evaluation plugin that obtains relevant data from the
     training and eval loops of the strategy through callbacks.
+    The plugin keeps a dictionary with the last recorded value for each metric.
+    The dictionary will be returned by the `train` and `eval` methods of the
+    strategies.
+    It is also possible to keep a dictionary with all recorded metrics by
+    specifying `collect_all=True`. The dictionary can be retrieved via
+    the `get_all_metrics` method.
 
-    This plugin updates the given metrics and logs them using the provided
-    loggers.
+    This plugin also logs metrics using the provided loggers.
     """
 
     def __init__(self,
@@ -29,10 +34,9 @@ class EvaluationPlugin(StrategyPlugin):
 
         :param metrics: The metrics to compute.
         :param loggers: The loggers to be used to log the metric values.
-        :param collect_curves (bool): enables the collection of the metric
-            curves. If True `self.metric_curves` stores all the values of
-            each curve in a dictionary. Please disable this if you log large
-            values (embeddings, parameters) and you want to reduce memory usage.
+        :param collect_all: if True, collect in a separate dictionary all
+            metric curves values. This dictionary is accessible with
+            `get_all_metrics` method.
         """
         super().__init__()
         self.collect_all = collect_all
@@ -53,13 +57,19 @@ class EvaluationPlugin(StrategyPlugin):
         if len(self.loggers) == 0:
             warnings.warn('No loggers specified, metrics will not be logged')
 
-        # for each curve  store last emitted value (train/eval separated).
-        self.current_metrics = {}
         if self.collect_all:
             # for each curve collect all emitted values.
-            self.all_metrics = defaultdict(lambda: ([], []))
-        else:
-            self.all_metrics = None
+            # dictionary key is full metric name.
+            # Dictionary value is a tuple of two lists.
+            # first list gathers x values (indices representing
+            # time steps at which the corresponding metric value
+            # has been emitted)
+            # second list gathers metric values
+            self.all_metric_results = defaultdict(lambda: ([], []))
+        # Dictionary of last values emitted. Dictionary key
+        # is the full metric name, while dictionary value is
+        # metric value.
+        self.last_metric_results = {}
 
     def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
         metric_values = []
@@ -74,14 +84,50 @@ class EvaluationPlugin(StrategyPlugin):
             name = metric_value.name
             x = metric_value.x_plot
             val = metric_value.value
-            self.current_metrics[name] = val
             if self.collect_all:
-                self.all_metrics[name][0].append(x)
-                self.all_metrics[name][1].append(val)
+                self.all_metric_results[name][0].append(x)
+                self.all_metric_results[name][1].append(val)
+
+            self.last_metric_results[name] = val
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, metric_values)
         return metric_values
+
+    def get_last_metrics(self):
+        """
+        Return dictionary with metric names as keys and last metrics
+        value as values.
+
+        :return: a dictionary with full metric
+            names as keys and last metric value as value.
+        """
+        return deepcopy(self.last_metric_results)
+
+    def get_all_metrics(self):
+        """
+        Return all collected metrics. This method should be called
+        only when `collect_all` is set to True.
+
+        :return: if `collect_all` is True, returns a dictionary
+            with full metric names as keys and a tuple of two lists
+            as value. The first list gathers x values (indices
+            representing time steps at which the corresponding
+            metric value has been emitted). The second list
+            gathers metric values. a dictionary. If `collect_all`
+            is False return an empty dictionary
+        """
+        if self.collect_all:
+            return deepcopy(self.all_metric_results)
+        else:
+            return {}
+
+    def reset_last_metrics(self):
+        """
+        Set the dictionary storing last value for each metric to be
+        empty dict.
+        """
+        self.last_metric_results = {}
 
     def before_training(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training')
@@ -127,7 +173,6 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_training(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_training')
-        self.current_metrics = {}  # reset current metrics
 
     def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval')
@@ -143,7 +188,6 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval')
-        self.current_metrics = {}  # reset current metrics
 
     def before_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval_iteration')

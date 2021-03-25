@@ -229,11 +229,15 @@ class BaseStrategy:
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
+        It returns a dictionary with last recorded value for each metric.
 
         :param experiences: single Experience or sequence.
         :param eval_streams: list of streams for evaluation.
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
+
+        :return: dictionary containing last recorded value for
+            each metric name
         """
         self.is_training = True
         self.model.train()
@@ -248,13 +252,13 @@ class BaseStrategy:
             if isinstance(exp, Experience):
                 eval_streams[i] = [exp]
 
-        res = []
         self.before_training(**kwargs)
         for exp in experiences:
             self.train_exp(exp, eval_streams, **kwargs)
-            res.append(self.evaluator.current_metrics.copy())
 
         self.after_training(**kwargs)
+
+        res = self.evaluator.get_last_metrics()
         return res
 
     def train_exp(self, experience: Experience, eval_streams, **kwargs):
@@ -262,6 +266,9 @@ class BaseStrategy:
         Training loop over a single Experience object.
 
         :param experience: CL experience information.
+        :param eval_streams: list of streams for evaluation.
+            If None: use training experiences for evaluation.
+            Use [] if you do not want to evaluate during training.
         :param kwargs: custom arguments.
         """
         self.experience = experience
@@ -280,7 +287,9 @@ class BaseStrategy:
             self.training_epoch(**kwargs)
             self._periodic_eval(eval_streams, do_final=False)
             self.after_training_epoch(**kwargs)
-        self._periodic_eval(eval_streams, do_final=True)  # Final evaluation
+
+        # Final evaluation
+        self._periodic_eval(eval_streams, do_final=True)
         self.after_training_exp(**kwargs)
 
     def _periodic_eval(self, eval_streams, do_final):
@@ -292,29 +301,34 @@ class BaseStrategy:
             self.epoch,
             self.experience,
             self.adapted_dataset,
-            self.current_dataloader)
+            self.current_dataloader,
+            self.is_training)
 
-        if self.eval_every == 0 and do_final:
-            # we are outside the epoch loop
-            for stream in eval_streams:
-                self.eval(stream)
-        elif self.eval_every > 0 and self.epoch % self.eval_every == 0:
-            for stream in eval_streams:
-                self.eval(stream)
+        if (self.eval_every == 0 and do_final) or \
+           (self.eval_every > 0 and self.epoch % self.eval_every == 0):
+            # in the first case we are outside epoch loop
+            # in the second case we are within epoch loop
+            for exp in eval_streams:
+                self.eval(exp)
 
         # restore train-state variables and training mode.
         self.epoch, self.experience, self.adapted_dataset = _prev_state[:3]
         self.current_dataloader = _prev_state[3]
+        self.is_training = _prev_state[4]
         self.model.train()
 
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
         """
-        Evaluate the current model on a series of experiences.
+        Evaluate the current model on a series of experiences and
+        returns the last recorded value for each metric.
 
         :param exp_list: CL experience information.
         :param kwargs: custom arguments.
+
+        :return: dictionary containing last recorded value for
+            each metric name
         """
         self.is_training = False
         self.model.eval()
@@ -323,7 +337,6 @@ class BaseStrategy:
         if isinstance(exp_list, Experience):
             exp_list = [exp_list]
 
-        res = []
         self.before_eval(**kwargs)
         for exp in exp_list:
             self.experience = exp
@@ -336,9 +349,11 @@ class BaseStrategy:
             self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
             self.after_eval_exp(**kwargs)
-            res.append(self.evaluator.current_metrics.copy())
 
         self.after_eval(**kwargs)
+
+        res = self.evaluator.get_last_metrics()
+
         return res
 
     def before_training_exp(self, **kwargs):
