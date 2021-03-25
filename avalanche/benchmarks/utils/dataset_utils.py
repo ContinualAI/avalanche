@@ -8,15 +8,15 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from .dataset_definitions import ITensorDataset, ClassificationDataset, \
-    IDatasetWithTargets, ISupportedClassificationDataset
+from .dataset_definitions import IDatasetWithTargets, \
+    ISupportedClassificationDataset
 
 try:
     from typing import Protocol, Sequence, List, Any, Iterable, Union, \
-        Optional, SupportsInt, TypeVar, Tuple
+        Optional, SupportsInt, TypeVar, Tuple, Callable
 except ImportError:
     from typing import Sequence, List, Any, Iterable, Union, Optional, \
-         SupportsInt, TypeVar, Tuple
+         SupportsInt, TypeVar, Tuple, Callable
     from typing_extensions import Protocol
 
 T_co = TypeVar('T_co', covariant=True)
@@ -124,20 +124,24 @@ class LazyConcatIntTargets(LazyConcatTargets[int]):
         return int(super().__getitem__(item_idx))
 
 
-class LazyTargetsConversion(Sequence[int]):
+class LazyTargetsConversion(Sequence[TTargetType]):
     """
     Defines a lazy conversion of targets defined in some other format.
 
-    To be used when transforming targets to int (classification).
+    To be used when transforming targets to int, float, etc.
     """
-    def __init__(self, targets: Sequence[SupportsInt]):
-        self._targets = targets
+    def __init__(self, targets: Sequence[Any],
+                 converter: Optional[Callable[[Any], TTargetType]]):
+        self.targets = targets
+        self.converter = converter
 
     def __len__(self):
-        return len(self._targets)
+        return len(self.targets)
 
-    def __getitem__(self, item_idx) -> int:
-        return int(self._targets[item_idx])
+    def __getitem__(self, item_idx) -> TTargetType:
+        if self.converter is None:
+            return self.targets[item_idx]
+        return self.converter(self.targets[item_idx])
 
     def __str__(self):
         return '[' + \
@@ -199,6 +203,8 @@ class ClassificationSubset(SubsetWithTargets[T_co, int]):
     """
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     However, this dataset also supports the targets field and class mapping.
+
+    Targets will be converted to int.
     """
     def __init__(self,
                  dataset: ISupportedClassificationDataset[T_co],
@@ -248,7 +254,8 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
     basic Dataset functionalities. Very similar to TensorDataset.
     """
     def __init__(self,
-                 *sequences: Sequence):
+                 *sequences: Sequence,
+                 targets: Union[int, Sequence[TTargetType]] = 1):
         """
         Creates a ``SequenceDataset`` instance.
 
@@ -257,10 +264,17 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
 
         :param sequences: A sequence of sequences, Tensors or ndarrays
             representing the patterns.
+        :param targets: A sequence representing the targets field of the
+            dataset. Can either be 1) a sequence of values containing as many
+            elements as the number of contained patterns, or 2) the index
+            of the sequence to use as the targets field. Defaults to 1, which
+            means that the second sequence (usually containing the "y" values)
+            will be used for the targets field.
         """
         super().__init__()
-        if len(sequences) < 2:
-            raise ValueError('At least 2 sequences are required')
+
+        if len(sequences) < 1:
+            raise ValueError('At least one sequence must be passed')
 
         common_size = len(sequences[0])
         for seq in sequences:
@@ -269,49 +283,16 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
                                  'amount of elements')
 
         self._sequences = sequences
-        self.targets = sequences[1]
+        if isinstance(targets, int):
+            targets = sequences[targets]
+
+        self.targets: Sequence[TTargetType] = targets
 
     def __getitem__(self, idx):
         return tuple(seq[idx] for seq in self._sequences)
 
     def __len__(self) -> int:
         return len(self._sequences[0])
-
-
-class TensorDatasetWrapper(ClassificationDataset[T_co]):
-    """
-    A Dataset that wraps a Tensor Dataset to provide the targets field.
-
-    A Tensor Dataset is any dataset with a "tensors" field. The tensors
-    field must be a sequence of Tensor. To provide a valid targets field,
-    the "tensors" field must contain at least 2 tensors. The second tensor
-    must contain elements that can be converted to int.
-
-    Beware that the second element obtained from the wrapped dataset using
-    __getitem__ will always be converted to int, This differs from the
-    behaviour of PyTorch TensorDataset. This is required to keep a better
-    compatibility with torchvision datasets.
-    """
-    def __init__(self, tensor_dataset: ITensorDataset[T_co]):
-        """
-        Creates a ``TensorDatasetWrapper`` instance.
-
-        :param tensor_dataset: An instance of a TensorDataset. See class
-            description for more details.
-        """
-        super().__init__()
-        if len(tensor_dataset.tensors) < 2:
-            raise ValueError('Tensor dataset has not enough tensors: '
-                             'at least 2 are required.')
-
-        self.dataset = tensor_dataset
-        self.targets = LazyTargetsConversion(tensor_dataset.tensors[1])
-
-    def __getitem__(self, idx):
-        return self.dataset[idx]
-
-    def __len__(self) -> int:
-        return len(self.dataset)
 
 
 def find_list_from_index(pattern_idx: int,
@@ -466,7 +447,6 @@ __all__ = [
     'ClassificationSubset',
     'ConcatDatasetWithTargets',
     'SequenceDataset',
-    'TensorDatasetWrapper',
     'find_list_from_index',
     'manage_advanced_indexing',
     'optimize_sequence'
