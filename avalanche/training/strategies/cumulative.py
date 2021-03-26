@@ -47,9 +47,9 @@ class Cumulative(BaseStrategy):
 
         self.dataset = {}  # cumulative dataset
 
-    def adapt_train_dataset(self, **kwargs):
+    def after_train_dataset_adaptation(self, **kwargs):
 
-        super().adapt_train_dataset(**kwargs)
+        super().after_train_dataset_adaptation(**kwargs)
 
         curr_task_id = self.experience.task_label
         curr_data = self.experience.dataset

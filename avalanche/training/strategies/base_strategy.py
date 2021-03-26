@@ -237,7 +237,7 @@ class BaseStrategy:
             Use [] if you do not want to evaluate during training.
 
         :return: dictionary containing last recorded value for
-            each metric name
+            each metric name.
         """
         self.is_training = True
         self.model.train()
@@ -255,7 +255,6 @@ class BaseStrategy:
         self.before_training(**kwargs)
         for exp in experiences:
             self.train_exp(exp, eval_streams, **kwargs)
-
         self.after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
@@ -275,9 +274,10 @@ class BaseStrategy:
         self.model.train()
         self.model.to(self.device)
 
-        self.adapted_dataset = experience.dataset
-        self.adapted_dataset = self.adapted_dataset.train()
-        self.adapt_train_dataset(**kwargs)
+        # Data Adaptation
+        self.before_train_dataset_adaptation(**kwargs)
+        self.train_dataset_adaptation(**kwargs)
+        self.after_train_dataset_adaptation(**kwargs)
         self.make_train_dataloader(**kwargs)
 
         self.before_training_exp(**kwargs)
@@ -317,6 +317,12 @@ class BaseStrategy:
         self.is_training = _prev_state[4]
         self.model.train()
 
+    def train_dataset_adaptation(self, **kwargs):
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.train()
+        self.adapted_dataset = {
+            self.experience.task_label: self.adapted_dataset}
+
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
@@ -340,10 +346,11 @@ class BaseStrategy:
         self.before_eval(**kwargs)
         for exp in exp_list:
             self.experience = exp
-            self.adapted_dataset = exp.dataset
-            self.adapted_dataset = self.adapted_dataset.eval()
 
-            self.adapt_eval_dataset(**kwargs)
+            # Data Adaptation
+            self.before_eval_dataset_adaptation(**kwargs)
+            self.eval_dataset_adaptation(**kwargs)
+            self.after_eval_dataset_adaptation(**kwargs)
             self.make_eval_dataloader(**kwargs)
 
             self.before_eval_exp(**kwargs)
@@ -391,17 +398,15 @@ class BaseStrategy:
             batch_size=self.eval_mb_size,
         )
 
-    def adapt_train_dataset(self, **kwargs):
+    def after_train_dataset_adaptation(self, **kwargs):
         """
         Called after the dataset initialization and before the
         dataloader initialization. Allows to customize the dataset.
         :param kwargs:
         :return:
         """
-        self.adapted_dataset = {
-            self.experience.task_label: self.adapted_dataset}
         for p in self.plugins:
-            p.adapt_train_dataset(self, **kwargs)
+            p.after_train_dataset_adaptation(self, **kwargs)
 
     def before_training_epoch(self, **kwargs):
         """
@@ -514,11 +519,19 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_eval_exp(self, **kwargs)
 
-    def adapt_eval_dataset(self, **kwargs):
+    def eval_dataset_adaptation(self, **kwargs):
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.eval()
         self.adapted_dataset = {
             self.experience.task_label: self.adapted_dataset}
+
+    def before_eval_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
-            p.adapt_eval_dataset(self, **kwargs)
+            p.before_eval_dataset_adaptation(self, **kwargs)
+
+    def after_eval_dataset_adaptation(self, **kwargs):
+        for p in self.plugins:
+            p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
         for self.mb_it, (self.mb_task_id, self.mb_x, self.mb_y) in \
@@ -566,6 +579,10 @@ class BaseStrategy:
     def after_eval_iteration(self, **kwargs):
         for p in self.plugins:
             p.after_eval_iteration(self, **kwargs)
+
+    def before_train_dataset_adaptation(self, **kwargs):
+        for p in self.plugins:
+            p.before_train_dataset_adaptation(self, **kwargs)
 
 
 __all__ = ['BaseStrategy']

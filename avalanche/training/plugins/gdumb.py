@@ -29,7 +29,7 @@ class GDumbPlugin(StrategyPlugin):
         # count occurrences for each class
         self.counter = defaultdict(lambda: defaultdict(int))
 
-    def adapt_train_dataset(self, strategy, **kwargs):
+    def after_train_dataset_adaptation(self, strategy, **kwargs):
         """ Before training we make sure to organize the memory following
             GDumb approach and updating the dataset accordingly.
         """

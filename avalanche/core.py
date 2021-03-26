@@ -17,6 +17,14 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     **Training loop**
     The training loop and its callbacks are organized as follows::
         train
+            for exp in stream:
+                data_adaptation
+                for epoch in range(n_epochs):
+                    for mbatch in dataloader:
+                        forward
+                        backward
+                        update
+
             before_training
             before_training_exp
             adapt_train_dataset
@@ -59,7 +67,10 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def before_training_exp(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def adapt_train_dataset(self, *args, **kwargs) -> CallbackResult:
+    def before_train_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+        pass
+
+    def after_train_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
         pass
 
     def before_training_epoch(self, *args, **kwargs) -> CallbackResult:
@@ -101,7 +112,10 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def before_eval(self, *args, **kwargs) -> CallbackResult:
         pass
 
-    def adapt_eval_dataset(self, *args, **kwargs) -> CallbackResult:
+    def before_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+        pass
+
+    def after_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
         pass
 
     def before_eval_exp(self, *args, **kwargs) -> CallbackResult:
