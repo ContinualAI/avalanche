@@ -68,10 +68,10 @@ class WandBLogger(StrategyLogger):
         if isinstance(value, Image):
             # Confusion Matrix logging
             self.wandb.log({name:  
-                            [self.wandb.Image(value, caption="Confusion Matrix")]})
+                            [self.wandb.Image(value, caption="Confusion Matrix")]}, step=metric_value.x_plot)
             
         elif isinstance(value, (float, int)):
-            self.wandb.log({name: value})
+            self.wandb.log({name: value}, step=metric_value.x_plot)
 
 
 __all__ = [
