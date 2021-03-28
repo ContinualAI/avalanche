@@ -36,7 +36,7 @@ class WandBLogger(StrategyLogger):
         self.import_wandb()
         self.init_kwargs = init_kwargs
         self.before_run()
-    
+
     def import_wandb(self):
         try:
             import wandb
@@ -44,7 +44,7 @@ class WandBLogger(StrategyLogger):
             raise ImportError(
                 'Please run "pip install wandb" to install wandb')
         self.wandb = wandb
-    
+
     def before_run(self):
         if self.wandb is None:
             self.import_wandb()
@@ -67,9 +67,9 @@ class WandBLogger(StrategyLogger):
 
         if isinstance(value, Image):
             # Confusion Matrix logging
-            self.wandb.log({name:  
-                            [self.wandb.Image(value, caption="Confusion Matrix")]}, step=metric_value.x_plot)
-            
+            self.wandb.log({name: [self.wandb.Image(
+                value, caption="Confusion Matrix")]}, step=metric_value.x_plot)
+
         elif isinstance(value, (float, int)):
             self.wandb.log({name: value}, step=metric_value.x_plot)
 
