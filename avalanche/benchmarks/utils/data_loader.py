@@ -17,7 +17,8 @@ from avalanche.benchmarks.utils import AvalancheDataset
 
 
 class MultiTaskDataLoader:
-    def __init__(self, data: AvalancheDataset, oversample_small_tasks: bool = False,
+    def __init__(self, data: AvalancheDataset,
+                 oversample_small_tasks: bool = False,
                  **kwargs):
         """ Custom data loader for Avalanche's datasets.
 
@@ -76,7 +77,8 @@ class MultiTaskDataLoader:
 
 
 class MultiTaskMultiBatchDataLoader:
-    def __init__(self, data: AvalancheDataset, oversample_small_tasks: bool = False,
+    def __init__(self, data: AvalancheDataset,
+                 oversample_small_tasks: bool = False,
                  **kwargs):
         """ Custom data loader for task-balanced multi-task training.
 
@@ -173,15 +175,15 @@ class MultiTaskJoinedBatchDataLoader:
         # print('batch size: ' + str(single_exp_batch_size))
         # print('resto: ' + str(remaining_example))
         self.loader_data, remaining_example = self._create_dataloaders(
-                                data, single_exp_batch_size,
-                                remaining_example, **kwargs)
+            data, single_exp_batch_size,
+            remaining_example, **kwargs)
         self.loader_memory, remaining_example = self._create_dataloaders(
-                                memory, single_exp_batch_size,
-                                remaining_example, **kwargs)
+            memory, single_exp_batch_size,
+            remaining_example, **kwargs)
         self.max_len = max([len(d) for d in chain(
             self.loader_data.values(), self.loader_memory.values())]
-            )
-    
+                           )
+
     def __iter__(self):
         iter_data_dataloaders = {}
         iter_buffer_dataloaders = {}
@@ -191,8 +193,8 @@ class MultiTaskJoinedBatchDataLoader:
         for t in self.loader_memory.keys():
             iter_buffer_dataloaders[t] = iter(self.loader_memory[t])
 
-        max_len = max([len(d) for d in chain(iter_data_dataloaders.values(), 
-                       iter_buffer_dataloaders.values())])
+        max_len = max([len(d) for d in chain(iter_data_dataloaders.values(),
+                                             iter_buffer_dataloaders.values())])
         try:
             for it in range(max_len):
                 mb_x = mb_y = None
@@ -201,7 +203,7 @@ class MultiTaskJoinedBatchDataLoader:
                     self.data, iter_data_dataloaders,
                     self.loader_data, self.oversample_small_tasks,
                     mb_curr)
-                
+
                 self._get_mini_batch_from_data_dict(
                     self.memory, iter_buffer_dataloaders,
                     self.loader_memory, self.oversample_small_tasks,
@@ -213,7 +215,7 @@ class MultiTaskJoinedBatchDataLoader:
 
     def __len__(self):
         return self.max_len
-    
+
     def _get_mini_batch_from_data_dict(self, data, iter_dataloaders,
                                        loaders_dict, oversample_small_tasks,
                                        mb_curr):
@@ -233,14 +235,14 @@ class MultiTaskJoinedBatchDataLoader:
                 else:
                     del iter_dataloaders[t]
                     continue
-            if t in mb_curr: 
+            if t in mb_curr:
                 x_curr = torch.cat((mb_curr[t][0], x))
                 y_curr = torch.cat((mb_curr[t][1], y))
                 mb_curr[t] = x_curr, y_curr
             else:
                 mb_curr[t] = x, y
 
-    def _create_dataloaders(self, data_dict, single_exp_batch_size, 
+    def _create_dataloaders(self, data_dict, single_exp_batch_size,
                             remaining_example, **kwargs):
         loaders_dict: Dict[int, DataLoader] = {}
         for task_id in data_dict.task_set:

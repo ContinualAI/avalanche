@@ -158,7 +158,6 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         """
         super().__init__()
 
-        self.targets = targets
         if transform_groups is not None and (
                 transform is not None or target_transform is not None):
             raise ValueError('transform_groups can\'t be used with transform'

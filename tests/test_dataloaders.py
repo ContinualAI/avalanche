@@ -23,6 +23,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.datasets import MNIST
+from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
@@ -88,12 +89,10 @@ class DataLoaderTests(unittest.TestCase):
         )
 
         for step in scenario.train_stream:
-            
-            adapted_dataset = {step.task_label: step.dataset}
-
+            adapted_dataset = step.dataset
             dataloader = MultiTaskJoinedBatchDataLoader(
                     adapted_dataset,
-                    replayPlugin.ext_mem,
+                    AvalancheConcatDataset(replayPlugin.ext_mem.values()),
                     oversample_small_tasks=True,
                     num_workers=0,
                     batch_size=batch_size,

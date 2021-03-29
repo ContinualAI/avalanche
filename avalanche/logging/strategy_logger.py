@@ -56,7 +56,8 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
             self.log_metric(val, 'before_training_exp')
 
     def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       metric_values: List['MetricValue'], **kwargs):
+                                       metric_values: List['MetricValue'],
+                                       **kwargs):
         for val in metric_values:
             self.log_metric(val, 'adapt_train_dataset')
 
@@ -127,7 +128,8 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
             self.log_metric(val, 'before_eval')
 
     def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                      metric_values: List['MetricValue'], **kwargs):
+                                      metric_values: List['MetricValue'],
+                                      **kwargs):
         for val in metric_values:
             self.log_metric(val, 'adapt_eval_dataset')
 

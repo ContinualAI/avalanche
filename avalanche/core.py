@@ -54,7 +54,8 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
         """ Called before `train_exp` by the `BaseStrategy`. """
         pass
 
-    def before_train_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+    def before_train_dataset_adaptation(self, *args,
+                                        **kwargs) -> CallbackResult:
         """ Called before `train_dataset_adapatation` by the `BaseStrategy`. """
         pass
 
