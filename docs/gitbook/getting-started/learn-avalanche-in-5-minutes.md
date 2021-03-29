@@ -253,78 +253,40 @@ Check out more details about what Avalanche can offer in this module following t
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done through the **Metrics**: a set of classes which implement the main continual learning metrics computation like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc. At the moment, in _Avalanche_ we offer a number of pre-implemented metrics you can use for your own experiments. We made sure to include all the major accuracy-based metrics but also the ones related to computation and memory.
+This is mostly done through the **Metrics** and the **Loggers.** The **Metrics** provide a set of classes which implements the main continual learning metrics like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.   
+Metrics should be created via the utility functions \(e.g. `accuracy_metrics`, `timing_metrics`and others\) specifying in the arguments when those metrics should be computed \(after each minibatch, epoch, experience etc...\).  
+The **Loggers** specify a way to report the metrics \(e.g. with Tensorboard, on console or others\). Loggers are created by instantiating the respective class.
 
-Each metric comes with a general purpose class and more fine-grained classes aimed at emitting metric values on specific moments during training and evaluation.
-
-#### General metric
-
-As an example, the `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
+Metrics and loggers interact via the **Evaluation Plugin:** this is the main object responsible of tracking the experiment progress. Metrics and loggers are directly passed to the `EvaluationPlugin` instance. You will see the output of the loggers automatically during training and evaluation! Let's see how to put this together in few lines of code:
 
 ```python
-from avalanche.evaluation.metrics import Accuracy
-
-# create an instance of the Accuracy metric
-# initial accuracy is 0
-acc_metric = Accuracy()
-print("Initial Accuracy: ", acc_metric.result()) #  output 0
-
-# two consecutive metric updates
-real_y = torch.tensor([1, 2]).long()
-predicted_y = torch.tensor([1, 0]).float()
-acc_metric.update(real_y, predicted_y)
-acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.5
-predicted_y = torch.tensor([1,2]).float()
-acc_metric.update(real_y, predicted_y)
-acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.75
-
-# reset accuracy to 0
-acc_metric.reset() 
-print("After reset: ", acc_metric.result()) # output 0
-```
-
-#### Fine-grained metric
-
-If you want to integrate the available metrics automatically in the training and evaluation flow, you can use more specific metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. In order to simplify the use of these metrics, we provided utility functions with which you can create many different version of the same metric in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see final example below\).
-
-```python
-# utility functions to create metrics
+# utility functions to create plugin metrics
 from avalanche.evaluation.metrics import accuracy_metrics, \
-loss_metrics, cpu_usage_metrics, disk_usage_metrics, \
-gpu_usage_metrics, MAC_metrics, ram_usage_metrics, \
-timing_metrics
+loss_metrics, ExperienceForgetting
+from avalanche.loggers import InteractiveLogger, TensorboardLogger
+from avalanche.training.plugins import EvaluationPlugin
 
-# you may pass the result to the EvaluationPlugin
-metrics = accuracy_metrics(epoch=True, 
-                           experience=True)
+eval_plugin = EvaluationPlugin(
+    # accuracy after each training epoch
+    # and after each evaluation experience
+    accuracy_metrics(epoch=True, experience=True),
+    # loss after each training minibatch and each
+    # evaluation stream
+    loss_metrics(minibatch=True, stream=True),
+    # catastrophic forgetting after each evaluation
+    # experience
+    ExperienceForgetting(), # add as many metrics as you like
+    
+    loggers=[InteractiveLogger(), TensorboardLogger()])
+
+# pass the evaluation plugin instance to the strategy
+# strategy = EWC(..., evaluator=eval_plugin)
+
+# THAT'S IT!!
+                           
 ```
 
-The metrics currently available in the current _Avalanche_ release are:
-
-```python
-from avalanche.evaluation.metrics import Accuracy, \
-MinibatchAccuracy, EpochAccuracy, RunningEpochAccuracy, \
-ExperienceAccuracy, StreamAccuracy, \ # Accuracy
-Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
-ExperienceLoss, StreamLoss, \ # Loss
-Forgetting, ExperienceForgetting, \ # Forgetting
-ConfusionMatrix, StreamConfusionMatrix, \ # Confusion Matrix
-CPUUsage, MinibatchCPUUsage, EpochCPUUsage, AverageEpochCPUUsage, \
-ExperienceCPUUsage, StreamCPUUsage, \ # CPU Usage
-DiskUsage, MinibatchDiskUsage, EpochDiskUsage, \
-ExperienceDiskUsage, StreamDiskUsage, \ # Disk Usage
-MaxGPU, MinibatchMaxGPU, EpochMaxGPU, ExperienceMaxGPU, \
-StreamMaxGPU,\ # Max GPU Usage 
-MAC, MinibatchMAC, EpochMAC, ExperienceMAC, \ # Multiply and Accumulate
-MaxRAM, MinibatchMaxRAM, EpochMaxRAM, ExperienceMaxRAM, \
-StreamMaxRAM, \ # Max RAM Usage
-ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
-ExperienceTime, StreamTime # Timing metrics
-```
-
-For more details about the evaluation module, check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
+For more details about the evaluation module \(how to write new metrics/loggers, a deeper tutorial on metrics\) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
 
 {% page-ref page="../from-zero-to-hero-tutorial/4.-evaluation.md" %}
 

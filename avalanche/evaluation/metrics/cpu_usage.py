@@ -22,12 +22,12 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
 from avalanche.evaluation.metrics import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class CPUUsage(Metric[float]):
     """
-    The CPU usage metric.
+    The standalone CPU usage metric.
 
     Instances of this metric compute the average CPU usage as a float value.
     The metric starts tracking the CPU usage when the `update` method is called
@@ -46,7 +46,7 @@ class CPUUsage(Metric[float]):
 
     def __init__(self):
         """
-        Creates an instance of the CPU usage metric.
+        Creates an instance of the standalone CPU usage metric.
 
         By default this metric in its initial state will return a CPU usage
         value of 0. The metric can be updated by using the `update` method
@@ -122,7 +122,7 @@ class CPUUsage(Metric[float]):
 class MinibatchCPUUsage(PluginMetric[float]):
     """
     The minibatch CPU usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     This metric "logs" the CPU usage for each iteration.
 
@@ -148,12 +148,12 @@ class MinibatchCPUUsage(PluginMetric[float]):
         self.reset()
         self._minibatch_cpu.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_cpu.update()
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -169,7 +169,7 @@ class MinibatchCPUUsage(PluginMetric[float]):
 class EpochCPUUsage(PluginMetric[float]):
     """
     The Epoch CPU usage metric.
-    This metric only works at training time.
+    This plugin metric only works at training time.
 
     The average usage will be logged after each epoch.
     """
@@ -186,7 +186,7 @@ class EpochCPUUsage(PluginMetric[float]):
         self.reset()
         self._epoch_cpu.update()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._epoch_cpu.update()
         return self._package_result(strategy)
@@ -197,7 +197,7 @@ class EpochCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._epoch_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         cpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -212,7 +212,7 @@ class EpochCPUUsage(PluginMetric[float]):
 class RunningEpochCPUUsage(PluginMetric[float]):
     """
     The running epoch CPU usage metric.
-    This metric only works at training time
+    This plugin metric only works at training time
 
     After each iteration, the metric logs the average CPU usage up
     to the current epoch iteration.
@@ -230,11 +230,11 @@ class RunningEpochCPUUsage(PluginMetric[float]):
     def before_training_epoch(self, strategy) -> MetricResult:
         self.reset()
 
-    def before_training_iteration(self, strategy: 'PluggableStrategy') \
+    def before_training_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         self._epoch_cpu.update()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> None:
         self._epoch_cpu.update()
         self._cpu_mean.update(self._epoch_cpu.result())
@@ -248,7 +248,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._cpu_mean.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         cpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -265,7 +265,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
 class ExperienceCPUUsage(PluginMetric[float]):
     """
     The average experience CPU usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     After each experience, this metric emits the average CPU usage on that
     experienc.
@@ -279,11 +279,11 @@ class ExperienceCPUUsage(PluginMetric[float]):
 
         self._exp_cpu = CPUUsage()
 
-    def before_eval_exp(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self.reset()
         self._exp_cpu.update()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_cpu.update()
         return self._package_result(strategy)
 
@@ -293,7 +293,7 @@ class ExperienceCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cpu = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
@@ -308,7 +308,7 @@ class ExperienceCPUUsage(PluginMetric[float]):
 class StreamCPUUsage(PluginMetric[float]):
     """
     The average stream CPU usage metric.
-    This metric works only at eval time.
+    This plugin metric works only at eval time.
 
     After the entire evaluation stream, this metric emits
     the average CPU usage on all experiences.
@@ -322,11 +322,11 @@ class StreamCPUUsage(PluginMetric[float]):
 
         self._exp_cpu = CPUUsage()
 
-    def before_eval(self, strategy: 'PluggableStrategy') -> None:
+    def before_eval(self, strategy: 'BaseStrategy') -> None:
         self.reset()
         self._exp_cpu.update()
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         self._exp_cpu.update()
         return self._package_result(strategy)
 
@@ -336,7 +336,7 @@ class StreamCPUUsage(PluginMetric[float]):
     def result(self) -> float:
         return self._exp_cpu.result()
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cpu = self.result()
 
         phase_name, _ = phase_and_task(strategy)
@@ -356,7 +356,8 @@ class StreamCPUUsage(PluginMetric[float]):
 def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
                       experience=False, stream=False) -> List[PluginMetric]:
     """
-    Helper method that can be used to obtain the desired set of metric.
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
 
     :param minibatch: If True, will return a metric able to log the minibatch
         CPU usage

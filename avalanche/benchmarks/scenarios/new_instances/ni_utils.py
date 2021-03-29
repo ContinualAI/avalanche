@@ -9,14 +9,16 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Sequence
+from typing import Sequence, Any
 import torch
-from avalanche.benchmarks.utils import IDatasetWithTargets
+from avalanche.benchmarks.utils.dataset_definitions import \
+    ISupportedClassificationDataset
 
 
-def _exp_structure_from_assignment(dataset: IDatasetWithTargets,
-                                   assignment: Sequence[Sequence[int]],
-                                   n_classes: int):
+def _exp_structure_from_assignment(
+        dataset: ISupportedClassificationDataset[Any],
+        assignment: Sequence[Sequence[int]],
+        n_classes: int):
     n_experiences = len(assignment)
     exp_structure = [[0 for _ in range(n_classes)]
                      for _ in range(n_experiences)]
