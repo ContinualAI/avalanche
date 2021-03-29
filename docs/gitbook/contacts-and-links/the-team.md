@@ -20,7 +20,7 @@ The Project is maintained mostly by [ContinualAI Research](https://www.continual
 
 _Avalanche_ is a large community effort. It is only fair to list here all the people who made it a great tool that anyone can use without any restrictions at all!
 
-_Qi She, Keiland Cooper, Jeremy Forest, Davide Maltoni, Prashant Kumar Rai, Tyler Hayes, Marc Masana, Eden Belouadah, Adrian Popescu, Gido van de Ven, Martin Mundt, Matthias De Lange, Christopher Kanan, Joost van de Weijer, Tinne Tuytelaars, Fabio Cuzzolin, Davide Bacciu, German I. Parisi_ _...see the_ [_full list on GitHub_](https://github.com/ContinualAI/avalanche/graphs/contributors)_!_
+_Tyler Hayes, Matthias De Lange, Marc Masana, Jary Pomponi, Gido van de Ven, Martin Mundt, Qi She, Keiland Cooper, Jeremy Forest, Eden Belouadah, Adrian Popescu, Andreas Tolias, Fabio Cuzzolin, Simone Scardapane, Simone Calderara, Subutai Amhad, Luca Antiga, Christopher Kanan, Joost van de Weijer, Tinne Tuytelaars, Davide Bacciu, German I. Parisi, Razvan Pascanu, Davide Maltoni_ _...see the_ [_full list on GitHub_](https://github.com/ContinualAI/avalanche/graphs/contributors)_!_
 
 ## 👪 Users
 
