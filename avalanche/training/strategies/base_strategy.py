@@ -310,6 +310,7 @@ class BaseStrategy:
         self.model.train()
 
     def train_dataset_adaptation(self, **kwargs):
+        """ Initialize `self.adapted_dataset`. """
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
@@ -363,7 +364,7 @@ class BaseStrategy:
 
     def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
         """
-        Called after the dataset instantiation. Initialize the data loader.
+        Called after the dataset adaptation. Initializes the data loader.
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
@@ -376,7 +377,7 @@ class BaseStrategy:
 
     def make_eval_dataloader(self, num_workers=0, **kwargs):
         """
-        Initialize the eval data loader.
+        Initializes the eval data loader.
         :param num_workers:
         :param kwargs:
         :return:
@@ -390,7 +391,7 @@ class BaseStrategy:
 
     def after_train_dataset_adaptation(self, **kwargs):
         """
-        Called after the dataset initialization and before the
+        Called after the dataset adaptation and before the
         dataloader initialization. Allows to customize the dataset.
         :param kwargs:
         :return:
@@ -510,6 +511,7 @@ class BaseStrategy:
             p.before_eval_exp(self, **kwargs)
 
     def eval_dataset_adaptation(self, **kwargs):
+        """ Initialize `self.adapted_dataset`. """
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
 
