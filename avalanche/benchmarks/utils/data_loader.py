@@ -13,13 +13,13 @@ from typing import Dict, List
 import torch
 from itertools import chain
 
+from avalanche.benchmarks.utils import AvalancheDataset
+
 
 class MultiTaskDataLoader:
-    def __init__(self, data_dict: Dict, oversample_small_tasks: bool = False,
+    def __init__(self, data: AvalancheDataset, oversample_small_tasks: bool = False,
                  **kwargs):
-        """ Custom data loader for multi-task training.
-        The dictionary `data_dict` maps task ids into their
-        corresponding datasets.
+        """ Custom data loader for Avalanche's datasets.
 
         When iterating over the data, it returns sequentially a different
         batch for each task (i.e. first a batch for task 1, then task 2,
@@ -29,137 +29,125 @@ class MultiTaskDataLoader:
         It is suggested to use this loader only if tasks have approximately the
         same length.
 
-        :param data_dict: a dictionary with task ids as keys and Datasets
-            as values.
+        :param data: an instance of `AvalancheDataset`.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
-        self.data_dict = data_dict
-        self.loaders_dict: Dict[int, DataLoader] = {}
+        self.data = data
+        self.dataloaders: Dict[int, DataLoader] = {}
         self.oversample_small_tasks = oversample_small_tasks
 
-        for task_id, data in self.data_dict.items():
-            self.loaders_dict[task_id] = DataLoader(data, **kwargs)
-        self.max_len = max([len(d) for d in self.loaders_dict.values()])
+        for task_label in self.data.task_set:
+            tdata = self.data.task_set[task_label]
+            self.dataloaders[task_label] = DataLoader(tdata, **kwargs)
+        self.max_len = max([len(d) for d in self.dataloaders.values()])
 
     def __iter__(self):
         iter_dataloaders = {}
-        for t in self.loaders_dict.keys():
-            iter_dataloaders[t] = iter(self.loaders_dict[t])
+        for t in self.dataloaders.keys():
+            iter_dataloaders[t] = iter(self.dataloaders[t])
         max_len = max([len(d) for d in iter_dataloaders.values()])
 
         try:
             for it in range(max_len):
                 # list() is necessary because we may remove keys from the
                 # dictionary. This would break the generator.
-                for t in list(self.data_dict.keys()):
-                    t_loader = iter_dataloaders[t]
+                for tid, t_loader in list(iter_dataloaders.items()):
                     try:
-                        x, y, *_ = next(t_loader)
-                        yield t, x, y
+                        batch = next(t_loader)
                     except StopIteration:
                         # StopIteration is thrown if dataset ends.
                         # reinitialize data loader
                         if self.oversample_small_tasks:
                             # reinitialize data loader
-                            iter_dataloaders[t] = iter(self.loaders_dict[t])
-                            x, y, *_ = next(iter_dataloaders[t])
+                            iter_dataloaders[t] = iter(self.dataloaders[tid])
+                            batch = next(iter_dataloaders[tid])
                         else:
                             del iter_dataloaders[t]
                             continue
-                        yield t, x, y
+                    yield batch
         except StopIteration:
             return
 
     def __len__(self):
-        return self.max_len * len(self.loaders_dict)
+        return self.max_len * len(self.dataloaders)
 
 
 class MultiTaskMultiBatchDataLoader:
-    def __init__(self, data_dict: Dict, oversample_small_tasks: bool = False,
+    def __init__(self, data: AvalancheDataset, oversample_small_tasks: bool = False,
                  **kwargs):
-        """ Custom data loader for multi-task training.
-        The dictionary `data_dict` maps task ids into their
-        corresponding datasets.
+        """ Custom data loader for task-balanced multi-task training.
 
-        mini-batches emitted by this dataloader are dictionaries with task
+        Mini-batches emitted by this dataloader are dictionaries with task
         labels as keys and mini-batches as values. Therefore, each mini-batch
         contains separate data for each task (i.e. key 1 batch for task 1).
         If `oversample_small_tasks == True` smaller tasks are oversampled to
         match the largest task.
 
-        It is suggested to use this loader only if tasks have approximately the
-        same length.
-
-        :param data_dict: a dictionary with task ids as keys and Datasets
-            as values.
+        :param data: an instance of `AvalancheDataset`.
         :param oversample_small_task: whether smaller tasks should be
             oversampled to match the largest one.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
-        self.data_dict = data_dict
-        self.loaders_dict: Dict[int, DataLoader] = {}
+        self.data = data
+        self.dataloaders = {}
         self.oversample_small_tasks = oversample_small_tasks
 
-        for task_id, data in self.data_dict.items():
-            self.loaders_dict[task_id] = DataLoader(data, **kwargs)
-        self.max_len = max([len(d) for d in self.loaders_dict.values()])
+        for task_label in self.data.task_set:
+            tdata = self.data.task_set[task_label]
+            self.dataloaders[task_label] = DataLoader(tdata, **kwargs)
+        self.max_len = max([len(d) for d in self.dataloaders.values()])
 
     def __iter__(self):
         iter_dataloaders = {}
-        for t in self.loaders_dict.keys():
-            iter_dataloaders[t] = iter(self.loaders_dict[t])
-        max_len = max([len(d) for d in iter_dataloaders.values()])
-        try:
-            for it in range(max_len):
-                mb_curr = {}
-                # list() is necessary because we may remove keys from the
-                # dictionary. This would break the generator.
-                for t in list(self.data_dict.keys()):
-                    t_loader = iter_dataloaders[t]
-                    try:
-                        x, y, *_ = next(t_loader)
-                    except StopIteration:
-                        # StopIteration is thrown if dataset ends.
-                        if self.oversample_small_tasks:
-                            # reinitialize data loader
-                            iter_dataloaders[t] = iter(self.loaders_dict[t])
-                            x, y, *_ = next(iter_dataloaders[t])
-                        else:
-                            del iter_dataloaders[t]
-                            continue
-                    mb_curr[t] = x, y
-                yield mb_curr
-        except StopIteration:
-            return
+        for tid, dl in self.dataloaders.items():
+            iter_dataloaders[tid] = iter(dl)
+
+        max_num_mbatches = max([len(d) for d in iter_dataloaders.values()])
+        for it in range(max_num_mbatches):
+            mb_curr = {}
+            # list() is necessary because we may remove keys from the
+            # dictionary. This would break the generator.
+            for tid, t_loader in list(iter_dataloaders.items()):
+                t_loader = iter_dataloaders[tid]
+                try:
+                    batch = next(t_loader)[:-1]  # skip task label
+                except StopIteration:
+                    # StopIteration is thrown if dataset ends.
+                    if self.oversample_small_tasks:
+                        # reinitialize data loader
+                        iter_dataloaders[tid] = iter(self.dataloaders[tid])
+                        batch = next(iter_dataloaders[tid])[:-1]
+                    else:
+                        del iter_dataloaders[tid]  # skip task label
+                        continue
+                mb_curr[tid] = batch
+            yield mb_curr
 
     def __len__(self):
         return self.max_len
 
 
 class MultiTaskJoinedBatchDataLoader:
-    def __init__(self, data_dict: Dict, memory_dict: Dict = None, 
+    def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
                  oversample_small_tasks: bool = False, batch_size: int = 32,
                  **kwargs):
-        """ Custom data loader for multi-task training.
-        The dictionary `data_dict` maps task ids into their corresponding
-        training datasets. 
-        The dictionary `memory_dict` maps task ids into their corresponding
-        datasets of memories. 
+        """ Custom data loader for rehearsal strategies.
 
-        When iterating over the data, it returns a single batch containing
-        example from different tasks (i.e. a batch containing a balanced number
-        of examples from all the tasks in the `data_dict` and `memory_dict`). 
+        The current experience `data` and rehearsal `memory` are used to create
+        the mini-batches by concatenating them together. Each mini-batch
+        contains examples from each task (i.e. a batch containing a balanced
+        number of examples from all the tasks in the `data` and `memory`).
         
         If `oversample_small_tasks == True` smaller tasks are oversampled to
         match the largest task.
 
-        :param data_dict: a dictionary with task ids as keys and Datasets
+        :param data: a dictionary with task ids as keys and Datasets
             (training data) as values.
-        :param memory_dict: a dictionary with task ids as keys and Datasets 
+        :param memory: a dictionary with task ids as keys and Datasets
             (patterns in memory) as values.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
@@ -169,13 +157,13 @@ class MultiTaskJoinedBatchDataLoader:
             each task separately. See pytorch :class:`DataLoader`.
         """
 
-        self.data_dict = data_dict
-        self.memory_dict = memory_dict
-        self.loaders_data_dict: Dict[int, DataLoader] = {}
-        self.loaders_memory_dict: Dict[int, DataLoader] = {}
+        self.data = data
+        self.memory = memory
+        self.loader_data: Dict[int, DataLoader] = {}
+        self.loader_memory: Dict[int, DataLoader] = {}
         self.oversample_small_tasks = oversample_small_tasks
 
-        num_keys = len(self.data_dict.keys()) + len(self.memory_dict.keys())
+        num_keys = len(self.data.task_set) + len(self.memory.task_set)
         assert batch_size >= num_keys, "Batch size must be greator or equal " \
                                        "to the number of tasks"
         single_exp_batch_size = batch_size // num_keys
@@ -184,24 +172,24 @@ class MultiTaskJoinedBatchDataLoader:
         # print('num keys: ' + str(num_keys))
         # print('batch size: ' + str(single_exp_batch_size))
         # print('resto: ' + str(remaining_example))
-        self.loaders_data_dict, remaining_example = self._create_dataloaders(
-                                data_dict, single_exp_batch_size,
+        self.loader_data, remaining_example = self._create_dataloaders(
+                                data, single_exp_batch_size,
                                 remaining_example, **kwargs)
-        self.loaders_memory_dict, remaining_example = self._create_dataloaders(
-                                memory_dict, single_exp_batch_size, 
+        self.loader_memory, remaining_example = self._create_dataloaders(
+                                memory, single_exp_batch_size,
                                 remaining_example, **kwargs)
         self.max_len = max([len(d) for d in chain(
-            self.loaders_data_dict.values(), self.loaders_memory_dict.values())]
+            self.loader_data.values(), self.loader_memory.values())]
             )
     
     def __iter__(self):
         iter_data_dataloaders = {}
         iter_buffer_dataloaders = {}
 
-        for t in self.loaders_data_dict.keys():
-            iter_data_dataloaders[t] = iter(self.loaders_data_dict[t])
-        for t in self.loaders_memory_dict.keys():
-            iter_buffer_dataloaders[t] = iter(self.loaders_memory_dict[t])
+        for t in self.loader_data.keys():
+            iter_data_dataloaders[t] = iter(self.loader_data[t])
+        for t in self.loader_memory.keys():
+            iter_buffer_dataloaders[t] = iter(self.loader_memory[t])
 
         max_len = max([len(d) for d in chain(iter_data_dataloaders.values(), 
                        iter_buffer_dataloaders.values())])
@@ -210,13 +198,13 @@ class MultiTaskJoinedBatchDataLoader:
                 mb_x = mb_y = None
                 mb_curr = {}
                 self._get_mini_batch_from_data_dict(
-                    self.data_dict, iter_data_dataloaders, 
-                    self.loaders_data_dict, self.oversample_small_tasks,
+                    self.data, iter_data_dataloaders,
+                    self.loader_data, self.oversample_small_tasks,
                     mb_curr)
                 
                 self._get_mini_batch_from_data_dict(
-                    self.memory_dict, iter_buffer_dataloaders, 
-                    self.loaders_memory_dict, self.oversample_small_tasks,
+                    self.memory, iter_buffer_dataloaders,
+                    self.loader_memory, self.oversample_small_tasks,
                     mb_curr)
 
                 yield mb_curr
@@ -226,12 +214,12 @@ class MultiTaskJoinedBatchDataLoader:
     def __len__(self):
         return self.max_len
     
-    def _get_mini_batch_from_data_dict(self, data_dict, iter_dataloaders, 
+    def _get_mini_batch_from_data_dict(self, data, iter_dataloaders,
                                        loaders_dict, oversample_small_tasks,
                                        mb_curr):
         # list() is necessary because we may remove keys from the
         # dictionary. This would break the generator.
-        for t in list(data_dict.keys()):
+        for t in list(data.task_set):
             t_loader = iter_dataloaders[t]
             try:
                 x, y, *_ = next(t_loader)
@@ -255,7 +243,8 @@ class MultiTaskJoinedBatchDataLoader:
     def _create_dataloaders(self, data_dict, single_exp_batch_size, 
                             remaining_example, **kwargs):
         loaders_dict: Dict[int, DataLoader] = {}
-        for task_id, data in data_dict.items():
+        for task_id in data_dict.task_set:
+            data = data_dict.task_set[task_id]
             current_batch_size = single_exp_batch_size
             if remaining_example > 0:
                 current_batch_size += 1

@@ -50,39 +50,28 @@ class BaseStrategy:
         the task labels.
 
         **Training loop**
-        The training loop and its callbacks are organized as follows::
+        The training loop is organized as follows::
             train
-                before_training
-                before_training_exp
-                adapt_train_dataset
-                make_train_dataloader
-                before_training_epoch
-                    before_training_iteration
-                        before_forward
-                        after_forward
-                        before_backward
-                        after_backward
-                    after_training_iteration
-                    before_update
-                    after_update
-                after_training_epoch
-                after_training_exp
-                after_training
+                train_exp  # for each experience
+                    adapt_train_dataset
+                    train_dataset_adaptation
+                    make_train_dataloader
+                    train_epoch  # for each epoch
+                        # forward
+                        # backward
+                        # model update
 
         **Evaluation loop**
-        The evaluation loop and its callbacks are organized as follows::
+        The evaluation loop is organized as follows::
             eval
-                before_eval
-                adapt_eval_dataset
-                make_eval_dataloader
-                before_eval_exp
-                    eval_epoch
-                        before_eval_iteration
-                        before_eval_forward
-                        after_eval_forward
-                        after_eval_iteration
-                after_eval_exp
-                after_eval
+                eval_exp  # for each experience
+                    adapt_eval_dataset
+                    eval_dataset_adaptation
+                    make_eval_dataloader
+                    eval_epoch  # for each epoch
+                        # forward
+                        # backward
+                        # model update
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -159,11 +148,14 @@ class BaseStrategy:
             use :attr:`.BaseStrategy.experience`.
         """
 
-        self.current_dataloader = None
+        self.dataloader = None
         """ Dataloader. """
 
         self.mb_it = None
         """ Iteration counter. Reset at the start of a new epoch. """
+
+        self.mbatch = None
+        """ Current mini-batch. """
 
         self.mb_x = None
         """ Current mini-batch input. """
@@ -301,7 +293,7 @@ class BaseStrategy:
             self.epoch,
             self.experience,
             self.adapted_dataset,
-            self.current_dataloader,
+            self.dataloader,
             self.is_training)
 
         if (self.eval_every == 0 and do_final) or \
@@ -313,15 +305,13 @@ class BaseStrategy:
 
         # restore train-state variables and training mode.
         self.epoch, self.experience, self.adapted_dataset = _prev_state[:3]
-        self.current_dataloader = _prev_state[3]
+        self.dataloader = _prev_state[3]
         self.is_training = _prev_state[4]
         self.model.train()
 
     def train_dataset_adaptation(self, **kwargs):
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
-        self.adapted_dataset = {
-            self.experience.task_label: self.adapted_dataset}
 
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
@@ -377,7 +367,7 @@ class BaseStrategy:
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
-        self.current_dataloader = MultiTaskMultiBatchDataLoader(
+        self.dataloader = MultiTaskMultiBatchDataLoader(
             self.adapted_dataset,
             oversample_small_tasks=True,
             num_workers=num_workers,
@@ -391,7 +381,7 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        self.current_dataloader = MultiTaskDataLoader(
+        self.dataloader = MultiTaskDataLoader(
             self.adapted_dataset,
             oversample_small_tasks=False,
             num_workers=num_workers,
@@ -423,13 +413,13 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for self.mb_it, batches in \
-                enumerate(self.current_dataloader):
+        for self.mb_it, self.mbatch in \
+                enumerate(self.dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             self.loss = 0
-            for self.mb_task_id, (self.mb_x, self.mb_y) in batches.items():
+            for self.mb_task_id, (self.mb_x, self.mb_y) in self.mbatch.items():
                 self.mb_x = self.mb_x.to(self.device)
                 self.mb_y = self.mb_y.to(self.device)
 
@@ -505,7 +495,7 @@ class BaseStrategy:
         self.epoch = None
         self.experience = None
         self.adapted_dataset = None
-        self.current_dataloader = None
+        self.dataloader = None
         self.mb_it = None
         self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None
@@ -522,8 +512,6 @@ class BaseStrategy:
     def eval_dataset_adaptation(self, **kwargs):
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
-        self.adapted_dataset = {
-            self.experience.task_label: self.adapted_dataset}
 
     def before_eval_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
@@ -534,8 +522,8 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_task_id, self.mb_x, self.mb_y) in \
-                enumerate(self.current_dataloader):
+        for self.mb_it, (self.mb_x, self.mb_y, self.mb_task_id) in \
+                enumerate(self.dataloader):
             self.before_eval_iteration(**kwargs)
 
             self.mb_x = self.mb_x.to(self.device)
@@ -558,7 +546,7 @@ class BaseStrategy:
         # Reset flow-state variables. They should not be used outside the flow
         self.experience = None
         self.adapted_dataset = None
-        self.current_dataloader = None
+        self.dataloader = None
         self.mb_it = None
         self.mb_it, self.mb_x, self.mb_y = None, None, None
         self.loss = None

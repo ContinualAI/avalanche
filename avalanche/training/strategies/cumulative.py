@@ -4,6 +4,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
+from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.training.strategies import BaseStrategy
@@ -45,18 +46,15 @@ class Cumulative(BaseStrategy):
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
 
-        self.dataset = {}  # cumulative dataset
+        self.dataset = None  # cumulative dataset
 
-    def after_train_dataset_adaptation(self, **kwargs):
-
-        super().after_train_dataset_adaptation(**kwargs)
-
-        curr_task_id = self.experience.task_label
-        curr_data = self.experience.dataset
-        if curr_task_id in self.dataset:
-            cat_data = ConcatDataset([self.dataset[curr_task_id],
-                                      curr_data])
-            self.dataset[curr_task_id] = cat_data
+    def train_dataset_adaptation(self, **kwargs):
+        """
+            Concatenates all the previous experiences.
+        """
+        if self.dataset is None:
+            self.dataset = self.experience.dataset
         else:
-            self.dataset[curr_task_id] = curr_data
+            self.dataset = AvalancheConcatDataset(
+                [self.dataset, self.experience.dataset])
         self.adapted_dataset = self.dataset
