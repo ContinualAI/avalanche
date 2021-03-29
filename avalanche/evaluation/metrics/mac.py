@@ -19,7 +19,7 @@ from avalanche.evaluation.metric_utils import get_metric_name, \
     phase_and_task, stream_type
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class MAC(Metric[int]):
@@ -113,13 +113,13 @@ class MinibatchMAC(PluginMetric[float]):
     def result(self) -> float:
         return self._minibatch_MAC.result()
 
-    def after_training_iteration(self, strategy: 'PluggableStrategy') \
+    def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._minibatch_MAC.update(strategy.model,
                                    strategy.mb_x[0].unsqueeze(0))
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -154,13 +154,13 @@ class EpochMAC(PluginMetric[float]):
     def result(self) -> float:
         return self._MAC_metric.result()
 
-    def after_training_epoch(self, strategy: 'PluggableStrategy') \
+    def after_training_epoch(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         self._MAC_metric.update(strategy.model,
                                 strategy.mb_x[0].unsqueeze(0))
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
@@ -193,13 +193,13 @@ class ExperienceMAC(PluginMetric[float]):
     def result(self) -> float:
         return self._MAC_metric.result()
 
-    def after_eval_exp(self, strategy: 'PluggableStrategy') -> \
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> \
             'MetricResult':
         self._MAC_metric.update(strategy.model,
                                 strategy.mb_x[0].unsqueeze(0))
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> \
+    def _package_result(self, strategy: 'BaseStrategy') -> \
             MetricResult:
         metric_value = self.result()
 

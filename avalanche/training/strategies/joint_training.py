@@ -16,7 +16,7 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
-from avalanche.logging import default_logger
+from avalanche.training import default_logger
 from avalanche.training.strategies import BaseStrategy
 
 if TYPE_CHECKING:
@@ -61,8 +61,12 @@ class JointTraining(BaseStrategy):
         If it is a sequence, trains the model on each experience in order.
         Joint training uses the entire stream and it is not a proper CL
         strategy.
+        It returns a dictionary with last recorded value for each metric name.
 
         :param experiences: single IExperience or sequence.
+
+        :return: dictionary containing last recorded value for
+            each metric name
         """
         self.is_training = True
         self.model.train()
@@ -71,7 +75,6 @@ class JointTraining(BaseStrategy):
         if isinstance(experiences, Experience):
             experiences = [experiences]
 
-        res = []
         self.before_training(**kwargs)
 
         self.experience = experiences[0]
@@ -105,8 +108,10 @@ class JointTraining(BaseStrategy):
             self.after_training_epoch(**kwargs)
         self.after_training_exp(**kwargs)
 
-        res.append(self.evaluator.current_metrics.copy())
         self.after_training(**kwargs)
+
+        res = self.evaluator.get_last_metrics()
+
         return res
 
 
