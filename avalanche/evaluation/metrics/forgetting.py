@@ -13,8 +13,9 @@ from typing import Dict, TYPE_CHECKING, Union
 
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metrics import Accuracy
-from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.evaluation.metrics import Accuracy, Mean
+from avalanche.evaluation.metric_utils import get_metric_name, \
+    phase_and_task, stream_type
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -234,7 +235,152 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         return "ExperienceForgetting"
 
 
+class StreamForgetting(PluginMetric[Dict[int, float]]):
+    """
+    The StreamForgetting metric, describing the average accuracy loss
+    detected over all observed experiences.
+
+    This plugin metric, computed over all experiences,
+    is the average over the difference between the accuracy result obtained after
+    first training on a experience and the accuracy result obtained
+    on the same experience at the end of successive experiences.
+
+    This metric is computed during the eval phase only.
+    """
+
+    def __init__(self):
+        """
+        Creates an instance of the StreamForgetting metric.
+        """
+
+        super().__init__()
+
+        self.stream_forgetting = Mean()
+        """
+        The average forgetting over all experiences
+        """
+
+        self.forgetting = Forgetting()
+        """
+        The general metric to compute forgetting
+        """
+
+        self._last_accuracy = Accuracy()
+        """
+        The average accuracy over the current evaluation experience
+        """
+
+        self.eval_exp_id = None
+        """
+        The current evaluation experience id
+        """
+
+        self.train_exp_id = None
+        """
+        The last encountered training experience id
+        """
+
+    def reset(self) -> None:
+        """
+        Resets the metric.
+
+        Beware that this will also reset the initial accuracy of each
+        experience!
+
+        :return: None.
+        """
+        self.forgetting.reset()
+
+    def reset_last_accuracy(self) -> None:
+        """
+        Resets the last accuracy.
+
+        This will preserve the initial accuracy value of each experience.
+        To be used at the beginning of each eval experience.
+
+        :return: None.
+        """
+        self.forgetting.reset_last()
+
+    def update(self, k, v, initial=False):
+        """
+        Update forgetting metric.
+        See `Forgetting` for more detailed information.
+
+        :param k: key to update
+        :param v: value associated to k
+        :param initial: update initial value. If False, update
+            last value.
+        """
+        self.forgetting.update(k, v, initial=initial)
+
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        See `Forgetting` documentation for more detailed information.
+
+        k: optional key from which compute forgetting.
+        """
+        return self.forgetting.result(k=k)
+
+    def before_training_exp(self, strategy: 'BaseStrategy') -> None:
+        self.train_exp_id = strategy.experience.current_experience
+
+    def before_eval(self, strategy) -> None:
+        self.reset_last_accuracy()
+
+    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
+        self._last_accuracy.reset()
+
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        self.eval_exp_id = strategy.experience.current_experience
+        self._last_accuracy.update(strategy.mb_y,
+                                   strategy.logits)
+
+    def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
+        # update experience on which training just ended
+        if self.train_exp_id == self.eval_exp_id:
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result(),
+                        initial=True)
+        else:
+            # update other experiences
+            # if experience has not been encountered in training
+            # its value will not be considered in forgetting
+            self.update(self.eval_exp_id,
+                        self._last_accuracy.result())
+
+        # this checks if the evaluation experience has been
+        # already encountered at training time
+        # before the last training.
+        # If not, forgetting should not be returned.
+        if self.result(k=self.eval_exp_id) is not None:
+            exp_forgetting = self.result(k=self.eval_exp_id)
+            self.stream_forgetting.update(exp_forgetting, weight=1)  # Equal weight per experience
+
+    def after_eval(self, strategy: 'BaseStrategy') -> \
+            'MetricResult':
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'BaseStrategy') -> \
+            MetricResult:
+        metric_value = self.result()
+
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
+        plot_x_position = self._next_x_position(metric_name)
+
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+    def __str__(self):
+        return "StreamForgetting"
+
+
 __all__ = [
     'Forgetting',
-    'ExperienceForgetting'
+    'ExperienceForgetting',
+    'StreamForgetting'
 ]
