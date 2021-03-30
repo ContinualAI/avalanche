@@ -135,8 +135,13 @@ class EvaluationPlugin(StrategyPlugin):
     def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_exp')
 
-    def adapt_train_dataset(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'adapt_train_dataset')
+    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                        **kwargs):
+        self._update_metrics(strategy, 'before_train_dataset_adaptation')
+
+    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
+        self._update_metrics(strategy, 'after_train_dataset_adaptation')
 
     def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_training_epoch')
@@ -177,8 +182,12 @@ class EvaluationPlugin(StrategyPlugin):
     def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval')
 
-    def adapt_eval_dataset(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'adapt_eval_dataset')
+    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
+        self._update_metrics(strategy, 'before_eval_dataset_adaptation')
+
+    def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy', **kwargs):
+        self._update_metrics(strategy, 'after_eval_dataset_adaptation')
 
     def before_eval_exp(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval_exp')
