@@ -5,7 +5,7 @@ import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
-from torch.utils.data import TensorDataset, Subset
+from torch.utils.data import TensorDataset, Subset, ConcatDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda, CenterCrop
@@ -152,6 +152,46 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         self.assertEqual((y2, t2), (y3_2, t3_2))
         self.assertTrue(pil_images_equal(x2, x3_2))
+
+    def test_avalanche_dataset_radd(self):
+        dataset_mnist = MNIST('./data/mnist', download=True,
+                              transform=CenterCrop(16))
+
+        dataset1 = AvalancheDataset(
+            dataset_mnist, transform=ToTensor(),
+            target_transform=lambda target: -1)
+
+        dataset2 = dataset_mnist + dataset1
+
+        self.assertIsInstance(dataset2, AvalancheDataset)
+
+        self.assertEqual(len(dataset_mnist) * 2, len(dataset2))
+
+        dataset3 = dataset_mnist + dataset1 + dataset_mnist
+
+        self.assertIsInstance(dataset3, AvalancheDataset)
+
+        self.assertEqual(len(dataset_mnist) * 3, len(dataset3))
+
+        # This will be supported in the near future (issue #462)
+        # dataset4 = dataset_mnist + dataset_mnist + dataset1
+        #
+        # self.assertIsInstance(dataset4, AvalancheDataset)
+        #
+        # self.assertEqual(len(dataset_mnist) * 4, len(dataset4))
+
+    def test_dataset_add_monkey_patch_vanilla_behaviour(self):
+        dataset_mnist = MNIST('./data/mnist', download=True,
+                              transform=CenterCrop(16))
+
+        dataset_mnist2 = MNIST('./data/mnist', download=True,
+                              transform=CenterCrop(16))
+
+        dataset = dataset_mnist + dataset_mnist2
+
+        self.assertIsInstance(dataset, ConcatDataset)
+
+        self.assertEqual(len(dataset_mnist) * 2, len(dataset))
 
     def test_avalanche_dataset_uniform_task_labels(self):
         dataset_mnist = MNIST('./data/mnist', download=True)
