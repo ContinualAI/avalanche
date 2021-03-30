@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, TYPE_CHECKING, Union
+from typing import Dict, TYPE_CHECKING, Union, List
 
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
@@ -237,10 +237,10 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
 class StreamForgetting(PluginMetric[Dict[int, float]]):
     """
-    The StreamForgetting metric, describing the average accuracy loss
-    detected over all observed experiences.
+    The StreamForgetting metric, describing the average evaluation accuracy loss
+    detected over all experiences observed during training.
 
-    This plugin metric, computed over all experiences,
+    This plugin metric, computed over all observed experiences during training,
     is the average over the difference between the accuracy result obtained after
     first training on a experience and the accuracy result obtained
     on the same experience at the end of successive experiences.
@@ -378,6 +378,31 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
     def __str__(self):
         return "StreamForgetting"
 
+
+def forgetting_metrics(*, experience=False, stream=False) \
+        -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
+
+    :param experience: If True, will return a metric able to log
+        the forgetting on each evaluation experience.
+    :param stream: If True, will return a metric able to log
+        the forgetting averaged over the evaluation stream experiences,
+        which have been observed during training.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+
+    if experience:
+        metrics.append(ExperienceForgetting())
+
+    if stream:
+        metrics.append(StreamForgetting())
+
+    return metrics
 
 __all__ = [
     'Forgetting',
