@@ -18,12 +18,12 @@ out-of-the-box.
 """
 import copy
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
 from enum import Enum, auto
 
 import torch
 from torch.utils.data.dataloader import default_collate
-from torch.utils.data.dataset import Dataset, Subset
+from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 from torchvision.transforms import Compose
 
 from .dataset_utils import manage_advanced_indexing, \
@@ -49,7 +49,8 @@ TAvalancheDataset = TypeVar('TAvalancheDataset', bound='AvalancheDataset')
 XTransform = Optional[Callable[[Any], Any]]
 YTransform = Optional[Callable[[Any], TTargetType]]
 
-SupportedDataset = Union[IDatasetWithTargets, ITensorDataset, Subset]
+SupportedDataset = Union[IDatasetWithTargets, ITensorDataset, Subset,
+                         ConcatDataset]
 
 
 class AvalancheDatasetType(Enum):
@@ -730,6 +731,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                     'number of patterns in the dataset. Got {}, expected '
                     '{}!'.format(len(task_labels), len(dataset)))
             return task_labels
+
+        # TODO: same as targets
 
         if hasattr(dataset, 'targets_task_labels'):
             # Dataset is probably a dataset of this class
@@ -1595,28 +1598,56 @@ def train_eval_avalanche_datasets(
     return train, test
 
 
-def _make_target_from_supported_dataset(
-        dataset: SupportedDataset,
-        converter: Callable[[Any], TTargetType] = None) -> \
-        Sequence[TTargetType]:
-    if isinstance(dataset, AvalancheDataset):
-        if converter is None:
-            return dataset.targets
-        elif isinstance(dataset.targets, LazyTargetsConversion) and \
-                dataset.targets.converter == converter:
-            return dataset.targets
-        elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
-            # LazyClassMapping already outputs int targets
-            return dataset.targets
-
-    # Support for PyTorch "Subset"
-    subset_indices = False
-    indices = range(len(dataset))
-    while isinstance(dataset, Subset):
-        subset_indices = True
+def _traverse_supported_dataset(
+        dataset, values_selector: Callable[[Dataset, List[int]], List],
+        indices=None) -> List:
+    if isinstance(dataset, Subset):
+        if indices is None:
+            indices = range(len(dataset))
         indices = [dataset.indices[x] for x in indices]
-        dataset = dataset.dataset
+        return _traverse_supported_dataset(
+            dataset.dataset, values_selector, indices)
 
+    if isinstance(dataset, ConcatDataset):
+        result = []
+        if indices is None:
+            for c_dataset in dataset.datasets:
+                result += _traverse_supported_dataset(
+                    c_dataset, values_selector, indices)
+            return result
+
+        datasets_to_indexes = defaultdict(list)
+        indexes_to_dataset = []
+        datasets_len = []
+        recursion_result = []
+
+        all_size = 0
+        for c_dataset in dataset.datasets:
+            len_dataset = len(c_dataset)
+            datasets_len.append(len_dataset)
+            all_size += len_dataset
+
+        for subset_idx in indices:
+            dataset_idx, pattern_idx = \
+                find_list_from_index(subset_idx, datasets_len, all_size)
+            datasets_to_indexes[dataset_idx].append(pattern_idx)
+            indexes_to_dataset.append(dataset_idx)
+
+        for dataset_idx, c_dataset in enumerate(dataset.datasets):
+            recursion_result.append(deque(_traverse_supported_dataset(
+                c_dataset, values_selector, datasets_to_indexes[dataset_idx])))
+
+        result = []
+        for idx in range(len(indices)):
+            dataset_idx = indexes_to_dataset[idx]
+            result.append(recursion_result[dataset_idx].popleft())
+
+        return result
+
+    return values_selector(dataset, indices)
+
+
+def _select_targets(dataset, indices):
     if hasattr(dataset, 'targets'):
         # Standard supported dataset
         found_targets = dataset.targets
@@ -1627,18 +1658,35 @@ def _make_target_from_supported_dataset(
                              'at least 2 are required.')
         found_targets = dataset.tensors[1]
     else:
-        raise ValueError('Unsupported dataset: must have a valid targets field '
-                         'or has to be a Tensor Dataset with at least 2 '
-                         'Tensors')
+        raise ValueError(
+            'Unsupported dataset: must have a valid targets field '
+            'or has to be a Tensor Dataset with at least 2 '
+            'Tensors')
 
-    if subset_indices:
+    if indices is not None:
         found_targets = SubSequence(found_targets, indices)
 
-    return LazyTargetsConversion(found_targets, converter=converter)
+    return found_targets
 
 
-def _is_tensor_dataset(dataset: SupportedDataset) -> bool:
-    return hasattr(dataset, 'tensors') and len(dataset.tensors) >= 2
+def _make_target_from_supported_dataset(
+        dataset: SupportedDataset,
+        converter: Callable[[Any], TTargetType] = None) -> \
+        Sequence[TTargetType]:
+    if isinstance(dataset, AvalancheDataset):
+        if converter is None:
+            return dataset.targets
+        elif isinstance(dataset.targets,
+                        (LazyTargetsConversion, LazyConcatTargets)) and \
+                dataset.targets.converter == converter:
+            return dataset.targets
+        elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
+            # LazyClassMapping already outputs int targets
+            return dataset.targets
+
+    targets = _traverse_supported_dataset(dataset, _select_targets)
+
+    return LazyTargetsConversion(targets, converter=converter)
 
 
 __all__ = [

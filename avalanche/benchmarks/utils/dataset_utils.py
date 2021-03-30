@@ -87,10 +87,12 @@ class LazyConcatTargets(Sequence[TTargetType]):
     This will allow for a more efficient memory usage as the concatenation is
     done on the fly instead of actually allocating a new targets list.
     """
-    def __init__(self, targets_list: Sequence[Sequence[TTargetType]]):
+    def __init__(self, targets_list: Sequence[Sequence[TTargetType]],
+                 converter: Optional[Callable[[Any], TTargetType]] = None):
         self._targets_list = targets_list
         self._targets_lengths = [len(targets) for targets in targets_list]
         self._overall_length = sum(self._targets_lengths)
+        self.converter = converter
 
     def __len__(self):
         return self._overall_length
@@ -98,7 +100,12 @@ class LazyConcatTargets(Sequence[TTargetType]):
     def __getitem__(self, item_idx) -> TTargetType:
         targets_idx, internal_idx = find_list_from_index(
             item_idx, self._targets_lengths, self._overall_length)
-        return self._targets_list[targets_idx][internal_idx]
+
+        target = self._targets_list[targets_idx][internal_idx]
+
+        if self.converter is None:
+            return target
+        return self.converter(target)
 
     def __str__(self):
         return '[' + \
