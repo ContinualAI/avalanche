@@ -25,6 +25,7 @@ on:
 
 jobs:
   unit-test:
+    if: github.repository == 'ContinualAI/avalanche'
     name: unit test
     runs-on: ubuntu-latest
     strategy:
@@ -69,6 +70,7 @@ jobs:
           COVERALLS_PARALLEL: true
 
   coveralls:
+    if: github.repository == 'ContinualAI/avalanche'
     name: Indicate completion to coveralls.io
     needs: unit-test
     runs-on: ubuntu-latest
