@@ -5,7 +5,7 @@
 [![syntax checking](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml)
 [![PEP8 checking](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml)
 [![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)](https://github.com/ContinualAI/avalanche-report/blob/main/docstring_coverage/documentation-coverage.txt)
-![test coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/coverage-badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/ContinualAI/avalanche/badge.svg)](https://coveralls.io/github/ContinualAI/avalanche)
 
 <p align="center">
 <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
