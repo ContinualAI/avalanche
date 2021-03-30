@@ -404,8 +404,10 @@ def forgetting_metrics(*, experience=False, stream=False) \
 
     return metrics
 
+
 __all__ = [
     'Forgetting',
     'ExperienceForgetting',
-    'StreamForgetting'
+    'StreamForgetting',
+    'forgetting_metrics'
 ]

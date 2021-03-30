@@ -26,7 +26,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
 from avalanche.models import SimpleMLP
@@ -39,7 +39,7 @@ def main(args):
     # --- CONFIG
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+                             args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -82,7 +82,7 @@ def main(args):
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True, stream=True),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
@@ -99,7 +99,6 @@ def main(args):
             minibatch=True, epoch=True, experience=True),
         loggers=[interactive_logger, text_logger],
         collect_all=True)  # collect all metrics (set to True by default)
-
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
