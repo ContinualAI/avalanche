@@ -1,5 +1,6 @@
 from torch.utils.data import random_split, ConcatDataset
 
+from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskJoinedBatchDataLoader
@@ -36,9 +37,11 @@ class ReplayPlugin(StrategyPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
+        if len(self.ext_mem) == 0:
+            return
         strategy.current_dataloader = MultiTaskJoinedBatchDataLoader(
             strategy.adapted_dataset,
-            self.ext_mem,
+            AvalancheConcatDataset(self.ext_mem.values()),
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
@@ -77,7 +80,8 @@ class ReplayPlugin(StrategyPlugin):
             _, saved_part = random_split(ext_mem[curr_task_id],
                                          [len(rm_add), rem_len]
                                          )
-            ext_mem[curr_task_id] = ConcatDataset([saved_part, rm_add])
+            ext_mem[curr_task_id] = AvalancheConcatDataset(
+                [saved_part, rm_add])
 
         # remove exceeding patterns, the amount of pattern kept is such that the
         # sum is equal to mem_size and that the number of patterns between the

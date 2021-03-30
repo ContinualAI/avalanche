@@ -55,7 +55,7 @@ class InteractiveLogger(TextLogger):
     def before_training_epoch(self, strategy: 'BaseStrategy',
                               metric_values: List['MetricValue'], **kwargs):
         super().before_training_epoch(strategy, metric_values, **kwargs)
-        self._progress.total = len(strategy.current_dataloader)
+        self._progress.total = len(strategy.dataloader)
 
     def after_training_epoch(self, strategy: 'BaseStrategy',
                              metric_values: List['MetricValue'], **kwargs):
@@ -65,7 +65,7 @@ class InteractiveLogger(TextLogger):
     def before_eval_exp(self, strategy: 'BaseStrategy',
                         metric_values: List['MetricValue'], **kwargs):
         super().before_eval_exp(strategy, metric_values, **kwargs)
-        self._progress.total = len(strategy.current_dataloader)
+        self._progress.total = len(strategy.dataloader)
 
     def after_eval_exp(self, strategy: 'BaseStrategy',
                        metric_values: List['MetricValue'], **kwargs):

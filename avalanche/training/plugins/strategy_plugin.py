@@ -23,7 +23,12 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def adapt_train_dataset(self, strategy: 'BaseStrategy', **kwargs):
+    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                        **kwargs):
+        pass
+
+    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
         pass
 
     def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
@@ -65,7 +70,11 @@ class StrategyPlugin(StrategyCallbacks[Any]):
     def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
-    def adapt_eval_dataset(self, strategy: 'BaseStrategy', **kwargs):
+    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
+        pass
+
+    def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy', **kwargs):
         pass
 
     def before_eval_exp(self, strategy: 'BaseStrategy', **kwargs):

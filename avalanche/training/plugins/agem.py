@@ -75,7 +75,7 @@ class AGEMPlugin(StrategyPlugin):
         Save a copy of the model after each experience
         """
 
-        self.update_memory(strategy.current_dataloader)
+        self.update_memory(strategy.dataloader)
 
     def sample_from_memory(self, sample_size):
         """

@@ -105,7 +105,11 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
             -> 'MetricResult':
         pass
 
-    def adapt_train_dataset(self, strategy: 'BaseStrategy') \
+    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy') \
+            -> 'MetricResult':
+        pass
+
+    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
@@ -153,7 +157,11 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     def before_eval(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
 
-    def adapt_eval_dataset(self, strategy: 'BaseStrategy') \
+    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy') \
+            -> 'MetricResult':
+        pass
+
+    def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
 
