@@ -15,7 +15,7 @@ from .dataset_definitions import IDatasetWithTargets, \
 
 try:
     from typing import Protocol, Sequence, List, Any, Iterable, Union, \
-    Optional, SupportsInt, TypeVar, Tuple, Callable, Generic
+        Optional, SupportsInt, TypeVar, Tuple, Callable, Generic
 except ImportError:
     from typing import Sequence, List, Any, Iterable, Union, Optional, \
          SupportsInt, TypeVar, Tuple, Callable, Generic
@@ -427,9 +427,9 @@ __all__ = [
     'ConstantSequence',
     'SubsetWithTargets',
     'ClassificationSubset',
-    'ConcatDatasetWithTargets',
     'SequenceDataset',
     'find_list_from_index',
     'manage_advanced_indexing',
-    'optimize_sequence'
+    'optimize_sequence',
+    'TupleTLabel'
 ]
