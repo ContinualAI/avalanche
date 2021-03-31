@@ -520,6 +520,52 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(0, t)
             self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
+    def test_avalanche_dataset_from_chained_pytorch_datasets_task_labels(self):
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_x2 = torch.rand(100, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (200,))
+        tensor_y2 = torch.randint(0, 100, (100,))
+        tensor_t = torch.randint(0, 100, (200,))
+        tensor_t2 = torch.randint(0, 100, (100,))
+
+        dataset1 = AvalancheTensorDataset(
+            tensor_x, tensor_y, task_labels=tensor_t)
+        dataset1_sub = Subset(dataset1, range(199, -1, -1))
+        dataset2 = AvalancheDataset(
+            TensorDataset(tensor_x2, tensor_y2), task_labels=tensor_t2)
+
+        indices = [random.randint(0, 299) for _ in range(1000)]
+
+        concat_dataset = ConcatDataset((dataset1_sub, dataset2))
+        subset = Subset(concat_dataset, indices)
+
+        av_dataset = AvalancheDataset(subset)
+
+        self.assertEqual(200, len(dataset1_sub))
+        self.assertEqual(100, len(dataset2))
+        self.assertEqual(1000, len(av_dataset))
+
+        for idx in range(1000):
+            orig_idx = indices[idx]
+            if orig_idx < 200:
+                orig_idx = range(199, -1, -1)[orig_idx]
+                expected_x = tensor_x[orig_idx]
+                expected_y = tensor_y[orig_idx]
+                expected_t = tensor_t[orig_idx]
+            else:
+                orig_idx -= 200
+                expected_x = tensor_x2[orig_idx]
+                expected_y = tensor_y2[orig_idx]
+                expected_t = tensor_t2[orig_idx]
+
+            x, y, t = av_dataset[idx]
+            self.assertIsInstance(x, Tensor)
+            self.assertTrue(torch.equal(expected_x, x))
+            self.assertTrue(torch.equal(expected_y, y))
+            self.assertIsInstance(t, int)
+            self.assertEqual(int(expected_t), int(t))
+            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
+
     def test_avalanche_dataset_collate_fn(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))

@@ -27,10 +27,10 @@ from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 from torchvision.transforms import Compose
 
 from .dataset_utils import manage_advanced_indexing, \
-    SequenceDataset, ClassificationSubset, LazyTargetsConversion, \
+    SequenceDataset, ClassificationSubset, \
     LazyConcatIntTargets, find_list_from_index, ConstantSequence, \
     LazyClassMapping, optimize_sequence, SubSequence, LazyConcatTargets, \
-    SubsetWithTargets
+    TupleTLabel
 from .dataset_definitions import ITensorDataset, ClassificationDataset, \
     IDatasetWithTargets, ISupportedClassificationDataset
 
@@ -303,8 +303,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return AvalancheConcatDataset([other, self])
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        return manage_advanced_indexing(
-            idx, self._get_single_item, len(self), self.collate_fn)
+        return TupleTLabel(manage_advanced_indexing(
+            idx, self._get_single_item, len(self), self.collate_fn))
 
     def __len__(self):
         return len(self._dataset)
@@ -599,11 +599,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy._freeze_original_dataset(group_name)
 
     def _get_single_item(self, idx: int):
-        return self._process_pattern(
-            self._dataset[idx], idx,
-            isinstance(self._dataset, AvalancheDataset))
+        return self._process_pattern(self._dataset[idx], idx)
 
-    def _process_pattern(self, element: Tuple, idx: int, has_task_label: bool):
+    def _process_pattern(self, element: Tuple, idx: int):
+        has_task_label = isinstance(element, TupleTLabel)
         if has_task_label:
             element = element[:-1]
 
@@ -612,7 +611,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         pattern, label = self._apply_transforms(pattern, label)
 
-        return (pattern, label, *element[2:], self.targets_task_labels[idx])
+        return TupleTLabel((pattern, label, *element[2:],
+                            self.targets_task_labels[idx]))
 
     def _apply_transforms(self, pattern: Any, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
@@ -711,6 +711,11 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         if targets is not None:
             # User defined targets always take precedence
             # Note: no adapter is applied!
+            if len(targets) != len(dataset):
+                raise ValueError(
+                    'Invalid amount of target labels. It must be equal to the '
+                    'number of patterns in the dataset. Got {}, expected '
+                    '{}!'.format(len(targets), len(dataset)))
             return targets
 
         if targets_adapter is None:
@@ -732,15 +737,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                     '{}!'.format(len(task_labels), len(dataset)))
             return task_labels
 
-        # TODO: same as targets
-
-        if hasattr(dataset, 'targets_task_labels'):
-            # Dataset is probably a dataset of this class
-            # Suppose that it is
-            return LazyTargetsConversion(dataset.targets_task_labels, int)
-
-        # No task labels found. Set all task labels to 0 (in a lazy way).
-        return ConstantSequence(0, len(dataset))
+        return _make_task_labels_from_supported_dataset(dataset)
 
     def _initialize_collate_fn(self, dataset, dataset_type, collate_fn):
         if collate_fn is not None:
@@ -955,11 +952,14 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                 raise ValueError('class_mapping is defined but the dataset type'
                                  ' is neither CLASSIFICATION or UNDEFINED.')
 
-        if class_mapping:
+        if class_mapping is not None:
             subset = ClassificationSubset(dataset, indices=indices,
                                           class_mapping=class_mapping)
+        elif indices is not None:
+            subset = Subset(dataset, indices=indices)
         else:
-            subset = SubsetWithTargets(dataset, indices=indices)
+            subset = dataset  # Exactly like a plain AvalancheDataset
+
         self._original_dataset = dataset
         self._indices = indices
 
@@ -975,9 +975,7 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                          targets_adapter=targets_adapter)
 
     def _get_single_item(self, idx: int):
-        return self._process_pattern(
-            self._dataset[idx], idx,
-            isinstance(self._original_dataset, AvalancheDataset))
+        return self._process_pattern(self._dataset[idx], idx)
 
     def _initialize_targets_sequence(
             self, dataset, targets, dataset_type, targets_adapter) \
@@ -1017,10 +1015,11 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                 # case the user just wants to obtain a dataset in which the
                 # position of the patterns has been changed according to
                 # "indices". This "if" will take care of the corner case, too.
-                return LazyClassMapping(task_labels, indices=self._indices)
+                return SubSequence(task_labels, indices=self._indices,
+                                   converter=int)
             elif len(task_labels) == len(dataset):
                 # task_labels refers to the subset
-                return task_labels
+                return SubSequence(task_labels, converter=int)
             else:
                 raise ValueError(
                     'Invalid amount of task labels. It must be equal to the '
@@ -1029,13 +1028,7 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                         len(task_labels), len(self._original_dataset),
                         len(dataset)))
 
-        if hasattr(self._original_dataset, 'targets_task_labels'):
-            # The original dataset is probably a dataset of this class
-            return LazyClassMapping(self._original_dataset.targets_task_labels,
-                                    indices=self._indices)
-
-        # No task labels found. Set all task labels to 0 (in a lazy way).
-        return ConstantSequence(0, len(dataset))
+        return super()._initialize_task_labels_sequence(dataset, None)
 
 
 class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
@@ -1306,9 +1299,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
 
-        return self._process_pattern(
-            single_element, idx,
-            isinstance(self._dataset_list[dataset_idx], AvalancheDataset))
+        return self._process_pattern(single_element, idx)
 
     def _fork_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = super()._fork_dataset()
@@ -1356,8 +1347,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         concat_t_labels = []
         for dataset_idx, single_dataset in enumerate(self._dataset_list):
             concat_t_labels.append(super()._initialize_task_labels_sequence(
-                single_dataset, None
-            ))
+                single_dataset, None))
 
         return LazyConcatTargets(concat_t_labels)
 
@@ -1601,19 +1591,28 @@ def train_eval_avalanche_datasets(
 def _traverse_supported_dataset(
         dataset, values_selector: Callable[[Dataset, List[int]], List],
         indices=None) -> List:
+
+    initial_error = None
+    try:
+        result = values_selector(dataset, indices)
+        if result is not None:
+            return result
+    except BaseException as e:
+        initial_error = e
+
     if isinstance(dataset, Subset):
         if indices is None:
             indices = range(len(dataset))
         indices = [dataset.indices[x] for x in indices]
-        return _traverse_supported_dataset(
-            dataset.dataset, values_selector, indices)
+        return list(_traverse_supported_dataset(
+            dataset.dataset, values_selector, indices))
 
     if isinstance(dataset, ConcatDataset):
         result = []
         if indices is None:
             for c_dataset in dataset.datasets:
-                result += _traverse_supported_dataset(
-                    c_dataset, values_selector, indices)
+                result += list(_traverse_supported_dataset(
+                    c_dataset, values_selector, indices))
             return result
 
         datasets_to_indexes = defaultdict(list)
@@ -1644,7 +1643,10 @@ def _traverse_supported_dataset(
 
         return result
 
-    return values_selector(dataset, indices)
+    if initial_error is not None:
+        raise initial_error
+
+    raise ValueError('Error: can\'t find the needed data in the given dataset')
 
 
 def _select_targets(dataset, indices):
@@ -1664,9 +1666,29 @@ def _select_targets(dataset, indices):
             'Tensors')
 
     if indices is not None:
-        found_targets = SubSequence(found_targets, indices)
+        found_targets = SubSequence(found_targets, indices=indices)
 
     return found_targets
+
+
+def _select_task_labels(dataset, indices):
+    found_task_labels = None
+    if hasattr(dataset, 'targets_task_labels'):
+        found_task_labels = dataset.targets_task_labels
+
+    if found_task_labels is None:
+        if isinstance(dataset, (Subset, ConcatDataset)):
+            return None  # Continue traversing
+
+    if found_task_labels is None:
+        if indices is None:
+            return ConstantSequence(0, len(dataset))
+        return ConstantSequence(0, len(indices))
+
+    if indices is not None:
+        found_task_labels = SubSequence(found_task_labels, indices=indices)
+
+    return found_task_labels
 
 
 def _make_target_from_supported_dataset(
@@ -1677,7 +1699,7 @@ def _make_target_from_supported_dataset(
         if converter is None:
             return dataset.targets
         elif isinstance(dataset.targets,
-                        (LazyTargetsConversion, LazyConcatTargets)) and \
+                        (SubSequence, LazyConcatTargets)) and \
                 dataset.targets.converter == converter:
             return dataset.targets
         elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
@@ -1686,7 +1708,17 @@ def _make_target_from_supported_dataset(
 
     targets = _traverse_supported_dataset(dataset, _select_targets)
 
-    return LazyTargetsConversion(targets, converter=converter)
+    return SubSequence(targets, converter=converter)
+
+
+def _make_task_labels_from_supported_dataset(dataset: SupportedDataset) -> \
+        Sequence[int]:
+    if isinstance(dataset, AvalancheDataset):
+        return dataset.targets_task_labels
+
+    task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
+
+    return SubSequence(task_labels, converter=int)
 
 
 __all__ = [
