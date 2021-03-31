@@ -352,7 +352,7 @@ class EWC(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
-        :param mode: `standard` to keep a separate penalty for each previous
+        :param mode: `separate` to keep a separate penalty for each previous
                experience. `onlinesum` to keep a single penalty summed over all
                previous tasks. `onlineweightedsum` to keep a single penalty
                summed with a decay factor over all previous tasks.
