@@ -1224,6 +1224,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         self._dataset_list = list(datasets)
         self._datasets_lengths = [len(dataset) for dataset in datasets]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(datasets)
         self._overall_length = sum(self._datasets_lengths)
 
         if task_labels is not None:
@@ -1295,7 +1296,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
     def _get_single_item(self, idx: int):
         dataset_idx, internal_idx = find_list_from_index(
-            idx, self._datasets_lengths, self._overall_length)
+            idx, self._datasets_lengths, self._overall_length,
+            cumulative_sizes=self._datasets_cumulative_lengths)
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
 
