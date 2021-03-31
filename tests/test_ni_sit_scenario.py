@@ -1,5 +1,7 @@
 import unittest
 
+from os.path import expanduser
+
 import torch
 from torchvision.datasets import MNIST
 
@@ -16,8 +18,10 @@ class NISITTests(unittest.TestCase):
         common_setups()
 
     def test_ni_sit_single_dataset(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234,
             balance_experiences=True)
@@ -57,8 +61,10 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(len(mnist_test), pattern_count)
 
     def test_ni_sit_single_dataset_fixed_assignment(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         ni_scenario_reference = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
@@ -78,8 +84,10 @@ class NISITTests(unittest.TestCase):
                          my_ni_scenario.exp_structure)
 
     def test_ni_sit_single_dataset_reproducibility_data(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         ni_scenario_reference = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
@@ -98,8 +106,10 @@ class NISITTests(unittest.TestCase):
 
     def test_ni_sit_multi_dataset_merge(self):
         split_mapping = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
 
         train_part1 = make_nc_transformation_subset(
             mnist_train, None, None, range(5))
@@ -130,10 +140,10 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(10, len(all_classes))
 
     def test_ni_sit_slicing(self):
-        mnist_train = MNIST(
-            './data/mnist', train=True, download=True)
-        mnist_test = MNIST(
-            './data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 5, shuffle=True, seed=1234)
 
