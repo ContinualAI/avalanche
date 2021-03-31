@@ -162,23 +162,16 @@ class AvalancheDatasetTests(unittest.TestCase):
             target_transform=lambda target: -1)
 
         dataset2 = dataset_mnist + dataset1
-
         self.assertIsInstance(dataset2, AvalancheDataset)
-
         self.assertEqual(len(dataset_mnist) * 2, len(dataset2))
 
         dataset3 = dataset_mnist + dataset1 + dataset_mnist
-
         self.assertIsInstance(dataset3, AvalancheDataset)
-
         self.assertEqual(len(dataset_mnist) * 3, len(dataset3))
 
-        # This will be supported in the near future (issue #462)
-        # dataset4 = dataset_mnist + dataset_mnist + dataset1
-        #
-        # self.assertIsInstance(dataset4, AvalancheDataset)
-        #
-        # self.assertEqual(len(dataset_mnist) * 4, len(dataset4))
+        dataset4 = dataset_mnist + dataset_mnist + dataset1
+        self.assertIsInstance(dataset4, AvalancheDataset)
+        self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
         dataset_mnist = MNIST('./data/mnist', download=True,
@@ -358,6 +351,79 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.as_tensor(test_dataset.targets),
                                     tensor_y[400:]))
 
+    def test_avalanche_dataset_from_pytorch_concat_dataset(self):
+        tensor_x = torch.rand(500, 3, 28, 28)
+        tensor_x2 = torch.rand(300, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (500,))
+        tensor_y2 = torch.randint(0, 100, (300,))
+
+        dataset1 = TensorDataset(tensor_x, tensor_y)
+        dataset2 = TensorDataset(tensor_x2, tensor_y2)
+
+        concat_dataset = ConcatDataset((dataset1, dataset2))
+
+        av_dataset = AvalancheDataset(concat_dataset)
+
+        self.assertEqual(500, len(dataset1))
+        self.assertEqual(300, len(dataset2))
+
+        x, y, t = av_dataset[0]
+        x2, y2, t2 = av_dataset[500]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0], x))
+        self.assertTrue(torch.equal(tensor_y[0], y))
+        self.assertEqual(0, t)
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertTrue(torch.equal(tensor_x2[0], x2))
+        self.assertTrue(torch.equal(tensor_y2[0], y2))
+        self.assertEqual(0, t2)
+
+        self.assertTrue(torch.equal(torch.as_tensor(av_dataset.targets),
+                                    torch.cat((tensor_y, tensor_y2))))
+
+    def test_avalanche_dataset_from_chained_pytorch_concat_dataset(self):
+        tensor_x = torch.rand(500, 3, 28, 28)
+        tensor_x2 = torch.rand(300, 3, 28, 28)
+        tensor_x3 = torch.rand(200, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (500,))
+        tensor_y2 = torch.randint(0, 100, (300,))
+        tensor_y3 = torch.randint(0, 100, (200,))
+
+        dataset1 = TensorDataset(tensor_x, tensor_y)
+        dataset2 = TensorDataset(tensor_x2, tensor_y2)
+        dataset3 = TensorDataset(tensor_x3, tensor_y3)
+
+        concat_dataset = ConcatDataset((dataset1, dataset2))
+        concat_dataset2 = ConcatDataset((concat_dataset, dataset3))
+
+        av_dataset = AvalancheDataset(concat_dataset2)
+
+        self.assertEqual(500, len(dataset1))
+        self.assertEqual(300, len(dataset2))
+
+        x, y, t = av_dataset[0]
+        x2, y2, t2 = av_dataset[500]
+        x3, y3, t3 = av_dataset[800]
+        self.assertIsInstance(x, Tensor)
+        self.assertTrue(torch.equal(tensor_x[0], x))
+        self.assertTrue(torch.equal(tensor_y[0], y))
+        self.assertEqual(0, t)
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertTrue(torch.equal(tensor_x2[0], x2))
+        self.assertTrue(torch.equal(tensor_y2[0], y2))
+        self.assertEqual(0, t2)
+
+        self.assertIsInstance(x3, Tensor)
+        self.assertTrue(torch.equal(tensor_x3[0], x3))
+        self.assertTrue(torch.equal(tensor_y3[0], y3))
+        self.assertEqual(0, t3)
+
+        self.assertTrue(torch.equal(
+            torch.as_tensor(av_dataset.targets),
+            torch.cat((tensor_y, tensor_y2, tensor_y3))))
+
     def test_avalanche_dataset_from_chained_pytorch_subsets(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))
@@ -383,6 +449,122 @@ class AvalancheDatasetTests(unittest.TestCase):
                 torch.as_tensor([tensor_y[405], tensor_y[407], tensor_y[400]])
             )
         )
+
+    def test_avalanche_dataset_from_chained_pytorch_concat_subset_dataset(self):
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_x2 = torch.rand(100, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (200,))
+        tensor_y2 = torch.randint(0, 100, (100,))
+
+        dataset1 = TensorDataset(tensor_x, tensor_y)
+        dataset2 = TensorDataset(tensor_x2, tensor_y2)
+
+        indices = [random.randint(0, 299) for _ in range(1000)]
+
+        concat_dataset = ConcatDataset((dataset1, dataset2))
+        subset = Subset(concat_dataset, indices)
+
+        av_dataset = AvalancheDataset(subset)
+
+        self.assertEqual(200, len(dataset1))
+        self.assertEqual(100, len(dataset2))
+        self.assertEqual(1000, len(av_dataset))
+
+        for idx in range(1000):
+            orig_idx = indices[idx]
+            if orig_idx < 200:
+                expected_x, expected_y = dataset1[orig_idx]
+            else:
+                expected_x, expected_y = dataset2[orig_idx-200]
+
+            x, y, t = av_dataset[idx]
+            self.assertIsInstance(x, Tensor)
+            self.assertTrue(torch.equal(expected_x, x))
+            self.assertTrue(torch.equal(expected_y, y))
+            self.assertEqual(0, t)
+            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
+
+    def test_avalanche_dataset_from_chained_pytorch_datasets(self):
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_x2 = torch.rand(100, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (200,))
+        tensor_y2 = torch.randint(0, 100, (100,))
+
+        dataset1 = TensorDataset(tensor_x, tensor_y)
+        dataset1_sub = Subset(dataset1, range(199, -1, -1))
+        dataset2 = TensorDataset(tensor_x2, tensor_y2)
+
+        indices = [random.randint(0, 299) for _ in range(1000)]
+
+        concat_dataset = ConcatDataset((dataset1_sub, dataset2))
+        subset = Subset(concat_dataset, indices)
+
+        av_dataset = AvalancheDataset(subset)
+
+        self.assertEqual(200, len(dataset1_sub))
+        self.assertEqual(100, len(dataset2))
+        self.assertEqual(1000, len(av_dataset))
+
+        for idx in range(1000):
+            orig_idx = indices[idx]
+            if orig_idx < 200:
+                orig_idx = range(199, -1, -1)[orig_idx]
+                expected_x, expected_y = dataset1[orig_idx]
+            else:
+                expected_x, expected_y = dataset2[orig_idx-200]
+
+            x, y, t = av_dataset[idx]
+            self.assertIsInstance(x, Tensor)
+            self.assertTrue(torch.equal(expected_x, x))
+            self.assertTrue(torch.equal(expected_y, y))
+            self.assertEqual(0, t)
+            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
+
+    def test_avalanche_dataset_from_chained_pytorch_datasets_task_labels(self):
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_x2 = torch.rand(100, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (200,))
+        tensor_y2 = torch.randint(0, 100, (100,))
+        tensor_t = torch.randint(0, 100, (200,))
+        tensor_t2 = torch.randint(0, 100, (100,))
+
+        dataset1 = AvalancheTensorDataset(
+            tensor_x, tensor_y, task_labels=tensor_t)
+        dataset1_sub = Subset(dataset1, range(199, -1, -1))
+        dataset2 = AvalancheDataset(
+            TensorDataset(tensor_x2, tensor_y2), task_labels=tensor_t2)
+
+        indices = [random.randint(0, 299) for _ in range(1000)]
+
+        concat_dataset = ConcatDataset((dataset1_sub, dataset2))
+        subset = Subset(concat_dataset, indices)
+
+        av_dataset = AvalancheDataset(subset)
+
+        self.assertEqual(200, len(dataset1_sub))
+        self.assertEqual(100, len(dataset2))
+        self.assertEqual(1000, len(av_dataset))
+
+        for idx in range(1000):
+            orig_idx = indices[idx]
+            if orig_idx < 200:
+                orig_idx = range(199, -1, -1)[orig_idx]
+                expected_x = tensor_x[orig_idx]
+                expected_y = tensor_y[orig_idx]
+                expected_t = tensor_t[orig_idx]
+            else:
+                orig_idx -= 200
+                expected_x = tensor_x2[orig_idx]
+                expected_y = tensor_y2[orig_idx]
+                expected_t = tensor_t2[orig_idx]
+
+            x, y, t = av_dataset[idx]
+            self.assertIsInstance(x, Tensor)
+            self.assertTrue(torch.equal(expected_x, x))
+            self.assertTrue(torch.equal(expected_y, y))
+            self.assertIsInstance(t, int)
+            self.assertEqual(int(expected_t), int(t))
+            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
     def test_avalanche_dataset_collate_fn(self):
         tensor_x = torch.rand(500, 3, 28, 28)
