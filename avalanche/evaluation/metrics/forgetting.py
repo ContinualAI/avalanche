@@ -241,8 +241,8 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
     detected over all experiences observed during training.
 
     This plugin metric, computed over all observed experiences during training,
-    is the average over the difference between the accuracy result obtained after
-    first training on a experience and the accuracy result obtained
+    is the average over the difference between the accuracy result obtained
+    after first training on a experience and the accuracy result obtained
     on the same experience at the end of successive experiences.
 
     This metric is computed during the eval phase only.
@@ -366,7 +366,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         # If not, forgetting should not be returned.
         if self.exp_result(k=self.eval_exp_id) is not None:
             exp_forgetting = self.exp_result(k=self.eval_exp_id)
-            self.stream_forgetting.update(exp_forgetting, weight=1)  # Equal weight per experience
+            self.stream_forgetting.update(exp_forgetting, weight=1)
 
     def after_eval(self, strategy: 'BaseStrategy') -> \
             'MetricResult':
