@@ -73,7 +73,7 @@ class WandBLogger(StrategyLogger):
                     value, caption="Confusion Matrix")]}, 
                                 step=metric_value.x_plot)
             else:
-            # WIP
+                # WIP
                 return
 
         elif isinstance(value, (float, int)):
