@@ -207,15 +207,13 @@ class AR1(BaseStrategy):
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
         # AR1 only supports SIT scenarios (no task labels).
-        assert len(self.adapted_dataset.keys()) == 1
-        curr_data = list(self.adapted_dataset.values())[0]
-        self.current_dataloader = DataLoader(
-            curr_data, num_workers=num_workers,
+        self.dataloader = DataLoader(
+            self.adapted_dataset, num_workers=num_workers,
             batch_size=current_batch_mb_size, shuffle=shuffle)
 
     def training_epoch(self, **kwargs):
         for self.mb_it, (self.mb_x, self.mb_y, _) in \
-                enumerate(self.current_dataloader):
+                enumerate(self.dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()

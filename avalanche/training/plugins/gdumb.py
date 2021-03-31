@@ -3,6 +3,7 @@ from collections import defaultdict
 import torch
 from torch.utils.data import TensorDataset
 
+from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
@@ -13,10 +14,8 @@ class GDumbPlugin(StrategyPlugin):
     The memory is updated at the end of each experience to add new classes or
     new examples of already encountered classes.
     In multitask scenarios, mem_size is the memory size for each task.
-
     This plugin can be combined with a Naive strategy to obtain the
     standard GDumb strategy.
-
     https://www.robots.ox.ac.uk/~tvg/publications/2020/gdumb.pdf
     """
 
@@ -82,4 +81,4 @@ class GDumbPlugin(StrategyPlugin):
                 current_counter[target_value] += 1
 
         self.ext_mem[strategy.experience.task_label] = current_mem
-        strategy.adapted_dataset = self.ext_mem
+        strategy.adapted_dataset = AvalancheConcatDataset(self.ext_mem)
