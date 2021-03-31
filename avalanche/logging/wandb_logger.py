@@ -25,7 +25,7 @@ class WandBLogger(StrategyLogger):
     logged to a dedicated Weights & Biases project dashboard.
     """
 
-    def __init__(self, init_kwargs: dict, interactive: bool =False):
+    def __init__(self, init_kwargs: dict, interactive: bool = False):
         """
         Creates an instance of the `WandBLogger`.
 
@@ -70,7 +70,8 @@ class WandBLogger(StrategyLogger):
             # Confusion Matrix logging
             if not self.interactive:
                 self.wandb.log({name: [self.wandb.Image(
-                    value, caption="Confusion Matrix")]}, step=metric_value.x_plot)
+                    value, caption="Confusion Matrix")]}, 
+                                step=metric_value.x_plot)
             else:
                 return
 
