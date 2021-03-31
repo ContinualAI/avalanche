@@ -12,7 +12,7 @@ As a powerful _avalanche_, a _Continual Learning_ agent _incrementally_ _improve
 
 We hope _Avalanche_ may trigger the same _**positive reinforcement loop**_ within our community, moving towards a more _**collaborative**_ **and inclusive** way of doing research and helping us tackle bigger problems, faster and better, but together! 👪
 
-![The &quot;snowball effect&quot;: how a simple tool becomes an Avalanche through collaboration. ](../.gitbook/assets/snowball-1.jpg)
+{% embed url="https://www.youtube.com/watch?v=EyO1eM0-Hi8" caption="A complete Introduction to Avalanche: an End-to-End Library for Continual Learning." %}
 
 ## 💪The Avalanche Advantage
 
