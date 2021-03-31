@@ -282,7 +282,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
 
     def reset(self) -> None:
         """
-        Resets the metric.
+        Resets the forgetting metrics.
 
         Beware that this will also reset the initial accuracy of each
         experience!
@@ -290,6 +290,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         :return: None.
         """
         self.forgetting.reset()
+        self.stream_forgetting.reset()
 
     def reset_last_accuracy(self) -> None:
         """
@@ -302,7 +303,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         """
         self.forgetting.reset_last()
 
-    def update(self, k, v, initial=False):
+    def exp_update(self, k, v, initial=False):
         """
         Update forgetting metric.
         See `Forgetting` for more detailed information.
@@ -314,19 +315,29 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         """
         self.forgetting.update(k, v, initial=initial)
 
-    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+    def exp_result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
+        Result for experience defined by a key.
         See `Forgetting` documentation for more detailed information.
 
         k: optional key from which compute forgetting.
         """
         return self.forgetting.result(k=k)
 
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        The average forgetting over all experience.
+
+        k: optional key from which compute forgetting.
+        """
+        return self.stream_forgetting.result()
+
     def before_training_exp(self, strategy: 'BaseStrategy') -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
         self.reset_last_accuracy()
+        self.stream_forgetting.reset()
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
         self._last_accuracy.reset()
@@ -339,22 +350,22 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
-            self.update(self.eval_exp_id,
-                        self._last_accuracy.result(),
-                        initial=True)
+            self.exp_update(self.eval_exp_id,
+                            self._last_accuracy.result(),
+                            initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
-            self.update(self.eval_exp_id,
-                        self._last_accuracy.result())
+            self.exp_update(self.eval_exp_id,
+                            self._last_accuracy.result())
 
         # this checks if the evaluation experience has been
         # already encountered at training time
         # before the last training.
         # If not, forgetting should not be returned.
-        if self.result(k=self.eval_exp_id) is not None:
-            exp_forgetting = self.result(k=self.eval_exp_id)
+        if self.exp_result(k=self.eval_exp_id) is not None:
+            exp_forgetting = self.exp_result(k=self.eval_exp_id)
             self.stream_forgetting.update(exp_forgetting, weight=1)  # Equal weight per experience
 
     def after_eval(self, strategy: 'BaseStrategy') -> \
