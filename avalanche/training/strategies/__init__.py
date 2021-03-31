@@ -5,4 +5,6 @@ strategies (e.g., EWC + replay).
 """
 from .base_strategy import *
 from .joint_training import *
-from .strategies import *
+from .ar1 import AR1
+from .cumulative import Cumulative
+from .strategy_wrappers import *

@@ -16,7 +16,8 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
-from avalanche.logging import default_logger
+from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.training import default_logger
 from avalanche.training.strategies import BaseStrategy
 
 if TYPE_CHECKING:
@@ -56,58 +57,56 @@ class JointTraining(BaseStrategy):
                          train_epochs, eval_mb_size, device, plugins, evaluator)
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
+              eval_streams: Optional[Sequence[Union[Experience,
+                                                    Sequence[
+                                                        Experience]]]] = None,
               **kwargs):
         """ Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
-        Joint training uses the entire stream and it is not a proper CL
-        strategy.
+        This is different from joint training on the entire stream.
+        It returns a dictionary with last recorded value for each metric.
 
-        :param experiences: single IExperience or sequence.
+        :param experiences: single Experience or sequence.
+        :param eval_streams: list of streams for evaluation.
+            If None: use training experiences for evaluation.
+            Use [] if you do not want to evaluate during training.
+
+        :return: dictionary containing last recorded value for
+            each metric name.
         """
         self.is_training = True
         self.model.train()
         self.model.to(self.device)
 
+        # Normalize training and eval data.
         if isinstance(experiences, Experience):
             experiences = [experiences]
+        if eval_streams is None:
+            eval_streams = [experiences]
+        for i, exp in enumerate(eval_streams):
+            if isinstance(exp, Experience):
+                eval_streams[i] = [exp]
 
-        res = []
+        self._experiences = experiences
         self.before_training(**kwargs)
-
-        self.experience = experiences[0]
-        self.train_task_label = self.experience.task_label
-        self.model.train()
-        self.model.to(self.device)
-
-        self.adapted_dataset = experiences[0].dataset
-        self.adapted_dataset.train()
-        # DO NOT CALL adapt_train_dataset.
-        # JointTraining adapts its own data in a custom manner.
-        # TODO: support adapt_train_dataset
-        # waiting for https://github.com/vlomonaco/avalanche/issues/320
-        # self.adapt_train_dataset(**kwargs)
-        ext_mem = {}
         for exp in experiences:
-            if exp.task_label in ext_mem:
-                curr_task_data = ext_mem[exp.task_label]
-                cat_data = ConcatDataset([exp.dataset, curr_task_data])
-                ext_mem[exp.task_label] = cat_data
-            else:
-                ext_mem[exp.task_label] = exp.dataset
-        self.adapted_dataset = ext_mem
-
-        self.make_train_dataloader(**kwargs)
-        self.before_training_exp(**kwargs)
-        self.epoch = 0
-        for self.epoch in range(self.train_epochs):
-            self.before_training_epoch(**kwargs)
-            self.training_epoch(**kwargs)
-            self.after_training_epoch(**kwargs)
-        self.after_training_exp(**kwargs)
-
-        res.append(self.evaluator.current_metrics.copy())
+            self.train_exp(exp, eval_streams, **kwargs)
+            # Joint training only needs a single step because
+            # it concatenates all the data at once.
+            break
         self.after_training(**kwargs)
+
+        res = self.evaluator.get_last_metrics()
         return res
+
+    def train_dataset_adaptation(self, **kwargs):
+        """ Concatenates all the datastream. """
+        self.adapted_dataset = self._experiences[0].dataset
+        for exp in self._experiences:
+            cat_data = AvalancheConcatDataset([self.adapted_dataset,
+                                               exp.dataset])
+            self.adapted_dataset = cat_data
+        self.adapted_dataset = self.adapted_dataset.train()
 
 
 __all__ = ['JointTraining']

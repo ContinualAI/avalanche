@@ -99,7 +99,8 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, text_logger])
+        loggers=[interactive_logger, text_logger],
+        collect_all=True)  # collect all metrics (set to True by default)
 
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
@@ -115,22 +116,23 @@ def main(args):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
-        # train returns a list of dictionaries (one for each experience). Each
-        # dictionary stores the last value of each metric curve emitted
-        # during training.
+        # train returns a dictionary containing last recorded value
+        # for each metric.
         res = cl_strategy.train(experience)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        # test also returns a dictionary
+        # test returns a dictionary with the last metric collected during
+        # evaluation on that stream
         results.append(cl_strategy.eval(scenario.test_stream))
 
     print(f"Test metrics:\n{results}")
 
-    # All the metric curves (x,y values) are stored inside the evaluator
-    # (can be disabled). You can use this dictionary to manipulate the
+    # Dict with all the metric curves, only available when `collect_all` is True.
+    # Each entry is a (x, metric value) tuple.
+    # You can use this dictionary to manipulate the
     # metrics without avalanche.
-    all_metrics = cl_strategy.evaluator.all_metrics
+    all_metrics = cl_strategy.evaluator.get_all_metrics()
     print(f"Stored metrics: {list(all_metrics.keys())}")
 
 

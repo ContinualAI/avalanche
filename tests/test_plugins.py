@@ -12,7 +12,8 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks import nc_scenario
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin
+from avalanche.training.plugins import StrategyPlugin, MultiHeadPlugin,\
+    ReplayPlugin
 from avalanche.training.strategies import Naive
 from tests.unit_tests_utils import common_setups
 
@@ -29,7 +30,7 @@ class MockPlugin(StrategyPlugin):
     def before_training_exp(self, strategy, **kwargs):
         self.activated[0] = True
 
-    def adapt_train_dataset(self, strategy, **kwargs):
+    def after_train_dataset_adaptation(self, strategy, **kwargs):
         self.activated[1] = True
 
     def before_training_epoch(self, strategy, **kwargs):
@@ -68,7 +69,7 @@ class MockPlugin(StrategyPlugin):
     def before_eval(self, strategy, **kwargs):
         self.activated[13] = True
 
-    def adapt_eval_dataset(self, strategy, **kwargs):
+    def after_eval_dataset_adaptation(self, strategy, **kwargs):
         self.activated[14] = True
 
     def before_eval_exp(self, strategy, **kwargs):
@@ -152,7 +153,30 @@ class PluginTests(unittest.TestCase):
         assert w_ptr_new in opt_params_ptrs
         assert b_ptr_new in opt_params_ptrs
 
-    def create_scenario(self):
+    def test_replay_balanced_memory(self):
+        scenario = self.create_scenario(task_labels=True)
+        mem_size = 25
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        replayPlugin = ReplayPlugin(mem_size=mem_size)
+        cl_strategy = Naive(
+            model, 
+            SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
+            CrossEntropyLoss(), train_mb_size=32, train_epochs=1,
+            eval_mb_size=100, plugins=[replayPlugin]
+        )
+
+        for step in scenario.train_stream:
+            curr_mem_size = min(mem_size, len(step.dataset))
+            cl_strategy.train(step)
+            ext_mem = replayPlugin.ext_mem
+            lengths = [] 
+            for task_id in ext_mem.keys():
+                lengths.append(len(ext_mem[task_id]))
+            self.assertEqual(sum(lengths), curr_mem_size)
+            difference = max(lengths) - min(lengths)
+            self.assertLessEqual(difference, 1)
+
+    def create_scenario(self, task_labels=False):
         n_samples_per_class = 20
 
         dataset = make_classification(
@@ -168,7 +192,8 @@ class PluginTests(unittest.TestCase):
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
-        return nc_scenario(train_dataset, test_dataset, 5, task_labels=False,
+        return nc_scenario(train_dataset, test_dataset, 5,
+                           task_labels=task_labels,
                            fixed_class_order=list(range(10)))
 
 

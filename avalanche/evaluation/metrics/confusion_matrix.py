@@ -24,7 +24,7 @@ from avalanche.evaluation.metric_results import AlternativeValues, \
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     phase_and_task, stream_type
 if TYPE_CHECKING:
-    from avalanche.training.plugins import PluggableStrategy
+    from avalanche.training import BaseStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):
@@ -50,7 +50,8 @@ class ConfusionMatrix(Metric[Tensor]):
     this metric in its initial state will return an empty Tensor.
     """
 
-    def __init__(self, num_classes: int = None):
+    def __init__(self, num_classes: int = None,
+                 normalize: Literal['true', 'pred', 'all'] = None):
         """
         Creates an instance of the standalone confusion matrix metric.
 
@@ -62,12 +63,16 @@ class ConfusionMatrix(Metric[Tensor]):
             which means that the number of classes will be inferred from
             ground truth and prediction Tensors (see class description for more
             details).
+        :param normalize: how to normalize confusion matrix.
+            None to not normalize
         """
         self._cm_tensor: Optional[Tensor] = None
         """
         The Tensor where the running confusion matrix is stored.
         """
         self._num_classes: Optional[int] = num_classes
+
+        self.normalize = normalize
 
     @torch.no_grad()
     def update(self, true_y: Tensor, predicted_y: Tensor) -> None:
@@ -144,6 +149,9 @@ class ConfusionMatrix(Metric[Tensor]):
             if self._num_classes is not None:
                 matrix_shape = (self._num_classes, self._num_classes)
             return torch.zeros(matrix_shape, dtype=torch.long)
+        if self.normalize is not None:
+            return ConfusionMatrix._normalize_cm(self._cm_tensor,
+                                                 self._normalize)
         return self._cm_tensor
 
     def reset(self) -> None:
@@ -156,6 +164,32 @@ class ConfusionMatrix(Metric[Tensor]):
         :return: None.
         """
         self._cm_tensor = None
+
+    @staticmethod
+    def _normalize_cm(cm: Tensor,
+                      normalization: Literal['true', 'pred', 'all']):
+        if normalization not in ('true', 'pred', 'all'):
+            raise ValueError('Invalid normalization parameter. Can be \'true\','
+                             ' \'pred\' or \'all\'')
+
+        if normalization == 'true':
+            cm = cm / cm.sum(dim=1, keepdim=True, dtype=torch.float64)
+        elif normalization == 'pred':
+            cm = cm / cm.sum(dim=0, keepdim=True, dtype=torch.float64)
+        elif normalization == 'all':
+            cm = cm / cm.sum(dtype=torch.float64)
+        cm = ConfusionMatrix.nan_to_num(cm)
+        return cm
+
+    @staticmethod
+    def nan_to_num(matrix: Tensor) -> Tensor:
+        # if version.parse(torch.__version__) >= version.parse("1.8.0"):
+        #    # noinspection PyUnresolvedReferences
+        #    return torch.nan_to_num(matrix)
+
+        numpy_ndarray = matrix.numpy()
+        numpy_ndarray = np.nan_to_num(numpy_ndarray)
+        return torch.tensor(numpy_ndarray, dtype=matrix.dtype)
 
 
 class StreamConfusionMatrix(PluginMetric[Tensor]):
@@ -200,7 +234,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         super().__init__()
 
         self._save_image: bool = save_image
-        self._matrix: ConfusionMatrix = ConfusionMatrix()
+        self._matrix: ConfusionMatrix = ConfusionMatrix(num_classes, normalize)
         self._num_classes: Optional[Union[int, Mapping[int, int]]] = num_classes
         self._normalize: Optional[Literal['true', 'pred', 'all']] = normalize
 
@@ -213,9 +247,6 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def result(self) -> Tensor:
         exp_cm = self._matrix.result()
-        if self._normalize is not None:
-            exp_cm = StreamConfusionMatrix._normalize_cm(exp_cm,
-                                                         self._normalize)
         return exp_cm
 
     def update(self, true_y: Tensor, predicted_y: Tensor) -> None:
@@ -224,14 +255,14 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'PluggableStrategy') -> None:
+    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.update(strategy.mb_y,
                     strategy.logits)
 
-    def after_eval(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'PluggableStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
@@ -251,41 +282,6 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
                 self, metric_name, exp_cm, plot_x_position)
 
         return [metric_representation]
-
-    def _class_num_for_exp(self, exp_label: int) -> Optional[int]:
-        if self._num_classes is None or isinstance(self._num_classes, int):
-            return self._num_classes
-
-        if exp_label not in self._num_classes:
-            return None
-
-        return self._num_classes[exp_label]
-
-    @staticmethod
-    def _normalize_cm(cm: Tensor,
-                      normalization: Literal['true', 'pred', 'all']):
-        if normalization not in ('true', 'pred', 'all'):
-            raise ValueError('Invalid normalization parameter. Can be \'true\','
-                             ' \'pred\' or \'all\'')
-
-        if normalization == 'true':
-            cm = cm / cm.sum(dim=1, keepdim=True, dtype=torch.float64)
-        elif normalization == 'pred':
-            cm = cm / cm.sum(dim=0, keepdim=True, dtype=torch.float64)
-        elif normalization == 'all':
-            cm = cm / cm.sum(dtype=torch.float64)
-        cm = StreamConfusionMatrix.nan_to_num(cm)
-        return cm
-
-    @staticmethod
-    def nan_to_num(matrix: Tensor) -> Tensor:
-        # if version.parse(torch.__version__) >= version.parse("1.8.0"):
-        #    # noinspection PyUnresolvedReferences
-        #    return torch.nan_to_num(matrix)
-
-        numpy_ndarray = matrix.numpy()
-        numpy_ndarray = np.nan_to_num(numpy_ndarray)
-        return torch.tensor(numpy_ndarray, dtype=matrix.dtype)
 
     def __str__(self):
         return "ConfusionMatrix_Stream"
