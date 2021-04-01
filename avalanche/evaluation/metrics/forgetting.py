@@ -128,7 +128,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         The general metric to compute forgetting
         """
 
-        self._last_accuracy = Accuracy()
+        self._current_accuracy = Accuracy()
         """
         The average accuracy over the current evaluation experience
         """
@@ -192,26 +192,26 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         self.reset_last_accuracy()
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self._last_accuracy.reset()
+        self._current_accuracy.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.eval_exp_id = strategy.experience.current_experience
-        self._last_accuracy.update(strategy.mb_y,
-                                   strategy.logits)
+        self._current_accuracy.update(strategy.mb_y,
+                                      strategy.logits)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.update(self.eval_exp_id,
-                        self._last_accuracy.result(),
+                        self._current_accuracy.result(),
                         initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
             self.update(self.eval_exp_id,
-                        self._last_accuracy.result())
+                        self._current_accuracy.result())
 
         # this checks if the evaluation experience has been
         # already encountered at training time
@@ -225,7 +225,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
         forgetting = self.result(k=self.eval_exp_id)
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         metric_values = [MetricValue(
             self, metric_name, forgetting, plot_x_position)]
@@ -265,7 +265,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         The general metric to compute forgetting
         """
 
-        self._last_accuracy = Accuracy()
+        self._current_accuracy = Accuracy()
         """
         The average accuracy over the current evaluation experience
         """
@@ -336,29 +336,29 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
-        self.reset_last_accuracy()
+        self.reset_current_accuracy()
         self.stream_forgetting.reset()
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self._last_accuracy.reset()
+        self._current_accuracy.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         self.eval_exp_id = strategy.experience.current_experience
-        self._last_accuracy.update(strategy.mb_y,
-                                   strategy.logits)
+        self._current_accuracy.update(strategy.mb_y,
+                                      strategy.logits)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.exp_update(self.eval_exp_id,
-                            self._last_accuracy.result(),
+                            self._current_accuracy.result(),
                             initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
             self.exp_update(self.eval_exp_id,
-                            self._last_accuracy.result())
+                            self._current_accuracy.result())
 
         # this checks if the evaluation experience has been
         # already encountered at training time
@@ -382,7 +382,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
