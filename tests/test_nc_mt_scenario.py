@@ -1,5 +1,7 @@
 import unittest
 
+from os.path import expanduser
+
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
@@ -15,8 +17,10 @@ class MultiTaskTests(unittest.TestCase):
         common_setups()
 
     def test_mt_single_dataset(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True, shuffle=True,
             seed=1234, class_ids_from_zero_in_each_exp=True)
@@ -37,8 +41,10 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(10, len(all_original_classes))
 
     def test_mt_single_dataset_without_class_id_remap(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True, shuffle=True,
             seed=1234, class_ids_from_zero_in_each_exp=False)
@@ -56,8 +62,10 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_mt_single_dataset_fixed_order(self):
         order = [2, 3, 5, 7, 8, 9, 0, 1, 4, 6]
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True,
             fixed_class_order=order, class_ids_from_zero_in_each_exp=False)
@@ -70,8 +78,10 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_sit_single_dataset_fixed_order_subset(self):
         order = [2, 5, 7, 8, 9, 0, 1, 4]
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 4, task_labels=True,
             fixed_class_order=order, class_ids_from_zero_in_each_exp=True)
@@ -89,8 +99,10 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_sit_single_dataset_fixed_subset_no_remap_idx(self):
         order = [2, 5, 7, 8, 9, 0, 1, 4]
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 2, task_labels=True,
             fixed_class_order=order, class_ids_from_zero_in_each_exp=False)
@@ -107,8 +119,10 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(set(order), all_classes)
 
     def test_mt_single_dataset_reproducibility_data(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         nc_scenario_ref = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True, shuffle=True,
             seed=5678)
@@ -124,8 +138,10 @@ class MultiTaskTests(unittest.TestCase):
                          my_nc_scenario.test_exps_patterns_assignment)
 
     def test_mt_single_dataset_task_size(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 3, task_labels=True,
             per_exp_classes={0: 5, 2: 2},
@@ -145,8 +161,10 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_mt_multi_dataset_one_task_per_set(self):
         split_mapping = [0, 1, 2, 0, 1, 2, 3, 4, 5, 6]
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
 
         train_part1 = make_nc_transformation_subset(
             mnist_train, None, None, range(3))
@@ -208,10 +226,10 @@ class MultiTaskTests(unittest.TestCase):
             self.assertTrue(exp_classes_test == exp_classes_ref2)
 
     def test_nc_mt_slicing(self):
-        mnist_train = MNIST(
-            './data/mnist', train=True, download=True)
-        mnist_test = MNIST(
-            './data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True, shuffle=True,
             seed=1234)

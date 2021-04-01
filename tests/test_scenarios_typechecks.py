@@ -1,6 +1,8 @@
 import unittest
 import torch
 
+from os.path import expanduser
+
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.generators import tensor_scenario, nc_scenario, \
@@ -15,8 +17,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         common_setups()
 
     def test_nc_mt_type(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=True,
             class_ids_from_zero_in_each_exp=True)
@@ -28,8 +32,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             self.assertIsInstance(task_info, Experience)
 
     def test_nc_sit_type(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = nc_scenario(
             mnist_train, mnist_test, 5, task_labels=False)
 
@@ -40,8 +46,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             self.assertIsInstance(batch_info, Experience)
 
     def test_ni_sit_type(self):
-        mnist_train = MNIST('./data/mnist', train=True, download=True)
-        mnist_test = MNIST('./data/mnist', train=False, download=True)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True)
         my_nc_scenario = ni_scenario(
             mnist_train, mnist_test, 5)
 

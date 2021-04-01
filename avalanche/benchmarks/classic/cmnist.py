@@ -21,7 +21,8 @@ from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
 import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_scenario
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
+from avalanche.benchmarks.utils import train_eval_avalanche_datasets, \
+    AvalancheDatasetType
 
 _default_mnist_train_transform = Compose([
     ToTensor(),
@@ -198,6 +199,8 @@ def PermutedMNIST(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
+    mnist_train, mnist_test = _get_mnist_dataset()
+
     # for every incremental experience
     for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
@@ -206,14 +209,16 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        mnist_train, mnist_test = _get_mnist_dataset(permutation, permutation)
-
         # Freeze the permutation, then add the user defined transformations
         permuted_train = mnist_train \
+            .add_transforms_to_group('train', permutation) \
+            .add_transforms_to_group('eval', permutation) \
             .freeze_transforms() \
             .add_transforms(train_transform)
 
         permuted_test = mnist_test \
+            .add_transforms_to_group('train', permutation) \
+            .add_transforms_to_group('eval', permutation) \
             .freeze_transforms() \
             .add_transforms(eval_transform)
 
@@ -286,17 +291,20 @@ def RotatedMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    assert len(rotations_list) == n_experiences, "The number of rotations" \
-                                                 " should match the number" \
-                                                 " of incremental experiences."
-    assert all(-180 <= rotations_list[i] <= 180
-               for i in range(len(rotations_list))), "The value of a rotation" \
-                                                     " should be between -180" \
-                                                     " and 180 degrees."
+    if rotations_list is not None and len(rotations_list) != n_experiences:
+        raise ValueError("The number of rotations should match the number"
+                         " of incremental experiences.")
+
+    if rotations_list is not None and any(180 < rotations_list[i] < -180
+                                          for i in range(len(rotations_list))):
+        raise ValueError("The value of a rotation should be between -180"
+                         " and 180 degrees.")
 
     list_train_dataset = []
     list_test_dataset = []
     rng_rotate = np.random.RandomState(seed)
+
+    mnist_train, mnist_test = _get_mnist_dataset()
 
     # for every incremental experience
     for exp in range(n_experiences):
@@ -308,14 +316,16 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        mnist_train, mnist_test = _get_mnist_dataset(rotation, rotation)
-
         # Freeze the rotation, then add the user defined transformations
         rotated_train = mnist_train \
+            .add_transforms_to_group('train', rotation) \
+            .add_transforms_to_group('eval', rotation) \
             .freeze_transforms() \
             .add_transforms(train_transform)
 
         rotated_test = mnist_test \
+            .add_transforms_to_group('train', rotation) \
+            .add_transforms_to_group('eval', rotation) \
             .freeze_transforms() \
             .add_transforms(eval_transform)
 
@@ -332,7 +342,7 @@ def RotatedMNIST(
         one_dataset_per_exp=True)
 
 
-def _get_mnist_dataset(train_transformation, eval_transformation):
+def _get_mnist_dataset():
     train_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                       train=True, download=True)
 
@@ -340,7 +350,8 @@ def _get_mnist_dataset(train_transformation, eval_transformation):
                      train=False, download=True)
 
     return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+        train_set, test_set, None, None,
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
 
 __all__ = [

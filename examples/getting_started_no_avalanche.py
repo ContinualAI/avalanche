@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from os.path import expanduser
+
 import argparse
 import torch
 import torch.nn as nn
@@ -95,10 +97,10 @@ def main(args):
         new_test_transform = transforms.Compose(test_transform_list)
 
         # get the datasets with the constructed transformation
-        permuted_train = MNIST(root='./data/mnist',
+        permuted_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                                train=True,
                                download=True, transform=new_train_transform)
-        permuted_test = MNIST(root='./data/mnist',
+        permuted_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                               train=False,
                               download=True, transform=new_test_transform)
 

@@ -16,6 +16,8 @@ from torchvision.transforms import ToTensor, Compose, transforms, Resize
 import os
 import sys
 
+from os.path import expanduser
+
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.optim import SGD
@@ -470,11 +472,13 @@ class StrategyTest(unittest.TestCase):
             my_nc_scenario = get_fast_scenario()
         else:
             mnist_train = MNIST(
-                './data/mnist', train=True, download=True,
+                root=expanduser("~") + "/.avalanche/data/mnist/",
+                train=True, download=True,
                 transform=Compose([ToTensor()]))
 
             mnist_test = MNIST(
-                './data/mnist', train=False, download=True,
+                root=expanduser("~") + "/.avalanche/data/mnist/",
+                train=False, download=True,
                 transform=Compose([ToTensor()]))
             my_nc_scenario = nc_scenario(
                 mnist_train, mnist_test, 5,
