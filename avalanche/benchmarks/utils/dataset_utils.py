@@ -8,7 +8,9 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from torch.utils.data import Subset
+import bisect
+
+from torch.utils.data import Subset, ConcatDataset
 
 from .dataset_definitions import IDatasetWithTargets, \
     ISupportedClassificationDataset
@@ -261,19 +263,25 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
 
 def find_list_from_index(pattern_idx: int,
                          list_sizes: Sequence[int],
-                         max_size: int):
+                         max_size: int,
+                         cumulative_sizes=None):
     if pattern_idx >= max_size:
         raise IndexError()
 
-    cumulative_length = 0
-    for list_idx, list_length in enumerate(list_sizes):
-        dataset_span = cumulative_length + list_length
-        if pattern_idx < dataset_span:
-            return list_idx, \
-                   pattern_idx - cumulative_length
+    if cumulative_sizes is None:
+        r, s = [], 0
+        for list_len in list_sizes:
+            r.append(list_len + s)
+            s += list_len
+        cumulative_sizes = r
 
-        cumulative_length = dataset_span
-    raise ValueError('Index out of bounds, wrong max_size parameter')
+    list_idx = bisect.bisect_right(cumulative_sizes, pattern_idx)
+    if list_idx != 0:
+        pattern_idx = pattern_idx - cumulative_sizes[list_idx - 1]
+
+    if pattern_idx >= list_sizes[list_idx]:
+        raise ValueError('Index out of bounds, wrong max_size parameter')
+    return list_idx, pattern_idx
 
 
 def manage_advanced_indexing(idx, single_element_getter, max_length,
