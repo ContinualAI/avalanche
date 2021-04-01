@@ -30,8 +30,8 @@ class WandBLogger(StrategyLogger):
         Creates an instance of the `WandBLogger`.
 
         :param init_kwargs: All arguments for wandb.init() function call.:
-        :param interactive: Boolean argument if True plots an interactive confusion
-        matrix on the W&B dashboard. Default is False.:
+        :param interactive: Boolean argument if True plots an interactive 
+        confusion matrix on the W&B dashboard. Default is False.:
         """
 
         super().__init__()
