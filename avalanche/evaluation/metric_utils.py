@@ -145,17 +145,6 @@ def bytes2human(n):
     return "%sB" % n
 
 
-def get_global_counter(strategy: 'BaseStrategy'):
-    """
-    :param strategy: the current strategy object
-
-    :return: an integer representing the number of
-        training and evaluation iteration performed since the
-        very start of the strategy computation.
-    """
-    return strategy.global_it_counter
-
-
 def get_metric_name(metric: 'PluginMetric',
                     strategy: 'BaseStrategy',
                     add_experience=False):
@@ -199,7 +188,6 @@ __all__ = [
     'default_cm_image_creator',
     'get_task_label',
     'phase_and_task',
-    'get_global_counter',
     'get_metric_name',
     'stream_type',
     'bytes2human'

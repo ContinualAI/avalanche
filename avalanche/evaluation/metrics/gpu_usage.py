@@ -19,7 +19,7 @@ from typing import Optional, TYPE_CHECKING, List
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type, get_global_counter
+    phase_and_task, stream_type
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 
@@ -169,7 +169,7 @@ class MinibatchMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -220,7 +220,7 @@ class EpochMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -271,7 +271,7 @@ class ExperienceMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -323,7 +323,7 @@ class StreamMaxGPU(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 

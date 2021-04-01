@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING, List
 
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    get_global_counter
+from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -125,7 +124,7 @@ class MinibatchTime(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -169,7 +168,7 @@ class EpochTime(PluginMetric[float]):
         elapsed_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
 
@@ -222,7 +221,7 @@ class RunningEpochTime(PluginMetric[float]):
         average_epoch_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(
             self, metric_name, average_epoch_time, plot_x_position)]
@@ -266,7 +265,7 @@ class ExperienceTime(PluginMetric[float]):
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 
@@ -309,7 +308,7 @@ class StreamTime(PluginMetric[float]):
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 

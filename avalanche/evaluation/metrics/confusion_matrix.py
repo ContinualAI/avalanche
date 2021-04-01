@@ -22,7 +22,7 @@ from avalanche.evaluation import PluginMetric, Metric
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
-    phase_and_task, stream_type, get_global_counter
+    phase_and_task, stream_type
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 
@@ -270,7 +270,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         if self._save_image:
             cm_image = self._image_creator(exp_cm)

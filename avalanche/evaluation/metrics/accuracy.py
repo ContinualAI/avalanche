@@ -17,7 +17,7 @@ from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type, get_global_counter
+    phase_and_task, stream_type
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
@@ -146,7 +146,7 @@ class MinibatchAccuracy(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -193,7 +193,7 @@ class EpochAccuracy(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -233,7 +233,7 @@ class RunningEpochAccuracy(EpochAccuracy):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -279,7 +279,7 @@ class ExperienceAccuracy(PluginMetric[float]):
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
 
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -329,7 +329,7 @@ class StreamAccuracy(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 

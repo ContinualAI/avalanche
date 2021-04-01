@@ -154,12 +154,6 @@ class BaseStrategy:
         self.mb_it = None
         """ Iteration counter. Reset at the start of a new epoch. """
 
-        self.global_it_counter = 0
-        """ 
-        This global counter is increased after each 
-        training or eval iteration 
-        """
-
         self.mbatch = None
         """ Current mini-batch. """
 

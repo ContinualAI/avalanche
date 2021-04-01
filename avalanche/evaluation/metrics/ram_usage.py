@@ -18,7 +18,7 @@ from psutil import Process
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type, get_global_counter
+    phase_and_task, stream_type
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -156,7 +156,7 @@ class MinibatchMaxRAM(PluginMetric[float]):
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
@@ -204,7 +204,7 @@ class EpochMaxRAM(PluginMetric[float]):
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
@@ -252,7 +252,7 @@ class ExperienceMaxRAM(PluginMetric[float]):
         ram_usage = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
@@ -301,7 +301,7 @@ class StreamMaxRAM(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = get_global_counter(strategy)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
