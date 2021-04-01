@@ -432,6 +432,63 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return dataset_copy
 
+    def add_transforms_to_group(
+            self: TAvalancheDataset,
+            group_name: str,
+            transform: Callable[[Any], Any] = None,
+            target_transform: Callable[[int], int] = None) -> \
+            TAvalancheDataset:
+        """
+        Returns a new dataset with the given transformations added to
+        the existing ones for a certain group.
+
+        The transformations will be added to the given transformations group.
+        Other transformation groups will not be affected. The group must
+        already exist.
+
+        The given transformations will be added "at the end" of previous
+        transformations of that group. This means that existing transformations
+        will be applied to the patterns first.
+
+        The current dataset will not be affected.
+
+        :param group_name: The name of the group.
+        :param transform: A function/transform that takes the X value of a
+            pattern from the original dataset and returns a transformed version.
+        :param target_transform: A function/transform that takes in the target
+            and transforms it.
+        :return: A new dataset with the added transformations.
+        """
+
+        if self.current_transform_group == group_name:
+            return self.add_transforms(transform, target_transform)
+
+        if group_name not in self.transform_groups:
+            raise ValueError('Invalid group name ' + str(group_name))
+
+        dataset_copy = self._fork_dataset()
+
+        t_group: List[XTransform, YTransform] = \
+            list(dataset_copy.transform_groups[group_name])
+        if transform is not None:
+            if t_group[0] is not None:
+                t_group[0] = Compose([t_group[0], transform])
+            else:
+                t_group[0] = transform
+
+        if target_transform is not None:
+            if t_group[1] is not None:
+                t_group[1] = Compose([t_group[1], target_transform])
+            else:
+                t_group[1] = transform
+
+        # tuple(t_group) works too, but it triggers a type warning
+        tuple_t_group: Tuple[XTransform, YTransform] = tuple(
+            (t_group[0], t_group[1]))
+        dataset_copy.transform_groups[group_name] = tuple_t_group
+
+        return dataset_copy
+
     def replace_transforms(
             self: TAvalancheDataset,
             transform: XTransform,
@@ -1224,6 +1281,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         self._dataset_list = list(datasets)
         self._datasets_lengths = [len(dataset) for dataset in datasets]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(datasets)
         self._overall_length = sum(self._datasets_lengths)
 
         if task_labels is not None:
@@ -1295,7 +1353,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
     def _get_single_item(self, idx: int):
         dataset_idx, internal_idx = find_list_from_index(
-            idx, self._datasets_lengths, self._overall_length)
+            idx, self._datasets_lengths, self._overall_length,
+            cumulative_sizes=self._datasets_cumulative_lengths)
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
 
@@ -1573,18 +1632,21 @@ def as_undefined_dataset(dataset: ISupportedClassificationDataset[T_co]) \
 def train_eval_avalanche_datasets(
         train_dataset: ISupportedClassificationDataset,
         test_dataset: ISupportedClassificationDataset,
-        train_transformation, eval_transformation):
+        train_transformation, eval_transformation,
+        dataset_type=None):
     train = AvalancheDataset(
         train_dataset,
         transform_groups=dict(train=(train_transformation, None),
                               eval=(eval_transformation, None)),
-        initial_transform_group='train')
+        initial_transform_group='train',
+        dataset_type=dataset_type)
 
     test = AvalancheDataset(
         test_dataset,
         transform_groups=dict(train=(train_transformation, None),
                               eval=(eval_transformation, None)),
-        initial_transform_group='eval')
+        initial_transform_group='eval',
+        dataset_type=dataset_type)
     return train, test
 
 
