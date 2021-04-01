@@ -124,7 +124,8 @@ class EWCPlugin(StrategyPlugin):
             for (k1, p), (k2, imp) in zip(model.named_parameters(),
                                           importances):
                 assert (k1 == k2)
-                imp += p.grad.data.clone().pow(2)
+                if p.grad is not None:
+                    imp += p.grad.data.clone().pow(2)
 
         # average over mini batch length
         for _, imp in importances:
