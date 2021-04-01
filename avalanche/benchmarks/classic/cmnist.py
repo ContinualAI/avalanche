@@ -291,15 +291,14 @@ def RotatedMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    assert rotations_list is None or \
-           len(rotations_list) == n_experiences, "The number of rotations" \
-                                                 " should match the number" \
-                                                 " of incremental experiences."
-    assert rotations_list is None or \
-           all(-180 <= rotations_list[i] <= 180
-               for i in range(len(rotations_list))), "The value of a rotation" \
-                                                     " should be between -180" \
-                                                     " and 180 degrees."
+    if rotations_list is not None and len(rotations_list) != n_experiences:
+        raise ValueError("The number of rotations should match the number"
+                         " of incremental experiences.")
+
+    if rotations_list is not None and any(180 < rotations_list[i] < -180
+                                          for i in range(len(rotations_list))):
+        raise ValueError("The value of a rotation should be between -180"
+                         " and 180 degrees.")
 
     list_train_dataset = []
     list_test_dataset = []
