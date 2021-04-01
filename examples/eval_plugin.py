@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from os.path import expanduser
+
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -26,7 +28,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
 from avalanche.models import SimpleMLP
@@ -39,7 +41,7 @@ def main(args):
     # --- CONFIG
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+                             args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -55,10 +57,10 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST('./data/mnist', train=True,
-                        download=True, transform=train_transform)
-    mnist_test = MNIST('./data/mnist', train=False,
-                       download=True, transform=test_transform)
+    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                        train=True, download=True, transform=train_transform)
+    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                       train=False, download=True, transform=test_transform)
     scenario = nc_scenario(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
@@ -82,7 +84,7 @@ def main(args):
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True, stream=True),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
@@ -99,7 +101,6 @@ def main(args):
             minibatch=True, epoch=True, experience=True),
         loggers=[interactive_logger, text_logger],
         collect_all=True)  # collect all metrics (set to True by default)
-
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
