@@ -75,10 +75,6 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     An instance of this class usually leverages a `Metric` instance to update,
     reset and emit metric results at appropriate times
     (during specific callbacks).
-
-    This class also provides a utility method, `_next_x_position`, which can
-    be used to progressively label each metric value with its appropriate "x"
-    position in the plot.
     """
     def __init__(self):
         """
@@ -189,21 +185,6 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     def after_eval_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
         pass
-
-    def _next_x_position(self, metric_name: str, initial_x: int = 0) -> int:
-        """
-        Utility method that can be used to get the next "x" position of a
-        metric value (given its name).
-
-        :param metric_name: The metric value name.
-        :param initial_x: The initial "x" value. Defaults to 0.
-        :return: The next "x" value to use.
-        """
-        if metric_name not in self._metric_x_counters:
-            self._metric_x_counters[metric_name] = initial_x
-        x_result = self._metric_x_counters[metric_name]
-        self._metric_x_counters[metric_name] += 1
-        return x_result
 
 
 __all__ = ['Metric', 'PluginMetric']

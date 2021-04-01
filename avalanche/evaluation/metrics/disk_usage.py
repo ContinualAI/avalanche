@@ -15,7 +15,7 @@ from typing import Union, Sequence, List, Optional, TYPE_CHECKING
 
 from avalanche.evaluation import Metric, PluginMetric
 from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+    phase_and_task, stream_type, get_global_counter
 from avalanche.evaluation.metric_results import MetricResult, MetricValue
 
 if TYPE_CHECKING:
@@ -140,7 +140,7 @@ class MinibatchDiskUsage(PluginMetric[float]):
 
         metric_name = get_metric_name(self, strategy)
 
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -183,7 +183,7 @@ class EpochDiskUsage(PluginMetric[float]):
         disk_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         return [MetricValue(self, metric_name, disk_usage, plot_x_position)]
 
@@ -225,7 +225,7 @@ class ExperienceDiskUsage(PluginMetric[float]):
         exp_disk = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         return [MetricValue(self, metric_name, exp_disk, plot_x_position)]
 
@@ -272,7 +272,7 @@ class StreamDiskUsage(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         return [MetricValue(self, metric_name, exp_disk, plot_x_position)]
 

@@ -15,7 +15,7 @@ from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics import Accuracy, Mean
 from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+    phase_and_task, stream_type, get_global_counter
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -225,7 +225,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
 
         forgetting = self.result(k=self.eval_exp_id)
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         metric_values = [MetricValue(
             self, metric_name, forgetting, plot_x_position)]
@@ -382,7 +382,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = get_global_counter(strategy)
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
