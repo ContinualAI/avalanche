@@ -43,6 +43,12 @@ model = SimpleMLP(num_classes=scenario.n_classes)
 # log to Tensorboard
 tb_logger = TensorboardLogger()
 
+# log to Weights & Biases
+# For all initialization parameters available for WandBLogger, 
+# please visit the WandB docs at https://docs.wandb.ai/ref/run/init
+init_kwargs = {"project":' Avalanche', "run": 'continual_learning 1'}
+wb_logger = WandBLogger(init_kwargs = init_kwargs)
+
 # log to text file
 text_logger = TextLogger(open('log.txt', 'a'))
 
@@ -57,7 +63,7 @@ eval_plugin = EvaluationPlugin(
     ExperienceForgetting(),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    loggers=[interactive_logger, text_logger, tb_logger])
+    loggers=[interactive_logger, text_logger, tb_logger, wb_logger])
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)
 cl_strategy = Naive(
