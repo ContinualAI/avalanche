@@ -20,6 +20,7 @@ dependencies:
 - numpy
 - conda-forge::quadprog
 - tqdm
+- wandb
 - pip
 - pip:
     - pytorchcv
