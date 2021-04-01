@@ -25,6 +25,7 @@ _Avalanche_ at the moment supports three main Loggers:
 * **InteractiveLogger**: This logger provides a nice progress bar and displays real-time metrics results in an interactive way \(meant for `stdout`\).
 * **TextLogger**: This logger, mostly intended for file logging, is the plain text version of the `InteractiveLogger`. Keep in mind that it may be very verbose.
 * **TensorboardLogger**: It logs all the metrics on [Tensorboard](https://www.tensorflow.org/tensorboard) in real-time. Perfect for real-time plotting.
+* **WandBLogger**: It logs all the metrics along with Confusion Matrix on a centralized dashboard on [Weights & Biases](https://wandb.ai/site) in real-time. Best for interactive logging, dynamic visualizations and easy analysis. 
 
 #### How to use Them
 
@@ -53,6 +54,12 @@ model = SimpleMLP(num_classes=scenario.n_classes)
 # log to Tensorboard
 tb_logger = TensorboardLogger()
 
+# log to Weights & Biases
+# For all initialization parameters available for WandBLogger, 
+# please visit the WandB docs at https://docs.wandb.ai/ref/run/init
+init_kwargs = {"project":' Avalanche', "run": 'continual_learning 1'}
+wb_logger = WandBLogger(init_kwargs = init_kwargs)
+
 # log to text file
 text_logger = TextLogger(open('log.txt', 'a'))
 
@@ -66,7 +73,7 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    loggers=[interactive_logger, text_logger, tb_logger]
+    loggers=[interactive_logger, text_logger, tb_logger, wb_logger]
 )
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)
