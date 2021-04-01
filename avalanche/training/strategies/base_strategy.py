@@ -442,7 +442,6 @@ class BaseStrategy:
             self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
-            self.global_it_counter += 1
 
     def before_training(self, **kwargs):
         for p in self.plugins:
@@ -538,7 +537,6 @@ class BaseStrategy:
             self.loss = self.criterion(self.logits, self.mb_y)
 
             self.after_eval_iteration(**kwargs)
-            self.global_it_counter += 1
 
     def after_eval_exp(self, **kwargs):
         for p in self.plugins:
