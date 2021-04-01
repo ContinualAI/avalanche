@@ -70,14 +70,13 @@ class WandBLogger(StrategyLogger):
             # Confusion Matrix logging
             if not self.interactive:
                 self.wandb.log({name: [self.wandb.Image(
-                    value, caption="Confusion Matrix")]}, 
-                                step=metric_value.x_plot)
+                    value, caption="Confusion Matrix")]})
             else:
                 # WIP
                 return
 
         elif isinstance(value, (float, int)):
-            self.wandb.log({name: value}, step=metric_value.x_plot)
+            self.wandb.log({name: value})
 
 
 __all__ = [
