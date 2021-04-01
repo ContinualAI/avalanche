@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -51,7 +51,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True),
         loggers=[interactive_logger])
 
     # create strategy

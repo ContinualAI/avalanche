@@ -27,7 +27,7 @@ from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import EWC
 from avalanche.training.plugins import MultiHeadPlugin
-from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics
+from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -55,7 +55,7 @@ def main(args):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=False, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True),
         loggers=[interactive_logger])
 
     # Choose a CL strategy
