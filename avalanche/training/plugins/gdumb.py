@@ -1,10 +1,13 @@
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 import torch
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+if TYPE_CHECKING:
+    from avalanche.training import BaseStrategy
 
 
 class GDumbPlugin(StrategyPlugin):
