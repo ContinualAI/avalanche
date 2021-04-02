@@ -288,7 +288,7 @@ eval_plugin = EvaluationPlugin(
 
 For more details about the evaluation module \(how to write new metrics/loggers, a deeper tutorial on metrics\) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/04\_evaluation.md" %}
+{% page-ref page="../from-zero-to-hero-tutorial/05\_evaluation.md" %}
 
 ## 🔗 Putting all Together
 
