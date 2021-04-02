@@ -103,7 +103,7 @@ detail and make you a true Continual Learner! :woman_student:
 
 Cite Avalanche
 ----------------
-If you used Avalanche in your research project, please remember to cite our white paper. 
+If you used Avalanche in your research project, please remember to cite our reference paper ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```
