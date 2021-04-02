@@ -124,8 +124,10 @@ def SplitMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    mnist_train, mnist_test = _get_mnist_dataset(
-        train_transform, eval_transform)
+    mnist_train, mnist_test = _get_mnist_dataset()
+
+    mnist_train = mnist_train.add_transforms(train_transform)
+    mnist_test = mnist_test.add_transforms(eval_transform)
 
     if return_task_id:
         return nc_scenario(
