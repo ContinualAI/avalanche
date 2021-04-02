@@ -214,14 +214,16 @@ Having completed these two sections, you will already feel with _superpowers_ âš
 
 ## ðŸ“‘ Cite Avalanche
 
-If you used _Avalanche_ in your research project, please remember to cite our white paper. This will help us make _Avalanche_ better known in the machine learning community, ultimately making a better tool for everyone:
+If you used _Avalanche_ in your research project, please remember to cite our reference paper [**"Avalanche: an End-to-End Library for Continual Learning"**](https://arxiv.org/abs/2104.00405). This will help us make _Avalanche_ better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```text
-@article{...,
-   title = {Avalanche: an End-to-End Library for Continual Learning},
-   author = {...},
-   journal = {Arxiv preprint arXiv:xxxx.xxxx},
-   year = {2021}
+@misc{lomonaco2021avalanche,
+      title={Avalanche: an End-to-End Library for Continual Learning}, 
+      author={Vincenzo Lomonaco and Lorenzo Pellegrini and Andrea Cossu and Antonio Carta and Gabriele Graffieti and Tyler L. Hayes and Matthias De Lange and Marc Masana and Jary Pomponi and Gido van de Ven and Martin Mundt and Qi She and Keiland Cooper and Jeremy Forest and Eden Belouadah and Simone Calderara and German I. Parisi and Fabio Cuzzolin and Andreas Tolias and Simone Scardapane and Luca Antiga and Subutai Amhad and Adrian Popescu and Christopher Kanan and Joost van de Weijer and Tinne Tuytelaars and Davide Bacciu and Davide Maltoni},
+      year={2021},
+      eprint={2104.00405},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
 }
 ```
 
