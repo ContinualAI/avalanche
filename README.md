@@ -28,7 +28,7 @@ The library is organized into four main modules:
 - [Evaluation](avalanche/evaluation): This module provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
 - [Extras](avalanche/extras): In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
 - [Models](avalanche/models): In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in torchvision.models).
-- [Logging](avalanche/logging): It includes advanced logging and plotting features, including native stdout, file and TensorBoard support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
+- [Logging](avalanche/logging): It includes advanced logging and plotting features, including native stdout, file and TensorBoard/[Weights & Biases](https://wandb.ai/site) support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
 _Avalanche_ the first experiment of an **End-to-end Library** for reproducible continual learning research & development where you can find benchmarks, algorithms, evaluation metrics and much more, in the same place.
 
