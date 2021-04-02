@@ -21,7 +21,7 @@ Avalanche can help Continual Learning researchers in several ways:
 - *Increase code efficiency, scalability & portability*
 - *Augment impact and usability of your research products*
 
-The library is organized in four main modules:
+The library is organized into four main modules:
 
 - [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set of pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
@@ -79,7 +79,7 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [a number of *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that makes it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
 *Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
 *We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
@@ -97,7 +97,7 @@ We have also prepared for you a large set of examples & snippets you can plug-in
 - [Avalanche Examples](https://avalanche.continualai.org/examples)
 
 Having completed these two sections, you will already feel with superpowers ⚡, this is why we have also created an in-depth tutorial that will cover all the aspects of Avalanche in 
-details and make you a true Continual Learner! :woman_student:
+detail and make you a true Continual Learner! :woman_student:
 
 - [From Zero to Hero Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)
 
