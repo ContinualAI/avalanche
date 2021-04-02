@@ -169,7 +169,7 @@ class MinibatchMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -220,7 +220,7 @@ class EpochMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -271,7 +271,7 @@ class ExperienceMaxGPU(PluginMetric[float]):
         gpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
@@ -323,7 +323,7 @@ class StreamMaxGPU(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 

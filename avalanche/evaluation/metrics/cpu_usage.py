@@ -158,7 +158,7 @@ class MinibatchCPUUsage(PluginMetric[float]):
 
         metric_name = get_metric_name(self, strategy)
 
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -201,7 +201,7 @@ class EpochCPUUsage(PluginMetric[float]):
         cpu_usage = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, cpu_usage, plot_x_position)]
 
@@ -253,7 +253,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
 
         metric_name = get_metric_name(self, strategy)
 
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(
             self, metric_name, cpu_usage, plot_x_position)]
@@ -297,7 +297,7 @@ class ExperienceCPUUsage(PluginMetric[float]):
         exp_cpu = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
 
@@ -345,7 +345,7 @@ class StreamCPUUsage(PluginMetric[float]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
 

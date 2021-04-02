@@ -124,7 +124,7 @@ class MinibatchTime(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -168,7 +168,7 @@ class EpochTime(PluginMetric[float]):
         elapsed_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
 
@@ -221,7 +221,7 @@ class RunningEpochTime(PluginMetric[float]):
         average_epoch_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(
             self, metric_name, average_epoch_time, plot_x_position)]
@@ -265,7 +265,7 @@ class ExperienceTime(PluginMetric[float]):
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 
@@ -308,7 +308,7 @@ class StreamTime(PluginMetric[float]):
         exp_time = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, exp_time, plot_x_position)]
 

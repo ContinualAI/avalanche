@@ -270,7 +270,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         if self._save_image:
             cm_image = self._image_creator(exp_cm)

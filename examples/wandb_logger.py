@@ -11,14 +11,12 @@
 
 """
 This is a simple example that shows how to use the
-Tensorboard Logger
+WandB Logger
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from os.path import expanduser
 
 import argparse
 import torch
@@ -29,7 +27,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_scenario
-from avalanche.logging import InteractiveLogger, TensorboardLogger
+from avalanche.logging import InteractiveLogger, WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import forgetting_metrics, StreamConfusionMatrix, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
@@ -58,10 +56,10 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                        train=True, download=True, transform=train_transform)
-    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                       train=False, download=True, transform=test_transform)
+    mnist_train = MNIST('./data/mnist', train=True,
+                        download=True, transform=train_transform)
+    mnist_test = MNIST('./data/mnist', train=False,
+                       download=True, transform=test_transform)
     scenario = nc_scenario(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
@@ -70,7 +68,7 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    tensorboard_logger = TensorboardLogger()
+    wandb_logger = WandBLogger(init_kwargs={"project": args.project, "name": args.run})
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
@@ -93,7 +91,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, tensorboard_logger]
+        loggers=[interactive_logger, wandb_logger]
     )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
@@ -120,5 +118,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument('--run', type=str, help='Provide a run name for WandB')
+    parser.add_argument('--project', type=str, help='Define the name of the WandB project')
     args = parser.parse_args()
     main(args)
