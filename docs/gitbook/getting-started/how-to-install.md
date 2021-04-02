@@ -76,7 +76,7 @@ You can test your installation by running the `examples/test_install.py` script.
 
 ## 💻 Developer Mode Install
 
-If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/2.-benchmarks.md)" Tutorial\). In this case we suggest to create an environment in _**developer-mode**_ as follows \(just a couple of more dependencies will be installed\).
+If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/03_benchmarks.md)" Tutorial\). In this case we suggest to create an environment in _**developer-mode**_ as follows \(just a couple of more dependencies will be installed\).
 
 Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
 

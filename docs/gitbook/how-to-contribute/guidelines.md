@@ -10,7 +10,7 @@ In order to contribute the this awesome framework we recommend to go through the
 
 In this tutorial you'll learn Avalanche _in-depth_ and learn how to extend and contribute back to the community! In particular, be sure to read the "_Contribute to Avalanche_" chapter:
 
-{% page-ref page="../from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md" %}
+{% page-ref page="../from-zero-to-hero-tutorial/08\_contribute-to-avalanche.md" %}
 
 At the moment, we don't have a lot of rules for contributing or a strict _code of conduct_, please enjoy this freedom with a grain of salt! 😁
 

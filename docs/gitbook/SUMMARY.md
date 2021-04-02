@@ -19,15 +19,15 @@
 
 ## 📙 From Zero to Hero Tutorial
 
-* [Introduction](from-zero-to-hero-tutorial/introduction.md)
-* [Models](from-zero-to-hero-tutorial/models.md)
-* [Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
+* [Introduction](from-zero-to-hero-tutorial/01_introduction.md)
+* [Models](from-zero-to-hero-tutorial/02_models.md)
+* [Benchmarks](from-zero-to-hero-tutorial/03_benchmarks.md)
 * [Training](from-zero-to-hero-tutorial/3.-training.md)
-* [Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
-* [Loggers](from-zero-to-hero-tutorial/loggers.md)
-* [Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
-* [Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
-* [Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
+* [Evaluation](from-zero-to-hero-tutorial/04_evaluation.md)
+* [Loggers](from-zero-to-hero-tutorial/05_loggers.md)
+* [Putting All Together](from-zero-to-hero-tutorial/06_putting-all-together.md)
+* [Extending Avalanche](from-zero-to-hero-tutorial/07_extending-avalanche.md)
+* [Contribute to Avalanche](from-zero-to-hero-tutorial/08_contribute-to-avalanche.md)
 
 ## 💻 Code Documentation
 
