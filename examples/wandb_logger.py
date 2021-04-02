@@ -29,7 +29,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks import nc_scenario
 from avalanche.logging import InteractiveLogger, WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.evaluation.metrics import ExperienceForgetting, StreamConfusionMatrix, \
+from avalanche.evaluation.metrics import forgetting_metrics, StreamConfusionMatrix, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
 from avalanche.models import SimpleMLP
@@ -68,14 +68,14 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    wandb_logger = WandBLogger(init_kwargs = {"project": args.project, "name": args.run})
+    wandb_logger = WandBLogger(init_kwargs={"project": args.project, "name": args.run})
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
         loss_metrics(
             minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True, stream=True),
         StreamConfusionMatrix(),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
