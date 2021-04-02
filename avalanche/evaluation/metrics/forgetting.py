@@ -336,7 +336,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
-        self.reset_current_accuracy()
+        self.reset_last_accuracy()
         self.stream_forgetting.reset()
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
