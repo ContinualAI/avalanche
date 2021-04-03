@@ -50,4 +50,5 @@
 * [Join Us!](contacts-and-links/join-us.md)
 * [Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU)
 * [Email](mailto:contact@continualai.org)
+* [Twitter](https://twitter.com/AvalancheLib)
 
