@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Dict, Union
+from typing import Dict, TYPE_CHECKING, Union
 
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
@@ -17,13 +17,19 @@ from avalanche.evaluation.metrics import Accuracy, Mean
 from avalanche.evaluation.metric_utils import get_metric_name, \
     phase_and_task, stream_type
 
+if TYPE_CHECKING:
+    from avalanche.training import BaseStrategy
+
+
 class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
     """
         The standalone Forward Transfer metric.
         This metric returns the forward transfer relative to a specific key.
         Alternatively, this metric returns a dict in which each key is associated
         to the forward transfer.
-        Forward transfer is computed as the difference between the value recorded for a specific key after the previous experience has been trained on, and random initialization before training
+        Forward transfer is computed as the difference between the value recorded for a
+        specific key after the previous experience has been trained on, and random
+        initialization before training.
         The value associated to a key can be updated with the `update` method.
 
         At initialization, this metric returns an empty dictionary.
@@ -61,10 +67,11 @@ class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
     def result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
         :param k: the key for which returning forward transfer. If k is None,
-            forward transfer will be returned for all keys where the previous experience has been trained on.
+            forward transfer will be returned for all keys
+            where the previous experience has been trained on.
 
-        :return: the difference between the key value after training on the previous experience,
-            and the key at random initialization.
+        :return: the difference between the key value after training on the previous
+        experience, and the key at random initialization.
         """
 
         forward_transfer = {}
@@ -82,7 +89,8 @@ class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
 
     def reset(self) -> None:
         # Resets previous and initial accuracy dictionaries
-        #TODO: Need to implement random initialization accuracy evaluation into self.initial
+        #TODO: Need to implement random initialization accuracy
+        # evaluation into self.initial
         self.initial: Dict[int, float] = dict()
         self.previous: Dict[int, float] = dict()
 
@@ -170,12 +178,14 @@ class ExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
 
     def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
-        # Only if eval experience is one after the train experience, do we update the previous accuracy dictionary
+        # Only if eval experience is one after the train experience, do we update
+        # the previous accuracy dictionary
         if self.train_exp_id == self.eval_exp_id - 1:
             self.update(self.eval_exp_id,
                         self._current_accuracy.result())
 
-        # Only after the previous experience was trained on can we return the forward transfer metric for this experience.
+        # Only after the previous experience was trained on can we return the
+        # forward transfer metric for this experience.
         if self.result(k=self.eval_exp_id) is not None:
             return self._package_result(strategy)
 
@@ -195,8 +205,8 @@ class ExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
 
 class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
     """
-        The StreamForwardTransfer metric, describing the average evaluation forward transfer
-        detected over all experiences observed during training.
+        The StreamForwardTransfer metric, describing the average evaluation forward
+        transfer detected over all experiences observed during training.
 
         This plugin metric, computed over all observed experiences during training,
         is the average over the difference between the accuracy result obtained
@@ -294,12 +304,14 @@ class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
                                       strategy.logits)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        # Only if eval experience is one after the train experience, do we update the previous accuracy dictionary
+        # Only if eval experience is one after the train experience, do we update
+        # the previous accuracy dictionary
         if self.train_exp_id == self.eval_exp_id - 1:
             self.update(self.eval_exp_id,
                         self._current_accuracy.result())
 
-        # Only after the previous experience was trained on can we return the forward transfer metric for this experience.
+        # Only after the previous experience was trained on can we return the
+        # forward transfer metric for this experience.
         if self.result(k=self.eval_exp_id) is not None:
             exp_forward_transfer = self.exp_result(k=self.eval_exp_id)
             self.stream_forward_transfer.update(exp_forward_transfer, weight=1)
