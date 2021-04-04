@@ -150,6 +150,7 @@ class ExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
 
     def result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
+        Result for experience defined by a key.
         See `ForwardTransfer` documentation for more detailed information.
 
         k: optional key from which to compute forward transfer.
@@ -241,23 +242,13 @@ class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
         """
         Resets the forward transfer metrics.
 
-        Beware that this will also reset the initial accuracy of each
-        experience!
+        Note that this will reset the previous and initial accuracy of each
+        experience.
 
         :return: None.
         """
         self.forward_transfer.reset()
         self.stream_forward_transfer.reset()
-
-    def reset_previous_accuracy(self) -> None:
-        """
-        Resets the previous experience accuracy.
-
-        To be used at the beginning of each eval experience.
-
-        :return: None.
-        """
-        self.forward_transfer.reset_previous()
 
     def exp_update(self, k, v, initial=False):
         """
@@ -282,7 +273,7 @@ class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
 
     def result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
-        The average forward transfer over all experience.
+        The average forward transfer over all experiences.
 
         k: optional key from which to compute forward transfer.
         """
@@ -292,7 +283,6 @@ class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
-        self.reset_previous_accuracy()
         self.stream_forward_transfer.reset()
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
@@ -304,15 +294,13 @@ class StreamForwardTransfer(PluginMetric[Dict[int, float]]):
                                       strategy.logits)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        # update accuracy for following experience, given the experience on which training just ended
-        # update experiences
-        # # R(i-1, i)
-        self.exp_update(self.eval_exp_id,
+        # Only if eval experience is one after the train experience, do we update the previous accuracy dictionary
+        if self.train_exp_id == self.eval_exp_id - 1:
+            self.update(self.eval_exp_id,
                         self._current_accuracy.result())
 
-        # TODO: Update this description/code...
-        # If the previous experience has not been evaluated yet, forward transfer should not be returned.
-        if self.exp_result(k=self.eval_exp_id) is not None:
+        # Only after the previous experience was trained on can we return the forward transfer metric for this experience.
+        if self.result(k=self.eval_exp_id) is not None:
             exp_forward_transfer = self.exp_result(k=self.eval_exp_id)
             self.stream_forward_transfer.update(exp_forward_transfer, weight=1)
 
