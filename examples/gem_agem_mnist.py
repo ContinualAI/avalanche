@@ -32,7 +32,7 @@ experience: 93.3%
 AGEM-PMNIST (5 experiences):
 Patterns per experience = sample size: 256. 256 hidden size, 1 training epoch.
 Average Accuracy over all experiences at the end of training on the last 
-experience: 51.4%
+experience: 83.5%
 
 AGEM-SMNIST:
 Patterns per experience = sample size: 256, 512, 1024. Performance on previous tasks
@@ -40,7 +40,7 @@ remains very bad in terms of forgetting. Training epochs do not change result.
 Hidden size 256.
 Results for 1024 patterns per experience and sample size, 1 training epoch.
 Average Accuracy over all experiences at the end of training on the last 
-experience: 23.5%
+experience: 67.0%
 
 """
 

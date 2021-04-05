@@ -53,22 +53,24 @@ class AGEMPlugin(StrategyPlugin):
         """
         Project gradient based on reference gradients
         """
-
         if self.memory_x is not None:
-            for (n1, p1), (n2, refg) in zip(strategy.model.named_parameters(),
-                                            self.reference_gradients):
+            current_gradients = [p.grad.view(-1)
+                for n, p in strategy.model.named_parameters() if p.requires_grad]
+            current_gradients = torch.cat(current_gradients)
 
-                assert n1 == n2, "Different model parameters in AGEM projection"
-                assert (p1.grad is not None and refg is not None) or \
-                       (p1.grad is None and refg is None)
+            assert current_gradients.shape == self.reference_gradients.shape "Different model parameters in AGEM projection"
 
-                if refg is None:
-                    continue
-
-                dotg = torch.dot(p1.grad.view(-1), refg.view(-1))
-                dotref = torch.dot(refg.view(-1), refg.view(-1))
-                if dotg < 0:
-                    p1.grad -= (dotg / dotref) * refg
+            dotg = torch.dot( current_gradients, self.reference_gradients)
+            if dotg < 0:
+                alpha2 = dotg / torch.dot(self.reference_gradients, self.reference_gradients)
+                grad_proj = current_gradients - self.reference_gradients * alpha2
+                
+                count = 0 
+                for n, p in strategy.model.named_parameters():
+                    if p.requires_grad:
+                        n_param = p.numel()      
+                        p.grad.copy_( grad_proj[count:count+n_param].view_as(p) )
+                        count += n_param
 
     def after_training_exp(self, strategy, **kwargs):
         """
@@ -97,8 +99,8 @@ class AGEMPlugin(StrategyPlugin):
         """
         Update replay memory with patterns from current experience.
         """
-
         tot = 0
+        done = False
         for batches in dataloader:
             for _, (x, y) in batches.items():
                 if tot + x.size(0) <= self.patterns_per_experience:
@@ -108,6 +110,7 @@ class AGEMPlugin(StrategyPlugin):
                     else:
                         self.memory_x = torch.cat((self.memory_x, x), dim=0)
                         self.memory_y = torch.cat((self.memory_y, y), dim=0)
+                    tot += x.size(0)
                 else:
                     diff = self.patterns_per_experience - tot
                     if self.memory_x is None:
@@ -118,5 +121,8 @@ class AGEMPlugin(StrategyPlugin):
                                                    x[:diff]), dim=0)
                         self.memory_y = torch.cat((self.memory_y,
                                                    y[:diff]), dim=0)
-                    break
-                tot += x.size(0)
+                    tot += diff
+                    done = True
+                    
+                if done: break
+            if done: break
