@@ -1,7 +1,6 @@
 import unittest
 from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
     SplitMNIST
-from tests.unit_tests_utils import common_setups
 
 MNIST_DOWNLOADS = 0
 MNIST_DOWNLOAD_METHOD = None
@@ -11,7 +10,6 @@ class MNISTBenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.cmnist as cmnist
         global MNIST_DOWNLOAD_METHOD
-        common_setups()
         MNIST_DOWNLOAD_METHOD = cmnist._get_mnist_dataset
 
         def count_downloads(*args, **kwargs):

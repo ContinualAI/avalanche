@@ -37,8 +37,6 @@ from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-from tests.unit_tests_utils import common_setups
-
 
 def get_fast_scenario():
     n_samples_per_class = 100
@@ -61,9 +59,6 @@ def get_fast_scenario():
 
 
 class BaseStrategyTest(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def _is_param_in_optimizer(self, param, optimizer):
         for group in optimizer.param_groups:
             for curr_p in group['params']:
@@ -131,9 +126,6 @@ class BaseStrategyTest(unittest.TestCase):
 
 
 class StrategyTest(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     if "FAST_TEST" in os.environ:
         fast_test = os.environ['FAST_TEST'].lower() in ["true"]
     else:
