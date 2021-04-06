@@ -185,7 +185,7 @@ class AvalancheDatasetTests(unittest.TestCase):
                               transform=CenterCrop(16))
 
         dataset_mnist2 = MNIST('./data/mnist', download=True,
-                              transform=CenterCrop(16))
+                               transform=CenterCrop(16))
 
         dataset = dataset_mnist + dataset_mnist2
 
@@ -1029,8 +1029,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         common_setups()
 
     def test_freeze_transforms(self):
-        original_dataset = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                                 download=True)
+        original_dataset = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
         x, y = original_dataset[0]
         dataset = AvalancheDataset(original_dataset, transform=ToTensor())
         dataset_frozen = dataset.freeze_transforms()
@@ -1050,8 +1051,10 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
 
     def test_freeze_transforms_chain(self):
-        original_dataset = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                                 download=True, transform=ToTensor())
+        original_dataset = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True,
+            transform=ToTensor()
+        )
         x, *_ = original_dataset[0]
         self.assertIsInstance(x, Tensor)
 
@@ -1088,8 +1091,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Image)
 
     def test_add_transforms(self):
-        original_dataset = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                                 download=True)
+        original_dataset = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
         x, _ = original_dataset[0]
         dataset = AvalancheDataset(original_dataset, transform=ToTensor())
         dataset_added = dataset.add_transforms(ToPILImage())
@@ -1100,8 +1104,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x3, Image)
 
     def test_add_transforms_chain(self):
-        original_dataset = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                                 download=True)
+        original_dataset = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
         x, _ = original_dataset[0]
         dataset = AvalancheDataset(original_dataset, transform=ToTensor())
         dataset_added = AvalancheDataset(dataset, transform=ToPILImage())

@@ -130,8 +130,10 @@ class PluginTests(unittest.TestCase):
                          device='cpu', plugins=[plug]
                          )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        print("Current Classes: ", scenario.train_stream[0].classes_in_this_experience)
-        print("Current Classes: ", scenario.train_stream[4].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[0].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[4].classes_in_this_experience)
 
         # head creation
         strategy.train(scenario.train_stream[0])

@@ -28,7 +28,9 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(5, my_nc_scenario.n_experiences)
         self.assertEqual(10, my_nc_scenario.n_classes)
         for task_id in range(5):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[task_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[task_id])
+            )
 
         all_classes = set()
         all_original_classes = set()
@@ -52,7 +54,9 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(5, my_nc_scenario.n_experiences)
         self.assertEqual(10, my_nc_scenario.n_classes)
         for task_id in range(5):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[task_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[task_id])
+            )
 
         all_classes = set()
         for task_id in range(my_nc_scenario.n_experiences):
@@ -90,7 +94,9 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = []
         for task_id in range(4):
-            self.assertEqual(2, len(my_nc_scenario.classes_in_experience[task_id]))
+            self.assertEqual(
+                2, len(my_nc_scenario.classes_in_experience[task_id])
+            )
             self.assertEqual(set(order[task_id*2:(task_id+1)*2]),
                              my_nc_scenario.original_classes_in_exp[task_id])
             all_classes.extend(my_nc_scenario.classes_in_experience[task_id])
@@ -111,7 +117,9 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = set()
         for task_id in range(2):
-            self.assertEqual(4, len(my_nc_scenario.classes_in_experience[task_id]))
+            self.assertEqual(
+                4, len(my_nc_scenario.classes_in_experience[task_id])
+            )
             self.assertEqual(set(order[task_id*4:(task_id+1)*4]),
                              my_nc_scenario.original_classes_in_exp[task_id])
             all_classes.update(my_nc_scenario.classes_in_experience[task_id])
@@ -198,13 +206,17 @@ class MultiTaskTests(unittest.TestCase):
         task_info: NCExperience
         for task_id, task_info in enumerate(my_nc_scenario.train_stream):
             self.assertLessEqual(task_id, 1)
-            all_classes_train.update(my_nc_scenario.classes_in_experience[task_id])
+            all_classes_train.update(
+                my_nc_scenario.classes_in_experience[task_id]
+            )
             exp_classes_train.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_train))
 
         for task_id, task_info in enumerate(my_nc_scenario.test_stream):
             self.assertLessEqual(task_id, 1)
-            all_classes_test.update(my_nc_scenario.classes_in_experience[task_id])
+            all_classes_test.update(
+                my_nc_scenario.classes_in_experience[task_id]
+            )
             exp_classes_test.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_test))
 
@@ -250,7 +262,9 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual('train', sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
+            self.assertEqual(
+                iterable_slice[batch_id], experience.current_experience
+            )
             self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_scenario.test_stream[iterable_slice]
