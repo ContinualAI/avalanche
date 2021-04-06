@@ -8,7 +8,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/ContinualAI/avalanche/badge.svg)](https://coveralls.io/github/ContinualAI/avalanche)
 
 <p align="center">
-<img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
+    <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
 </p>
 
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
@@ -36,7 +36,7 @@ Let's make it together :people_holding_hands: a wonderful ride! :balloon:
 
 Check out below how you can start using Avalanche! :point_down:
 
-Quick Example
+## Quick Example
 ----------------
 
 ```python
@@ -74,7 +74,7 @@ for train_task in train_stream:
     results.append(cl_strategy.eval(test_stream))
 ```
 
-Current Release
+## Current Release
 ----------------
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
@@ -84,7 +84,7 @@ A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.o
 *Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
 *We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
 
-Getting Started
+## Getting Started
 ----------------
 
 We know that learning a new tool may be tough at first. This is why we made Avalanche as easy as possible to learn with a set of resources that will help you along the way.
@@ -101,7 +101,7 @@ detail and make you a true Continual Learner! :woman_student:
 
 - [From Zero to Hero Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)
 
-Cite Avalanche
+## Cite Avalanche
 ----------------
 If you used Avalanche in your research project, please remember to cite our reference paper ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
