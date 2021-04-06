@@ -31,6 +31,7 @@ from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
+
 def main(args):
 
     # Config

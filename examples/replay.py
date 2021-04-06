@@ -36,7 +36,6 @@ from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 
-
 def main(args):
     # --- CONFIG
     device = torch.device(f"cuda:{args.cuda}"
@@ -82,7 +81,8 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(model, torch.optim.Adam(model.parameters(), lr=0.001),
                         CrossEntropyLoss(),
-                        train_mb_size=100, train_epochs=4, eval_mb_size=100, device=device,
+                        train_mb_size=100, train_epochs=4, eval_mb_size=100,
+                        device=device,
                         plugins=[ReplayPlugin(mem_size=10000)],
                         evaluator=eval_plugin
                         )
