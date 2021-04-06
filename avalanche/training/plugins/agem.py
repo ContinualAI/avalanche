@@ -58,7 +58,7 @@ class AGEMPlugin(StrategyPlugin):
                 for n, p in strategy.model.named_parameters() if p.requires_grad]
             current_gradients = torch.cat(current_gradients)
 
-            assert current_gradients.shape == self.reference_gradients.shape "Different model parameters in AGEM projection"
+            assert current_gradients.shape == self.reference_gradients.shape , "Different model parameters in AGEM projection"
 
             dotg = torch.dot( current_gradients, self.reference_gradients)
             if dotg < 0:
