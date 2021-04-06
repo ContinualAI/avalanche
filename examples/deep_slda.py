@@ -48,7 +48,8 @@ def main(args):
     # --- SCENARIO CREATION
     scenario = CORe50(root=args.dataset_dir, scenario=args.scenario,
                       train_transform=transform, eval_transform=transform)
-    test_data_loader = DataLoader(scenario.test_dataset, batch_size=args.batch_size,
+    test_data_loader = DataLoader(scenario.test_dataset,
+                                  batch_size=args.batch_size,
                                   shuffle=False, num_workers=8)
     # ---------
 
@@ -98,12 +99,15 @@ if __name__ == '__main__':
 
     # deep slda model parameters
     parser.add_argument('--arch', type=str, default='resnet18', choices=[
-        'resnet18'])  # to change this, need to modify creation of `self.feature_extraction_wrapper'
-    # `avalanche.training.strategies.deep_slda import StreamingLDA'
+        'resnet18'])  # to change this, need to modify creation of
+    # `self.feature_extraction_wrapper' in
+    # `avalanche.training.strategies.deep_slda'
     parser.add_argument('--imagenet_pretrained', type=bool,
-                        default=True)  # initialize backbone with imagenet pre-trained weights
+                        default=True)  # initialize backbone with
+    # imagenet pre-trained weights
     parser.add_argument('--feature_size', type=int,
-                        default=512)  # feature size before output layer (512 for resnet-18)
+                        default=512)  # feature size before output layer
+    # (512 for resnet-18)
     parser.add_argument('--shrinkage', type=float,
                         default=1e-4)  # shrinkage value
     parser.add_argument('--plastic_cov', type=bool,
