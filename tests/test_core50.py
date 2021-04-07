@@ -15,13 +15,9 @@ import unittest
 
 from avalanche.benchmarks.classic import CORe50
 from avalanche.benchmarks.scenarios.generic_definitions import Experience
-from tests.unit_tests_utils import common_setups
 
 
 class CORe50Test(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def test_core50_ni_scenario(self):
 
         # for now we disable it as it takes a while to download the CORe50

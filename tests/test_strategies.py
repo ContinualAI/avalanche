@@ -37,8 +37,6 @@ from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-from tests.unit_tests_utils import common_setups
-
 
 def get_fast_scenario():
     n_samples_per_class = 100
@@ -61,9 +59,6 @@ def get_fast_scenario():
 
 
 class BaseStrategyTest(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def _is_param_in_optimizer(self, param, optimizer):
         for group in optimizer.param_groups:
             for curr_p in group['params']:
@@ -131,9 +126,6 @@ class BaseStrategyTest(unittest.TestCase):
 
 
 class StrategyTest(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     if "FAST_TEST" in os.environ:
         fast_test = os.environ['FAST_TEST'].lower() in ["true"]
     else:
@@ -166,7 +158,7 @@ class StrategyTest(unittest.TestCase):
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, eval_mb_size=50, train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_joint(self):
@@ -177,7 +169,8 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device, eval_mb_size=50, train_epochs=2)
+                                 device=self.device, eval_mb_size=50,
+                                 train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
 
         # MT scenario
@@ -203,7 +196,7 @@ class StrategyTest(unittest.TestCase):
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
                            train_mb_size=64, device=self.device)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_replay(self):
@@ -223,7 +216,7 @@ class StrategyTest(unittest.TestCase):
                           mem_size=10, train_mb_size=64, device=self.device,
                           eval_mb_size=50, train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_gdumb(self):
@@ -247,7 +240,7 @@ class StrategyTest(unittest.TestCase):
                 eval_mb_size=50, train_epochs=2
         )
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_cumulative(self):
@@ -267,7 +260,7 @@ class StrategyTest(unittest.TestCase):
                               device=self.device, eval_mb_size=50,
                               train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_lwf(self):
@@ -291,7 +284,7 @@ class StrategyTest(unittest.TestCase):
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_agem(self):
@@ -313,7 +306,7 @@ class StrategyTest(unittest.TestCase):
                         train_mb_size=10, eval_mb_size=50,
                         train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_gem(self):
@@ -337,7 +330,7 @@ class StrategyTest(unittest.TestCase):
                        train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ewc(self):
@@ -360,7 +353,7 @@ class StrategyTest(unittest.TestCase):
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ewc_online(self):
@@ -383,7 +376,7 @@ class StrategyTest(unittest.TestCase):
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
         scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=True)
+                                      use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_synaptic_intelligence(self):
@@ -406,7 +399,6 @@ class StrategyTest(unittest.TestCase):
         scenario = self.load_scenario(fast_test=self.fast_test,
                                       use_task_labels=True)
         self.run_strategy(scenario, strategy)
-
 
     def test_ar1(self):
         my_nc_scenario = self.load_ar1_scenario(fast_test=self.fast_test)

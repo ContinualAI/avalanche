@@ -1,10 +1,13 @@
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 import torch
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+if TYPE_CHECKING:
+    from avalanche.training import BaseStrategy
 
 
 class GDumbPlugin(StrategyPlugin):
@@ -28,7 +31,8 @@ class GDumbPlugin(StrategyPlugin):
         # count occurrences for each class
         self.counter = defaultdict(lambda: defaultdict(int))
 
-    def adapt_train_dataset(self, strategy, **kwargs):
+    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
         """ Before training we make sure to organize the memory following
             GDumb approach and updating the dataset accordingly.
         """
@@ -52,9 +56,10 @@ class GDumbPlugin(StrategyPlugin):
 
             if target_value not in current_counter or \
                     current_counter[target_value] < patterns_per_class:
-                # full memory: replace item from most represented class
-                # with current pattern
+                # add new pattern into memory
                 if sum(current_counter.values()) >= self.mem_size:
+                    # full memory: replace item from most represented class
+                    # with current pattern
                     to_remove = max(current_counter, key=current_counter.get)
                     for j in range(len(current_mem.tensors[1])):
                         if current_mem.tensors[1][j].item() == to_remove:
@@ -81,4 +86,4 @@ class GDumbPlugin(StrategyPlugin):
                 current_counter[target_value] += 1
 
         self.ext_mem[strategy.experience.task_label] = current_mem
-        strategy.adapted_dataset = AvalancheConcatDataset(self.ext_mem)
+        strategy.adapted_dataset = AvalancheConcatDataset(self.ext_mem.values())

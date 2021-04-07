@@ -1,5 +1,5 @@
 # Avalanche: an End-to-End Library for Continual Learning
-**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
+**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)** | **[Twitter](https://twitter.com/AvalancheLib)**
 
 [![unit test](https://github.com/ContinualAI/avalanche/actions/workflows/unit-test.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/unit-test.yml)
 [![syntax checking](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml)
@@ -8,7 +8,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/ContinualAI/avalanche/badge.svg)](https://coveralls.io/github/ContinualAI/avalanche)
 
 <p align="center">
-<img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
+    <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
 </p>
 
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
