@@ -104,6 +104,7 @@ class LazyConcatTargets(Sequence[TTargetType]):
         self._targets_list = targets_list
         self._targets_lengths = [len(targets) for targets in targets_list]
         self._overall_length = sum(self._targets_lengths)
+        self._targets_cumulative_lengths = ConcatDataset.cumsum(targets_list)
         self.converter = converter
 
     def __len__(self):
@@ -111,7 +112,8 @@ class LazyConcatTargets(Sequence[TTargetType]):
 
     def __getitem__(self, item_idx) -> TTargetType:
         targets_idx, internal_idx = find_list_from_index(
-            item_idx, self._targets_lengths, self._overall_length)
+            item_idx, self._targets_lengths, self._overall_length,
+            self._targets_cumulative_lengths)
 
         target = self._targets_list[targets_idx][internal_idx]
 
@@ -358,54 +360,9 @@ def optimize_sequence(sequence: Sequence[TTargetType]) -> Sequence[TTargetType]:
     if len(sequence) == 0 or isinstance(sequence, ConstantSequence):
         return sequence
 
-    if not isinstance(sequence[0], int):
-        # Can only optimize sequence of ints
+    if isinstance(sequence, list):
         return sequence
-
-    concat_ranges = []
-    streak_value = None
-    start_idx = -1
-    streak_start_idx = 0
-
-    for i, x in enumerate(sequence):
-        if i - streak_start_idx == 50 and streak_start_idx != start_idx:
-            concat_ranges.append(LazySubsequence(sequence, start_idx,
-                                                 streak_start_idx))
-            start_idx = streak_start_idx
-
-        if i == 0:
-            streak_start_idx = i
-            start_idx = i
-            streak_value = x
-        elif x != streak_value:
-            if i - streak_start_idx >= 50:
-                concat_ranges.append(ConstantSequence(streak_value,
-                                                      i - streak_start_idx))
-                start_idx = i
-
-            streak_start_idx = i
-            streak_value = x
-        else:  # x == last_value
-            pass
-
-    i = len(sequence)
-    if i - streak_start_idx < 50:
-        concat_ranges.append(LazySubsequence(sequence, start_idx, i))
-    else:
-        if streak_start_idx != start_idx:
-            concat_ranges.append(LazySubsequence(sequence, start_idx,
-                                                 streak_start_idx))
-
-        concat_ranges.append(ConstantSequence(streak_value,
-                                              i - streak_start_idx))
-
-    if len(concat_ranges) == 1:
-        if isinstance(concat_ranges[0], LazySubsequence):
-            # Couldn't optimize
-            return sequence
-        return concat_ranges[0]  # Best situation ever: we got a single range!
-
-    return LazyConcatIntTargets(concat_ranges)
+    return list(sequence)
 
 
 class TupleTLabel(tuple):

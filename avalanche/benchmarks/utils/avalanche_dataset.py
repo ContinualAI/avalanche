@@ -1547,6 +1547,7 @@ def concat_datasets_sequentially(
     next_remapped_idx = 0
 
     # Obtain the number of classes of each dataset
+    # TODO: optimize
     classes_per_dataset = [
         len(torch.unique(
             torch.cat((torch.as_tensor(train_dataset_list[dataset_idx].targets),
