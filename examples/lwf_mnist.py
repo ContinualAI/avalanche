@@ -15,6 +15,7 @@ The performance with default arguments should give an average accuracy
 of about 73%.
 """
 
+
 def main(args):
     model = SimpleMLP(hidden_size=args.hs)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -41,7 +42,8 @@ def main(args):
     # create strategy
     assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,\
         'Alpha must be a non-empty list.'
-    lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 else args.lwf_alpha
+    lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 \
+        else args.lwf_alpha
 
     strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
                    temperature=args.softmax_temperature,

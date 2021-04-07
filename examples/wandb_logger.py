@@ -29,9 +29,10 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks import nc_scenario
 from avalanche.logging import InteractiveLogger, WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.evaluation.metrics import forgetting_metrics, StreamConfusionMatrix, \
-    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
-    gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
+from avalanche.evaluation.metrics import forgetting_metrics, \
+    StreamConfusionMatrix, accuracy_metrics, loss_metrics, cpu_usage_metrics, \
+    timing_metrics, gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, \
+    MAC_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
@@ -68,13 +69,17 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    wandb_logger = WandBLogger(init_kwargs={"project": args.project, "name": args.run})
+    wandb_logger = WandBLogger(
+        init_kwargs={"project": args.project, "name": args.run}
+    )
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
         loss_metrics(
-            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
         StreamConfusionMatrix(),
         cpu_usage_metrics(
@@ -119,6 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     parser.add_argument('--run', type=str, help='Provide a run name for WandB')
-    parser.add_argument('--project', type=str, help='Define the name of the WandB project')
+    parser.add_argument('--project', type=str,
+                        help='Define the name of the WandB project')
     args = parser.parse_args()
     main(args)

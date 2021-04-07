@@ -23,6 +23,7 @@ is subjected to complete forgetting in all configurations. The training accuracy
 is above 90% but the average accuracy on previou tasks is around 20%.
 """
 
+
 def main(args):
     model = SimpleMLP(hidden_size=args.hs)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -78,11 +79,13 @@ if __name__ == '__main__':
                         choices=['pmnist', 'smnist'], default='smnist',
                         help='Choose between Permuted MNIST, Split MNIST.')
     parser.add_argument('--ewc_mode', type=str, choices=['separate', 'online'],
-                        default='separate', help='Choose between EWC and online.')
+                        default='separate',
+                        help='Choose between EWC and online.')
     parser.add_argument('--ewc_lambda', type=float, default=0.4,
                         help='Penalty hyperparameter for EWC')
     parser.add_argument('--decay_factor', type=float, default=0.1,
-                        help='Decay factor for importance when ewc_mode is online.')
+                        help='Decay factor for importance '
+                             'when ewc_mode is online.')
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate.')
     parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
     parser.add_argument('--epochs', type=int, default=10,
