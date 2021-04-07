@@ -1,4 +1,5 @@
 import unittest
+
 from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
     SplitMNIST
 
@@ -75,6 +76,37 @@ class MNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(3, len(scenario.test_stream))
 
         self.assertEqual(1, MNIST_DOWNLOADS)
+
+    # def test_PermutedMNIST_scenario_performance(self):
+    #     import time
+    #     from torch.utils.data.dataloader import DataLoader
+    #     start_time = time.time()
+    #     scenario = PermutedMNIST(10)
+    #
+    #     for experience in scenario.train_stream:
+    #         self.assertIsInstance(experience, Experience)
+    #         self.assertEqual(60000, len(experience.dataset))
+    #         all_targets = sum(experience.dataset.targets)
+    #
+    #         # dataset = experience.dataset
+    #         # loader = DataLoader(dataset, num_workers=4, shuffle=True,
+    #         #                     batch_size=256)
+    #         # for batch in loader:
+    #         #     x, y, t = batch
+    #
+    #     for experience in scenario.test_stream:
+    #         self.assertIsInstance(experience, Experience)
+    #         self.assertEqual(10000, len(experience.dataset))
+    #         all_targets = sum(experience.dataset.targets)
+    #
+    #         # dataset = experience.dataset
+    #         # loader = DataLoader(dataset, num_workers=4, shuffle=True,
+    #         #                     batch_size=256)
+    #         # for batch in loader:
+    #         #     x, y, t = batch
+    #
+    #     elapsed_time = time.time() - start_time
+    #     print('Elapsed:', elapsed_time)
 
 
 if __name__ == '__main__':
