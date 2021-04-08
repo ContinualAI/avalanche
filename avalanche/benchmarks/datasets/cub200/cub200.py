@@ -82,10 +82,10 @@ class CUB200(Dataset):
     def __getitem__(self, idx):
 
         sample = self.data_paths[idx]
-        path = os.path.join(self.root, self.basefolder, sample)
+        path = os.path.join(self.root, self.basefolder, sample).strip()
         # Targets start at 1 by default, so shift to 0
         target = self.targets[idx] - 1
-        img = self.loader(path[:-1])
+        img = self.loader(path)
 
         if self.transform is not None:
             img = self.transform(img)
