@@ -10,18 +10,15 @@
 ################################################################################
 
 import torch
-from typing import Sequence, List, Optional, Dict, Generic, Any, Set
+from typing import Sequence, List, Optional, Dict, Any, Set
 
-from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSet, TestSet
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
-class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
-                 Generic[TrainSet, TestSet]):
+class NCScenario(GenericCLScenario['NCExperience']):
     """
     This class defines a "New Classes" scenario. Once created, an instance
     of this class can be iterated in order to obtain the experience sequence
@@ -31,8 +28,8 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
     :func:`avalanche.benchmarks.generators.nc_scenario`.
     """
 
-    def __init__(self, train_dataset: TrainSet,
-                 test_dataset: TestSet,
+    def __init__(self, train_dataset: AvalancheDataset,
+                 test_dataset: AvalancheDataset,
                  n_experiences: int,
                  task_labels: bool,
                  shuffle: bool = True,
@@ -370,22 +367,47 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
         test_dataset = AvalancheSubset(
             test_dataset, class_mapping=self.class_mapping)
 
-        task_ids: List[List[int]]
-        if self._has_task_labels:
-            task_ids = [[x] for x in range(n_experiences)]
-        else:
-            task_ids = [[0]] * n_experiences
+        self.train_exps_patterns_assignment = train_exps_patterns_assignment
+        """ A list containing which training instances are assigned to each
+        experience in the train stream. Instances are identified by their id 
+        w.r.t. the dataset found in the original_train_dataset field. """
+
+        self.test_exps_patterns_assignment = test_exps_patterns_assignment
+        """ A list containing which test instances are assigned to each
+        experience in the test stream. Instances are identified by their id 
+        w.r.t. the dataset found in the original_test_dataset field. """
+
+        train_experiences = []
+        train_task_labels = []
+        for t_id, exp_def in enumerate(train_exps_patterns_assignment):
+            if self._has_task_labels:
+                train_task_labels.append(t_id)
+            else:
+                train_task_labels.append(0)
+            task_labels = ConstantSequence(train_task_labels[-1],
+                                           len(train_dataset))
+            train_experiences.append(
+                AvalancheSubset(train_dataset, indices=exp_def,
+                                task_labels=task_labels))
+
+        test_experiences = []
+        test_task_labels = []
+        for t_id, exp_def in enumerate(test_exps_patterns_assignment):
+            if self._has_task_labels:
+                test_task_labels.append(t_id)
+            else:
+                test_task_labels.append(0)
+            task_labels = ConstantSequence(test_task_labels[-1],
+                                           len(test_dataset))
+            test_experiences.append(
+                AvalancheSubset(test_dataset, indices=exp_def,
+                                task_labels=task_labels))
 
         super(NCScenario, self).__init__(
-            original_training_dataset,
-            original_test_dataset,
-            train_dataset,
-            test_dataset,
-            train_exps_patterns_assignment,
-            test_exps_patterns_assignment,
-            task_ids,
-            pattern_train_task_labels,
-            pattern_test_task_labels,
+            stream_definitions={
+                'train': (train_experiences, train_task_labels, train_dataset),
+                'test': (test_experiences, test_task_labels, test_dataset)
+            },
             experience_factory=NCExperience)
 
     @property
@@ -394,14 +416,14 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
 
     def get_reproducibility_data(self):
         reproducibility_data = {
-            'class_mapping': self.class_mapping,
-            'n_classes_per_exp': self.n_classes_per_exp,
             'class_ids_from_zero_from_first_exp': bool(
                 self.class_ids_from_zero_from_first_exp),
             'class_ids_from_zero_in_each_exp': bool(
                 self.class_ids_from_zero_in_each_exp),
+            'class_mapping': self.class_mapping,
             'classes_order': self.classes_order,
             'classes_order_original_ids': self.classes_order_original_ids,
+            'n_classes_per_exp': self.n_classes_per_exp,
             'n_experiences': int(self.n_experiences),
             'has_task_labels': self._has_task_labels}
         return reproducibility_data
@@ -432,11 +454,9 @@ class NCScenario(GenericCLScenario[TrainSet, TestSet, 'NCExperience'],
             for item in sublist]
 
 
-class NCExperience(GenericExperience[NCScenario[TrainSet, TestSet],
-                                     GenericScenarioStream[
-                                     'NCExperience',
-                                     NCScenario[TrainSet, TestSet]]],
-                   Generic[TrainSet, TestSet]):
+class NCExperience(GenericExperience[NCScenario,
+                                     GenericScenarioStream['NCExperience',
+                                                           NCScenario]]):
     """
     Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
@@ -444,7 +464,7 @@ class NCExperience(GenericExperience[NCScenario[TrainSet, TestSet],
     """
     def __init__(self,
                  origin_stream: GenericScenarioStream[
-                     'NCExperience', NCScenario[TrainSet, TestSet]],
+                     'NCExperience', NCScenario],
                  current_experience: int):
         """
         Creates a ``NCExperience`` instance given the stream from this

@@ -21,8 +21,6 @@ except ImportError:
 from avalanche.benchmarks.utils import AvalancheDataset
 
 
-TrainSet = TypeVar('TrainSet', bound=AvalancheDataset)
-TestSet = TypeVar('TestSet', bound=AvalancheDataset)
 TScenario = TypeVar('TScenario')
 TExperience = TypeVar('TExperience', bound='Experience')
 TScenarioStream = TypeVar('TScenarioStream', bound='ScenarioStream')
@@ -145,8 +143,6 @@ class ScenarioStream(Protocol[TScenario, TExperience]):
 
 
 __all__ = [
-    'TrainSet',
-    'TestSet',
     'Experience',
     'TExperience',
     'TScenario',
