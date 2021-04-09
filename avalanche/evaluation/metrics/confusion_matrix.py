@@ -43,8 +43,13 @@ class ConfusionMatrix(Metric[Tensor]):
     predictions Tensors. When passing one-hot/logit vectors, this
     metric will try to infer the number of classes from the vector sizes.
     Otherwise, the maximum label value encountered in the truth/prediction
-    Tensors will be used. It is recommended to set the (initial) number of
-    classes in the constructor.
+    Tensors will be used.
+
+    If the user sets the `num_classes`, then the confusion matrix will always be
+    of size `num_classes, num_classes`. Whenever a prediction or label tensor is
+    provided as logits, only the first `num_classes` units will be considered in
+    the confusion matrix computation. If they are provided as numerical labels,
+    each of them has to be smaller than `num_classes`.
 
     The reset method will bring the metric to its initial state. By default
     this metric in its initial state will return an empty Tensor.
@@ -59,10 +64,14 @@ class ConfusionMatrix(Metric[Tensor]):
         The metric can be updated by using the `update` method while the running
         confusion matrix can be retrieved using the `result` method.
 
-        :param num_classes: The initial number of classes. Defaults to None,
+        :param num_classes: The number of classes. Defaults to None,
             which means that the number of classes will be inferred from
             ground truth and prediction Tensors (see class description for more
-            details).
+            details). If not None, the confusion matrix will always be of size
+            `num_classes, num_classes` and only the first `num_classes` values
+            of output logits or target logits will be considered in the update.
+            If the output or targets are provided as numerical labels,
+            there can be no label greater than `num_classes`.
         :param normalize: how to normalize confusion matrix.
             None to not normalize
         """
@@ -88,24 +97,44 @@ class ConfusionMatrix(Metric[Tensor]):
         if len(true_y) != len(predicted_y):
             raise ValueError('Size mismatch for true_y and predicted_y tensors')
 
-        max_label = -1
-        true_y = torch.as_tensor(true_y)
-        predicted_y = torch.as_tensor(predicted_y)
+        if len(true_y.shape) > 2:
+            raise ValueError('Confusion matrix supports labels with at'
+                             ' most 2 dimensions')
+        if len(predicted_y.shape) > 2:
+            raise ValueError('Confusion matrix supports predictions with at '
+                             'most 2 dimensions')
 
-        # Check if logits or labels
+        max_label = -1 if self._num_classes is None else self._num_classes - 1
+
+        # SELECT VALID PORTION OF TARGET AND PREDICTIONS
+        true_y = torch.as_tensor(true_y)
+        if len(true_y.shape) == 2 and self._num_classes is not None:
+            true_y = true_y[:, :max_label]
+        predicted_y = torch.as_tensor(predicted_y)
+        if len(predicted_y.shape) == 2 and self._num_classes is not None:
+            predicted_y = predicted_y[:, :max_label]
+
+        # COMPUTE MAX LABEL AND CONVERT TARGET AND PREDICTIONS IF NEEDED
         if len(predicted_y.shape) > 1:
             # Logits -> transform to labels
-            max_label = max(max_label, predicted_y.shape[1]-1)
+            if self._num_classes is None:
+                max_label = max(max_label, predicted_y.shape[1]-1)
             predicted_y = torch.max(predicted_y, 1)[1]
         else:
             # Labels -> check non-negative
             min_label = torch.min(predicted_y).item()
             if min_label < 0:
                 raise ValueError('Label values must be non-negative values')
+            if self._num_classes is None:
+                max_label = max(max_label, torch.max(predicted_y).item())
+            elif torch.max(predicted_y).item() >= self._num_classes:
+                raise ValueError("Encountered predicted label larger than"
+                                 "num_classes")
 
         if len(true_y.shape) > 1:
             # Logits -> transform to labels
-            max_label = max(max_label, true_y.shape[1]-1)
+            if self._num_classes is None:
+                max_label = max(max_label, true_y.shape[1]-1)
             true_y = torch.max(true_y, 1)[1]
         else:
             # Labels -> check non-negative
@@ -113,11 +142,11 @@ class ConfusionMatrix(Metric[Tensor]):
             if min_label < 0:
                 raise ValueError('Label values must be non-negative values')
 
-        # Initialize or enlarge the confusion matrix
-        max_label = max(max_label, max(torch.max(predicted_y).item(),
-                                       torch.max(true_y).item()))
-        if self._num_classes is not None:
-            max_label = max(max_label, self._num_classes-1)
+            if self._num_classes is None:
+                max_label = max(max_label, torch.max(true_y).item())
+            elif torch.max(true_y).item() >= self._num_classes:
+                raise ValueError("Encountered target label larger than"
+                                 "num_classes")
 
         if max_label < 0:
             raise ValueError('The Confusion Matrix metric can only handle '
@@ -197,6 +226,10 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     The Stream Confusion Matrix metric.
     This plugin metric only works on the eval phase.
 
+    Confusion Matrix computation can be slow if you compute it for a large
+    number of classes. We recommend to set `save_image=False` if the runtime
+    is too large.
+
     At the end of the eval phase, this metric logs the confusion matrix
     relative to all the patterns seen during eval.
 
@@ -204,7 +237,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     confusion matrix.
     """
 
-    def __init__(self, *,
+    def __init__(self,
                  num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
@@ -213,13 +246,18 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         """
         Creates an instance of the Stream Confusion Matrix metric.
 
-        :param num_classes: When not None, is used to properly define the
-            amount of rows/columns in the confusion matrix. When None, the
-            matrix will have many rows/columns as the maximum value of the
-            predicted and true pattern labels. Can be either an int, in which
-            case the same value will be used across all experiences, or a
-            dictionary defining the amount of classes for each experience (key =
-             experience label, value = amount of classes). Defaults to None.
+        We recommend to set `save_image=False` if the runtime is too large.
+        In fact, a large number of classes may increase the computation time
+        of this metric.
+
+        :param num_classes: The number of classes. Defaults to None,
+            which means that the number of classes will be inferred from
+            ground truth and prediction Tensors (see class description for more
+            details). If not None, the confusion matrix will always be of size
+            `num_classes, num_classes` and only the first `num_classes` values
+            of output logits or target logits will be considered in the update.
+            If the output or targets are provided as numerical labels,
+            there can be no label greater than `num_classes`.
         :param normalize: Normalizes confusion matrix over the true (rows),
             predicted (columns) conditions or all the population. If None,
             confusion matrix will not be normalized. Valid values are: 'true',
@@ -234,16 +272,18 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         super().__init__()
 
         self._save_image: bool = save_image
-        self._matrix: ConfusionMatrix = ConfusionMatrix(num_classes, normalize)
-        self._num_classes: Optional[Union[int, Mapping[int, int]]] = num_classes
-        self._normalize: Optional[Literal['true', 'pred', 'all']] = normalize
+        self.num_classes = num_classes
+        self.normalize = normalize
+        self._matrix: ConfusionMatrix = ConfusionMatrix(num_classes=num_classes,
+                                                        normalize=normalize)
 
         if image_creator is None:
             image_creator = default_cm_image_creator
         self._image_creator: Callable[[Tensor], Image] = image_creator
 
     def reset(self) -> None:
-        self._matrix = ConfusionMatrix()
+        self._matrix = ConfusionMatrix(num_classes=self.num_classes,
+                                       normalize=self.normalize)
 
     def result(self) -> Tensor:
         exp_cm = self._matrix.result()
