@@ -1,7 +1,6 @@
 import warnings
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
-from copy import deepcopy
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 if TYPE_CHECKING:
@@ -102,7 +101,7 @@ class EvaluationPlugin(StrategyPlugin):
         :return: a dictionary with full metric
             names as keys and last metric value as value.
         """
-        return deepcopy(self.last_metric_results)
+        return self.last_metric_results
 
     def get_all_metrics(self):
         """
@@ -118,7 +117,7 @@ class EvaluationPlugin(StrategyPlugin):
             is False return an empty dictionary
         """
         if self.collect_all:
-            return deepcopy(self.all_metric_results)
+            return self.all_metric_results
         else:
             return {}
 
