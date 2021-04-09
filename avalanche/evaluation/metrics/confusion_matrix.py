@@ -180,7 +180,7 @@ class ConfusionMatrix(Metric[Tensor]):
             return torch.zeros(matrix_shape, dtype=torch.long)
         if self.normalize is not None:
             return ConfusionMatrix._normalize_cm(self._cm_tensor,
-                                                 self._normalize)
+                                                 self.normalize)
         return self._cm_tensor
 
     def reset(self) -> None:
