@@ -13,6 +13,7 @@ import io
 from typing import Tuple, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
 from sklearn.metrics import ConfusionMatrixDisplay
 from torch import Tensor
@@ -29,19 +30,16 @@ TRAIN = "train"
 
 def default_cm_image_creator(confusion_matrix_tensor: Tensor,
                              display_labels=None,
-                             include_values=True,
-                             xticks_rotation='horizontal',
+                             include_values=False,
+                             xticks_rotation=0,
+                             yticks_rotation=0,
                              values_format=None,
                              cmap='viridis',
-                             dpi=100,
                              image_title=''):
     """
-    The default Confusion Matrix image creator. This utility uses Scikit-learn
-    `ConfusionMatrixDisplay` to create the matplotlib figure. The figure
-    is then converted to a PIL `Image`.
-
-    For more info about the accepted graphic parameters,
-    see `Scikit learn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html>`_ # noqa
+    The default Confusion Matrix image creator.
+    Code adapted from
+    `Scikit learn <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html>`_ # noqa
 
     :param confusion_matrix_tensor: The tensor describing the confusion matrix.
         This can be easily obtained through Scikit-learn `confusion_matrix`
@@ -52,34 +50,70 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
     :param include_values: Includes values in confusion matrix. Defaults to
         `True`.
     :param xticks_rotation: Rotation of xtick labels. Valid values are
-        'vertical', 'horizontal' or a float point value. Defaults to
-        'horizontal'.
+        float point value. Defaults to 0.
+    :param yticks_rotation: Rotation of ytick labels. Valid values are
+        float point value. Defaults to 0.
     :param values_format: Format specification for values in confusion matrix.
         Defaults to `None`, which means that the format specification is
         'd' or '.2g', whichever is shorter.
     :param cmap: Must be a str or a Colormap recognized by matplotlib.
         Defaults to 'viridis'.
-    :param dpi: The dpi to use to save the image.
     :param image_title: The title of the image. Defaults to an empty string.
     :return: The Confusion Matrix as a PIL Image.
     """
 
-    display = ConfusionMatrixDisplay(
-        confusion_matrix=confusion_matrix_tensor.numpy(),
-        display_labels=display_labels)
-    display.plot(include_values=include_values, cmap=cmap,
-                 xticks_rotation=xticks_rotation, values_format=values_format)
+    fig, ax = plt.subplots()
 
-    display.ax_.set_title(image_title)
+    cm = confusion_matrix_tensor.numpy()
+    n_classes = cm.shape[0]
+    im_ = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    cmap_min, cmap_max = im_.cmap(0), im_.cmap(256)
 
-    fig = display.figure_
+    if include_values:
+        text_ = np.empty_like(cm, dtype=object)
+
+        # print text with appropriate color depending on background
+        thresh = (cm.max() + cm.min()) / 2.0
+
+        for i in range(n_classes):
+            for j in range(n_classes):
+                color = cmap_max if cm[i, j] < thresh else cmap_min
+
+                if values_format is None:
+                    text_cm = format(cm[i, j], '.2g')
+                    if cm.dtype.kind != 'f':
+                        text_d = format(cm[i, j], 'd')
+                        if len(text_d) < len(text_cm):
+                            text_cm = text_d
+                else:
+                    text_cm = format(cm[i, j], values_format)
+
+                text_[i, j] = ax.text(
+                    j, i, text_cm,
+                    ha="center", va="center",
+                    color=color)
+
+    if display_labels is None:
+        display_labels = np.arange(n_classes)
+
+    fig.colorbar(im_, ax=ax)
+
+    ax.set(xticks=np.arange(n_classes),
+           yticks=np.arange(n_classes),
+           xticklabels=display_labels,
+           yticklabels=display_labels,
+           ylabel="True label",
+           xlabel="Predicted label")
+
+    if image_title != '':
+        ax.set_title(image_title)
+
+    ax.set_ylim((n_classes - 0.5, -0.5))
+    plt.setp(ax.get_xticklabels(), rotation=xticks_rotation)
+    plt.setp(ax.get_yticklabels(), rotation=yticks_rotation)
+
     fig.tight_layout()
-    buf = io.BytesIO()
-    fig.savefig(buf, format='jpg', dpi=dpi)
-    plt.close(fig)
-    buf.seek(0)
-    image = Image.open(buf)
-    return image
+    return fig
 
 
 def get_task_label(strategy: 'BaseStrategy') -> int:
