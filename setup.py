@@ -39,12 +39,12 @@ setuptools.setup(
         'typing-extensions',
         'psutil',
         'gputil',
-        'tensorboard',
         'scikit-learn',
         'matplotlib',
         'numpy',
         'pytorchcv',
         'quadprog',
-        'wandb'
+        'wandb',
+        'tensorboard',
     ]
 )

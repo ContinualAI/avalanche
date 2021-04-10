@@ -9,6 +9,8 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
+""" CORe50 Data handling utilities """
+
 import os
 import sys
 import logging
@@ -24,18 +26,21 @@ else:
     from urllib import urlretrieve
 
 
-filename = [
+data = [
     ('core50_128x128.zip',
      'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip'),
-    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
-    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
-    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
-    ('core50_imgs.npz',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz'),
     ('batches_filelists.zip',
      'https://vlomonaco.github.io/core50/data/batches_filelists.zip'),
     ('batches_filelists_NICv2.zip',  
-     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip')
+     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip'),
+    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
+    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
+    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
+]
+
+extra_data = [
+    ('core50_imgs.npz',
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
 ]
 
 
@@ -69,9 +74,19 @@ class CORE50_DATA(object):
             self.download = False
             self.log.error("Directory %s already exists", self.data_folder)
 
-    def download_core50(self):
+    def download_core50(self, extra=False):
+        """ Download and extract CORe50 data
 
-        for name in filename:
+            :param extra: download also additional CORe50 data not strictly
+                required by the data loader.
+        """
+
+        if extra:
+            data2download = data + extra_data
+        else:
+            data2download = data
+
+        for name in data2download:
             self.log.info("Downloading " + name[1] + "...")
             urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
 
