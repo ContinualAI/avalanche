@@ -1,3 +1,5 @@
+<div align="center">
+    
 # Avalanche: an End-to-End Library for Continual Learning
 **[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)** | **[Twitter](https://twitter.com/AvalancheLib)**
 
@@ -6,10 +8,13 @@
 [![PEP8 checking](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml)
 [![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)](https://github.com/ContinualAI/avalanche-report/blob/main/docstring_coverage/documentation-coverage.txt)
 [![Coverage Status](https://coveralls.io/repos/github/ContinualAI/avalanche/badge.svg)](https://coveralls.io/github/ContinualAI/avalanche)
+</div>
 
 <p align="center">
     <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
 </p>
+
+
 
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
 open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
@@ -129,3 +134,10 @@ The Avalanche project is maintained by the collaborative research team [Continua
 We are always looking for new awesome members willing to join the ContinualAI Lab, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](https://avalanche.continualai.org/contacts-and-links/the-team#contacts).
 
 Learn more about the [Avalanche team and all the people who made it great](https://avalanche.continualai.org/contacts-and-links/the-team)!
+
+<br>
+<p align="left">
+<a href="https://github.com/ContinualAI/avalanche/graphs/contributors">
+ <img width="700" src="https://contrib.rocks/image?repo=ContinualAI/avalanche" />
+</a>
+</p>
