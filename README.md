@@ -136,7 +136,7 @@ We are always looking for new awesome members willing to join the ContinualAI La
 Learn more about the [Avalanche team and all the people who made it great](https://avalanche.continualai.org/contacts-and-links/the-team)!
 
 <br>
-<p align="center">
+<p align="left">
 <a href="https://github.com/ContinualAI/avalanche/graphs/contributors">
  <img width="700" src="https://contrib.rocks/image?repo=ContinualAI/avalanche" />
 </a>
