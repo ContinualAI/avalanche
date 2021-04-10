@@ -241,3 +241,5 @@ We are always looking for new _awesome members_ willing to join the _ContinualAI
 
 Learn more about the [_**Avalanche team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
 
+![](https://contrib.rocks/image?repo=ContinualAI/avalanche)
+
