@@ -17,11 +17,12 @@ This is the definition od the Mid-caffenet high resolution in Pytorch.
 
 import torch.nn as nn
 
+from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier
+
 
 class SimpleMLP(nn.Module):
-
     def __init__(self, num_classes=10, input_size=28*28, hidden_size=512):
-        super(SimpleMLP, self).__init__()
+        super().__init__()
 
         self.features = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -39,10 +40,27 @@ class SimpleMLP(nn.Module):
         return x
 
 
-if __name__ == "__main__":
+class MTSimpleMLP(nn.Module, MultiTaskModule):
+    def __init__(self, input_size=28*28, hidden_size=512):
+        super().__init__()
 
-    kwargs = {'num_classes': 10}
-    model = SimpleMLP(**kwargs)
+        self.features = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+        )
+        self.classifier = MultiHeadClassifier(hidden_size)
+        self._input_size = input_size
 
-    for name, module in model.named_parameters():
-        print(name)
+    def forward(self, x, task_labels):
+        x = x.contiguous()
+        x = x.view(x.size(0), self._input_size)
+        x = self.features(x)
+        x = self.classifier(x, task_labels)
+        return x
+
+
+__all__ = [
+    'SimpleMLP',
+    'MTSimpleMLP'
+]

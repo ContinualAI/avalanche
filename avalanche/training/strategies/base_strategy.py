@@ -17,6 +17,8 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
+from avalanche.models import DynamicModule
+from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training import default_logger
 from typing import TYPE_CHECKING
 
@@ -264,13 +266,15 @@ class BaseStrategy:
         """
         self.experience = experience
         self.model.train()
-        self.model.to(self.device)
 
         # Data Adaptation
         self.before_train_dataset_adaptation(**kwargs)
         self.train_dataset_adaptation(**kwargs)
         self.after_train_dataset_adaptation(**kwargs)
         self.make_train_dataloader(**kwargs)
+
+        # Model Adaptation (e.g. freeze/add new units)
+        self.model_adaptation()
 
         self.before_training_exp(**kwargs)
         self.epoch = 0
@@ -329,7 +333,6 @@ class BaseStrategy:
         """
         self.is_training = False
         self.model.eval()
-        self.model.to(self.device)
 
         if isinstance(exp_list, Experience):
             exp_list = [exp_list]
@@ -426,7 +429,7 @@ class BaseStrategy:
 
                 # Forward
                 self.before_forward(**kwargs)
-                self.logits = self.model(self.mb_x)
+                self.logits = self.forward()
                 self.after_forward(**kwargs)
 
                 # Loss & Backward
@@ -532,7 +535,7 @@ class BaseStrategy:
             self.mb_y = self.mb_y.to(self.device)
 
             self.before_eval_forward(**kwargs)
-            self.logits = self.model(self.mb_x)
+            self.logits = self.forward()
             self.after_eval_forward(**kwargs)
             self.loss = self.criterion(self.logits, self.mb_y)
 
@@ -573,6 +576,18 @@ class BaseStrategy:
     def before_train_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
             p.before_train_dataset_adaptation(self, **kwargs)
+
+    def model_adaptation(self):
+        for module in self.model.modules():
+            if isinstance(module, DynamicModule):
+                module.adaptation(self.experience.dataset)
+        self.model = self.model.to(self.device)
+
+    def forward(self):
+        if isinstance(self.model, MultiTaskModule):
+            return self.model.forward(self.mb_x, self.mb_task_id)
+        else:  # no task labels
+            return self.model.forward(self.mb_x)
 
 
 __all__ = ['BaseStrategy']

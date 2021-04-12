@@ -24,12 +24,12 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.models import SimpleMLP
+from avalanche.models import MTSimpleMLP
 from avalanche.training.strategies import EWC
-from avalanche.training.plugins import MultiHeadPlugin
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
+
 
 def main(args):
 
@@ -38,7 +38,7 @@ def main(args):
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
     # model
-    model = SimpleMLP(num_classes=10)
+    model = MTSimpleMLP()
 
     # CL Benchmark Creation
     scenario = SplitMNIST(n_experiences=5, return_task_id=True)
@@ -59,16 +59,15 @@ def main(args):
         loggers=[interactive_logger])
 
     # Choose a CL strategy
-    multi_head_plugin = MultiHeadPlugin(model=model)
     strategy = EWC(
         model=model, optimizer=optimizer, criterion=criterion,
         train_mb_size=128, train_epochs=3, eval_mb_size=128, device=device,
-        evaluator=eval_plugin, plugins=[multi_head_plugin],
+        evaluator=eval_plugin,
         ewc_lambda=0.4)
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task, num_workers=4)
+        strategy.train(train_task)
         strategy.eval(test_stream)
 
 

@@ -15,6 +15,8 @@ This is the definition od the Mid-caffenet high resolution in Pythorch
 
 import torch.nn as nn
 
+from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier
+
 
 class SimpleCNN(nn.Module):
 
@@ -50,7 +52,20 @@ class SimpleCNN(nn.Module):
         return x
 
 
-if __name__ == "__main__":
+class MTSimpleCNN(SimpleCNN, MultiTaskModule):
 
-    kwargs = {'num_classes': 10}
-    print(SimpleCNN(**kwargs))
+    def __init__(self):
+        super().__init__()
+        self.classifier = MultiHeadClassifier(64)
+
+    def forward(self, x, task_labels):
+        x = self.features(x)
+        x = x.squeeze()
+        x = self.classifier(x, task_labels)
+        return x
+
+
+__all__ = [
+    'SimpleCNN',
+    'MTSimpleCNN'
+]
