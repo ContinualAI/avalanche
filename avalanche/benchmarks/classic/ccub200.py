@@ -140,7 +140,7 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-    scenario = SplitCUB200("~/.avalanche/data/cub200/")
+    scenario = SplitCUB200("~/.avalanche/data/CUB_200_2011/")
     for exp in scenario.train_stream:
         print("Experience: ", exp.current_experience)
         print("classes number: ", len(exp.classes_in_this_experience))
