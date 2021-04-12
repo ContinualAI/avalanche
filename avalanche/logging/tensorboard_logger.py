@@ -15,9 +15,10 @@ Avalanche experiments. """
 from pathlib import Path
 
 from PIL.Image import Image
+from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
+from matplotlib.pyplot import Figure
 from torchvision.transforms.functional import to_tensor
-
 from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
 from avalanche.logging import StrategyLogger
 
@@ -61,17 +62,28 @@ class TensorboardLogger(StrategyLogger):
         value = metric_value.value
 
         if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, float, int)
+            value = value.best_supported_value(Image, Tensor,
+                                               Figure, float, int)
 
-        if not isinstance(value, (Image, float, int)):
+        if not isinstance(value, (Image, Tensor, Figure, float, int)):
             # Unsupported type
             return
 
-        if isinstance(value, Image):
+        if isinstance(value, Figure):
+            self.writer.add_figure(name, value,
+                                   global_step=metric_value.x_plot)
+
+        elif isinstance(value, Image):
             self.writer.add_image(name, to_tensor(value),
                                   global_step=metric_value.x_plot)
+
+        elif isinstance(value, Tensor):
+            self.writer.add_histogram(name, value,
+                                      global_step=metric_value.x_plot)
+
         elif isinstance(value, (float, int)):
-            self.writer.add_scalar(name, value, global_step=metric_value.x_plot)
+            self.writer.add_scalar(name, value,
+                                   global_step=metric_value.x_plot)
 
 
 __all__ = [
