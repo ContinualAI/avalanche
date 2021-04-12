@@ -9,3 +9,4 @@ from .multi_head import MultiHeadPlugin
 from .replay import ReplayPlugin
 from .strategy_plugin import StrategyPlugin
 from .synaptic_intelligence import SynapticIntelligencePlugin
+from .siw import SIWPlugin
