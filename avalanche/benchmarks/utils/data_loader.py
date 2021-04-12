@@ -8,10 +8,11 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from torch.utils.data.dataloader import DataLoader
-from typing import Dict, List
-import torch
 from itertools import chain
+from typing import Dict
+
+import torch
+from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils import AvalancheDataset
 
@@ -254,3 +255,10 @@ class MultiTaskJoinedBatchDataLoader:
             loaders_dict[task_id] = DataLoader(
                 data, batch_size=current_batch_size, **kwargs)
         return loaders_dict, remaining_example
+
+
+__all__ = [
+    'MultiTaskDataLoader',
+    'MultiTaskMultiBatchDataLoader',
+    'MultiTaskJoinedBatchDataLoader'
+]
