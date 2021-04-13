@@ -347,6 +347,9 @@ class BaseStrategy:
             self.after_eval_dataset_adaptation(**kwargs)
             self.make_eval_dataloader(**kwargs)
 
+            # Model Adaptation (e.g. freeze/add new units)
+            self.model_adaptation()
+
             self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
             self.after_eval_exp(**kwargs)
@@ -423,7 +426,7 @@ class BaseStrategy:
 
             self.optimizer.zero_grad()
             self.loss = 0
-            for self.mb_task_id, (self.mb_x, self.mb_y) in self.mbatch.items():
+            for self.mb_x, self.mb_y, self.mb_task_id in self.mbatch.values():
                 self.mb_x = self.mb_x.to(self.device)
                 self.mb_y = self.mb_y.to(self.device)
 

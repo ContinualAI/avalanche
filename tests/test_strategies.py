@@ -395,8 +395,7 @@ class StrategyTest(unittest.TestCase):
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, eval_mb_size=10)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=False)
+        scenario = self.load_scenario(use_task_labels=False)
         self.run_strategy(scenario, strategy)
 
         # MT scenario
@@ -467,24 +466,7 @@ class StrategyTest(unittest.TestCase):
 
         :param fast_test: if True loads fake data, MNIST otherwise.
         """
-
-        if fast_test:
-            my_nc_scenario = get_fast_scenario()
-        else:
-            mnist_train = MNIST(
-                root=expanduser("~") + "/.avalanche/data/mnist/",
-                train=True, download=True,
-                transform=Compose([ToTensor()]))
-
-            mnist_test = MNIST(
-                root=expanduser("~") + "/.avalanche/data/mnist/",
-                train=False, download=True,
-                transform=Compose([ToTensor()]))
-            my_nc_scenario = nc_scenario(
-                mnist_train, mnist_test, 5,
-                task_labels=use_task_labels, seed=1234)
-
-        return my_nc_scenario
+        return get_fast_scenario()
 
     def get_model(self, fast_test=False):
         if fast_test:

@@ -99,12 +99,14 @@ class MultiTaskModule:
         unique_tasks = torch.unique(task_labels)
         out = None
         for task in unique_tasks:
-            x_task = x[task_labels == task]
-            out_task = self.forward_single_task(x_task, task)
+            task_mask = task_labels == task
+            x_task = x[task_mask]
+            out_task = self.forward_single_task(x_task, task.item())
 
             if out is None:
-                out = torch.zeros(x.shape[0], *out_task.shape[1:])
-            out[x_task] = out_task
+                out = torch.empty(x.shape[0], *out_task.shape[1:],
+                                  device=out_task.device)
+            out[task_mask] = out_task
         return out
 
     def forward_single_task(self, x: torch.Tensor, task_label: int)\
@@ -181,14 +183,14 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
             # task label is unique. Don't check duplicates.
             task_labels = [task_labels[0]]
 
-        for tid in task_labels:
+        for tid in set(task_labels):
             if tid not in self.classifiers:
                 new_head = IncrementalClassifier(self.in_features,
                                                  self.starting_out_features)
                 new_head.adaptation(dataset)
                 self.classifiers[str(tid)] = new_head
 
-    def forward(self, x, task_label=None):
+    def forward_single_task(self, x, task_label):
         """ compute the output given the input `x`. This module uses the task
         label to activate the correct head.
 
