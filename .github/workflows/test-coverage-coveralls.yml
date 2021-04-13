@@ -15,13 +15,15 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '**.yml'
   pull_request:
     branches:
       - master
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '**.yml'
 
 jobs:
   unit-test:
