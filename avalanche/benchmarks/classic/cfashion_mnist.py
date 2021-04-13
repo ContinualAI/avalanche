@@ -21,11 +21,13 @@ from avalanche.benchmarks import nc_scenario
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_fmnist_train_transform = transforms.Compose([
-    transforms.ToTensor()
+    transforms.ToTensor(),
+    transforms.Normalize((0.2190,), (0.3318,))
 ])
 
 _default_fmnist_eval_transform = transforms.Compose([
-    transforms.ToTensor()
+    transforms.ToTensor(),
+    transforms.Normalize((0.2190,), (0.3318,))
 ])
 
 
