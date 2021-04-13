@@ -18,6 +18,7 @@ on:
       - master
     paths:
       - notebooks/**
+      - .github/workflows/notebook-deploy.yml
 
 jobs:
   build:
@@ -36,7 +37,7 @@ jobs:
           find . -type f -name "*ipynb" -exec sh -c '
              for file do
                dir=${file%/*}
-               jupyter nbconvert --output-dir "../md_notebooks/${dir}" --to markdown --ClearOutputPreprocessor.enabled=True  ${file}
+               jupyter nbconvert --output-dir "../docs/gitbook/${dir}" --to markdown --ClearOutputPreprocessor.enabled=True ${file}
              done' sh {} +
       - name: commit to repo
         run: |
