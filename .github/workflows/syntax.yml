@@ -16,11 +16,9 @@ on:
   push:
     paths:
       - '**.py'
-      - '**.yml'
   pull_request:
     paths:
       - '**.py'
-      - '**.yml'
 
 jobs:
   check:

@@ -20,7 +20,7 @@ on:
   pull_request:
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/docstring-coverage.yml'
 
 jobs:
   build:

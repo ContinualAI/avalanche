@@ -18,13 +18,13 @@ on:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/sphinx-doc-deploy.yml'
   pull_request:
     branches:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/sphinx-doc-deploy.yml'
 
 jobs:
   build:

@@ -17,13 +17,15 @@ on:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/test-coverage-coveralls.yml'
+      - 'environment.yml'
   pull_request:
     branches:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/test-coverage-coveralls.yml'
+      - 'environment.yml'
 
 jobs:
   unit-test:

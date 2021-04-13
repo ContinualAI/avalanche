@@ -17,13 +17,15 @@ on:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
   pull_request:
     branches:
       - master
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
 
 jobs:
   unit-test:

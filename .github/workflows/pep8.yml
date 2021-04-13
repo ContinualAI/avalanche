@@ -16,11 +16,13 @@ on:
   push:
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/pep8.yml'
+      - '.pylintrc'
   pull_request:
     paths:
       - '**.py'
-      - '**.yml'
+      - '.github/workflows/pep8.yml'
+      - '.pylintrc'
 
 jobs:
   check:
