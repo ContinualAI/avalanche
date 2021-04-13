@@ -22,6 +22,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'ContinualAI/avalanche'
     name: deploy_notebooks
     runs-on: ubuntu-latest
     container: python:3.8
