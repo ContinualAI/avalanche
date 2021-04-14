@@ -12,11 +12,9 @@
 import unittest
 
 import torch
-from torchvision.transforms import ToTensor, Compose, transforms, Resize
+from torchvision.transforms import ToTensor, transforms, Resize
 import os
 import sys
-
-from os.path import expanduser
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -24,7 +22,6 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.datasets import MNIST
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
@@ -37,27 +34,7 @@ from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-from tests.unit_tests_utils import common_setups
-
-
-def get_fast_scenario():
-    n_samples_per_class = 100
-    dataset = make_classification(
-        n_samples=10 * n_samples_per_class,
-        n_classes=10,
-        n_features=6, n_informative=6, n_redundant=0)
-
-    X = torch.from_numpy(dataset[0]).float()
-    y = torch.from_numpy(dataset[1]).long()
-
-    train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y)
-
-    train_dataset = TensorDataset(train_X, train_y)
-    test_dataset = TensorDataset(test_X, test_y)
-    my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
-                                 task_labels=False)
-    return my_nc_scenario
+from tests.unit_tests_utils import common_setups, get_fast_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):

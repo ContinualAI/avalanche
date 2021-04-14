@@ -19,6 +19,7 @@ from avalanche.benchmarks.utils.data_loader import \
     MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
 from avalanche.models import DynamicModule
 from avalanche.models.dynamic_modules import MultiTaskModule
+from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training import default_logger
 from typing import TYPE_CHECKING
 
@@ -179,42 +180,6 @@ class BaseStrategy:
         """ True if the strategy is in evaluation mode. """
         return not self.is_training
 
-    def update_optimizer(self, old_params, new_params, reset_state=True):
-        """ Update the optimizer by substituting old_params with new_params.
-
-        :param old_params: List of old trainable parameters.
-        :param new_params: List of new trainable parameters.
-        :param reset_state: Wheter to reset the optimizer's state.
-            Defaults to True.
-        :return:
-        """
-        for old_p, new_p in zip(old_params, new_params):
-            found = False
-            # iterate over group and params for each group.
-            for group in self.optimizer.param_groups:
-                for i, curr_p in enumerate(group['params']):
-                    if hash(curr_p) == hash(old_p):
-                        # update parameter reference
-                        group['params'][i] = new_p
-                        found = True
-                        break
-                if found:
-                    break
-            if not found:
-                raise Exception(f"Parameter {old_params} not found in the "
-                                f"current optimizer.")
-        if reset_state:
-            # State contains parameter-specific information.
-            # We reset it because the model is (probably) changed.
-            self.optimizer.state = defaultdict(dict)
-
-    def add_new_params_to_optimizer(self, new_params):
-        """ Add new parameters to the trainable parameters.
-
-        :param new_params: list of trainable parameters
-        """
-        self.optimizer.add_param_group({'params': new_params})
-
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
                                                     Sequence[
@@ -275,6 +240,7 @@ class BaseStrategy:
 
         # Model Adaptation (e.g. freeze/add new units)
         self.model_adaptation()
+        self.make_optimizer()
 
         self.before_training_exp(**kwargs)
         self.epoch = 0
@@ -591,6 +557,12 @@ class BaseStrategy:
             return self.model.forward(self.mb_x, self.mb_task_id)
         else:  # no task labels
             return self.model.forward(self.mb_x)
+
+    def make_optimizer(self):
+        # we reset the optimizer's state after each experience.
+        # This allows to add new parameters (new heads) and
+        # freezing old units during the model's adaptation phase.
+        reset_optimizer(self.optimizer, self.model)
 
 
 __all__ = ['BaseStrategy']

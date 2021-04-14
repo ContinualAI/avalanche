@@ -74,7 +74,7 @@ class DynamicModule(torch.nn.Module):
             because some dynamic models need it for adaptation. For example,
             an incremental classifier needs to be expanded even at evaluation
             time if new classes are available. However, you should **never**
-            use the dataset to **train** the module's parameters.
+            use this data to **train** the module's parameters.
         """
         pass
 
