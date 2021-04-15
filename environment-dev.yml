@@ -14,8 +14,8 @@ channels:
 dependencies:
 - psutil
 - conda-forge::gputil
-- tensorboard
 - wandb
+- tensorboard
 - scikit-learn
 - matplotlib
 - numpy

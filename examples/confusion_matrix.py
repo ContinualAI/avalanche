@@ -10,7 +10,8 @@
 ################################################################################
 
 """
-This example shows how to produce confusion matrix during training and evaluation.
+This example shows how to produce confusion matrix during training and
+evaluation.
 """
 
 from __future__ import absolute_import
@@ -34,6 +35,7 @@ from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
 from avalanche.evaluation.metrics import StreamConfusionMatrix, \
     accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
+
 
 def main(args):
     # --- CONFIG

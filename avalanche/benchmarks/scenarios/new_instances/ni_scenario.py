@@ -9,22 +9,19 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Optional, List, Generic, Sequence, Dict, Any, Set
+from typing import Optional, List, Sequence, Dict, Any, Set
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_definitions import \
-    TrainSet, TestSet
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
     _exp_structure_from_assignment
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
-class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
-                 Generic[TrainSet, TestSet]):
+class NIScenario(GenericCLScenario['NIExperience']):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -43,8 +40,8 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
 
     def __init__(
             self,
-            train_dataset: TrainSet,
-            test_dataset: TestSet,
+            train_dataset: AvalancheDataset,
+            test_dataset: AvalancheDataset,
             n_experiences: int,
             task_labels: bool = False,
             shuffle: bool = True,
@@ -57,8 +54,8 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
         Creates a NIScenario instance given the training and test Datasets and
         the number of experiences.
 
-        :param train_dataset: The training dataset. The dataset must be a
-            subclass of :class:`AvalancheDataset`. For instance, one can
+        :param train_dataset: The training dataset. The dataset must be an
+            instance of :class:`AvalancheDataset`. For instance, one can
             use the datasets from the torchvision package like that:
             ``train_dataset=AvalancheDataset(torchvision_dataset)``.
         :param test_dataset: The test dataset. The dataset must be a
@@ -101,22 +98,13 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
 
         self._has_task_labels = task_labels
 
-        if reproducibility_data is not None:
-            super(NIScenario, self).__init__(
-                train_dataset, test_dataset,
-                train_dataset, test_dataset,
-                [], [], [], [], [],
-                complete_test_set_only=True,
-                reproducibility_data=reproducibility_data,
-                experience_factory=NIExperience)
-            self._has_task_labels = reproducibility_data['has_task_labels']
-            n_experiences = self.n_experiences
+        self.train_exps_patterns_assignment = []
 
-        task_ids: List[List[int]]
-        if self._has_task_labels:
-            task_ids = [[x] for x in range(n_experiences)]
-        else:
-            task_ids = [[0]] * n_experiences
+        if reproducibility_data is not None:
+            self.train_exps_patterns_assignment = reproducibility_data[
+                'exps_patterns_assignment']
+            self._has_task_labels = reproducibility_data['has_task_labels']
+            n_experiences = len(self.train_exps_patterns_assignment)
 
         if n_experiences < 1:
             raise ValueError('Invalid number of experiences (n_experiences '
@@ -129,12 +117,16 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
         unique_targets, unique_count = torch.unique(
             torch.as_tensor(train_dataset.targets), return_counts=True)
 
-        # The number of classes
         self.n_classes: int = len(unique_targets)
+        """
+        The amount of classes in the original training set.
+        """
 
-        # n_patterns_per_class contains the number of patterns for each class
         self.n_patterns_per_class: List[int] = \
             [0 for _ in range(self.n_classes)]
+        """
+        The amount of patterns for each class in the original training set.
+        """
 
         if fixed_exp_assignment:
             included_patterns = list()
@@ -150,14 +142,14 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
             class_count = int(unique_count[unique_idx])
             self.n_patterns_per_class[class_id] = class_count
 
-        # The number of patterns in each experience
         self.n_patterns_per_experience: List[int] = []
-        # self.exp_structure[exp_id][class_id] is the amount of patterns
-        # of class "class_id" in experience "exp_id
+        """
+        The number of patterns in each experience.
+        """
+
         self.exp_structure: List[List[int]] = []
-        # exp_patterns contains, for each experience, the list of patterns
-        # assigned to that experience (as indexes of elements from the training
-        # set)
+        """ This field contains, for each training experience, the number of
+        instances of each class assigned to that experience. """
 
         if reproducibility_data or fixed_exp_assignment:
             # fixed_patterns_assignment/reproducibility_data is the user
@@ -373,24 +365,32 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
 
         self._classes_in_exp = None  # Will be lazy initialized later
 
-        if task_labels:
-            pattern_train_task_labels = [-1] * len(train_dataset)
-            for t_id, exp_def in enumerate(exp_patterns):
-                for p_idx in exp_def:
-                    pattern_train_task_labels[p_idx] = t_id
-        else:
-            pattern_train_task_labels = ConstantSequence(0, len(train_dataset))
+        train_experiences = []
+        train_task_labels = []
+        for t_id, exp_def in enumerate(exp_patterns):
+            if self._has_task_labels:
+                train_task_labels.append(t_id)
+            else:
+                train_task_labels.append(0)
+            task_labels = ConstantSequence(train_task_labels[-1],
+                                           len(train_dataset))
+            train_experiences.append(
+                AvalancheSubset(train_dataset, indices=exp_def,
+                                task_labels=task_labels))
 
-        if not reproducibility_data:
-            super(NIScenario, self).__init__(
-                train_dataset, test_dataset,  # Original dataset
-                train_dataset, test_dataset,  # Adapted datasets
-                exp_patterns, [],  # train assignment, test assignment
-                task_ids,  # Task label of each experience
-                pattern_train_task_labels,  # Task label of each train pattern
-                ConstantSequence(0, len(test_dataset)),  # of each test pattern
-                complete_test_set_only=True,
-                experience_factory=NIExperience)
+        self.train_exps_patterns_assignment = exp_patterns
+        """ A list containing which training instances are assigned to each
+        experience in the train stream. Instances are identified by their id 
+        w.r.t. the dataset found in the original_train_dataset field. """
+
+        super(NIScenario, self).__init__(
+            stream_definitions={
+                'train': (train_experiences, train_task_labels,
+                          train_dataset),
+                'test': (test_dataset, [0], test_dataset)
+            },
+            complete_test_set_only=True,
+            experience_factory=NIExperience)
 
     @property
     def classes_in_experience(self) -> Sequence[Set[int]]:
@@ -405,23 +405,24 @@ class NIScenario(GenericCLScenario[TrainSet, TestSet, 'NIExperience'],
         return self._classes_in_exp
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
-        super_rep = super().get_reproducibility_data()
-        super_rep['has_task_labels'] = self._has_task_labels
-        return super_rep
+        reproducibility_data = {
+            'exps_patterns_assignment': self.train_exps_patterns_assignment,
+            'has_task_labels': bool(self._has_task_labels),
+
+        }
+        return reproducibility_data
 
 
-class NIExperience(GenericExperience[NIScenario[TrainSet, TestSet],
-                                     GenericScenarioStream[
-                                     'NIExperience',
-                                     NIScenario[TrainSet, TestSet]]],
-                   Generic[TrainSet, TestSet]):
+class NIExperience(GenericExperience[NIScenario,
+                                     GenericScenarioStream['NIExperience',
+                                                           NIScenario]]):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference
     to the stream from which this experience was taken.
     """
-    def __init__(self, origin_stream: GenericScenarioStream[
-        'NIExperience', NIScenario[TrainSet, TestSet]],
+    def __init__(self, origin_stream: GenericScenarioStream['NIExperience',
+                                                            NIScenario],
                  current_experience: int):
         """
         Creates a ``NIExperience`` instance given the stream from this

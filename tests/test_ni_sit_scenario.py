@@ -10,13 +10,9 @@ from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import ni_scenario
-from tests.unit_tests_utils import common_setups
 
 
 class NISITTests(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def test_ni_sit_single_dataset(self):
         mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                             train=True, download=True)
@@ -29,7 +25,9 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(5, my_ni_scenario.n_experiences)
         self.assertEqual(10, my_ni_scenario.n_classes)
         for batch_id in range(5):
-            self.assertEqual(10, len(my_ni_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                10, len(my_ni_scenario.classes_in_experience[batch_id])
+            )
 
         _, unique_count = torch.unique(torch.as_tensor(mnist_train.targets),
                                        return_counts=True)
@@ -75,7 +73,9 @@ class NISITTests(unittest.TestCase):
             mnist_train, mnist_test, 5, shuffle=True, seed=4321,
             fixed_exp_assignment=reference_assignment)
 
-        self.assertEqual(ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences)
+        self.assertEqual(
+            ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences
+        )
 
         self.assertEqual(ni_scenario_reference.train_exps_patterns_assignment,
                          my_ni_scenario.train_exps_patterns_assignment)
@@ -96,7 +96,9 @@ class NISITTests(unittest.TestCase):
         my_ni_scenario = ni_scenario(
             mnist_train, mnist_test, 0, reproducibility_data=rep_data)
 
-        self.assertEqual(ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences)
+        self.assertEqual(
+            ni_scenario_reference.n_experiences, my_ni_scenario.n_experiences
+        )
 
         self.assertEqual(ni_scenario_reference.train_exps_patterns_assignment,
                          my_ni_scenario.train_exps_patterns_assignment)
@@ -131,7 +133,9 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(5, my_ni_scenario.n_experiences)
         self.assertEqual(10, my_ni_scenario.n_classes)
         for batch_id in range(5):
-            self.assertEqual(10, len(my_ni_scenario.classes_in_experience[batch_id]))
+            self.assertEqual(
+                10, len(my_ni_scenario.classes_in_experience[batch_id])
+            )
 
         all_classes = set()
         for batch_id in range(5):

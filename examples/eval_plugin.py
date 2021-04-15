@@ -39,9 +39,8 @@ from avalanche.training.strategies import Naive
 
 def main(args):
     # --- CONFIG
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                             args.cuda >= 0 else "cpu")
+    device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -127,7 +126,8 @@ def main(args):
 
     print(f"Test metrics:\n{results}")
 
-    # Dict with all the metric curves, only available when `collect_all` is True.
+    # Dict with all the metric curves,
+    # only available when `collect_all` is True.
     # Each entry is a (x, metric value) tuple.
     # You can use this dictionary to manipulate the
     # metrics without avalanche.

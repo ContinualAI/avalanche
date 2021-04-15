@@ -1548,11 +1548,9 @@ def concat_datasets_sequentially(
 
     # Obtain the number of classes of each dataset
     classes_per_dataset = [
-        len(torch.unique(
-            torch.cat((torch.as_tensor(train_dataset_list[dataset_idx].targets),
-                      torch.as_tensor(test_dataset_list[dataset_idx].targets)))
-            )) for dataset_idx in range(len(train_dataset_list))
-    ]
+        _count_unique(train_dataset_list[dataset_idx].targets,
+                      test_dataset_list[dataset_idx].targets)
+        for dataset_idx in range(len(train_dataset_list))]
 
     new_class_ids_per_dataset = []
     for dataset_idx in range(len(train_dataset_list)):
@@ -1709,6 +1707,16 @@ def _traverse_supported_dataset(
         raise initial_error
 
     raise ValueError('Error: can\'t find the needed data in the given dataset')
+
+
+def _count_unique(*sequences: Sequence[SupportsInt]):
+    uniques = set()
+
+    for seq in sequences:
+        for x in seq:
+            uniques.add(int(x))
+
+    return len(uniques)
 
 
 def _select_targets(dataset, indices):

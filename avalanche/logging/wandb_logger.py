@@ -11,11 +11,14 @@
 
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
-
+import wandb
 from PIL.Image import Image
+from torch import Tensor
+from matplotlib.pyplot import Figure
 
 from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
 from avalanche.logging import StrategyLogger
+import numpy as np
 
 
 class WandBLogger(StrategyLogger):
@@ -60,22 +63,21 @@ class WandBLogger(StrategyLogger):
         value = metric_value.value
 
         if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, float, int)
+            value = value.best_supported_value(Image, Tensor,
+                                               Figure, float, int)
 
-        if not isinstance(value, (Image, float, int)):
+        if not isinstance(value, (Image, Tensor, Figure, float, int)):
             # Unsupported type
             return
 
         if isinstance(value, Image):
-            # Confusion Matrix logging
-            if not self.interactive:
-                self.wandb.log({name: [self.wandb.Image(
-                    value, caption="Confusion Matrix")]})
-            else:
-                # WIP
-                return
+            self.wandb.log({name: self.wandb.Image(value)})
 
-        elif isinstance(value, (float, int)):
+        elif isinstance(value, Tensor):
+            value = np.histogram(value.view(-1).numpy())
+            self.wandb.log({name: wandb.Histogram(np_histogram=value)})
+
+        elif isinstance(value, (float, int, Figure)):
             self.wandb.log({name: value})
 
 

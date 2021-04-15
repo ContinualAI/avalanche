@@ -15,13 +15,9 @@ import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
 from avalanche.benchmarks.scenarios.generic_definitions import Experience
-from tests.unit_tests_utils import common_setups
 
 
 class TinyImagenetTest(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def test_tinyimagenet_default_loader(self):
 
         logger = logging.getLogger("avalanche")

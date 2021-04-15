@@ -38,6 +38,7 @@ def main(args):
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
+
     # model
     class SimpleMLP(nn.Module):
 
@@ -85,14 +86,14 @@ def main(args):
         train_transform_list = train_transform.transforms.copy()
         train_transform_list.append(
             transforms.Lambda(
-                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28,28))
+                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28))
         )
         new_train_transform = transforms.Compose(train_transform_list)
 
         test_transform_list = test_transform.transforms.copy()
         test_transform_list.append(
             transforms.Lambda(
-                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28,28))
+                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28))
         )
         new_test_transform = transforms.Compose(test_transform_list)
 

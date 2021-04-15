@@ -14,13 +14,9 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import StrategyPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive
-from tests.unit_tests_utils import common_setups
 
 
 class MockPlugin(StrategyPlugin):
-    def setUp(self):
-        common_setups()
-
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -94,9 +90,6 @@ class MockPlugin(StrategyPlugin):
 
 
 class PluginTests(unittest.TestCase):
-    def setUp(self):
-        common_setups()
-
     def test_callback_reachability(self):
         # Check that all the callbacks are called during
         # training and test loops.
