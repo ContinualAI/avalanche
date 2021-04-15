@@ -20,18 +20,14 @@ from torchvision import transforms
 from avalanche.benchmarks import nc_scenario
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
-_default_cifar10_train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
+_default_fmnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
+    transforms.Normalize((0.2190,), (0.3318,))
 ])
 
-_default_cifar10_eval_transform = transforms.Compose([
+_default_fmnist_eval_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
+    transforms.Normalize((0.2190,), (0.3318,))
 ])
 
 
@@ -40,8 +36,8 @@ def SplitFMNIST(n_experiences: int,
                 return_task_id=False,
                 seed: Optional[int] = None,
                 fixed_class_order: Optional[Sequence[int]] = None,
-                train_transform=_default_cifar10_train_transform,
-                eval_transform=_default_cifar10_eval_transform):
+                train_transform=_default_fmnist_train_transform,
+                eval_transform=_default_fmnist_eval_transform):
     """
     Creates a CL scenario using the Fashion MNIST dataset.
 
@@ -104,13 +100,13 @@ def SplitFMNIST(n_experiences: int,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    cifar_train, cifar_test = _get_fmnist_dataset(
+    fmnist_train, fmnist_test = _get_fmnist_dataset(
         train_transform, eval_transform)
 
     if return_task_id:
         return nc_scenario(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
+            train_dataset=fmnist_train,
+            test_dataset=fmnist_test,
             n_experiences=n_experiences,
             task_labels=True,
             seed=seed,
@@ -118,8 +114,8 @@ def SplitFMNIST(n_experiences: int,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None)
     else:
         return nc_scenario(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
+            train_dataset=fmnist_train,
+            test_dataset=fmnist_test,
             n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
