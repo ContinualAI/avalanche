@@ -45,6 +45,7 @@ class DynamicOptimizersTests(unittest.TestCase):
         assert self._is_param_in_optimizer(p_new, strategy.optimizer)
         assert not self._is_param_in_optimizer(p, strategy.optimizer)
 
+
 class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
