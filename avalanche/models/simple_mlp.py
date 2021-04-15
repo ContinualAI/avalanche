@@ -9,19 +9,14 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-"""
-This is the definition od the Mid-caffenet high resolution in Pytorch.
-"""
-
-# Python 2-3 compatible
-
 import torch.nn as nn
 
-from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier, IncrementalClassifier
+from avalanche.models.dynamic_modules import MultiTaskModule, \
+    MultiHeadClassifier
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, num_classes=10, input_size=28*28, hidden_size=512):
+    def __init__(self, num_classes=10, input_size=28 * 28, hidden_size=512):
         super().__init__()
 
         self.features = nn.Sequential(
@@ -41,7 +36,7 @@ class SimpleMLP(nn.Module):
 
 
 class MTSimpleMLP(nn.Module, MultiTaskModule):
-    def __init__(self, input_size=28*28, hidden_size=512):
+    def __init__(self, input_size=28 * 28, hidden_size=512):
         super().__init__()
 
         self.features = nn.Sequential(

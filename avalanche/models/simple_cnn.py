@@ -9,13 +9,10 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-"""
-This is the definition od the Mid-caffenet high resolution in Pythorch
-"""
-
 import torch.nn as nn
 
-from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier
+from avalanche.models.dynamic_modules import MultiTaskModule, \
+    MultiHeadClassifier
 
 
 class SimpleCNN(nn.Module):
