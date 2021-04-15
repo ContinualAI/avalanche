@@ -302,7 +302,7 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(scenario, strategy)
 
     def test_ar1(self):
-        my_nc_scenario = self.load_ar1_scenario(fast_test=True)
+        my_nc_scenario = self.load_ar1_scenario()
         strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
                        rm_sz=200)
         self.run_strategy(my_nc_scenario, strategy)
