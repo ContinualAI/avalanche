@@ -42,7 +42,7 @@ class AGEMPlugin(StrategyPlugin):
             xref, yref = self.sample_from_memory(self.sample_size)
             xref, yref = xref.to(strategy.device), yref.to(strategy.device)
             out = strategy.model(xref)
-            loss = strategy._criterion(out, yref)
+            loss = strategy.criterion(out, yref)
             loss.backward()
             self.reference_gradients = [
                 (n, p.grad)

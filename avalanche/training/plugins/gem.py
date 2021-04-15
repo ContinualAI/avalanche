@@ -47,7 +47,7 @@ class GEMPlugin(StrategyPlugin):
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
                 out = strategy.model(xref)
-                loss = strategy._criterion(out, yref)
+                loss = strategy.criterion(out, yref)
                 loss.backward()
 
                 G.append(torch.cat([p.grad.flatten()

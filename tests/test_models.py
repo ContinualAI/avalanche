@@ -8,12 +8,44 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
-from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, MultiHeadClassifier
+from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
+    MultiHeadClassifier
+from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
+    update_optimizer
 from avalanche.training.strategies import Naive
-from tests.unit_tests_utils import common_setups, load_scenario, get_fast_scenario
+from tests.unit_tests_utils import common_setups, load_scenario, \
+    get_fast_scenario
 
 
-class PluginTests(unittest.TestCase):
+class DynamicOptimizersTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
+    def _is_param_in_optimizer(self, param, optimizer):
+        for group in optimizer.param_groups:
+            for curr_p in group['params']:
+                if hash(curr_p) == hash(param):
+                    return True
+        return False
+
+    def test_optimizer_update(self):
+        model = SimpleMLP()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        strategy = Naive(model, optimizer, None)
+
+        # check add_param_group
+        p = torch.nn.Parameter(torch.zeros(10, 10))
+        add_new_params_to_optimizer(optimizer, p)
+        assert self._is_param_in_optimizer(p, strategy.optimizer)
+
+        # check new_param is in optimizer
+        # check old_param is NOT in optimizer
+        p_new = torch.nn.Parameter(torch.zeros(10, 10))
+        update_optimizer(optimizer, [p], [p_new])
+        assert self._is_param_in_optimizer(p_new, strategy.optimizer)
+        assert not self._is_param_in_optimizer(p, strategy.optimizer)
+
+class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
         self.scenario = get_fast_scenario(use_task_labels=False, shuffle=False)
@@ -29,8 +61,10 @@ class PluginTests(unittest.TestCase):
                          train_mb_size=100, train_epochs=1,
                          eval_mb_size=100, device='cpu')
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        print("Current Classes: ", scenario.train_stream[0].classes_in_this_experience)
-        print("Current Classes: ", scenario.train_stream[4].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[0].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[4].classes_in_this_experience)
 
         # train on first task
         strategy.train(scenario.train_stream[0])
@@ -108,8 +142,10 @@ class PluginTests(unittest.TestCase):
                          train_mb_size=100, train_epochs=1,
                          eval_mb_size=100, device='cpu')
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        print("Current Classes: ", scenario.train_stream[4].classes_in_this_experience)
-        print("Current Classes: ", scenario.train_stream[0].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[4].classes_in_this_experience)
+        print("Current Classes: ",
+              scenario.train_stream[0].classes_in_this_experience)
 
         # head creation
         strategy.train(scenario.train_stream[0])
@@ -122,9 +158,11 @@ class PluginTests(unittest.TestCase):
 
         # head update
         strategy.train(scenario.train_stream[4])
-        w_ptr_t0 = model.classifier.classifiers['0'].classifier.weight.data_ptr()
+        w_ptr_t0 = model.classifier.classifiers[
+            '0'].classifier.weight.data_ptr()
         b_ptr_t0 = model.classifier.classifiers['0'].classifier.bias.data_ptr()
-        w_ptr_new = model.classifier.classifiers['4'].classifier.weight.data_ptr()
+        w_ptr_new = model.classifier.classifiers[
+            '4'].classifier.weight.data_ptr()
         b_ptr_new = model.classifier.classifiers['4'].classifier.bias.data_ptr()
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
                            for w in group['params']]
