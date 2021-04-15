@@ -17,7 +17,7 @@ This is the definition od the Mid-caffenet high resolution in Pytorch.
 
 import torch.nn as nn
 
-from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier
+from avalanche.models.dynamic_modules import MultiTaskModule, MultiHeadClassifier, IncrementalClassifier
 
 
 class SimpleMLP(nn.Module):

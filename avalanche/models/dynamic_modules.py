@@ -135,6 +135,7 @@ class IncrementalClassifier(DynamicModule):
         super().__init__()
         self.classifier = torch.nn.Linear(in_features, initial_out_features)
 
+    @torch.no_grad()
     def adaptation(self, dataset: AvalancheDataset):
         """ If `dataset` contains unseen classes the classifier is expanded.
 
@@ -142,9 +143,16 @@ class IncrementalClassifier(DynamicModule):
         :return:
         """
         in_features = self.classifier.in_features
-        out_features = max(self.classifier.out_features,
+        old_nclasses = self.classifier.out_features
+        new_nclasses = max(self.classifier.out_features,
                            max(dataset.targets) + 1)
-        self.classifier = torch.nn.Linear(in_features, out_features)
+
+        if old_nclasses == new_nclasses:
+            return
+        old_w, old_b = self.classifier.weight, self.classifier.bias
+        self.classifier = torch.nn.Linear(in_features, new_nclasses)
+        self.classifier.weight[:old_nclasses] = old_w
+        self.classifier.bias[:old_nclasses] = old_b
 
     def forward(self, x, **kwargs):
         """ compute the output given the input `x`. This module does not use
@@ -171,6 +179,10 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
         self.in_features = in_features
         self.starting_out_features = initial_out_features
         self.classifiers = torch.nn.ModuleDict()
+
+        # needs to create the first head because pytorch optimizers
+        # fail when model.parameters() is empty.
+        self.classifiers['0'] = IncrementalClassifier(self.in_features)
 
     def adaptation(self, dataset: AvalancheDataset):
         """ If `dataset` contains new tasks, a new head is initialized.

@@ -1,6 +1,5 @@
 from os.path import expanduser
 
-import os
 import torch
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -10,18 +9,6 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor
 
 from avalanche.benchmarks import nc_scenario
-
-
-def adapt_dataset_urls():
-    # prev_mnist_urls = MNIST.resources
-    # new_resources = [
-    #     ('https://storage.googleapis.com/cvdf-datasets/mnist/train-images-idx3-ubyte.gz', prev_mnist_urls[0][1]),
-    #     ('https://storage.googleapis.com/cvdf-datasets/mnist/train-labels-idx1-ubyte.gz', prev_mnist_urls[1][1]),
-    #     ('https://storage.googleapis.com/cvdf-datasets/mnist/t10k-images-idx3-ubyte.gz', prev_mnist_urls[2][1]),
-    #     ('https://storage.googleapis.com/cvdf-datasets/mnist/t10k-labels-idx1-ubyte.gz', prev_mnist_urls[3][1])
-    # ]
-    # MNIST.resources = new_resources
-    pass
 
 
 def common_setups():
@@ -53,7 +40,7 @@ def load_scenario(use_task_labels=False, fast_test=True):
     return my_nc_scenario
 
 
-def get_fast_scenario(use_task_labels=False):
+def get_fast_scenario(use_task_labels=False, shuffle=True):
     n_samples_per_class = 100
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
@@ -69,11 +56,12 @@ def get_fast_scenario(use_task_labels=False):
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
     my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
-                                 task_labels=use_task_labels)
+                                 task_labels=use_task_labels, shuffle=shuffle)
     return my_nc_scenario
 
 
 __all__ = [
-    'adapt_dataset_urls',
-    'common_setups'
+    'common_setups',
+    'load_scenario',
+    'get_fast_scenario'
 ]
