@@ -4,7 +4,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-05-2020                                                              #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Author(s): Vincenzo Lomonaco, Antonio Carta                                  #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -37,6 +37,9 @@ class SimpleMLP(nn.Module):
 
 class MTSimpleMLP(nn.Module, MultiTaskModule):
     def __init__(self, input_size=28 * 28, hidden_size=512):
+        """
+            Multi-task MLP with multi-head classifier.
+        """
         super().__init__()
 
         self.features = nn.Sequential(

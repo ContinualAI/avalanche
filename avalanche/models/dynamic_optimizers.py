@@ -20,6 +20,9 @@ from collections import defaultdict
 def reset_optimizer(optimizer, model):
     """ Reset the optimizer to update the list of learnable parameters.
 
+    .. warning::
+        This function fails if the optimizer uses multiple parameter groups.
+
     :param optimizer:
     :param model:
     :return:

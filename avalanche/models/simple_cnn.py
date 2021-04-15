@@ -4,7 +4,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-05-2020                                                              #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Author(s): Vincenzo Lomonaco, Antonio Carta                                  #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -52,6 +52,9 @@ class SimpleCNN(nn.Module):
 class MTSimpleCNN(SimpleCNN, MultiTaskModule):
 
     def __init__(self):
+        """
+            Multi-task CNN with multi-head classifier.
+        """
         super().__init__()
         self.classifier = MultiHeadClassifier(64)
 

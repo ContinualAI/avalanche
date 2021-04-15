@@ -82,9 +82,13 @@ class DynamicModule(torch.nn.Module):
 class MultiTaskModule:
     def __init__(self):
         """
-            Multi-task dynamic modules are `torch.nn.Modules`s for multi-task
+            Multi-task modules are `torch.nn.Modules`s for multi-task
             scenarios. The `forward` method accepts task labels, one for
             each sample in the mini-batch.
+
+            By default the `forward` method splits the mini-batch by task
+            and calls `forward_single_task`. Subclasses must implement
+            `forward_single_task` or override `forward.
         """
         super().__init__()
 
