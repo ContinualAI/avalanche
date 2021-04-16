@@ -22,7 +22,7 @@ First of all, [install _Avalanche_ in "_Developer Mode"_](../getting-started/how
 **In any of the two cases you'd need to follow the steps below**:
 
 1. [Join our Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) and **\#avalanche-dev** channel \(optional but recommended\)
-2. ⭐_Star_ + 👁️wa_tch_ the repository.
+2. ⭐_Star_ + 👁️_watch_ the repository.
 3. Fork the repository.
 4. Create or assign an existing issue/feature to yourself.
 5. Make your changes.
@@ -39,14 +39,14 @@ First of all, [install _Avalanche_ in "_Developer Mode"_](../getting-started/how
 Also, before making your PR **make sure** that the following commands return without any errors:
 
 ```bash
-pycodestyle avalanche
+pycodestyle avalanche tests examples
 python -m unittest discover -v
 ```
 
-Otherwise fix them and run again these commands until everything is working correctly. You should also  check if everything is working on GPUs, using the env variable `USE_GPU=False`:
+Otherwise fix them and run again these commands until everything is working correctly. You should also check if everything is working on GPUs, using the env variable `USE_GPU=True`:
 
 ```bash
-USE_GPU=False python -m unittest discover -v
+USE_GPU=True python -m unittest discover -v
 ```
 
 Faster integrity checks can be run with the env variable `FAST_TEST=True` :
@@ -54,6 +54,19 @@ Faster integrity checks can be run with the env variable `FAST_TEST=True` :
 ```bash
 USE_GPU=False FAST_TEST=True python -m unittest discover -v
 ```
+
+**Contribute to the Avalanche documentation**
+
+Apart from the code, you can also contribute to the Avalanche documentation 📚!  We use [Jupyter notebooks](https://jupyter.org/) to write the documentation, so both code and text can be smoothly inserted, and, as you may have noticed, all our documentation can be run on [Google Colab](https://colab.research.google.com/notebooks/intro.ipynb)! 
+
+To contribute to the documentation you need to follow the steps below:
+
+1. The notebooks are contained in the folder `notebooks`. The folder structure is specular to the documentation, so do not create or delete any folder. 
+2. Detect the notebook that you want to edit and do all the modifications 📝 
+3. Commit the changes and open a pull request (PR). 
+4. If your pull request will be accepted, your edited notebooks will be automatically converted and uploaded to the official Avalanche website 🎊! 
+
+
 
 ## 🤝 Run it on Google Colab
 
