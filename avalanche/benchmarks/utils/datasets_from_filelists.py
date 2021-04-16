@@ -13,7 +13,7 @@
 pytorch datasets based on filelists (Caffe style) """
 
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Sequence
 
 import torch.utils.data as data
 
@@ -383,11 +383,61 @@ def datasets_from_paths(
     return train_inc_datasets, test_inc_datasets
 
 
+def common_paths_root(exp_list):
+    common_root = None
+
+    # Detect common root
+    try:
+        all_paths = [pattern_tuple[0] for pattern_tuple in exp_list]
+
+        common_root = os.path.commonpath(all_paths)
+    except ValueError:
+        # commonpath may throw a ValueError in different situations!
+        # See the official documentation for more details
+        pass
+
+    if common_root is not None and len(common_root) > 0 and \
+            common_root != '/':
+        has_common_root = True
+        common_root = str(common_root)
+    else:
+        has_common_root = False
+        common_root = None
+
+    if has_common_root:
+        # print(f'Common root found: {common_root}!')
+        # All paths have a common filesystem root
+        # Remove it from all paths!
+        single_path_case = False
+        exp_tuples = list()
+
+        for idx_exp_list in range(len(exp_list)):
+            if single_path_case:
+                break
+            st_list = list()
+            for x in exp_list[idx_exp_list]:
+                rel = os.path.relpath(x[0], common_root)
+                if len(rel) == 0 or rel == '.':
+                    # May happen if the dataset has a single path
+                    single_path_case = True
+                    break
+                st_list.append((rel, *x[1:]))
+            exp_tuples.append(st_list)
+
+        if not single_path_case:
+            exp_list = exp_tuples
+        else:
+            common_root = None
+
+    return common_root, exp_list
+
+
 __all__ = [
     'default_image_loader',
     'default_flist_reader',
     'PathsDataset',
     'FilelistDataset',
     'datasets_from_filelists',
-    'datasets_from_paths'
+    'datasets_from_paths',
+    'common_paths_root'
 ]

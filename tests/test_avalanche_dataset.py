@@ -213,6 +213,26 @@ class AvalancheDatasetTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             subset_task0 = dataset.task_set[0]
 
+    def test_avalanche_dataset_uniform_task_labels_simple_def(self):
+        dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                              download=True)
+        dataset = AvalancheDataset(dataset_mnist, transform=ToTensor(),
+                                   task_labels=1)
+        _, _, t2 = dataset[0]
+
+        self.assertIsInstance(t2, int)
+        self.assertEqual(1, t2)
+
+        self.assertListEqual([1] * len(dataset_mnist),
+                             list(dataset.targets_task_labels))
+
+        subset_task1 = dataset.task_set[1]
+        self.assertIsInstance(subset_task1, AvalancheDataset)
+        self.assertEqual(len(dataset), len(subset_task1))
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[0]
+
     def test_avalanche_dataset_mixed_task_labels(self):
         dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                               download=True)
