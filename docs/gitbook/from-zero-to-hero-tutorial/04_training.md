@@ -1,10 +1,10 @@
 ---
 description: Continual Learning Algorithms Prototyping Made Easy
 ---
-
 # Training
 
 Welcome to the "_Training_" tutorial of the "_From Zero to Hero_" series. In this part we will present the functionalities offered by the `training` module.
+
 
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
@@ -20,7 +20,7 @@ The `training` module in _Avalanche_ is designed with modularity in mind. Its ma
 At the moment, the `training` module includes two main components:
 
 * **Strategies**: these are popular baselines already implemented for you which you can use for comparisons or as base classes to define a custom strategy.
-* **Plugins**: these are classes that allow to add some specific behaviour to your own strategy. The plugin system allows to define reusable components which can be easily combined together \(e.g. a replay strategy, a regularization strategy\). They are also used to automatically manage logging and evaluation.
+* **Plugins**: these are classes that allow to add some specific behaviour to your own strategy. The plugin system allows to define reusable components which can be easily combined together (e.g. a replay strategy, a regularization strategy). They are also used to automatically manage logging and evaluation.
 
 Keep in mind that Avalanche's components are mostly independent from each other. If you already have your own strategy which does not use Avalanche, you can use benchmarks and metrics without ever looking at Avalanche's strategies.
 
@@ -29,14 +29,13 @@ Keep in mind that Avalanche's components are mostly independent from each other.
 If you want to compare your strategy with other classic continual learning algorithm or baselines, in _Avalanche_ you can instantiate a strategy with a couple lines of code.
 
 ### Strategy Instantiation
-
 Most strategies require only 3 mandatory arguments:
+- **model**: this must be a `torch.nn.Module`.
+- **optimizer**: `torch.optim.Optimizer` already initialized on your `model`.
+- **loss**: a loss function such as those in `torch.nn.functional`.
 
-* **model**: this must be a `torch.nn.Module`.
-* **optimizer**: `torch.optim.Optimizer` already initialized on your `model`.
-* **loss**: a loss function such as those in `torch.nn.functional`.
+Additional arguments are optional and allow you to customize training (batch size, epochs, ...) or strategy-specific parameters (buffer size, regularization strenght, ...).
 
-Additional arguments are optional and allow you to customize training \(batch size, epochs, ...\) or strategy-specific parameters \(buffer size, regularization strenght, ...\).
 
 ```python
 from torch.optim import SGD
@@ -55,9 +54,10 @@ cl_strategy = Naive(
 
 ### Training & Evaluation
 
-Each strategy object offers two main methods: `train` and `eval`. Both of them, accept either a _single experience_\(`Experience`\) or a _list of them_, for maximum flexibility.
+Each strategy object offers two main methods: `train` and `eval`. Both of them, accept either a _single experience_(`Experience`) or a _list of them_, for maximum flexibility.
 
 We can train the model continually by iterating over the `train_stream` provided by the scenario.
+
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
@@ -85,6 +85,7 @@ We noticed that many continual learning strategies follow roughly the same train
 
 _Avalanche_'s plugins allow to augment a strategy with additional behavior. Currently, most continual learning strategies are also implemented as plugins, which makes them easy to combine together. For example, it is extremely easy to create a hybrid strategy that combines replay and EWC together by passing the appropriate `plugins` list to the `BaseStrategy`:
 
+
 ```python
 from avalanche.training.strategies import BaseStrategy
 from avalanche.training.plugins import ReplayPlugin, EWCPlugin
@@ -101,7 +102,7 @@ strategy = BaseStrategy(
 In _Avalanche_ you can build your own strategy in 2 main ways:
 
 1. **Plugins**: Most strategies can be defined by _augmenting_ the basic training and evaluation loops. The easiest way to define a custom strategy such as a regularization or replay strategy, is to define it as a custom plugin. This is the suggested approach as it is the easiest way to define custom strategies.
-2. **Subclassing**: In _Avalanche_, continual learning strategies inherit from the `BaseStrategy`, which provides generic training and evaluation loops. You can safely override most methods to customize your strategy. However, there are some caveats to discuss \(see later\) and in general this approach is more difficult than plugins.
+2. **Subclassing**: In _Avalanche_, continual learning strategies inherit from the `BaseStrategy`, which provides generic training and evaluation loops. You can safely override most methods to customize your strategy. However, there are some caveats to discuss (see later) and in general this approach is more difficult than plugins.
 
 Keep in mind that if you already have a continual learning strategy that does not use _Avalanche_, you can always use `benchmarks` and `evaluation` without using _Avalanche_'s strategies!
 
@@ -111,10 +112,9 @@ As we already mentioned, _Avalanche_ strategies inherit from `BaseStrategy`. Thi
 
 1. Basic _Training_ and _Evaluation_ loops which define a naive strategy.
 2. _Callback_ points, which can be used to augment the strategy's behavior.
-3. A set of variables representing the state of the loops \(current batch, predictions, ...\) which allows plugins and child classes to easily manipulate the state of the training loop.
+3. A set of variables representing the state of the loops (current batch, predictions, ...) which allows plugins and child classes to easily manipulate the state of the training loop.
 
 The training loop has the following structure:
-
 ```text
 train
     before_training
@@ -136,7 +136,6 @@ train
 ```
 
 The evaluation loop is similar:
-
 ```text
 eval
     before_eval
@@ -153,10 +152,10 @@ eval
 ```
 
 ### Custom Plugin
-
-Plugins provide a simple solution to define a new strategy by augmenting the behavior of another strategy \(typically a naive strategy\). This approach reduces the overhead and code duplication, **improving code readability and prototyping speed**.
+Plugins provide a simple solution to define a new strategy by augmenting the behavior of another strategy (typically a naive strategy). This approach reduces the overhead and code duplication, **improving code readability and prototyping speed**.
 
 Creating a plugin is straightforward. You create a class which inherits from `StrategyPlugin` and implements the callbacks that you need. The exact callback to use depend on your strategy. For example, the following replay plugin uses `after_training_exp` to update the buffer after each training experience, and the `adapt_training_dataset` to concatenate the buffer's data with the current experience:
+
 
 ```python
 from avalanche.training.plugins import StrategyPlugin
@@ -237,11 +236,13 @@ Check `StrategyPlugin`'s documentation for a complete list of the available call
 
 ### Custom Strategy
 
-You can always define a custom strategy by overriding `BaseStrategy` methods. However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. If your strategy strategy does not call them, plugins may not work as expected. The easiest way to avoid mistakes is to start from the `BaseStrategy` method that you want to override and modify it to your own needs without removing the callbacks handling.
+You can always define a custom strategy by overriding `BaseStrategy` methods.
+However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. If your strategy strategy does not call them, plugins may not work as expected. The easiest way to avoid mistakes is to start from the `BaseStrategy` method that you want to override and modify it to your own needs without removing the callbacks handling.
 
-There is only a single plugin that is always used by default, the `EvaluationPlugin` \(see `evaluation` tutorial\). This means that if you break callbacks you must log metrics by yourself. This is totally possible but requires some manual work to update, log, and reset each metric, which is done automatically for you by the `BaseStrategy`.
+There is only a single plugin that is always used by default, the `EvaluationPlugin` (see `evaluation` tutorial). This means that if you break callbacks you must log metrics by yourself. This is totally possible but requires some manual work to update, log, and reset each metric, which is done automatically for you by the `BaseStrategy`.
 
-`BaseStrategy` provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. As an example, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates \`self.adapted\_dataset' by concatenating all the previous experiences with the current one.
+`BaseStrategy` provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. As an example, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
+
 
 ```python
 class Cumulative(BaseStrategy):
@@ -250,7 +251,7 @@ class Cumulative(BaseStrategy):
         self.dataset = {}  # cumulative dataset
 
     def adapt_train_dataset(self, **kwargs):
-        super().after_train_dataset_adaptation(**kwargs)
+        super().adapt_train_dataset(**kwargs)
         curr_task_id = self.experience.task_label
         curr_data = self.experience.dataset
         if curr_task_id in self.dataset:
@@ -273,4 +274,3 @@ This completes the "_Training_" chapter for the "_From Zero to Hero_" series. We
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/3.-training.ipynb)
-

@@ -14,11 +14,15 @@ name: PEP8 checking
 # This workflow is triggered on pushes to the repository.
 on:
   push:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/pep8.yml'
+      - '.pylintrc'
   pull_request:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/pep8.yml'
+      - '.pylintrc'
 
 jobs:
   check:
