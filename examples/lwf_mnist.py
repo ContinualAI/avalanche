@@ -57,7 +57,7 @@ def main(args):
         print("Start training on experience ",
               train_batch_info.current_experience)
 
-        strategy.train(train_batch_info, num_workers=4)
+        strategy.train(train_batch_info, num_workers=0)
         print("End training on experience ",
               train_batch_info.current_experience)
         print('Computing accuracy on the test set')

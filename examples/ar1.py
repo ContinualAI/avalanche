@@ -62,11 +62,11 @@ def main(args):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
-        cl_strategy.train(experience, num_workers=4)
+        cl_strategy.train(experience, num_workers=0)
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
+        results.append(cl_strategy.eval(scenario.test_stream, num_workers=0))
 
 
 if __name__ == '__main__':
