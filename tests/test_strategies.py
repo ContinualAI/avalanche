@@ -30,7 +30,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining
+    SynapticIntelligence, JointTraining, SIW
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.benchmarks import nc_scenario, SplitCIFAR10
@@ -227,17 +227,17 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = GDumb(
-                model, optimizer, criterion,
-                mem_size=200, train_mb_size=64, device=self.device,
-                eval_mb_size=50, train_epochs=2
+            model, optimizer, criterion,
+            mem_size=200, train_mb_size=64, device=self.device,
+            eval_mb_size=50, train_epochs=2
         )
         self.run_strategy(my_nc_scenario, strategy)
 
         # MT scenario
         strategy = GDumb(
-                model, optimizer, criterion,
-                mem_size=200, train_mb_size=64, device=self.device,
-                eval_mb_size=50, train_epochs=2
+            model, optimizer, criterion,
+            mem_size=200, train_mb_size=64, device=self.device,
+            eval_mb_size=50, train_epochs=2
         )
         scenario = self.load_scenario(fast_test=self.fast_test,
                                       use_task_labels=True)
@@ -271,7 +271,7 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
         strategy = LwF(model, optimizer, criterion,
-                       alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)],
+                       alpha=[0, 1 / 2, 2 * (2 / 3), 3 * (3 / 4), 4 * (4 / 5)],
                        temperature=2, device=self.device,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
@@ -279,7 +279,7 @@ class StrategyTest(unittest.TestCase):
 
         # MT scenario
         strategy = LwF(model, optimizer, criterion,
-                       alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)],
+                       alpha=[0, 1 / 2, 2 * (2 / 3), 3 * (3 / 4), 4 * (4 / 5)],
                        temperature=2, device=self.device,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
@@ -407,6 +407,26 @@ class StrategyTest(unittest.TestCase):
                        rm_sz=200)
 
         self.run_strategy(my_nc_scenario, strategy)
+
+    def test_siw(self):
+        model = self.get_model(fast_test=self.fast_test)
+        optimizer = SGD(model.parameters(), lr=0.1)
+        criterion = CrossEntropyLoss()
+
+        # SIT scenario
+        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
+                       batch_size=32, num_workers=8, train_mb_size=128,
+                       device=self.device, eval_mb_size=32, train_epochs=2)
+        self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
+                       batch_size=32, num_workers=8, train_mb_size=128,
+                       device=self.device, eval_mb_size=32, train_epochs=2)
+        scenario = self.load_scenario(fast_test=self.fast_test,
+                                      use_task_labels=True)
+        self.run_strategy(scenario, strategy)
 
     def load_ar1_scenario(self, fast_test=False):
         """
