@@ -56,7 +56,7 @@ def get_fast_scenario(use_task_labels=False, shuffle=True):
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
     my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
-                                 task_labels=use_task_labels, shuffle=shuffle)
+                                   task_labels=use_task_labels, shuffle=shuffle)
     return my_nc_benchmark
 
 

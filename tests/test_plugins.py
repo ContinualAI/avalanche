@@ -148,8 +148,8 @@ class PluginTests(unittest.TestCase):
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
         return nc_benchmark(train_dataset, test_dataset, 5,
-                           task_labels=task_labels,
-                           fixed_class_order=list(range(10)))
+                            task_labels=task_labels,
+                            fixed_class_order=list(range(10)))
 
 
 if __name__ == '__main__':
