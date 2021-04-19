@@ -18,7 +18,7 @@ on:
       - '**.py'
       - '.github/workflows/pep8.yml'
       - '.pylintrc'
-  pull_request:
+  pull_request_target:
     branches:
       - master
     paths:
@@ -32,18 +32,26 @@ jobs:
     runs-on: ubuntu-latest
     container: python:3.8
     steps:
-      - uses: actions/checkout@v2
+      - name: check out the repo (push)
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: check out the repo (PR)
+        if: github.event_name == 'pull_request_target'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: install pycodestyle
         run: pip install pycodestyle
       - name: check pep8 in source files
         run: pycodestyle avalanche tests examples > pep8_report.txt
       - name: send PR message
-        if: failure() && github.event_name == 'pull_request' && github.repository == 'ContinualAI/avalanche'
+        if: failure() && github.event_name == 'pull_request_target' && github.repository == 'ContinualAI/avalanche'
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.BOT_TOKEN }}
           script: |
             var message = "Oh no! It seems there are some PEP8 errors! 😕\nDon't worry, you can fix them! 💪\nHere's a report about the errors and where you can find them:\n\n```\n"
             var fs = require("fs");
