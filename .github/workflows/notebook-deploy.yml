@@ -1,0 +1,54 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 13-04-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+
+name: Documentation update from notebooks
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - notebooks/**
+      - .github/workflows/notebook-deploy.yml
+
+jobs:
+  build:
+    if: github.repository == 'ContinualAI/avalanche'
+    name: deploy_notebooks
+    runs-on: ubuntu-latest
+    container: python:3.8
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install nbconvert
+        run: pip install nbconvert
+      - name: transform notebooks into md
+        run: |
+          cd notebooks
+          find . -type f -name "*ipynb" -exec sh -c '
+             for file do
+               dir=${file%/*}
+               jupyter nbconvert --output-dir "../docs/gitbook/${dir}" --to markdown --ClearOutputPreprocessor.enabled=True ${file}
+             done' sh {} +
+      - name: commit to repo
+        run: |
+          git config --local user.email ${{ secrets.BOT_EMAIL }}
+          git config --local user.name ${{ secrets.BOT_NAME }}
+          git add .
+          git commit -m "Update gitbook documentation" -a || true
+          # The above command will fail if no changes were present, so we ignore that.
+      - name: Push changes (deploy)
+        uses: ad-m/github-push-action@master
+        with:
+          branch: master
+          github_token: ${{ secrets.GITHUB_TOKEN }}
