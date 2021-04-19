@@ -45,6 +45,7 @@ class DynamicOptimizersTests(unittest.TestCase):
         assert self._is_param_in_optimizer(p_new, strategy.optimizer)
         assert not self._is_param_in_optimizer(p, strategy.optimizer)
 
+
 class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
@@ -70,7 +71,8 @@ class DynamicModelsTests(unittest.TestCase):
         strategy.train(scenario.train_stream[0])
         w_ptr = model.classifier.classifier.weight.data_ptr()
         b_ptr = model.classifier.classifier.bias.data_ptr()
-        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups for w in group['params']]
+        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
+                           for w in group['params']]
         # classifier params should be optimized
         assert w_ptr in opt_params_ptrs
         assert b_ptr in opt_params_ptrs
