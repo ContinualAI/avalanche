@@ -43,7 +43,7 @@ jobs:
         if: failure() && github.event_name == 'pull_request' && github.repository == 'ContinualAI/avalanche'
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.BOT_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             var message = "Oh no! It seems there are some PEP8 errors! 😕\nDon't worry, you can fix them! 💪\nHere's a report about the errors and where you can find them:\n\n```\n"
             var fs = require("fs");
