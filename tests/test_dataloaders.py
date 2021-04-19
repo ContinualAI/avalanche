@@ -32,7 +32,7 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     SynapticIntelligence, JointTraining
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
-from avalanche.benchmarks import nc_scenario, SplitCIFAR10
+from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 from avalanche.benchmarks.utils.data_loader import \
@@ -54,9 +54,9 @@ def get_fast_scenario():
 
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
-    my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
+    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
                                  task_labels=True)
-    return my_nc_scenario
+    return my_nc_benchmark
 
 
 class DataLoaderTests(unittest.TestCase):

@@ -9,7 +9,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import StrategyPlugin, ReplayPlugin
@@ -147,7 +147,7 @@ class PluginTests(unittest.TestCase):
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
-        return nc_scenario(train_dataset, test_dataset, 5,
+        return nc_benchmark(train_dataset, test_dataset, 5,
                            task_labels=task_labels,
                            fixed_class_order=list(range(10)))
 

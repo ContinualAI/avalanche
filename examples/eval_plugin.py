@@ -27,7 +27,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_benchmark
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
@@ -60,7 +60,7 @@ def main(args):
                         train=True, download=True, transform=train_transform)
     mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                        train=False, download=True, transform=test_transform)
-    scenario = nc_scenario(
+    scenario = nc_benchmark(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 

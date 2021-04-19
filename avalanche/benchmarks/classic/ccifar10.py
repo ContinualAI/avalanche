@@ -14,7 +14,7 @@ from os.path import expanduser
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
-from avalanche.benchmarks import nc_scenario, NCScenario
+from avalanche.benchmarks import nc_benchmark, NCScenario
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 
@@ -102,7 +102,7 @@ def SplitCIFAR10(n_experiences: int,
         train_transform, eval_transform)
 
     if return_task_id:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_experiences=n_experiences,
@@ -112,7 +112,7 @@ def SplitCIFAR10(n_experiences: int,
             per_exp_classes={0: 5} if first_exp_with_half_classes else None,
             class_ids_from_zero_in_each_exp=True)
     else:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=cifar_train,
             test_dataset=cifar_test,
             n_experiences=n_experiences,

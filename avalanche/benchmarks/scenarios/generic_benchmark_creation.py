@@ -111,7 +111,9 @@ def create_multi_dataset_generic_benchmark(
     input_streams = dict(
         train=train_datasets,
         test=test_datasets)
-    input_streams = {**input_streams, **other_streams_datasets}
+
+    if other_streams_datasets is not None:
+        input_streams = {**input_streams, **other_streams_datasets}
 
     if complete_test_set_only:
         if len(input_streams['test']) != 1:
@@ -232,7 +234,9 @@ def create_generic_benchmark_from_filelists(
     input_streams = dict(
         train=train_file_lists,
         test=test_file_lists)
-    input_streams = {**input_streams, **other_streams_file_lists}
+
+    if other_streams_file_lists is not None:
+        input_streams = {**input_streams, **other_streams_file_lists}
 
     stream_definitions = dict()
 
@@ -259,7 +263,8 @@ def create_generic_benchmark_from_filelists(
         dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
 
-FileAndLabel = Tuple[Union[str, Path], int]
+FileAndLabel = Union[Tuple[Union[str, Path], int],
+                     Tuple[Union[str, Path], int, Sequence]]
 
 
 def create_generic_benchmark_from_paths(
@@ -355,7 +360,9 @@ def create_generic_benchmark_from_paths(
     input_streams = dict(
         train=train_lists_of_files,
         test=test_lists_of_files)
-    input_streams = {**input_streams, **other_streams_lists_of_files}
+
+    if other_streams_lists_of_files is not None:
+        input_streams = {**input_streams, **other_streams_lists_of_files}
 
     stream_definitions = dict()
 
@@ -474,7 +481,9 @@ def create_generic_benchmark_from_tensor_lists(
     input_streams = dict(
         train=train_tensors,
         test=test_tensors)
-    input_streams = {**input_streams, **other_streams_tensors}
+
+    if other_streams_tensors is not None:
+        input_streams = {**input_streams, **other_streams_tensors}
 
     stream_definitions = dict()
 
