@@ -77,6 +77,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         for val in metric_values:
             self.log_metric(val, 'before_forward')
 
+
     def after_forward(self, strategy: 'BaseStrategy',
                       metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
