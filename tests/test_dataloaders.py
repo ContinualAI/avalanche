@@ -58,7 +58,6 @@ def get_fast_scenario():
                                  task_labels=True)
     return my_nc_scenario
 
-
 class DataLoaderTests(unittest.TestCase):
     def test_dataload_reinit(self):
         scenario = get_fast_scenario()

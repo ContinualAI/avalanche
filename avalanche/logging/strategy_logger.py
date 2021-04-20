@@ -45,8 +45,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         """
         pass
 
-    def before_training(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_training(self, strategy: 'BaseStrategy', metric_values: List['MetricValue'], **kwargs):
         for val in metric_values:
             self.log_metric(val, 'before_training')
 
