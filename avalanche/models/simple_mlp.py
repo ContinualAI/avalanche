@@ -16,7 +16,8 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, num_classes=10, input_size=28 * 28, hidden_size=512, hidden_layers=1):
+    def __init__(self, num_classes=10, input_size=28 * 28,
+                 hidden_size=512, hidden_layers=1):
         super().__init__()
 
         self.features = nn.Sequential(
