@@ -14,11 +14,11 @@ name: syntax checking
 # This workflow is triggered on pushes to the repository.
 on:
   push:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
   pull_request:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
 
 jobs:
   check:

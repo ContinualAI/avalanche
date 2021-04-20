@@ -14,11 +14,13 @@ name: docstring coverage
 
 on:
   push:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/docstring-coverage.yml'
   pull_request:
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/docstring-coverage.yml'
 
 jobs:
   build:

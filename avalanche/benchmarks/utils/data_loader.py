@@ -117,15 +117,15 @@ class MultiTaskMultiBatchDataLoader:
             for tid, t_loader in list(iter_dataloaders.items()):
                 t_loader = iter_dataloaders[tid]
                 try:
-                    batch = next(t_loader)[:-1]  # skip task label
+                    batch = next(t_loader)
                 except StopIteration:
                     # StopIteration is thrown if dataset ends.
                     if self.oversample_small_tasks:
                         # reinitialize data loader
                         iter_dataloaders[tid] = iter(self.dataloaders[tid])
-                        batch = next(iter_dataloaders[tid])[:-1]
+                        batch = next(iter_dataloaders[tid])
                     else:
-                        del iter_dataloaders[tid]  # skip task label
+                        del iter_dataloaders[tid]
                         continue
                 mb_curr[tid] = batch
             yield mb_curr
@@ -225,23 +225,25 @@ class MultiTaskJoinedBatchDataLoader:
         for t in list(data.task_set):
             t_loader = iter_dataloaders[t]
             try:
-                x, y, *_ = next(t_loader)
+                tbatch = next(t_loader)
             except StopIteration:
                 # StopIteration is thrown if dataset ends.
                 # reinitialize data loader
                 if oversample_small_tasks:
                     # reinitialize data loader
                     iter_dataloaders[t] = iter(loaders_dict[t])
-                    x, y, *_ = next(iter_dataloaders[t])
+                    tbatch = next(iter_dataloaders[t])
                 else:
                     del iter_dataloaders[t]
                     continue
             if t in mb_curr:
-                x_curr = torch.cat((mb_curr[t][0], x))
-                y_curr = torch.cat((mb_curr[t][1], y))
-                mb_curr[t] = x_curr, y_curr
+                cat_batch = []
+                for el1, el2 in zip(tbatch, mb_curr[t]):
+                    cat_tensor = torch.cat([el1, el2], dim=0)
+                    cat_batch.append(cat_tensor)
+                mb_curr[t] = cat_batch
             else:
-                mb_curr[t] = x, y
+                mb_curr[t] = tbatch
 
     def _create_dataloaders(self, data_dict, single_exp_batch_size,
                             remaining_example, **kwargs):

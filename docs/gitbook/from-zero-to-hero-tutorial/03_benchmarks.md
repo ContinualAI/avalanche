@@ -6,6 +6,7 @@ description: Create your Continual Learning Benchmark and Start Prototyping
 
 Welcome to the "_benchmarks_" tutorial of the "_From Zero to Hero_" series. In this part we will present the functionalities offered by the `Benchmarks` module.
 
+
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
@@ -32,7 +33,7 @@ The `bechmarks` module offers 3 types of utils:
   * _Generic_:
     * **filelist\_scenario**: It creates a benchmark given a set of filelists and based on a generic scenario for maximal flexibility.
     * **paths\_scenario**:  It creates a benchmark given a set of file paths and class labels.
-    * **tensor\_scenario**: It creates a benchmark given a set of tensors and based on a generic scenario for maximal flexibility.
+    * **tensors\_scenario**: It creates a benchmark given a set of tensors and based on a generic scenario for maximal flexibility.
     * **dataset\_scenario**: It creates a benchmark given a set of pytorch datasets and based on a generic scenario for maximal flexibility.
 
 But let's see how we can use this module in practice!
@@ -40,6 +41,7 @@ But let's see how we can use this module in practice!
 ## 🖼️ Datasets
 
 Let's start with the `Datasets`. As we previously hinted, in _Avalanche_ you'll find all the standard Pytorch Datasets available in the torchvision package as well as a few others that are useful for continual learning but not already officially available within the Pytorch ecosystem.
+
 
 ```python
 import torch
@@ -50,23 +52,14 @@ CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
 VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
 CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
 
-prev_mnist_urls = torchvision.datasets.MNIST.resources
-new_resources = [
-    ('https://storage.googleapis.com/cvdf-datasets/mnist/train-images-idx3-ubyte.gz', prev_mnist_urls[0][1]),
-    ('https://storage.googleapis.com/cvdf-datasets/mnist/train-labels-idx1-ubyte.gz', prev_mnist_urls[1][1]),
-    ('https://storage.googleapis.com/cvdf-datasets/mnist/t10k-images-idx3-ubyte.gz', prev_mnist_urls[2][1]),
-    ('https://storage.googleapis.com/cvdf-datasets/mnist/t10k-labels-idx1-ubyte.gz', prev_mnist_urls[3][1])
-]
-torchvision.datasets.MNIST.resources = new_resources
-
 # As we would simply do with any Pytorch dataset we can create the train and 
 # test sets from it. We could use any of the above imported Datasets, but let's
 # just try to use the standard MNIST.
 train_MNIST = MNIST(
-    '.', train=True, download=True, transform=torchvision.transforms.ToTensor()
+    './data/mnist', train=True, download=True, transform=torchvision.transforms.ToTensor()
 )
 test_MNIST = MNIST(
-    '.', train=False, download=True, transform=torchvision.transforms.ToTensor()
+    './data/mnist', train=False, download=True, transform=torchvision.transforms.ToTensor()
 )
 
 # Given these two sets we can simply iterate them to get the examples one by one
@@ -86,6 +79,7 @@ print("Num. mini-batch processed: {}".format(i))
 Of course also the basic utilities `ImageFolder` and `DatasetFolder` can be used. These are two classes that you can use to create a Pytorch Dataset directly from your files \(following a particular structure\). You can read more about these in the Pytorch official documentation [here](https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder).
 
 We also provide an additional `FilelistDataset` and `AvalancheDataset` classes. The former to construct a dataset from a filelist [\(caffe style\)](https://ceciliavision.wordpress.com/2016/03/08/caffedata-layer/) pointing to files anywhere on the disk. The latter to augment the basic Pytorch Dataset functionalities with an extention to better deal with a stack of transformations to be used during train and test.
+
 
 ```python
 from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, AvalancheDataset
@@ -109,48 +103,52 @@ This means that memory requirements are very low, while the speed is guaranteed 
 
 So, as we have seen, each `scenario` object in _Avalanche_ has several useful attributes that characterizes the benchmark, including the two important `train` and `test streams`. Let's check what you can get from a scenario object more in details:
 
+
 ```python
-from avalanche.benchmarks.classic import PermutedMNIST
-perm_mnist = PermutedMNIST(n_experiences=5, seed=1)
+from avalanche.benchmarks.classic import SplitMNIST
+split_mnist = SplitMNIST(n_experiences=5, seed=1)
 
-# orginal train/test sets
-perm_mnist.original_train_dataset
-perm_mnist.original_test_dataset
+# Original train/test sets
+print('--- Original datasets:')
+print(split_mnist.original_train_dataset)
+print(split_mnist.original_test_dataset)
 
-# The training and test set used to generate the incremental experiences.
-perm_mnist.train_dataset
-perm_mnist.test_dataset
-
-# A list containing which training patterns are assigned to each experience.
+# A list describing which training patterns are assigned to each experience.
 # Patterns are identified by their id w.r.t. the dataset found in the
-# train_dataset field.
-perm_mnist.train_exps_patterns_assignment
+# original_train_dataset field.
+print('--- Train patterns assignment:')
+print(split_mnist.train_exps_patterns_assignment)
 
-# A list containing which test patterns are assigned to each experience.
+# A list describing which test patterns are assigned to each experience.
 # Patterns are identified by their id w.r.t. the dataset found in the
-# test_dataset field
-perm_mnist.test_exps_patterns_assignment
+# original_test_dataset field
+print('--- Test patterns assignment:')
+print(split_mnist.test_exps_patterns_assignment)
 
 # the task label of each experience.
-perm_mnist.task_labels
+print('--- Task labels:')
+print(split_mnist.task_labels)
 
 # train and test streams
-perm_mnist.train_stream
-perm_mnist.test_stream
+print('--- Streams:')
+print(split_mnist.train_stream)
+print(split_mnist.test_stream)
 
 # A list that, for each experience (identified by its index/ID),
 # stores a set of the (optionally remapped) IDs of classes of patterns
 # assigned to that experience.
-perm_mnist.classes_in_experience
+print('--- Classes in each experience:')
+split_mnist.classes_in_experience
 ```
 
 #### Train and Test Streams
 
 The _train_ and _test streams_ can be used for training and testing purposes, respectively. This is what you can do with these streams:
 
+
 ```python
 # each stream has a name: "train" or "test"
-train_stream = perm_mnist.train_stream
+train_stream = split_mnist.train_stream
 print(train_stream.name)
 
 # we have access to the scenario from which the stream was taken
@@ -167,6 +165,7 @@ len(substream)
 #### Experiences
 
 Each stream can in turn be treated as an iterator that produces a unique `experience`, containing all the useful data regarding a _batch_ or _task_ in the continual stream our algorithms will face. Check out how can you use these experiences below:
+
 
 ```python
 # we get the first experience
@@ -187,15 +186,18 @@ experience.scenario
 
 # As always, we can iterate over it normally or with a pytorch
 # data loader.
-for i, data in enumerate(dataset):
+# For instance, we can use tqdm to add a progress bar.
+from tqdm import tqdm
+for i, data in enumerate(tqdm(dataset)):
   pass
-print("Number of examples: ", i + 1)
+print("\nNumber of examples:", i + 1)
 print("Task Label:", t_label)
 ```
 
 ## 🏛️ Classic Benchmarks
 
 Now that we know how our benchmarks work in general through scenarios, streams and experiences objects, in this section we are going to explore **common benchmarks** already available for you with one line of code yet flexible enough to allow proper tuning based on your needs:
+
 
 ```python
 from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
@@ -214,6 +216,7 @@ Many of the classic benchmarks will download the original datasets they are base
 ### How to Use the Benchmarks
 
 Let's see now how we can use the classic benchmark or the ones that you can create through the generators \(see next section\). For example, let's try out the classic `PermutedMNIST` benchmark \(_Task-Incremental_ scenario\).
+
 
 ```python
 # creating the benchmark (scenario object)
@@ -259,11 +262,13 @@ for the **New Instances**:
 
 * `ni_scenario`
 
+
 ```python
 from avalanche.benchmarks.generators import nc_scenario, ni_scenario
 ```
 
 Let's start by creating the MNIST dataset object as we would normally do in Pytorch:
+
 
 ```python
 from torchvision.transforms import Compose, ToTensor, Normalize, RandomCrop
@@ -288,6 +293,7 @@ mnist_test = MNIST(
 
 Then we can, for example, create a new benchmark based on MNIST and the classic _Domain-Incremental_ scenario:
 
+
 ```python
 scenario = ni_scenario(
     mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
@@ -305,6 +311,7 @@ for experience in train_stream:
 ```
 
 Or, we can create a benchmark based on MNIST and the _Class-Incremental_ \(what's commonly referred to as "_Split-MNIST_" benchmark\):
+
 
 ```python
 scenario = nc_scenario(
@@ -328,28 +335,38 @@ Finally, if you cannot create your ideal benchmark since it does not fit well in
 * **filelist\_scenario**
 * **paths\_scenario**
 * **dataset\_scenario**
-* **tensor\_scenario**
+* **tensors\_scenario**
+
 
 ```python
 from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario, \
-                                            tensor_scenario, paths_scenario
+                                            tensors_scenario, paths_scenario
 ```
 
 Let's start with the `filelist_scenario` utility. This function is particularly useful when it is important to preserve a particular order of the patterns to be processed \(for example if they are frames of a video\), or in general if we have data scattered around our drive and we want to create a sequence of batches/tasks providing only a txt file containing the list of their paths.
 
 For _Avalanche_ we follow the same format of the _Caffe_ filelists \("_path_ _class\_label_"\):
 
-/path/to/a/file.jpg 0 /path/to/another/file.jpg 0 ... /path/to/another/file.jpg M /path/to/another/file.jpg M ... /path/to/another/file.jpg N /path/to/another/file.jpg N
+/path/to/a/file.jpg 0
+/path/to/another/file.jpg 0
+...
+/path/to/another/file.jpg M
+/path/to/another/file.jpg M
+...
+/path/to/another/file.jpg N
+/path/to/another/file.jpg N
 
 So let's download the classic "_Cats vs Dogs_" dataset as an example:
 
+
 ```python
-!wget --no-check-certificate \
+!wget -N --no-check-certificate \
     https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip
-!unzip cats_and_dogs_filtered.zip
+!unzip -q -o cats_and_dogs_filtered.zip
 ```
 
 You can now see in the `content` directory on colab the image we downloaded. We are now going to create the filelists and then use the `filelist_scenario` function to create our benchmark:
+
 
 ```python
 import os
@@ -382,12 +399,13 @@ generic_scenario = filelist_scenario(
 
 Let us know see how we can use the `dataset_scenario` utility, where we can use several Pytorch datasets as different batches or tasks:
 
+
 ```python
 train_cifar10 = CIFAR10(
-    './data/mnist', train=True, download=True
+    './data/cifar10', train=True, download=True
 )
 test_cifar10 = CIFAR10(
-    './data/mnist', train=False, download=True
+    './data/cifar10', train=False, download=True
 )
 generic_scenario =  dataset_scenario(
     train_dataset_list=[train_MNIST, train_cifar10],
@@ -396,7 +414,8 @@ generic_scenario =  dataset_scenario(
 )
 ```
 
-And finally, the `tensor_scenario` generator:
+And finally, the `tensors_scenario` generator:
+
 
 ```python
 pattern_shape = (3, 32, 32)
@@ -412,15 +431,13 @@ experience_2_y = torch.ones(80, dtype=torch.long)
 
 # Test experience
 # For this example we define a single test experience,
-# but "tensor_scenario" allows you to define even more than one!
+# but "tensors_scenario" allows you to define even more than one!
 test_x = torch.zeros(50, *pattern_shape)
 test_y = torch.zeros(50, dtype=torch.long)
 
-generic_scenario = tensor_scenario(
-    train_data_x=[experience_1_x, experience_2_x],
-    train_data_y=[experience_1_y, experience_2_y],
-    test_data_x=[test_x],
-    test_data_y=[test_y],
+generic_scenario = tensors_scenario(
+    train_tensors=[(experience_1_x, experience_1_y), (experience_2_x, experience_2_y)],
+    test_tensors=[(test_x, test_y)],
     task_labels=[0, 0],  # Task label of each train exp
     complete_test_set_only=True
 )
@@ -431,4 +448,3 @@ This completes the "_Benchmark_" tutorial for the "_From Zero to Hero_" series. 
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/2.-benchmarks.ipynb)
-

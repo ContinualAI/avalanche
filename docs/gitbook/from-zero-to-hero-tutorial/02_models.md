@@ -12,9 +12,11 @@ Every continual learning experiment needs a model to train incrementally. The `m
 
 At the moment we support only the following architectures:
 
+
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
+
 
 ```python
 from avalanche.models import SimpleCNN
@@ -28,4 +30,3 @@ However, we plan to support in the near future all the models provided in the [P
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/models.ipynb)
-

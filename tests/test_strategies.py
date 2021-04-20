@@ -12,11 +12,9 @@
 import unittest
 
 import torch
-from torchvision.transforms import ToTensor, Compose, transforms, Resize
+from torchvision.transforms import ToTensor, transforms, Resize
 import os
 import sys
-
-from os.path import expanduser
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -24,7 +22,6 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.datasets import MNIST
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
@@ -37,52 +34,10 @@ from avalanche.benchmarks import nc_scenario, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-
-def get_fast_scenario():
-    n_samples_per_class = 100
-    dataset = make_classification(
-        n_samples=10 * n_samples_per_class,
-        n_classes=10,
-        n_features=6, n_informative=6, n_redundant=0)
-
-    X = torch.from_numpy(dataset[0]).float()
-    y = torch.from_numpy(dataset[1]).long()
-
-    train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y)
-
-    train_dataset = TensorDataset(train_X, train_y)
-    test_dataset = TensorDataset(test_X, test_y)
-    my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
-                                 task_labels=False)
-    return my_nc_scenario
+from tests.unit_tests_utils import common_setups, get_fast_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
-    def _is_param_in_optimizer(self, param, optimizer):
-        for group in optimizer.param_groups:
-            for curr_p in group['params']:
-                if hash(curr_p) == hash(param):
-                    return True
-        return False
-
-    def test_optimizer_update(self):
-        model = SimpleMLP()
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        strategy = Naive(model, optimizer, None)
-
-        # check add_param_group
-        p = torch.nn.Parameter(torch.zeros(10, 10))
-        strategy.add_new_params_to_optimizer(p)
-        assert self._is_param_in_optimizer(p, strategy.optimizer)
-
-        # check new_param is in optimizer
-        # check old_param is NOT in optimizer
-        p_new = torch.nn.Parameter(torch.zeros(10, 10))
-        strategy.update_optimizer([p], [p_new])
-        assert self._is_param_in_optimizer(p_new, strategy.optimizer)
-        assert not self._is_param_in_optimizer(p, strategy.optimizer)
-
     def test_periodic_eval(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
         scenario = get_fast_scenario()
@@ -143,13 +98,16 @@ class StrategyTest(unittest.TestCase):
     else:
         device = "cpu"
 
-    def test_naive(self):
-        model = self.get_model(fast_test=self.fast_test)
+    def init_sit(self):
+        model = self.get_model(fast_test=True)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
+        scenario = self.load_scenario(use_task_labels=False)
+        return model, optimizer, criterion, scenario
 
+    def test_naive(self):
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, eval_mb_size=50, train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
@@ -157,17 +115,12 @@ class StrategyTest(unittest.TestCase):
         # MT scenario
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, eval_mb_size=50, train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_joint(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
                                  device=self.device, eval_mb_size=50,
                                  train_epochs=2)
@@ -176,17 +129,12 @@ class StrategyTest(unittest.TestCase):
         # MT scenario
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, eval_mb_size=50, train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_cwrstar(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         last_fc_name, _ = get_last_fc_layer(model)
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
                            train_mb_size=64, device=self.device)
@@ -195,17 +143,12 @@ class StrategyTest(unittest.TestCase):
         # MT scenario
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
                            train_mb_size=64, device=self.device)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_replay(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = Replay(model, optimizer, criterion,
                           mem_size=10, train_mb_size=64, device=self.device,
                           eval_mb_size=50, train_epochs=2)
@@ -215,17 +158,12 @@ class StrategyTest(unittest.TestCase):
         strategy = Replay(model, optimizer, criterion,
                           mem_size=10, train_mb_size=64, device=self.device,
                           eval_mb_size=50, train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_gdumb(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = GDumb(
             model, optimizer, criterion,
             mem_size=200, train_mb_size=64, device=self.device,
@@ -239,17 +177,12 @@ class StrategyTest(unittest.TestCase):
             mem_size=200, train_mb_size=64, device=self.device,
             eval_mb_size=50, train_epochs=2
         )
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_cumulative(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
                               device=self.device, eval_mb_size=50,
                               train_epochs=2)
@@ -259,17 +192,12 @@ class StrategyTest(unittest.TestCase):
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
                               device=self.device, eval_mb_size=50,
                               train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_lwf(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1 / 2, 2 * (2 / 3), 3 * (3 / 4), 4 * (4 / 5)],
                        temperature=2, device=self.device,
@@ -283,17 +211,12 @@ class StrategyTest(unittest.TestCase):
                        temperature=2, device=self.device,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_agem(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = AGEM(model, optimizer, criterion,
                         patterns_per_exp=250, sample_size=256,
                         train_mb_size=10, eval_mb_size=50,
@@ -305,17 +228,12 @@ class StrategyTest(unittest.TestCase):
                         patterns_per_exp=250, sample_size=256,
                         train_mb_size=10, eval_mb_size=50,
                         train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_gem(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-1)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_exp=256,
                        train_mb_size=10, eval_mb_size=50,
@@ -329,17 +247,12 @@ class StrategyTest(unittest.TestCase):
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
         self.run_strategy(my_nc_scenario, strategy)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ewc(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
-
         # SIT scenario
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='separate',
                        train_mb_size=10, eval_mb_size=50,
@@ -352,18 +265,12 @@ class StrategyTest(unittest.TestCase):
                        mode='separate',
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ewc_online(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test,
-                                            use_task_labels=False)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='online', decay_factor=0.1,
                        train_mb_size=10, eval_mb_size=50,
@@ -375,37 +282,29 @@ class StrategyTest(unittest.TestCase):
                        mode='online', decay_factor=0.1,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_synaptic_intelligence(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=1e-3)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, eval_mb_size=10)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=False)
+        scenario = self.load_scenario(use_task_labels=False)
         self.run_strategy(scenario, strategy)
 
         # MT scenario
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, eval_mb_size=10)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ar1(self):
-        my_nc_scenario = self.load_ar1_scenario(fast_test=self.fast_test)
-
+        my_nc_scenario = self.load_ar1_scenario()
         strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
                        rm_sz=200)
-
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_siw(self):
@@ -428,75 +327,38 @@ class StrategyTest(unittest.TestCase):
                                       use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
-    def load_ar1_scenario(self, fast_test=False):
+    def load_ar1_scenario(self):
         """
         Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
         2 classes per experience. This toy scenario is intended
-
-        :param fast_test: if True loads fake data, MNIST otherwise.
         """
+        n_samples_per_class = 50
+        dataset = make_classification(
+            n_samples=10 * n_samples_per_class,
+            n_classes=10,
+            n_features=224 * 224 * 3, n_informative=6, n_redundant=0)
 
-        if fast_test:
-            n_samples_per_class = 50
+        X = torch.from_numpy(dataset[0]).reshape(-1, 3, 224, 224).float()
+        y = torch.from_numpy(dataset[1]).long()
 
-            dataset = make_classification(
-                n_samples=10 * n_samples_per_class,
-                n_classes=10,
-                n_features=224 * 224 * 3, n_informative=6, n_redundant=0)
+        train_X, test_X, train_y, test_y = train_test_split(
+            X, y, train_size=0.6, shuffle=True, stratify=y)
 
-            X = torch.from_numpy(dataset[0]).reshape(-1, 3, 224, 224).float()
-            y = torch.from_numpy(dataset[1]).long()
-
-            train_X, test_X, train_y, test_y = train_test_split(
-                X, y, train_size=0.6, shuffle=True, stratify=y)
-
-            train_dataset = TensorDataset(train_X, train_y)
-            test_dataset = TensorDataset(test_X, test_y)
-            my_nc_scenario = nc_scenario(
-                train_dataset, test_dataset, 5, task_labels=False
-            )
-        else:
-            train_transform = transforms.Compose([
-                Resize(224),
-                ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ])
-            test_transform = transforms.Compose([
-                Resize(224),
-                ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ])
-
-            my_nc_scenario = SplitCIFAR10(5, train_transform=train_transform,
-                                          eval_transform=test_transform)
-
+        train_dataset = TensorDataset(train_X, train_y)
+        test_dataset = TensorDataset(test_X, test_y)
+        my_nc_scenario = nc_scenario(
+            train_dataset, test_dataset, 5, task_labels=False
+        )
         return my_nc_scenario
 
-    def load_scenario(self, fast_test=False, use_task_labels=False):
+    def load_scenario(self, use_task_labels=False):
         """
         Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
         2 classes per experience.
 
         :param fast_test: if True loads fake data, MNIST otherwise.
         """
-
-        if fast_test:
-            my_nc_scenario = get_fast_scenario()
-        else:
-            mnist_train = MNIST(
-                root=expanduser("~") + "/.avalanche/data/mnist/",
-                train=True, download=True,
-                transform=Compose([ToTensor()]))
-
-            mnist_test = MNIST(
-                root=expanduser("~") + "/.avalanche/data/mnist/",
-                train=False, download=True,
-                transform=Compose([ToTensor()]))
-            my_nc_scenario = nc_scenario(
-                mnist_train, mnist_test, 5,
-                task_labels=use_task_labels, seed=1234)
-
-        return my_nc_scenario
+        return get_fast_scenario(use_task_labels=use_task_labels)
 
     def get_model(self, fast_test=False):
         if fast_test:
