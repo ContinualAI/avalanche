@@ -20,13 +20,14 @@ import torch.nn as nn
 
 class SimpleMLP(nn.Module):
 
-    def __init__(self, num_classes=10, input_size=28*28, hidden_size=512):
+    def __init__(self, num_classes=10, input_size=28 * 28, hidden_size=512, hidden_layers=1):
         super(SimpleMLP, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
+            *(nn.Linear(input_size, hidden_size),
+              nn.ReLU(inplace=True),
+              nn.Dropout(),
+              ) * hidden_layers
         )
         self.classifier = nn.Linear(hidden_size, num_classes)
         self._input_size = input_size
