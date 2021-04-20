@@ -19,14 +19,13 @@ class CoPEPlugin(StrategyPlugin):
     Multiple epochs = multiple iterations on the same processing mini-batch.
     """
 
-    def __init__(self, mem_size=200, p_size=100, alpha=0.9, T=0.1):
+    def __init__(self, mem_size=200, p_size=100, alpha=0.99, T=0.1):
         """
 
         Online processing: batch-wise
         alpha= prototype update momentum
         """
         super().__init__()
-        self.T = T  # PPP-loss
 
         # Operational memory: replay memory
         self.replay_mem = {}
@@ -41,8 +40,12 @@ class CoPEPlugin(StrategyPlugin):
         self.tmp_p_mem = {}  # Intermediate when processing a batch for multiple times
         self.alpha = alpha
 
+        # PPP-loss
+        self.T = T
+        self.loss = PPPloss(self.p_mem, T=self.T)
+
     def before_training(self, strategy, **kwargs):
-        strategy.criterion = PPPloss(self.p_mem, T=self.T)
+        strategy.criterion = self.loss
         print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
 
     def before_training_exp(self, strategy, num_workers=0, shuffle=True,
@@ -87,7 +90,7 @@ class CoPEPlugin(StrategyPlugin):
         y_unique = torch.unique(strategy.mb_y).squeeze().view(-1)
         for idx in range(y_unique.size(0)):
             c = y_unique[idx].item()
-            idxs = (strategy.mb_y == c).nonzero().squeeze(1)
+            idxs = torch.nonzero(strategy.mb_y == c).squeeze(1)
             p_tmp_batch = strategy.logits[idxs].sum(dim=0).unsqueeze(0).to(strategy.device)
 
             p_init, cnt_init = self.tmp_p_mem[c] if c in self.tmp_p_mem else (0, 0)
@@ -141,10 +144,10 @@ class PPPloss(object):
             c = y_unique[label_idx]
 
             # Make all-vs-rest batches per class
-            Bc = x.index_select(0, (y == c).nonzero().squeeze(dim=1))  # Attractor set (same class)
-            Bk = x.index_select(0, (y != c).nonzero().squeeze(dim=1))  # Repellor set (Other classes)
+            Bc = x.index_select(0, torch.nonzero(y == c).squeeze(dim=1))  # Attractor set (same class)
+            Bk = x.index_select(0, torch.nonzero(y != c).squeeze(dim=1))  # Repellor set (Other classes)
 
-            p_idx = (p_y == c).nonzero().squeeze(dim=1)  # Prototypes
+            p_idx = torch.nonzero(p_y == c).squeeze(dim=1)  # Prototypes
             pc = p_x[p_idx]  # Class prototype
             pk = torch.cat([p_x[:p_idx], p_x[p_idx + 1:]])  # Other class prototypes
 
@@ -156,10 +159,12 @@ class PPPloss(object):
 
             # Checks
             try:
-                assert sum_logLc <= 0
-                assert sum_logLk <= 0
+                assert sum_logLc <= 0, f"{sum_logLc}"
+                assert sum_logLk <= 0, f"{sum_logLk}"
                 assert loss >= 0
             except:
+                import traceback
+                traceback.print_exc()
                 exit(1)
         return loss / bs  # Make independent batch size
 
