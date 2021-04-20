@@ -20,12 +20,17 @@ class SimpleMLP(nn.Module):
                  hidden_size=512, hidden_layers=1):
         super().__init__()
 
-        self.features = nn.Sequential(
-            *(nn.Linear(input_size, hidden_size),
-              nn.ReLU(inplace=True),
-              nn.Dropout(),
-              ) * hidden_layers
-        )
+        layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
+                                 nn.ReLU(inplace=True),
+                                 nn.Dropout()))
+        for l in range(hidden_layers - 1):
+            layers.add_module(
+                f"fc{l + 1}", nn.Sequential(
+                    *(nn.Linear(hidden_size, hidden_size),
+                      nn.ReLU(inplace=True),
+                      nn.Dropout())))
+
+        self.features = nn.Sequential(*layers)
         self.classifier = nn.Linear(hidden_size, num_classes)
         self._input_size = input_size
 
