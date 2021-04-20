@@ -45,6 +45,7 @@ class CoPEPlugin(StrategyPlugin):
         self.loss = PPPloss(self.p_mem, T=self.T)
 
     def before_training(self, strategy, **kwargs):
+        """ Enforce using the PPP-loss."""
         strategy.criterion = self.loss
         print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
 
@@ -67,6 +68,12 @@ class CoPEPlugin(StrategyPlugin):
         )
 
     def after_forward(self, strategy, **kwargs):
+        """
+        After the forward we can use the representations to update our running avg of the prototypes.
+        This is in case we do multiple iterations of processing on the same batch.
+
+        New prototypes are initialized for previously unseen classes.
+        """
         # Initialize prototypes for unseen classes
         self._init_new_prototypes(strategy)
 
@@ -96,13 +103,15 @@ class CoPEPlugin(StrategyPlugin):
             p_init, cnt_init = self.tmp_p_mem[c] if c in self.tmp_p_mem else (0, 0)
             self.tmp_p_mem[c] = (p_init + p_tmp_batch, cnt_init + len(idxs))
 
-    def after_training_exp(self, strategy, **kwargs):
-        """ After the experience (online processing batch). """
+    def after_update(self, strategy, **kwargs):
+        """ After the update on current batch, update prototypes and store samples.
+        """
         self._update_prototypes()  # Update prototypes
         self.storage_policy(strategy)  # Update memory
 
     @torch.no_grad()
     def _update_prototypes(self):
+        """ Update the prototypes based on the running averages. """
         for c, (p_sum, p_cnt) in self.tmp_p_mem.items():
             incr_p = p_sum / p_cnt
             old_p = self.p_mem[c].clone()
