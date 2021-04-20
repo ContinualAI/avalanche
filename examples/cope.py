@@ -19,10 +19,9 @@ from __future__ import print_function
 
 import argparse
 import torch
-from torchvision import transforms
-from avalanche.benchmarks import SplitMNIST
-from torchvision.transforms import ToTensor
 import torch.optim.lr_scheduler
+
+from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import CoPEPlugin
