@@ -100,7 +100,7 @@ class AGEMPlugin(StrategyPlugin):
 
         tot = 0
         for batches in dataloader:
-            for _, (x, y) in batches.items():
+            for _, (x, y, _) in batches.items():
                 if tot + x.size(0) <= self.patterns_per_experience:
                     if self.memory_x is None:
                         self.memory_x = x.clone()

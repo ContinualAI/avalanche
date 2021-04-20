@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from os.path import expanduser
+
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -29,9 +31,10 @@ from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks import nc_scenario
 from avalanche.logging import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.evaluation.metrics import ExperienceForgetting, StreamConfusionMatrix, \
-    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
-    gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
+from avalanche.evaluation.metrics import forgetting_metrics, \
+    StreamConfusionMatrix, accuracy_metrics, loss_metrics, cpu_usage_metrics, \
+    timing_metrics, gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, \
+    MAC_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
@@ -56,10 +59,10 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST('./data/mnist', train=True,
-                        download=True, transform=train_transform)
-    mnist_test = MNIST('./data/mnist', train=False,
-                       download=True, transform=test_transform)
+    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                        train=True, download=True, transform=train_transform)
+    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                       train=False, download=True, transform=test_transform)
     scenario = nc_scenario(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
@@ -72,10 +75,12 @@ def main(args):
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
         loss_metrics(
-            minibatch=True, epoch=True, epoch_running=True, experience=True, stream=True),
-        ExperienceForgetting(),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
+        forgetting_metrics(experience=True, stream=True),
         StreamConfusionMatrix(),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),

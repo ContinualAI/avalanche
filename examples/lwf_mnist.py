@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import SplitMNIST
 from avalanche.training.strategies import LwF
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -14,6 +14,7 @@ This example tests Learning without Forgetting (LwF) on Split MNIST.
 The performance with default arguments should give an average accuracy
 of about 73%.
 """
+
 
 def main(args):
     model = SimpleMLP(hidden_size=args.hs)
@@ -35,13 +36,14 @@ def main(args):
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        forgetting_metrics(experience=True),
         loggers=[interactive_logger])
 
     # create strategy
     assert len(args.lwf_alpha) == 1 or len(args.lwf_alpha) == 5,\
         'Alpha must be a non-empty list.'
-    lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 else args.lwf_alpha
+    lwf_alpha = args.lwf_alpha[0] if len(args.lwf_alpha) == 1 \
+        else args.lwf_alpha
 
     strategy = LwF(model, optimizer, criterion, alpha=lwf_alpha,
                    temperature=args.softmax_temperature,
@@ -55,7 +57,7 @@ def main(args):
         print("Start training on experience ",
               train_batch_info.current_experience)
 
-        strategy.train(train_batch_info, num_workers=4)
+        strategy.train(train_batch_info, num_workers=0)
         print("End training on experience ",
               train_batch_info.current_experience)
         print('Computing accuracy on the test set')

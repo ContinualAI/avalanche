@@ -50,7 +50,7 @@ class ReplayPlugin(StrategyPlugin):
         """
         if len(self.ext_mem) == 0:
             return
-        strategy.current_dataloader = MultiTaskJoinedBatchDataLoader(
+        strategy.dataloader = MultiTaskJoinedBatchDataLoader(
             strategy.adapted_dataset,
             AvalancheConcatDataset(self.ext_mem.values()),
             oversample_small_tasks=True,

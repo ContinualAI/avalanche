@@ -19,15 +19,15 @@
 
 ## 📙 From Zero to Hero Tutorial
 
-* [Introduction](from-zero-to-hero-tutorial/introduction.md)
-* [Models](from-zero-to-hero-tutorial/models.md)
-* [Benchmarks](from-zero-to-hero-tutorial/2.-benchmarks.md)
-* [Training](from-zero-to-hero-tutorial/3.-training.md)
-* [Evaluation](from-zero-to-hero-tutorial/4.-evaluation.md)
-* [Loggers](from-zero-to-hero-tutorial/loggers.md)
-* [Putting All Together](from-zero-to-hero-tutorial/6.-putting-all-together.md)
-* [Extending Avalanche](from-zero-to-hero-tutorial/5.-extending-avalanche.md)
-* [Contribute to Avalanche](from-zero-to-hero-tutorial/6.-contribute-to-avalanche.md)
+* [Introduction](from-zero-to-hero-tutorial/01_introduction.md)
+* [Models](from-zero-to-hero-tutorial/02_models.md)
+* [Benchmarks](from-zero-to-hero-tutorial/03_benchmarks.md)
+* [Training](from-zero-to-hero-tutorial/04_training.md)
+* [Evaluation](from-zero-to-hero-tutorial/05_evaluation.md)
+* [Loggers](from-zero-to-hero-tutorial/06_loggers.md)
+* [Putting All Together](from-zero-to-hero-tutorial/07_putting-all-together.md)
+* [Extending Avalanche](from-zero-to-hero-tutorial/08_extending-avalanche.md)
+* [Contribute to Avalanche](from-zero-to-hero-tutorial/09_contribute-to-avalanche.md)
 
 ## 💻 Code Documentation
 
@@ -50,4 +50,5 @@
 * [Join Us!](contacts-and-links/join-us.md)
 * [Slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU)
 * [Email](mailto:contact@continualai.org)
+* [Twitter](https://twitter.com/AvalancheLib)
 

@@ -7,14 +7,11 @@ import torch
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, Forgetting
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, StreamConfusionMatrix, \
-    disk_usage_metrics, MAC_metrics, cpu_usage_metrics, gpu_usage_metrics, ram_usage_metrics, \
-    timing_metrics
 
 
 #################################
 #################################
-#### STANDALONE METRIC TEST #####
+#    STANDALONE METRIC TEST     #
 #################################
 #################################
 
@@ -59,7 +56,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertEqual(metric.result(), 0)
         metric.start_thread()  # start thread
         self.assertGreaterEqual(metric.result(), 0)
-        metric.stop_thread() # stop thread
+        metric.stop_thread()  # stop thread
         metric.reset()  # stop thread
         self.assertEqual(metric.result(), 0)
 
@@ -69,7 +66,7 @@ class GeneralMetricTests(unittest.TestCase):
             self.assertEqual(metric.result(), 0)
             metric.start_thread()  # start thread
             self.assertGreaterEqual(metric.result(), 0)
-            metric.stop_thread() # stop thread
+            metric.stop_thread()  # stop thread
             metric.reset()  # stop thread
             self.assertEqual(metric.result(), 0)
 
@@ -139,7 +136,7 @@ class GeneralMetricTests(unittest.TestCase):
 
 #################################
 #################################
-###### PLUGIN METRIC TEST #######
+#      PLUGIN METRIC TEST       #
 #################################
 #################################
 

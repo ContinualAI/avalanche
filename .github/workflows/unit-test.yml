@@ -15,13 +15,17 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
   pull_request:
     branches:
       - master
-    paths-ignore:
-      - docs/gitbook/**
+    paths:
+      - '**.py'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
 
 jobs:
   unit-test:
