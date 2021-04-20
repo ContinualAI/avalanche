@@ -64,10 +64,41 @@ def main(args):
         transforms.ToTensor(),
         normalize])
 
+    # # scenario
+    # scenario = SplitCIFAR100(n_experiences=10, return_task_id=False,
+    #                          seed=1234, train_transform=train_transform,
+    #                          eval_transform=test_transform)
+
     # scenario
-    scenario = SplitCIFAR100(n_experiences=10, return_task_id=False,
-                             seed=1234, train_transform=train_transform,
-                             eval_transform=test_transform)
+    scenario = filelist_scenario(
+        root="",
+        train_file_lists=["/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch1",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch2",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch3",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch4",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch5",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch6",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch7",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch8",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch9",
+                          "/scratch_global/eden/images_list_files/cifar100/s10/separated/train/batch10"],
+
+        test_file_lists=["/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch1",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch2",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch3",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch4",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch5",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch6",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch7",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch8",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch9",
+                         "/scratch_global/eden/images_list_files/cifar100/s10/accumulated/test/batch10"],
+
+        task_labels=list(range(0, 10)),
+        complete_test_set_only=False,
+        train_transform=train_transform,
+        eval_transform=test_transform,
+    )
 
     # TRAINING LOOP
     print('Starting experiment...')
@@ -77,7 +108,7 @@ def main(args):
         strategy.train(experience)
         print('Training completed')
         print('Computing accuracy on the test set')
-        res = strategy.eval(scenario.test_stream[:i+1])
+        res = strategy.eval(scenario.test_stream[i])
         results.append(res)
 
     print('Results = ' + str(results))
