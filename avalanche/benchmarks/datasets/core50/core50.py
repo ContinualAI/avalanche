@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-""" Tiny-Imagenet Pytorch Dataset """
+""" CORe50 Pytorch Dataset """
 
 import os
 import logging
@@ -22,6 +22,7 @@ from .core50_data import CORE50_DATA
 
 
 def pil_loader(path):
+    """ Load an Image with PIL """
     # open path as file to avoid ResourceWarning
     # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:

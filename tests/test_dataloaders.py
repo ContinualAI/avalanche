@@ -37,7 +37,6 @@ from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 from avalanche.benchmarks.utils.data_loader import \
     MultiTaskJoinedBatchDataLoader
-from tests.unit_tests_utils import common_setups
 
 
 def get_fast_scenario():

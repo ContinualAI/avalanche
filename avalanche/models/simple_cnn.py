@@ -4,16 +4,15 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-05-2020                                                              #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Author(s): Vincenzo Lomonaco, Antonio Carta                                  #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-"""
-This is the definition od the Mid-caffenet high resolution in Pythorch
-"""
-
 import torch.nn as nn
+
+from avalanche.models.dynamic_modules import MultiTaskModule, \
+    MultiHeadClassifier
 
 
 class SimpleCNN(nn.Module):
@@ -45,12 +44,28 @@ class SimpleCNN(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
-        x = x.squeeze()
+        x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
 
 
-if __name__ == "__main__":
+class MTSimpleCNN(SimpleCNN, MultiTaskModule):
 
-    kwargs = {'num_classes': 10}
-    print(SimpleCNN(**kwargs))
+    def __init__(self):
+        """
+            Multi-task CNN with multi-head classifier.
+        """
+        super().__init__()
+        self.classifier = MultiHeadClassifier(64)
+
+    def forward(self, x, task_labels):
+        x = self.features(x)
+        x = x.squeeze()
+        x = self.classifier(x, task_labels)
+        return x
+
+
+__all__ = [
+    'SimpleCNN',
+    'MTSimpleCNN'
+]

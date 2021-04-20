@@ -352,7 +352,7 @@ class EWC(BaseStrategy):
         :param criterion: The loss criterion to use.
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
-        :param mode: `standard` to keep a separate penalty for each previous
+        :param mode: `separate` to keep a separate penalty for each previous
                experience. `onlinesum` to keep a single penalty summed over all
                previous tasks. `onlineweightedsum` to keep a single penalty
                summed with a decay factor over all previous tasks.
@@ -397,8 +397,13 @@ class SynapticIntelligence(BaseStrategy):
     The Synaptic Intelligence strategy.
 
     This is the Synaptic Intelligence PyTorch implementation of the
-    algorithm described in the paper "Continual Learning Through Synaptic
-    Intelligence" (https://arxiv.org/abs/1703.04200).
+    algorithm described in the paper
+    "Continuous Learning in Single-Incremental-Task Scenarios"
+    (https://arxiv.org/abs/1806.08568)
+
+    The original implementation has been proposed in the paper
+    "Continual Learning Through Synaptic Intelligence"
+    (https://arxiv.org/abs/1703.04200).
 
     The Synaptic Intelligence regularization can also be used in a different
     strategy by applying the :class:`SynapticIntelligencePlugin` plugin.

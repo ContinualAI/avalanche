@@ -119,7 +119,7 @@ class MinibatchLoss(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -166,7 +166,7 @@ class EpochLoss(PluginMetric[float]):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -206,7 +206,7 @@ class RunningEpochLoss(EpochLoss):
         metric_value = self.result()
 
         metric_name = get_metric_name(self, strategy)
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -251,7 +251,7 @@ class ExperienceLoss(PluginMetric[float]):
 
         metric_name = get_metric_name(self, strategy, add_experience=True)
 
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
@@ -301,7 +301,7 @@ class StreamLoss(PluginMetric[float]):
                     phase_name,
                     stream)
 
-        plot_x_position = self._next_x_position(metric_name)
+        plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 

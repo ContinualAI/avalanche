@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from os.path import expanduser
+
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -37,9 +39,8 @@ from avalanche.training.strategies import Naive
 
 def main(args):
     # --- CONFIG
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                             args.cuda >= 0 else "cpu")
+    device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() and
+                          args.cuda >= 0 else "cpu")
     # ---------
 
     # --- TRANSFORMATIONS
@@ -55,10 +56,10 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST('./data/mnist', train=True,
-                        download=True, transform=train_transform)
-    mnist_test = MNIST('./data/mnist', train=False,
-                       download=True, transform=test_transform)
+    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                        train=True, download=True, transform=train_transform)
+    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                       train=False, download=True, transform=test_transform)
     scenario = nc_scenario(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
@@ -125,7 +126,8 @@ def main(args):
 
     print(f"Test metrics:\n{results}")
 
-    # Dict with all the metric curves, only available when `collect_all` is True.
+    # Dict with all the metric curves,
+    # only available when `collect_all` is True.
     # Each entry is a (x, metric value) tuple.
     # You can use this dictionary to manipulate the
     # metrics without avalanche.

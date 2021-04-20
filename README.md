@@ -1,15 +1,20 @@
+<div align="center">
+    
 # Avalanche: an End-to-End Library for Continual Learning
-**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)**
+**[Avalanche Website](https://avalanche.continualai.org)** | **[Getting Started](https://avalanche.continualai.org/getting-started)** | **[Examples](https://avalanche.continualai.org/examples)** | **[Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)** | **[API Doc](https://avalanche-api.continualai.org)** | **[Paper](https://arxiv.org/abs/2104.00405)** | **[Twitter](https://twitter.com/AvalancheLib)**
 
-![unit test](https://github.com/ContinualAI/avalanche/workflows/unit%20test/badge.svg)
-![syntax checking](https://github.com/ContinualAI/avalanche/workflows/syntax%20checking/badge.svg)
-![pep8 checking](https://github.com/ContinualAI/avalanche/workflows/PEP8%20checking/badge.svg)
-![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)
-![test coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/coverage-badge.svg)
+[![unit test](https://github.com/ContinualAI/avalanche/actions/workflows/unit-test.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/unit-test.yml)
+[![syntax checking](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/syntax.yml)
+[![PEP8 checking](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml/badge.svg)](https://github.com/ContinualAI/avalanche/actions/workflows/pep8.yml)
+[![docstring coverage](https://github.com/ContinualAI/avalanche-report/blob/main/badge/interrogate-badge.svg)](https://github.com/ContinualAI/avalanche-report/blob/main/docstring_coverage/documentation-coverage.txt)
+[![Coverage Status](https://coveralls.io/repos/github/ContinualAI/avalanche/badge.svg)](https://coveralls.io/github/ContinualAI/avalanche)
+</div>
 
 <p align="center">
-<img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
+    <img src="https://www.dropbox.com/s/90thp7at72sh9tj/avalanche_logo_with_clai.png?raw=1"/>
 </p>
+
+
 
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
 open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
@@ -21,7 +26,7 @@ Avalanche can help Continual Learning researchers in several ways:
 - *Increase code efficiency, scalability & portability*
 - *Augment impact and usability of your research products*
 
-The library is organized in four main modules:
+The library is organized into four main modules:
 
 - [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set of pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
@@ -79,7 +84,7 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [a number of *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that makes it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
 *Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
 *We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
@@ -97,21 +102,23 @@ We have also prepared for you a large set of examples & snippets you can plug-in
 - [Avalanche Examples](https://avalanche.continualai.org/examples)
 
 Having completed these two sections, you will already feel with superpowers ⚡, this is why we have also created an in-depth tutorial that will cover all the aspects of Avalanche in 
-details and make you a true Continual Learner! :woman_student:
+detail and make you a true Continual Learner! :woman_student:
 
 - [From Zero to Hero Tutorial](https://avalanche.continualai.org/from-zero-to-hero-tutorial)
 
 Cite Avalanche
 ----------------
-If you used Avalanche in your research project, please remember to cite our white paper. 
+If you used Avalanche in your research project, please remember to cite our reference paper ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```
-@article{...,
-   title = {Avalanche: an End-to-End Library for Continual Learning},
-   author = {...},
-   journal = {Arxiv preprint arXiv:xxxx.xxxx},
-   year = {2021}
+@misc{lomonaco2021avalanche,
+      title={Avalanche: an End-to-End Library for Continual Learning}, 
+      author={Vincenzo Lomonaco and Lorenzo Pellegrini and Andrea Cossu and Antonio Carta and Gabriele Graffieti and Tyler L. Hayes and Matthias De Lange and Marc Masana and Jary Pomponi and Gido van de Ven and Martin Mundt and Qi She and Keiland Cooper and Jeremy Forest and Eden Belouadah and Simone Calderara and German I. Parisi and Fabio Cuzzolin and Andreas Tolias and Simone Scardapane and Luca Antiga and Subutai Amhad and Adrian Popescu and Christopher Kanan and Joost van de Weijer and Tinne Tuytelaars and Davide Bacciu and Davide Maltoni},
+      year={2021},
+      eprint={2104.00405},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
 }
 ```
 
@@ -127,3 +134,10 @@ The Avalanche project is maintained by the collaborative research team [Continua
 We are always looking for new awesome members willing to join the ContinualAI Lab, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](https://avalanche.continualai.org/contacts-and-links/the-team#contacts).
 
 Learn more about the [Avalanche team and all the people who made it great](https://avalanche.continualai.org/contacts-and-links/the-team)!
+
+<br>
+<p align="left">
+<a href="https://github.com/ContinualAI/avalanche/graphs/contributors">
+ <img width="700" src="https://contrib.rocks/image?repo=ContinualAI/avalanche" />
+</a>
+</p>

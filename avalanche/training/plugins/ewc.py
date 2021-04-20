@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
@@ -113,18 +114,19 @@ class EWCPlugin(StrategyPlugin):
         # list of list
         importances = zerolike_params_dict(model)
         dataloader = DataLoader(dataset, batch_size=batch_size)
-        for i, (x, y, _) in enumerate(dataloader):
+        for i, (x, y, task_labels) in enumerate(dataloader):
             x, y = x.to(device), y.to(device)
 
             optimizer.zero_grad()
-            out = model(x)
+            out = avalanche_forward(model, x, task_labels)
             loss = criterion(out, y)
             loss.backward()
 
             for (k1, p), (k2, imp) in zip(model.named_parameters(),
                                           importances):
                 assert (k1 == k2)
-                imp += p.grad.data.clone().pow(2)
+                if p.grad is not None:
+                    imp += p.grad.data.clone().pow(2)
 
         # average over mini batch length
         for _, imp in importances:

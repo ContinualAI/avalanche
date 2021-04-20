@@ -23,8 +23,13 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     The Synaptic Intelligence plugin.
 
     This is the Synaptic Intelligence PyTorch implementation of the
-    algorithm described in the paper "Continual Learning Through Synaptic
-    Intelligence" (https://arxiv.org/abs/1703.04200).
+    algorithm described in the paper
+    "Continuous Learning in Single-Incremental-Task Scenarios"
+    (https://arxiv.org/abs/1806.08568)
+
+    The original implementation has been proposed in the paper
+    "Continual Learning Through Synaptic Intelligence"
+    (https://arxiv.org/abs/1703.04200).
 
     This plugin can be attached to existing strategies to achieve a
     regularization effect.

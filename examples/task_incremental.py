@@ -53,7 +53,7 @@ def main(args):
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task, num_workers=4)
+        strategy.train(train_task, num_workers=0)
         strategy.eval(test_stream)
 
 

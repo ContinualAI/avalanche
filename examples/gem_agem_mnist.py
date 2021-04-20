@@ -3,7 +3,7 @@ import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.training.strategies import GEM, AGEM
 from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics, \
+from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -35,8 +35,9 @@ Average Accuracy over all experiences at the end of training on the last
 experience: 51.4%
 
 AGEM-SMNIST:
-Patterns per experience = sample size: 256, 512, 1024. Performance on previous tasks
-remains very bad in terms of forgetting. Training epochs do not change result.
+Patterns per experience = sample size: 256, 512, 1024. Performance on previous 
+tasks remains very bad in terms of forgetting. Training epochs do not change 
+result.
 Hidden size 256.
 Results for 1024 patterns per experience and sample size, 1 training epoch.
 Average Accuracy over all experiences at the end of training on the last 
@@ -69,9 +70,11 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        ExperienceForgetting(),
+        accuracy_metrics(minibatch=True, epoch=True,
+                         experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True,
+                     experience=True, stream=True),
+        forgetting_metrics(experience=True),
         loggers=[interactive_logger])
 
     # create strategy
@@ -81,8 +84,8 @@ def main(args):
                        device=device, train_mb_size=10, evaluator=eval_plugin)
     elif args.strategy == 'agem':
         strategy = AGEM(model, optimizer, criterion, args.patterns_per_exp,
-                        args.sample_size, train_epochs=args.epochs, device=device,
-                        train_mb_size=10, evaluator=eval_plugin)
+                        args.sample_size, train_epochs=args.epochs,
+                        device=device, train_mb_size=10, evaluator=eval_plugin)
     else:
         raise ValueError("Wrong strategy name. Allowed gem, agem.")
     # train on the selected scenario with the chosen strategy
@@ -95,6 +98,7 @@ def main(args):
         print("End training on experience ", experience.current_experience)
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -110,7 +114,8 @@ if __name__ == '__main__':
                         help='Number of patterns to sample from memory when \
                         projecting gradient. A-GEM only.')
     parser.add_argument('--memory_strength', type=float, default=0.5,
-                        help='Offset to add to the projection direction. GEM only.')
+                        help='Offset to add to the projection direction. '
+                             'GEM only.')
     parser.add_argument('--lr', type=float, default=1e-1, help='Learning rate.')
     parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
     parser.add_argument('--epochs', type=int, default=1,

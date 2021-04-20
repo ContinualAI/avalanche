@@ -14,12 +14,13 @@ channels:
 dependencies:
 - psutil
 - conda-forge::gputil
-- tensorboard
 - scikit-learn
 - matplotlib
 - numpy
 - conda-forge::quadprog
 - tqdm
+- wandb
+- tensorboard
 - pip
 - pip:
     - pytorchcv

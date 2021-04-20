@@ -262,7 +262,7 @@ Metrics and loggers interact via the **Evaluation Plugin:** this is the main obj
 ```python
 # utility functions to create plugin metrics
 from avalanche.evaluation.metrics import accuracy_metrics, \
-loss_metrics, ExperienceForgetting
+loss_metrics, forgetting_metrics
 from avalanche.loggers import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -275,8 +275,8 @@ eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, stream=True),
     # catastrophic forgetting after each evaluation
     # experience
-    ExperienceForgetting(), # add as many metrics as you like
-    
+    forgetting_metrics(experience=True, stream=True), 
+    # add as many metrics as you like
     loggers=[InteractiveLogger(), TensorboardLogger()])
 
 # pass the evaluation plugin instance to the strategy
@@ -288,7 +288,7 @@ eval_plugin = EvaluationPlugin(
 
 For more details about the evaluation module \(how to write new metrics/loggers, a deeper tutorial on metrics\) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/4.-evaluation.md" %}
+{% page-ref page="../from-zero-to-hero-tutorial/05\_evaluation.md" %}
 
 ## 🔗 Putting all Together
 
@@ -298,7 +298,7 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import ExperienceForgetting, accuracy_metrics,\
+from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
     loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,\
     disk_usage_metrics, gpu_usage_metrics
 from avalanche.models import SimpleMLP
@@ -333,7 +333,7 @@ eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
-    ExperienceForgetting(),
+    forgetting_metrics(experience=True, stream=True),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
