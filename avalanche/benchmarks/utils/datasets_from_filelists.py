@@ -411,18 +411,16 @@ def common_paths_root(exp_list):
         single_path_case = False
         exp_tuples = list()
 
-        for idx_exp_list in range(len(exp_list)):
+        for x in exp_list:
             if single_path_case:
                 break
-            st_list = list()
-            for x in exp_list[idx_exp_list]:
-                rel = os.path.relpath(x[0], common_root)
-                if len(rel) == 0 or rel == '.':
-                    # May happen if the dataset has a single path
-                    single_path_case = True
-                    break
-                st_list.append((rel, *x[1:]))
-            exp_tuples.append(st_list)
+
+            rel = os.path.relpath(x[0], common_root)
+            if len(rel) == 0 or rel == '.':
+                # May happen if the dataset has a single path
+                single_path_case = True
+                break
+            exp_tuples.append((rel, *x[1:]))
 
         if not single_path_case:
             exp_list = exp_tuples

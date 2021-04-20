@@ -8,7 +8,7 @@ from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
-    tensors_benchmark
+    tensors_benchmark, paths_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
 from tests.unit_tests_utils import common_setups
 
@@ -89,6 +89,41 @@ class HighLevelGeneratorTests(unittest.TestCase):
             dirpath,
             ["train_filelist_00.txt", "train_filelist_01.txt"],
             ["train_filelist_00.txt"],
+            task_labels=[0, 0],
+            complete_test_set_only=True,
+            train_transform=ToTensor(),
+            eval_transform=ToTensor()
+        )
+
+        self.assertEqual(2, len(generic_scenario.train_stream))
+        self.assertEqual(1, len(generic_scenario.test_stream))
+
+    def test_paths_benchmark(self):
+        download_url(
+            'https://storage.googleapis.com/mledu-datasets/'
+            'cats_and_dogs_filtered.zip', './data',
+            'cats_and_dogs_filtered.zip')
+        archive_name = os.path.join(
+            './data', 'cats_and_dogs_filtered.zip')
+        extract_archive(archive_name, to_path='./data/')
+
+        dirpath = "./data/cats_and_dogs_filtered/train"
+
+        train_experiences = []
+        for rel_dir, label in zip(
+                ["cats", "dogs"],
+                [0, 1]):
+            filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
+
+            experience_paths = []
+            for name in filenames_list:
+                instance_tuple = (os.path.join(dirpath, rel_dir, name), label)
+                experience_paths.append(instance_tuple)
+            train_experiences.append(experience_paths)
+
+        generic_scenario = paths_benchmark(
+            train_experiences,
+            [train_experiences[0]],  # Single test set
             task_labels=[0, 0],
             complete_test_set_only=True,
             train_transform=ToTensor(),
