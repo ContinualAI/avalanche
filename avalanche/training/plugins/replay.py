@@ -129,25 +129,28 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
 
     def divide_remaining_samples(self, exp_mem_size, div_cnt):
         # Find number of remaining samples
-        samples_per_exp = {exp: len(m) for exp, m in self.ext_mem.items()}
-        remaining_from_exps = {exp: exp_mem_size - size for exp, size in
-                               samples_per_exp.items()
-                               if exp_mem_size - size > 0}
-        remaining_from_div = self.mem_size % (div_cnt)
-        remaining_examples = sum(remaining_from_exps.values()) + \
-                             remaining_from_div
+        samples_per_exp = {exp: len(mem) for exp, mem in self.ext_mem.items()}
+        rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
+                         samples_per_exp.items() if exp_mem_size - memsize > 0}
+        rem_from_div = self.mem_size % (div_cnt)
+        free_mem = sum(rem_from_exps.values()) + rem_from_div
 
         # Divide the remaining samples randomly over the experiences
         cutoff_per_exp = {exp: min(exp_mem_size, len(m))
                           for exp, m in self.ext_mem.items()}
-        while len(remaining_from_exps) > 0 and remaining_examples > 0:
-            exps_samples_left = list(remaining_from_exps.values())
-            exp = exps_samples_left[random.randrange(len(exps_samples_left))]
+
+        # Find remaining data samples to divide
+        rem_samples_exp = {exp: memsize - exp_mem_size for exp, memsize in
+                           samples_per_exp.items()
+                           if memsize - exp_mem_size > 0}
+
+        while len(rem_samples_exp) > 0 and free_mem > 0:
+            exp = random.choice(list(rem_samples_exp.keys()))
             cutoff_per_exp[exp] += 1
-            remaining_examples -= 1
-            remaining_from_exps[exp] -= 1
-            if remaining_from_exps[exp] <= 0:
-                del remaining_from_exps[exp]
+            free_mem -= 1
+            rem_samples_exp[exp] -= 1
+            if rem_samples_exp[exp] <= 0:
+                del rem_samples_exp[exp]
 
         return cutoff_per_exp
 
@@ -190,19 +193,21 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
 
     def __call__(self, new_data: AvalancheDataset, **kwargs):
 
-        # Get class specific datasets
-        cl_datasets = {}
+        # Get sample idxs per class
+        cl_idxs = {}
         for idx, target in enumerate(new_data.targets):
-            if target not in cl_datasets:
-                cl_datasets[target] = []
-            cl_datasets[target].append(idx)
+            target = target.item()
+            if target not in cl_idxs:
+                cl_idxs[target] = []
+            cl_idxs[target].append(idx)
 
         # Make AvalancheSubset per class
-        for c, c_idxs in cl_datasets.items():
+        cl_datasets = {}
+        for c, c_idxs in cl_idxs.items():
             cl_datasets[c] = AvalancheSubset(new_data, indices=c_idxs)
 
         # Update seen classes
-        self.seen_classes.union(cl_datasets.keys())
+        self.seen_classes.update(cl_datasets.keys())
 
         # how many experiences to divide the memory over
         div_cnt = len(self.seen_classes) if self.adaptive_size \
@@ -210,12 +215,12 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
         class_mem_size = self.mem_size // div_cnt
 
         # Add current classes data to memory
-        for c in self.seen_classes:
+        for c, c_mem in cl_datasets.items():
             if c not in self.ext_mem:
-                self.ext_mem[c] = cl_datasets[c]
+                self.ext_mem[c] = c_mem
             else:  # Merge data with previous seen data
                 self.ext_mem[c] = AvalancheConcatDataset(
-                    [cl_datasets[c], self.ext_mem[c]])
+                    [c_mem, self.ext_mem[c]])
 
         # Distribute remaining samples using counts
         cutoff_per_exp = self.divide_remaining_samples(class_mem_size, div_cnt)
