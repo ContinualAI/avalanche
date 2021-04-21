@@ -1,6 +1,9 @@
 from typing import Dict
+
 import torch
+from torch import Tensor
 from torch.nn.functional import normalize
+from torch.nn.modules import Module
 
 from torch.utils.data.dataset import TensorDataset
 from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
@@ -20,13 +23,15 @@ class CoPEPlugin(StrategyPlugin):
     Multiple epochs = multiple iterations on the same processing mini-batch.
     """
 
-    def __init__(self, mem_size=200, p_size=100, alpha=0.99, T=0.1):
+    def __init__(self, mem_size=200, n_classes=10, p_size=100,
+                 alpha=0.99, T=0.1):
         """
 
         Online processing: batch-wise
         alpha= prototype update momentum
         """
         super().__init__()
+        self.n_classes = n_classes
 
         # Operational memory: replay memory
         self.replay_mem = {}
@@ -47,9 +52,19 @@ class CoPEPlugin(StrategyPlugin):
         self.loss = PPPloss(self.p_mem, T=self.T)
 
     def before_training(self, strategy, **kwargs):
-        """ Enforce using the PPP-loss."""
+        """ Enforce using the PPP-loss and add a NN-classifier."""
         strategy.criterion = self.loss
         print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
+
+        # The network should contain a 'classifier' (typically used for sofmtax)
+        assert hasattr(strategy.model, 'classifier')
+
+        strategy.model.classifier = self._nearest_neigbor_classifier(
+            strategy.model.classifier)
+
+    def _nearest_neigbor_classifier(self, last_layer):
+        nn = NearestNeigborClassifier(self.p_mem, self.n_classes)
+        return torch.nn.Sequential(last_layer, nn)
 
     def before_training_exp(self, strategy, num_workers=0, shuffle=True,
                             **kwargs):
@@ -131,6 +146,52 @@ class CoPEPlugin(StrategyPlugin):
         self.tmp_p_mem = {}
 
 
+class NearestNeigborClassifier(Module):
+    """
+    At training time is Identity funciton. At evaluation time, matches with
+    prototypes to give scores.
+    """
+
+    def __init__(self, p_mem, n_classes):
+        super().__init__()
+        self.p_mem = p_mem  # Reference to prototype dict
+        self.n_classes = n_classes
+
+    def forward(self, x: Tensor) -> Tensor:
+        if self.training:  # Identity
+            return x
+        else:
+            return self.nearest_neigbor(x)
+
+    def nearest_neigbor(self, x: Tensor) -> Tensor:
+        """ Deployment forward. Find closest prototype for samples in batch. """
+        ns = x.size(0)
+        nd = x.view(ns, -1).shape[-1]
+
+        # Get prototypes
+        seen_c = len(self.p_mem.keys())
+        if seen_c == 0:  # no prototypes yet, output uniform distr. all classes
+            return torch.Tensor(ns, self.n_classes
+                                ).fill_(1.0 / self.n_classes).to(x.device)
+        means = torch.ones(seen_c, nd).to(x.device) * float('inf')
+        for c, c_proto in self.p_mem.items():
+            means[c] = c_proto  # Class idx gets allocated its prototype
+
+        # Predict nearest mean
+        classpred = torch.LongTensor(ns)
+        for s_idx in range(ns):  # Per sample
+            dist = - torch.mm(means, x[s_idx].unsqueeze(-1))  # Dot product
+            _, ii = dist.min(0)  # Min dist (no proto = inf)
+            ii = ii.squeeze()
+            classpred[s_idx] = ii.item()  # Allocate class idx
+
+        # Convert to 1-hot
+        out = torch.zeros(ns, self.n_classes).to(x.device)
+        for s_idx in range(ns):
+            out[s_idx, classpred[s_idx]] = 1
+        return out  # return 1-of-C code, ns x nc
+
+
 class PPPloss(object):
     """ Pseudo-Prototypical Proxy loss.
     Uses relations in the batch to construct
@@ -154,33 +215,33 @@ class PPPloss(object):
         bs = x.size(0)
         x = x.view(bs, -1)  # Batch x feature size
         y_unique = torch.unique(y).squeeze().view(-1)
-        include_repellor = len(
-            y_unique.size()) <= 1  # If only from the same class, there is no neg term
+        include_repellor = len(y_unique.size()) <= 1  # When at least 2 classes
 
         # All prototypes
-        p_y = torch.tensor([c for c in self.p_mem.keys()]).to(x.device).detach()
-        p_x = torch.cat([self.p_mem[c.item()] for c in p_y]).to(
-            x.device).detach()
+        p_y = torch.tensor(
+            [c for c in self.p_mem.keys()]).to(x.device).detach()
+        p_x = torch.cat(
+            [self.p_mem[c.item()] for c in p_y]).to(x.device).detach()
 
         for label_idx in range(y_unique.size(0)):  # Per-class operation
             c = y_unique[label_idx]
 
-            # Make all-vs-rest batches per class
-            Bc = x.index_select(0, torch.nonzero(y == c).squeeze(
-                dim=1))  # Attractor set (same class)
-            Bk = x.index_select(0, torch.nonzero(y != c).squeeze(
-                dim=1))  # Repellor set (Other classes)
+            # Make all-vs-rest batches per class (Bc=attractor, Bk=repellor set)
+            Bc = x.index_select(0, torch.nonzero(y == c).squeeze(dim=1))
+            Bk = x.index_select(0, torch.nonzero(y != c).squeeze(dim=1))
 
             p_idx = torch.nonzero(p_y == c).squeeze(dim=1)  # Prototypes
-            pc = p_x[p_idx]  # Class prototype
-            pk = torch.cat(
-                [p_x[:p_idx], p_x[p_idx + 1:]])  # Other class prototypes
+            pc = p_x[p_idx]  # Class proto
+            pk = torch.cat([p_x[:p_idx], p_x[p_idx + 1:]])  # Other class proto
 
             # Accumulate loss for instances of class c
             sum_logLc = self.attractor(pc, pk, Bc)
             sum_logLk = self.repellor(pc, pk, Bc, Bk) if include_repellor else 0
             Loss_c = -sum_logLc - sum_logLk  # attractor + repellor for class c
             loss = Loss_c if loss is None else loss + Loss_c  # Update loss
+
+            print(
+                f'sum_logLc={sum_logLc}\tsum_logLk={sum_logLk}\tLoss_c={Loss_c}')
 
             # Checks
             try:
@@ -201,22 +262,20 @@ class PPPloss(object):
         :param Bc: Batch of instances of the same class c.
         :return: Sum_{i, the part of same class c} log P(c|x_i^c)
         """
-        m = torch.cat([Bc.clone(), pc,
-                       pk]).detach()  # Include all other-class prototypes p_k
+        m = torch.cat([Bc.clone(), pc, pk]).detach()  # Incl other-class proto
         pk_idx = m.shape[0] - pk.shape[0]  # from when starts p_k
 
-        # Resulting distance columns are per-instance loss terms (don't include self => diagonal)
-        D = torch.mm(m, Bc.t()).div_(
-            self.T).exp_()  # Distance matrix in exp terms
-        mask = torch.eye(*D.shape).bool().to(
-            Bc.device)  # Exclude product with self
+        # Resulting distance columns are per-instance loss terms
+        D = torch.mm(m, Bc.t()).div_(self.T).exp_()  # Distance matrix exp terms
+        mask = torch.eye(*D.shape).bool().to(Bc.device)  # Exclude self-product
         Dm = D.masked_fill(mask, 0)  # Masked out products with self
 
-        Lc_n, Lk_d = Dm[:pk_idx], Dm[pk_idx:].sum(
-            dim=0)  # Numerator/denominator terms
+        Lc_n, Lk_d = Dm[:pk_idx], Dm[pk_idx:].sum(dim=0)  # Num/denominator
         Pci = Lc_n / (Lc_n + Lk_d)  # Get probabilities per instance
-        E_Pc = Pci.sum(0) / (Bc.shape[0])  # Expectation over pseudo-prototypes
-        return E_Pc.log_().sum()  # sum over all instances (sum i)
+        E_Pc = Pci.sum(0) / Bc.shape[0]  # Expectation over pseudo-prototypes
+        # return E_Pc.log_().sum()  # sum over all instances (sum i) # TODO PUT BACK
+        final = E_Pc.log_().sum()  # sum over all instances (sum i)
+        return final
 
     def repellor(self, pc, pk, Bc, Bk):
         """
