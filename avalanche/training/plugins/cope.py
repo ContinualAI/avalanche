@@ -142,19 +142,18 @@ class CoPEPlugin(StrategyPlugin):
     def _update_prototypes(self):
         """ Update the prototypes based on the running averages. """
         for c, (p_sum, p_cnt) in self.tmp_p_mem.items():
-            incr_p = p_sum / p_cnt
+            incr_p = normalize(p_sum / p_cnt, p=2, dim=1)  # L2 normalized
             old_p = self.p_mem[c].clone()
             new_p_momentum = self.alpha * old_p + (
                     1 - self.alpha) * incr_p  # Momentum update
-            self.tmp_p_mem[c] = normalize(new_p_momentum, p=2,
-                                          dim=1).detach()  # Update L2 normalized
+            self.tmp_p_mem[c] = normalize(new_p_momentum, p=2, dim=1).detach()
         self.tmp_p_mem = {}
 
 
 class NearestNeigborClassifier(Module):
     """
-    At training time is Identity funciton. At evaluation time, matches with
-    prototypes to give scores.
+    At training time is Identity function. At evaluation time, matches
+    representation with prototypes to produce similarity scores.
     """
 
     def __init__(self, p_mem, n_classes):
@@ -204,8 +203,10 @@ class PPPloss(object):
 
     def __init__(self, p_mem: Dict, T=0.1):
         """
-        :param p_mem: dictionary with keys the prototype identifier and values the prototype tensors.
-        :param T: temperature of the softmax, serving as concentration density parameter.
+        :param p_mem: dictionary with keys the prototype identifier and
+                      values the prototype tensors.
+        :param T: temperature of the softmax, serving as concentration
+                  density parameter.
         """
         self.T = T
         self.p_mem = p_mem
@@ -214,7 +215,8 @@ class PPPloss(object):
         """
         The loss is calculated with one-vs-rest batches Bc and Bk,
         split into the attractor and repellor loss terms.
-        We iterate over the possible batches while accumulating the losses per class c vs other-classes k.
+        We iterate over the possible batches while accumulating the losses per
+        class c vs other-classes k.
         """
         loss = None
         bs = x.size(0)
