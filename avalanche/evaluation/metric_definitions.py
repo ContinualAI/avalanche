@@ -72,6 +72,10 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     invoked by the :class:`EvaluationPlugin`. Subclasses should implement
     the `result`, `reset` and the desired callbacks to compute the specific
     metric.
+
+    Remember to call the `super()` method when overriding `after_train_iteration` or
+    `after_eval_iteration`.
+
     An instance of this class usually leverages a `Metric` instance to update,
     reset and emit metric results at appropriate times
     (during specific callbacks).
