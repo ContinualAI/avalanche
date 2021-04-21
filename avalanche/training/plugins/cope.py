@@ -10,7 +10,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.plugins.replay import ClassBalancedStoragePolicy
 from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskMultiBatchDataLoader
+    MultiTaskJoinedBatchDataLoader
 
 
 class CoPEPlugin(StrategyPlugin):
@@ -56,39 +56,29 @@ class CoPEPlugin(StrategyPlugin):
         strategy.criterion = self.loss
         print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
 
-        # The network should contain a 'classifier' (typically used for sofmtax)
+        # The network should contain a 'classifier' (typically used for softmax)
         assert hasattr(strategy.model, 'classifier')
 
-        strategy.model.classifier = self._nearest_neigbor_classifier(
-            strategy.model.classifier)
+        strategy.model.classifier = torch.nn.Sequential(
+            strategy.model.classifier,
+            NearestNeigborClassifier(self.p_mem, self.n_classes))
 
-    def _nearest_neigbor_classifier(self, last_layer):
-        nn = NearestNeigborClassifier(self.p_mem, self.n_classes)
-        return torch.nn.Sequential(last_layer, nn)
-
-    def before_forward(self, strategy, num_workers=0, shuffle=True,
-                       **kwargs):
+    def before_training_exp(self, strategy, num_workers=0, shuffle=True,
+                            **kwargs):
         """
-        Random retrieval from a class-balanced memory at each batch.
+        Random retrieval from a class-balanced memory.
         Dataloader builds batches containing examples from both memories and
         the training dataset.
         """
         if len(self.replay_mem) == 0:
             return
-        mem_dataloader = MultiTaskMultiBatchDataLoader(
+        strategy.dataloader = MultiTaskJoinedBatchDataLoader(
+            strategy.adapted_dataset,
             AvalancheConcatDataset(self.replay_mem.values()),
-            oversample_small_tasks=False,
+            oversample_small_tasks=True,
             num_workers=num_workers,
-            batch_size=strategy.train_mb_size,  # A batch of replay samples
-            shuffle=shuffle
-        )
-
-        mb_x, mb_y, mb_task_id = next(iter(mem_dataloader))[0]
-        mb_x, mb_y = mb_x.to(strategy.device), mb_y.to(strategy.device)
-
-        # Add to current batch
-        strategy.mb_x = torch.cat((strategy.mb_x, mb_x))
-        strategy.mb_y = torch.cat((strategy.mb_y, mb_y))
+            batch_size=strategy.train_mb_size,
+            shuffle=shuffle)
 
     def after_forward(self, strategy, **kwargs):
         """
@@ -125,8 +115,8 @@ class CoPEPlugin(StrategyPlugin):
             p_tmp_batch = strategy.logits[idxs].sum(dim=0).unsqueeze(0).to(
                 strategy.device)
 
-            p_init, cnt_init = self.tmp_p_mem[c] if c in self.tmp_p_mem else (
-                0, 0)
+            p_init, cnt_init = self.tmp_p_mem[c] \
+                if c in self.tmp_p_mem else (0, 0)
             self.tmp_p_mem[c] = (p_init + p_tmp_batch, cnt_init + len(idxs))
 
     def after_update(self, strategy, **kwargs):
@@ -146,7 +136,7 @@ class CoPEPlugin(StrategyPlugin):
             old_p = self.p_mem[c].clone()
             new_p_momentum = self.alpha * old_p + (
                     1 - self.alpha) * incr_p  # Momentum update
-            self.tmp_p_mem[c] = normalize(new_p_momentum, p=2, dim=1).detach()
+            self.p_mem[c] = normalize(new_p_momentum, p=2, dim=1).detach()
         self.tmp_p_mem = {}
 
 
