@@ -25,7 +25,7 @@ class NCScenario(GenericCLScenario['NCExperience']):
     under the form of instances of :class:`NCExperience`.
 
     This class can be used directly. However, we recommend using facilities like
-    :func:`avalanche.benchmarks.generators.nc_scenario`.
+    :func:`avalanche.benchmarks.generators.nc_benchmark`.
     """
 
     def __init__(self, train_dataset: AvalancheDataset,

@@ -30,7 +30,7 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     SynapticIntelligence, JointTraining
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
-from avalanche.benchmarks import nc_scenario, SplitCIFAR10
+from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
@@ -107,10 +107,10 @@ class StrategyTest(unittest.TestCase):
 
     def test_naive(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
                          device=self.device, eval_mb_size=50, train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
@@ -120,11 +120,11 @@ class StrategyTest(unittest.TestCase):
 
     def test_joint(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
                                  device=self.device, eval_mb_size=50,
                                  train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = Naive(model, optimizer, criterion, train_mb_size=64,
@@ -134,11 +134,11 @@ class StrategyTest(unittest.TestCase):
 
     def test_cwrstar(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         last_fc_name, _ = get_last_fc_layer(model)
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
                            train_mb_size=64, device=self.device)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = CWRStar(model, optimizer, criterion, last_fc_name,
@@ -148,11 +148,11 @@ class StrategyTest(unittest.TestCase):
 
     def test_replay(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = Replay(model, optimizer, criterion,
                           mem_size=10, train_mb_size=64, device=self.device,
                           eval_mb_size=50, train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = Replay(model, optimizer, criterion,
@@ -163,13 +163,13 @@ class StrategyTest(unittest.TestCase):
 
     def test_gdumb(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = GDumb(
                 model, optimizer, criterion,
                 mem_size=200, train_mb_size=64, device=self.device,
                 eval_mb_size=50, train_epochs=2
         )
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = GDumb(
@@ -182,11 +182,11 @@ class StrategyTest(unittest.TestCase):
 
     def test_cumulative(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
                               device=self.device, eval_mb_size=50,
                               train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = Cumulative(model, optimizer, criterion, train_mb_size=64,
@@ -197,13 +197,13 @@ class StrategyTest(unittest.TestCase):
 
     def test_lwf(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = LwF(model, optimizer, criterion,
                        alpha=[0, 1/2, 2*(2/3), 3*(3/4), 4*(4/5)],
                        temperature=2, device=self.device,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = LwF(model, optimizer, criterion,
@@ -216,12 +216,12 @@ class StrategyTest(unittest.TestCase):
 
     def test_agem(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = AGEM(model, optimizer, criterion,
                         patterns_per_exp=250, sample_size=256,
                         train_mb_size=10, eval_mb_size=50,
                         train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = AGEM(model, optimizer, criterion,
@@ -233,32 +233,32 @@ class StrategyTest(unittest.TestCase):
 
     def test_gem(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_exp=256,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
 
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = GEM(model, optimizer, criterion,
                        patterns_per_exp=256,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
         scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
     def test_ewc(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='separate',
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
 
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
@@ -270,12 +270,12 @@ class StrategyTest(unittest.TestCase):
 
     def test_ewc_online(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
                        mode='online', decay_factor=0.1,
                        train_mb_size=10, eval_mb_size=50,
                        train_epochs=2)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
         # MT scenario
         strategy = EWC(model, optimizer, criterion, ewc_lambda=0.4,
@@ -287,7 +287,7 @@ class StrategyTest(unittest.TestCase):
 
     def test_synaptic_intelligence(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, eval_mb_size=10)
@@ -302,10 +302,10 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(scenario, strategy)
 
     def test_ar1(self):
-        my_nc_scenario = self.load_ar1_scenario()
+        my_nc_benchmark = self.load_ar1_scenario()
         strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
                        rm_sz=200)
-        self.run_strategy(my_nc_scenario, strategy)
+        self.run_strategy(my_nc_benchmark, strategy)
 
     def load_ar1_scenario(self):
         """
@@ -326,10 +326,10 @@ class StrategyTest(unittest.TestCase):
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
-        my_nc_scenario = nc_scenario(
+        my_nc_benchmark = nc_benchmark(
             train_dataset, test_dataset, 5, task_labels=False
         )
-        return my_nc_scenario
+        return my_nc_benchmark
 
     def load_scenario(self, use_task_labels=False):
         """

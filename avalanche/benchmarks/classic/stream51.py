@@ -13,8 +13,8 @@ from os.path import expanduser
 from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
-from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_paths
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_generic_benchmark_from_paths
 from torchvision import transforms
 import math
 import os
@@ -227,9 +227,9 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
             test_ood_filelists_paths = [[[j[0], j[1]] for j in i] for i in
                                         test_ood_filelists_paths]
 
-    scenario_obj = create_generic_scenario_from_paths(
-        train_list_of_files=train_filelists_paths,
-        test_list_of_files=test_filelists_paths,
+    scenario_obj = create_generic_benchmark_from_paths(
+        train_lists_of_files=train_filelists_paths,
+        test_lists_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
         complete_test_set_only=scenario == 'instance',
         train_transform=train_transform,
