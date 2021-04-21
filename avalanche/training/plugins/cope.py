@@ -10,7 +10,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.plugins.replay import ClassBalancedStoragePolicy
 from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskJoinedBatchDataLoader
+    MultiTaskMultiBatchDataLoader
 
 
 class CoPEPlugin(StrategyPlugin):
@@ -66,24 +66,29 @@ class CoPEPlugin(StrategyPlugin):
         nn = NearestNeigborClassifier(self.p_mem, self.n_classes)
         return torch.nn.Sequential(last_layer, nn)
 
-    def before_training_exp(self, strategy, num_workers=0, shuffle=True,
-                            **kwargs):
+    def before_forward(self, strategy, num_workers=0, shuffle=True,
+                       **kwargs):
         """
-        Random retrieval from a class-balanced memory.
+        Random retrieval from a class-balanced memory at each batch.
         Dataloader builds batches containing examples from both memories and
         the training dataset.
         """
         if len(self.replay_mem) == 0:
             return
-        strategy.current_dataloader = MultiTaskJoinedBatchDataLoader(
-            strategy.adapted_dataset,
+        mem_dataloader = MultiTaskMultiBatchDataLoader(
             AvalancheConcatDataset(self.replay_mem.values()),
             oversample_small_tasks=False,
             num_workers=num_workers,
-            batch_size=strategy.train_mb_size * 2,
-            # bs = 10: 10 for new samples, 10 from replay
+            batch_size=strategy.train_mb_size,  # A batch of replay samples
             shuffle=shuffle
         )
+
+        mb_x, mb_y, mb_task_id = next(iter(mem_dataloader))[0]
+        mb_x, mb_y = mb_x.to(strategy.device), mb_y.to(strategy.device)
+
+        # Add to current batch
+        strategy.mb_x = torch.cat((strategy.mb_x, mb_x))
+        strategy.mb_y = torch.cat((strategy.mb_y, mb_y))
 
     def after_forward(self, strategy, **kwargs):
         """
@@ -226,6 +231,8 @@ class PPPloss(object):
         for label_idx in range(y_unique.size(0)):  # Per-class operation
             c = y_unique[label_idx]
 
+            print("Class {}:".format(str(c.item())), end='')  # TODO rm
+
             # Make all-vs-rest batches per class (Bc=attractor, Bk=repellor set)
             Bc = x.index_select(0, torch.nonzero(y == c).squeeze(dim=1))
             Bk = x.index_select(0, torch.nonzero(y != c).squeeze(dim=1))
@@ -240,8 +247,13 @@ class PPPloss(object):
             Loss_c = -sum_logLc - sum_logLk  # attractor + repellor for class c
             loss = Loss_c if loss is None else loss + Loss_c  # Update loss
 
-            print(
-                f'sum_logLc={sum_logLc}\tsum_logLk={sum_logLk}\tLoss_c={Loss_c}')
+            print("{: >20}".format(
+                "| TOTAL: {:.1f} + {:.1f} = {:.1f}".format(float(-sum_logLc),
+                                                           float(-sum_logLk),
+                                                           float(Loss_c))))
+
+            # print(
+            #     f'sum_logLc={sum_logLc}\tsum_logLk={sum_logLk}\tLoss_c={Loss_c}')
 
             # Checks
             try:
@@ -252,6 +264,9 @@ class PPPloss(object):
                 import traceback
                 traceback.print_exc()
                 exit(1)
+
+        print()
+        print("-" * 40)  # TODO RM
         return loss / bs  # Make independent batch size
 
     def attractor(self, pc, pk, Bc):
@@ -275,6 +290,12 @@ class PPPloss(object):
         E_Pc = Pci.sum(0) / Bc.shape[0]  # Expectation over pseudo-prototypes
         # return E_Pc.log_().sum()  # sum over all instances (sum i) # TODO PUT BACK
         final = E_Pc.log_().sum()  # sum over all instances (sum i)
+
+        print("(#c) {:.1f}/({:.1f} + {:.1f}) ".format(  # TODO rm
+            float(Lc_n.mean().item()), float(Lc_n.mean().item()),
+            float(Lk_d.mean().item())),
+            end='')
+
         return final
 
     def repellor(self, pc, pk, Bc, Bk):
@@ -299,4 +320,10 @@ class PPPloss(object):
         E_Pk = (Pki[:-1] + Pki[-1].unsqueeze(
             0)) / 2  # Expectation pseudo/prototype
         inv_E_Pk = E_Pk.mul_(-1).add_(1).log_()  # log( (1 - Pk))
+
+        print(" + (#k) {:.1f}/({:.1f} + {:.1f})".format(  # TODO rm
+            float(Lc_n.mean().item()),
+            float(Lc_n.mean().item()),
+            float(Lk_d.mean().item())), end='')
+
         return inv_E_Pk.sum()  # Sum over (pseudo-prototypes), and instances
