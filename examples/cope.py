@@ -11,6 +11,7 @@
 
 """
 This is a simple example on how to use the CoPE plugin.
+It's an example in the online data incremental setting.
 """
 
 from __future__ import absolute_import
@@ -20,7 +21,6 @@ from __future__ import print_function
 import argparse
 import torch
 import torch.optim.lr_scheduler
-from torchvision.transforms import transforms
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
@@ -45,9 +45,9 @@ def main(args):
     # TODO use data_incremental_generator, now experience=task
 
     # --- CONFIG
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                             args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu")
     # ---------
 
     # --- SCENARIO CREATION
