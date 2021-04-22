@@ -9,7 +9,7 @@ from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheTensorDataset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
-from avalanche.benchmarks import nc_scenario, GenericScenarioStream, \
+from avalanche.benchmarks import nc_benchmark, GenericScenarioStream, \
     GenericCLScenario
 
 

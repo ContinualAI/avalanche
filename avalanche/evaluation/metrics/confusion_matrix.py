@@ -296,6 +296,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         self.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval_iteration(strategy)
         self.update(strategy.mb_y,
                     strategy.logits)
 

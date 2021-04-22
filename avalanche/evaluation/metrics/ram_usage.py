@@ -141,6 +141,7 @@ class MinibatchMaxRAM(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         return self._package_result(strategy)
 
     def after_training(self, strategy: 'BaseStrategy') -> None:

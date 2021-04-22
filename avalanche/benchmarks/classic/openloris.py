@@ -14,8 +14,8 @@ It basically returns a iterable scenario object ``GenericCLScenario`` given
 a number of configuration parameters."""
 from avalanche.benchmarks.datasets.openloris.openloris_data import \
     OPENLORIS_DATA
-from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_filelists
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_generic_benchmark_from_filelists
 from os.path import expanduser
 
 nbatch = {
@@ -97,10 +97,10 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
             root + filelists_bp + "train_batch_" +
             str(i).zfill(2) + ".txt")
 
-    factor_obj = create_generic_scenario_from_filelists(
+    factor_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
         root + filelists_bp + "test.txt",
-        [0 for _ in range(nbatch[factor])],
+        task_labels=[0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
         train_transform=train_transform,
         eval_transform=eval_transform)
