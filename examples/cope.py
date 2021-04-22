@@ -10,7 +10,7 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Replay strategy.
+This is a simple example on how to use the CoPE plugin.
 """
 
 from __future__ import absolute_import
@@ -20,6 +20,7 @@ from __future__ import print_function
 import argparse
 import torch
 import torch.optim.lr_scheduler
+from torchvision.transforms import transforms
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
@@ -32,11 +33,16 @@ from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
+    """
+    Last Avalanche version reference performance (online):
+        Top1_Acc_Stream/eval_phase/test_stream = 0.9421
+    """
     # --- DEFAULT PARAMS ONLINE DATA INCREMENTAL LEARNING
     nb_tasks = 5  # Can still design the data stream based on tasks
     epochs = 1  # All data is only seen once: Online
     batch_size = 10  # Only process small amount of data at a time
-    return_task_id = False  # Data incremental learning (task-agnostic/task-free)
+    return_task_id = False  # Data incremental (task-agnostic/task-free)
+    # TODO use data_incremental_generator, now experience=task
 
     # --- CONFIG
     device = torch.device(f"cuda:{args.cuda}"
@@ -45,7 +51,8 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = SplitMNIST(nb_tasks, return_task_id=return_task_id)
+    scenario = SplitMNIST(nb_tasks, return_task_id=return_task_id,
+                          fixed_class_order=[i for i in range(10)])
     # ---------
 
     # MODEL CREATION
@@ -62,10 +69,11 @@ def main(args):
         loggers=[interactive_logger])
 
     # CoPE PLUGIN
-    cope = CoPEPlugin(mem_size=2000, p_size=args.featsize, alpha=0.99, T=0.1)
+    cope = CoPEPlugin(mem_size=2000, p_size=args.featsize,
+                      n_classes=scenario.n_classes)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE) WITH CoPE PLUGIN
-    cl_strategy = Naive(model, torch.optim.SGD(model.parameters(), lr=0.001),
+    cl_strategy = Naive(model, torch.optim.SGD(model.parameters(), lr=0.01),
                         cope.loss,  # CoPE PPP-Loss
                         train_mb_size=batch_size, train_epochs=epochs,
                         eval_mb_size=100, device=device,
