@@ -117,6 +117,7 @@ class MinibatchTime(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self._minibatch_time.update()
         return self._package_result(strategy)
 
@@ -205,6 +206,7 @@ class RunningEpochTime(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self._epoch_time.update()
         self._time_mean.update(self._epoch_time.result())
         self._epoch_time.reset()

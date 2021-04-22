@@ -9,12 +9,10 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-""" In this module the high-level benchmark generators are listed. They are
-based on the methods already implemented in the "scenario" module. For the
-specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
-the generic ones: filelist_scenario, tensor_scenario, dataset_scenario
-and paths_scenario.
+""" This module contains DEPRECATED high-level benchmark generators.
+Please use the ones found in benchmark_generators.
 """
+
 import warnings
 from pathlib import Path
 from typing import Sequence, Optional, Dict, SupportsInt, Union, Any, List, \
@@ -50,6 +48,8 @@ def nc_scenario(
         one_dataset_per_exp: bool = False,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
     """
+    This helper function is DEPRECATED in favor of `nc_benchmark`.
+
     This method is the high-level specific scenario generator for the
     "New Classes" (NC) case. Given a sequence of train and test datasets creates
     the continual stream of data as a series of experiences. Each experience
@@ -129,6 +129,8 @@ def nc_scenario(
     :return: A properly initialized :class:`NCScenario` instance.
     """
 
+    warnings.warn('nc_scenario is deprecated in favor of nc_benchmark.')
+
     if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
         raise ValueError('Invalid mutually exclusive options '
                          'class_ids_from_zero_from_first_exp and '
@@ -198,6 +200,8 @@ def ni_scenario(
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
     """
+    This helper function is DEPRECATED in favor of `ni_benchmark`.
+
     This method is the high-level specific scenario generator for the
     "New Instances" (NI) case. Given a sequence of train and test datasets
     creates the continual stream of data as a series of experiences. Each
@@ -250,6 +254,8 @@ def ni_scenario(
     :return: A properly initialized :class:`NIScenario` instance.
     """
 
+    warnings.warn('ni_scenario is deprecated in favor of ni_benchmark.')
+
     seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
         if len(train_dataset) != len(test_dataset):
@@ -283,6 +289,8 @@ def dataset_scenario(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of `dataset_benchmark`.
+
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
     experience. Contents of the datasets will not be changed, including the
@@ -323,6 +331,9 @@ def dataset_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('dataset_scenario is deprecated in favor of '
+                  'dataset_benchmark.')
+
     return create_multi_dataset_generic_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
@@ -341,6 +352,8 @@ def filelist_scenario(
         train_transform=None, train_target_transform=None,
         eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of `filelist_benchmark`.
+
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
     those training datasets will be considered a separate training experience.
@@ -391,6 +404,9 @@ def filelist_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('filelist_scenario is deprecated in favor of '
+                  'filelist_benchmark.')
+
     return create_generic_scenario_from_filelists(
         root=root,
         train_file_lists=train_file_lists,
@@ -418,6 +434,8 @@ def paths_scenario(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of `paths_benchmark`.
+
     Creates a generic scenario given a list of files and class labels.
     A separate dataset will be created for each list and each of
     those training datasets will be considered a separate training experience.
@@ -480,6 +498,8 @@ def paths_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('paths_scenario is deprecated in favor of paths_benchmark.')
+
     return create_generic_scenario_from_paths(
         train_list_of_files=train_list_of_files,
         test_list_of_files=test_list_of_files,
@@ -503,6 +523,8 @@ def tensors_scenario(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of `tensors_benchmark`.
+
     Creates a generic scenario given lists of Tensors and the respective task
     labels. A separate dataset will be created from each Tensor tuple
     (x, y, ...) and each of those training datasets will be considered a
@@ -560,6 +582,9 @@ def tensors_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('tensors_scenario is deprecated in favor of '
+                  'tensors_benchmark.')
+
     return create_generic_scenario_from_tensor_lists(
         train_tensors=train_tensors,
         test_tensors=test_tensors,
@@ -585,9 +610,9 @@ def tensor_scenario(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
-    This helper function is DEPRECATED.
+    This helper function is DEPRECATED in favor of `tensors_benchmark`.
 
-    Please consider using :func:`tensors_scenario` instead. When switching to
+    Please consider using :func:`tensors_benchmark` instead. When switching to
     the new function, please keep in mind that the format of the parameters is
     completely different!
 
@@ -649,7 +674,7 @@ def tensor_scenario(
     """
 
     warnings.warn('tensor_scenario is deprecated in favor '
-                  'of tensors_scenario. When switching'
+                  'of tensors_benchmark. When switching'
                   ' to the new function, please keep in mind that the format of'
                   ' the parameters is completely different!')
 

@@ -150,6 +150,7 @@ class MinibatchCPUUsage(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self._minibatch_cpu.update()
         return self._package_result(strategy)
 
@@ -236,6 +237,7 @@ class RunningEpochCPUUsage(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> None:
+        super().after_training_iteration(strategy)
         self._epoch_cpu.update()
         self._cpu_mean.update(self._epoch_cpu.result())
         self._epoch_cpu.reset()

@@ -10,7 +10,7 @@
 ################################################################################
 
 from avalanche.benchmarks.datasets import CUB200
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
@@ -105,7 +105,7 @@ def SplitCUB200(root,
         per_exp_classes = None
 
     if return_task_id:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_experiences=n_experiences,
@@ -116,7 +116,7 @@ def SplitCUB200(root,
             shuffle=shuffle,
             one_dataset_per_exp=True)
     else:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_experiences=n_experiences,

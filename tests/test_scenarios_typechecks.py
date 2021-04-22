@@ -5,8 +5,8 @@ from os.path import expanduser
 
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.generators import tensor_scenario, nc_scenario, \
-    ni_scenario
+from avalanche.benchmarks import tensors_benchmark
+from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
 
 from avalanche.benchmarks.scenarios.generic_definitions import Experience
 
@@ -17,14 +17,14 @@ class ScenariosTypeChecksTests(unittest.TestCase):
                             train=True, download=True)
         mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                            train=False, download=True)
-        my_nc_scenario = nc_scenario(
+        my_nc_benchmark = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=True,
             class_ids_from_zero_in_each_exp=True)
 
-        for task_info in my_nc_scenario.train_stream:
+        for task_info in my_nc_benchmark.train_stream:
             self.assertIsInstance(task_info, Experience)
 
-        for task_info in my_nc_scenario.test_stream:
+        for task_info in my_nc_benchmark.test_stream:
             self.assertIsInstance(task_info, Experience)
 
     def test_nc_sit_type(self):
@@ -32,13 +32,13 @@ class ScenariosTypeChecksTests(unittest.TestCase):
                             train=True, download=True)
         mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                            train=False, download=True)
-        my_nc_scenario = nc_scenario(
+        my_nc_benchmark = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=False)
 
-        for batch_info in my_nc_scenario.train_stream:
+        for batch_info in my_nc_benchmark.train_stream:
             self.assertIsInstance(batch_info, Experience)
 
-        for batch_info in my_nc_scenario.test_stream:
+        for batch_info in my_nc_benchmark.test_stream:
             self.assertIsInstance(batch_info, Experience)
 
     def test_ni_sit_type(self):
@@ -46,37 +46,41 @@ class ScenariosTypeChecksTests(unittest.TestCase):
                             train=True, download=True)
         mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                            train=False, download=True)
-        my_nc_scenario = ni_scenario(
+        my_ni_benchmark = ni_benchmark(
             mnist_train, mnist_test, 5)
 
-        for batch_info in my_nc_scenario.train_stream:
+        for batch_info in my_ni_benchmark.train_stream:
             self.assertIsInstance(batch_info, Experience)
 
-        for batch_info in my_nc_scenario.test_stream:
+        for batch_info in my_ni_benchmark.test_stream:
             self.assertIsInstance(batch_info, Experience)
 
-    def test_tensor_scenario_type(self):
+    def test_tensor_benchmark_type(self):
         n_experiences = 3
-        test_data_x = [[torch.zeros(2, 3)], torch.zeros(2, 3)]
-        test_data_y = [[torch.zeros(2)], torch.zeros(2)]
 
-        for complete_test in [True, False]:
-            for tdx, tdy in zip(test_data_x, test_data_y):
-                try:                
-                    tensor_scenario(
-                        train_data_x=[torch.randn(2, 3)
-                                      for _ in range(n_experiences)],
-                        train_data_y=[torch.zeros(2)
-                                      for _ in range(n_experiences)],
-                        test_data_x=tdx,
-                        test_data_y=tdy,
-                        task_labels=[0]*n_experiences,
-                        complete_test_set_only=complete_test)
-                except ValueError:
-                    if complete_test and \
-                        not isinstance(tdx, torch.Tensor) and \
-                            not isinstance(tdy, torch.Tensor):
-                        print("Value Error raised correctly")
+        tensors_benchmark(
+            train_tensors=[(torch.randn(2, 3), torch.zeros(2))
+                           for _ in range(n_experiences)],
+            test_tensors=[(torch.randn(2, 3), torch.zeros(2))
+                          for _ in range(n_experiences)],
+            task_labels=[0] * n_experiences,
+            complete_test_set_only=False)
+
+        tensors_benchmark(
+            train_tensors=[(torch.randn(2, 3), torch.zeros(2))
+                           for _ in range(n_experiences)],
+            test_tensors=[(torch.randn(2, 3), torch.zeros(2))],
+            task_labels=[0] * n_experiences,
+            complete_test_set_only=True)
+
+        with self.assertRaises(Exception):
+            tensors_benchmark(
+                train_tensors=[(torch.randn(2, 3), torch.zeros(2))
+                               for _ in range(n_experiences)],
+                test_tensors=[(torch.randn(2, 3), torch.zeros(2))
+                              for _ in range(n_experiences)],
+                task_labels=[0] * n_experiences,
+                complete_test_set_only=True)
                         
 
 if __name__ == '__main__':
