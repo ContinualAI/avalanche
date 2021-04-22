@@ -1,3 +1,18 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 22-06-2020                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+""" This module contains DEPRECATED mid-level benchmark generators.
+Please use the ones found in generic_benchmark_creation.
+"""
+
 import warnings
 from pathlib import Path
 from typing import Sequence, Union, SupportsInt, Any, Tuple
@@ -22,6 +37,9 @@ def create_multi_dataset_generic_scenario(
         dataset_type: AvalancheDatasetType = None) \
         -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of
+    `create_multi_dataset_generic_benchmark`.
+
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
     experience. Contents of the datasets will not be changed, including the
@@ -73,7 +91,8 @@ def create_multi_dataset_generic_scenario(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    # TODO: more generic handling of task labels
+    warnings.warn('create_multi_dataset_generic_scenario is deprecated in favor'
+                  ' of create_multi_dataset_generic_benchmark.')
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
@@ -137,6 +156,9 @@ def create_generic_scenario_from_filelists(
         train_transform=None, train_target_transform=None,
         eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of
+    `create_generic_benchmark_from_filelists`.
+
     Creates a generic scenario given a list of filelists and the respective task
     labels. A separate dataset will be created for each filelist and each of
     those training datasets will be considered a separate training experience.
@@ -187,6 +209,9 @@ def create_generic_scenario_from_filelists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('create_generic_scenario_from_filelists is deprecated in '
+                  'favor of create_generic_benchmark_from_filelists.')
+
     train_datasets, test_dataset = datasets_from_filelists(
         root, train_file_lists, test_file_lists,
         complete_test_set_only=complete_test_set_only)
@@ -215,6 +240,9 @@ def create_generic_scenario_from_paths(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of
+    `create_generic_benchmark_from_paths`.
+
     Creates a generic scenario given a sequence of lists of files. A separate
     dataset will be created for each list. Each of those training datasets
     will be considered a separate training experience.
@@ -277,6 +305,9 @@ def create_generic_scenario_from_paths(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('create_generic_scenario_from_paths is deprecated in favor'
+                  ' of create_generic_benchmark_from_paths.')
+
     train_datasets, test_dataset = datasets_from_paths(
         train_list_of_files, test_list_of_files,
         complete_test_set_only=complete_test_set_only)
@@ -301,6 +332,9 @@ def create_generic_scenario_from_tensor_lists(
         eval_transform=None, eval_target_transform=None,
         dataset_type: AvalancheDatasetType = None) -> GenericCLScenario:
     """
+    This helper function is DEPRECATED in favor of
+    `create_generic_benchmark_from_tensor_lists`.
+
     Creates a generic scenario given lists of Tensors. A separate dataset will
     be created from each Tensor tuple (x, y, z, ...) and each of those training
     datasets will be considered a separate training experience. Using this
@@ -362,6 +396,9 @@ def create_generic_scenario_from_tensor_lists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
+    warnings.warn('create_generic_scenario_from_tensor_lists is deprecated in '
+                  'favor of create_generic_benchmark_from_tensor_lists.')
+
     train_datasets = [
         AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
         for exp_tensors in train_tensors]
@@ -392,7 +429,8 @@ def create_generic_scenario_from_tensors(
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
         -> GenericCLScenario:
     """
-    This helper function is DEPRECATED.
+    This helper function is DEPRECATED in favor of
+    `create_generic_benchmark_from_tensor_lists`.
 
     Please consider using :func:`create_generic_scenario_from_tensor_lists`
     instead. When switching to the new function, please keep in mind that the
@@ -455,9 +493,7 @@ def create_generic_scenario_from_tensors(
     """
 
     warnings.warn('create_generic_scenario_from_tensors is deprecated in favor '
-                  'of create_generic_scenario_from_tensor_lists. When switching'
-                  ' to the new function, please keep in mind that the format of'
-                  ' the parameters is completely different!')
+                  'of create_generic_benchmark_from_tensor_lists.')
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError('train_data_x and train_data_y must contain'

@@ -15,7 +15,7 @@ from torchvision.transforms import ToTensor, Compose, Normalize, \
     ToPILImage, RandomRotation
 from PIL.Image import Image
 
-from avalanche.benchmarks import nc_scenario, NCScenario
+from avalanche.benchmarks import nc_benchmark, NCScenario
 from avalanche.benchmarks.datasets.omniglot import Omniglot
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 import numpy as np
@@ -126,7 +126,7 @@ def SplitOmniglot(
                                                           eval_transform)
 
     if return_task_id:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
             n_experiences=n_experiences,
@@ -135,7 +135,7 @@ def SplitOmniglot(
             fixed_class_order=fixed_class_order,
             class_ids_from_zero_in_each_exp=True)
     else:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=omniglot_train,
             test_dataset=omniglot_test,
             n_experiences=n_experiences,
@@ -219,7 +219,7 @@ def PermutedOmniglot(
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
 
-    return nc_scenario(
+    return nc_benchmark(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),
@@ -322,7 +322,7 @@ def RotatedOmniglot(
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
 
-    return nc_scenario(
+    return nc_benchmark(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),

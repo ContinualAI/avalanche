@@ -14,8 +14,8 @@ basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
 
 from avalanche.benchmarks.datasets.core50.core50_data import CORE50_DATA
-from avalanche.benchmarks.scenarios.generic_scenario_creation import \
-    create_generic_scenario_from_filelists
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_generic_benchmark_from_filelists
 from os.path import expanduser
 
 nbatch = {
@@ -101,10 +101,10 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
             root + filelists_bp + "train_batch_" +
             str(i).zfill(2) + "_filelist.txt")
 
-    scenario_obj = create_generic_scenario_from_filelists(
+    scenario_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
         root + filelists_bp + "test_filelist.txt",
-        [0 for _ in range(nbatch[scenario])],
+        task_labels=[0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
         eval_transform=eval_transform)

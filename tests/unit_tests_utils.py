@@ -8,7 +8,7 @@ from torch.utils.data import TensorDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor
 
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_benchmark
 
 
 def common_setups():
@@ -22,7 +22,7 @@ def load_scenario(use_task_labels=False, fast_test=True):
     2 classes per experience.
     """
     if fast_test:
-        my_nc_scenario = get_fast_scenario(use_task_labels)
+        my_nc_benchmark = get_fast_scenario(use_task_labels)
     else:
         mnist_train = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/",
@@ -33,11 +33,11 @@ def load_scenario(use_task_labels=False, fast_test=True):
             root=expanduser("~") + "/.avalanche/data/mnist/",
             train=False, download=True,
             transform=Compose([ToTensor()]))
-        my_nc_scenario = nc_scenario(
+        my_nc_benchmark = nc_benchmark(
             mnist_train, mnist_test, 5,
             task_labels=use_task_labels, seed=1234)
 
-    return my_nc_scenario
+    return my_nc_benchmark
 
 
 def get_fast_scenario(use_task_labels=False, shuffle=True):
@@ -55,9 +55,9 @@ def get_fast_scenario(use_task_labels=False, shuffle=True):
 
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
-    my_nc_scenario = nc_scenario(train_dataset, test_dataset, 5,
-                                 task_labels=use_task_labels, shuffle=shuffle)
-    return my_nc_scenario
+    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
+                                   task_labels=use_task_labels, shuffle=shuffle)
+    return my_nc_benchmark
 
 
 __all__ = [
