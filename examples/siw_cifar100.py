@@ -37,14 +37,16 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        accuracy_metrics(minibatch=False, epoch=True, experience=True,
+                         stream=True),
         loggers=[interactive_logger]
     )
 
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     criterion = CrossEntropyLoss()
     strategy = Naive(model, optimizer, criterion, plugins=[siw],
-                     device=device, train_epochs=args.epochs, evaluator=eval_plugin)
+                     device=device, train_epochs=args.epochs,
+                     evaluator=eval_plugin)
 
     normalize = transforms.Normalize(mean=[0.5356, 0.4898, 0.4255],
                                      std=[0.2007, 0.1999, 0.1992])
@@ -63,7 +65,8 @@ def main(args):
 
     # scenario
     scenario = SplitCIFAR100(n_experiences=10, return_task_id=False,
-                             fixed_class_order=range(0, 100), train_transform=train_transform,
+                             fixed_class_order=range(0, 100),
+                             train_transform=train_transform,
                              eval_transform=test_transform)
 
     # TRAINING LOOP
