@@ -308,12 +308,8 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(my_nc_scenario, strategy)
 
     def test_siw(self):
-        model = self.get_model(fast_test=self.fast_test)
-        optimizer = SGD(model.parameters(), lr=0.1)
-        criterion = CrossEntropyLoss()
-
         # SIT scenario
-        my_nc_scenario = self.load_scenario(fast_test=self.fast_test)
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
         strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
                        batch_size=32, num_workers=8, train_mb_size=128,
                        device=self.device, eval_mb_size=32, train_epochs=2)
@@ -323,8 +319,7 @@ class StrategyTest(unittest.TestCase):
         strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
                        batch_size=32, num_workers=8, train_mb_size=128,
                        device=self.device, eval_mb_size=32, train_epochs=2)
-        scenario = self.load_scenario(fast_test=self.fast_test,
-                                      use_task_labels=True)
+        scenario = self.load_scenario(use_task_labels=False)
         self.run_strategy(scenario, strategy)
 
     def load_ar1_scenario(self):
@@ -370,14 +365,14 @@ class StrategyTest(unittest.TestCase):
         print('Starting experiment...')
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
-        for train_batch_info in scenario.train_stream:
+        for i, train_batch_info in enumerate(scenario.train_stream):
             print("Start of experience ", train_batch_info.current_experience)
 
             cl_strategy.train(train_batch_info)
             print('Training completed')
 
             print('Computing accuracy on the current test set')
-            results.append(cl_strategy.eval(scenario.test_stream[:]))
+            results.append(cl_strategy.eval(scenario.test_stream[:i+1]))
 
 
 if __name__ == '__main__':
