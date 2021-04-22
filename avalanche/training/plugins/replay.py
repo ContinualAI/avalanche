@@ -166,9 +166,8 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
                  total_num_classes=-1):
         """
         Stores samples for replay, equally divided over classes.
-        Because it is not conditioned on the experience, it can be called in
-        phases other than after_training_exp
-        (see ExperienceBalancedStoragePolicy).
+        It should be called in the 'after_training_exp' phase (see
+        ExperienceBalancedStoragePolicy).
 
         The number of classes can be fixed up front or adaptive, based on
         the 'adaptive_size' attribute. When adaptive, the memory is equally
@@ -191,12 +190,12 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
             assert self.total_num_classes > 0, \
                 """When fixed exp mem size, total_num_classes should be > 0."""
 
-    def __call__(self, new_data: AvalancheDataset, **kwargs):
+    def __call__(self, strategy, **kwargs):
+        new_data = strategy.experience.dataset
 
         # Get sample idxs per class
         cl_idxs = {}
         for idx, target in enumerate(new_data.targets):
-            target = target.item()
             if target not in cl_idxs:
                 cl_idxs[target] = []
             cl_idxs[target].append(idx)
