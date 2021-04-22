@@ -23,9 +23,9 @@ class SimpleMLP(nn.Module):
         layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
                                  nn.ReLU(inplace=True),
                                  nn.Dropout()))
-        for l in range(hidden_layers - 1):
+        for layer_idx in range(hidden_layers - 1):
             layers.add_module(
-                f"fc{l + 1}", nn.Sequential(
+                f"fc{layer_idx + 1}", nn.Sequential(
                     *(nn.Linear(hidden_size, hidden_size),
                       nn.ReLU(inplace=True),
                       nn.Dropout())))
