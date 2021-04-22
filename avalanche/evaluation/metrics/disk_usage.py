@@ -132,6 +132,7 @@ class MinibatchDiskUsage(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self._minibatch_disk.update()
         return self._package_result(strategy)
 
