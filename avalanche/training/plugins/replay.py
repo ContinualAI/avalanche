@@ -31,15 +31,17 @@ class ReplayPlugin(StrategyPlugin):
 
     def __init__(self, mem_size=200, storage_policy=None):
         super().__init__()
-
         self.mem_size = mem_size
-        self.ext_mem = {}  # a Dict<task_id, Dataset>
 
-        if storage_policy is not None:
+        if storage_policy is not None:  # Use other storage policy
             self.storage_policy = storage_policy
+            self.ext_mem = storage_policy.ext_mem  # Keep ref
+            assert storage_policy.mem_size == self.mem_size
+
         else:  # Default
+            self.ext_mem = {}  # a Dict<task_id, Dataset>
             self.storage_policy = ExperienceBalancedStoragePolicy(
-                replay_mem=self.ext_mem,
+                ext_mem=self.ext_mem,
                 mem_size=self.mem_size,
                 adaptive_size=True)
 
@@ -74,7 +76,7 @@ class StoragePolicy(ABC):
 
 class ExperienceBalancedStoragePolicy(StoragePolicy):
 
-    def __init__(self, replay_mem: Dict, mem_size: int, adaptive_size=True,
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
                  num_experiences=-1):
         """
         Stores samples for replay, equally divided over experiences.
@@ -85,14 +87,14 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         the 'adaptive_size' attribute. When adaptive, the memory is equally
         divided over all the unique observed experiences so far.
 
-        :param replay_mem: The replay memory dictionary to store samples.
+        :param ext_mem: The replay memory dictionary to store samples.
         :param mem_size: max number of total input samples in the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
                               observed experiences (keys in replay_mem).
         :param num_experiences: If adaptive size is False, the fixed number
                                 of experiences to divide capacity over.
         """
-        self.ext_mem = replay_mem
+        self.ext_mem = ext_mem
         self.mem_size = mem_size
         self.adaptive_size = adaptive_size
         self.num_experiences = num_experiences
@@ -162,7 +164,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
 
 
 class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
-    def __init__(self, replay_mem: Dict, mem_size: int, adaptive_size=True,
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
                  total_num_classes=-1):
         """
         Stores samples for replay, equally divided over classes.
@@ -173,14 +175,14 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
         the 'adaptive_size' attribute. When adaptive, the memory is equally
         divided over all the unique observed classes so far.
 
-        :param replay_mem: The replay memory dictionary to store samples in.
+        :param ext_mem: The replay memory dictionary to store samples in.
         :param mem_size: The max capacity of the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
                             observed experiences (keys in replay_mem).
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
         """
-        self.ext_mem = replay_mem
+        self.ext_mem = ext_mem
         self.mem_size = mem_size
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes

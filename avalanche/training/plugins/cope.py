@@ -46,7 +46,7 @@ class CoPEPlugin(StrategyPlugin):
         self.replay_mem = {}
         self.mem_size = mem_size  # replay memory size
         self.storage_policy = ClassBalancedStoragePolicy(
-            replay_mem=self.replay_mem,
+            ext_mem=self.replay_mem,
             mem_size=self.mem_size,
             adaptive_size=True)
 
