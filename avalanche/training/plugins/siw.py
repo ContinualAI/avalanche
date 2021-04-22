@@ -91,9 +91,11 @@ class SIWPlugin(StrategyPlugin):
     @torch.no_grad()
     def after_training_exp(self, strategy, **kwargs):
         """
-        Extract new class images' scores and compute the model
-        confidence at each incremental state
+        Before evaluating the performance of our model,
+        we extract new class images' scores and compute the
+        model's confidence at each incremental state
         """
+        # extract training scores
         strategy.model.eval()
 
         dataset = strategy.experience.dataset
@@ -101,6 +103,7 @@ class SIWPlugin(StrategyPlugin):
             dataset, batch_size=self.batch_size,
             num_workers=self.num_workers)
 
+        # compute model's confidence
         max_top1_scores = []
         for i, data in enumerate(loader):
             inputs, targets, task_labels = data
@@ -112,12 +115,14 @@ class SIWPlugin(StrategyPlugin):
         self.confidences.append(sum(max_top1_scores) /
                                 len(max_top1_scores))
 
+    @torch.no_grad()
     def before_eval_exp(self, strategy, **kwargs):
         """
-        Before evaluating the performance of our model, we standardize
-        all class weights (by subtracting their mean and dividing by
-        their standard deviation)
+        Standardize all class weights (by subtracting their mean
+        and dividing by their standard deviation)
         """
+
+        # standardize last layer weights
         last_layer = self.get_siw_layer()
         if last_layer is None:
             raise RuntimeError('Can\'t find this Linear layer')

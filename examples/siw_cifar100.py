@@ -33,15 +33,12 @@ def main(args):
                     batch_size=args.siw_batch_size,
                     num_workers=args.siw_num_workers)
 
-    # log to text file
-    text_logger = TextLogger(open('/scratch_global/eden/avalanche/log.txt', 'a'))
-
     # print to stdout
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-        loggers=[interactive_logger, text_logger]
+        loggers=[interactive_logger]
     )
 
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
@@ -66,7 +63,7 @@ def main(args):
 
     # scenario
     scenario = SplitCIFAR100(n_experiences=10, return_task_id=False,
-                             seed=1234, train_transform=train_transform,
+                             fixed_class_order=range(0, 100), train_transform=train_transform,
                              eval_transform=test_transform)
 
     # TRAINING LOOP
@@ -87,7 +84,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--lr', type=float, default=0.1, help='Learning rate.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum')
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=100,
                         help='Number of training epochs.')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='Batch size.')
@@ -97,7 +94,7 @@ if __name__ == '__main__':
                         help='Number of workers used to extract scores.')
     parser.add_argument('--siw_layer_name', type=str, default='fc',
                         help='Name of the last fully connected layer.')
-    parser.add_argument('--cuda', type=int, default=0,
+    parser.add_argument('--cuda', type=int, default=1,
                         help='Specify GPU id to use. Use CPU if -1.')
     args = parser.parse_args()
 
