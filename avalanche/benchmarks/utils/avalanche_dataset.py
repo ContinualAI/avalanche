@@ -1475,10 +1475,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             if isinstance(dataset, AvalancheDataset):
                 all_groups.update(dataset.transform_groups.keys())
 
-        for dataset in self._dataset_list:
-            if isinstance(dataset, AvalancheDataset):
-                all_groups.update(dataset.transform_groups.keys())
-
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
                 for group_name in all_groups:
