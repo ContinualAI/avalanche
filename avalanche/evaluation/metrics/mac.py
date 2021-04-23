@@ -114,6 +114,7 @@ class MinibatchMAC(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self._minibatch_MAC.update(strategy.model,
                                    strategy.mb_x[0].unsqueeze(0))
         return self._package_result(strategy)

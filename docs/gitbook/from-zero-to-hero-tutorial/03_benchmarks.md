@@ -28,13 +28,13 @@ The `bechmarks` module offers 3 types of utils:
 * **Classic Benchmarks**: classic benchmarks used in CL litterature ready to be used with great flexibility.
 * **Benchmarks Generators**: a set of functions you can use to create your own benchmark starting from any kind of data and scenario. In particular, we distinguish two type of generators: `Specific` and `Generic`. The first ones will let you create a benchmark based on a clear scenarios and Pytorch dataset\(s\); the latters, instead, are more generic and flexible, both in terms of scenario definition then in terms of type of data they can manage.
   * _Specific_:
-    * **nc\_scenario**: given one or multiple datasets it creates a benchmark based on scenarios where _New Classes_ \(NC\) are encountered over time. Notable scenarios that can be created using this utility include _Class-Incremental_, _Task-Incremental_ and _Task-Agnostic_ scenarios.
-    * **ni\_scenario**: it creates a benchmark based on scenarios where _New Instances_ \(NI\), i.e. new examples of the same classes are encountered over time. Notable scenarios that can be created using this utility include _Domain-Incremental_ scenarios.
+    * **nc\_benchmark**: given one or multiple datasets it creates a benchmark instance based on scenarios where _New Classes_ \(NC\) are encountered over time. Notable scenarios that can be created using this utility include _Class-Incremental_, _Task-Incremental_ and _Task-Agnostic_ scenarios.
+    * **ni\_benchmark**: it creates a benchmark instance based on scenarios where _New Instances_ \(NI\), i.e. new examples of the same classes are encountered over time. Notable scenarios that can be created using this utility include _Domain-Incremental_ scenarios.
   * _Generic_:
-    * **filelist\_scenario**: It creates a benchmark given a set of filelists and based on a generic scenario for maximal flexibility.
-    * **paths\_scenario**:  It creates a benchmark given a set of file paths and class labels.
-    * **tensors\_scenario**: It creates a benchmark given a set of tensors and based on a generic scenario for maximal flexibility.
-    * **dataset\_scenario**: It creates a benchmark given a set of pytorch datasets and based on a generic scenario for maximal flexibility.
+    * **filelist\_benchmark**: It creates a benchmark instance given a list of filelists.
+    * **paths\_benchmark**:  It creates a benchmark instance given a list of file paths and class labels.
+    * **tensors\_benchmark**: It creates a benchmark instance given a list of tensors.
+    * **dataset\_benchmark**: It creates a benchmark instance given a list of pytorch datasets.
 
 But let's see how we can use this module in practice!
 
@@ -205,7 +205,7 @@ SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, \
 PermutedMNIST, SplitCUB200, SplitImageNet
 
 # creating PermutedMNIST (Task-Incremental)
-clscenario = PermutedMNIST(
+perm_mnist = PermutedMNIST(
     n_experiences=2,
     seed=1234,
 )
@@ -219,7 +219,7 @@ Let's see now how we can use the classic benchmark or the ones that you can crea
 
 
 ```python
-# creating the benchmark (scenario object)
+# creating the benchmark instance (scenario object)
 perm_mnist = PermutedMNIST(
   n_experiences=3,
   seed=1234,
@@ -256,15 +256,15 @@ The _specific_ scenario generators are useful when starting from one or multiple
 
 For the **New Classes** scenario you can use the following function:
 
-* `nc_scenario`
+* `nc_benchmark`
 
 for the **New Instances**:
 
-* `ni_scenario`
+* `ni_benchmark`
 
 
 ```python
-from avalanche.benchmarks.generators import nc_scenario, ni_scenario
+from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
 ```
 
 Let's start by creating the MNIST dataset object as we would normally do in Pytorch:
@@ -295,7 +295,7 @@ Then we can, for example, create a new benchmark based on MNIST and the classic 
 
 
 ```python
-scenario = ni_scenario(
+scenario = ni_benchmark(
     mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
     balance_experiences=True
 )
@@ -314,10 +314,11 @@ Or, we can create a benchmark based on MNIST and the _Class-Incremental_ \(what'
 
 
 ```python
-scenario = nc_scenario(
+scenario = nc_benchmark(
     mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
     task_labels=False
 )
+
 train_stream = scenario.train_stream
 
 for experience in train_stream:
@@ -332,29 +333,30 @@ for experience in train_stream:
 
 Finally, if you cannot create your ideal benchmark since it does not fit well in the aforementioned _new classes_ or _new instances_ scenarios, you can always use our **generic generators**:
 
-* **filelist\_scenario**
-* **paths\_scenario**
-* **dataset\_scenario**
-* **tensors\_scenario**
+* **filelist\_benchmark**
+* **paths\_benchmark**
+* **dataset\_benchmark**
+* **tensors\_benchmark**
 
 
 ```python
-from avalanche.benchmarks.generators import filelist_scenario, dataset_scenario, \
-                                            tensors_scenario, paths_scenario
+from avalanche.benchmarks.generators import filelist_benchmark, dataset_benchmark, \
+                                            tensors_benchmark, paths_benchmark
 ```
 
-Let's start with the `filelist_scenario` utility. This function is particularly useful when it is important to preserve a particular order of the patterns to be processed \(for example if they are frames of a video\), or in general if we have data scattered around our drive and we want to create a sequence of batches/tasks providing only a txt file containing the list of their paths.
+Let's start with the `filelist_benchmark` utility. This function is particularly useful when it is important to preserve a particular order of the patterns to be processed \(for example if they are frames of a video\), or in general if we have data scattered around our drive and we want to create a sequence of batches/tasks providing only a txt file containing the list of their paths.
 
 For _Avalanche_ we follow the same format of the _Caffe_ filelists \("_path_ _class\_label_"\):
 
-/path/to/a/file.jpg 0
-/path/to/another/file.jpg 0
-...
-/path/to/another/file.jpg M
-/path/to/another/file.jpg M
-...
-/path/to/another/file.jpg N
-/path/to/another/file.jpg N
+/path/to/a/file.jpg 0  
+/path/to/another/file.jpg 0  
+...  
+/path/to/another/file.jpg M  
+/path/to/another/file.jpg M  
+...  
+/path/to/another/file.jpg N  
+/path/to/another/file.jpg N  
+
 
 So let's download the classic "_Cats vs Dogs_" dataset as an example:
 
@@ -365,7 +367,7 @@ So let's download the classic "_Cats vs Dogs_" dataset as an example:
 !unzip -q -o cats_and_dogs_filtered.zip
 ```
 
-You can now see in the `content` directory on colab the image we downloaded. We are now going to create the filelists and then use the `filelist_scenario` function to create our benchmark:
+You can now see in the `content` directory on colab the image we downloaded. We are now going to create the filelists and then use the `filelist_benchmark` function to create our benchmark:
 
 
 ```python
@@ -373,31 +375,78 @@ import os
 # let's create the filelists since we don't have it
 dirpath = "cats_and_dogs_filtered/train"
 
-for filelist, dir, t_label in zip(
+for filelist, rel_dir, t_label in zip(
         ["train_filelist_00.txt", "train_filelist_01.txt"],
         ["cats", "dogs"],
-        [0, 1]
-    ):
+        [0, 1]):
+    # First, obtain the list of files
     filenames_list = os.listdir(os.path.join(dirpath, dir))
+
+    # Create the text file containing the filelist
+    # Filelists must be in Caffe-style, which means
+    # that they must define path in the format:
+    #
+    # relative_path_img1 class_label_first_img
+    # relative_path_img2 class_label_second_img
+    # ...
+    #
+    # For instance:
+    # cat/cat_0.png 1
+    # dog/dog_54.png 0
+    # cat/cat_3.png 1
+    # ...
+    # 
+    # Paths are relative to a root path
+    # (specified when calling filelist_benchmark)
     with open(filelist, "w") as wf:
         for name in filenames_list:
             wf.write(
-                "{} {}\n".format(os.path.join(dirpath, dir, name), t_label)
+                "{} {}\n".format(os.path.join(rel_dir, name), t_label)
             )
 
 # Here we create a GenericCLScenario ready to be iterated
-generic_scenario = filelist_scenario(
-   "",
+generic_scenario = filelist_benchmark(
+   dirpath,  
    ["train_filelist_00.txt", "train_filelist_01.txt"],
-   "train_filelist_00.txt",
-   [0, 0],
+   ["train_filelist_00.txt"],
+   task_labels=[0, 0],
    complete_test_set_only=True,
    train_transform=ToTensor(),
    eval_transform=ToTensor()
 )
 ```
 
-Let us know see how we can use the `dataset_scenario` utility, where we can use several Pytorch datasets as different batches or tasks:
+In the previous cell we created a benchmark instance starting from file lists. However, `paths_benchmark` is a better choice if you already have the list of paths directly loaded in memory:
+
+
+```python
+train_experiences = []
+for rel_dir, label in zip(
+        ["cats", "dogs"],
+        [0, 1]):
+    # First, obtain the list of files
+    filenames_list = os.listdir(os.path.join(dirpath, dir))
+
+    # Don't create a file list: instead, we create a list of 
+    # paths + class labels
+    experience_paths = []
+    for name in filenames_list:
+      instance_tuple = (os.path.join(dirpath, rel_dir, name), label)
+      experience_paths.append(instance_tuple)
+    train_experiences.append(experience_paths)
+
+# Here we create a GenericCLScenario ready to be iterated
+generic_scenario = paths_benchmark(
+   train_experiences,
+   [train_experiences[0]],  # Single test set
+   task_labels=[0, 0],
+   complete_test_set_only=True,
+   train_transform=ToTensor(),
+   eval_transform=ToTensor()
+)
+```
+
+Let us see how we can use the `dataset_benchmark` utility, where we can use several PyTorch datasets as different batches or tasks. This utility expectes a list of datasets for the train, test (and other custom) streams. Each dataset will be used to create an experience:
 
 
 ```python
@@ -407,14 +456,39 @@ train_cifar10 = CIFAR10(
 test_cifar10 = CIFAR10(
     './data/cifar10', train=False, download=True
 )
-generic_scenario =  dataset_scenario(
-    train_dataset_list=[train_MNIST, train_cifar10],
-    test_dataset_list=[test_MNIST, test_cifar10],
-    task_labels=[0, 1]
+
+generic_scenario = dataset_benchmark(
+    [train_MNIST, train_cifar10],
+    [test_MNIST, test_cifar10]
 )
 ```
 
-And finally, the `tensors_scenario` generator:
+Adding task labels can be achieved by wrapping each datasets using `AvalancheDataset`. Apart from task labels, `AvalancheDataset` allows for more control over transformations and offers an ever growing set of utilities (check the documentation for more details).
+
+
+```python
+# Alternatively, task labels can also be a list (or tensor)
+# containing the task label of each pattern
+
+train_MNIST_task0 = AvalancheDataset(train_cifar10, task_labels=0)
+test_MNIST_task0 = AvalancheDataset(test_cifar10, task_labels=0)
+
+train_cifar10_task1 = AvalancheDataset(train_cifar10, task_labels=1)
+test_cifar10_task1 = AvalancheDataset(test_cifar10, task_labels=1)
+
+scenario_custom_task_labels = dataset_benchmark(
+    [train_MNIST_task0, train_cifar10_task1],
+    [test_MNIST_task0, test_cifar10_task1]
+)
+
+print('Without custom task labels:',
+      generic_scenario.train_stream[1].task_label)
+
+print('With custom task labels:',
+      scenario_custom_task_labels.train_stream[1].task_label)
+```
+
+And finally, the `tensors_benchmark` generator:
 
 
 ```python
@@ -431,11 +505,11 @@ experience_2_y = torch.ones(80, dtype=torch.long)
 
 # Test experience
 # For this example we define a single test experience,
-# but "tensors_scenario" allows you to define even more than one!
+# but "tensors_benchmark" allows you to define even more than one!
 test_x = torch.zeros(50, *pattern_shape)
 test_y = torch.zeros(50, dtype=torch.long)
 
-generic_scenario = tensors_scenario(
+generic_scenario = tensors_benchmark(
     train_tensors=[(experience_1_x, experience_1_y), (experience_2_x, experience_2_y)],
     test_tensors=[(test_x, test_y)],
     task_labels=[0, 0],  # Task label of each train exp
