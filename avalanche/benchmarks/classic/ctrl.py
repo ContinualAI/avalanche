@@ -9,20 +9,18 @@ import ctrl
 def CTrL(stream_name):
     stream = ctrl.get_stream(stream_name)
 
+    # Train, val and test experiences
     exps = [[], [], []]
-    norms = []
     for t in stream:
+        trans = transforms.Normalize(t.statistics['mean'],
+                                     t.statistics['std'])
         for split, exp in zip(t.datasets, exps):
             samples, labels = split.tensors
-            # samples -= torch.tensor(t.statistics['mean']).view(1, 3, 1, 1)
-            # samples /= torch.tensor(t.statistics['std']).view(1, 3, 1, 1)
-
             task_labels = [t.id] * samples.size(0)
             dataset = AvalancheTensorDataset(samples, labels.squeeze(1),
-                                             task_labels=task_labels)
+                                             task_labels=task_labels,
+                                             transform=trans)
             exp.append(dataset)
-        norms.append(transforms.Normalize(t.statistics['mean'],
-                                          t.statistics['std']))
     return dataset_benchmark(
         train_datasets=exps[0],
         test_datasets=exps[2],
