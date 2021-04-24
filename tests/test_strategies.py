@@ -12,7 +12,6 @@
 import unittest
 
 import torch
-from torchvision.transforms import ToTensor, transforms, Resize
 import os
 import sys
 
@@ -27,14 +26,15 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining, SIW
+    SynapticIntelligence, JointTraining, SIW, CoPE
+
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
-from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
+from avalanche.benchmarks import nc_benchmark
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-from tests.unit_tests_utils import common_setups, get_fast_scenario
+from tests.unit_tests_utils import get_fast_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -298,6 +298,27 @@ class StrategyTest(unittest.TestCase):
         strategy = SynapticIntelligence(
             model, optimizer, criterion, si_lambda=0.0001,
             train_epochs=1, train_mb_size=10, eval_mb_size=10)
+        scenario = self.load_scenario(use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
+    def test_cope(self):
+        # Fast scenario (hardcoded)
+        n_classes = 10
+        emb_size = n_classes  # Embedding size
+
+        # SIT scenario
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        strategy = CoPE(model, optimizer, criterion,
+                        mem_size=10, n_classes=n_classes, p_size=emb_size,
+                        train_mb_size=10, device=self.device,
+                        eval_mb_size=50, train_epochs=2)
+        self.run_strategy(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = CoPE(model, optimizer, criterion,
+                        mem_size=10, n_classes=n_classes, p_size=emb_size,
+                        train_mb_size=10, device=self.device,
+                        eval_mb_size=50, train_epochs=2)
         scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
