@@ -12,7 +12,8 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import StrategyPlugin, ReplayPlugin
+from avalanche.training.plugins import StrategyPlugin, ReplayPlugin, \
+    ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy
 from avalanche.training.strategies import Naive
 
 
@@ -109,27 +110,35 @@ class PluginTests(unittest.TestCase):
         assert all(plug.activated)
 
     def test_replay_balanced_memory(self):
-        scenario = self.create_scenario(task_labels=True)
         mem_size = 25
+        policies = [None,
+                    ExperienceBalancedStoragePolicy({}, mem_size=mem_size),
+                    ClassBalancedStoragePolicy({}, mem_size=mem_size)]
+        for policy in policies:
+            self._test_replay_balanced_memory(policy, mem_size)
+
+    def _test_replay_balanced_memory(self, storage_policy, mem_size):
+        scenario = self.create_scenario(task_labels=True)
         model = SimpleMLP(input_size=6, hidden_size=10)
-        replayPlugin = ReplayPlugin(mem_size=mem_size)
+        replayPlugin = ReplayPlugin(mem_size=mem_size,
+                                    storage_policy=storage_policy)
         cl_strategy = Naive(
-            model, 
+            model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
             CrossEntropyLoss(), train_mb_size=32, train_epochs=1,
             eval_mb_size=100, plugins=[replayPlugin]
         )
 
+        n_seen_data = 0
         for step in scenario.train_stream:
-            curr_mem_size = min(mem_size, len(step.dataset))
+            n_seen_data += len(step.dataset)
+            mem_fill = min(mem_size, n_seen_data)
             cl_strategy.train(step)
             ext_mem = replayPlugin.ext_mem
-            lengths = [] 
+            lengths = []
             for task_id in ext_mem.keys():
                 lengths.append(len(ext_mem[task_id]))
-            self.assertEqual(sum(lengths), curr_mem_size)
-            difference = max(lengths) - min(lengths)
-            self.assertLessEqual(difference, 1)
+            self.assertEqual(sum(lengths), mem_fill)  # Always fully filled
 
     def create_scenario(self, task_labels=False):
         n_samples_per_class = 20

@@ -737,6 +737,84 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(AvalancheDatasetType.CLASSIFICATION,
                          ok_concat_classification2.dataset_type)
 
+    def test_avalanche_concat_dataset_recursion(self):
+
+        def gen_random_tensors(n):
+            return torch.rand(n, 3, 28, 28),\
+                   torch.randint(0, 100, (n,)),\
+                   torch.randint(0, 100, (n,))
+
+        tensor_x, tensor_y, tensor_z = \
+            gen_random_tensors(200)
+
+        tensor_x2, tensor_y2, tensor_z2 = \
+            gen_random_tensors(200)
+
+        tensor_x3, tensor_y3, tensor_z3 = \
+            gen_random_tensors(200)
+
+        tensor_x4, tensor_y4, tensor_z4 = \
+            gen_random_tensors(200)
+
+        tensor_x5, tensor_y5, tensor_z5 = \
+            gen_random_tensors(200)
+
+        dataset1 = TensorDataset(tensor_x, tensor_y, tensor_z)
+        dataset2 = AvalancheTensorDataset(tensor_x2, tensor_y2, tensor_z2,
+                                          task_labels=1)
+        dataset3 = AvalancheTensorDataset(tensor_x3, tensor_y3, tensor_z3,
+                                          task_labels=2)
+
+        dataset4 = AvalancheTensorDataset(tensor_x4, tensor_y4, tensor_z4,
+                                          task_labels=3)
+
+        dataset5 = AvalancheTensorDataset(tensor_x5, tensor_y5, tensor_z5,
+                                          task_labels=4)
+
+        # This will test recursion on both PyTorch ConcatDataset and
+        # AvalancheConcatDataset
+        concat = ConcatDataset([dataset1, dataset2])
+
+        # Beware of the explicit task_labels=5 that *must* override the
+        # task labels set in dataset4 and dataset5
+        concat2 = AvalancheConcatDataset([dataset4, dataset5], task_labels=5)
+        concat_uut = AvalancheConcatDataset([concat, dataset3, concat2])
+
+        self.assertEqual(400, len(concat))
+        self.assertEqual(400, len(concat2))
+        self.assertEqual(1000, len(concat_uut))
+
+        x, y, z, t = concat_uut[0]
+        x2, y2, z2, t2 = concat_uut[200]
+        x3, y3, z3, t3 = concat_uut[400]
+        x4, y4, z4, t4 = concat_uut[600]
+        x5, y5, z5, t5 = concat_uut[800]
+
+        self.assertTrue(torch.equal(x, tensor_x[0]))
+        self.assertTrue(torch.equal(y, tensor_y[0]))
+        self.assertTrue(torch.equal(z, tensor_z[0]))
+        self.assertEqual(0, t)
+
+        self.assertTrue(torch.equal(x2, tensor_x2[0]))
+        self.assertTrue(torch.equal(y2, tensor_y2[0]))
+        self.assertTrue(torch.equal(z2, tensor_z2[0]))
+        self.assertEqual(1, t2)
+
+        self.assertTrue(torch.equal(x3, tensor_x3[0]))
+        self.assertTrue(torch.equal(y3, tensor_y3[0]))
+        self.assertTrue(torch.equal(z3, tensor_z3[0]))
+        self.assertEqual(2, t3)
+
+        self.assertTrue(torch.equal(x4, tensor_x4[0]))
+        self.assertTrue(torch.equal(y4, tensor_y4[0]))
+        self.assertTrue(torch.equal(z4, tensor_z4[0]))
+        self.assertEqual(5, t4)
+
+        self.assertTrue(torch.equal(x5, tensor_x5[0]))
+        self.assertTrue(torch.equal(y5, tensor_y5[0]))
+        self.assertTrue(torch.equal(z5, tensor_z5[0]))
+        self.assertEqual(5, t5)
+
 
 class TransformationSubsetTests(unittest.TestCase):
     def test_avalanche_subset_transform(self):

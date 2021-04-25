@@ -1313,6 +1313,22 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                          collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
 
+        self._flatten_concat_datasets()
+
+    def _flatten_concat_datasets(self):
+        flattened_list = []
+        for dataset in self._dataset_list:
+            if isinstance(dataset, AvalancheConcatDataset):
+                flattened_list.extend(dataset._dataset_list)
+            elif isinstance(dataset, ConcatDataset):
+                flattened_list.extend(dataset.datasets)
+            else:
+                flattened_list.append(dataset)
+        self._dataset_list = flattened_list
+        self._datasets_lengths = [len(dataset) for dataset in flattened_list]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(flattened_list)
+        self._overall_length = sum(self._datasets_lengths)
+
     def _get_dataset_type_collate_and_adapter(
             self, datasets, dataset_type, collate_fn, targets_adapter):
 
@@ -1470,10 +1486,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
     def _adapt_concat_datasets(self):
         all_groups = set()
-
-        for dataset in self._dataset_list:
-            if isinstance(dataset, AvalancheDataset):
-                all_groups.update(dataset.transform_groups.keys())
 
         for dataset in self._dataset_list:
             if isinstance(dataset, AvalancheDataset):
