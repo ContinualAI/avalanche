@@ -4,13 +4,25 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 1-05-2020                                                              #
-# Author(s): Eli Verwimp                                       #
+# Author(s): Eli Verwimp                                                       #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
 
 """
-This module wraps pytorchcv models, with some convient wrappers.
+This module provides acces to pytorchcv models. A general wrapper is available
+through get_model. For VGG, Resnet, DenseNet and Pyramidnet direct wrappers are
+provided.
+
+Models pretrained on e.g. Imagenet don't necessairly have the same structure
+as those used typically used for smaller datasets like Cifar10. So be carefull
+when adapting pretrained models for different datasets.
+
+Not all options (e.g. growth rate for densenet, alpha in pyramidnet,
+bottlenecks...) are available through the direct wrappers. If a more specific
+models is required, it can be loaded through the general method.
+
+Currently this module only wraps to pytorchcv models.
 """
 
 from pytorchcv.model_provider import get_model as ptcv_get_model
@@ -131,7 +143,7 @@ def pyramidnet(dataset: str, depth: int, pretrained=False) -> Module:
 def get_model(name: str, pretrained=False):
     """
     This a direct wrapper to the model getter of `pytorchcv`. For available
-     models see: https://github.com/osmr/imgclsmob
+    models see: https://github.com/osmr/imgclsmob
     """
     return ptcv_get_model(name, pretrained=pretrained)
 
