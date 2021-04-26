@@ -449,50 +449,6 @@ class SynapticIntelligence(BaseStrategy):
             eval_every=eval_every
         )
 
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 patterns_per_exp: int, memory_strength: float = 0.5,
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Gradient Episodic Memory (GEM) strategy.
-            See GEM plugin for details.
-            This strategy does not use task identities.
-
-        :param model: The model.
-        :param optimizer: The optimizer to use.
-        :param criterion: The loss criterion to use.
-        :param patterns_per_exp: number of patterns per experience in the memory
-        :param memory_strength: offset to add to the projection direction
-            in order to favour backward transfer (gamma in original paper).
-        :param train_mb_size: The train minibatch size. Defaults to 1.
-        :param train_epochs: The number of training epochs. Defaults to 1.
-        :param eval_mb_size: The eval minibatch size. Defaults to 1.
-        :param device: The device to use. Defaults to None (cpu).
-        :param plugins: Plugins to be added. Defaults to None.
-        :param evaluator: (optional) instance of EvaluationPlugin for logging
-            and metric computations.
-        :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
-        """
-
-        gem = GEMPlugin(patterns_per_exp, memory_strength)
-        if plugins is None:
-            plugins = [gem]
-        else:
-            plugins.append(gem)
-
-        super().__init__(
-            model, optimizer, criterion,
-            train_mb_size=train_mb_size, train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
-
 
 class SIW(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
