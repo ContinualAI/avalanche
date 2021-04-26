@@ -1505,12 +1505,39 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(y3, int)
         self.assertEqual(y+1, y3)
 
+        # Regression test for #565
         dataset_inherit = AvalancheDataset(dataset_eval)
 
         x4, y4, _ = dataset_inherit[0]
         self.assertIsInstance(x4, PIL.Image.Image)
         self.assertIsInstance(y4, int)
         self.assertEqual(y + 1, y4)
+
+        # Regression test for #566
+        dataset_sub_train = AvalancheSubset(dataset)
+        dataset_sub_eval = dataset_sub_train.eval()
+        dataset_sub = AvalancheSubset(dataset_sub_eval, indices=[0])
+
+        x5, y5, _ = dataset_sub[0]
+        self.assertIsInstance(x5, PIL.Image.Image)
+        self.assertIsInstance(y5, int)
+        self.assertEqual(y + 1, y5)
+        # End regression tests
+
+        concat_dataset = AvalancheConcatDataset([dataset_sub_eval, dataset_sub])
+
+        x6, y6, _ = concat_dataset[0]
+        self.assertIsInstance(x6, PIL.Image.Image)
+        self.assertIsInstance(y6, int)
+        self.assertEqual(y + 1, y6)
+
+        concat_dataset_no_inherit_initial = \
+            AvalancheConcatDataset([dataset_sub_eval, dataset])
+
+        x7, y7, _ = concat_dataset_no_inherit_initial[0]
+        self.assertIsInstance(x7, Tensor)
+        self.assertIsInstance(y7, int)
+        self.assertEqual(y, y7)
 
     def test_freeze_transforms(self):
         original_dataset = MNIST(
@@ -1814,16 +1841,14 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         dataset_other2 = AvalancheDataset(dataset_other)
 
-        # Checks that the train group is used on dataset_other2
+        # Checks that the other group is used on dataset_other2
         x3, *_ = dataset_other2[0]
-        self.assertIsInstance(x3, Image)
+        self.assertIsInstance(x3, Tensor)
 
         with self.assertRaises(Exception):
             # Can't add group if it already exists
             dataset_other2 = dataset_other2.add_transforms_group(
                 'other', ToTensor(), None)
-
-        dataset_other2 = dataset_other2.with_transforms('other')
 
         # Check that the above failed method didn't change the 'other' group
         x4, *_ = dataset_other2[0]
