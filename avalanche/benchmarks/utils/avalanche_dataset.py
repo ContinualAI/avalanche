@@ -102,7 +102,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                  target_transform: YTransform = None,
                  transform_groups: Dict[str, Tuple[XTransform,
                                                    YTransform]] = None,
-                 initial_transform_group='train',
+                 initial_transform_group='train',  # TODO: change!
                  task_labels: Union[int, Sequence[int]] = None,
                  targets: Sequence[TTargetType] = None,
                  dataset_type: AvalancheDatasetType = None,
@@ -296,6 +296,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             self._frozen_transforms[group_name] = (None, None)
 
         self._set_original_dataset_transform_group(self.current_transform_group)
+
+        self._flatten_dataset()
 
     def __add__(self, other: Dataset) -> 'AvalancheDataset':
         return AvalancheConcatDataset([self, other])
@@ -855,6 +857,56 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                 if original_dataset_group not in transform_groups:
                     transform_groups[original_dataset_group] = (None, None)
 
+    def _has_own_transformations(self):
+        # Used to check if the current dataset has its own transformations
+        # This method returns False if transformations are applied
+        # by the wrapped dataset only.
+
+        if self.transform is not None:
+            return True
+
+        if self.target_transform is not None:
+            return True
+
+        for transform_group in self.transform_groups.values():
+            for transform in transform_group:
+                if transform is not None:
+                    return True
+
+        return False
+
+    @staticmethod
+    def _borrow_transformations(dataset, transform_groups):
+        if not isinstance(dataset, AvalancheDataset):
+            return
+
+        for original_dataset_group in dataset.transform_groups.keys():
+            if original_dataset_group not in transform_groups:
+                transform_groups[original_dataset_group] = (None, None)
+
+        for original_dataset_group in dataset.transform_groups.keys():
+            transform_groups[original_dataset_group] = \
+                AvalancheDataset._prepend_transforms(
+                    transform_groups[original_dataset_group],
+                    dataset.transform_groups[original_dataset_group])
+
+    @staticmethod
+    def _prepend_transforms(transforms, to_be_prepended):
+        result = []
+
+        for i in range(len(transforms)):
+            if to_be_prepended[i] is None:
+                # Nothing to prepend
+                continue
+
+            if transforms[i] is None:
+                result.append(to_be_prepended)
+            else:
+                result.append(Compose([
+                    to_be_prepended, transforms[i]]))
+
+        return tuple(result)  # Transform to tuple
+
     def _optimize_targets(self):
         self.targets = optimize_sequence(self.targets)
 
@@ -865,6 +917,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         for task_label in self.tasks_pattern_indices:
             self.tasks_pattern_indices[task_label] = optimize_sequence(
                 self.tasks_pattern_indices[task_label])
+
+    def _flatten_dataset(self):
+        pass
 
 
 class _TaskSubsetDict(OrderedDict):
@@ -1023,6 +1078,9 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             subset = dataset  # Exactly like a plain AvalancheDataset
 
         self._original_dataset = dataset
+        # self._indices and self._class_mapping currently not used apart from
+        # initialization procedures
+        self._class_mapping = class_mapping
         self._indices = indices
 
         super().__init__(subset,
@@ -1035,9 +1093,6 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                          dataset_type=dataset_type,
                          collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
-
-    def _get_single_item(self, idx: int):
-        return self._process_pattern(self._dataset[idx], idx)
 
     def _initialize_targets_sequence(
             self, dataset, targets, dataset_type, targets_adapter) \
@@ -1094,6 +1149,35 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                         len(dataset)))
 
         return super()._initialize_task_labels_sequence(dataset, None)
+
+    def _flatten_dataset(self):
+        # Flattens this subset by borrowing indices and class mappings from
+        # the original dataset (if it's an AvalancheSubset or PyTorch Subset)
+
+        if isinstance(self._original_dataset, AvalancheSubset):
+            # TODO: implement
+            pass
+        elif isinstance(self._original_dataset, Subset):
+            # Very simple: just borrow indices (no transformations or
+            # class mappings to adapt here!)
+            forward_dataset = self._original_dataset.dataset
+            forward_indices = self._original_dataset.indices
+
+            if self._indices is not None:
+                new_indices = [forward_indices[x] for x in self._indices]
+            else:
+                new_indices = forward_indices
+
+            self._original_dataset = forward_dataset
+            self._indices = new_indices
+
+            if self._class_mapping is not None:
+                self._dataset = ClassificationSubset(
+                    forward_dataset, indices=new_indices,
+                    class_mapping=self._class_mapping)
+
+            elif self._indices is not None:
+                self._dataset = Subset(forward_dataset, indices=new_indices)
 
 
 class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
@@ -1313,22 +1397,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                          collate_fn=collate_fn,
                          targets_adapter=targets_adapter)
 
-        self._flatten_concat_datasets()
-
-    def _flatten_concat_datasets(self):
-        flattened_list = []
-        for dataset in self._dataset_list:
-            if isinstance(dataset, AvalancheConcatDataset):
-                flattened_list.extend(dataset._dataset_list)
-            elif isinstance(dataset, ConcatDataset):
-                flattened_list.extend(dataset.datasets)
-            else:
-                flattened_list.append(dataset)
-        self._dataset_list = flattened_list
-        self._datasets_lengths = [len(dataset) for dataset in flattened_list]
-        self._datasets_cumulative_lengths = ConcatDataset.cumsum(flattened_list)
-        self._overall_length = sum(self._datasets_lengths)
-
     def _get_dataset_type_collate_and_adapter(
             self, datasets, dataset_type, collate_fn, targets_adapter):
 
@@ -1521,6 +1589,30 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             return LazyConcatTargets(targets)
         else:
             return targets
+
+    def _flatten_dataset(self):
+        # Flattens this subset by borrowing the list of concatenated datasets
+        # from the original datasets (if they're 'AvalancheConcatSubset's or
+        # PyTorch 'ConcatDataset's)
+
+        flattened_list = []
+        for dataset in self._dataset_list:
+            if isinstance(dataset, AvalancheConcatDataset):
+                if dataset._has_own_transformations():
+                    # Can't flatten as the dataset has custom transformations
+                    flattened_list.append(dataset)
+                else:
+                    flattened_list.extend(dataset._dataset_list)
+            elif isinstance(dataset, ConcatDataset):
+                # PyTorch ConcatDataset doesn't have custom transformations
+                flattened_list.extend(dataset.datasets)
+            else:
+                flattened_list.append(dataset)
+
+        self._dataset_list = flattened_list
+        self._datasets_lengths = [len(dataset) for dataset in flattened_list]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(flattened_list)
+        self._overall_length = sum(self._datasets_lengths)
 
 
 def concat_datasets_sequentially(

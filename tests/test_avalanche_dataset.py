@@ -777,7 +777,13 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         # Beware of the explicit task_labels=5 that *must* override the
         # task labels set in dataset4 and dataset5
-        concat2 = AvalancheConcatDataset([dataset4, dataset5], task_labels=5)
+
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        concat2 = AvalancheConcatDataset(
+            [dataset4, dataset5], task_labels=5,
+            target_transform=transform_target_to_constant)
         concat_uut = AvalancheConcatDataset([concat, dataset3, concat2])
 
         self.assertEqual(400, len(concat))
@@ -806,14 +812,62 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(2, t3)
 
         self.assertTrue(torch.equal(x4, tensor_x4[0]))
-        self.assertTrue(torch.equal(y4, tensor_y4[0]))
+        self.assertEqual(101, y4)
         self.assertTrue(torch.equal(z4, tensor_z4[0]))
         self.assertEqual(5, t4)
 
         self.assertTrue(torch.equal(x5, tensor_x5[0]))
-        self.assertTrue(torch.equal(y5, tensor_y5[0]))
+        self.assertEqual(101, y5)
         self.assertTrue(torch.equal(z5, tensor_z5[0]))
         self.assertEqual(5, t5)
+
+    def test_avalanche_subset_recursion(self):
+        dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                              download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+
+        dataset = AvalancheSubset(
+            subset, indices=[0, 3])
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(2, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+        self.assertTrue(pil_images_equal(x, x3))
+        self.assertEqual(y, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        self.assertEqual(y2, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_subset_recursion_no_indices(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[8]
+
+        subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+
+        dataset = AvalancheSubset(subset)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(5, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+        self.assertTrue(pil_images_equal(x, x3))
+        self.assertEqual(y, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        self.assertEqual(y2, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    # TODO: test subset recursion with transforms
 
 
 class TransformationSubsetTests(unittest.TestCase):
