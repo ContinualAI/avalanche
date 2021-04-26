@@ -154,8 +154,10 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(pil_images_equal(x2, x3_2))
 
     def test_avalanche_dataset_radd(self):
-        dataset_mnist = MNIST('./data/mnist', download=True,
-                              transform=CenterCrop(16))
+        dataset_mnist = MNIST(
+            expanduser("~") + "/.avalanche/data/mnist/",
+            download=True,
+            transform=CenterCrop(16))
 
         dataset1 = AvalancheDataset(
             dataset_mnist, transform=ToTensor(),
@@ -174,11 +176,15 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
-        dataset_mnist = MNIST('./data/mnist', download=True,
-                              transform=CenterCrop(16))
+        dataset_mnist = MNIST(
+            expanduser("~") + "/.avalanche/data/mnist/",
+            download=True,
+            transform=CenterCrop(16))
 
-        dataset_mnist2 = MNIST('./data/mnist', download=True,
-                               transform=CenterCrop(16))
+        dataset_mnist2 = MNIST(
+            expanduser("~") + "/.avalanche/data/mnist/",
+            download=True,
+            transform=CenterCrop(16))
 
         dataset = dataset_mnist + dataset_mnist2
 
@@ -759,6 +765,12 @@ class AvalancheDatasetTests(unittest.TestCase):
         tensor_x5, tensor_y5, tensor_z5 = \
             gen_random_tensors(200)
 
+        tensor_x6, tensor_y6, tensor_z6 = \
+            gen_random_tensors(200)
+
+        tensor_x7, tensor_y7, tensor_z7 = \
+            gen_random_tensors(200)
+
         dataset1 = TensorDataset(tensor_x, tensor_y, tensor_z)
         dataset2 = AvalancheTensorDataset(tensor_x2, tensor_y2, tensor_z2,
                                           task_labels=1)
@@ -767,9 +779,10 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         dataset4 = AvalancheTensorDataset(tensor_x4, tensor_y4, tensor_z4,
                                           task_labels=3)
-
         dataset5 = AvalancheTensorDataset(tensor_x5, tensor_y5, tensor_z5,
                                           task_labels=4)
+        dataset6 = AvalancheTensorDataset(tensor_x6, tensor_y6, tensor_z6)
+        dataset7 = AvalancheTensorDataset(tensor_x7, tensor_y7, tensor_z7)
 
         # This will test recursion on both PyTorch ConcatDataset and
         # AvalancheConcatDataset
@@ -781,20 +794,31 @@ class AvalancheDatasetTests(unittest.TestCase):
         def transform_target_to_constant(ignored_target_value):
             return 101
 
+        def transform_target_to_constant2(ignored_target_value):
+            return 102
+
         concat2 = AvalancheConcatDataset(
             [dataset4, dataset5], task_labels=5,
             target_transform=transform_target_to_constant)
-        concat_uut = AvalancheConcatDataset([concat, dataset3, concat2])
+
+        concat3 = AvalancheConcatDataset(
+            [dataset6, dataset7],
+            target_transform=transform_target_to_constant2).freeze_transforms()
+        concat_uut = AvalancheConcatDataset(
+            [concat, dataset3, concat2, concat3])
 
         self.assertEqual(400, len(concat))
         self.assertEqual(400, len(concat2))
-        self.assertEqual(1000, len(concat_uut))
+        self.assertEqual(400, len(concat3))
+        self.assertEqual(1400, len(concat_uut))
 
         x, y, z, t = concat_uut[0]
         x2, y2, z2, t2 = concat_uut[200]
         x3, y3, z3, t3 = concat_uut[400]
         x4, y4, z4, t4 = concat_uut[600]
         x5, y5, z5, t5 = concat_uut[800]
+        x6, y6, z6, t6 = concat_uut[1000]
+        x7, y7, z7, t7 = concat_uut[1200]
 
         self.assertTrue(torch.equal(x, tensor_x[0]))
         self.assertTrue(torch.equal(y, tensor_y[0]))
@@ -821,7 +845,17 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(z5, tensor_z5[0]))
         self.assertEqual(5, t5)
 
-    def test_avalanche_subset_recursion(self):
+        self.assertTrue(torch.equal(x6, tensor_x6[0]))
+        self.assertEqual(102, y6)
+        self.assertTrue(torch.equal(z6, tensor_z6[0]))
+        self.assertEqual(0, t6)
+
+        self.assertTrue(torch.equal(x7, tensor_x7[0]))
+        self.assertEqual(102, y7)
+        self.assertTrue(torch.equal(z7, tensor_z7[0]))
+        self.assertEqual(0, t7)
+
+    def test_avalanche_pytorch_subset_recursion(self):
         dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                               download=True)
         x, y = dataset_mnist[3000]
@@ -839,12 +873,38 @@ class AvalancheDatasetTests(unittest.TestCase):
         x4, y4, t4 = dataset[1]
         self.assertTrue(pil_images_equal(x, x3))
         self.assertEqual(y, y3)
+        self.assertEqual(0, t3)
         self.assertTrue(pil_images_equal(x2, x4))
         self.assertEqual(y2, y4)
+        self.assertEqual(0, t4)
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    def test_avalanche_subset_recursion_no_indices(self):
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+
+        dataset = AvalancheSubset(
+            subset, indices=[0, 3],
+            target_transform=transform_target_to_constant,
+            task_labels=5)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(2, len(dataset))
+
+        x5, y5, t5 = dataset[0]
+        x6, y6, t6 = dataset[1]
+        self.assertTrue(pil_images_equal(x, x5))
+        self.assertEqual(101, y5)
+        self.assertEqual(5, t5)
+        self.assertTrue(pil_images_equal(x2, x6))
+        self.assertEqual(101, y6)
+        self.assertEqual(5, t6)
+        self.assertFalse(pil_images_equal(x, x6))
+        self.assertFalse(pil_images_equal(x2, x5))
+
+    def test_avalanche_pytorch_subset_recursion_no_indices(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/",
             download=True)
@@ -867,7 +927,261 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    # TODO: test subset recursion with transforms
+    def test_avalanche_avalanche_subset_recursion_no_indices_transform(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[8]
+
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        def transform_target_plus_one(target_value):
+            return target_value+1
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 transform=ToTensor(),
+                                 target_transform=transform_target_to_constant)
+
+        dataset = AvalancheSubset(subset,
+                                  target_transform=transform_target_plus_one)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(5, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+        self.assertIsInstance(x3, Tensor)
+        self.assertIsInstance(x4, Tensor)
+        self.assertTrue(torch.equal(ToTensor()(x), x3))
+        self.assertEqual(102, y3)
+        self.assertTrue(torch.equal(ToTensor()(x2), x4))
+        self.assertEqual(102, y4)
+        self.assertFalse(torch.equal(ToTensor()(x), x4))
+        self.assertFalse(torch.equal(ToTensor()(x2), x3))
+
+    def test_avalanche_avalanche_subset_recursion_transform(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        def transform_target_plus_one(target_value):
+            return target_value+2
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 target_transform=transform_target_to_constant)
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  target_transform=transform_target_plus_one)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        self.assertEqual(103, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        self.assertEqual(103, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_avalanche_subset_recursion_frozen_transform(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        def transform_target_plus_two(target_value):
+            return target_value+2
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 target_transform=transform_target_to_constant)
+        subset = subset.freeze_transforms()
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  target_transform=transform_target_plus_two)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        self.assertEqual(103, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        self.assertEqual(103, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  target_transform=transform_target_plus_two)
+        dataset = dataset.replace_transforms(None, None)
+
+        x5, y5, t5 = dataset[0]
+        x6, y6, t6 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x5))
+        self.assertEqual(101, y5)
+        self.assertTrue(pil_images_equal(x2, x6))
+        self.assertEqual(101, y6)
+        self.assertFalse(pil_images_equal(x, x6))
+        self.assertFalse(pil_images_equal(x2, x5))
+
+    def test_avalanche_avalanche_subset_recursion_modified_transforms(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        def transform_target_to_constant(ignored_target_value):
+            return 101
+
+        def transform_target_to_constant2(ignored_target_value):
+            return 102
+
+        def transform_target_plus_two(target_value):
+            return target_value+2
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 target_transform=transform_target_to_constant)
+        subset.target_transform = transform_target_to_constant2
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  target_transform=transform_target_plus_two)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        self.assertEqual(104, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        self.assertEqual(104, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_avalanche_subset_recursion_sub_class_mapping(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        class_mapping = list(range(10))
+        random.shuffle(class_mapping)
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 class_mapping=class_mapping)
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1])
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        expected_y3 = class_mapping[y]
+        self.assertEqual(expected_y3, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        expected_y4 = class_mapping[y2]
+        self.assertEqual(expected_y4, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_avalanche_subset_recursion_up_class_mapping(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        class_mapping = list(range(10))
+        random.shuffle(class_mapping)
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12])
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  class_mapping=class_mapping)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        expected_y3 = class_mapping[y]
+        self.assertEqual(expected_y3, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        expected_y4 = class_mapping[y2]
+        self.assertEqual(expected_y4, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_avalanche_subset_recursion_mix_class_mapping(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+        x, y = dataset_mnist[3000]
+        x2, y2 = dataset_mnist[1010]
+
+        class_mapping = list(range(10))
+        class_mapping2 = list(range(10))
+        random.shuffle(class_mapping)
+        random.shuffle(class_mapping2)
+
+        subset = AvalancheSubset(dataset_mnist,
+                                 indices=[3000, 8, 4, 1010, 12],
+                                 class_mapping=class_mapping)
+
+        dataset = AvalancheSubset(subset,
+                                  indices=[0, 3, 1],
+                                  class_mapping=class_mapping2)
+
+        self.assertEqual(5, len(subset))
+        self.assertEqual(3, len(dataset))
+
+        x3, y3, t3 = dataset[0]
+        x4, y4, t4 = dataset[1]
+
+        self.assertTrue(pil_images_equal(x, x3))
+        expected_y3 = class_mapping2[class_mapping[y]]
+        self.assertEqual(expected_y3, y3)
+        self.assertTrue(pil_images_equal(x2, x4))
+        expected_y4 = class_mapping2[class_mapping[y2]]
+        self.assertEqual(expected_y4, y4)
+        self.assertFalse(pil_images_equal(x, x4))
+        self.assertFalse(pil_images_equal(x2, x3))
 
 
 class TransformationSubsetTests(unittest.TestCase):

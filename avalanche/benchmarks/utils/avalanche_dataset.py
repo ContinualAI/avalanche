@@ -544,12 +544,14 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         if group_name not in dataset_copy.transform_groups:
             raise ValueError('Invalid group name ' + str(group_name))
 
+        # Store current group (loaded in transform and target_transform fields)
         dataset_copy.transform_groups[dataset_copy.current_transform_group] = \
             (dataset_copy.transform, dataset_copy.target_transform)
+
+        # Load new group in transform and target_transform fields
         switch_group = dataset_copy.transform_groups[group_name]
         dataset_copy.transform = switch_group[0]
         dataset_copy.target_transform = switch_group[1]
-
         dataset_copy.current_transform_group = group_name
 
         # Finally, align the underlying dataset
@@ -873,10 +875,16 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                 if transform is not None:
                     return True
 
+        for transform_group in self._frozen_transforms.values():
+            for transform in transform_group:
+                if transform is not None:
+                    return True
+
         return False
 
     @staticmethod
-    def _borrow_transformations(dataset, transform_groups):
+    def _borrow_transformations(dataset, transform_groups,
+                                frozen_transform_groups):
         if not isinstance(dataset, AvalancheDataset):
             return
 
@@ -884,26 +892,56 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             if original_dataset_group not in transform_groups:
                 transform_groups[original_dataset_group] = (None, None)
 
+        for original_dataset_group in dataset._frozen_transforms.keys():
+            if original_dataset_group not in frozen_transform_groups:
+                frozen_transform_groups[original_dataset_group] = (None, None)
+
+        # Standard transforms
         for original_dataset_group in dataset.transform_groups.keys():
+            other_dataset_transforms = \
+                dataset.transform_groups[original_dataset_group]
+            if dataset.current_transform_group == original_dataset_group:
+                other_dataset_transforms = (dataset.transform,
+                                            dataset.target_transform)
+
             transform_groups[original_dataset_group] = \
                 AvalancheDataset._prepend_transforms(
                     transform_groups[original_dataset_group],
-                    dataset.transform_groups[original_dataset_group])
+                    other_dataset_transforms)
+
+        # Frozen transforms
+        for original_dataset_group in dataset._frozen_transforms.keys():
+            other_dataset_transforms = \
+                dataset._frozen_transforms[original_dataset_group]
+
+            frozen_transform_groups[original_dataset_group] = \
+                AvalancheDataset._prepend_transforms(
+                    frozen_transform_groups[original_dataset_group],
+                    other_dataset_transforms)
 
     @staticmethod
     def _prepend_transforms(transforms, to_be_prepended):
+        if len(transforms) != 2:
+            raise ValueError(
+                'Transformation groups must contain exactly 2 transformations')
+
+        if len(transforms) != len(to_be_prepended):
+            raise ValueError(
+                'Transformation group size mismatch: {} vs {}'.format(
+                    len(transforms), len(to_be_prepended)
+                ))
+
         result = []
 
         for i in range(len(transforms)):
             if to_be_prepended[i] is None:
                 # Nothing to prepend
-                continue
-
-            if transforms[i] is None:
-                result.append(to_be_prepended)
+                result.append(transforms[i])
+            elif transforms[i] is None:
+                result.append(to_be_prepended[i])
             else:
                 result.append(Compose([
-                    to_be_prepended, transforms[i]]))
+                    to_be_prepended[i], transforms[i]]))
 
         return tuple(result)  # Transform to tuple
 
@@ -1155,8 +1193,62 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
         # the original dataset (if it's an AvalancheSubset or PyTorch Subset)
 
         if isinstance(self._original_dataset, AvalancheSubset):
-            # TODO: implement
-            pass
+            # In order to flatten the subset, we have to integrate the
+            # transformations (also frozen ones!)
+            AvalancheDataset._borrow_transformations(
+                self._original_dataset, self.transform_groups,
+                self._frozen_transforms)
+
+            # We need to reload transformations after borrowing from the subset
+            # This assumes that _flatten_dataset is called by __init__!
+            self.transform, self.target_transform = \
+                self.transform_groups[self.current_transform_group]
+
+            forward_dataset = self._original_dataset._original_dataset
+            forward_indices = self._original_dataset._indices
+            forward_class_mapping = self._original_dataset._class_mapping
+
+            if self._class_mapping is not None:
+
+                if forward_class_mapping is not None:
+
+                    new_class_mapping = []
+                    for mapped_class in forward_class_mapping:
+                        # -1 is sometimes used to mark unused classes
+                        # shouldn't be a problem (if it is, is not our fault)
+                        if mapped_class == -1:
+                            forward_mapped = -1
+                        else:
+                            # forward_mapped may be -1
+                            forward_mapped = self._class_mapping[mapped_class]
+
+                        new_class_mapping.append(forward_mapped)
+                else:
+                    new_class_mapping = self._class_mapping
+            else:
+                new_class_mapping = forward_class_mapping  # May be None
+
+            if self._indices is not None:
+                if forward_indices is not None:
+                    new_indices = [forward_indices[x] for x in self._indices]
+                else:
+                    new_indices = self._indices
+            else:
+                new_indices = forward_indices  # May be None
+
+            self._original_dataset = forward_dataset
+            self._indices = new_indices
+            self._class_mapping = new_class_mapping
+            if new_class_mapping is None:
+                # Subset
+                self._dataset = Subset(forward_dataset,
+                                       indices=new_indices)
+            else:
+                # ClassificationSubset
+                self._dataset = ClassificationSubset(
+                    forward_dataset, indices=new_indices,
+                    class_mapping=new_class_mapping)
+
         elif isinstance(self._original_dataset, Subset):
             # Very simple: just borrow indices (no transformations or
             # class mappings to adapt here!)
@@ -1178,6 +1270,8 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
 
             elif self._indices is not None:
                 self._dataset = Subset(forward_dataset, indices=new_indices)
+        AvalancheDataset._check_groups_dict_format(self.transform_groups)
+        AvalancheDataset._check_groups_dict_format(self._frozen_transforms)
 
 
 class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
