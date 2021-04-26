@@ -1476,6 +1476,42 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
 
 class AvalancheDatasetTransformOpsTests(unittest.TestCase):
+    def test_avalanche_inherit_groups(self):
+        original_dataset = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
+
+        def plus_one_target(target):
+            return target+1
+
+        transform_groups = dict(
+            train=(ToTensor(), None),
+            eval=(None, plus_one_target)
+        )
+        x, y = original_dataset[0]
+        dataset = AvalancheDataset(original_dataset,
+                                   transform_groups=transform_groups)
+
+        x2, y2, _ = dataset[0]
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(y2, int)
+        self.assertTrue(torch.equal(ToTensor()(x), x2))
+        self.assertEqual(y, y2)
+
+        dataset_eval = dataset.eval()
+
+        x3, y3, _ = dataset_eval[0]
+        self.assertIsInstance(x3, PIL.Image.Image)
+        self.assertIsInstance(y3, int)
+        self.assertEqual(y+1, y3)
+
+        dataset_inherit = AvalancheDataset(dataset_eval)
+
+        x4, y4, _ = dataset_inherit[0]
+        self.assertIsInstance(x4, PIL.Image.Image)
+        self.assertIsInstance(y4, int)
+        self.assertEqual(y + 1, y4)
+
     def test_freeze_transforms(self):
         original_dataset = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
