@@ -26,7 +26,8 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining, CoPE
+    SynapticIntelligence, JointTraining, SIW, CoPE
+
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.benchmarks import nc_benchmark
@@ -326,6 +327,34 @@ class StrategyTest(unittest.TestCase):
         strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
                        rm_sz=200)
         self.run_strategy(my_nc_benchmark, strategy)
+
+    def run_siw(self, scenario, cl_strategy):
+        print('Starting experiment...')
+        cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        results = []
+        for i, train_batch_info in enumerate(scenario.train_stream):
+            print("Start of experience ", train_batch_info.current_experience)
+
+            cl_strategy.train(train_batch_info)
+            print('Training completed')
+
+            print('Computing accuracy on the current test set')
+            results.append(cl_strategy.eval(scenario.test_stream[:i+1]))
+
+    def test_siw(self):
+        # SIT scenario
+        model, optimizer, criterion, my_nc_scenario = self.init_sit()
+        strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
+                       batch_size=32, num_workers=8, train_mb_size=128,
+                       device=self.device, eval_mb_size=32, train_epochs=2)
+        self.run_siw(my_nc_scenario, strategy)
+
+        # MT scenario
+        strategy = SIW(model, optimizer, criterion, siw_layer_name='classifier',
+                       batch_size=32, num_workers=8, train_mb_size=128,
+                       device=self.device, eval_mb_size=32, train_epochs=2)
+        scenario = self.load_scenario(use_task_labels=False)
+        self.run_siw(scenario, strategy)
 
     def load_ar1_scenario(self):
         """

@@ -9,4 +9,5 @@ from .replay import ReplayPlugin, StoragePolicy, ClassBalancedStoragePolicy, \
     ExperienceBalancedStoragePolicy
 from .strategy_plugin import StrategyPlugin
 from .synaptic_intelligence import SynapticIntelligencePlugin
+from .siw import SIWPlugin
 from .cope import CoPEPlugin, PPPloss
