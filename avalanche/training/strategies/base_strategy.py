@@ -9,6 +9,8 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 from collections import defaultdict
+
+import torch
 from typing import Optional, Sequence, Union
 
 from torch.nn import Module
@@ -247,8 +249,8 @@ class BaseStrategy:
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
-            self._periodic_eval(eval_streams, do_final=False)
             self.after_training_epoch(**kwargs)
+            self._periodic_eval(eval_streams, do_final=False)
 
         # Final evaluation
         self._periodic_eval(eval_streams, do_final=True)
@@ -284,6 +286,7 @@ class BaseStrategy:
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
+    @torch.no_grad()
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
