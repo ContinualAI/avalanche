@@ -16,14 +16,21 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, num_classes=10, input_size=28 * 28, hidden_size=512):
+    def __init__(self, num_classes=10, input_size=28 * 28,
+                 hidden_size=512, hidden_layers=1):
         super().__init__()
 
-        self.features = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-        )
+        layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
+                                 nn.ReLU(inplace=True),
+                                 nn.Dropout()))
+        for layer_idx in range(hidden_layers - 1):
+            layers.add_module(
+                f"fc{layer_idx + 1}", nn.Sequential(
+                    *(nn.Linear(hidden_size, hidden_size),
+                      nn.ReLU(inplace=True),
+                      nn.Dropout())))
+
+        self.features = nn.Sequential(*layers)
         self.classifier = nn.Linear(hidden_size, num_classes)
         self._input_size = input_size
 
