@@ -5,7 +5,9 @@ from .ewc import EWCPlugin
 from .gdumb import GDumbPlugin
 from .gem import GEMPlugin
 from .lwf import LwFPlugin
-from .replay import ReplayPlugin
+from .replay import ReplayPlugin, StoragePolicy, ClassBalancedStoragePolicy, \
+    ExperienceBalancedStoragePolicy
 from .strategy_plugin import StrategyPlugin
 from .synaptic_intelligence import SynapticIntelligencePlugin
 from .gss import GSSPlugin
+from .cope import CoPEPlugin, PPPloss
