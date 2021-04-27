@@ -10,7 +10,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.plugins.replay import ClassBalancedStoragePolicy
 from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskJoinedBatchDataLoader
+    ReplayDataLoader
 
 
 class CoPEPlugin(StrategyPlugin):
@@ -82,7 +82,7 @@ class CoPEPlugin(StrategyPlugin):
         """
         if len(self.replay_mem) == 0:
             return
-        strategy.dataloader = MultiTaskJoinedBatchDataLoader(
+        strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             AvalancheConcatDataset(self.replay_mem.values()),
             oversample_small_tasks=True,

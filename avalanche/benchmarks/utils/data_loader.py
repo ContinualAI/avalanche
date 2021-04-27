@@ -8,8 +8,9 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+from copy import copy
 from itertools import chain
-from typing import Dict
+from typing import Dict, Sequence
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -17,143 +18,171 @@ from torch.utils.data.dataloader import DataLoader
 from avalanche.benchmarks.utils import AvalancheDataset
 
 
-class MultiTaskDataLoader:
+def _default_collate_mbatches_fn(mbatches):
+    """ Combines multiple mini-batches together.
+
+    Concatenates each tensor in the mini-batches along dimension 0 (usually this
+    is the batch size).
+
+    :param mbatches: sequence of mini-batches.
+    :return: a single mini-batch
+    """
+    batch = []
+    for i in range(len(mbatches[0])):
+        t = torch.cat([el[i] for el in mbatches], dim=0)
+        batch.append(t)
+    return batch
+
+
+class TaskBalancedDataLoader:
     def __init__(self, data: AvalancheDataset,
                  oversample_small_tasks: bool = False,
+                 collate_mbatches=_default_collate_mbatches_fn,
                  **kwargs):
-        """ Custom data loader for Avalanche's datasets.
+        """ Task-balanced data loader for Avalanche's datasets.
 
-        When iterating over the data, it returns sequentially a different
-        batch for each task (i.e. first a batch for task 1, then task 2,
-        and so on). If `oversample_small_tasks == True` smaller tasks are
-        oversampled to match the largest task.
+        The iterator returns a mini-batch balanced across each task, which
+        makes it useful when training in multi-task scenarios whenever data is
+        highly unbalanced.
 
-        It is suggested to use this loader only if tasks have approximately the
-        same length.
+        If `oversample_small_tasks == True` smaller tasks are
+        oversampled to match the largest task. Otherwise, once the data for a
+        specific task is terminated, that task will not be present in the
+        subsequent mini-batches.
 
         :param data: an instance of `AvalancheDataset`.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
+        :param collate_mbatches: function that given a sequence of mini-batches
+            (one for each task) combines them into a single mini-batch. Used to
+            combine the mini-batches obtained separately from each task.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
         self.data = data
         self.dataloaders: Dict[int, DataLoader] = {}
         self.oversample_small_tasks = oversample_small_tasks
+        self.collate_mbatches = collate_mbatches
 
+        # split data by task.
+        task_datasets = []
         for task_label in self.data.task_set:
             tdata = self.data.task_set[task_label]
-            self.dataloaders[task_label] = DataLoader(tdata, **kwargs)
-        self.max_len = max([len(d) for d in self.dataloaders.values()])
+            task_datasets.append(tdata)
+
+        # the iteration logic is implemented by GroupBalancedDataLoader.
+        # we use kwargs to pass the arguments to avoid passing the same
+        # arguments multiple times.
+        if 'data' in kwargs:
+            del kwargs['data']
+        # needed if they are passed as positional arguments
+        kwargs['oversample_small_groups'] = oversample_small_tasks
+        kwargs['collate_mbatches'] = collate_mbatches
+        self._dl = GroupBalancedDataLoader(datasets=task_datasets, **kwargs)
 
     def __iter__(self):
-        iter_dataloaders = {}
-        for t in self.dataloaders.keys():
-            iter_dataloaders[t] = iter(self.dataloaders[t])
-        max_len = max([len(d) for d in iter_dataloaders.values()])
-
-        try:
-            for it in range(max_len):
-                # list() is necessary because we may remove keys from the
-                # dictionary. This would break the generator.
-                for tid, t_loader in list(iter_dataloaders.items()):
-                    try:
-                        batch = next(t_loader)
-                    except StopIteration:
-                        # StopIteration is thrown if dataset ends.
-                        # reinitialize data loader
-                        if self.oversample_small_tasks:
-                            # reinitialize data loader
-                            iter_dataloaders[t] = iter(self.dataloaders[tid])
-                            batch = next(iter_dataloaders[tid])
-                        else:
-                            del iter_dataloaders[t]
-                            continue
-                    yield batch
-        except StopIteration:
-            return
+        for el in self._dl.__iter__():
+            yield el
 
     def __len__(self):
-        return self.max_len * len(self.dataloaders)
+        return self._dl.__len__()
 
 
-class MultiTaskMultiBatchDataLoader:
-    def __init__(self, data: AvalancheDataset,
-                 oversample_small_tasks: bool = False,
+class GroupBalancedDataLoader:
+    def __init__(self, datasets: Sequence[AvalancheDataset],
+                 oversample_small_groups: bool = False,
+                 collate_mbatches=_default_collate_mbatches_fn,
                  **kwargs):
-        """ Custom data loader for task-balanced multi-task training.
+        """ Data loader that balances data from multiple datasets.
 
-        Mini-batches emitted by this dataloader are dictionaries with task
-        labels as keys and mini-batches as values. Therefore, each mini-batch
-        contains separate data for each task (i.e. key 1 batch for task 1).
-        If `oversample_small_tasks == True` smaller tasks are oversampled to
-        match the largest task.
+        Mini-batches emitted by this dataloader are created by collating
+        together mini-batches from each group. It may be used to balance data
+        among classes, experiences, tasks, and so on.
 
-        :param data: an instance of `AvalancheDataset`.
-        :param oversample_small_task: whether smaller tasks should be
+        If `oversample_small_groups == True` smaller groups are oversampled to
+        match the largest group. Otherwise, once data from a group is
+        completely iterated, the group will be skipped.
+
+        :param datasets: an instance of `AvalancheDataset`.
+        :param oversample_small_groups: whether smaller groups should be
             oversampled to match the largest one.
+        :param collate_mbatches: function that given a sequence of mini-batches
+            (one for each task) combines them into a single mini-batch. Used to
+            combine the mini-batches obtained separately from each task.
         :param kwargs: data loader arguments used to instantiate the loader for
-            each task separately. See pytorch :class:`DataLoader`.
+            each group separately. See pytorch :class:`DataLoader`.
         """
-        self.data = data
-        self.dataloaders = {}
-        self.oversample_small_tasks = oversample_small_tasks
+        self.datasets = datasets
+        self.dataloaders = []
+        self.oversample_small_groups = oversample_small_groups
+        self.collate_mbatches = collate_mbatches
 
-        for task_label in self.data.task_set:
-            tdata = self.data.task_set[task_label]
-            self.dataloaders[task_label] = DataLoader(tdata, **kwargs)
-        self.max_len = max([len(d) for d in self.dataloaders.values()])
+        for data in self.datasets:
+            self.dataloaders.append(DataLoader(data, **kwargs))
+        self.max_len = max([len(d) for d in self.dataloaders])
 
     def __iter__(self):
-        iter_dataloaders = {}
-        for tid, dl in self.dataloaders.items():
-            iter_dataloaders[tid] = iter(dl)
+        iter_dataloaders = []
+        for dl in self.dataloaders:
+            iter_dataloaders.append(iter(dl))
 
-        max_num_mbatches = max([len(d) for d in iter_dataloaders.values()])
+        max_num_mbatches = max([len(d) for d in iter_dataloaders])
         for it in range(max_num_mbatches):
-            mb_curr = {}
-            # list() is necessary because we may remove keys from the
+            mb_curr = []
+            is_removed_dataloader = False
+            # copy() is necessary because we may remove keys from the
             # dictionary. This would break the generator.
-            for tid, t_loader in list(iter_dataloaders.items()):
-                t_loader = iter_dataloaders[tid]
+            for tid, t_loader in enumerate(iter_dataloaders):
                 try:
                     batch = next(t_loader)
                 except StopIteration:
                     # StopIteration is thrown if dataset ends.
-                    if self.oversample_small_tasks:
+                    if self.oversample_small_groups:
                         # reinitialize data loader
                         iter_dataloaders[tid] = iter(self.dataloaders[tid])
                         batch = next(iter_dataloaders[tid])
                     else:
-                        del iter_dataloaders[tid]
+                        # We iteratated over all the data from this group
+                        # and we don't need the iterator anymore.
+                        iter_dataloaders[tid] = None
+                        is_removed_dataloader = True
                         continue
-                mb_curr[tid] = batch
-            yield mb_curr
+                mb_curr.append(batch)
+            yield self.collate_mbatches(mb_curr)
+
+            # clear empty data-loaders
+            if is_removed_dataloader:
+                while None in iter_dataloaders:
+                    iter_dataloaders.remove(None)
 
     def __len__(self):
         return self.max_len
 
 
-class MultiTaskJoinedBatchDataLoader:
+class ReplayDataLoader:
     def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
-                 oversample_small_tasks: bool = False, batch_size: int = 32,
+                 oversample_small_tasks: bool = False,
+                 collate_mbatches=_default_collate_mbatches_fn,
+                 batch_size: int = 32,
                  **kwargs):
         """ Custom data loader for rehearsal strategies.
 
-        The current experience `data` and rehearsal `memory` are used to create
-        the mini-batches by concatenating them together. Each mini-batch
-        contains examples from each task (i.e. a batch containing a balanced
+        The iterates in parallel two datasets, the current `data` and the
+        rehearsal `memory`, which are used to create mini-batches by
+        concatenating their data together. Mini-batches from both of them are
+        balanced using the task label (i.e. each mini-batch contains a balanced
         number of examples from all the tasks in the `data` and `memory`).
         
         If `oversample_small_tasks == True` smaller tasks are oversampled to
         match the largest task.
 
-        :param data: a dictionary with task ids as keys and Datasets
-            (training data) as values.
-        :param memory: a dictionary with task ids as keys and Datasets
-            (patterns in memory) as values.
+        :param data: AvalancheDataset.
+        :param memory: AvalancheDataset.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
+        :param collate_mbatches: function that given a sequence of mini-batches
+            (one for each task) combines them into a single mini-batch. Used to
+            combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the batch. It must be greater than or
             equal to the number of tasks.
         :param kwargs: data loader arguments used to instantiate the loader for
@@ -162,24 +191,23 @@ class MultiTaskJoinedBatchDataLoader:
 
         self.data = data
         self.memory = memory
-        self.loader_data: Dict[int, DataLoader] = {}
-        self.loader_memory: Dict[int, DataLoader] = {}
+        self.loader_data: Sequence[DataLoader] = {}
+        self.loader_memory: Sequence[DataLoader] = {}
         self.oversample_small_tasks = oversample_small_tasks
+        self.collate_mbatches = collate_mbatches
 
         num_keys = len(self.data.task_set) + len(self.memory.task_set)
         assert batch_size >= num_keys, "Batch size must be greator or equal " \
-                                       "to the number of tasks"
-        single_exp_batch_size = batch_size // num_keys
+           "to the number of tasks in the memory and current data."
+
+        single_group_batch_size = batch_size // num_keys
         remaining_example = batch_size % num_keys
-        # print()
-        # print('num keys: ' + str(num_keys))
-        # print('batch size: ' + str(single_exp_batch_size))
-        # print('resto: ' + str(remaining_example))
+
         self.loader_data, remaining_example = self._create_dataloaders(
-            data, single_exp_batch_size,
+            data, single_group_batch_size,
             remaining_example, **kwargs)
         self.loader_memory, remaining_example = self._create_dataloaders(
-            memory, single_exp_batch_size,
+            memory, single_group_batch_size,
             remaining_example, **kwargs)
         self.max_len = max([len(d) for d in chain(
             self.loader_data.values(), self.loader_memory.values())]
@@ -198,8 +226,7 @@ class MultiTaskJoinedBatchDataLoader:
                                              iter_buffer_dataloaders.values())])
         try:
             for it in range(max_len):
-                mb_x = mb_y = None
-                mb_curr = {}
+                mb_curr = []
                 self._get_mini_batch_from_data_dict(
                     self.data, iter_data_dataloaders,
                     self.loader_data, self.oversample_small_tasks,
@@ -210,7 +237,7 @@ class MultiTaskJoinedBatchDataLoader:
                     self.loader_memory, self.oversample_small_tasks,
                     mb_curr)
 
-                yield mb_curr
+                yield self.collate_mbatches(mb_curr)
         except StopIteration:
             return
 
@@ -222,7 +249,7 @@ class MultiTaskJoinedBatchDataLoader:
                                        mb_curr):
         # list() is necessary because we may remove keys from the
         # dictionary. This would break the generator.
-        for t in list(data.task_set):
+        for t in list(iter_dataloaders.keys()):
             t_loader = iter_dataloaders[t]
             try:
                 tbatch = next(t_loader)
@@ -236,14 +263,7 @@ class MultiTaskJoinedBatchDataLoader:
                 else:
                     del iter_dataloaders[t]
                     continue
-            if t in mb_curr:
-                cat_batch = []
-                for el1, el2 in zip(tbatch, mb_curr[t]):
-                    cat_tensor = torch.cat([el1, el2], dim=0)
-                    cat_batch.append(cat_tensor)
-                mb_curr[t] = cat_batch
-            else:
-                mb_curr[t] = tbatch
+            mb_curr.append(tbatch)
 
     def _create_dataloaders(self, data_dict, single_exp_batch_size,
                             remaining_example, **kwargs):
@@ -260,7 +280,7 @@ class MultiTaskJoinedBatchDataLoader:
 
 
 __all__ = [
-    'MultiTaskDataLoader',
-    'MultiTaskMultiBatchDataLoader',
-    'MultiTaskJoinedBatchDataLoader'
+    'TaskBalancedDataLoader',
+    'GroupBalancedDataLoader',
+    'ReplayDataLoader'
 ]
