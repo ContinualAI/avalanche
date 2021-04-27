@@ -1,0 +1,67 @@
+from os.path import expanduser
+
+import torch
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from torch.utils.data import TensorDataset
+
+from torchvision.datasets import MNIST
+from torchvision.transforms import Compose, ToTensor
+
+from avalanche.benchmarks import nc_benchmark
+
+
+def common_setups():
+    # adapt_dataset_urls()
+    pass
+
+
+def load_scenario(use_task_labels=False, fast_test=True):
+    """
+    Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
+    2 classes per experience.
+    """
+    if fast_test:
+        my_nc_benchmark = get_fast_scenario(use_task_labels)
+    else:
+        mnist_train = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True, download=True,
+            transform=Compose([ToTensor()]))
+
+        mnist_test = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False, download=True,
+            transform=Compose([ToTensor()]))
+        my_nc_benchmark = nc_benchmark(
+            mnist_train, mnist_test, 5,
+            task_labels=use_task_labels, seed=1234)
+
+    return my_nc_benchmark
+
+
+def get_fast_scenario(use_task_labels=False, shuffle=True):
+    n_samples_per_class = 100
+    dataset = make_classification(
+        n_samples=10 * n_samples_per_class,
+        n_classes=10,
+        n_features=6, n_informative=6, n_redundant=0)
+
+    X = torch.from_numpy(dataset[0]).float()
+    y = torch.from_numpy(dataset[1]).long()
+
+    train_X, test_X, train_y, test_y = train_test_split(
+        X, y, train_size=0.6, shuffle=True, stratify=y)
+
+    train_dataset = TensorDataset(train_X, train_y)
+    test_dataset = TensorDataset(test_X, test_y)
+    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
+                                   task_labels=use_task_labels, shuffle=shuffle)
+    return my_nc_benchmark
+
+
+__all__ = [
+    'common_setups',
+    'load_scenario',
+    'get_fast_scenario'
+]

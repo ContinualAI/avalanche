@@ -1,0 +1,10 @@
+typing-extensions
+psutil
+gputil
+scikit-learn
+matplotlib
+numpy
+pytorchcv
+quadprog
+wandb
+tensorboard
