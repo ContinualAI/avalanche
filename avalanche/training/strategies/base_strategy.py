@@ -389,22 +389,11 @@ class BaseStrategy:
         :return:
         """
         for self.mb_it, self.mbatch in enumerate(self.dataloader):
+            self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             self.loss = 0
-
-            # we assume mini-batches have the form <x, y, ..., t>.
-            # This allows for arbitrary tensors between y and t.
-            # Keep in mind that in the most general case mb_task_id is a tensor
-            # which may contain different labels for each sample.
-            assert len(self.mbatch) >= 3
-            self.mb_x = self.mbatch[0]
-            self.mb_y = self.mbatch[1]
-            self.mb_task_id = self.mbatch[-1]
-
-            self.mb_x = self.mb_x.to(self.device)
-            self.mb_y = self.mb_y.to(self.device)
 
             # Forward
             self.before_forward(**kwargs)
@@ -424,6 +413,20 @@ class BaseStrategy:
             self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
+
+    def _unpack_minibatch(self):
+        """ We assume mini-batches have the form <x, y, ..., t>.
+        This allows for arbitrary tensors between y and t.
+        Keep in mind that in the most general case mb_task_id is a tensor
+        which may contain different labels for each sample.
+        """
+        assert len(self.mbatch) >= 3
+        for i in range(len(self.mbatch)):
+            self.mbatch[i] = self.mbatch[i].to(self.device)
+
+        self.mb_x = self.mbatch[0]
+        self.mb_y = self.mbatch[1]
+        self.mb_task_id = self.mbatch[-1]
 
     def before_training(self, **kwargs):
         for p in self.plugins:
@@ -506,12 +509,10 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y, self.mb_task_id) in \
+        for self.mb_it, self.mbatch in \
                 enumerate(self.dataloader):
+            self._unpack_minibatch()
             self.before_eval_iteration(**kwargs)
-
-            self.mb_x = self.mb_x.to(self.device)
-            self.mb_y = self.mb_y.to(self.device)
 
             self.before_eval_forward(**kwargs)
             self.logits = self.forward()
