@@ -2,6 +2,8 @@ import copy
 import sys
 
 import unittest
+
+import pytorchcv.models.pyramidnet_cifar
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -13,8 +15,55 @@ from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
 from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
     update_optimizer
 from avalanche.training.strategies import Naive
+from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
+    pyramidnet, get_model
 from tests.unit_tests_utils import common_setups, load_scenario, \
     get_fast_scenario
+
+
+class PytorchcvWrapperTests(unittest.TestCase):
+    def setUp(self):
+        common_setups()
+
+    def test_vgg(self):
+        model = vgg(depth=19, batch_normalization=True,
+                    pretrained=False)
+        # Batch norm is activated
+        self.assertIsInstance(model.features.stage1.unit1.bn,
+                              torch.nn.BatchNorm2d)
+        # Check correct depth is loaded
+        self.assertEqual(len(model.features.stage5), 5)
+
+    def test_resnet(self):
+        model = resnet("cifar10", depth=20)
+
+        # Test input/output sizes
+        self.assertEqual(model.in_size, (32, 32))
+        self.assertEqual(model.num_classes, 10)
+
+        # Test input/output sizes
+        model = resnet("imagenet", depth=12)
+        self.assertEqual(model.in_size, (224, 224))
+        self.assertEqual(model.num_classes, 1000)
+
+    def test_pyramidnet(self):
+        model = pyramidnet("cifar10", depth=110)
+        self.assertIsInstance(model,
+                              pytorchcv.models.pyramidnet_cifar.CIFARPyramidNet)
+        model = pyramidnet("imagenet", depth=101)
+        self.assertIsInstance(model,
+                              pytorchcv.models.pyramidnet.PyramidNet)
+
+    def test_densenet(self):
+        model = densenet("svhn", depth=40)
+        self.assertIsInstance(model,
+                              pytorchcv.models.densenet_cifar.CIFARDenseNet)
+
+    def test_get_model(self):
+        # Check general wrapper and whether downloading pretrained model works
+        model = get_model('simplepose_resnet18_coco', pretrained=True)
+        self.assertIsInstance(model,
+                              pytorchcv.models.simplepose_coco.SimplePose)
 
 
 class DynamicOptimizersTests(unittest.TestCase):
