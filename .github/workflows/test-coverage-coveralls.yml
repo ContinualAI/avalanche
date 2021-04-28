@@ -32,6 +32,8 @@ jobs:
     if: github.repository == 'ContinualAI/avalanche'
     name: unit test
     runs-on: ubuntu-latest
+    container:
+      image: ggraffieti/avalanche-ds:latest
     strategy:
       fail-fast: false
       matrix:
@@ -43,28 +45,31 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: avalanche-env
-          python-version: ${{ matrix.python-version }}
-          auto-activate-base: false
+      - name: copy dataset in correct folder
+        run: cp -r /~/.avalanche /github/home
       - name: install conda environment < 3.9
         if: matrix.python-version != '3.9'
         run: |
+          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
+          conda activate avalanche-env
           conda install pytorch torchvision cpuonly -c pytorch -y
           conda env update --file environment.yml
       - name: install conda environment = 3.9
         if: matrix.python-version == '3.9'
         run: |
+          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
+          conda activate avalanche-env
           conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
           conda env update --file environment.yml
       - name: install coverage.py and coverralls
         run: |
+          conda activate avalanche-env
           pip install coverage
           pip install coveralls
       - name: python unit test
         id: unittest
         run: |
+          conda activate avalanche-env
           FAST_TEST=True USE_GPU=False coverage run -m unittest
       - name: Upload coverage data to coveralls.io
         run: coveralls --service=github
