@@ -17,17 +17,17 @@ from os.path import expanduser
 from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
-from avalanche.benchmarks import nc_scenario
+from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_fmnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.2190,), (0.3318,))
+    transforms.Normalize((0.2860,), (0.3530,))
 ])
 
 _default_fmnist_eval_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.2190,), (0.3318,))
+    transforms.Normalize((0.2860,), (0.3530,))
 ])
 
 
@@ -104,7 +104,7 @@ def SplitFMNIST(n_experiences: int,
         train_transform, eval_transform)
 
     if return_task_id:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=fmnist_train,
             test_dataset=fmnist_test,
             n_experiences=n_experiences,
@@ -113,7 +113,7 @@ def SplitFMNIST(n_experiences: int,
             fixed_class_order=fixed_class_order,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None)
     else:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=fmnist_train,
             test_dataset=fmnist_test,
             n_experiences=n_experiences,
@@ -138,7 +138,7 @@ __all__ = [
 
 if __name__ == "__main__":
 
-    nc_scenario = SplitFMNIST(n_experiences=10)
+    nc_benchmark = SplitFMNIST(n_experiences=10)
 
-    for i, batch in enumerate(nc_scenario.train_stream):
+    for i, batch in enumerate(nc_benchmark.train_stream):
         print(i, batch)

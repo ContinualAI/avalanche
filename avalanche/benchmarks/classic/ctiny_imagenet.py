@@ -11,7 +11,7 @@
 
 from torchvision import transforms
 from avalanche.benchmarks.datasets import TinyImagenet
-from avalanche.benchmarks.generators import nc_scenario
+from avalanche.benchmarks.generators import nc_benchmark
 from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
@@ -87,7 +87,7 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
         train_transform, eval_transform)
 
     if return_task_id:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_experiences=n_experiences,
@@ -96,7 +96,7 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
             fixed_class_order=fixed_class_order,
             class_ids_from_zero_in_each_exp=True)
     else:
-        return nc_scenario(
+        return nc_benchmark(
             train_dataset=train_set,
             test_dataset=test_set,
             n_experiences=n_experiences,

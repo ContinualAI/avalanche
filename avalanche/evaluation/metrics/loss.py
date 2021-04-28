@@ -110,6 +110,7 @@ class MinibatchLoss(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self.reset()  # Because this metric computes the loss of a single mb
         self._loss_metric.update(strategy.loss,
                                  patterns=len(strategy.mb_y))
@@ -150,6 +151,7 @@ class EpochLoss(PluginMetric[float]):
         self.reset()
 
     def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_training_iteration(strategy)
         self._loss_metric.update(strategy.loss, len(strategy.mb_y))
 
     def after_training_epoch(self, strategy: 'BaseStrategy') \
@@ -239,6 +241,7 @@ class ExperienceLoss(PluginMetric[float]):
         self.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval_iteration(strategy)
         self._loss_metric.update(strategy.loss, len(strategy.mb_y))
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> \
@@ -284,6 +287,7 @@ class StreamLoss(PluginMetric[float]):
         self.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval_iteration(strategy)
         self._loss_metric.update(strategy.loss, len(strategy.mb_y))
 
     def after_eval(self, strategy: 'BaseStrategy') -> \

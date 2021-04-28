@@ -137,6 +137,7 @@ class MinibatchAccuracy(PluginMetric[float]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
+        super().after_training_iteration(strategy)
         self.reset()  # Because this metric computes the accuracy of a single mb
         self._minibatch_accuracy.update(strategy.mb_y,
                                         strategy.logits)
@@ -179,6 +180,7 @@ class EpochAccuracy(PluginMetric[float]):
         return self._accuracy_metric.result()
 
     def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_training_iteration(strategy)
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
@@ -266,6 +268,7 @@ class ExperienceAccuracy(PluginMetric[float]):
         self.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval_iteration(strategy)
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
@@ -312,6 +315,7 @@ class StreamAccuracy(PluginMetric[float]):
         self.reset()
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval_iteration(strategy)
         self._accuracy_metric.update(strategy.mb_y,
                                      strategy.logits)
 
