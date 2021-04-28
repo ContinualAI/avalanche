@@ -12,6 +12,7 @@
 """ This module contains the high-level CORe50 scenario generator. It
 basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
+from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets.core50.core50_data import CORE50_DATA
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
@@ -103,7 +104,7 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
 
     scenario_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
-        root + filelists_bp + "test_filelist.txt",
+        [root + filelists_bp + "test_filelist.txt"],
         task_labels=[0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
@@ -122,14 +123,16 @@ if __name__ == "__main__":
     import sys
     from torch.utils.data.dataloader import DataLoader
 
-    scenario = CORe50(scenario="nicv2_79")
+    scenario = CORe50(scenario="nicv2_79",
+                      train_transform=ToTensor(),
+                      eval_transform=ToTensor())
     for i, batch in enumerate(scenario.train_stream):
         print(i, batch)
         dataset, t = batch.dataset, batch.task_label
         dl = DataLoader(dataset, batch_size=300)
 
         for mb in dl:
-            x, y = mb
+            x, y, t = mb
             print(x.shape)
             print(y.shape)
         sys.exit(0)
