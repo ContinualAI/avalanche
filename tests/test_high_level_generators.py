@@ -1,6 +1,7 @@
 import unittest
 
 import os
+from os.path import expanduser
 
 import torch
 from torchvision.datasets import CIFAR10, MNIST
@@ -19,17 +20,21 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark(self):
         train_MNIST = MNIST(
-            './data/mnist', train=True, download=True
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True, download=True
         )
         test_MNIST = MNIST(
-            './data/mnist', train=False, download=True
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False, download=True
         )
 
         train_cifar10 = CIFAR10(
-            './data/cifar10', train=True, download=True
+            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            train=True, download=True
         )
         test_cifar10 = CIFAR10(
-            './data/cifar10', train=False, download=True
+            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            train=False, download=True
         )
 
         generic_scenario = dataset_benchmark(
@@ -38,19 +43,23 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = AvalancheDataset(MNIST(
-            './data/mnist', train=True, download=True
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True, download=True
         ), task_labels=0)
 
         test_MNIST = AvalancheDataset(MNIST(
-            './data/mnist', train=False, download=True
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False, download=True
         ), task_labels=0)
 
         train_cifar10 = AvalancheDataset(CIFAR10(
-            './data/cifar10', train=True, download=True
+            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            train=True, download=True
         ), task_labels=1)
 
         test_cifar10 = AvalancheDataset(CIFAR10(
-            './data/cifar10', train=False, download=True
+            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            train=False, download=True
         ), task_labels=1)
 
         generic_scenario = dataset_benchmark(
@@ -65,13 +74,15 @@ class HighLevelGeneratorTests(unittest.TestCase):
     def test_filelist_benchmark(self):
         download_url(
             'https://storage.googleapis.com/mledu-datasets/'
-            'cats_and_dogs_filtered.zip', './data',
+            'cats_and_dogs_filtered.zip', expanduser("~") + "/.avalanche/data",
             'cats_and_dogs_filtered.zip')
         archive_name = os.path.join(
-            './data', 'cats_and_dogs_filtered.zip')
-        extract_archive(archive_name, to_path='./data/')
+            expanduser("~") + "/.avalanche/data", 'cats_and_dogs_filtered.zip')
+        extract_archive(archive_name,
+                        to_path=expanduser("~") + "/.avalanche/data/")
 
-        dirpath = "./data/cats_and_dogs_filtered/train"
+        dirpath = expanduser("~") + \
+            "/.avalanche/data/cats_and_dogs_filtered/train"
 
         for filelist, dir, label in zip(
                 ["train_filelist_00.txt", "train_filelist_01.txt"],
@@ -101,13 +112,15 @@ class HighLevelGeneratorTests(unittest.TestCase):
     def test_paths_benchmark(self):
         download_url(
             'https://storage.googleapis.com/mledu-datasets/'
-            'cats_and_dogs_filtered.zip', './data',
+            'cats_and_dogs_filtered.zip', expanduser("~") + "/.avalanche/data",
             'cats_and_dogs_filtered.zip')
         archive_name = os.path.join(
-            './data', 'cats_and_dogs_filtered.zip')
-        extract_archive(archive_name, to_path='./data/')
+            expanduser("~") + "/.avalanche/data", 'cats_and_dogs_filtered.zip')
+        extract_archive(archive_name,
+                        to_path=expanduser("~") + "/.avalanche/data/")
 
-        dirpath = "./data/cats_and_dogs_filtered/train"
+        dirpath = expanduser("~") + \
+            "/.avalanche/data/cats_and_dogs_filtered/train"
 
         train_experiences = []
         for rel_dir, label in zip(
