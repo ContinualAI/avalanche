@@ -1,5 +1,7 @@
 import unittest
 
+from torch.utils.data import DataLoader
+
 from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
     SplitMNIST
 
@@ -36,12 +38,30 @@ class MNISTBenchmarksTests(unittest.TestCase):
         for experience in scenario.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
+
+            for x, y, t in DataLoader(experience.dataset, batch_size=32):
+                break
+
+            # Regression test for 572
+            for x, y, t in DataLoader(experience.dataset.eval(),
+                                      batch_size=32):
+                break
+
         self.assertEqual(60000, train_sz)
 
         test_sz = 0
         for experience in scenario.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
+
+            for x, y, t in DataLoader(experience.dataset, batch_size=32):
+                break
+
+            # Regression test for 572
+            for x, y, t in DataLoader(experience.dataset.train(),
+                                      batch_size=32):
+                break
+
         self.assertEqual(10000, test_sz)
 
     def test_PermutedMNIST_scenario(self):
