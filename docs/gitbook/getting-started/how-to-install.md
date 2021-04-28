@@ -56,7 +56,7 @@ These steps can be accomplished with the following lines of code:
 python="3.8"
 
 # Step 1
-git clone https://github.com/vlomonaco/avalanche.git
+git clone https://github.com/ContinualAI/avalanche.git
 cd avalanche
 conda create -n avalanche-env python=$python -c conda-forge
 conda activate avalanche-env
@@ -91,7 +91,7 @@ These three steps can be accomplished with the following lines of code:
 python="3.8"
 
 # Step 1
-git clone https://github.com/vlomonaco/avalanche.git
+git clone https://github.com/ContinualAI/avalanche.git
 cd avalanche
 conda create -n avalanche-dev-env python=$python -c conda-forge
 conda activate avalanche-dev-env
