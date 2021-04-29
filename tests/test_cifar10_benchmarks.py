@@ -1,8 +1,7 @@
 import unittest
 
-from torch.utils.data.dataloader import DataLoader
-
 from avalanche.benchmarks import Experience, SplitCIFAR10
+from unit_tests_utils import load_experience_train_eval
 
 CIFAR10_DOWNLOADS = 0
 CIFAR10_DOWNLOAD_METHOD = None
@@ -38,13 +37,8 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
 
-            for x, y, t in DataLoader(experience.dataset, batch_size=32):
-                break
-
             # Regression test for 575
-            for x, y, t in DataLoader(experience.dataset.eval(),
-                                      batch_size=32):
-                break
+            load_experience_train_eval(experience)
 
         self.assertEqual(50000, train_sz)
 
@@ -53,13 +47,8 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
 
-            for x, y, t in DataLoader(experience.dataset, batch_size=32):
-                break
-
             # Regression test for 575
-            for x, y, t in DataLoader(experience.dataset.train(),
-                                      batch_size=32):
-                break
+            load_experience_train_eval(experience)
 
         self.assertEqual(10000, test_sz)
 
