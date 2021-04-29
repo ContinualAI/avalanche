@@ -27,13 +27,16 @@ class WandBLogger(StrategyLogger):
     logged to a dedicated Weights & Biases project dashboard.
     """
 
-    def __init__(self, project_name: str, run_name: str, params: dict):
+    def __init__(self, project_name: str = "Avalanche", 
+                 run_name: str = "Avalanche Test", params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
 
         :param project_name: Name of the W&B project.:
         :param run_name: Name of the W&B run.:
-        :param params: All arguments for wandb.init() function call.:
+        :param params: All arguments for wandb.init() function call. 
+         Visit https://docs.wandb.ai/ref/python/init to learn about all 
+         wand.init() parameters.:
         """
 
         super().__init__()
