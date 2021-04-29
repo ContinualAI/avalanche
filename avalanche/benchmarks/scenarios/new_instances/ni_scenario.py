@@ -115,15 +115,16 @@ class NIScenario(GenericCLScenario['NIExperience']):
             raise ValueError('Invalid min_class_patterns_in_exp parameter: '
                              'must be greater than or equal to 0')
 
-        transform_groups = train_eval_transforms(train_dataset, test_dataset)
-
-        train_dataset = train_dataset \
-            .replace_transforms(*transform_groups['train'], group='train') \
-            .replace_transforms(*transform_groups['eval'], group='eval')
-
-        test_dataset = test_dataset \
-            .replace_transforms(*transform_groups['train'], group='train') \
-            .replace_transforms(*transform_groups['eval'], group='eval')
+        # # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         unique_targets, unique_count = torch.unique(
             torch.as_tensor(train_dataset.targets), return_counts=True)

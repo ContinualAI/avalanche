@@ -12,7 +12,7 @@
 from torchvision import transforms
 from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.generators import nc_benchmark
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
+
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -83,8 +83,7 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_tiny_imagenet_dataset(
-        train_transform, eval_transform)
+    train_set, test_set = _get_tiny_imagenet_dataset()
 
     if return_task_id:
         return nc_benchmark(
@@ -94,7 +93,9 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_exp=True)
+            class_ids_from_zero_in_each_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -102,16 +103,17 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
             n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
-            fixed_class_order=fixed_class_order)
+            fixed_class_order=fixed_class_order,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
-def _get_tiny_imagenet_dataset(train_transformation, eval_transformation):
+def _get_tiny_imagenet_dataset():
     train_set = TinyImagenet(train=True)
 
     test_set = TinyImagenet(train=False)
 
-    return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+    return train_set, test_set
 
 
 __all__ = [

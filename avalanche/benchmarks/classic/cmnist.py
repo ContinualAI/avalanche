@@ -21,8 +21,7 @@ from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
 import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_benchmark
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets, \
-    AvalancheDatasetType
+from avalanche.benchmarks.utils import AvalancheDataset
 
 _default_mnist_train_transform = Compose([
     ToTensor(),
@@ -126,9 +125,6 @@ def SplitMNIST(
 
     mnist_train, mnist_test = _get_mnist_dataset()
 
-    mnist_train = mnist_train.add_transforms(train_transform)
-    mnist_test = mnist_test.add_transforms(eval_transform)
-
     if return_task_id:
         return nc_benchmark(
             train_dataset=mnist_train,
@@ -137,7 +133,9 @@ def SplitMNIST(
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_exp=True)
+            class_ids_from_zero_in_each_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=mnist_train,
@@ -145,7 +143,9 @@ def SplitMNIST(
             n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
-            fixed_class_order=fixed_class_order)
+            fixed_class_order=fixed_class_order,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
 def PermutedMNIST(
@@ -211,18 +211,21 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        # Freeze the permutation, then add the user defined transformations
-        permuted_train = mnist_train \
-            .add_transforms_to_group('train', permutation) \
-            .add_transforms_to_group('eval', permutation) \
-            .freeze_transforms() \
-            .add_transforms(train_transform)
+        permutation_transforms = dict(
+            train=(permutation, None),
+            eval=(permutation, None)
+        )
 
-        permuted_test = mnist_test \
-            .add_transforms_to_group('train', permutation) \
-            .add_transforms_to_group('eval', permutation) \
-            .freeze_transforms() \
-            .add_transforms(eval_transform)
+        # Freeze the permutation
+        permuted_train = AvalancheDataset(
+            mnist_train,
+            transform_groups=permutation_transforms,
+            initial_transform_group='train').freeze_transforms()
+
+        permuted_test = AvalancheDataset(
+            mnist_test,
+            transform_groups=permutation_transforms,
+            initial_transform_group='eval').freeze_transforms()
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -234,7 +237,9 @@ def PermutedMNIST(
         task_labels=True,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
-        one_dataset_per_exp=True)
+        one_dataset_per_exp=True,
+        train_transform=train_transform,
+        eval_transform=eval_transform)
 
 
 def RotatedMNIST(
@@ -318,18 +323,21 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        # Freeze the rotation, then add the user defined transformations
-        rotated_train = mnist_train \
-            .add_transforms_to_group('train', rotation) \
-            .add_transforms_to_group('eval', rotation) \
-            .freeze_transforms() \
-            .add_transforms(train_transform)
+        rotation_transforms = dict(
+            train=(rotation, None),
+            eval=(rotation, None)
+        )
 
-        rotated_test = mnist_test \
-            .add_transforms_to_group('train', rotation) \
-            .add_transforms_to_group('eval', rotation) \
-            .freeze_transforms() \
-            .add_transforms(eval_transform)
+        # Freeze the rotation
+        rotated_train = AvalancheDataset(
+            mnist_train,
+            transform_groups=rotation_transforms,
+            initial_transform_group='train').freeze_transforms()
+
+        rotated_test = AvalancheDataset(
+            mnist_test,
+            transform_groups=rotation_transforms,
+            initial_transform_group='eval').freeze_transforms()
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
@@ -341,7 +349,9 @@ def RotatedMNIST(
         task_labels=True,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
-        one_dataset_per_exp=True)
+        one_dataset_per_exp=True,
+        train_transform=train_transform,
+        eval_transform=eval_transform)
 
 
 def _get_mnist_dataset():
@@ -351,9 +361,7 @@ def _get_mnist_dataset():
     test_set = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                      train=False, download=True)
 
-    return train_eval_avalanche_datasets(
-        train_set, test_set, None, None,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+    return train_set, test_set
 
 
 __all__ = [

@@ -363,15 +363,16 @@ class NCScenario(GenericCLScenario['NCExperience']):
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)
 
-        transform_groups = train_eval_transforms(train_dataset, test_dataset)
-
-        train_dataset = train_dataset\
-            .replace_transforms(*transform_groups['train'], group='train') \
-            .replace_transforms(*transform_groups['eval'], group='eval')
-
-        test_dataset = test_dataset \
-            .replace_transforms(*transform_groups['train'], group='train') \
-            .replace_transforms(*transform_groups['eval'], group='eval')
+        # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset\
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         train_dataset = AvalancheSubset(
             train_dataset, class_mapping=self.class_mapping,

@@ -14,7 +14,6 @@ from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -96,8 +95,7 @@ def SplitCUB200(root,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_cub200_dataset(
-        root, train_transform, eval_transform)
+    train_set, test_set = _get_cub200_dataset(root)
 
     if classes_first_batch is not None:
         per_exp_classes = {0: classes_first_batch}
@@ -114,7 +112,9 @@ def SplitCUB200(root,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
-            one_dataset_per_exp=True)
+            one_dataset_per_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -124,15 +124,16 @@ def SplitCUB200(root,
             per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            shuffle=shuffle)
+            shuffle=shuffle,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
-def _get_cub200_dataset(root, train_transformation, eval_transformation):
+def _get_cub200_dataset(root):
     train_set = CUB200(root, train=True)
     test_set = CUB200(root, train=False)
 
-    return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+    return train_set, test_set
 
 
 __all__ = [
