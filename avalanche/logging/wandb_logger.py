@@ -31,6 +31,8 @@ class WandBLogger(StrategyLogger):
         """
         Creates an instance of the `WandBLogger`.
 
+        :param project_name: Name of the W&B project.:
+        :param run_name: Name of the W&B run.:
         :param params: All arguments for wandb.init() function call.:
         """
 
