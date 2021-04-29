@@ -99,7 +99,7 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
 
     factor_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
-        root + filelists_bp + "test.txt",
+        [root + filelists_bp + "test.txt"],
         task_labels=[0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
         train_transform=train_transform,
