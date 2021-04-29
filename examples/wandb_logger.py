@@ -73,9 +73,7 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    wandb_logger = WandBLogger(
-        init_kwargs={"project": args.project, "name": args.run}
-    )
+    wandb_logger = WandBLogger(project_name=args.project, run_name=args.run)
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
