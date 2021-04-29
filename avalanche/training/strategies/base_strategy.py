@@ -214,8 +214,8 @@ class BaseStrategy:
                 eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
-        for exp in experiences:
-            self.train_exp(exp, eval_streams, **kwargs)
+        for self.experience in experiences:
+            self.train_exp(self.experience, eval_streams, **kwargs)
         self.after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
@@ -307,9 +307,7 @@ class BaseStrategy:
             exp_list = [exp_list]
 
         self.before_eval(**kwargs)
-        for exp in exp_list:
-            self.experience = exp
-
+        for self.experience in exp_list:
             # Data Adaptation
             self.before_eval_dataset_adaptation(**kwargs)
             self.eval_dataset_adaptation(**kwargs)

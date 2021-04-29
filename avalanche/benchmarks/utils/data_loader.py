@@ -8,7 +8,12 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from copy import copy
+"""
+    Avalanche supports data loading using pytorch's dataloaders.
+    This module provides custom dataloaders for continual learning such as
+    support for balanced dataloading between different tasks or balancing
+    between the current data and the replay memory.
+"""
 from itertools import chain
 from typing import Dict, Sequence
 
