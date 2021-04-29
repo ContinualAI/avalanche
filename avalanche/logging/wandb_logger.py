@@ -58,7 +58,7 @@ class WandBLogger(StrategyLogger):
     def args_parse(self):
         self.init_kwargs = {"project": self.project_name, "name": self.run_name}
         if self.params:
-            self.init_kwargs |= self.params
+            self.init_kwargs.update(self.params)
 
     def before_run(self):
         if self.wandb is None:
