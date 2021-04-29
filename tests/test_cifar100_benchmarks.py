@@ -3,7 +3,7 @@ import unittest
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks import Experience, SplitCIFAR100, SplitCIFAR110
-from unit_tests_utils import load_experience_train_eval
+from tests.unit_tests_utils import load_experience_train_eval
 
 CIFAR10_DOWNLOADS = 0
 CIFAR10_DOWNLOAD_METHOD = None

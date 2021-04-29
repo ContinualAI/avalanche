@@ -1,7 +1,7 @@
 import unittest
 
 from avalanche.benchmarks import Experience, SplitCIFAR10
-from unit_tests_utils import load_experience_train_eval
+from tests.unit_tests_utils import load_experience_train_eval
 
 CIFAR10_DOWNLOADS = 0
 CIFAR10_DOWNLOAD_METHOD = None

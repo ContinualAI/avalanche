@@ -1,7 +1,7 @@
 import unittest
 
 from avalanche.benchmarks import Experience, SplitFMNIST
-from unit_tests_utils import load_experience_train_eval
+from tests.unit_tests_utils import load_experience_train_eval
 
 MNIST_DOWNLOADS = 0
 MNIST_DOWNLOAD_METHOD = None
