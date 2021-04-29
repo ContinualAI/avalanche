@@ -202,8 +202,9 @@ class ReplayDataLoader:
         self.collate_mbatches = collate_mbatches
 
         num_keys = len(self.data.task_set) + len(self.memory.task_set)
-        assert batch_size >= num_keys, "Batch size must be greator or equal " \
-           "to the number of tasks in the memory and current data."
+        assert batch_size >= num_keys, "Batch size must be greator or equal "\
+                                       "to the number of tasks in the memory " \
+                                       "and current data."
 
         single_group_batch_size = batch_size // num_keys
         remaining_example = batch_size % num_keys
