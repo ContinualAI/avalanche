@@ -81,7 +81,7 @@ class WandBLogger(StrategyLogger):
 
         elif isinstance(value, Tensor):
             value = np.histogram(value.view(-1).numpy())
-            self.wandb.log({name: wandb.Histogram(np_histogram=value)})
+            self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
 
         elif isinstance(value, (float, int, Figure)):
             self.wandb.log({name: value})
