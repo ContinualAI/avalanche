@@ -17,7 +17,7 @@ from PIL.Image import Image
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
 from avalanche.benchmarks.datasets.omniglot import Omniglot
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
+from avalanche.benchmarks.utils import AvalancheDataset
 import numpy as np
 
 _default_omniglot_train_transform = Compose([
@@ -122,8 +122,7 @@ def SplitOmniglot(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    omniglot_train, omniglot_test = _get_omniglot_dataset(train_transform,
-                                                          eval_transform)
+    omniglot_train, omniglot_test = _get_omniglot_dataset()
 
     if return_task_id:
         return nc_benchmark(
@@ -133,7 +132,9 @@ def SplitOmniglot(
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_exp=True)
+            class_ids_from_zero_in_each_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=omniglot_train,
@@ -141,7 +142,9 @@ def SplitOmniglot(
             n_experiences=n_experiences,
             task_labels=False,
             seed=seed,
-            fixed_class_order=fixed_class_order)
+            fixed_class_order=fixed_class_order,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
 def PermutedOmniglot(
@@ -196,6 +199,8 @@ def PermutedOmniglot(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
+    omniglot_train, omniglot_test = _get_omniglot_dataset()
+
     # for every incremental experience
     for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
@@ -204,17 +209,21 @@ def PermutedOmniglot(
 
         permutation = PixelsPermutation(idx_permute)
 
-        omniglot_train, omniglot_test = _get_omniglot_dataset(permutation,
-                                                              permutation)
+        permutation_transforms = dict(
+            train=(permutation, None),
+            eval=(permutation, None)
+        )
 
-        # Freeze the permutation, then add the user defined transformations
-        permuted_train = omniglot_train \
-            .freeze_transforms() \
-            .add_transforms(train_transform)
+        # Freeze the permutation
+        permuted_train = AvalancheDataset(
+            omniglot_train,
+            transform_groups=permutation_transforms,
+            initial_transform_group='train').freeze_transforms()
 
-        permuted_test = omniglot_test \
-            .freeze_transforms() \
-            .add_transforms(eval_transform)
+        permuted_test = AvalancheDataset(
+            omniglot_test,
+            transform_groups=permutation_transforms,
+            initial_transform_group='eval').freeze_transforms()
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -226,7 +235,9 @@ def PermutedOmniglot(
         task_labels=True,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
-        one_dataset_per_exp=True)
+        one_dataset_per_exp=True,
+        train_transform=train_transform,
+        eval_transform=eval_transform)
 
 
 def RotatedOmniglot(
@@ -301,23 +312,29 @@ def RotatedOmniglot(
     list_train_dataset = []
     list_test_dataset = []
 
+    omniglot_train, omniglot_test = _get_omniglot_dataset()
+
     # for every incremental experience
     for experience in range(n_experiences):
         rotation_angle = rotations_list[experience]
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        omniglot_train, omniglot_test = _get_omniglot_dataset(rotation,
-                                                              rotation)
+        rotation_transforms = dict(
+            train=(rotation, None),
+            eval=(rotation, None)
+        )
 
-        # Freeze the rotation, then add the user defined transformations
-        rotated_train = omniglot_train \
-            .freeze_transforms() \
-            .add_transforms(train_transform)
+        # Freeze the rotation
+        rotated_train = AvalancheDataset(
+            omniglot_train,
+            transform_groups=rotation_transforms,
+            initial_transform_group='train').freeze_transforms()
 
-        rotated_test = omniglot_test \
-            .freeze_transforms() \
-            .add_transforms(eval_transform)
+        rotated_test = AvalancheDataset(
+            omniglot_test,
+            transform_groups=rotation_transforms,
+            initial_transform_group='eval').freeze_transforms()
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
@@ -329,20 +346,18 @@ def RotatedOmniglot(
         task_labels=True,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
-        one_dataset_per_exp=True)
+        one_dataset_per_exp=True,
+        train_transform=train_transform,
+        eval_transform=eval_transform)
 
 
-def _get_omniglot_dataset(train_transformation, eval_transform):
+def _get_omniglot_dataset():
     train = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
                      train=True, download=True)
     test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
                     train=False, download=True)
 
-    return train_eval_avalanche_datasets(
-        train_dataset=train,
-        test_dataset=test,
-        train_transformation=train_transformation,
-        eval_transformation=eval_transform)
+    return train, test
 
 
 __all__ = [
@@ -352,6 +367,5 @@ __all__ = [
 ]
 
 if __name__ == '__main__':
-    _get_omniglot_dataset(_default_omniglot_train_transform,
-                          _default_omniglot_eval_transform)
+    _get_omniglot_dataset()
     rot = RotatedOmniglot(n_experiences=10, seed=1)

@@ -15,8 +15,6 @@ from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
-
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
@@ -106,8 +104,7 @@ def SplitImageNet(root,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_imagenet_dataset(
-        root, train_transform, eval_transform)
+    train_set, test_set = _get_imagenet_dataset(root)
 
     if return_task_id:
         return nc_benchmark(
@@ -118,7 +115,9 @@ def SplitImageNet(root,
             per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            class_ids_from_zero_in_each_exp=True)
+            class_ids_from_zero_in_each_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -127,16 +126,17 @@ def SplitImageNet(root,
             task_labels=False,
             per_exp_classes=per_exp_classes,
             seed=seed,
-            fixed_class_order=fixed_class_order)
+            fixed_class_order=fixed_class_order,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
-def _get_imagenet_dataset(root, train_transformation, eval_transformation):
+def _get_imagenet_dataset(root):
     train_set = ImageNet(root, split="train")
 
     test_set = ImageNet(root, split="val")
 
-    return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+    return train_set, test_set
 
 
 __all__ = [
