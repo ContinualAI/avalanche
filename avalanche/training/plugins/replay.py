@@ -7,7 +7,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, \
     AvalancheDataset, AvalancheSubset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskJoinedBatchDataLoader
+    ReplayDataLoader
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -53,7 +53,7 @@ class ReplayPlugin(StrategyPlugin):
         """
         if len(self.ext_mem) == 0:
             return
-        strategy.dataloader = MultiTaskJoinedBatchDataLoader(
+        strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             AvalancheConcatDataset(self.ext_mem.values()),
             oversample_small_tasks=True,
