@@ -36,7 +36,7 @@ from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskJoinedBatchDataLoader
+    ReplayDataLoader, TaskBalancedDataLoader, GroupBalancedDataLoader
 
 
 def get_fast_scenario():
@@ -60,6 +60,22 @@ def get_fast_scenario():
 
 
 class DataLoaderTests(unittest.TestCase):
+    def test_basic(self):
+        scenario = get_fast_scenario()
+        ds = [el.dataset for el in scenario.train_stream]
+        data = AvalancheConcatDataset(ds)
+        dl = TaskBalancedDataLoader(data)
+        for el in dl:
+            pass
+
+        dl = GroupBalancedDataLoader(ds)
+        for el in dl:
+            pass
+
+        dl = ReplayDataLoader(data, data)
+        for el in dl:
+            pass
+
     def test_dataload_reinit(self):
         scenario = get_fast_scenario()
         model = SimpleMLP(input_size=6, hidden_size=10)
@@ -77,19 +93,19 @@ class DataLoaderTests(unittest.TestCase):
 
     def test_dataload_batch_balancing(self):
         scenario = get_fast_scenario()
-        model = SimpleMLP(input_size=6, hidden_size=10)
         batch_size = 32
         replayPlugin = ReplayPlugin(mem_size=20)
+
+        model = SimpleMLP(input_size=6, hidden_size=10)
         cl_strategy = Naive(
-            model, 
+            model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
             CrossEntropyLoss(), train_mb_size=batch_size, train_epochs=1,
             eval_mb_size=100, plugins=[replayPlugin]
         )
-
         for step in scenario.train_stream:
             adapted_dataset = step.dataset
-            dataloader = MultiTaskJoinedBatchDataLoader(
+            dataloader = ReplayDataLoader(
                     adapted_dataset,
                     AvalancheConcatDataset(replayPlugin.ext_mem.values()),
                     oversample_small_tasks=True,
@@ -98,9 +114,11 @@ class DataLoaderTests(unittest.TestCase):
                     shuffle=True)
 
             for mini_batch in dataloader:
+                mb_task_labels = mini_batch[-1]
                 lengths = []
-                for task_id in mini_batch.keys():
-                    lengths.append(len(mini_batch[task_id][1]))
+                for task_id in adapted_dataset.task_set:
+                    len_task = (mb_task_labels == task_id).sum()
+                    lengths.append(len_task)
                 if sum(lengths) == batch_size:
                     difference = max(lengths) - min(lengths)
                     self.assertLessEqual(difference, 1)
