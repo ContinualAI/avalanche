@@ -1,7 +1,7 @@
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import GSS, Naive, CWRStar, Replay, GDumb, Cumulative, LwF, GEM, AGEM, EWC
+from avalanche.training.strategies import GSS_greedy, Naive, CWRStar, Replay, GDumb, Cumulative, LwF, GEM, AGEM, EWC
 from avalanche.benchmarks.classic import SplitMNIST
 
 
@@ -9,9 +9,9 @@ model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
 
-cl_strategy = GSS(
+cl_strategy = GSS_greedy(
     model, optimizer, criterion, 
-    train_mb_size=100, train_epochs=1, eval_mb_size=100, mem_size=100
+    train_mb_size=100, mem_strength=5, train_epochs=1, eval_mb_size=100, mem_size=100
 )
 
 # scenario

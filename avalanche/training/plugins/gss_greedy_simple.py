@@ -34,7 +34,7 @@ def get_grad_vector(pp, grad_dims):
     return grads
 
 
-class GSSPlugin(StrategyPlugin):
+class GSS_greedy_simplePlugin(StrategyPlugin):
     """
     GSSPlugin replay plugin.
 

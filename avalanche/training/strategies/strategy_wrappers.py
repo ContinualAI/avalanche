@@ -12,13 +12,9 @@ from typing import Optional, Sequence, List, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
-
-from avalanche.training import default_logger
-from avalanche.training.plugins import GSSPlugin, StrategyPlugin, CWRStarPlugin, \
-    ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
-    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
-
+from avalanche.training import default_logger
+from avalanche.training.plugins import GSS_greedyPlugin, GSS_greedy_simplePlugin, StrategyPlugin, CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 
 class Naive(BaseStrategy):
     """
@@ -147,7 +143,7 @@ class Replay(BaseStrategy):
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
 
-class GSS(BaseStrategy):
+class GSS_greedy_simple(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200, n=1,
@@ -178,7 +174,49 @@ class GSS(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
-        rp = GSSPlugin(mem_size)
+        rp = GSS_greedy_simplePlugin(mem_size=mem_size,n=n)
+        if plugins is None:
+            plugins = [rp]
+        else:
+            plugins.append(rp)
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+class GSS_greedy(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 mem_size: int = 200, mem_strength =1,
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """ Experience replay strategy. See ReplayPlugin for more details.
+        This strategy does not use task identities.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param mem_size: replay buffer size.
+        :param n: memory random set size.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+        rp = GSS_greedyPlugin(mem_size=mem_size,mem_strength =mem_strength )
         if plugins is None:
             plugins = [rp]
         else:
@@ -231,6 +269,7 @@ class GDumb(BaseStrategy):
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
+
 
 
 class LwF(BaseStrategy):
@@ -555,6 +594,7 @@ __all__ = [
     'GEM',
     'EWC',
     'SynapticIntelligence',
-    'GSS'
+    'GSS_greedy_simple',
+    'GSS_greedy',
     'CoPE'
 ]
