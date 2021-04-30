@@ -25,7 +25,7 @@ from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
-    as_classification_dataset
+    AvalancheDataset, AvalancheDatasetType
 
 
 def nc_benchmark(
@@ -43,6 +43,8 @@ def nc_benchmark(
         class_ids_from_zero_from_first_exp: bool = False,
         class_ids_from_zero_in_each_exp: bool = False,
         one_dataset_per_exp: bool = False,
+        train_transform=None,
+        eval_transform=None,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
     """
     This is the high-level benchmark instances generator for the
@@ -114,6 +116,14 @@ def nc_benchmark(
         experience. Mutually exclusive with the ``per_experience_classes`` and
         ``fixed_class_order`` parameters. Overrides the ``n_experiences`` 
         parameter. Defaults to False.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options. This is usually a dictionary containing
         data used to reproduce a specific experiment. One can use the
@@ -169,9 +179,23 @@ def nc_benchmark(
             n_experiences = len(train_dataset)
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
+    transform_groups = dict(
+        train=(train_transform, None),
+        eval=(eval_transform, None)
+    )
+
     # Datasets should be instances of AvalancheDataset
-    train_dataset = as_classification_dataset(train_dataset).train()
-    test_dataset = as_classification_dataset(test_dataset).eval()
+    train_dataset = AvalancheDataset(
+        train_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='train',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+    test_dataset = AvalancheDataset(
+        test_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='eval',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
     return NCScenario(train_dataset, test_dataset, n_experiences, task_labels,
                       shuffle, seed, fixed_class_order, per_exp_classes,
@@ -193,6 +217,8 @@ def ni_benchmark(
         balance_experiences: bool = False,
         min_class_patterns_in_exp: int = 0,
         fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
+        train_transform=None,
+        eval_transform=None,
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
     """
@@ -236,6 +262,14 @@ def ni_benchmark(
         is a list that contains the indexes of patterns belonging to that
         experience. Overrides the ``shuffle``, ``balance_experiences`` and
         ``min_class_patterns_in_exp`` parameters.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options, including ``fixed_exp_assignment``.
         This is usually a dictionary containing data used to
@@ -259,9 +293,23 @@ def ni_benchmark(
         seq_train_dataset, seq_test_dataset, _ = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
+    transform_groups = dict(
+        train=(train_transform, None),
+        eval=(eval_transform, None)
+    )
+
     # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = as_classification_dataset(seq_train_dataset).train()
-    seq_test_dataset = as_classification_dataset(seq_test_dataset).eval()
+    seq_train_dataset = AvalancheDataset(
+        seq_train_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='train',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+    seq_test_dataset = AvalancheDataset(
+        seq_test_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='eval',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
     return NIScenario(
         seq_train_dataset, seq_test_dataset,

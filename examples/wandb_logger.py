@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from os.path import expanduser
+
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -57,9 +59,11 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    mnist_train = MNIST('./data/mnist', train=True,
+    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                        train=True,
                         download=True, transform=train_transform)
-    mnist_test = MNIST('./data/mnist', train=False,
+    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                       train=False,
                        download=True, transform=test_transform)
     scenario = nc_benchmark(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234)
@@ -69,9 +73,7 @@ def main(args):
     model = SimpleMLP(num_classes=scenario.n_classes)
 
     interactive_logger = InteractiveLogger()
-    wandb_logger = WandBLogger(
-        init_kwargs={"project": args.project, "name": args.run}
-    )
+    wandb_logger = WandBLogger(project_name=args.project, run_name=args.run)
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(

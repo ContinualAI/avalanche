@@ -15,6 +15,7 @@ import torch
 
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
     _exp_structure_from_assignment
+from avalanche.benchmarks.scenarios.scenario_utils import train_eval_transforms
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
@@ -113,6 +114,17 @@ class NIScenario(GenericCLScenario['NIExperience']):
         if min_class_patterns_in_exp < 0 and reproducibility_data is None:
             raise ValueError('Invalid min_class_patterns_in_exp parameter: '
                              'must be greater than or equal to 0')
+
+        # # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         unique_targets, unique_count = torch.unique(
             torch.as_tensor(train_dataset.targets), return_counts=True)

@@ -2,10 +2,14 @@ import unittest
 
 from os.path import expanduser
 
+from PIL.Image import Image
+from torch import Tensor
 from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
 
+from avalanche.benchmarks.datasets import CIFAR100
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import nc_benchmark, GenericScenarioStream
@@ -297,6 +301,42 @@ class SITTests(unittest.TestCase):
             self.assertEqual(iterable_slice[batch_id],
                              experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
+
+    def test_nc_benchmark_transformations_basic(self):
+        # Regression for #577
+        ds = CIFAR100(root=expanduser("~") + "/.avalanche/data/cifar100/",
+                      train=True, download=True)
+        ds = AvalancheDataset(ds, transform=ToTensor())
+
+        scenario = nc_benchmark(
+            ds, ds, n_experiences=10, shuffle=True, seed=1234,
+            task_labels=False
+        )
+
+        exp_0_dataset = scenario.train_stream[0].dataset
+        self.assertIsInstance(exp_0_dataset[0][0], Tensor)
+
+    def test_nc_benchmark_transformations_advanced(self):
+        # Regression for #577
+        ds = CIFAR100(root=expanduser("~") + "/.avalanche/data/cifar100/",
+                      train=True, download=True)
+        scenario = nc_benchmark(
+            ds, ds, n_experiences=10, shuffle=True, seed=1234,
+            task_labels=False, train_transform=ToTensor(),
+            eval_transform=None
+        )
+
+        ds_train_train = scenario.train_stream[0].dataset
+        self.assertIsInstance(ds_train_train[0][0], Tensor)
+
+        ds_train_eval = scenario.train_stream[0].dataset.eval()
+        self.assertIsInstance(ds_train_eval[0][0], Image)
+
+        ds_test_eval = scenario.test_stream[0].dataset
+        self.assertIsInstance(ds_test_eval[0][0], Image)
+
+        ds_test_train = scenario.test_stream[0].dataset.train()
+        self.assertIsInstance(ds_test_train[0][0], Tensor)
 
 
 if __name__ == '__main__':

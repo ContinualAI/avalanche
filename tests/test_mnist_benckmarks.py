@@ -2,6 +2,7 @@ import unittest
 
 from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
     SplitMNIST
+from tests.unit_tests_utils import load_experience_train_eval
 
 MNIST_DOWNLOADS = 0
 MNIST_DOWNLOAD_METHOD = None
@@ -36,12 +37,20 @@ class MNISTBenchmarksTests(unittest.TestCase):
         for experience in scenario.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
+
+            # Regression test for 572
+            load_experience_train_eval(experience)
+
         self.assertEqual(60000, train_sz)
 
         test_sz = 0
         for experience in scenario.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
+
+            # Regression test for 572
+            load_experience_train_eval(experience)
+
         self.assertEqual(10000, test_sz)
 
     def test_PermutedMNIST_scenario(self):
@@ -53,9 +62,30 @@ class MNISTBenchmarksTests(unittest.TestCase):
             self.assertIsInstance(experience, Experience)
             self.assertEqual(60000, len(experience.dataset))
 
+            load_experience_train_eval(experience)
+
         for experience in scenario.test_stream:
             self.assertIsInstance(experience, Experience)
             self.assertEqual(10000, len(experience.dataset))
+
+            load_experience_train_eval(experience)
+
+    def test_RotatedMNIST_scenario(self):
+        scenario = RotatedMNIST(3)
+        self.assertEqual(3, len(scenario.train_stream))
+        self.assertEqual(3, len(scenario.test_stream))
+
+        for experience in scenario.train_stream:
+            self.assertIsInstance(experience, Experience)
+            self.assertEqual(60000, len(experience.dataset))
+
+            load_experience_train_eval(experience)
+
+        for experience in scenario.test_stream:
+            self.assertIsInstance(experience, Experience)
+            self.assertEqual(10000, len(experience.dataset))
+
+            load_experience_train_eval(experience)
 
     def test_PermutedMNIST_scenario_download_once(self):
         global MNIST_DOWNLOADS

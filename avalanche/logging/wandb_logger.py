@@ -11,7 +11,6 @@
 
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
-import wandb
 from PIL.Image import Image
 from torch import Tensor
 from matplotlib.pyplot import Figure
@@ -28,17 +27,24 @@ class WandBLogger(StrategyLogger):
     logged to a dedicated Weights & Biases project dashboard.
     """
 
-    def __init__(self, init_kwargs: dict, interactive: bool = False):
+    def __init__(self, project_name: str = "Avalanche", 
+                 run_name: str = "Avalanche Test", params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
 
-        :param init_kwargs: All arguments for wandb.init() function call.:
+        :param project_name: Name of the W&B project.:
+        :param run_name: Name of the W&B run.:
+        :param params: All arguments for wandb.init() function call. 
+         Visit https://docs.wandb.ai/ref/python/init to learn about all 
+         wand.init() parameters.:
         """
 
         super().__init__()
         self.import_wandb()
-        self.init_kwargs = init_kwargs
-        self.interactive = interactive
+        self.params = params
+        self.project_name = project_name
+        self.run_name = run_name
+        self.args_parse()
         self.before_run()
 
     def import_wandb(self):
@@ -48,6 +54,11 @@ class WandBLogger(StrategyLogger):
             raise ImportError(
                 'Please run "pip install wandb" to install wandb')
         self.wandb = wandb
+
+    def args_parse(self):
+        self.init_kwargs = {"project": self.project_name, "name": self.run_name}
+        if self.params:
+            self.init_kwargs.update(self.params)
 
     def before_run(self):
         if self.wandb is None:
@@ -75,7 +86,7 @@ class WandBLogger(StrategyLogger):
 
         elif isinstance(value, Tensor):
             value = np.histogram(value.view(-1).numpy())
-            self.wandb.log({name: wandb.Histogram(np_histogram=value)})
+            self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
 
         elif isinstance(value, (float, int, Figure)):
             self.wandb.log({name: value})

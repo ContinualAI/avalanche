@@ -12,6 +12,7 @@
 import torch
 from typing import Sequence, List, Optional, Dict, Any, Set
 
+from avalanche.benchmarks.scenarios.scenario_utils import train_eval_transforms
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
@@ -362,10 +363,23 @@ class NCScenario(GenericCLScenario['NCExperience']):
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)
 
+        # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset\
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+
         train_dataset = AvalancheSubset(
-            train_dataset, class_mapping=self.class_mapping)
+            train_dataset, class_mapping=self.class_mapping,
+            initial_transform_group='train')
         test_dataset = AvalancheSubset(
-            test_dataset, class_mapping=self.class_mapping)
+            test_dataset, class_mapping=self.class_mapping,
+            initial_transform_group='eval')
 
         self.train_exps_patterns_assignment = train_exps_patterns_assignment
         """ A list containing which training instances are assigned to each

@@ -403,6 +403,29 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return dataset_copy
 
+    def get_transforms(
+            self: TAvalancheDataset,
+            transforms_group: str = None) -> Tuple[Any, Any]:
+        """
+        Returns the transformations given a group.
+
+        Beware that this will not return the frozen transformations, nor the
+        ones included in the wrapped dataset. Only transformations directly
+        attached to this dataset will be returned.
+
+        :param transforms_group: The transformations group. Defaults to None,
+            which means that the current group is returned.
+        :return: The transformation group, as a tuple
+            (transform, target_transform).
+        """
+        if transforms_group is None:
+            transforms_group = self.current_transform_group
+
+        if transforms_group == self.current_transform_group:
+            return self.transform, self.target_transform
+
+        return self.transform_groups[transforms_group]
+
     def add_transforms(
             self: TAvalancheDataset,
             transform: Callable[[Any], Any] = None,
@@ -506,7 +529,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def replace_transforms(
             self: TAvalancheDataset,
             transform: XTransform,
-            target_transform: YTransform) -> TAvalancheDataset:
+            target_transform: YTransform,
+            group: str = None) -> TAvalancheDataset:
         """
         Returns a new dataset with the existing transformations replaced with
         the given ones.
@@ -528,16 +552,21 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             pattern from the original dataset and returns a transformed version.
         :param target_transform: A function/transform that takes in the target
             and transforms it.
+        :param group: The transforms group to replace. Defaults to None, which
+            means that the current group will be replaced.
         :return: A new dataset with the new transformations.
         """
 
-        dataset_copy = self._fork_dataset()
+        if group is None:
+            group = self.current_transform_group
+
+        dataset_copy = self._fork_dataset().with_transforms(group)
         dataset_copy._replace_original_dataset_group(None, None)
 
         dataset_copy.transform = transform
         dataset_copy.target_transform = target_transform
 
-        return dataset_copy
+        return dataset_copy.with_transforms(self.current_transform_group)
 
     def with_transforms(self: TAvalancheDataset, group_name: str) -> \
             TAvalancheDataset:
