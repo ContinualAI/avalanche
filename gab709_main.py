@@ -11,8 +11,9 @@ criterion = CrossEntropyLoss()
 
 cl_strategy = GSS_greedy(
     model, optimizer, criterion, 
-    train_mb_size=100, mem_strength=5, train_epochs=1, eval_mb_size=100, mem_size=100
+    train_mb_size=100, mem_strength=5, input_size=[1, 28, 28], train_epochs=1, eval_mb_size=100, mem_size=100
 )
+
 
 # scenario
 scenario = SplitMNIST(n_experiences=5, seed=1)

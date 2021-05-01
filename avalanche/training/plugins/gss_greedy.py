@@ -5,8 +5,7 @@ import random
 from torch.utils.data import TensorDataset
 from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskJoinedBatchDataLoader
+from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 import numpy as np
 
 
@@ -22,14 +21,11 @@ class GSS_greedyPlugin(StrategyPlugin):
     in the external memory.
     """
 
-    def __init__(self, mem_size=200,mem_strength =5):
+    def __init__(self, mem_size=200,mem_strength =5, input_size=[]):
         super().__init__()
         self.mem_size = mem_size
         self.mem_strength =mem_strength 
-        self.ext_mem = {}  # a Dict<task_id, Dataset>
 
-        #TODO
-        input_size=[1, 28, 28]
         self.ext_mem_list_x=torch.FloatTensor(mem_size, *input_size).fill_(0)
         self.ext_mem_list_y=torch.LongTensor(mem_size).fill_(0)
         self.ext_mem_list_current_index=0
@@ -126,12 +122,12 @@ class GSS_greedyPlugin(StrategyPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
-        if len(self.ext_mem) == 0:
+        if len(self.ext_mem_list_x) == 0:
             return
         
         memory = AvalancheDataset(self.ext_mem_list_x,targets=self.ext_mem_list_y)
 
-        strategy.dataloader = MultiTaskJoinedBatchDataLoader(
+        strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             AvalancheConcatDataset(memory),
             oversample_small_tasks=True,
