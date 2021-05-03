@@ -83,7 +83,8 @@ def main(args):
             minibatch=True, epoch=True, epoch_running=True,
             experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
-        confusion_matrix_metrics(stream=True, wandb=True, class_names=[str(i) for i in range(10)]),
+        confusion_matrix_metrics(stream=True, wandb=True,
+                                 class_names=[str(i) for i in range(10)]),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(
