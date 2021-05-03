@@ -473,17 +473,7 @@ class BaseStrategy:
     def after_training_exp(self, **kwargs):
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
-
         self.training_exp_counter += 1
-        # Reset flow-state variables. They should not be used outside the flow
-        self.epoch = None
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval(self, **kwargs):
         for p in self.plugins:
@@ -526,14 +516,6 @@ class BaseStrategy:
     def after_eval(self, **kwargs):
         for p in self.plugins:
             p.after_eval(self, **kwargs)
-        # Reset flow-state variables. They should not be used outside the flow
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
