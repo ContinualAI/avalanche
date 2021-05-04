@@ -15,17 +15,22 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
-from typing import Sequence, Optional, Dict, Union, Any, List
+from functools import partial
+from typing import Sequence, Optional, Dict, Union, Any, List, Callable, Set
 
 import torch
 
+from avalanche.benchmarks import GenericCLScenario, Experience, \
+    GenericExperience, GenericScenarioStream
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
+from avalanche.benchmarks.scenarios.generic_cl_scenario import TStreamsUserDict, \
+    StreamDef, TStreamsDict
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
-    AvalancheDataset, AvalancheDatasetType
+    AvalancheDataset, AvalancheDatasetType, AvalancheSubset
 
 
 def nc_benchmark(
@@ -364,11 +369,169 @@ def _one_dataset_per_exp_class_order(
     return fixed_class_order, classes_per_exp
 
 
+def fixed_size_experience_split_strategy(
+        experience_size: int, shuffle: bool, drop_last: bool,
+        experience: Experience):
+    """
+    The default splitting strategy used by :func:`data_incremental_benchmark`.
+
+    This splitting strategy simply splits the experience in smaller experiences
+    of size `experience_size`.
+
+    When taking inspiration for your custom splitting strategy, please consider
+    that all parameters preceding `experience` are filled by
+    :func:`data_incremental_benchmark` by using `partial` from the `functools`
+    standard library. A custom splitting strategy must have only a single
+    parameter: the experience. Consider wrapping your custom splitting strategy
+    with `partial` if more parameters are needed.
+
+    Also consider that the stream name of the experience can be obtaines by
+    using `experience.origin_stream.name`.
+
+    :param experience_size: The experience size (number of instances).
+    :param shuffle: If True, instances will be shuffled before splitting.
+    :param drop_last: If True, the last mini-experience will be dropped if
+        not of size `experience_size`
+    :param experience: The experience to split.
+    :return: The list of datasets that will be used to create the
+        mini-experiences.
+    """
+
+    exp_dataset = experience.dataset
+    exp_indices = list(range(len(exp_dataset)))
+
+    result_datasets = []
+
+    if shuffle:
+        exp_indices = \
+            torch.as_tensor(exp_indices)[
+                torch.randperm(len(exp_indices))
+            ].tolist()
+
+    init_idx = 0
+    while init_idx < len(exp_indices):
+        final_idx = init_idx + experience_size  # Exclusive
+        if final_idx > len(exp_indices):
+            if drop_last:
+                break
+
+            final_idx = len(exp_indices)
+
+        result_datasets.append(AvalancheSubset(
+            exp_dataset, indices=exp_indices[init_idx:final_idx]))
+        init_idx = final_idx
+
+    return result_datasets
+
+
+def data_incremental_benchmark(
+        benchmark_instance: GenericCLScenario,
+        experience_size: int,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        split_streams: Sequence[str] = ('train',),
+        custom_split_strategy: Callable[[Experience],
+                                        Sequence[AvalancheDataset]] = None,
+        experience_factory: Callable[[GenericScenarioStream, int],
+                                     Experience] = None):
+    """
+    High-level benchmark generator for a Data Incremental setup.
+
+    This generator accepts an existing benchmark instance and returns a version
+    of it in which experiences have been split in order to produce a
+    Data Incremental stream.
+
+    In its base form this generator will split train experiences in experiences
+    of a fixed, configurable, size. The split can be also performed on other
+    streams (like the test one) if needed.
+
+    The `custom_split_strategy` parameter can be used if a more specific
+    splitting is required (or even if a custom class for the final experience
+    is needed).
+
+    Beware that experience splitting is NOT executed in a lazy way. This
+    means that the splitting process takes place immediately. Consider
+    optimizing the split process for speed when using a custom splitting
+    strategy.
+
+    Please note that each mini-experience will have a task labels field
+    equal to the one of the originating experience.
+
+    The `complete_test_set_only` field of the resulting benchmark instance
+    will be `True` only if the same field of original benchmark instance is
+    `True` and if the resulting test stream contains exactly one experience.
+
+    :param benchmark_instance: The benchmark to split.
+    :param experience_size: The size of the experience, as an int. Ignored
+        if `custom_split_strategy` is used.
+    :param shuffle: If True, experiences will be split by first shuffling
+        instances in each experience. This will use the default PyTorch
+        random number generator at its current state. Defaults to False.
+        Ignored if `custom_split_strategy` is used.
+    :param drop_last: If True, if the last experience doesn't contain
+        `experience_size` instances, then the last experience will be dropped.
+        Defaults to False. Ignored if `custom_split_strategy` is used.
+    :param split_streams: The list of streams to split. By default only the
+        "train" stream will be split.
+    :param custom_split_strategy: A function that implements a custom splitting
+        strategy. The function must accept an experience and return a list
+        of datasets each describing an experience. Defaults to None, which means
+        that the standard splitting strategy will be used (which creates
+        experiences of size `experience_size`).
+        A good starting to understand the mechanism is to look at the
+        implementation of the standard splitting function
+        :func:`fixed_size_experience_split_strategy`.
+
+    :param experience_factory: The experience factory.
+        Defaults to :class:`GenericExperience`.
+    :return: The Data Incremental benchmark instance.
+    """
+
+    split_strategy = custom_split_strategy
+    if split_strategy is None:
+        split_strategy = partial(
+            fixed_size_experience_split_strategy, experience_size, shuffle,
+            drop_last)
+
+    stream_definitions: TStreamsDict = dict(
+        benchmark_instance.stream_definitions)
+
+    for stream_name in split_streams:
+        if stream_name not in stream_definitions:
+            raise ValueError(f'Stream {stream_name} could not be found in the '
+                             f'benchmark instance')
+
+        stream = getattr(benchmark_instance, f'{stream_name}_stream')
+
+        split_datasets: List[AvalancheDataset] = []
+        split_task_labels: List[Set[int]] = []
+
+        exp: Experience
+        for exp in stream:
+            experiences = split_strategy(exp)
+            split_datasets += experiences
+            for _ in range(len(experiences)):
+                split_task_labels.append(set(exp.task_labels))
+
+        stream_def = StreamDef(split_datasets, split_task_labels,
+                               stream_definitions[stream_name].origin_dataset)
+
+        stream_definitions[stream_name] = stream_def
+
+    complete_test_set_only = benchmark_instance.complete_test_set_only and \
+        len(stream_definitions['test'].exps_data) == 1
+
+    return GenericCLScenario(stream_definitions=stream_definitions,
+                             complete_test_set_only=complete_test_set_only,
+                             experience_factory=experience_factory)
+
+
 __all__ = [
     'nc_benchmark',
     'ni_benchmark',
     'dataset_benchmark',
     'filelist_benchmark',
     'paths_benchmark',
-    'tensors_benchmark'
+    'tensors_benchmark',
+    'data_incremental_benchmark'
 ]

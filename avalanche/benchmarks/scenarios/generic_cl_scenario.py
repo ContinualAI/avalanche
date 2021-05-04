@@ -88,7 +88,6 @@ class GenericCLScenario(Generic[TExperience]):
         There is no constraint on the amount of experiences in each stream
         (excluding the case in which `complete_test_set_only` is set).
 
-
         :param stream_definitions: The stream definitions dictionary. Must
             be a dictionary where the key is the stream name and the value
             is the definition of that stream. "train" and "test" streams are
@@ -359,7 +358,7 @@ class GenericCLScenario(Generic[TExperience]):
             for i in range(len(task_labels)):
                 if isinstance(task_labels[i], int):
                     task_labels[i] = {task_labels[i]}
-                elif not isinstance(task_labels[1], set):
+                elif not isinstance(task_labels[i], set):
                     task_labels[i] = set(task_labels[i])
 
         if len(exp_data) != len(task_labels):
