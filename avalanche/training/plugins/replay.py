@@ -8,6 +8,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, \
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
+import numpy as np
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -75,7 +76,6 @@ class StoragePolicy(ABC):
 
 
 class ExperienceBalancedStoragePolicy(StoragePolicy):
-
     def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
                  num_experiences=-1):
         """
@@ -103,78 +103,58 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
             assert self.num_experiences > 0, \
                 """When fixed exp mem size, num_experiences should be > 0."""
 
+    def subsample_single(self, data, new_size):
+        """ Subsample `data` to match length `new_size`. """
+        removed_els = len(data) - new_size
+        if removed_els > 0:
+            data, _ = random_split(data, [new_size, removed_els])
+        return data
+
+    def subsample_all_groups(self, new_size):
+        """ Subsample all groups equally to match total buffer size
+        `new_size`. """
+        groups = list(self.ext_mem.keys())
+        if len(groups) == 0:
+            return  # buffer is empty.
+
+        num_groups = len(groups) if self.adaptive_size else self.num_experiences
+        group_size = new_size // num_groups
+        last_group_size = group_size + (new_size % num_groups)
+
+        for g in groups[:-1]:
+            self.ext_mem[g] = self.subsample_single(self.ext_mem[g], group_size)
+        # last group may be bigger
+        last = self.ext_mem[groups[-1]]
+        self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
+
     def __call__(self, strategy, **kwargs):
-        curr_task_id = strategy.experience.task_label
+        num_exps = strategy.training_exp_counter + 1
+        num_exps = num_exps if self.adaptive_size else self.num_experiences
         curr_data = strategy.experience.dataset
 
-        # how many experiences to divide the memory over
-        if self.adaptive_size:  # Observed number of experiences
-            exp_cnt = (strategy.training_exp_counter + 1)
-        else:  # Fixed number of experiences
-            exp_cnt = self.num_experiences
+        # new group may be bigger because of the remainder.
+        group_size = self.mem_size // num_exps
+        new_group_size = group_size + (self.mem_size % num_exps)
 
-        exp_mem_size = self.mem_size // exp_cnt
+        self.subsample_all_groups(group_size * (num_exps - 1))
+        curr_data = self.subsample_single(curr_data, new_group_size)
+        self.ext_mem[strategy.training_exp_counter + 1] = curr_data
 
-        # Add current experience data to memory
-        if curr_task_id not in self.ext_mem:
-            self.ext_mem[curr_task_id] = AvalancheDataset(curr_data)
-        else:  # Merge data with previous seen data
-            self.ext_mem[curr_task_id] = AvalancheConcatDataset(
-                [curr_data, self.ext_mem[curr_task_id]])
-
-        # Distribute remaining samples using counts
-        cutoff_per_exp = self.divide_remaining_samples(
-            exp_mem_size, strategy.training_exp_counter + 1)
-
-        # Use counts to remove samples from memory
-        self.cutoff_memory(cutoff_per_exp)
-
-    def divide_remaining_samples(self, exp_mem_size, div_cnt):
-        # Find number of remaining samples
-        samples_per_exp = {exp: len(mem) for exp, mem in self.ext_mem.items()}
-        rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
-                         samples_per_exp.items() if exp_mem_size - memsize > 0}
-        rem_from_div = self.mem_size % (div_cnt)
-        free_mem = sum(rem_from_exps.values()) + rem_from_div
-
-        # Divide the remaining samples randomly over the experiences
-        cutoff_per_exp = {exp: min(exp_mem_size, len(m))
-                          for exp, m in self.ext_mem.items()}
-
-        # Find remaining data samples to divide
-        rem_samples_exp = {exp: memsize - exp_mem_size for exp, memsize in
-                           samples_per_exp.items()
-                           if memsize - exp_mem_size > 0}
-
-        while len(rem_samples_exp) > 0 and free_mem > 0:
-            exp = random.choice(list(rem_samples_exp.keys()))
-            cutoff_per_exp[exp] += 1
-            free_mem -= 1
-            rem_samples_exp[exp] -= 1
-            if rem_samples_exp[exp] <= 0:
-                del rem_samples_exp[exp]
-
-        return cutoff_per_exp
-
-    def cutoff_memory(self, cutoff_per_exp):
-        # Allocate to experiences
-        for exp, cutoff in cutoff_per_exp.items():
-            self.ext_mem[exp], _ = random_split(
-                self.ext_mem[exp], [cutoff, len(self.ext_mem[exp]) - cutoff])
+        # buffer size should always equal self.mem_size
+        len_tot = sum([len(el) for el in self.ext_mem.values()])
+        assert len_tot == self.mem_size
 
 
-class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
+class ClassBalancedStoragePolicy(StoragePolicy):
     def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
                  total_num_classes=-1):
         """
         Stores samples for replay, equally divided over classes.
         It should be called in the 'after_training_exp' phase (see
         ExperienceBalancedStoragePolicy).
-
         The number of classes can be fixed up front or adaptive, based on
         the 'adaptive_size' attribute. When adaptive, the memory is equally
         divided over all the unique observed classes so far.
-
         :param ext_mem: The replay memory dictionary to store samples in.
         :param mem_size: The max capacity of the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
@@ -228,3 +208,39 @@ class ClassBalancedStoragePolicy(ExperienceBalancedStoragePolicy):
 
         # Use counts to remove samples from memory
         self.cutoff_memory(cutoff_per_exp)
+
+    def divide_remaining_samples(self, exp_mem_size, div_cnt):
+        # Find number of remaining samples
+        samples_per_exp = {exp: len(mem) for exp, mem in
+                           self.ext_mem.items()}
+        rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
+                         samples_per_exp.items() if
+                         exp_mem_size - memsize > 0}
+        rem_from_div = self.mem_size % (div_cnt)
+        free_mem = sum(rem_from_exps.values()) + rem_from_div
+
+        # Divide the remaining samples randomly over the experiences
+        cutoff_per_exp = {exp: min(exp_mem_size, len(m))
+                          for exp, m in self.ext_mem.items()}
+
+        # Find remaining data samples to divide
+        rem_samples_exp = {exp: memsize - exp_mem_size for exp, memsize in
+                           samples_per_exp.items()
+                           if memsize - exp_mem_size > 0}
+
+        while len(rem_samples_exp) > 0 and free_mem > 0:
+            exp = random.choice(list(rem_samples_exp.keys()))
+            cutoff_per_exp[exp] += 1
+            free_mem -= 1
+            rem_samples_exp[exp] -= 1
+            if rem_samples_exp[exp] <= 0:
+                del rem_samples_exp[exp]
+
+        return cutoff_per_exp
+
+    def cutoff_memory(self, cutoff_per_exp):
+        # Allocate to experiences
+        for exp, cutoff in cutoff_per_exp.items():
+            self.ext_mem[exp], _ = random_split(
+                self.ext_mem[exp],
+                [cutoff, len(self.ext_mem[exp]) - cutoff])
