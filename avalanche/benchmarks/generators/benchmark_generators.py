@@ -23,8 +23,8 @@ import torch
 from avalanche.benchmarks import GenericCLScenario, Experience, \
     GenericExperience, GenericScenarioStream
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.generic_cl_scenario import TStreamsUserDict, \
-    StreamDef, TStreamsDict
+from avalanche.benchmarks.scenarios.generic_cl_scenario import StreamDef, \
+    TStreamsDict
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario

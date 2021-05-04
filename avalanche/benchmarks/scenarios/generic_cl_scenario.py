@@ -609,6 +609,7 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
 __all__ = [
     'StreamDef',
+    'TStreamsDict',
     'TGenericCLScenario',
     'GenericCLScenario',
     'GenericScenarioStream',
