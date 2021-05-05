@@ -404,17 +404,18 @@ class NIScenario(GenericCLScenario['NIExperience']):
             complete_test_set_only=True,
             experience_factory=NIExperience)
 
-    @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        if self._classes_in_exp is None:
-            self._classes_in_exp = []
-            for exp_id in range(self.n_experiences):
-                self._classes_in_exp.append(set())
-                exp_s = self.exp_structure[exp_id]
-                for class_id, n_patterns_of_class in enumerate(exp_s):
-                    if n_patterns_of_class > 0:
-                        self._classes_in_exp[exp_id].add(class_id)
-        return self._classes_in_exp
+    # TODO: remove
+    # @property
+    # def classes_in_experience(self) -> Sequence[Set[int]]:
+    #     if self._classes_in_exp is None:
+    #         self._classes_in_exp = []
+    #         for exp_id in range(self.n_experiences):
+    #             self._classes_in_exp.append(set())
+    #             exp_s = self.exp_structure[exp_id]
+    #             for class_id, n_patterns_of_class in enumerate(exp_s):
+    #                 if n_patterns_of_class > 0:
+    #                     self._classes_in_exp[exp_id].add(class_id)
+    #     return self._classes_in_exp
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         reproducibility_data = {

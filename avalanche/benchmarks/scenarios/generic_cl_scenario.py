@@ -2,8 +2,10 @@ import copy
 import re
 from abc import ABC
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List, Set, Iterator, Tuple, NamedTuple
+    Dict, Any, Iterable, List, Set, Iterator, Tuple, NamedTuple, Mapping, \
+    overload
 
+import warnings
 from torch.utils.data.dataset import Dataset
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
@@ -176,6 +178,15 @@ class GenericCLScenario(Generic[TExperience]):
         self._make_stream_fields()
 
     @property
+    def streams(self) -> Dict[str, 'GenericScenarioStream['
+                                   'TExperience, TGenericCLScenario]']:
+        streams_dict = dict()
+        for stream_name in self.stream_definitions.keys():
+            streams_dict[stream_name] = getattr(self, f'{stream_name}_stream')
+
+        return streams_dict
+
+    @property
     def n_experiences(self) -> int:
         """  The number of incremental training experiences contained
         in the train stream. """
@@ -214,11 +225,20 @@ class GenericCLScenario(Generic[TExperience]):
         return dict()
 
     @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        """ A list that, for each experience (identified by its index/ID),
-        stores a set of the (optionally remapped) IDs of classes of patterns
-        assigned to that experience. """
-        return LazyClassesInExps(self)
+    def classes_in_experience(self) -> Mapping[str, Sequence[Set[int]]]:
+        """
+        A dictionary mapping each stream (by name) to a list.
+
+        Each element of the list is a set describing the classes included in
+        that experience (identified by its index).
+
+        In previous releases this field contained the list of sets for the
+        training stream (that is, there was no way to obtain the list for other
+        streams). That behavior is deprecated and support for that usage way
+        will be removed in the future.
+        """
+
+        return LazyStreamClassesInExps(self)
 
     def get_classes_timeline(self, current_experience: int):
         """
@@ -241,13 +261,15 @@ class GenericCLScenario(Generic[TExperience]):
         """
         train_exps_patterns_assignment: Sequence[Sequence[int]]
 
-        class_set_current_exp = self.classes_in_experience[current_experience]
+        class_set_current_exp = \
+            self.classes_in_experience['train'][current_experience]
 
         classes_in_this_exp = list(class_set_current_exp)
 
         class_set_prev_exps = set()
         for exp_id in range(0, current_experience):
-            class_set_prev_exps.update(self.classes_in_experience[exp_id])
+            class_set_prev_exps.update(
+                self.classes_in_experience['train'][exp_id])
         previous_classes = list(class_set_prev_exps)
 
         classes_seen_so_far = \
@@ -255,7 +277,8 @@ class GenericCLScenario(Generic[TExperience]):
 
         class_set_future_exps = set()
         for exp_id in range(current_experience, self.n_experiences):
-            class_set_prev_exps.update(self.classes_in_experience[exp_id])
+            class_set_prev_exps.update(
+                self.classes_in_experience['train'][exp_id])
         future_classes = list(class_set_future_exps)
 
         return (classes_in_this_exp, previous_classes, classes_seen_so_far,
@@ -443,15 +466,39 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         return stream_copy
 
 
-class LazyClassesInExps(Sequence[Set[int]]):
+class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
     def __init__(self, scenario: GenericCLScenario):
         self._scenario = scenario
+        self._default_lcie = LazyClassesInExps(scenario, stream='train')
 
     def __len__(self):
-        return len(self._scenario.train_stream)
+        return len(self._scenario.stream_definitions)
+
+    def __getitem__(self, stream_name_or_exp_id):
+        if isinstance(stream_name_or_exp_id, str):
+            return LazyClassesInExps(self._scenario,
+                                     stream=stream_name_or_exp_id)
+
+        warnings.warn(
+            'Using classes_in_experience[exp_id] is deprecated. '
+            'Consider using classes_in_experience[stream_name][exp_id]'
+            'instead.')
+        return self._default_lcie[stream_name_or_exp_id]
+
+    def __iter__(self):
+        yield from self._scenario.stream_definitions.keys()
+
+
+class LazyClassesInExps(Sequence[Set[int]]):
+    def __init__(self, scenario: GenericCLScenario, stream: str = 'train'):
+        self._scenario = scenario
+        self._stream = stream
+
+    def __len__(self):
+        return len(self._scenario.streams[self._stream])
 
     def __getitem__(self, exp_id) -> Set[int]:
-        return set(self._scenario.stream_definitions['train']
+        return set(self._scenario.stream_definitions[self._stream]
                    .exps_data[exp_id].targets)
 
     def __str__(self):

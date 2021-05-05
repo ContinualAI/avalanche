@@ -149,6 +149,7 @@ class NCScenario(GenericCLScenario['NCExperience']):
 
         self._classes_in_exp: List[Set[int]] = []
 
+        # TODO: same for classes_in_exp
         self.original_classes_in_exp: List[Set[int]] = []
         """ A list that, for each experience (identified by its index/ID),
             stores a list of the original IDs of classes assigned 
@@ -424,9 +425,10 @@ class NCScenario(GenericCLScenario['NCExperience']):
             },
             experience_factory=NCExperience)
 
-    @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        return self._classes_in_exp
+    # TODO: remove
+    # @property
+    # def classes_in_experience(self) -> Sequence[Set[int]]:
+    #     return self._classes_in_exp
 
     def get_reproducibility_data(self):
         reproducibility_data = {
