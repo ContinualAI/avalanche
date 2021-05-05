@@ -93,7 +93,7 @@ autoapi_dirs = ['../avalanche']
 autoapi_options = [
     'members',
     'undoc-members',
-    'private-members',
+    # 'private-members',
     'show-inheritance',
     # 'show-inheritance-diagram',
     'show-module-summary',
