@@ -335,23 +335,32 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_training_exp(self, **kwargs)
 
-    def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
+    def make_train_dataloader(self, num_workers=0, shuffle=True,
+                              pin_memory=True, **kwargs):
         """
         Called after the dataset adaptation. Initializes the data loader.
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
         """
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
             num_workers=num_workers,
             batch_size=self.train_mb_size,
-            shuffle=shuffle)
+            shuffle=shuffle,
+            pin_memory=pin_memory)
 
-    def make_eval_dataloader(self, num_workers=0, **kwargs):
+    def make_eval_dataloader(self, num_workers=0, pin_memory=True,
+                             **kwargs):
         """
         Initializes the eval data loader.
-        :param num_workers:
+        :param num_workers: How many subprocesses to use for data loading.
+            0 means that the data will be loaded in the main process.
+            (default: 0).
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
         :param kwargs:
         :return:
         """
@@ -359,7 +368,7 @@ class BaseStrategy:
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
-        )
+            pin_memory=pin_memory)
 
     def after_train_dataset_adaptation(self, **kwargs):
         """
@@ -473,17 +482,7 @@ class BaseStrategy:
     def after_training_exp(self, **kwargs):
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
-
         self.training_exp_counter += 1
-        # Reset flow-state variables. They should not be used outside the flow
-        self.epoch = None
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval(self, **kwargs):
         for p in self.plugins:
@@ -526,14 +525,6 @@ class BaseStrategy:
     def after_eval(self, **kwargs):
         for p in self.plugins:
             p.after_eval(self, **kwargs)
-        # Reset flow-state variables. They should not be used outside the flow
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
