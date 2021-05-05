@@ -7,13 +7,16 @@ from sklearn.model_selection import train_test_split
 
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
+from avalanche.training import EvaluationPlugin
 from avalanche.training.plugins import StrategyPlugin, ReplayPlugin, \
     ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy
+from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
 
 
@@ -128,6 +131,77 @@ class PluginTests(unittest.TestCase):
         return nc_benchmark(train_dataset, test_dataset, 5,
                             task_labels=task_labels,
                             fixed_class_order=list(range(10)))
+
+    def test_scheduler_plugin(self):
+        self._test_scheduler_plugin(gamma=1 / 2.,
+                                    milestones=[2, 3],
+                                    base_lr=4.,
+                                    epochs=3,
+                                    reset_lr=True,
+                                    reset_scheduler=True,
+                                    expected=[[4., 2., 1.],
+                                              [4., 2., 1.]],
+                                    )
+
+        self._test_scheduler_plugin(gamma=1 / 2.,
+                                    milestones=[2, 3],
+                                    base_lr=4.,
+                                    epochs=3,
+                                    reset_lr=False,
+                                    reset_scheduler=True,
+                                    expected=[[4., 2., 1.],
+                                              [1., .5, .25]],
+                                    )
+
+        self._test_scheduler_plugin(gamma=1 / 2.,
+                                    milestones=[2, 3],
+                                    base_lr=4.,
+                                    epochs=3,
+                                    reset_lr=True,
+                                    reset_scheduler=False,
+                                    expected=[[4., 2., 1.],
+                                              [4., 4., 4.]],
+                                    )
+
+        self._test_scheduler_plugin(gamma=1 / 2.,
+                                    milestones=[2, 3],
+                                    base_lr=4.,
+                                    epochs=3,
+                                    reset_lr=False,
+                                    reset_scheduler=False,
+                                    expected=[[4., 2., 1.],
+                                              [1., 1., 1.]],
+                                    )
+
+    def _test_scheduler_plugin(self, gamma, milestones, base_lr, epochs,
+                               reset_lr, reset_scheduler, expected):
+
+        class TestPlugin(StrategyPlugin):
+            def __init__(self, expected_lrs):
+                super().__init__()
+                self.expected_lrs = expected_lrs
+
+            def after_training_epoch(self, strategy, **kwargs):
+                exp_id = strategy.training_exp_counter
+
+                expected_lr = self.expected_lrs[exp_id][strategy.epoch]
+                for group in strategy.optimizer.param_groups:
+                    assert group['lr'] == expected_lr
+
+        scenario = self.create_scenario()
+        model = SimpleMLP(input_size=6, hidden_size=10)
+
+        optim = SGD(model.parameters(), lr=base_lr)
+        lrSchedulerPlugin = LRSchedulerPlugin(
+            MultiStepLR(optim, milestones=milestones, gamma=gamma),
+            reset_lr=reset_lr, reset_scheduler=reset_scheduler)
+
+        cl_strategy = Naive(model, optim, CrossEntropyLoss(), train_mb_size=32,
+                            train_epochs=epochs, eval_mb_size=100,
+                            plugins=[lrSchedulerPlugin, TestPlugin(expected)])
+
+        cl_strategy.train(scenario.train_stream[0])
+        cl_strategy.train(scenario.train_stream[1])
 
 
 if __name__ == '__main__':
