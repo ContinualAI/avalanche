@@ -26,14 +26,15 @@ from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     forgetting_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.benchmarks.classic import CORe50
-from avalanche.training.strategies.deep_slda import StreamingLDA, SLDAResNetModel
+from avalanche.training.strategies.deep_slda import StreamingLDA, \
+    SLDAResNetModel
 
 
 def main(args):
     # Device config
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
-                             args.cuda >= 0 else "cpu")
+                          args.cuda >= 0 else "cpu")
     print('device ', device)
     # ---------
 
