@@ -10,48 +10,7 @@ from avalanche.training.plugins import StrategyPlugin
 from avalanche.training.strategies import BaseStrategy
 from avalanche.training import default_logger
 from avalanche.models.dynamic_modules import MultiTaskModule
-
-
-class ModelWrapper(nn.Module):
-    """
-    This PyTorch module allows us to extract features from a backbone network
-    given a layer name.
-    """
-
-    def __init__(self, model, output_layer_name):
-        super(ModelWrapper, self).__init__()
-        self.model = model
-        self.output_layer_name = output_layer_name
-        self.output = None  # this will store the layer output
-        self.add_hooks(self.model)
-
-    def forward(self, x):
-        self.model(x)
-        return self.output
-
-    def get_name_to_module(self, model):
-        name_to_module = {}
-        for m in model.named_modules():
-            name_to_module[m[0]] = m[1]
-        return name_to_module
-
-    def get_activation(self):
-        def hook(model, input, output):
-            self.output = output.detach()
-
-        return hook
-
-    def add_hooks(self, model):
-        """
-        :param model:
-        :param outputs: Outputs from layers specified in `output_layer_names`
-        will be stored in `output` variable
-        :param output_layer_names:
-        :return:
-        """
-        name_to_module = self.get_name_to_module(model)
-        name_to_module[self.output_layer_name].register_forward_hook(
-            self.get_activation())
+from avalanche.models import ModelWrapper
 
 
 class SLDAResNetModel(nn.Module):
@@ -114,11 +73,14 @@ class StreamingLDA(BaseStrategy):
     Minibatches are first passed to the pretrained feature extractor.
     The result is processed one element at a time to fit the
     LDA.
+    Original paper:
+    https://openaccess.thecvf.com/content_CVPRW_2020/papers/w15/Hayes_Lifelong_Machine_Learning_With_Deep_Streaming_Linear_Discriminant_Analysis_CVPRW_2020_paper.pdf
     """
     def __init__(self, slda_model, criterion,
                  input_size, num_classes, output_layer_name=None,
                  shrinkage_param=1e-4, streaming_update_sigma=True,
-                 train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
+                 train_epochs: int = 1, train_mb_size:int = 1,
+                 eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
         """
@@ -132,6 +94,8 @@ class StreamingLDA(BaseStrategy):
             SLDA-compatible model.
         :param input_size: feature dimension
         :param num_classes: number of total classes in stream
+        :param train_mb_size: batch size for feature extractor during
+            training. Fit will be called on a single pattern at a time.
         :param eval_mb_size: batch size for inference
         :param shrinkage_param: value of the shrinkage parameter
         :param streaming_update_sigma: True if sigma is plastic else False
@@ -150,7 +114,7 @@ class StreamingLDA(BaseStrategy):
                                       output_layer_name).eval()
 
         super(StreamingLDA, self).__init__(
-            slda_model, None, criterion, eval_mb_size, train_epochs,
+            slda_model, None, criterion, train_mb_size, train_epochs,
             eval_mb_size, device=device, plugins=plugins, evaluator=evaluator,
             eval_every=eval_every)
 
@@ -184,29 +148,27 @@ class StreamingLDA(BaseStrategy):
         :param kwargs:
         :return:
         """
-        for self.mb_it, self.mbatch in \
-                enumerate(self.dataloader):
+        for self.mb_it, self.mbatch in enumerate(self.dataloader):
+            self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 
             self.loss = 0
-            for self.mb_x, self.mb_y, self.mb_task_id in self.mbatch.values():
-                self.mb_x = self.mb_x.to(self.device)
-                self.mb_y = self.mb_y.to(self.device)
 
-                # Forward
-                self.before_forward(**kwargs)
+            # Forward
+            self.before_forward(**kwargs)
+            # compute output on entire minibatch
+            self.logits, feats = self.forward(return_features=True)
+            self.after_forward(**kwargs)
 
-                # compute output on entire minibatch
-                self.logits, feats = self.forward(return_features=True)
+            # Loss & Backward
+            self.loss += self.criterion(self.logits, self.mb_y)
 
-                # process one element at a time
-                for f, y in zip(feats, self.mb_y):
-                    self.fit(f.unsqueeze(0), y.unsqueeze(0))
-
-                self.after_forward(**kwargs)
-
-                # Loss
-                self.loss += self.criterion(self.logits, self.mb_y)
+            # Optimization step
+            self.before_update(**kwargs)
+            # process one element at a time
+            for f, y in zip(feats, self.mb_y):
+                self.fit(f.unsqueeze(0), y.unsqueeze(0))
+            self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
 

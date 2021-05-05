@@ -69,7 +69,8 @@ def main(args):
     # train_batch_size is fixed to 1
     cl_strategy = StreamingLDA(model, criterion,
                                args.feature_size, args.n_classes,
-                               eval_mb_size=args.test_batch_size,
+                               eval_mb_size=args.batch_size,
+                               train_mb_size=args.batch_size,
                                train_epochs=1,
                                shrinkage_param=args.shrinkage,
                                streaming_update_sigma=args.plastic_cov,
@@ -107,7 +108,7 @@ if __name__ == '__main__':
                         default=1e-4)  # shrinkage value
     parser.add_argument('--plastic_cov', type=bool,
                         default=True)  # plastic covariance matrix
-    parser.add_argument('--test_batch_size', type=int, default=512)
+    parser.add_argument('--batch_size', type=int, default=512)
 
     args = parser.parse_args()
     main(args)
