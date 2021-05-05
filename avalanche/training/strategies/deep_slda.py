@@ -79,7 +79,7 @@ class StreamingLDA(BaseStrategy):
     def __init__(self, slda_model, criterion,
                  input_size, num_classes, output_layer_name=None,
                  shrinkage_param=1e-4, streaming_update_sigma=True,
-                 train_epochs: int = 1, train_mb_size:int = 1,
+                 train_epochs: int = 1, train_mb_size: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
