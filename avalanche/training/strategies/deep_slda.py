@@ -282,7 +282,6 @@ class StreamingLDA(BaseStrategy):
 
 
 __all__ = [
-    'ModelWrapper',
     'StreamingLDA',
     'SLDAResNetModel',
 ]
