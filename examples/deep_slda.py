@@ -20,10 +20,13 @@ from __future__ import print_function
 import argparse
 import torch
 from torchvision import transforms
-from torch.utils.data.dataloader import DataLoader
 
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
+    forgetting_metrics
+from avalanche.logging import InteractiveLogger
 from avalanche.benchmarks.classic import CORe50
-from avalanche.training.strategies.deep_slda import StreamingLDA
+from avalanche.training.strategies.deep_slda import StreamingLDA, SLDAResNetModel
 
 
 def main(args):
@@ -46,43 +49,40 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = CORe50(root=args.dataset_dir, scenario=args.scenario,
+    scenario = CORe50(scenario=args.scenario,
                       train_transform=transform, eval_transform=transform)
-    test_data_loader = DataLoader(scenario.test_dataset,
-                                  batch_size=args.batch_size,
-                                  shuffle=False, num_workers=8)
     # ---------
 
+    eval_plugin = EvaluationPlugin(
+        loss_metrics(epoch=True, experience=True, stream=True),
+        accuracy_metrics(epoch=True, experience=True, stream=True),
+        forgetting_metrics(experience=True, stream=True),
+        loggers=[InteractiveLogger()]
+    )
+
+    criterion = torch.nn.CrossEntropyLoss()
+    model = SLDAResNetModel(device=device, arch='resnet18',
+                            imagenet_pretrained=args.imagenet_pretrained)
+
     # CREATE THE STRATEGY INSTANCE
-    cl_strategy = StreamingLDA(args.feature_size, args.n_classes,
-                               test_batch_size=args.batch_size,
+    # train_batch_size is fixed to 1
+    cl_strategy = StreamingLDA(model, criterion,
+                               args.feature_size, args.n_classes,
+                               eval_mb_size=args.test_batch_size,
+                               train_epochs=1,
                                shrinkage_param=args.shrinkage,
                                streaming_update_sigma=args.plastic_cov,
-                               arch=args.arch,
-                               imagenet_pretrained=args.imagenet_pretrained,
-                               device=device)
+                               device=device, evaluator=eval_plugin)
 
     # TRAINING LOOP
     print('Starting experiment...')
-    results = []
-    for i, batch in enumerate(scenario.train_stream):
-        print("\n----------- Batch {0}/{1} -------------".format(i + 1, len(
-            scenario.train_stream)))
-        train_loader = DataLoader(batch.dataset, batch_size=args.batch_size,
-                                  shuffle=False, num_workers=8)
+    for i, exp in enumerate(scenario.train_stream):
 
         # fit SLDA model to batch (one sample at a time)
-        cl_strategy.train_model(train_loader)
+        cl_strategy.train(exp)
 
         # evaluate model on test data
-        test_acc, preds = cl_strategy.evaluate_model(test_data_loader)
-
-        print("------------------------------------------")
-        print("Test Accuracy: %0.3f" % test_acc)
-        print("------------------------------------------")
-
-        # update results
-        results.append(test_acc)
+        cl_strategy.eval(scenario.test_stream)
 
 
 if __name__ == '__main__':
@@ -94,14 +94,8 @@ if __name__ == '__main__':
     parser.add_argument('--scenario', type=str, default="nc",
                         choices=['ni', 'nc', 'nic', 'nicv2_79', 'nicv2_196',
                                  'nicv2_391'])
-    parser.add_argument('--dataset_dir', type=str,
-                        default='/media/tyler/Data/datasets/core50/')
 
     # deep slda model parameters
-    parser.add_argument('--arch', type=str, default='resnet18', choices=[
-        'resnet18'])  # to change this, need to modify creation of
-    # `self.feature_extraction_wrapper' in
-    # `avalanche.training.strategies.deep_slda'
     parser.add_argument('--imagenet_pretrained', type=bool,
                         default=True)  # initialize backbone with
     # imagenet pre-trained weights
@@ -112,7 +106,7 @@ if __name__ == '__main__':
                         default=1e-4)  # shrinkage value
     parser.add_argument('--plastic_cov', type=bool,
                         default=True)  # plastic covariance matrix
-    parser.add_argument('--batch_size', type=int, default=512)
+    parser.add_argument('--test_batch_size', type=int, default=512)
 
     args = parser.parse_args()
     main(args)

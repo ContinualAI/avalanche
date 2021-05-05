@@ -6,33 +6,28 @@ import torch
 from torch import nn
 import torchvision.models as models
 
-from avalanche.training import default_logger
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.training.plugins import StrategyPlugin
 from avalanche.training.strategies import BaseStrategy
-from avalanche.training.utils import get_last_fc_layer
+from avalanche.training import default_logger
+from avalanche.models.dynamic_modules import MultiTaskModule
 
 
 class ModelWrapper(nn.Module):
     """
-    This class allows us to extract features from a backbone network
+    This PyTorch module allows us to extract features from a backbone network
+    given a layer name.
     """
 
-    def __init__(self, model, output_layer_names, return_single=False):
+    def __init__(self, model, output_layer_name):
         super(ModelWrapper, self).__init__()
         self.model = model
-        self.output_layer_names = output_layer_names
-        self.outputs = {}
-        self.return_single = return_single
-        self.add_hooks(self.model, self.outputs, self.output_layer_names)
+        self.output_layer_name = output_layer_name
+        self.output = None  # this will store the layer output
+        self.add_hooks(self.model)
 
     def forward(self, x):
         self.model(x)
-        output_vals = [self.outputs[output_layer_name] for output_layer_name in
-                       self.output_layer_names]
-        if self.return_single:
-            return output_vals[0]
-        else:
-            return output_vals
+        return self.output
 
     def get_name_to_module(self, model):
         name_to_module = {}
@@ -40,13 +35,13 @@ class ModelWrapper(nn.Module):
             name_to_module[m[0]] = m[1]
         return name_to_module
 
-    def get_activation(self, all_outputs, name):
+    def get_activation(self):
         def hook(model, input, output):
-            all_outputs[name] = output.detach()
+            self.output = output.detach()
 
         return hook
 
-    def add_hooks(self, model, outputs, output_layer_names):
+    def add_hooks(self, model):
         """
         :param model:
         :param outputs: Outputs from layers specified in `output_layer_names`
@@ -55,39 +50,35 @@ class ModelWrapper(nn.Module):
         :return:
         """
         name_to_module = self.get_name_to_module(model)
-        for output_layer_name in output_layer_names:
-            name_to_module[output_layer_name].register_forward_hook(
-                self.get_activation(outputs, output_layer_name))
+        name_to_module[self.output_layer_name].register_forward_hook(
+            self.get_activation())
 
 
-class StreamingLDA(nn.Module):
+class SLDAResNetModel(nn.Module):
     """
-    This is an implementation of the Deep Streaming Linear Discriminant
-    Analysis algorithm for streaming learning.
+    This is a model wrapper to reproduce experiments from the original
+    paper of Deep Streaming Linear Discriminant Analysis by using
+    a pretrained ResNet model.
     """
 
-    def __init__(self, input_shape, num_classes, test_batch_size=1024,
-                 shrinkage_param=1e-4, streaming_update_sigma=True,
-                 arch='resnet18', imagenet_pretrained=True,
-                 device='cuda',
-                 plugins: Optional[Sequence[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+    def __init__(self, arch='resnet18', output_layer_name='layer4.1',
+                 imagenet_pretrained=True, device='cpu'):
         """
-        Init function for the SLDA model.
-        :param input_shape: feature dimension
-        :param num_classes: number of total classes in stream
-        :param test_batch_size: batch size for inference
-        :param shrinkage_param: value of the shrinkage parameter
-        :param streaming_update_sigma: True if sigma is plastic else False
         :param arch: backbone architecture (default is resnet-18, but others
         can be used by modifying layer for
         feature extraction in `self.feature_extraction_wrapper'
         :param imagenet_pretrained: True if initializing backbone with imagenet
         pre-trained weights else False
-        :param imagenet_pretrained: device to use for experiment
+        :param output_layer_name: name of the layer from feature extractor
+        :param device: cpu, gpu or other device
         """
 
-        super(StreamingLDA, self).__init__()
+        super(SLDAResNetModel, self).__init__()
+
+        feat_extractor = models.__dict__[arch](
+            pretrained=imagenet_pretrained).to(device).eval()
+        self.feature_extraction_wrapper = ModelWrapper(
+            feat_extractor, output_layer_name).eval()
 
         warnings.warn(
             "The Deep SLDA implementation is not perfectly aligned with "
@@ -95,39 +86,134 @@ class StreamingLDA(nn.Module):
             "initialization phase here and instead starts streming from "
             "pre-trained weights).")
 
+    @staticmethod
+    def pool_feat(features):
+        feat_size = features.shape[-1]
+        num_channels = features.shape[1]
+        features2 = features.permute(0, 2, 3,
+                                     1)  # 1 x feat_size x feat_size x
+        # num_channels
+        features3 = torch.reshape(features2, (
+            features.shape[0], feat_size * feat_size, num_channels))
+        feat = features3.mean(1)  # mb x num_channels
+        return feat
+
+    def forward(self, x):
+        """
+        :param x: raw x data
+        """
+        feat = self.feature_extraction_wrapper(x)
+        feat = SLDAResNetModel.pool_feat(feat)
+        return feat
+
+
+class StreamingLDA(BaseStrategy):
+    """
+    Deep Streaming Linear Discriminant Analysis.
+    This strategy does not use backpropagation.
+    Minibatches are first passed to the pretrained feature extractor.
+    The result is processed one element at a time to fit the
+    LDA.
+    """
+    def __init__(self, slda_model, criterion,
+                 input_size, num_classes, output_layer_name=None,
+                 shrinkage_param=1e-4, streaming_update_sigma=True,
+                 train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
+                 plugins: Optional[Sequence['StrategyPlugin']] = None,
+                 evaluator=default_logger, eval_every=-1):
+        """
+        Init function for the SLDA model.
+        :param slda_model: a PyTorch model
+        :param criterion: loss function
+        :param output_layer_name: if not None, wrap model to retrieve
+            only the `output_layer_name` output. If None, the strategy
+            assumes that the model already produces a valid output.
+            You can use `ModelWrapper` class to create your custom
+            SLDA-compatible model.
+        :param input_size: feature dimension
+        :param num_classes: number of total classes in stream
+        :param eval_mb_size: batch size for inference
+        :param shrinkage_param: value of the shrinkage parameter
+        :param streaming_update_sigma: True if sigma is plastic else False
+        feature extraction in `self.feature_extraction_wrapper'
+        :param plugins: list of StrategyPlugins
+        :param evaluator: Evaluation Plugin instance
+        :param eval_every: run eval every `eval_every` epochs.
+            See `BaseStrategy` for details.
+        """
+
         if plugins is None:
             plugins = []
 
+        if output_layer_name is not None:
+            slda_model = ModelWrapper(slda_model.to(device),
+                                      output_layer_name).eval()
+
+        super(StreamingLDA, self).__init__(
+            slda_model, None, criterion, eval_mb_size, train_epochs,
+            eval_mb_size, device=device, plugins=plugins, evaluator=evaluator,
+            eval_every=eval_every)
+
         # SLDA parameters
-        self.device = device
-        self.input_shape = input_shape
-        self.num_classes = num_classes
-        self.test_batch_size = test_batch_size
+        self.input_size = input_size
         self.shrinkage_param = shrinkage_param
         self.streaming_update_sigma = streaming_update_sigma
 
         # setup weights for SLDA
-        self.muK = torch.zeros((num_classes, input_shape)).to(self.device)
+        self.muK = torch.zeros((num_classes, input_size)).to(self.device)
         self.cK = torch.zeros(num_classes).to(self.device)
-        self.Sigma = torch.ones((input_shape, input_shape)).to(self.device)
+        self.Sigma = torch.ones((input_size, input_size)).to(self.device)
         self.num_updates = 0
         self.Lambda = torch.zeros_like(self.Sigma).to(self.device)
         self.prev_num_updates = -1
 
-        # setup feature extraction model pre-trained on imagenet
-        feat_extractor = self.get_feature_extraction_model(arch,
-                                                           imagenet_pretrained)
-        # layer 4.1 is the final layer in resnet18 (need to change this code
-        # for other architectures)
-        self.feature_extraction_wrapper = ModelWrapper(
-            feat_extractor.eval().to(self.device),
-            ['layer4.1'], return_single=True).eval()
+    def forward(self, return_features=False):
+        if isinstance(self.model, MultiTaskModule):
+            feat = self.model.forward(self.mb_x, self.mb_task_id)
+        else:  # no task labels
+            feat = self.model.forward(self.mb_x)
+        out = self.predict(feat)
+        if return_features:
+            return out, feat
+        else:
+            return out
 
-    def get_feature_extraction_model(self, arch, imagenet_pretrained):
-        feature_extraction_model = models.__dict__[arch](
-            pretrained=imagenet_pretrained)
-        return feature_extraction_model
+    def training_epoch(self, **kwargs):
+        """
+        Training epoch.
+        :param kwargs:
+        :return:
+        """
+        for self.mb_it, self.mbatch in \
+                enumerate(self.dataloader):
+            self.before_training_iteration(**kwargs)
 
+            self.loss = 0
+            for self.mb_x, self.mb_y, self.mb_task_id in self.mbatch.values():
+                self.mb_x = self.mb_x.to(self.device)
+                self.mb_y = self.mb_y.to(self.device)
+
+                # Forward
+                self.before_forward(**kwargs)
+
+                # compute output on entire minibatch
+                self.logits, feats = self.forward(return_features=True)
+
+                # process one element at a time
+                for f, y in zip(feats, self.mb_y):
+                    self.fit(f.unsqueeze(0), y.unsqueeze(0))
+
+                self.after_forward(**kwargs)
+
+                # Loss
+                self.loss += self.criterion(self.logits, self.mb_y)
+
+            self.after_training_iteration(**kwargs)
+
+    def make_optimizer(self):
+        pass
+
+    @torch.no_grad()
     def fit(self, x, y):
         """
         Fit the SLDA model to a new sample (x,y).
@@ -135,32 +221,22 @@ class StreamingLDA(nn.Module):
         :param y: a torch tensor of the input label
         :return: None
         """
-        x = x.to(self.device)
-        y = y.long().to(self.device)
 
-        # make sure things are the right shape
-        if len(x.shape) < 2:
-            x = x.unsqueeze(0)
-        if len(y.shape) == 0:
-            y = y.unsqueeze(0)
+        # covariance updates
+        if self.streaming_update_sigma:
+            x_minus_mu = (x - self.muK[y])
+            mult = torch.matmul(x_minus_mu.transpose(1, 0), x_minus_mu)
+            delta = mult * self.num_updates / (self.num_updates + 1)
+            self.Sigma = (self.num_updates * self.Sigma + delta) / (
+                    self.num_updates + 1)
 
-        with torch.no_grad():
+        # update class means
+        self.muK[y, :] += (x - self.muK[y, :]) / (self.cK[y] + 1).unsqueeze(1)
+        self.cK[y] += 1
+        self.num_updates += 1
 
-            # covariance updates
-            if self.streaming_update_sigma:
-                x_minus_mu = (x - self.muK[y])
-                mult = torch.matmul(x_minus_mu.transpose(1, 0), x_minus_mu)
-                delta = mult * self.num_updates / (self.num_updates + 1)
-                self.Sigma = (self.num_updates * self.Sigma + delta) / (
-                        self.num_updates + 1)
-
-            # update class means
-            self.muK[y, :] += (x - self.muK[y, :]) / (self.cK[y] + 1).unsqueeze(
-                1)
-            self.cK[y] += 1
-            self.num_updates += 1
-
-    def predict(self, X, return_probas=False):
+    @torch.no_grad()
+    def predict(self, X):
         """
         Make predictions on test data X.
         :param X: a torch tensor that contains N data samples (N x d)
@@ -168,45 +244,26 @@ class StreamingLDA(nn.Module):
         of predictions returned
         :return: the test predictions or probabilities
         """
-        X = X.to(self.device)
 
-        with torch.no_grad():
-            # initialize parameters for testing
-            num_samples = X.shape[0]
-            scores = torch.empty((num_samples, self.num_classes))
-            mb = min(self.test_batch_size, num_samples)
+        # compute/load Lambda matrix
+        if self.prev_num_updates != self.num_updates:
+            # there have been updates to the model, compute Lambda
+            self.Lambda = torch.pinverse(
+                (
+                        1 - self.shrinkage_param) * self.Sigma +
+                self.shrinkage_param * torch.eye(
+                    self.input_size, device=self.device))
+            self.prev_num_updates = self.num_updates
 
-            # compute/load Lambda matrix
-            if self.prev_num_updates != self.num_updates:
-                # there have been updates to the model, compute Lambda
-                Lambda = torch.pinverse(
-                    (
-                            1 - self.shrinkage_param) * self.Sigma +
-                    self.shrinkage_param * torch.eye(
-                        self.input_shape).to(
-                        self.device))
-                self.Lambda = Lambda
-                self.prev_num_updates = self.num_updates
-            else:
-                Lambda = self.Lambda
+        # parameters for predictions
+        M = self.muK.transpose(1, 0)
+        W = torch.matmul(self.Lambda, M)
+        c = 0.5 * torch.sum(M * W, dim=0)
 
-            # parameters for predictions
-            M = self.muK.transpose(1, 0)
-            W = torch.matmul(Lambda, M)
-            c = 0.5 * torch.sum(M * W, dim=0)
+        scores = torch.matmul(X, W) - c
 
-            # loop in mini-batches over test samples
-            for i in range(0, num_samples, mb):
-                start = min(i, num_samples - mb)
-                end = i + mb
-                x = X[start:end]
-                scores[start:end, :] = torch.matmul(x, W) - c
-
-            # return predictions or probabilities
-            if not return_probas:
-                return scores.cpu()
-            else:
-                return torch.softmax(scores, dim=1).cpu()
+        # return predictions or probabilities
+        return scores
 
     def fit_base(self, X, y):
         """
@@ -216,8 +273,6 @@ class StreamingLDA(nn.Module):
         :return: None
         """
         print('\nFitting Base...')
-        X = X.to(self.device)
-        y = y.squeeze().long()
 
         # update class means
         for k in torch.unique(y):
@@ -231,46 +286,6 @@ class StreamingLDA(nn.Module):
         cov_estimator.fit((X - self.muK[y]).cpu().numpy())
         self.Sigma = torch.from_numpy(cov_estimator.covariance_).float().to(
             self.device)
-
-    def pool_feat(self, features):
-        feat_size = features.shape[-1]
-        num_channels = features.shape[1]
-        features2 = features.permute(0, 2, 3,
-                                     1)  # 1 x feat_size x feat_size x
-        # num_channels
-        features3 = torch.reshape(features2, (
-            features.shape[0], feat_size * feat_size, num_channels))
-        feat = features3.mean(1)  # mb x num_channels
-        return feat
-
-    def train_model(self, train_loader):
-
-        for train_x, train_y, _ in train_loader:
-            batch_x_feat = self.feature_extraction_wrapper(
-                train_x.to(self.device))
-            batch_x_feat = self.pool_feat(batch_x_feat)
-
-            # train one sample at a time
-            for x_pt, y_pt in zip(batch_x_feat, train_y):
-                self.fit(x_pt.cpu(), y_pt.view(1, ))
-
-    def evaluate_model(self, test_loader):
-        preds = []
-        correct = 0
-
-        for it, (test_x, test_y, _) in enumerate(test_loader):
-            batch_x_feat = self.feature_extraction_wrapper(
-                test_x.to(self.device))
-            batch_x_feat = self.pool_feat(batch_x_feat)
-
-            logits = self.predict(batch_x_feat, return_probas=True)
-
-            _, pred_label = torch.max(logits, 1)
-            correct += (pred_label == test_y).sum()
-            preds += list(pred_label.numpy())
-
-        acc = correct.item() / len(test_loader.dataset)
-        return acc, preds
 
     def save_model(self, save_path, save_name):
         """
@@ -302,3 +317,10 @@ class StreamingLDA(nn.Module):
         self.cK = d['cK'].to(self.device)
         self.Sigma = d['Sigma'].to(self.device)
         self.num_updates = d['num_updates']
+
+
+__all__ = [
+    'ModelWrapper',
+    'StreamingLDA',
+    'SLDAResNetModel',
+]
