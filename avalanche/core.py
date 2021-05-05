@@ -1,3 +1,22 @@
+################################################################################
+# Copyright (c) 2021. ContinualAI. All rights reserved.                        #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 5-5-2021                                                               #
+# Author: Antonio Carta, Vincenzo Lomonaco                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: continualai.org                                                     #
+################################################################################
+
+"""
+The core module offers fundamental utilities (classes and data structures) that
+can be used by inner Avalanche modules. As for now, it contains only the
+Strategy Callbacks definition that can be used by the :py:mod:`training`
+module for defining new continual learning strategies and by the
+:py:mod:`evaluation` module for defining new evaluation plugin metrics.
+"""
+
 from abc import ABC
 from typing import Generic, TypeVar
 
