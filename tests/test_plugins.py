@@ -204,7 +204,8 @@ class PluginTests(unittest.TestCase):
                                               [1., 1., 1.]],
                                     )
 
-    def _test_scheduler_plugin(self, gamma, milestones, base_lr, epochs, reset_lr, reset_scheduler, expected):
+    def _test_scheduler_plugin(self, gamma, milestones, base_lr, epochs,
+                               reset_lr, reset_scheduler, expected):
 
         class TestPlugin(StrategyPlugin):
             def __init__(self, expected_lrs):
@@ -212,7 +213,9 @@ class PluginTests(unittest.TestCase):
                 self.expected_lrs = expected_lrs
 
             def after_training_epoch(self, strategy, **kwargs):
-                expected_lr = self.expected_lrs[strategy.training_exp_counter][strategy.epoch]
+                exp_id = strategy.training_exp_counter
+
+                expected_lr = self.expected_lrs[exp_id][strategy.epoch]
                 for group in strategy.optimizer.param_groups:
                     assert group['lr'] == expected_lr
 
@@ -220,10 +223,12 @@ class PluginTests(unittest.TestCase):
         model = SimpleMLP(input_size=6, hidden_size=10)
 
         optim = SGD(model.parameters(), lr=base_lr)
-        lrSchedulerPlugin = LRSchedulerPlugin(MultiStepLR(optim, milestones=milestones, gamma=gamma),
-                                              reset_lr=reset_lr, reset_scheduler=reset_scheduler)
+        lrSchedulerPlugin = LRSchedulerPlugin(
+            MultiStepLR(optim, milestones=milestones, gamma=gamma),
+            reset_lr=reset_lr, reset_scheduler=reset_scheduler)
 
-        cl_strategy = Naive(model, optim, CrossEntropyLoss(), train_mb_size=32, train_epochs=epochs, eval_mb_size=100,
+        cl_strategy = Naive(model, optim, CrossEntropyLoss(), train_mb_size=32,
+                            train_epochs=epochs, eval_mb_size=100,
                             plugins=[lrSchedulerPlugin, TestPlugin(expected)])
 
         cl_strategy.train(scenario.train_stream[0])
