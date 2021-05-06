@@ -12,7 +12,6 @@
 """ Tiny-Imagenet Pytorch Dataset """
 
 import os
-import sys
 import pickle as pkl
 import logging
 from os.path import expanduser
@@ -37,7 +36,7 @@ class OpenLORIS(Dataset):
 
     def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/",
                  train=True, transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=False):
+                 loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -52,32 +51,7 @@ class OpenLORIS(Dataset):
         factor = 0
         ntask = 9
 
-        if download:
-            # self.core_data = OPENLORIS_DATA(data_folder=root)
-            self.log.error(
-                "%s",
-                "Download is not supported for this Dataset."
-                "You need to download the following files "
-                "manually:\n"
-                "- train.zip: "
-                "https://drive.google.com/u/0/uc?id"
-                "=11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF&export=download\n"
-                "- validation.zip: https://drive.google.com/u/0/uc?id="
-                "1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga&export=download\n"
-                "- test.zip: https://drive.google.com/u/0/uc?id="
-                "1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x&export=download\n"
-                "- LUP.pkl: https://drive.google.com/u/0/uc?id="
-                "1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV&export=download\n"
-                "- Paths.pkl: https://drive.google.com/u/0/uc?id="
-                "1KnuYLdlG3VQrhgbtIANLki81ah8Thezj&export=download\n"
-                "- Labels.pkl: https://drive.google.com/u/0/uc?id="
-                "1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H&export=download\n"
-                "- batches_filelists.zip: "
-                "https://drive.google.com/u/0/uc?id="
-                "1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp&export=download\n"                  
-                "For more details, check the official website: "
-                "https://lifelong-robotic-vision.github.io/dataset/object")
-            raise NotImplementedError()
+        openloris_data = OPENLORIS_DATA(root=root, download=download)
 
         self.log.info("Loading paths...")
         with open(os.path.join(root, 'Paths.pkl'), 'rb') as f:

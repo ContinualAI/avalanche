@@ -12,6 +12,7 @@
 """ This module contains the high-level OpenLORIS scenario/factor generator.
 It basically returns a iterable scenario object ``GenericCLScenario`` given
 a number of configuration parameters."""
+
 from avalanche.benchmarks.datasets.openloris.openloris_data import \
     OPENLORIS_DATA
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
