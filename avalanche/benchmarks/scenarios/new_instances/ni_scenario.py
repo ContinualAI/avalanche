@@ -9,16 +9,15 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Optional, List, Sequence, Dict, Any, Set
+from typing import Optional, List, Sequence, Dict, Any
 
 import torch
 
-from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
-    _exp_structure_from_assignment
-from avalanche.benchmarks.scenarios.scenario_utils import train_eval_transforms
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
+from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
+    _exp_structure_from_assignment
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 

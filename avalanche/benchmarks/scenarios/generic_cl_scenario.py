@@ -2,8 +2,7 @@ import copy
 import re
 from abc import ABC
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List, Set, Iterator, Tuple, NamedTuple, Mapping, \
-    overload
+    Dict, Any, Iterable, List, Set, Iterator, Tuple, NamedTuple, Mapping
 
 import warnings
 from torch.utils.data.dataset import Dataset
