@@ -9,14 +9,14 @@ def avalanche_forward(model, x, task_labels):
         return model.forward(x)
 
 
-class ModelWrapper(nn.Module):
+class FeatureExtractorBackbone(nn.Module):
     """
     This PyTorch module allows us to extract features from a backbone network
     given a layer name.
     """
 
     def __init__(self, model, output_layer_name):
-        super(ModelWrapper, self).__init__()
+        super(FeatureExtractorBackbone, self).__init__()
         self.model = model
         self.output_layer_name = output_layer_name
         self.output = None  # this will store the layer output
@@ -53,5 +53,5 @@ class ModelWrapper(nn.Module):
 
 __all__ = [
     'avalanche_forward',
-    'ModelWrapper'
+    'FeatureExtractorBackbone'
 ]
