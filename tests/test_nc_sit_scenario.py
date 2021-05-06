@@ -194,7 +194,7 @@ class SITTests(unittest.TestCase):
         self.assertEqual(10, len(all_classes))
 
         self.assertEqual(
-            5,  len(my_nc_benchmark.classes_in_experience['train'][0]))
+            5, len(my_nc_benchmark.classes_in_experience['train'][0]))
         self.assertEqual(
             3, len(my_nc_benchmark.classes_in_experience['train'][1]))
         self.assertEqual(
