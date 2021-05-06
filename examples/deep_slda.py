@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
 
-    parser.add_argument('--n_classes', type=int, default=10)
+    parser.add_argument('--n_classes', type=int, default=50)
     parser.add_argument('--scenario', type=str, default="nc",
                         choices=['ni', 'nc', 'nic', 'nicv2_79', 'nicv2_196',
                                  'nicv2_391'])
