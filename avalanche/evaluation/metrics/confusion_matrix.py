@@ -458,5 +458,6 @@ def confusion_matrix_metrics(num_classes=None, normalize=None,
 __all__ = [
     'ConfusionMatrix',
     'StreamConfusionMatrix',
+    'WandBStreamConfusionMatrix',
     'confusion_matrix_metrics'
 ]
