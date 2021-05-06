@@ -9,7 +9,7 @@ from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
-    tensors_benchmark, paths_benchmark
+    tensors_benchmark, paths_benchmark, data_incremental_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
 from tests.unit_tests_utils import common_setups
 
@@ -172,3 +172,66 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         self.assertEqual(2, len(generic_scenario.train_stream))
         self.assertEqual(1, len(generic_scenario.test_stream))
+
+    def test_data_incremental_benchmark(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.zeros(100, dtype=torch.long)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.ones(80, dtype=torch.long)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+
+        initial_benchmark_instance = tensors_benchmark(
+            train_tensors=[(experience_1_x, experience_1_y),
+                           (experience_2_x, experience_2_y)],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True)
+
+        data_incremental_instance = data_incremental_benchmark(
+            initial_benchmark_instance, 12, shuffle=False, drop_last=False)
+
+        self.assertEqual(16, len(data_incremental_instance.train_stream))
+        self.assertEqual(1, len(data_incremental_instance.test_stream))
+        self.assertTrue(data_incremental_instance.complete_test_set_only)
+
+        tensor_idx = 0
+        ref_tensor_x = experience_1_x
+        ref_tensor_y = experience_1_y
+        for exp in data_incremental_instance.train_stream:
+            if exp.current_experience == 8:
+                # Last mini-exp from 1st exp
+                self.assertEqual(4, len(exp.dataset))
+            elif exp.current_experience == 15:
+                # Last mini-exp from 2nd exp
+                self.assertEqual(8, len(exp.dataset))
+            else:
+                # Other mini-exp
+                self.assertEqual(12, len(exp.dataset))
+
+            if tensor_idx >= 100:
+                ref_tensor_x = experience_2_x
+                ref_tensor_y = experience_2_y
+                tensor_idx = 0
+
+            for x, y, *_ in exp.dataset:
+                self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], y))
+                tensor_idx += 1
+
+        exp = data_incremental_instance.test_stream[0]
+        self.assertEqual(50, len(exp.dataset))
+
+        tensor_idx = 0
+        for x, y, *_ in exp.dataset:
+            self.assertTrue(torch.equal(test_x[tensor_idx], x))
+            self.assertTrue(torch.equal(test_y[tensor_idx], y))
+            tensor_idx += 1
