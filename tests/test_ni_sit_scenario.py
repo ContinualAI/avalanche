@@ -26,7 +26,8 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(10, my_ni_benchmark.n_classes)
         for batch_id in range(5):
             self.assertEqual(
-                10, len(my_ni_benchmark.classes_in_experience[batch_id])
+                10,
+                len(my_ni_benchmark.classes_in_experience['train'][batch_id])
             )
 
         _, unique_count = torch.unique(torch.as_tensor(mnist_train.targets),
@@ -134,12 +135,13 @@ class NISITTests(unittest.TestCase):
         self.assertEqual(10, my_ni_benchmark.n_classes)
         for batch_id in range(5):
             self.assertEqual(
-                10, len(my_ni_benchmark.classes_in_experience[batch_id])
-            )
+                10,
+                len(my_ni_benchmark.classes_in_experience['train'][batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(my_ni_benchmark.classes_in_experience[batch_id])
+            all_classes.update(
+                my_ni_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
