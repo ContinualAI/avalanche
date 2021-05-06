@@ -25,7 +25,7 @@ from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     forgetting_metrics
 from avalanche.logging import InteractiveLogger
-from avalanche.benchmarks.classic import SplitCIFAR10
+from avalanche.benchmarks.classic import CORe50
 from avalanche.training.strategies.deep_slda import StreamingLDA
 from avalanche.models import SLDAResNetModel
 
@@ -50,7 +50,9 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = SplitCIFAR10(5, train_transform=transform, eval_transform=transform)
+    scenario = CORe50(scenario=args.scenario, train_transform=transform,
+                      eval_transform=transform)
+
     # ---------
 
     eval_plugin = EvaluationPlugin(

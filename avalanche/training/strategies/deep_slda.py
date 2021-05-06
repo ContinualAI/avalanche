@@ -58,7 +58,7 @@ class StreamingLDA(BaseStrategy):
 
         if output_layer_name is not None:
             slda_model = FeatureExtractorBackbone(slda_model.to(device),
-                                      output_layer_name).eval()
+                                                  output_layer_name).eval()
 
         super(StreamingLDA, self).__init__(
             slda_model, None, criterion, train_mb_size, train_epochs,
