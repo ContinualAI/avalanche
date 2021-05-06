@@ -239,18 +239,22 @@ class GenericCLScenario(Generic[TExperience]):
 
         return LazyStreamClassesInExps(self)
 
-    def get_classes_timeline(self, current_experience: int):
+    def get_classes_timeline(self, current_experience: int,
+                             stream: str = 'train'):
         """
-        Returns the classes timeline given the ID of a training experience.
+        Returns the classes timeline given the ID of a experience.
 
-        Given a experience ID, this method returns the classes in that training
+        Given a experience ID, this method returns the classes in that
         experience, previously seen classes, the cumulative class list and a
-        list of classes that will be encountered in next training experiences.
+        list of classes that will be encountered in next experiences of the
+        same stream.
 
-        Beware that this will obtain the timeline of an experience of the
-        **training** stream.
+        Beware that by default this will obtain the timeline of an experience
+        of the **training** stream. Use the stream parameter to select another
+        stream.
 
-        :param current_experience: The reference training experience ID.
+        :param current_experience: The reference experience ID.
+        :param stream: The stream name.
         :return: A tuple composed of four lists: the first list contains the
             IDs of classes in this experience, the second contains IDs of
             classes seen in previous experiences, the third returns a cumulative
@@ -258,26 +262,26 @@ class GenericCLScenario(Generic[TExperience]):
             last one returns a list of classes that will be encountered in next
             experiences.
         """
-        train_exps_patterns_assignment: Sequence[Sequence[int]]
 
         class_set_current_exp = \
-            self.classes_in_experience['train'][current_experience]
+            self.classes_in_experience[stream][current_experience]
 
         classes_in_this_exp = list(class_set_current_exp)
 
         class_set_prev_exps = set()
         for exp_id in range(0, current_experience):
             class_set_prev_exps.update(
-                self.classes_in_experience['train'][exp_id])
+                self.classes_in_experience[stream][exp_id])
         previous_classes = list(class_set_prev_exps)
 
         classes_seen_so_far = \
             list(class_set_current_exp.union(class_set_prev_exps))
 
         class_set_future_exps = set()
-        for exp_id in range(current_experience, self.n_experiences):
+        stream_n_exps = len(self.stream_definitions[stream].exps_data)
+        for exp_id in range(current_experience, stream_n_exps):
             class_set_prev_exps.update(
-                self.classes_in_experience['train'][exp_id])
+                self.classes_in_experience[stream][exp_id])
         future_classes = list(class_set_future_exps)
 
         return (classes_in_this_exp, previous_classes, classes_seen_so_far,
@@ -634,7 +638,7 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
         (classes_in_this_exp, previous_classes, classes_seen_so_far,
          future_classes) = origin_stream.scenario.get_classes_timeline(
-            current_experience)
+            current_experience, stream=origin_stream.name)
 
         super(GenericExperience, self).__init__(
             origin_stream, current_experience, classes_in_this_exp,
