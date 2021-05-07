@@ -572,4 +572,3 @@ class BaseStrategy:
 
 
 __all__ = ['BaseStrategy']
-

@@ -173,4 +173,3 @@ class CSVLogger(StrategyLogger):
     def close(self):
         self.training_file.close()
         self.eval_file.close()
-

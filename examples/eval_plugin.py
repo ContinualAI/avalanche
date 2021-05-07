@@ -144,4 +144,3 @@ if __name__ == '__main__':
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     args = parser.parse_args()
     main(args)
-
