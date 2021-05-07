@@ -245,6 +245,12 @@ class BaseStrategy:
         self.make_optimizer()
 
         self.before_training_exp(**kwargs)
+        
+        do_final = True
+        if self.eval_every > 0 and \
+                (self.train_epochs - 1) % self.eval_every == 0:
+            do_final = False
+
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
@@ -253,7 +259,7 @@ class BaseStrategy:
             self._periodic_eval(eval_streams, do_final=False)
 
         # Final evaluation
-        self._periodic_eval(eval_streams, do_final=True)
+        self._periodic_eval(eval_streams, do_final=do_final)
         self.after_training_exp(**kwargs)
 
     def _periodic_eval(self, eval_streams, do_final):
