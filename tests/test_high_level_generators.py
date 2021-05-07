@@ -9,7 +9,8 @@ from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
-    tensors_benchmark, paths_benchmark, data_incremental_benchmark
+    tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
+    benchmark_with_validation_stream
 from avalanche.benchmarks.utils import AvalancheDataset
 from tests.unit_tests_utils import common_setups
 
@@ -235,3 +236,183 @@ class HighLevelGeneratorTests(unittest.TestCase):
             self.assertTrue(torch.equal(test_x[tensor_idx], x))
             self.assertTrue(torch.equal(test_y[tensor_idx], y))
             tensor_idx += 1
+
+    def test_benchmark_with_validation_stream_fixed_size(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.zeros(100, dtype=torch.long)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.ones(80, dtype=torch.long)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+
+        initial_benchmark_instance = tensors_benchmark(
+            train_tensors=[(experience_1_x, experience_1_y),
+                           (experience_2_x, experience_2_y)],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True)
+
+        valid_benchmark = benchmark_with_validation_stream(
+            initial_benchmark_instance, 20, shuffle=False)
+
+        self.assertEqual(2, len(valid_benchmark.train_stream))
+        self.assertEqual(2, len(valid_benchmark.valid_stream))
+        self.assertEqual(1, len(valid_benchmark.test_stream))
+        self.assertTrue(valid_benchmark.complete_test_set_only)
+
+        self.assertEqual(80, len(valid_benchmark.train_stream[0].dataset))
+        self.assertEqual(60, len(valid_benchmark.train_stream[1].dataset))
+        self.assertEqual(20, len(valid_benchmark.valid_stream[0].dataset))
+        self.assertEqual(20, len(valid_benchmark.valid_stream[1].dataset))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_x[:80],
+                valid_benchmark.train_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_x[:60],
+                valid_benchmark.train_stream[1].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_y[:80],
+                valid_benchmark.train_stream[0].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_y[:60],
+                valid_benchmark.train_stream[1].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_x[80:],
+                valid_benchmark.valid_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_x[60:],
+                valid_benchmark.valid_stream[1].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_y[80:],
+                valid_benchmark.valid_stream[0].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_y[60:],
+                valid_benchmark.valid_stream[1].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                test_x,
+                valid_benchmark.test_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                test_y,
+                valid_benchmark.test_stream[0].dataset[:][1]))
+
+    def test_benchmark_with_validation_stream_rel_size(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.zeros(100, dtype=torch.long)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.ones(80, dtype=torch.long)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+
+        initial_benchmark_instance = tensors_benchmark(
+            train_tensors=[(experience_1_x, experience_1_y),
+                           (experience_2_x, experience_2_y)],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True)
+
+        valid_benchmark = benchmark_with_validation_stream(
+            initial_benchmark_instance, 0.2, shuffle=False)
+        expected_rel_1_valid = int(100 * 0.2)
+        expected_rel_1_train = 100 - expected_rel_1_valid
+        expected_rel_2_valid = int(80 * 0.2)
+        expected_rel_2_train = 80 - expected_rel_2_valid
+
+        self.assertEqual(2, len(valid_benchmark.train_stream))
+        self.assertEqual(2, len(valid_benchmark.valid_stream))
+        self.assertEqual(1, len(valid_benchmark.test_stream))
+        self.assertTrue(valid_benchmark.complete_test_set_only)
+
+        self.assertEqual(
+            expected_rel_1_train, len(valid_benchmark.train_stream[0].dataset))
+        self.assertEqual(
+            expected_rel_2_train, len(valid_benchmark.train_stream[1].dataset))
+        self.assertEqual(
+            expected_rel_1_valid, len(valid_benchmark.valid_stream[0].dataset))
+        self.assertEqual(
+            expected_rel_2_valid, len(valid_benchmark.valid_stream[1].dataset))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_x[:expected_rel_1_train],
+                valid_benchmark.train_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_x[:expected_rel_2_train],
+                valid_benchmark.train_stream[1].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_y[:expected_rel_1_train],
+                valid_benchmark.train_stream[0].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_y[:expected_rel_2_train],
+                valid_benchmark.train_stream[1].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_x[expected_rel_1_train:],
+                valid_benchmark.valid_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_x[expected_rel_2_train:],
+                valid_benchmark.valid_stream[1].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_1_y[expected_rel_1_train:],
+                valid_benchmark.valid_stream[0].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                experience_2_y[expected_rel_2_train:],
+                valid_benchmark.valid_stream[1].dataset[:][1]))
+
+        self.assertTrue(
+            torch.equal(
+                test_x,
+                valid_benchmark.test_stream[0].dataset[:][0]))
+
+        self.assertTrue(
+            torch.equal(
+                test_y,
+                valid_benchmark.test_stream[0].dataset[:][1]))
