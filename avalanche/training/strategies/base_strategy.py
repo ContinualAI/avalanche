@@ -140,6 +140,9 @@ class BaseStrategy:
         self.epoch: Optional[int] = None
         """ Epoch counter. """
 
+        self.last_epoch_eval = None
+        """ Last epoch at which periodic eval has been run"""
+
         self.experience = None
         """ Current experience. """
 
@@ -246,6 +249,7 @@ class BaseStrategy:
 
         self.before_training_exp(**kwargs)
         self.epoch = 0
+        self.last_epoch_eval = None
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
@@ -253,7 +257,8 @@ class BaseStrategy:
             self._periodic_eval(eval_streams, do_final=False)
 
         # Final evaluation
-        self._periodic_eval(eval_streams, do_final=True)
+        if self.last_epoch_eval is None or self.last_epoch_eval < self.epoch:
+            self._periodic_eval(eval_streams, do_final=True)
         self.after_training_exp(**kwargs)
 
     def _periodic_eval(self, eval_streams, do_final):
@@ -270,6 +275,7 @@ class BaseStrategy:
 
         if (self.eval_every == 0 and do_final) or \
            (self.eval_every > 0 and self.epoch % self.eval_every == 0):
+            self.last_epoch_eval = self.epoch
             # in the first case we are outside epoch loop
             # in the second case we are within epoch loop
             for exp in eval_streams:
@@ -566,3 +572,4 @@ class BaseStrategy:
 
 
 __all__ = ['BaseStrategy']
+

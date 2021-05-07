@@ -32,7 +32,7 @@ from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger
+from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -79,6 +79,8 @@ def main(args):
     # print to stdout
     interactive_logger = InteractiveLogger()
 
+    csv_logger = CSVLogger()
+
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
@@ -98,25 +100,26 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, text_logger],
+        loggers=[interactive_logger, text_logger, csv_logger],
         collect_all=True)  # collect all metrics (set to True by default)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
         model, SGD(model.parameters(), lr=0.001, momentum=0.9),
         CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
-        device=device, evaluator=eval_plugin)
+        device=device, evaluator=eval_plugin, eval_every=1)
 
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for experience in scenario.train_stream:
+    for i, experience in enumerate(scenario.train_stream):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
         # train returns a dictionary containing last recorded value
         # for each metric.
-        res = cl_strategy.train(experience)
+        res = cl_strategy.train(experience,
+                                eval_streams=[scenario.test_stream[i]])
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
@@ -141,3 +144,4 @@ if __name__ == '__main__':
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     args = parser.parse_args()
     main(args)
+
