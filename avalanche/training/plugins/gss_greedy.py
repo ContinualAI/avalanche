@@ -156,6 +156,7 @@ class GSS_greedyPlugin(StrategyPlugin):
                 buffer_score = self.buffer_score[:self.ext_mem_list_current_index].cpu()
                 buffer_sim = ((buffer_score - torch.min(buffer_score)) / \
                              ((torch.max(buffer_score) - torch.min(buffer_score)) + 0.01))+0.01
+                
                 # draw candidates for replacement from the buffer
                 index = torch.multinomial(buffer_sim, strategy.mb_x.size(0), replacement=False)
 
