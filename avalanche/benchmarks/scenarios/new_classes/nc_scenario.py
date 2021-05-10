@@ -9,13 +9,13 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-import torch
 from typing import Sequence, List, Optional, Dict, Any, Set
 
-from avalanche.benchmarks.scenarios.scenario_utils import train_eval_transforms
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+import torch
+
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
@@ -150,9 +150,11 @@ class NCScenario(GenericCLScenario['NCExperience']):
         self._classes_in_exp: List[Set[int]] = []
 
         self.original_classes_in_exp: List[Set[int]] = []
-        """ A list that, for each experience (identified by its index/ID),
-            stores a list of the original IDs of classes assigned 
-            to that experience. """
+        """
+        A list that, for each experience (identified by its index/ID), stores a 
+        set of the original IDs of classes assigned to that experience. 
+        This field applies to both train and test streams.
+        """
 
         self.class_ids_from_zero_from_first_exp: bool = \
             class_ids_from_zero_from_first_exp
@@ -423,10 +425,6 @@ class NCScenario(GenericCLScenario['NCExperience']):
                 'test': (test_experiences, test_task_labels, test_dataset)
             },
             experience_factory=NCExperience)
-
-    @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        return self._classes_in_exp
 
     def get_reproducibility_data(self):
         reproducibility_data = {

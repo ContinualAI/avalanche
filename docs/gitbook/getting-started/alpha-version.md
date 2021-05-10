@@ -26,9 +26,9 @@ In the Table below, we list all the Pytorch datasets used in _Continual Learning
 | **TinyImagenet** | ✔️ | ✔️ | ✔️ | n.a. |
 | **MiniImagenet** | ✔️ | ❌ | ❌ | n.a. |
 | **Imagenet** | ✔️ | ✔️ | ❌ | n.a. |
-| **CUB200** | ✔️ | ❌ | ❌ | n.a. |
+| **CUB200** | ✔️ | ❌ | ✔️ | n.a. |
 | **CRIB** | ❌ | ❌ | ❌ | n.a. |
-| **OpenLORIS** | ✔️ | ❌ | ❌ | n.a. |
+| **OpenLORIS** | ✔️ | ❌ | ✔️ | n.a. |
 | **Stream-51** | ✔️ | ❌ | ✔️ | n.a. |
 | **KMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
 | **EMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
@@ -59,9 +59,9 @@ In the Table below, we list all the Pytorch datasets used in _Continual Learning
 
 In the Table below, we list all the major benchmarks used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. 
 
-_"Dataset Support"_ is checked if an easy-to-use PyTorch version of the dataset is available, whereas _"Benchmark Support"_ is checked if the actual _continual learning benchmark_ \(which sequentialize the data\) is also provided.
+_""Benchmark Support"_ is checked if the actual _continual learning benchmark_ \(with the actual stream of data\) is also provided.
 
-| Name | Benchmark Support | References |
+| Name | Benchmark  Support | References |
 | :--- | :--- | :--- |
 | **CORe50** | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
 | **RotatedMNIST** | ✔️ | n.a. |
