@@ -21,6 +21,7 @@ from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
+from avalanche.models.utils import avalanche_forward
 from avalanche.training import default_logger
 from typing import TYPE_CHECKING
 
@@ -567,10 +568,7 @@ class BaseStrategy:
         self.model = self.model.to(self.device)
 
     def forward(self):
-        if isinstance(self.model, MultiTaskModule):
-            return self.model.forward(self.mb_x, self.mb_task_id)
-        else:  # no task labels
-            return self.model.forward(self.mb_x)
+        return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def make_optimizer(self):
         # we reset the optimizer's state after each experience.

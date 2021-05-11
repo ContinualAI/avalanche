@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-
+import torch
 import unittest
 
 import os
@@ -71,6 +71,25 @@ class BaseStrategyTest(unittest.TestCase):
         # eval is called after every epoch + the end of the training loop
         curve = strategy.evaluator.get_all_metrics()[curve_key][1]
         assert len(curve) == 3
+
+    def test_forward_hooks(self):
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        strategy = Naive(model, optimizer, train_epochs=2,
+                         eval_every=0)
+
+        was_hook_called = False
+
+        def hook(a, b, c):
+            nonlocal was_hook_called
+            was_hook_called = True
+
+        model.register_forward_hook(hook)
+        mb_x = torch.randn(32, 6, device=strategy.device)
+        strategy.mbatch = mb_x, None, None
+        strategy.forward()
+        assert was_hook_called
+
 
 
 class StrategyTest(unittest.TestCase):
