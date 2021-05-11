@@ -41,20 +41,24 @@ class GDumbPlugin(StrategyPlugin):
         # for each pattern, add it to the memory or not
         assert strategy.experience is not None
         dataset = strategy.experience.dataset
-        pbar = tqdm.tqdm(dataset, desc="Exhausting dataset to create GDumb buffer")
-        for pattern, target_value, task_id in pbar:
-            target = torch.as_tensor(target_value)
+        pbar = tqdm.tqdm(
+            dataset, desc="Exhausting dataset to create GDumb buffer")
+        for pattern, target, task_id in pbar:
+            target = torch.as_tensor(target)
+            target_value = target.item()
+
             if len(pattern.size()) == 1:
                 pattern = pattern.unsqueeze(0)
 
-            current_counter = self.counter.setdefault(task_id, {})
+            current_counter = self.counter.setdefault(task_id, defaultdict(int))
             current_mem = self.ext_mem.setdefault(task_id, ([], []))
 
             if current_counter == {}:
                 # any positive (>0) number is ok
                 patterns_per_class = 1
             else:
-                patterns_per_class = int(self.mem_size / len(current_counter.keys()))
+                patterns_per_class = int(
+                    self.mem_size / len(current_counter.keys()))
 
             if (
                 target_value not in current_counter
@@ -95,10 +99,6 @@ class GDumbPlugin(StrategyPlugin):
                 torch.stack(patterns, dim=0), torch.stack(targets, dim=0)
             )
             task_datasets[task_id] = task_dataset
-            # logger.debug(
-            #     f"There are {len(task_dataset)} entries from task {task_id} in the new "
-            #     f"dataset."
-            # )
 
         adapted_dataset = AvalancheConcatDataset(task_datasets.values())
         strategy.adapted_dataset = adapted_dataset
