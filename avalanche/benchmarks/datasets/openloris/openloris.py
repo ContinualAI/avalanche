@@ -19,7 +19,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-from openloris_data import OPENLORIS_DATA
+from .openloris_data import OPENLORIS_DATA
 
 
 def pil_loader(path):
@@ -99,7 +99,7 @@ class OpenLORIS(Dataset):
 
     def _download(self):
         """ Private method to download openloris data """
-        
+
         if self._check_integrity():
             print('Files already downloaded and verified.')
             return
