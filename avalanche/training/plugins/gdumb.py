@@ -1,6 +1,14 @@
 from collections import defaultdict
-from typing import (TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Tuple,
-                    Type)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 
 import torch
 import tqdm
@@ -33,16 +41,19 @@ class GDumbPlugin(StrategyPlugin):
         # count occurrences for each class
         self.counter: Dict[Any, Dict[Any, int]] = {}
 
-    def after_train_dataset_adaptation(self, strategy: "BaseStrategy", **kwargs):
-        """ Before training we make sure to organize the memory following
-            GDumb approach and updating the dataset accordingly.
+    def after_train_dataset_adaptation(
+        self, strategy: "BaseStrategy", **kwargs
+    ):
+        """Before training we make sure to organize the memory following
+        GDumb approach and updating the dataset accordingly.
         """
 
         # for each pattern, add it to the memory or not
         assert strategy.experience is not None
         dataset = strategy.experience.dataset
         pbar = tqdm.tqdm(
-            dataset, desc="Exhausting dataset to create GDumb buffer")
+            dataset, desc="Exhausting dataset to create GDumb buffer"
+        )
         for pattern, target, task_id in pbar:
             target = torch.as_tensor(target)
             target_value = target.item()
@@ -58,7 +69,8 @@ class GDumbPlugin(StrategyPlugin):
                 patterns_per_class = 1
             else:
                 patterns_per_class = int(
-                    self.mem_size / len(current_counter.keys()))
+                    self.mem_size / len(current_counter.keys())
+                )
 
             if (
                 target_value not in current_counter
@@ -77,19 +89,17 @@ class GDumbPlugin(StrategyPlugin):
                             current_mem[1][j] = target
                             break
                     current_counter[to_remove] -= 1
+                elif current_mem is None:
+                    # Create the memory for this task.
+                    current_mem = ([pattern], [target])
+                    self.ext_mem[task_id] = current_mem
                 else:
                     # memory not full: add new pattern
-                    if current_mem is None:
-                        current_mem = ([pattern], [target])
-                        self.ext_mem[task_id] = current_mem
-                    else:
-                        # BUG:
-                        # Do they intend to have a 'batch' instead of a single sample?
-                        current_mem[0].append(pattern)
-                        current_mem[1].append(target)
+                    current_mem[0].append(pattern)
+                    current_mem[1].append(target)
 
-                # Indicate that we've changed the number of stored instances of this
-                # class.
+                # Indicate that we've changed the number of stored instances of
+                # this class.
                 current_counter[target_value] += 1
 
         task_datasets: Dict[Any, TensorDataset] = {}
