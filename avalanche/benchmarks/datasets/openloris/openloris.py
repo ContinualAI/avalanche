@@ -4,12 +4,12 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 11-11-2020                                                             #
-# Author: ContinualAI                                                          #
+# Author: Vincenzo Lomonaco                                                    #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-""" Tiny-Imagenet Pytorch Dataset """
+""" OpenLoris Pytorch Dataset """
 
 import os
 import pickle as pkl
@@ -23,6 +23,7 @@ from openloris_data import OPENLORIS_DATA
 
 
 def pil_loader(path):
+    """ Basic PIL data loader """
     # open path as file to avoid ResourceWarning
     # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
@@ -88,6 +89,7 @@ class OpenLORIS(Dataset):
 
     def _check_integrity(self):
         """ Checks if the data is already available and intact """
+
         for name, googledrive_id in self.openloris_data.filename:
             filepath = os.path.join(self.root, name)
             if not os.path.isfile(filepath):
@@ -96,6 +98,8 @@ class OpenLORIS(Dataset):
         return True
 
     def _download(self):
+        """ Private method to download openloris data """
+        
         if self._check_integrity():
             print('Files already downloaded and verified.')
             return
