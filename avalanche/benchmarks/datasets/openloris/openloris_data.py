@@ -15,6 +15,7 @@ import os
 import sys
 import gdown
 from os.path import expanduser
+from torchvision.datasets.utils import extract_archive
 
 if sys.version_info[0] >= 3:
     pass
@@ -24,48 +25,43 @@ else:
     # might be around one day
     pass
 
-filename = [
-    ('train.zip',
-     '11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF'),
-    ('valid.zip',
-     '1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga'),
-    ('test.zip',
-     '1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x'),
-    ('LUP.pkl',
-     '1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV'),
-    ('Paths.pkl',
-     '1KnuYLdlG3VQrhgbtIANLki81ah8Thezj'),
-    ('Labels.pkl',
-     '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H'),
-    ('batches_filelists.zip',
-     '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
-]
-
 
 class OPENLORIS_DATA(object):
     """
     OpenlORIS downloader.
     """
 
-    def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/",
-                 download=True):
+    filename = [
+        ('train.zip',
+         '11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF'),
+        ('valid.zip',
+         '1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga'),
+        ('test.zip',
+         '1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x'),
+        ('LUP.pkl',
+         '1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV'),
+        ('Paths.pkl',
+         '1KnuYLdlG3VQrhgbtIANLki81ah8Thezj'),
+        ('Labels.pkl',
+         '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H'),
+        ('batches_filelists.zip',
+         '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
+    ]
+
+    def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/"):
         """
         Args:
             root (string): folder in which to download openloris dataset.
-            download (bool): download dataset in root. Default to True.
         """
         # we create the dir if it does not exists
         self.root = root
         if not os.path.exists(self.root):
             os.makedirs(self.root)
 
-        if download:
-            self.download()
-
     def download(self):
         """ Download from google drive official repositories. """
 
-        for name in filename:
+        for name in self.filename:
             try:
                 filepath = os.path.join(self.root, name[0])
                 url = "https://drive.google.com/u/0/uc?id=" + name[1]
@@ -74,6 +70,8 @@ class OPENLORIS_DATA(object):
             except Exception as e:
                 print('[OpenLoris] Direct download may no longer be supported!')
                 raise e
+
+            extract_archive(filepath, to_path=self.root)
 
 
 if __name__ == "__main__":

@@ -13,14 +13,13 @@
 
 import os
 import pickle as pkl
-import logging
 from os.path import expanduser
 
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-from .openloris_data import OPENLORIS_DATA
+from openloris_data import OPENLORIS_DATA
 
 
 def pil_loader(path):
@@ -43,7 +42,7 @@ class OpenLORIS(Dataset):
         self.target_transform = target_transform
         self.root = root
         self.loader = loader
-        self.log = logging.getLogger("avalanche")
+        self.openloris_data = OPENLORIS_DATA(root=root)
 
         # any scenario and factor is good here since we want just to load the
         # train images and targets with no particular order
@@ -51,20 +50,25 @@ class OpenLORIS(Dataset):
         factor = 0
         ntask = 9
 
-        openloris_data = OPENLORIS_DATA(root=root, download=download)
+        if not self._check_integrity():
+            if download:
+                self._download()
+            else:
+                raise RuntimeError('Dataset not found or corrupted. Please '
+                                   'download it manually and re-try.')
 
-        self.log.info("Loading paths...")
+        print("Loading paths...")
         with open(os.path.join(root, 'Paths.pkl'), 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
-        self.log.info("Loading labels...")
+        print("Loading labels...")
         with open(os.path.join(root, 'Labels.pkl'), 'rb') as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(ntask + 1):
                 self.train_test_targets += self.all_targets[scen][factor][i]
 
-        self.log.info("Loading LUP...")
+        print("Loading LUP...")
         with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 
@@ -81,6 +85,25 @@ class OpenLORIS(Dataset):
         for idx in self.idx_list:
             self.paths.append(self.train_test_paths[idx])
             self.targets.append(self.train_test_targets[idx])
+
+    def _check_integrity(self):
+        """ Checks if the data is already available and intact """
+        for name, googledrive_id in self.openloris_data.filename:
+            filepath = os.path.join(self.root, name)
+            if not os.path.isfile(filepath):
+                print('[CUB200] Error checking integrity of:', filepath)
+                return False
+        return True
+
+    def _download(self):
+        if self._check_integrity():
+            print('Files already downloaded and verified.')
+            return
+        try:
+            self.openloris_data.download()
+        except Exception as e:
+            print('[CUB200] Direct download may no longer be supported!')
+            raise e
 
     def __getitem__(self, index):
         """
