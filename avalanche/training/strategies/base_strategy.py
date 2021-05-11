@@ -8,13 +8,12 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from collections import defaultdict
 
 import torch
 from torch.utils.data import DataLoader
 from typing import Optional, Sequence, Union
 
-from torch.nn import Module
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import Experience
@@ -32,7 +31,8 @@ if TYPE_CHECKING:
 
 
 class BaseStrategy:
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+    def __init__(self, model: Module, optimizer: Optimizer,
+                 criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
@@ -96,11 +96,10 @@ class BaseStrategy:
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
+        self._criterion = criterion
+
         self.model: Module = model
         """ PyTorch model. """
-
-        self.criterion = criterion
-        """ Loss function. """
 
         self.optimizer = optimizer
         """ PyTorch optimizer. """
@@ -162,17 +161,11 @@ class BaseStrategy:
         self.mbatch = None
         """ Current mini-batch. """
 
-        self.mb_x = None
-        """ Current mini-batch input. """
-
-        self.mb_y = None
-        """ Current mini-batch target. """
+        self.mb_pred = None
+        """ Model predictions computed on the current mini-batch. """
 
         self.loss = None
         """ Loss of the current mini-batch. """
-
-        self.logits = None
-        """ Logits computed on the current mini-batch. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
@@ -181,6 +174,25 @@ class BaseStrategy:
     def is_eval(self):
         """ True if the strategy is in evaluation mode. """
         return not self.is_training
+
+    @property
+    def mb_x(self):
+        """ Current mini-batch input. """
+        return self.mbatch[0]
+
+    @property
+    def mb_y(self):
+        """ Current mini-batch target. """
+        return self.mbatch[1]
+
+    @property
+    def mb_task_id(self):
+        assert len(self.mbatch) >= 3
+        return self.mbatch[-1]
+
+    def criterion(self):
+        """ Loss function. """
+        return self._criterion(self.mb_pred, self.mb_y)
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
@@ -234,7 +246,7 @@ class BaseStrategy:
         self.experience = experience
         self.model.train()
 
-        # Data Adaptation
+        # Data Adaptation (e.g. add new samples/data augmentation)
         self.before_train_dataset_adaptation(**kwargs)
         self.train_dataset_adaptation(**kwargs)
         self.after_train_dataset_adaptation(**kwargs)
@@ -410,11 +422,11 @@ class BaseStrategy:
 
             # Forward
             self.before_forward(**kwargs)
-            self.logits = self.forward()
+            self.mb_pred = self.forward()
             self.after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion(self.logits, self.mb_y)
+            self.loss += self.criterion()
 
             self.before_backward(**kwargs)
             self.loss.backward()
@@ -436,10 +448,6 @@ class BaseStrategy:
         assert len(self.mbatch) >= 3
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
-
-        self.mb_x = self.mbatch[0]
-        self.mb_y = self.mbatch[1]
-        self.mb_task_id = self.mbatch[-1]
 
     def before_training(self, **kwargs):
         for p in self.plugins:
@@ -518,9 +526,9 @@ class BaseStrategy:
             self.before_eval_iteration(**kwargs)
 
             self.before_eval_forward(**kwargs)
-            self.logits = self.forward()
+            self.mb_pred = self.forward()
             self.after_eval_forward(**kwargs)
-            self.loss = self.criterion(self.logits, self.mb_y)
+            self.loss = self.criterion()
 
             self.after_eval_iteration(**kwargs)
 

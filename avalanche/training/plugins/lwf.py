@@ -55,7 +55,7 @@ class LwFPlugin(StrategyPlugin):
         """
         alpha = self.alpha[strategy.training_exp_counter] \
             if isinstance(self.alpha, (list, tuple)) else self.alpha
-        penalty = self.penalty(strategy.logits, strategy.mb_x, alpha)
+        penalty = self.penalty(strategy.mb_pred, strategy.mb_x, alpha)
         strategy.loss += penalty
 
     def after_training_exp(self, strategy, **kwargs):

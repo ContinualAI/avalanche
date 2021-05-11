@@ -198,7 +198,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self._current_accuracy.update(strategy.mb_y,
-                                      strategy.logits)
+                                      strategy.mb_pred)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
@@ -347,7 +347,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self._current_accuracy.update(strategy.mb_y,
-                                      strategy.logits)
+                                      strategy.mb_pred)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
         # update experience on which training just ended
