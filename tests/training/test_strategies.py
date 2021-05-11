@@ -91,7 +91,6 @@ class BaseStrategyTest(unittest.TestCase):
         assert was_hook_called
 
 
-
 class StrategyTest(unittest.TestCase):
     if "FAST_TEST" in os.environ:
         fast_test = os.environ['FAST_TEST'].lower() in ["true"]
