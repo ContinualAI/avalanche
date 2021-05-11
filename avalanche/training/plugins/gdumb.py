@@ -89,10 +89,6 @@ class GDumbPlugin(StrategyPlugin):
                             current_mem[1][j] = target
                             break
                     current_counter[to_remove] -= 1
-                elif current_mem is None:
-                    # Create the memory for this task.
-                    current_mem = ([pattern], [target])
-                    self.ext_mem[task_id] = current_mem
                 else:
                     # memory not full: add new pattern
                     current_mem[0].append(pattern)
