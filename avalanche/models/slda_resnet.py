@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-import warnings
 from .utils import FeatureExtractorBackbone
 
 
@@ -30,12 +29,6 @@ class SLDAResNetModel(nn.Module):
             pretrained=imagenet_pretrained).to(device).eval()
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
             feat_extractor, output_layer_name).eval()
-
-        warnings.warn(
-            "The Deep SLDA implementation is not perfectly aligned with "
-            "the paper implementation (i.e., it does not use a base "
-            "initialization phase here and instead starts streming from "
-            "pre-trained weights). The performance you get may be different.")
 
     @staticmethod
     def pool_feat(features):

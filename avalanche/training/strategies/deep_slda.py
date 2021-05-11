@@ -56,6 +56,7 @@ class StreamingLDA(BaseStrategy):
         if plugins is None:
             plugins = []
 
+        slda_model = slda_model.eval()
         if output_layer_name is not None:
             slda_model = FeatureExtractorBackbone(slda_model.to(device),
                                                   output_layer_name).eval()
@@ -79,10 +80,11 @@ class StreamingLDA(BaseStrategy):
         self.prev_num_updates = -1
 
     def forward(self, return_features=False):
+        self.model.eval()
         if isinstance(self.model, MultiTaskModule):
-            feat = self.model.forward(self.mb_x, self.mb_task_id)
+            feat = self.model(self.mb_x, self.mb_task_id)
         else:  # no task labels
-            feat = self.model.forward(self.mb_x)
+            feat = self.model(self.mb_x)
         out = self.predict(feat)
         if return_features:
             return out, feat

@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import argparse
 import torch
+import warnings
 from torchvision import transforms
 
 from avalanche.training.plugins import EvaluationPlugin
@@ -67,7 +68,6 @@ def main(args):
                             imagenet_pretrained=args.imagenet_pretrained)
 
     # CREATE THE STRATEGY INSTANCE
-    # train_batch_size is fixed to 1
     cl_strategy = StreamingLDA(model, criterion,
                                args.feature_size, args.n_classes,
                                eval_mb_size=args.batch_size,
@@ -76,6 +76,12 @@ def main(args):
                                shrinkage_param=args.shrinkage,
                                streaming_update_sigma=args.plastic_cov,
                                device=device, evaluator=eval_plugin)
+
+    warnings.warn(
+        "The Deep SLDA example is not perfectly aligned with "
+        "the paper implementation since it does not use a base "
+        "initialization phase and instead starts streming from "
+        "pre-trained weights.")
 
     # TRAINING LOOP
     print('Starting experiment...')
