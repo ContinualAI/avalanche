@@ -219,6 +219,7 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
 
 __all__ = [
     'DynamicModule',
+    'MultiTaskModule',
     'IncrementalClassifier',
     'MultiHeadClassifier'
 ]

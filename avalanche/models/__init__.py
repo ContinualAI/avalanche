@@ -12,3 +12,5 @@ from .simple_mlp import *
 from .mlp_tiny_imagenet import SimpleMLP_TinyImageNet
 from .mobilenetv1 import MobilenetV1
 from .dynamic_modules import *
+from .utils import *
+from .slda_resnet import SLDAResNetModel
