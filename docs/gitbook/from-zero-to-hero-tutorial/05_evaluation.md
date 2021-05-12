@@ -6,11 +6,14 @@ description: Automatic Evaluation with Pre-implemented Metrics
 
 Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In this part we will present the functionalities offered by the `evaluation` module.
 
+
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
 
 ## 📈 The Evaluation Module
+
+
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
@@ -18,9 +21,10 @@ This is mostly done through the **Metrics**: a set of classes which implement th
 
 Each metric comes with a standalone class and a set of plugin classes aimed at emitting metric values on specific moments during training and evaluation.
 
-### Standalone metric
+#### Standalone metric
 
 As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
+
 
 ```python
 import torch
@@ -47,13 +51,14 @@ acc_metric.reset()
 print("After reset: ", acc_metric.result()) # output 0
 ```
 
-### Plugin metric
+#### Plugin metric
 
-If you want to integrate the available metrics automatically in the training and evaluation flow, you can use plugion metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. Each of these metrics emits a **curve** composed by its values at different points in time \(e.g. on different training epochs\). In order to simplify the use of these metrics, we provided utility functions with which you can create different plugin metrics in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see below\).
+If you want to integrate the available metrics automatically in the training and evaluation flow, you can use plugion metrics, like `EpochAccuracy` which logs the accuracy after each training epoch, or `ExperienceAccuracy` which logs the accuracy after each evaluation experience. Each of these metrics emits a **curve** composed by its values at different points in time \(e.g. on different training epochs\).  In order to simplify the use of these metrics, we provided utility functions with which you can create different plugin metrics in one shot. The results of these functions can be passed as parameters directly to the `EvaluationPlugin`\(see below\).
 
 {% hint style="info" %}
 We recommend to use the helper functions when creating plugin metrics.
 {% endhint %}
+
 
 ```python
 from avalanche.evaluation.metrics import accuracy_metrics, \
@@ -66,6 +71,7 @@ metrics = accuracy_metrics(epoch=True, experience=True)
 ```
 
 The metrics currently available in the current _Avalanche_ release are:
+
 
 ```python
 from avalanche.evaluation.metrics import Accuracy, \
@@ -94,13 +100,14 @@ The **Evaluation Plugin**, is the object in charge of configuring and controllin
 
 The Evaluation Plugin accepts as inputs the plugin metrics you want to track. In addition, you can add one or more loggers to print the metrics in different ways \(on file, on standard output, on Tensorboard...\).
 
+
 ```python
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
-StreamConfusionMatrix, disk_usage_metrics
+confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -122,7 +129,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True)
 )
 
@@ -151,6 +158,7 @@ for experience in scenario.train_stream:
 ## Implement your own metric
 
 To implement a **standalone metric**, you have to subclass `Metric` class.
+
 
 ```python
 from avalanche.evaluation import Metric
@@ -187,7 +195,8 @@ class MyStandaloneMetric(Metric[float]):
         pass
 ```
 
-To implement a **plugin metric** you have to subclass `MetricPlugin` class
+ To implement a **plugin metric** you have to subclass `MetricPlugin` class
+
 
 ```python
 from avalanche.evaluation import PluginMetric
@@ -254,9 +263,10 @@ class MyPluginMetric(PluginMetric[float]):
 
 ## Accessing metric values
 
-If you want to access all the metrics computed during training and evaluation, you have to make sure that `collect_all=True` is set when creating the `EvaluationPlugin` \(default option is `True`\). This option maintains an updated version of all metric results in the plugin, which can be retrieved by calling `evaluation_plugin.get_all_metrics()`. You can call this methods whenever you need the metrics.
+If you want to access all the metrics computed during training and evaluation, you have to make sure that `collect_all=True` is set when creating the `EvaluationPlugin` (default option is `True`). This option maintains an updated version of all metric results in the plugin, which can be retrieved by calling `evaluation_plugin.get_all_metrics()`. You can call this methods whenever you need the metrics. 
 
-The result is a dictionary with full metric names as keys and a tuple of two lists as values. The first list stores all the `x` values recorded for that metric. Each `x` value represents the time step at which the corresponding metric value has been computed. The second list stores metric values associated to the corresponding `x` value.
+The result is a dictionary with full metric names as keys and a tuple of two lists as values. The first list stores all the `x` values recorded for that metric. Each `x` value represents the time step at which the corresponding metric value has been computed. The second list stores metric values associated to the corresponding `x` value. 
+
 
 ```python
 eval_plugin = EvaluationPlugin(
@@ -265,7 +275,7 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     collect_all=True # this is default value anyway
 )
@@ -274,11 +284,10 @@ eval_plugin = EvaluationPlugin(
 metric_dict = eval_plugin.get_all_metrics()
 ```
 
-Alternatively, the `train` and `eval` method of every `strategy` returns a dictionary storing, for each metric, the last value recorded for that metric. You can use these dictionaries to incrementally accumulate metrics.
+Alternatively, the `train` and `eval` method of every `strategy` returns a dictionary storing, for each metric, the last value recorded for that metric. You can use these dictionaries to incrementally accumulate metrics. 
 
 This completes the "_Evaluation_" tutorial for the "_From Zero to Hero_" series. We hope you enjoyed it!
 
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/4.-evaluation.ipynb)
-

@@ -22,7 +22,8 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining, CoPE
+    SynapticIntelligence, JointTraining, CoPE, StreamingLDA
+from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
@@ -206,6 +207,15 @@ class StrategyTest(unittest.TestCase):
                               train_epochs=2)
         scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
+
+    def test_slda(self):
+        model, _, criterion, my_nc_benchmark = self.init_sit()
+        strategy = StreamingLDA(model, criterion, input_size=10,
+                                output_layer_name='features',
+                                num_classes=10, eval_mb_size=7,
+                                train_epochs=1, device=self.device,
+                                train_mb_size=7)
+        self.run_strategy(my_nc_benchmark, strategy)
 
     def test_lwf(self):
         # SIT scenario
