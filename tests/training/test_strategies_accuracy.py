@@ -3,22 +3,19 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 1-06-2020                                                              #
-# Author(s): Andrea Cossu                                                      #
+# Date: 12-05-2021                                                             #
+# Author(s): Antonio                                                           #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-import torch
 import unittest
 
-import os
-import sys
 from torch import nn
 
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
-from avalanche.models import  MultiHeadClassifier
+from avalanche.models import MultiHeadClassifier
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies.cumulative import Cumulative
