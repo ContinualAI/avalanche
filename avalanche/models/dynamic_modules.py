@@ -170,10 +170,26 @@ class IncrementalClassifier(DynamicModule):
 
 class MultiHeadClassifier(MultiTaskModule, DynamicModule):
     def __init__(self, in_features, initial_out_features=2):
-        """ Multi-head classifier with separate classifiers for each task.
+        """ Multi-head classifier with separate heads for each task.
 
         Typically used in task-incremental scenarios where task labels are
         available and provided to the model.
+
+        .. note::
+            Each output head may have a different shape, and the number of
+            classes can be determined automatically.
+
+            However, since pytorch doest not support jagged tensors, when you
+            compute a minibatch's output you must ensure that each sample
+            has the same output size, otherwise the model will fail to
+            concatenate the samples together.
+
+            These can be easily ensured in two possible ways:
+            - each minibatch contains a single task, which is the case in most
+                common scenarios in Avalanche. Some exceptions to this setting
+                are multi-task replay or cumulative strategies.
+            - each head has the same size, which can be enforced by setting a
+                large enough `initial_out_features`.
 
         :param in_features: number of input features.
         :param initial_out_features: initial number of classes (can be
@@ -186,7 +202,9 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
 
         # needs to create the first head because pytorch optimizers
         # fail when model.parameters() is empty.
-        self.classifiers['0'] = IncrementalClassifier(self.in_features)
+        first_head = IncrementalClassifier(self.in_features,
+                                           self.starting_out_features)
+        self.classifiers['0'] = first_head
 
     def adaptation(self, dataset: AvalancheDataset):
         """ If `dataset` contains new tasks, a new head is initialized.
@@ -200,11 +218,12 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
             task_labels = [task_labels[0]]
 
         for tid in set(task_labels):
+            tid = str(tid)  # need str keys
             if tid not in self.classifiers:
                 new_head = IncrementalClassifier(self.in_features,
                                                  self.starting_out_features)
                 new_head.adaptation(dataset)
-                self.classifiers[str(tid)] = new_head
+                self.classifiers[tid] = new_head
 
     def forward_single_task(self, x, task_label):
         """ compute the output given the input `x`. This module uses the task
