@@ -62,13 +62,17 @@ class OPENLORIS_DATA(object):
         """ Download from google drive official repositories. """
 
         for name in self.filename:
+            filepath = os.path.join(self.root, name[0])
             try:
-                filepath = os.path.join(self.root, name[0])
-                url = "https://drive.google.com/u/0/uc?id=" + name[1]
-                gdown.download(url, filepath, quiet=False)
-                gdown.cached_download(url, filepath)
+                if not os.path.exists(filepath):
+                    print('[OpenLoris] Start downloading {}...'.format(name[0]))
+                    url = "https://drive.google.com/u/0/uc?id=" + name[1]
+                    gdown.download(url, filepath, quiet=False)
+                    gdown.cached_download(url, filepath)
             except Exception as e:
-                print('[OpenLoris] Direct download may no longer be supported!')
+                print('[OpenLoris] Direct download may no longer be '
+                      'supported!\nYou should download data manually using '
+                      'the following link: {}\n'.format(url))
                 raise e
 
             extract_archive(filepath, to_path=self.root)

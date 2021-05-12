@@ -100,14 +100,7 @@ class OpenLORIS(Dataset):
     def _download(self):
         """ Private method to download openloris data """
 
-        if self._check_integrity():
-            print('Files already downloaded and verified.')
-            return
-        try:
-            self.openloris_data.download()
-        except Exception as e:
-            print('[CUB200] Direct download may no longer be supported!')
-            raise e
+        self.openloris_data.download()
 
     def __getitem__(self, index):
         """

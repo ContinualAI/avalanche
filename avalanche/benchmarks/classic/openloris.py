@@ -13,8 +13,8 @@
 It basically returns a iterable scenario object ``GenericCLScenario`` given
 a number of configuration parameters."""
 
-from avalanche.benchmarks.datasets.openloris.openloris_data import \
-    OPENLORIS_DATA
+from avalanche.benchmarks.datasets.openloris import OpenLORIS as \
+    OpenLORISDataset
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_filelists
 from os.path import expanduser
@@ -83,13 +83,8 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
                                       "recognized: it should be 'clutter'," \
                                       "'illumination', 'occlusion', " \
                                       "'pixel', or 'mixture-iros'."
-    if root is None:
-        data = OPENLORIS_DATA()
-    else:
-        data = OPENLORIS_DATA(root)
 
-    root = data.data_folder
-    root_img = root
+    dataset = OpenLORISDataset(root)
 
     filelists_bp = fac2dirs[factor] + "/"
     train_failists_paths = []
@@ -99,7 +94,7 @@ def OpenLORIS(root=expanduser("~") + "/.avalanche/data/openloris/",
             str(i).zfill(2) + ".txt")
 
     factor_obj = create_generic_benchmark_from_filelists(
-        root_img, train_failists_paths,
+        root, train_failists_paths,
         [root + filelists_bp + "test.txt"],
         task_labels=[0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
