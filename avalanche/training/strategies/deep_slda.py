@@ -106,11 +106,11 @@ class StreamingLDA(BaseStrategy):
             # Forward
             self.before_forward(**kwargs)
             # compute output on entire minibatch
-            self.logits, feats = self.forward(return_features=True)
+            self.mb_output, feats = self.forward(return_features=True)
             self.after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion(self.logits, self.mb_y)
+            self.loss += self.criterion()
 
             # Optimization step
             self.before_update(**kwargs)
