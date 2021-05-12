@@ -1,10 +1,10 @@
 ---
 description: Design Your Continual Learning Experiments
 ---
-
 # Putting All Together
 
 Welcome to the "_Putting All Together_" tutorial of the "_From Zero to Hero_" series. In this part we will summarize the major Avalanche features and how you can put them together for your continual learning experiments.
+
 
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
@@ -14,12 +14,13 @@ Welcome to the "_Putting All Together_" tutorial of the "_From Zero to Hero_" se
 
 Here we report a complete example of the _Avalanche_ usage:
 
+
 ```python
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix, disk_usage_metrics
+    loss_metrics, timing_metrics, cpu_usage_metrics, confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -50,7 +51,8 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True, epoch_running=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False,
+                             stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
@@ -77,7 +79,7 @@ for experience in scenario.train_stream:
     results.append(cl_strategy.eval(scenario.test_stream))
 ```
 
+
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/6.-putting-all-together.ipynb)
-

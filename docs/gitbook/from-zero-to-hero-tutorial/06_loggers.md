@@ -6,6 +6,7 @@ description: "Logging... logging everywhere! \U0001F52E"
 
 Welcome to the _"Logging"_ tutorial of the _"From Zero to Hero"_ series. In this part we will present the functionalities offered by the _Avalanche_ `logging` module.
 
+
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
@@ -28,9 +29,11 @@ _Avalanche_ at the moment supports three main Loggers:
 
 In order to keep track of when each metric value has been logged, we leverage a `global counter`. You can see the `global counter` reported in the x axis of the logged plots.
 
-The `global counter` is an ever-increasing value which starts from 0 and it is increased by one each time a training or evaluation iteration is performed \(i.e. after each training or evaluation minibatch\). The `global counter` is updated automatically by the strategy. It should be reset by creating a new instance of the strategy.
+The `global counter` is an ever-increasing value which starts from 0 and it is increased by one each time a training or evaluation iteration is performed (i.e. after each training or evaluation minibatch).
+The `global counter` is updated automatically by the strategy. It should be reset by creating a new instance of the strategy.
 
 #### How to use Them
+
 
 ```python
 from torch.optim import SGD
@@ -38,7 +41,7 @@ from torch.nn import CrossEntropyLoss
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
-StreamConfusionMatrix, disk_usage_metrics
+confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -69,7 +72,8 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True, epoch_running=True),
     cpu_usage_metrics(experience=True),
     forgetting_metrics(experience=True, stream=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False,
+                             stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
@@ -105,4 +109,3 @@ This completes the "_Logging_" tutorial for the "_From Zero to Hero_" series. We
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/loggers.ipynb)
-
