@@ -232,7 +232,7 @@ class AR1(BaseStrategy):
             # lat_mb_x will be None for the very first batch (batch 0), which
             # means that lat_acts.shape[0] == self.mb_x[0].
             self.before_forward(**kwargs)
-            self.mb_pred, lat_acts = self.model(
+            self.mb_output, lat_acts = self.model(
                 self.mb_x, latent_input=lat_mb_x, return_lat_acts=True)
 
             if self.epoch == 0:
@@ -248,7 +248,7 @@ class AR1(BaseStrategy):
             # Loss & Backward
             # We don't need to handle latent replay, as self.mb_y already
             # contains both current and replay labels.
-            self.loss = self._criterion(self.mb_pred, self.mb_y)
+            self.loss = self._criterion(self.mb_output, self.mb_y)
             self.before_backward(**kwargs)
             self.loss.backward()
             self.after_backward(**kwargs)

@@ -75,9 +75,10 @@ class BaseStrategyTest(unittest.TestCase):
     def test_forward_hooks(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
-        strategy = Naive(model, optimizer, train_epochs=2,
-                         eval_every=0)
+        criterion = CrossEntropyLoss()
 
+        strategy = Naive(model, optimizer, criterion,
+                         train_epochs=2, eval_every=0)
         was_hook_called = False
 
         def hook(a, b, c):

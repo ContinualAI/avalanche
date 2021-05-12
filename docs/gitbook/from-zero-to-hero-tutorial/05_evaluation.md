@@ -228,7 +228,7 @@ class MyPluginMetric(PluginMetric[float]):
         predictions and targets
         """
         self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.mb_pred)
+                                     strategy.mb_output)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         """

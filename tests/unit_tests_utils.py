@@ -84,6 +84,7 @@ def get_device():
         device = "cpu"
     return device
 
+
 __all__ = [
     'common_setups',
     'load_scenario',

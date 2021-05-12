@@ -162,8 +162,8 @@ class BaseStrategy:
         self.mbatch = None
         """ Current mini-batch. """
 
-        self.mb_pred = None
-        """ Model predictions computed on the current mini-batch. """
+        self.mb_output = None
+        """ Model's output computed on the current mini-batch. """
 
         self.loss = None
         """ Loss of the current mini-batch. """
@@ -193,7 +193,7 @@ class BaseStrategy:
 
     def criterion(self):
         """ Loss function. """
-        return self._criterion(self.mb_pred, self.mb_y)
+        return self._criterion(self.mb_output, self.mb_y)
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
@@ -423,7 +423,7 @@ class BaseStrategy:
 
             # Forward
             self.before_forward(**kwargs)
-            self.mb_pred = self.forward()
+            self.mb_output = self.forward()
             self.after_forward(**kwargs)
 
             # Loss & Backward
@@ -527,7 +527,7 @@ class BaseStrategy:
             self.before_eval_iteration(**kwargs)
 
             self.before_eval_forward(**kwargs)
-            self.mb_pred = self.forward()
+            self.mb_output = self.forward()
             self.after_eval_forward(**kwargs)
             self.loss = self.criterion()
 
