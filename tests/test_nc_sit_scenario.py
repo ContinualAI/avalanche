@@ -2,10 +2,14 @@ import unittest
 
 from os.path import expanduser
 
+from PIL.Image import Image
+from torch import Tensor
 from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
 
+from avalanche.benchmarks.datasets import CIFAR100
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
     make_nc_transformation_subset
 from avalanche.benchmarks import nc_benchmark, GenericScenarioStream
@@ -27,11 +31,13 @@ class SITTests(unittest.TestCase):
         self.assertEqual(10, my_nc_benchmark.n_classes)
         for batch_id in range(my_nc_benchmark.n_experiences):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[batch_id]))
+                2,
+                len(my_nc_benchmark.classes_in_experience['train'][batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(my_nc_benchmark.classes_in_experience[batch_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -47,7 +53,8 @@ class SITTests(unittest.TestCase):
 
         all_classes = []
         for batch_id in range(5):
-            all_classes.extend(my_nc_benchmark.classes_in_experience[batch_id])
+            all_classes.extend(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(order, all_classes)
 
@@ -61,13 +68,15 @@ class SITTests(unittest.TestCase):
             mnist_train, mnist_test, 4, task_labels=False,
             fixed_class_order=order)
 
-        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience))
+        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience['train']))
 
         all_classes = set()
         for batch_id in range(4):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[batch_id]))
-            all_classes.update(my_nc_benchmark.classes_in_experience[batch_id])
+                2,
+                len(my_nc_benchmark.classes_in_experience['train'][batch_id]))
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(set(order), all_classes)
 
@@ -81,13 +90,15 @@ class SITTests(unittest.TestCase):
             mnist_train, mnist_test, 4, task_labels=False,
             fixed_class_order=order, class_ids_from_zero_from_first_exp=True)
 
-        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience))
+        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience['train']))
 
         all_classes = []
         for batch_id in range(4):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[batch_id]))
-            all_classes.extend(my_nc_benchmark.classes_in_experience[batch_id])
+                2,
+                len(my_nc_benchmark.classes_in_experience['train'][batch_id]))
+            all_classes.extend(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
         self.assertEqual(list(range(8)), all_classes)
 
         # Regression test for issue #258
@@ -122,13 +133,15 @@ class SITTests(unittest.TestCase):
             fixed_class_order=order,
             class_ids_from_zero_in_each_exp=True)
 
-        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience))
+        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience['train']))
 
         all_classes = []
         for batch_id in range(4):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[batch_id]))
-            all_classes.extend(my_nc_benchmark.classes_in_experience[batch_id])
+                2,
+                len(my_nc_benchmark.classes_in_experience['train'][batch_id]))
+            all_classes.extend(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
         self.assertEqual(8, len(all_classes))
         self.assertListEqual([0, 1], sorted(set(all_classes)))
 
@@ -176,12 +189,16 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(3):
-            all_classes.update(my_nc_benchmark.classes_in_experience[batch_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
         self.assertEqual(10, len(all_classes))
 
-        self.assertEqual(5, len(my_nc_benchmark.classes_in_experience[0]))
-        self.assertEqual(3, len(my_nc_benchmark.classes_in_experience[1]))
-        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience[2]))
+        self.assertEqual(
+            5, len(my_nc_benchmark.classes_in_experience['train'][0]))
+        self.assertEqual(
+            3, len(my_nc_benchmark.classes_in_experience['train'][1]))
+        self.assertEqual(
+            2, len(my_nc_benchmark.classes_in_experience['train'][2]))
 
     def test_sit_multi_dataset_one_batch_per_set(self):
         split_mapping = [0, 1, 2, 0, 1, 2, 3, 4, 5, 6]
@@ -213,15 +230,18 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(2):
-            all_classes.update(my_nc_benchmark.classes_in_experience[batch_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
         self.assertTrue(
-            (my_nc_benchmark.classes_in_experience[0] == {0, 1, 2} and
-             my_nc_benchmark.classes_in_experience[1] == set(range(3, 10))) or
-            (my_nc_benchmark.classes_in_experience[0] == set(range(3, 10)) and
-             my_nc_benchmark.classes_in_experience[1] == {0, 1, 2}))
+            (my_nc_benchmark.classes_in_experience['train'][0] == {0, 1, 2} and
+             my_nc_benchmark.classes_in_experience['train'][1] ==
+             set(range(3, 10))) or
+            (my_nc_benchmark.classes_in_experience['train'][0] ==
+             set(range(3, 10)) and
+             my_nc_benchmark.classes_in_experience['train'][1] == {0, 1, 2}))
 
     def test_sit_multi_dataset_merge(self):
         split_mapping = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
@@ -251,11 +271,13 @@ class SITTests(unittest.TestCase):
         self.assertEqual(10, my_nc_benchmark.n_classes)
         for batch_id in range(5):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[batch_id]))
+                2,
+                len(my_nc_benchmark.classes_in_experience['train'][batch_id]))
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(my_nc_benchmark.classes_in_experience[batch_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -297,6 +319,42 @@ class SITTests(unittest.TestCase):
             self.assertEqual(iterable_slice[batch_id],
                              experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
+
+    def test_nc_benchmark_transformations_basic(self):
+        # Regression for #577
+        ds = CIFAR100(root=expanduser("~") + "/.avalanche/data/cifar100/",
+                      train=True, download=True)
+        ds = AvalancheDataset(ds, transform=ToTensor())
+
+        scenario = nc_benchmark(
+            ds, ds, n_experiences=10, shuffle=True, seed=1234,
+            task_labels=False
+        )
+
+        exp_0_dataset = scenario.train_stream[0].dataset
+        self.assertIsInstance(exp_0_dataset[0][0], Tensor)
+
+    def test_nc_benchmark_transformations_advanced(self):
+        # Regression for #577
+        ds = CIFAR100(root=expanduser("~") + "/.avalanche/data/cifar100/",
+                      train=True, download=True)
+        scenario = nc_benchmark(
+            ds, ds, n_experiences=10, shuffle=True, seed=1234,
+            task_labels=False, train_transform=ToTensor(),
+            eval_transform=None
+        )
+
+        ds_train_train = scenario.train_stream[0].dataset
+        self.assertIsInstance(ds_train_train[0][0], Tensor)
+
+        ds_train_eval = scenario.train_stream[0].dataset.eval()
+        self.assertIsInstance(ds_train_eval[0][0], Image)
+
+        ds_test_eval = scenario.test_stream[0].dataset
+        self.assertIsInstance(ds_test_eval[0][0], Image)
+
+        ds_test_train = scenario.test_stream[0].dataset.train()
+        self.assertIsInstance(ds_test_train[0][0], Tensor)
 
 
 if __name__ == '__main__':

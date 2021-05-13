@@ -42,7 +42,7 @@ class AGEMPlugin(StrategyPlugin):
             xref, yref = self.sample_from_memory(self.sample_size)
             xref, yref = xref.to(strategy.device), yref.to(strategy.device)
             out = strategy.model(xref)
-            loss = strategy.criterion(out, yref)
+            loss = strategy._criterion(out, yref)
             loss.backward()
             self.reference_gradients = [
                 (n, p.grad)
@@ -99,24 +99,24 @@ class AGEMPlugin(StrategyPlugin):
         """
 
         tot = 0
-        for batches in dataloader:
-            for _, (x, y, _) in batches.items():
-                if tot + x.size(0) <= self.patterns_per_experience:
-                    if self.memory_x is None:
-                        self.memory_x = x.clone()
-                        self.memory_y = y.clone()
-                    else:
-                        self.memory_x = torch.cat((self.memory_x, x), dim=0)
-                        self.memory_y = torch.cat((self.memory_y, y), dim=0)
+        for mbatch in dataloader:
+            x, y, _ = mbatch
+            if tot + x.size(0) <= self.patterns_per_experience:
+                if self.memory_x is None:
+                    self.memory_x = x.clone()
+                    self.memory_y = y.clone()
                 else:
-                    diff = self.patterns_per_experience - tot
-                    if self.memory_x is None:
-                        self.memory_x = x[:diff].clone()
-                        self.memory_y = y[:diff].clone()
-                    else:
-                        self.memory_x = torch.cat((self.memory_x,
-                                                   x[:diff]), dim=0)
-                        self.memory_y = torch.cat((self.memory_y,
-                                                   y[:diff]), dim=0)
-                    break
-                tot += x.size(0)
+                    self.memory_x = torch.cat((self.memory_x, x), dim=0)
+                    self.memory_y = torch.cat((self.memory_y, y), dim=0)
+            else:
+                diff = self.patterns_per_experience - tot
+                if self.memory_x is None:
+                    self.memory_x = x[:diff].clone()
+                    self.memory_y = y[:diff].clone()
+                else:
+                    self.memory_x = torch.cat((self.memory_x,
+                                               x[:diff]), dim=0)
+                    self.memory_y = torch.cat((self.memory_y,
+                                               y[:diff]), dim=0)
+                break
+            tot += x.size(0)
