@@ -76,12 +76,14 @@ jobs:
       - name: test success
         if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
+          conda activate avalanche-env
           rm -f avalanche-reports/packages/fail-${{ matrix.python-version }}-*
           rm -f avalanche-reports/packages/success-${{ matrix.python-version }}-*
           conda list > $"avalanche-reports/packages/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: test failure
         if: failure() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
+          conda activate avalanche-env
           conda list > $"avalanche-reports/packages/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: commit changes
         if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
