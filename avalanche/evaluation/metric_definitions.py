@@ -12,7 +12,7 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING
 from typing_extensions import Protocol
-from .metric_results import MetricValue, MetricResult
+from .metric_results import MetricValue
 from .metric_utils import get_metric_name
 from ..core import StrategyCallbacks
 
@@ -210,9 +210,13 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def __init__(self, metric, reset_at='experience', emit_at='experience',
                  mode='eval'):
         super(GenericPluginMetric, self).__init__()
-        assert reset_at in {'iteration', 'experience', 'epoch', 'stream'}
-        assert emit_at in {'iteration', 'experience', 'epoch', 'stream'}
         assert mode in {'train', 'eval'}
+        if mode == 'train':
+            assert reset_at in {'iteration', 'epoch'}
+            assert reset_at in {'iteration', 'epoch'}
+        else:
+            assert reset_at in {'experience', 'stream'}
+            assert reset_at in {'experience', 'stream'}
         self._metric = metric
         self._reset_at = reset_at
         self._emit_at = emit_at
@@ -227,13 +231,13 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def update(self, strategy):
         assert NotImplementedError()
 
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
+    def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
         metric_value = self.result()
 
         add_exp = self._emit_at == 'experience'
-        remove_task = self._emit_at == 'stream'
+        add_task = self._emit_at != 'stream'
         metric_name = get_metric_name(self, strategy, add_experience=add_exp,
-                                      remove_task=remove_task)
+                                      add_task=add_task)
         plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -259,8 +263,8 @@ class GenericPluginMetric(PluginMetric[TResult]):
             self.reset()
 
     def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
-        self.update(strategy)
         super().after_training_iteration(strategy)
+        self.update(strategy)
         if self._emit_at == 'iteration' and self._mode == 'train':
             return self._package_result(strategy)
 
@@ -286,7 +290,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def before_eval_exp(self, strategy: 'BaseStrategy'):
         super().before_eval_exp(strategy)
-        if self._reset_at == 'epoch' and self._mode == 'eval':
+        if self._reset_at == 'experience' and self._mode == 'eval':
             self.reset()
 
     def after_eval_exp(self, strategy: 'BaseStrategy'):
@@ -301,12 +305,12 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def before_eval_iteration(self, strategy: 'BaseStrategy'):
         super().before_eval_iteration(strategy)
-        self.update(strategy)
         if self._emit_at == 'iteration' and self._mode == 'eval':
             return self._package_result(strategy)
 
     def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super().after_eval_iteration(strategy)
+        self.update(strategy)
         if self._reset_at == 'iteration' and self._mode == 'eval':
             self.reset()
 

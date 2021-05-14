@@ -13,15 +13,8 @@ from typing import TYPE_CHECKING, List
 
 import torch
 from torch import Tensor
-
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
-from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
 from avalanche.evaluation.metrics.mean import Mean
-
-if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
 
 
 class Accuracy(Metric[float]):
@@ -111,15 +104,14 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
     """
     Base class for all accuracies plugin metrics
     """
-    def __init__(self, reset_at, emit_at, mode, running=False):
+    def __init__(self, reset_at, emit_at, mode):
         self._accuracy = Accuracy()
         super(AccuracyPluginMetric, self).__init__(
             self._accuracy, reset_at=reset_at, emit_at=emit_at,
-            mode=mode, running=running)
+            mode=mode)
 
     def update(self, strategy):
-        self._accuracy.update(strategy.mb_y,
-                              strategy.mb_output)
+        self._accuracy.update(strategy.mb_output, strategy.mb_y)
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):

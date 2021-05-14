@@ -179,7 +179,7 @@ def bytes2human(n):
 def get_metric_name(metric: 'PluginMetric',
                     strategy: 'BaseStrategy',
                     add_experience=False,
-                    remove_task=False):
+                    add_task=True):
     """
     Return the complete metric name used to report its current value.
     The name is composed by:
@@ -194,8 +194,8 @@ def get_metric_name(metric: 'PluginMetric',
     :param strategy: the current strategy object
     :param add_experience: if True, add eval_exp_id to the main metric name.
             Default to False.
-    :param remove_task: if True the main metric name will not include the task
-        information.
+    :param add_task: if True the main metric name will include the task
+        information. Otherwise, it will not.
     """
 
     phase_name, task_label = phase_and_task(strategy)
@@ -205,13 +205,13 @@ def get_metric_name(metric: 'PluginMetric',
     task_name = '/Task{:03}'.format(task_label)
     exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
 
-    if add_experience and remove_task:
+    if add_experience and not add_task:
         return base_name + exp_name
-    elif add_experience and not remove_task:
+    elif add_experience and add_task:
         return base_name + task_name + exp_name
-    elif not add_experience and remove_task:
+    elif not add_experience and not add_task:
         return base_name
-    elif not add_experience and not remove_task:
+    elif not add_experience and add_task:
         return base_name + task_name
 
 
