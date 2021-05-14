@@ -11,18 +11,12 @@
 
 import os
 import warnings
-from typing import Optional, TYPE_CHECKING, List
+from typing import Optional, List
 
 from psutil import Process
 
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
-from avalanche.evaluation.metric_results import MetricResult, MetricValue
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
 from avalanche.evaluation.metrics import Mean
-
-if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
 
 
 class CPUUsage(Metric[float]):
@@ -210,7 +204,7 @@ class RunningEpochCPUUsage(CPUPluginMetric):
 
     def after_training_iteration(self, strategy):
         super().after_training_iteration(strategy)
-        self._cpu.update()
+        self.update()
         self._mean.update(self._cpu.result())
         self._cpu.reset()
         return self._package_result(strategy)
