@@ -14,7 +14,7 @@ from typing import Union, List, Tuple, Optional
 from PIL.Image import Image
 from torch import Tensor
 
-from avalanche.evaluation import Metric
+#from .metric_definitions import Metric
 
 MetricType = Union[float, int, Tensor, Image]
 MetricResult = Optional[List['MetricValue']]
@@ -55,7 +55,7 @@ class MetricValue(object):
     an Image. It's up to the Logger, according to its capabilities, decide which
     representation to use.
     """
-    def __init__(self, origin: Metric, name: str,
+    def __init__(self, origin, name: str,
                  value: Union[MetricType, AlternativeValues], x_plot: int):
         """
         Creates an instance of MetricValue.
@@ -76,7 +76,7 @@ class MetricValue(object):
             to the x-axis position of the value in a plot. When logging a
             singleton value, pass 0 as a value for this parameter.
         """
-        self.origin: Metric = origin
+        self.origin = origin
         self.name: str = name
         self.value: Union[MetricType, AlternativeValues] = value
         self.x_plot: int = x_plot
