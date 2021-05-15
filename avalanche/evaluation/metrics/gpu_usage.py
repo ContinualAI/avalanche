@@ -16,10 +16,8 @@ import time
 import warnings
 from typing import Optional, TYPE_CHECKING, List
 
-from avalanche.evaluation import Metric, PluginMetric
-from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation.metric_results import MetricResult
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 
@@ -125,8 +123,24 @@ class MaxGPU(Metric[float]):
         """
         return self.max_usage
 
+    def update(self):
+        pass
 
-class MinibatchMaxGPU(PluginMetric[float]):
+
+class GPUPluginMetric(GenericPluginMetric[float]):
+    def __init__(self, gpu_id, every, reset_at, emit_at, mode):
+        self.gpu_id = gpu_id
+        self._gpu = MaxGPU(gpu_id, every)
+
+        super(GPUPluginMetric, self).__init__(
+            self._gpu, reset_at=reset_at, emit_at=emit_at,
+            mode=mode)
+
+    def update(self, strategy):
+        self._gpu.update()
+
+
+class MinibatchMaxGPU(GPUPluginMetric):
     """
     The Minibatch Max GPU metric.
     This plugin metric only works at training time.
@@ -140,45 +154,24 @@ class MinibatchMaxGPU(PluginMetric[float]):
         :param every: seconds after which update the maximum GPU
             usage
         """
-        super().__init__()
-
-        self.gpu_id = gpu_id
-        self._gpu = MaxGPU(gpu_id, every)
+        super(MinibatchMaxGPU, self).__init__(
+            gpu_id, every,
+            reset_at='iteration', emit_at='iteration', mode='train')
 
     def before_training(self, strategy: 'BaseStrategy') \
             -> None:
+        super().before_training(strategy)
         self._gpu.start_thread()
 
-    def before_training_iteration(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        return self._package_result(strategy)
-
     def after_training(self, strategy: 'BaseStrategy') -> None:
+        super().before_training(strategy)
         self._gpu.stop_thread()
-
-    def reset(self) -> None:
-        self._gpu.reset()
-
-    def result(self) -> float:
-        return self._gpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        gpu_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_MB"
 
 
-class EpochMaxGPU(PluginMetric[float]):
+class EpochMaxGPU(GPUPluginMetric):
     """
     The Epoch Max GPU metric.
     This plugin metric only works at training time.
@@ -192,44 +185,22 @@ class EpochMaxGPU(PluginMetric[float]):
         :param every: seconds after which update the maximum GPU
             usage
         """
-        super().__init__()
+        super(EpochMaxGPU, self).__init__(
+            gpu_id, every,
+            reset_at='epoch', emit_at='epoch', mode='train')
 
-        self.gpu_id = gpu_id
-        self._gpu = MaxGPU(gpu_id, every)
-
-    def before_training(self, strategy: 'BaseStrategy') \
-            -> None:
+    def before_training(self, strategy: 'BaseStrategy'):
+        super().before_training(strategy)
         self._gpu.start_thread()
-
-    def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
 
     def after_training(self, strategy: 'BaseStrategy') -> None:
         self._gpu.stop_thread()
-
-    def reset(self) -> None:
-        self._gpu.reset()
-
-    def result(self) -> float:
-        return self._gpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        gpu_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_Epoch"
 
 
-class ExperienceMaxGPU(PluginMetric[float]):
+class ExperienceMaxGPU(GPUPluginMetric):
     """
     The Experience Max GPU metric.
     This plugin metric only works at eval time.
@@ -243,44 +214,23 @@ class ExperienceMaxGPU(PluginMetric[float]):
         :param every: seconds after which update the maximum GPU
             usage
         """
-        super().__init__()
+        super(ExperienceMaxGPU, self).__init__(
+            gpu_id, every,
+            reset_at='experience', emit_at='experience', mode='eval')
 
-        self.gpu_id = gpu_id
-        self._gpu = MaxGPU(gpu_id, every)
-
-    def before_eval(self, strategy: 'BaseStrategy') \
-            -> None:
+    def before_eval(self, strategy: 'BaseStrategy'):
+        super().before_eval(strategy)
         self._gpu.start_thread()
 
-    def before_eval_exp(self, strategy) -> MetricResult:
-        self.reset()
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
-
-    def after_eval(self, strategy: 'BaseStrategy') -> None:
+    def after_eval(self, strategy: 'BaseStrategy'):
+        super().after_eval(strategy)
         self._gpu.stop_thread()
-
-    def reset(self) -> None:
-        self._gpu.reset()
-
-    def result(self) -> float:
-        return self._gpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        gpu_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_Experience"
 
 
-class StreamMaxGPU(PluginMetric[float]):
+class StreamMaxGPU(GPUPluginMetric):
     """
     The Stream Max GPU metric.
     This plugin metric only works at eval time.
@@ -294,39 +244,19 @@ class StreamMaxGPU(PluginMetric[float]):
         :param every: seconds after which update the maximum GPU
             usage
         """
-        super().__init__()
-
-        self.gpu_id = gpu_id
-        self._gpu = MaxGPU(gpu_id, every)
+        super(StreamMaxGPU, self).__init__(
+            gpu_id, every,
+            reset_at='stream', emit_at='stream', mode='eval')
 
     def before_eval(self, strategy) -> MetricResult:
-        self.reset()
+        super().before_eval(strategy)
         self._gpu.start_thread()
 
     def after_eval(self, strategy: 'BaseStrategy') \
             -> MetricResult:
-        packed = self._package_result(strategy)
+        packed = super().after_eval(strategy)
         self._gpu.stop_thread()
         return packed
-
-    def reset(self) -> None:
-        self._gpu.reset()
-
-    def result(self) -> float:
-        return self._gpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        gpu_usage = self.result()
-
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, gpu_usage, plot_x_position)]
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_Stream"
