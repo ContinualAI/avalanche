@@ -17,9 +17,7 @@ import warnings
 from typing import Optional, TYPE_CHECKING, List
 
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
-from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation.metric_results import MetricResult
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 

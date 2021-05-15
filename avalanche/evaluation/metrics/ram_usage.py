@@ -15,10 +15,8 @@ from typing import Optional, List, TYPE_CHECKING
 from threading import Thread
 from psutil import Process
 
-from avalanche.evaluation import Metric, PluginMetric
-from avalanche.evaluation.metric_results import MetricResult, MetricValue
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation.metric_results import MetricResult
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -116,7 +114,18 @@ class MaxRAM(Metric[float]):
         self.max_usage = 0
 
 
-class MinibatchMaxRAM(PluginMetric[float]):
+class RAMPluginMetric(GenericPluginMetric[float]):
+    def __init__(self, every, reset_at, emit_at, mode):
+        self._ram = MaxRAM(every)
+
+        super(RAMPluginMetric, self).__init__(
+            self._ram, reset_at, emit_at, mode)
+
+    def update(self, strategy):
+        self._ram.update()
+
+
+class MinibatchMaxRAM(RAMPluginMetric):
     """
     The Minibatch Max RAM metric.
     This plugin metric only works at training time.
@@ -128,44 +137,23 @@ class MinibatchMaxRAM(PluginMetric[float]):
         :param every: seconds after which update the maximum RAM
             usage
         """
-        super().__init__()
-
-        self._ram = MaxRAM(every)
+        super(MinibatchMaxRAM, self).__init__(
+            every, reset_at='iteration', emit_at='iteration', mode='train')
 
     def before_training(self, strategy: 'BaseStrategy') \
             -> None:
+        super().before_training(strategy)
         self._ram.start_thread()
 
-    def before_training_iteration(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        return self._package_result(strategy)
-
     def after_training(self, strategy: 'BaseStrategy') -> None:
+        super().after_training(strategy)
         self._ram.stop_thread()
-
-    def reset(self) -> None:
-        self._ram.reset()
-
-    def result(self) -> float:
-        return self._ram.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        ram_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
     def __str__(self):
         return "MaxRAMUsage_MB"
 
 
-class EpochMaxRAM(PluginMetric[float]):
+class EpochMaxRAM(RAMPluginMetric):
     """
     The Epoch Max RAM metric.
     This plugin metric only works at training time.
@@ -177,43 +165,23 @@ class EpochMaxRAM(PluginMetric[float]):
         :param every: seconds after which update the maximum RAM
             usage
         """
-        super().__init__()
-
-        self._ram = MaxRAM(every)
+        super(EpochMaxRAM, self).__init__(
+            every, reset_at='epoch', emit_at='epoch', mode='train')
 
     def before_training(self, strategy: 'BaseStrategy') \
             -> None:
+        super().before_training(strategy)
         self._ram.start_thread()
 
-    def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
-
     def after_training(self, strategy: 'BaseStrategy') -> None:
+        super().before_training(strategy)
         self._ram.stop_thread()
-
-    def reset(self) -> None:
-        self._ram.reset()
-
-    def result(self) -> float:
-        return self._ram.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        ram_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
     def __str__(self):
         return "MaxRAMUsage_Epoch"
 
 
-class ExperienceMaxRAM(PluginMetric[float]):
+class ExperienceMaxRAM(RAMPluginMetric):
     """
     The Experience Max RAM metric.
     This plugin metric only works at eval time.
@@ -225,43 +193,23 @@ class ExperienceMaxRAM(PluginMetric[float]):
         :param every: seconds after which update the maximum RAM
             usage
         """
-        super().__init__()
-
-        self._ram = MaxRAM(every)
+        super(ExperienceMaxRAM, self).__init__(
+            every, reset_at='experience', emit_at='experience', mode='eval')
 
     def before_eval(self, strategy: 'BaseStrategy') \
             -> None:
+        super().before_eval(strategy)
         self._ram.start_thread()
 
-    def before_eval_exp(self, strategy) -> MetricResult:
-        self.reset()
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
-
     def after_eval(self, strategy: 'BaseStrategy') -> None:
+        super().after_eval(strategy)
         self._ram.stop_thread()
-
-    def reset(self) -> None:
-        self._ram.reset()
-
-    def result(self) -> float:
-        return self._ram.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        ram_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
     def __str__(self):
         return "MaxRAMUsage_Experience"
 
 
-class StreamMaxRAM(PluginMetric[float]):
+class StreamMaxRAM(RAMPluginMetric):
     """
     The Stream Max RAM metric.
     This plugin metric only works at eval time.
@@ -273,38 +221,18 @@ class StreamMaxRAM(PluginMetric[float]):
         :param every: seconds after which update the maximum RAM
             usage
         """
-        super().__init__()
-
-        self._ram = MaxRAM(every)
+        super(StreamMaxRAM, self).__init__(
+            every, reset_at='stream', emit_at='stream', mode='eval')
 
     def before_eval(self, strategy) -> MetricResult:
-        self.reset()
+        super().before_eval(strategy)
         self._ram.start_thread()
 
     def after_eval(self, strategy: 'BaseStrategy') \
             -> MetricResult:
-        packed = self._package_result(strategy)
+        packed = super().after_eval(strategy)
         self._ram.stop_thread()
         return packed
-
-    def reset(self) -> None:
-        self._ram.reset()
-
-    def result(self) -> float:
-        return self._ram.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        ram_usage = self.result()
-
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, ram_usage, plot_x_position)]
 
     def __str__(self):
         return "MaxRAMUsage_Stream"
