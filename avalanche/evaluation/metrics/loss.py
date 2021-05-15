@@ -75,6 +75,7 @@ class Loss(Metric[float]):
         """
         self._mean_loss.reset()
 
+
 class LossPluginMetric(GenericPluginMetric[float]):
     def __init__(self, reset_at, emit_at, mode):
         self._loss = Loss()

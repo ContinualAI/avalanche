@@ -200,8 +200,8 @@ def get_metric_name(metric: 'PluginMetric',
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
-    base_name =  '{}/{}_phase/{}_stream'.format(str(metric),
-                                                phase_name, stream)
+    base_name = '{}/{}_phase/{}_stream'.format(str(metric),
+                                               phase_name, stream)
     task_name = '/Task{:03}'.format(task_label)
     exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
 

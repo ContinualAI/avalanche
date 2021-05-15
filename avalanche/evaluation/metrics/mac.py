@@ -81,6 +81,7 @@ class MAC(Metric[int]):
         modname = mod.__class__.__name__
         return modname == 'Linear' or modname == 'Conv2d'
 
+
 class MACPluginMetric(GenericPluginMetric):
     def __init__(self, reset_at, emit_at, mode):
         self._mac = MAC()

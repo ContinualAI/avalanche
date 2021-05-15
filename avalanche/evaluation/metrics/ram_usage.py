@@ -116,6 +116,7 @@ class MaxRAM(Metric[float]):
     def update(self):
         pass
 
+
 class RAMPluginMetric(GenericPluginMetric[float]):
     def __init__(self, every, reset_at, emit_at, mode):
         self._ram = MaxRAM(every)

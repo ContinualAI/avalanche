@@ -126,6 +126,7 @@ class MaxGPU(Metric[float]):
     def update(self):
         pass
 
+
 class GPUPluginMetric(GenericPluginMetric[float]):
     def __init__(self, gpu_id, every, reset_at, emit_at, mode):
         self.gpu_id = gpu_id
@@ -187,7 +188,6 @@ class EpochMaxGPU(GPUPluginMetric):
         super(EpochMaxGPU, self).__init__(
             gpu_id, every,
             reset_at='epoch', emit_at='epoch', mode='train')
-
 
     def before_training(self, strategy: 'BaseStrategy'):
         super().before_training(strategy)
