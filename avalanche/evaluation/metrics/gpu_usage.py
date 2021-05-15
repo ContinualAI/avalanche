@@ -123,8 +123,12 @@ class MaxGPU(Metric[float]):
         """
         return self.max_usage
 
+    def update(self):
+        pass
+
 class GPUPluginMetric(GenericPluginMetric[float]):
     def __init__(self, gpu_id, every, reset_at, emit_at, mode):
+        self.gpu_id = gpu_id
         self._gpu = MaxGPU(gpu_id, every)
 
         super(GPUPluginMetric, self).__init__(
