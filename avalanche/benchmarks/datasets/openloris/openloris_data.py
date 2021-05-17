@@ -9,9 +9,13 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
+""" OpenLoris raw data handling module. It can support automatic download. """
+
 import os
 import sys
-import logging
+import gdown
+from os.path import expanduser
+from torchvision.datasets.utils import extract_archive
 
 if sys.version_info[0] >= 3:
     pass
@@ -21,68 +25,63 @@ else:
     # might be around one day
     pass
 
-filename = [
-    ('train.zip',
-     '1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga'),
-    ('test.zip',
-     '1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x'),
-    ('LUP.pkl',
-     '1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV'),
-    ('Paths.pkl',
-     '1KnuYLdlG3VQrhgbtIANLki81ah8Thezj'),
-    ('Labels.pkl',
-     '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H'),
-    ('batches_filelists.zip',
-     '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
-]
-
-# id of the real train.zip, the current one above is the validation.zip
-# 11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF
-
 
 class OPENLORIS_DATA(object):
     """
     OpenlORIS downloader.
     """
 
-    def __init__(self, data_folder='data/'):
+    filename = [
+        ('train.zip',
+         '11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF'),
+        ('valid.zip',
+         '1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga'),
+        ('test.zip',
+         '1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x'),
+        ('LUP.pkl',
+         '1Os8T30NZ3ZU8liHQPeVbo2nlOoPZuDSV'),
+        ('Paths.pkl',
+         '1KnuYLdlG3VQrhgbtIANLki81ah8Thezj'),
+        ('Labels.pkl',
+         '1GkmOxIAvmjSwo22UzmZTSlw8NSmU5Q9H'),
+        ('batches_filelists.zip',
+         '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
+    ]
+
+    def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/"):
         """
         Args:
-            data_folder (string): folder in which to download openloris dataset.
+            root (string): folder in which to download openloris dataset.
         """
-        self.log = logging.getLogger("avalanche")
-        if os.path.isabs(data_folder):
-            self.data_folder = data_folder
-        else:
-            self.data_folder = os.path.join(os.path.dirname(__file__),
-                                            data_folder)
+        # we create the dir if it does not exists
+        self.root = root
+        if not os.path.exists(self.root):
+            os.makedirs(self.root)
 
-        try:
-            # Create target Directory for openloris data
-            os.makedirs(self.data_folder)
-            self.log.info("Directory %s created", self.data_folder)
-            self.download = True
-            self.download_openloris()
+    def download(self):
+        """ Download from google drive official repositories. """
 
-        except OSError:
-            self.download = False
-            self.log.error("Directory %s already exists", self.data_folder)
+        for name in self.filename:
+            filepath = os.path.join(self.root, name[0])
+            try:
+                if not os.path.exists(filepath):
+                    print('[OpenLoris] Start downloading {}...'.format(name[0]))
+                    url = "https://drive.google.com/u/0/uc?id=" + name[1]
+                    gdown.download(url, filepath, quiet=False)
+                    gdown.cached_download(url, filepath)
+            except Exception as e:
+                print('[OpenLoris] Direct download may no longer be '
+                      'supported!\nYou should download data manually using '
+                      'the following link: {}\n'.format(url))
+                raise e
 
-    def download_openloris(self):
-        # DEPRECATED: fix this below once the OpenLoris is on a server
-        # for name in filename:
-        #     print("Downloading " + name[1] + "...")
-        #     gdd.download_file_from_google_drive(
-        #     file_id=name[1],
-        #     dest_path=os.path.join(
-        #     self.data_folder, name[0]))
-        #     if name[0].endswith('.zip'):
-        #         with ZipFile(
-        #                 os.path.join(self.data_folder, name[0]), 'r') as zipf:
-        #             print('Extracting OpenLORIS images...')
-        #             zipf.extractall(self.data_folder)
-        #             print('Done!')
-        raise NotImplementedError
+            extract_archive(filepath, to_path=self.root)
+
+
+if __name__ == "__main__":
+    """ Simple object creation and download test """
+
+    data = OPENLORIS_DATA()
 
 
 __all__ = [

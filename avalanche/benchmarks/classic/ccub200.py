@@ -13,6 +13,7 @@ from avalanche.benchmarks.datasets import CUB200
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
+from os.path import expanduser
 
 
 _default_train_transform = transforms.Compose([
@@ -29,7 +30,7 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitCUB200(root,
+def SplitCUB200(root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
                 n_experiences=11,
                 classes_first_batch=100,
                 return_task_id=False,
@@ -141,7 +142,8 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-    scenario = SplitCUB200("~/.avalanche/data/CUB_200_2011/")
+
+    scenario = SplitCUB200()
     for exp in scenario.train_stream:
         print("Experience: ", exp.current_experience)
         print("classes number: ", len(exp.classes_in_this_experience))

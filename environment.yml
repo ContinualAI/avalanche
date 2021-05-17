@@ -24,4 +24,4 @@ dependencies:
 - pip
 - pip:
     - pytorchcv
-    - googledrivedownloader
+    - gdown
