@@ -1,5 +1,6 @@
 from os.path import expanduser
 
+import os
 import torch
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -71,9 +72,23 @@ def load_experience_train_eval(experience, batch_size=32, num_workers=0):
         break
 
 
+def get_device():
+    if "USE_GPU" in os.environ:
+        use_gpu = os.environ['USE_GPU'].lower() in ["true"]
+    else:
+        use_gpu = False
+    print("Test on GPU:", use_gpu)
+    if use_gpu:
+        device = "cuda"
+    else:
+        device = "cpu"
+    return device
+
+
 __all__ = [
     'common_setups',
     'load_scenario',
     'get_fast_scenario',
-    'load_experience_train_eval'
+    'load_experience_train_eval',
+    'get_device'
 ]

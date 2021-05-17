@@ -32,7 +32,7 @@ from avalanche.benchmarks import nc_benchmark
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
-from avalanche.evaluation.metrics import StreamConfusionMatrix, \
+from avalanche.evaluation.metrics import confusion_matrix_metrics, \
     accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 
@@ -74,7 +74,8 @@ def main(args):
         # save image should be False to appropriately view
         # results in Interactive Logger.
         # a tensor will be printed
-        StreamConfusionMatrix(save_image=False, normalize='all'),
+        confusion_matrix_metrics(save_image=False, normalize='all',
+                                 stream=True),
         loggers=InteractiveLogger()
     )
 
