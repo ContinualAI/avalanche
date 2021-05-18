@@ -26,10 +26,12 @@ from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 from avalanche.training.plugins import CoPEPlugin
-from avalanche.evaluation.metrics import ExperienceForgetting, \
+from avalanche.evaluation.metrics import StreamForgetting, \
     accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
+from avalanche.benchmarks.generators.benchmark_generators import \
+    data_incremental_benchmark
 
 
 def main(args):
@@ -39,10 +41,9 @@ def main(args):
     """
     # --- DEFAULT PARAMS ONLINE DATA INCREMENTAL LEARNING
     nb_tasks = 5  # Can still design the data stream based on tasks
-    epochs = 1  # All data is only seen once: Online
-    batch_size = 10  # Only process small amount of data at a time
-    return_task_id = False  # Data incremental (task-agnostic/task-free)
-    # TODO use data_incremental_generator, now experience=task
+    batch_size = 10  # Learning agent only has small amount of data available
+    epochs = 1  # How many times to process each mini-batch
+    return_task_id = True  # Data incremental (task-agnostic/task-free)
 
     # --- CONFIG
     device = torch.device(
@@ -51,8 +52,13 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = SplitMNIST(nb_tasks, return_task_id=return_task_id,
-                          fixed_class_order=[i for i in range(10)])
+    n_classes = 10
+    task_scenario = SplitMNIST(nb_tasks, return_task_id=return_task_id,
+                               fixed_class_order=[i for i in range(n_classes)])
+
+    # Make data incremental (one batch = one experience)
+    scenario = data_incremental_benchmark(task_scenario,
+                                          experience_size=batch_size)
     # ---------
 
     # MODEL CREATION
@@ -63,18 +69,17 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(experience=True, stream=True),
-        loss_metrics(experience=True, stream=True),
-        ExperienceForgetting(),
+        accuracy_metrics(experience=False, stream=True),
+        loss_metrics(experience=False, stream=True),
+        StreamForgetting(),
         loggers=[interactive_logger])
 
     # CoPE PLUGIN
-    cope = CoPEPlugin(mem_size=2000, p_size=args.featsize,
-                      n_classes=scenario.n_classes)
+    cope = CoPEPlugin(mem_size=2000, p_size=args.featsize, n_classes=n_classes)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE) WITH CoPE PLUGIN
     cl_strategy = Naive(model, torch.optim.SGD(model.parameters(), lr=0.01),
-                        cope.loss,  # CoPE PPP-Loss
+                        cope.ppp_loss,  # CoPE PPP-Loss
                         train_mb_size=batch_size, train_epochs=epochs,
                         eval_mb_size=100, device=device,
                         plugins=[cope],
@@ -89,8 +94,8 @@ def main(args):
         cl_strategy.train(experience)
         print('Training completed')
 
-        print('Computing accuracy on the whole test set')
-        results.append(cl_strategy.eval(scenario.test_stream))
+    print('Computing accuracy on the whole test set')
+    results.append(cl_strategy.eval(scenario.test_stream))
 
 
 if __name__ == '__main__':
