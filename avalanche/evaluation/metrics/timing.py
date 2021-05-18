@@ -147,7 +147,7 @@ class EpochTime(TimePluginMetric):
         return "Time_Epoch"
 
 
-class RunningEpochTime(GenericPluginMetric):
+class RunningEpochTime(TimePluginMetric):
     """
     The running epoch time metric.
     This plugin metric only works at training time.

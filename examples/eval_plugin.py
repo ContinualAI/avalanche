@@ -84,17 +84,21 @@ def main(args):
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True, experience=True,
+            stream=True),
+        loss_metrics(minibatch=True, epoch=True, epoch_running=True,
+                     experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
         bwt_metrics(experience=True, stream=True),
         cpu_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
         timing_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True),
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
         ram_usage_metrics(
-            every=0.5, minibatch=True, epoch=True, experience=True,
-            stream=True),
+            every=0.5, minibatch=True, epoch=True,
+            experience=True, stream=True),
         gpu_usage_metrics(
             args.cuda, every=0.5, minibatch=True, epoch=True,
             experience=True, stream=True),
