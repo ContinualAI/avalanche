@@ -11,18 +11,12 @@
 
 import os
 import warnings
-from typing import Optional, TYPE_CHECKING, List
+from typing import Optional, List
 
 from psutil import Process
 
-from avalanche.evaluation import Metric, PluginMetric
-from avalanche.evaluation.metric_results import MetricResult, MetricValue
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metrics import Mean
-
-if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
 
 
 class CPUUsage(Metric[float]):
@@ -119,7 +113,19 @@ class CPUUsage(Metric[float]):
         self._first_update = True
 
 
-class MinibatchCPUUsage(PluginMetric[float]):
+class CPUPluginMetric(GenericPluginMetric[float]):
+    def __init__(self, reset_at, emit_at, mode):
+        self._cpu = CPUUsage()
+
+        super(CPUPluginMetric, self).__init__(
+            self._cpu, reset_at=reset_at, emit_at=emit_at,
+            mode=mode)
+
+    def update(self, strategy):
+        self._cpu.update()
+
+
+class MinibatchCPUUsage(CPUPluginMetric):
     """
     The minibatch CPU usage metric.
     This plugin metric only works at training time.
@@ -134,40 +140,18 @@ class MinibatchCPUUsage(PluginMetric[float]):
         """
         Creates an instance of the minibatch CPU usage metric.
         """
-        super().__init__()
+        super(MinibatchCPUUsage, self).__init__(
+            reset_at='iteration', emit_at='iteration', mode='train')
 
-        self._minibatch_cpu = CPUUsage()
-
-    def result(self) -> float:
-        return self._minibatch_cpu.result()
-
-    def reset(self) -> None:
-        self._minibatch_cpu.reset()
-
-    def before_training_iteration(self, strategy) -> MetricResult:
-        self.reset()
-        self._minibatch_cpu.update()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        self._minibatch_cpu.update()
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+    def before_training_iteration(self, strategy):
+        super().before_training_iteration(strategy)
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_MB"
 
 
-class EpochCPUUsage(PluginMetric[float]):
+class EpochCPUUsage(CPUPluginMetric):
     """
     The Epoch CPU usage metric.
     This plugin metric only works at training time.
@@ -179,38 +163,18 @@ class EpochCPUUsage(PluginMetric[float]):
         """
         Creates an instance of the epoch CPU usage metric.
         """
-        super().__init__()
+        super(EpochCPUUsage, self).__init__(
+            reset_at='epoch', emit_at='epoch', mode='train')
 
-        self._epoch_cpu = CPUUsage()
-
-    def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-        self._epoch_cpu.update()
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        self._epoch_cpu.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._epoch_cpu.reset()
-
-    def result(self) -> float:
-        return self._epoch_cpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        cpu_usage = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, cpu_usage, plot_x_position)]
+    def before_training_epoch(self, strategy):
+        super().before_training_epoch(strategy)
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Epoch"
 
 
-class RunningEpochCPUUsage(PluginMetric[float]):
+class RunningEpochCPUUsage(CPUPluginMetric):
     """
     The running epoch CPU usage metric.
     This plugin metric only works at training time
@@ -223,91 +187,57 @@ class RunningEpochCPUUsage(PluginMetric[float]):
         """
         Creates an instance of the average epoch cpu usage metric.
         """
-        super().__init__()
-
-        self._cpu_mean = Mean()
-        self._epoch_cpu = CPUUsage()
-
-    def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-
-    def before_training_iteration(self, strategy: 'BaseStrategy') \
-            -> 'MetricResult':
-        self._epoch_cpu.update()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> None:
-        super().after_training_iteration(strategy)
-        self._epoch_cpu.update()
-        self._cpu_mean.update(self._epoch_cpu.result())
-        self._epoch_cpu.reset()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._epoch_cpu.reset()
-        self._cpu_mean.reset()
+        self._mean = Mean()
+        super(RunningEpochCPUUsage, self).__init__(
+            reset_at='epoch', emit_at='iteration', mode='train')
 
     def result(self) -> float:
-        return self._cpu_mean.result()
+        return self._mean.result()
 
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        cpu_usage = self.result()
+    def before_training_epoch(self, strategy):
+        super().before_training_epoch(strategy)
+        self._mean.reset()
 
-        metric_name = get_metric_name(self, strategy)
+    def before_training_iteration(self, strategy):
+        super().before_training_iteration(strategy)
+        self.update()  # start monitoring thread
 
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(
-            self, metric_name, cpu_usage, plot_x_position)]
+    def after_training_iteration(self, strategy):
+        super().after_training_iteration(strategy)
+        self.update()
+        self._mean.update(self._cpu.result())
+        self._cpu.reset()
+        return self._package_result(strategy)
 
     def __str__(self):
         return "RunningCPUUsage_Epoch"
 
 
-class ExperienceCPUUsage(PluginMetric[float]):
+class ExperienceCPUUsage(CPUPluginMetric):
     """
     The average experience CPU usage metric.
     This plugin metric works only at eval time.
 
     After each experience, this metric emits the average CPU usage on that
-    experienc.
+    experience.
     """
 
     def __init__(self):
         """
         Creates an instance of the experience CPU usage metric.
         """
-        super().__init__()
+        super(ExperienceCPUUsage, self).__init__(
+            reset_at='experience', emit_at='experience', mode='eval')
 
-        self._exp_cpu = CPUUsage()
-
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-        self._exp_cpu.update()
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
-        self._exp_cpu.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._exp_cpu.reset()
-
-    def result(self) -> float:
-        return self._exp_cpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        exp_cpu = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
+    def before_eval_exp(self, strategy):
+        super().before_eval_exp(strategy)
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Exp"
 
 
-class StreamCPUUsage(PluginMetric[float]):
+class StreamCPUUsage(CPUPluginMetric):
     """
     The average stream CPU usage metric.
     This plugin metric works only at eval time.
@@ -320,36 +250,12 @@ class StreamCPUUsage(PluginMetric[float]):
         """
         Creates an instance of the stream CPU usage metric.
         """
-        super().__init__()
+        super(StreamCPUUsage, self).__init__(
+            reset_at='stream', emit_at='stream', mode='eval')
 
-        self._exp_cpu = CPUUsage()
-
-    def before_eval(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-        self._exp_cpu.update()
-
-    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
-        self._exp_cpu.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._exp_cpu.reset()
-
-    def result(self) -> float:
-        return self._exp_cpu.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        exp_cpu = self.result()
-
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, exp_cpu, plot_x_position)]
+    def before_eval(self, strategy):
+        super().before_eval(strategy)
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Stream"
