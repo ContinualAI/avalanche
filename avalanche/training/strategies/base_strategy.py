@@ -8,18 +8,20 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from collections import defaultdict
+
+import torch
+from torch.utils.data import DataLoader
 from typing import Optional, Sequence, Union
 
-from torch.nn import Module
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import Experience
-from avalanche.benchmarks.utils.data_loader import \
-    MultiTaskMultiBatchDataLoader, MultiTaskDataLoader
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
+from avalanche.models.utils import avalanche_forward
 from avalanche.training import default_logger
 from typing import TYPE_CHECKING
 
@@ -30,7 +32,8 @@ if TYPE_CHECKING:
 
 
 class BaseStrategy:
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+    def __init__(self, model: Module, optimizer: Optimizer,
+                 criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
@@ -94,11 +97,10 @@ class BaseStrategy:
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
+        self._criterion = criterion
+
         self.model: Module = model
         """ PyTorch model. """
-
-        self.criterion = criterion
-        """ Loss function. """
 
         self.optimizer = optimizer
         """ PyTorch optimizer. """
@@ -160,17 +162,11 @@ class BaseStrategy:
         self.mbatch = None
         """ Current mini-batch. """
 
-        self.mb_x = None
-        """ Current mini-batch input. """
-
-        self.mb_y = None
-        """ Current mini-batch target. """
+        self.mb_output = None
+        """ Model's output computed on the current mini-batch. """
 
         self.loss = None
         """ Loss of the current mini-batch. """
-
-        self.logits = None
-        """ Logits computed on the current mini-batch. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
@@ -179,6 +175,25 @@ class BaseStrategy:
     def is_eval(self):
         """ True if the strategy is in evaluation mode. """
         return not self.is_training
+
+    @property
+    def mb_x(self):
+        """ Current mini-batch input. """
+        return self.mbatch[0]
+
+    @property
+    def mb_y(self):
+        """ Current mini-batch target. """
+        return self.mbatch[1]
+
+    @property
+    def mb_task_id(self):
+        assert len(self.mbatch) >= 3
+        return self.mbatch[-1]
+
+    def criterion(self):
+        """ Loss function. """
+        return self._criterion(self.mb_output, self.mb_y)
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
@@ -212,8 +227,8 @@ class BaseStrategy:
                 eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
-        for exp in experiences:
-            self.train_exp(exp, eval_streams, **kwargs)
+        for self.experience in experiences:
+            self.train_exp(self.experience, eval_streams, **kwargs)
         self.after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
@@ -232,7 +247,7 @@ class BaseStrategy:
         self.experience = experience
         self.model.train()
 
-        # Data Adaptation
+        # Data Adaptation (e.g. add new samples/data augmentation)
         self.before_train_dataset_adaptation(**kwargs)
         self.train_dataset_adaptation(**kwargs)
         self.after_train_dataset_adaptation(**kwargs)
@@ -243,15 +258,21 @@ class BaseStrategy:
         self.make_optimizer()
 
         self.before_training_exp(**kwargs)
+        
+        do_final = True
+        if self.eval_every > 0 and \
+                (self.train_epochs - 1) % self.eval_every == 0:
+            do_final = False
+
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
-            self._periodic_eval(eval_streams, do_final=False)
             self.after_training_epoch(**kwargs)
+            self._periodic_eval(eval_streams, do_final=False)
 
         # Final evaluation
-        self._periodic_eval(eval_streams, do_final=True)
+        self._periodic_eval(eval_streams, do_final=do_final)
         self.after_training_exp(**kwargs)
 
     def _periodic_eval(self, eval_streams, do_final):
@@ -284,6 +305,7 @@ class BaseStrategy:
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
+    @torch.no_grad()
     def eval(self,
              exp_list: Union[Experience, Sequence[Experience]],
              **kwargs):
@@ -304,9 +326,7 @@ class BaseStrategy:
             exp_list = [exp_list]
 
         self.before_eval(**kwargs)
-        for exp in exp_list:
-            self.experience = exp
-
+        for self.experience in exp_list:
             # Data Adaptation
             self.before_eval_dataset_adaptation(**kwargs)
             self.eval_dataset_adaptation(**kwargs)
@@ -334,32 +354,40 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_training_exp(self, **kwargs)
 
-    def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
+    def make_train_dataloader(self, num_workers=0, shuffle=True,
+                              pin_memory=True, **kwargs):
         """
         Called after the dataset adaptation. Initializes the data loader.
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
         """
-        self.dataloader = MultiTaskMultiBatchDataLoader(
+        self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
-            oversample_small_tasks=True,
+            oversample_small_groups=True,
             num_workers=num_workers,
             batch_size=self.train_mb_size,
-            shuffle=shuffle)
+            shuffle=shuffle,
+            pin_memory=pin_memory)
 
-    def make_eval_dataloader(self, num_workers=0, **kwargs):
+    def make_eval_dataloader(self, num_workers=0, pin_memory=True,
+                             **kwargs):
         """
         Initializes the eval data loader.
-        :param num_workers:
+        :param num_workers: How many subprocesses to use for data loading.
+            0 means that the data will be loaded in the main process.
+            (default: 0).
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
         :param kwargs:
         :return:
         """
-        self.dataloader = MultiTaskDataLoader(
+        self.dataloader = DataLoader(
             self.adapted_dataset,
-            oversample_small_tasks=False,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
-        )
+            pin_memory=pin_memory)
 
     def after_train_dataset_adaptation(self, **kwargs):
         """
@@ -386,23 +414,20 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for self.mb_it, self.mbatch in \
-                enumerate(self.dataloader):
+        for self.mb_it, self.mbatch in enumerate(self.dataloader):
+            self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             self.loss = 0
-            for self.mb_x, self.mb_y, self.mb_task_id in self.mbatch.values():
-                self.mb_x = self.mb_x.to(self.device)
-                self.mb_y = self.mb_y.to(self.device)
 
-                # Forward
-                self.before_forward(**kwargs)
-                self.logits = self.forward()
-                self.after_forward(**kwargs)
+            # Forward
+            self.before_forward(**kwargs)
+            self.mb_output = self.forward()
+            self.after_forward(**kwargs)
 
-                # Loss & Backward
-                self.loss += self.criterion(self.logits, self.mb_y)
+            # Loss & Backward
+            self.loss += self.criterion()
 
             self.before_backward(**kwargs)
             self.loss.backward()
@@ -414,6 +439,16 @@ class BaseStrategy:
             self.after_update(**kwargs)
 
             self.after_training_iteration(**kwargs)
+
+    def _unpack_minibatch(self):
+        """ We assume mini-batches have the form <x, y, ..., t>.
+        This allows for arbitrary tensors between y and t.
+        Keep in mind that in the most general case mb_task_id is a tensor
+        which may contain different labels for each sample.
+        """
+        assert len(self.mbatch) >= 3
+        for i in range(len(self.mbatch)):
+            self.mbatch[i] = self.mbatch[i].to(self.device)
 
     def before_training(self, **kwargs):
         for p in self.plugins:
@@ -462,17 +497,7 @@ class BaseStrategy:
     def after_training_exp(self, **kwargs):
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
-
         self.training_exp_counter += 1
-        # Reset flow-state variables. They should not be used outside the flow
-        self.epoch = None
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval(self, **kwargs):
         for p in self.plugins:
@@ -496,17 +521,15 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y, self.mb_task_id) in \
+        for self.mb_it, self.mbatch in \
                 enumerate(self.dataloader):
+            self._unpack_minibatch()
             self.before_eval_iteration(**kwargs)
 
-            self.mb_x = self.mb_x.to(self.device)
-            self.mb_y = self.mb_y.to(self.device)
-
             self.before_eval_forward(**kwargs)
-            self.logits = self.forward()
+            self.mb_output = self.forward()
             self.after_eval_forward(**kwargs)
-            self.loss = self.criterion(self.logits, self.mb_y)
+            self.loss = self.criterion()
 
             self.after_eval_iteration(**kwargs)
 
@@ -517,14 +540,6 @@ class BaseStrategy:
     def after_eval(self, **kwargs):
         for p in self.plugins:
             p.after_eval(self, **kwargs)
-        # Reset flow-state variables. They should not be used outside the flow
-        self.experience = None
-        self.adapted_dataset = None
-        self.dataloader = None
-        self.mb_it = None
-        self.mb_it, self.mb_x, self.mb_y = None, None, None
-        self.loss = None
-        self.logits = None
 
     def before_eval_iteration(self, **kwargs):
         for p in self.plugins:
@@ -553,10 +568,7 @@ class BaseStrategy:
         self.model = self.model.to(self.device)
 
     def forward(self):
-        if isinstance(self.model, MultiTaskModule):
-            return self.model.forward(self.mb_x, self.mb_task_id)
-        else:  # no task labels
-            return self.model.forward(self.mb_x)
+        return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def make_optimizer(self):
         # we reset the optimizer's state after each experience.

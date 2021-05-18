@@ -107,7 +107,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
-StreamConfusionMatrix, disk_usage_metrics
+confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -129,7 +129,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True)
 )
 
@@ -237,7 +237,7 @@ class MyPluginMetric(PluginMetric[float]):
         predictions and targets
         """
         self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.logits)
+                                     strategy.mb_output)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         """
@@ -250,7 +250,7 @@ class MyPluginMetric(PluginMetric[float]):
         Emit the result
         """
         value = self._accuracy_metric.result()
-        self.x_coord += 1 # increment x value
+        self.x_coord += 1  # increment x value
         return [MetricValue(self, 'metric_full_name', value,
                             self.x_coord)]
 
@@ -275,7 +275,7 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     collect_all=True # this is default value anyway
 )

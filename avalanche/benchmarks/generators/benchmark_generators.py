@@ -15,17 +15,23 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
-from typing import Sequence, Optional, Dict, Union, Any, List
+from functools import partial
+from typing import Sequence, Optional, Dict, Union, Any, List, Callable, Set, \
+    Tuple
 
 import torch
 
+from avalanche.benchmarks import GenericCLScenario, Experience, \
+    GenericExperience, GenericScenarioStream
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
+from avalanche.benchmarks.scenarios.generic_cl_scenario import StreamDef, \
+    TStreamsDict
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
-    as_classification_dataset
+    AvalancheDataset, AvalancheDatasetType, AvalancheSubset
 
 
 def nc_benchmark(
@@ -43,6 +49,8 @@ def nc_benchmark(
         class_ids_from_zero_from_first_exp: bool = False,
         class_ids_from_zero_in_each_exp: bool = False,
         one_dataset_per_exp: bool = False,
+        train_transform=None,
+        eval_transform=None,
         reproducibility_data: Dict[str, Any] = None) -> NCScenario:
     """
     This is the high-level benchmark instances generator for the
@@ -114,6 +122,14 @@ def nc_benchmark(
         experience. Mutually exclusive with the ``per_experience_classes`` and
         ``fixed_class_order`` parameters. Overrides the ``n_experiences`` 
         parameter. Defaults to False.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options. This is usually a dictionary containing
         data used to reproduce a specific experiment. One can use the
@@ -169,9 +185,23 @@ def nc_benchmark(
             n_experiences = len(train_dataset)
         train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
 
+    transform_groups = dict(
+        train=(train_transform, None),
+        eval=(eval_transform, None)
+    )
+
     # Datasets should be instances of AvalancheDataset
-    train_dataset = as_classification_dataset(train_dataset).train()
-    test_dataset = as_classification_dataset(test_dataset).eval()
+    train_dataset = AvalancheDataset(
+        train_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='train',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+    test_dataset = AvalancheDataset(
+        test_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='eval',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
     return NCScenario(train_dataset, test_dataset, n_experiences, task_labels,
                       shuffle, seed, fixed_class_order, per_exp_classes,
@@ -193,6 +223,8 @@ def ni_benchmark(
         balance_experiences: bool = False,
         min_class_patterns_in_exp: int = 0,
         fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
+        train_transform=None,
+        eval_transform=None,
         reproducibility_data: Optional[Dict[str, Any]] = None) \
         -> NIScenario:
     """
@@ -236,6 +268,14 @@ def ni_benchmark(
         is a list that contains the indexes of patterns belonging to that
         experience. Overrides the ``shuffle``, ``balance_experiences`` and
         ``min_class_patterns_in_exp`` parameters.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options, including ``fixed_exp_assignment``.
         This is usually a dictionary containing data used to
@@ -259,9 +299,23 @@ def ni_benchmark(
         seq_train_dataset, seq_test_dataset, _ = \
             concat_datasets_sequentially(train_dataset, test_dataset)
 
+    transform_groups = dict(
+        train=(train_transform, None),
+        eval=(eval_transform, None)
+    )
+
     # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = as_classification_dataset(seq_train_dataset).train()
-    seq_test_dataset = as_classification_dataset(seq_test_dataset).eval()
+    seq_train_dataset = AvalancheDataset(
+        seq_train_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='train',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+    seq_test_dataset = AvalancheDataset(
+        seq_test_dataset,
+        transform_groups=transform_groups,
+        initial_transform_group='eval',
+        dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
     return NIScenario(
         seq_train_dataset, seq_test_dataset,
@@ -316,11 +370,341 @@ def _one_dataset_per_exp_class_order(
     return fixed_class_order, classes_per_exp
 
 
+def fixed_size_experience_split_strategy(
+        experience_size: int, shuffle: bool, drop_last: bool,
+        experience: Experience):
+    """
+    The default splitting strategy used by :func:`data_incremental_benchmark`.
+
+    This splitting strategy simply splits the experience in smaller experiences
+    of size `experience_size`.
+
+    When taking inspiration for your custom splitting strategy, please consider
+    that all parameters preceding `experience` are filled by
+    :func:`data_incremental_benchmark` by using `partial` from the `functools`
+    standard library. A custom splitting strategy must have only a single
+    parameter: the experience. Consider wrapping your custom splitting strategy
+    with `partial` if more parameters are needed.
+
+    Also consider that the stream name of the experience can be obtained by
+    using `experience.origin_stream.name`.
+
+    :param experience_size: The experience size (number of instances).
+    :param shuffle: If True, instances will be shuffled before splitting.
+    :param drop_last: If True, the last mini-experience will be dropped if
+        not of size `experience_size`
+    :param experience: The experience to split.
+    :return: The list of datasets that will be used to create the
+        mini-experiences.
+    """
+
+    exp_dataset = experience.dataset
+    exp_indices = list(range(len(exp_dataset)))
+
+    result_datasets = []
+
+    if shuffle:
+        exp_indices = \
+            torch.as_tensor(exp_indices)[
+                torch.randperm(len(exp_indices))
+            ].tolist()
+
+    init_idx = 0
+    while init_idx < len(exp_indices):
+        final_idx = init_idx + experience_size  # Exclusive
+        if final_idx > len(exp_indices):
+            if drop_last:
+                break
+
+            final_idx = len(exp_indices)
+
+        result_datasets.append(AvalancheSubset(
+            exp_dataset, indices=exp_indices[init_idx:final_idx]))
+        init_idx = final_idx
+
+    return result_datasets
+
+
+def data_incremental_benchmark(
+        benchmark_instance: GenericCLScenario,
+        experience_size: int,
+        shuffle: bool = False,
+        drop_last: bool = False,
+        split_streams: Sequence[str] = ('train',),
+        custom_split_strategy: Callable[[Experience],
+                                        Sequence[AvalancheDataset]] = None,
+        experience_factory: Callable[[GenericScenarioStream, int],
+                                     Experience] = None):
+    """
+    High-level benchmark generator for a Data Incremental setup.
+
+    This generator accepts an existing benchmark instance and returns a version
+    of it in which experiences have been split in order to produce a
+    Data Incremental stream.
+
+    In its base form this generator will split train experiences in experiences
+    of a fixed, configurable, size. The split can be also performed on other
+    streams (like the test one) if needed.
+
+    The `custom_split_strategy` parameter can be used if a more specific
+    splitting is required.
+
+    Beware that experience splitting is NOT executed in a lazy way. This
+    means that the splitting process takes place immediately. Consider
+    optimizing the split process for speed when using a custom splitting
+    strategy.
+
+    Please note that each mini-experience will have a task labels field
+    equal to the one of the originating experience.
+
+    The `complete_test_set_only` field of the resulting benchmark instance
+    will be `True` only if the same field of original benchmark instance is
+    `True` and if the resulting test stream contains exactly one experience.
+
+    :param benchmark_instance: The benchmark to split.
+    :param experience_size: The size of the experience, as an int. Ignored
+        if `custom_split_strategy` is used.
+    :param shuffle: If True, experiences will be split by first shuffling
+        instances in each experience. This will use the default PyTorch
+        random number generator at its current state. Defaults to False.
+        Ignored if `custom_split_strategy` is used.
+    :param drop_last: If True, if the last experience doesn't contain
+        `experience_size` instances, then the last experience will be dropped.
+        Defaults to False. Ignored if `custom_split_strategy` is used.
+    :param split_streams: The list of streams to split. By default only the
+        "train" stream will be split.
+    :param custom_split_strategy: A function that implements a custom splitting
+        strategy. The function must accept an experience and return a list
+        of datasets each describing an experience. Defaults to None, which means
+        that the standard splitting strategy will be used (which creates
+        experiences of size `experience_size`).
+        A good starting to understand the mechanism is to look at the
+        implementation of the standard splitting function
+        :func:`fixed_size_experience_split_strategy`.
+
+    :param experience_factory: The experience factory.
+        Defaults to :class:`GenericExperience`.
+    :return: The Data Incremental benchmark instance.
+    """
+
+    split_strategy = custom_split_strategy
+    if split_strategy is None:
+        split_strategy = partial(
+            fixed_size_experience_split_strategy, experience_size, shuffle,
+            drop_last)
+
+    stream_definitions: TStreamsDict = dict(
+        benchmark_instance.stream_definitions)
+
+    for stream_name in split_streams:
+        if stream_name not in stream_definitions:
+            raise ValueError(f'Stream {stream_name} could not be found in the '
+                             f'benchmark instance')
+
+        stream = getattr(benchmark_instance, f'{stream_name}_stream')
+
+        split_datasets: List[AvalancheDataset] = []
+        split_task_labels: List[Set[int]] = []
+
+        exp: Experience
+        for exp in stream:
+            experiences = split_strategy(exp)
+            split_datasets += experiences
+            for _ in range(len(experiences)):
+                split_task_labels.append(set(exp.task_labels))
+
+        stream_def = StreamDef(split_datasets, split_task_labels,
+                               stream_definitions[stream_name].origin_dataset)
+
+        stream_definitions[stream_name] = stream_def
+
+    complete_test_set_only = benchmark_instance.complete_test_set_only and \
+        len(stream_definitions['test'].exps_data) == 1
+
+    return GenericCLScenario(stream_definitions=stream_definitions,
+                             complete_test_set_only=complete_test_set_only,
+                             experience_factory=experience_factory)
+
+
+def random_validation_split_strategy(
+        validation_size: Union[int, float], shuffle: bool,
+        experience: Experience):
+    """
+    The default splitting strategy used by
+    :func:`benchmark_with_validation_stream`.
+
+    This splitting strategy simply splits the experience in two experiences (
+    train and validation) of size `validation_size`.
+
+    When taking inspiration for your custom splitting strategy, please consider
+    that all parameters preceding `experience` are filled by
+    :func:`benchmark_with_validation_stream` by using `partial` from the
+    `functools` standard library. A custom splitting strategy must have only
+    a single parameter: the experience. Consider wrapping your custom
+    splitting strategy with `partial` if more parameters are needed.
+
+    Also consider that the stream name of the experience can be obtained by
+    using `experience.origin_stream.name`.
+
+    :param validation_size: The number of instances to allocate to the
+    validation experience. Can be an int value or a float between 0 and 1.
+    :param shuffle: If True, instances will be shuffled before splitting.
+        Otherwise, the first instances will be allocated to the training
+        dataset by leaving the last ones to the validation dataset.
+    :param experience: The experience to split.
+    :return: A tuple containing 2 elements: the new training and validation
+        datasets.
+    """
+
+    exp_dataset = experience.dataset
+    exp_indices = list(range(len(exp_dataset)))
+
+    if shuffle:
+        exp_indices = \
+            torch.as_tensor(exp_indices)[
+                torch.randperm(len(exp_indices))
+            ].tolist()
+
+    if 0.0 <= validation_size <= 1.0:
+        valid_n_instances = int(validation_size * len(exp_dataset))
+    else:
+        valid_n_instances = int(validation_size)
+        if valid_n_instances > len(exp_dataset):
+            raise ValueError(
+                f'Can\'t create the validation experience: nott enough '
+                f'instances. Required {valid_n_instances}, got only'
+                f'{len(exp_dataset)}')
+
+    train_n_instances = len(exp_dataset) - valid_n_instances
+
+    result_train_dataset = AvalancheSubset(
+        exp_dataset, indices=exp_indices[:train_n_instances])
+    result_valid_dataset = AvalancheSubset(
+        exp_dataset, indices=exp_indices[train_n_instances:])
+
+    return result_train_dataset, result_valid_dataset
+
+
+def benchmark_with_validation_stream(
+        benchmark_instance: GenericCLScenario,
+        validation_size: Union[int, float],
+        shuffle: bool = False,
+        input_stream: str = 'train',
+        output_stream: str = 'valid',
+        custom_split_strategy: Callable[[Experience],
+                                        Tuple[AvalancheDataset,
+                                              AvalancheDataset]] = None,
+        experience_factory: Callable[[GenericScenarioStream, int],
+                                     Experience] = None):
+    """
+    Helper that can be used to obtain a benchmark with a validation stream.
+
+    This generator accepts an existing benchmark instance and returns a version
+    of it in which a validation stream has been added.
+
+    In its base form this generator will split train experiences to extract
+    validation experiences of a fixed (by number of instances or relative
+    size), configurable, size. The split can be also performed on other
+    streams if needed and the name of the resulting validation stream can
+    be configured too.
+
+    Each validation experience will be extracted directly from a single training
+    experience. Patterns selected for the validation experience will be removed
+    from the training one.
+
+    If shuffle is True, the validation stream will be created randomly.
+    Beware that no kind of class balancing is done.
+
+    The `custom_split_strategy` parameter can be used if a more specific
+    splitting is required.
+
+    Beware that experience splitting is NOT executed in a lazy way. This
+    means that the splitting process takes place immediately. This is usually
+    fast even for streams with many experiences.
+
+    Please note that the resulting experiences will have a task  labels field
+    equal to the one of the originating experience.
+
+    :param benchmark_instance: The benchmark to split.
+    :param validation_size: The size of the validation experience, as an int
+        or a float between 0 and 1. Ignored if `custom_split_strategy` is used.
+    :param shuffle: If True, patterns will be allocated to the validation
+        stream randomly. This will use the default PyTorch random number
+        generator at its current state. Defaults to False. Ignored if
+        `custom_split_strategy` is used. If False, the first instances will be
+        allocated to the training  dataset by leaving the last ones to the
+        validation dataset.
+    :param input_stream: The name of the input stream. Defaults to 'train'.
+    :param output_stream: The name of the output stream. Defaults to 'valid'.
+    :param custom_split_strategy: A function that implements a custom splitting
+        strategy. The function must accept an experience and return a tuple
+        containing the new train and validation dataset. Defaults to None,
+        which means that the standard splitting strategy will be used (which
+        creates experiences according to `validation_size` and `shuffle`).
+        A good starting to understand the mechanism is to look at the
+        implementation of the standard splitting function
+        :func:`random_validation_split_strategy`.
+    :param experience_factory: The experience factory. Defaults to
+        :class:`GenericExperience`.
+    :return: A benchmark instance in which the validation stream has been added.
+    """
+
+    split_strategy = custom_split_strategy
+    if split_strategy is None:
+        split_strategy = partial(
+            random_validation_split_strategy, validation_size,
+            shuffle)
+
+    stream_definitions: TStreamsDict = dict(
+        benchmark_instance.stream_definitions)
+    streams = benchmark_instance.streams
+
+    if input_stream not in streams:
+        raise ValueError(f'Stream {input_stream} could not be found in the '
+                         f'benchmark instance')
+
+    if output_stream in streams:
+        raise ValueError(f'Stream {output_stream} already exists in the '
+                         f'benchmark instance')
+
+    stream = streams[input_stream]
+
+    split_train_datasets: List[AvalancheDataset] = []
+    split_valid_datasets: List[AvalancheDataset] = []
+    split_task_labels: List[Set[int]] = []
+
+    exp: Experience
+    for exp in stream:
+        train_exp, valid_exp = split_strategy(exp)
+        split_train_datasets.append(train_exp)
+        split_valid_datasets.append(valid_exp)
+        split_task_labels.append(set(exp.task_labels))
+
+    train_stream_def = \
+        StreamDef(split_train_datasets, split_task_labels,
+                  stream_definitions[input_stream].origin_dataset)
+
+    valid_stream_def = \
+        StreamDef(split_valid_datasets, split_task_labels,
+                  stream_definitions[input_stream].origin_dataset)
+
+    stream_definitions[input_stream] = train_stream_def
+    stream_definitions[output_stream] = valid_stream_def
+
+    complete_test_set_only = benchmark_instance.complete_test_set_only
+
+    return GenericCLScenario(stream_definitions=stream_definitions,
+                             complete_test_set_only=complete_test_set_only,
+                             experience_factory=experience_factory)
+
+
 __all__ = [
     'nc_benchmark',
     'ni_benchmark',
     'dataset_benchmark',
     'filelist_benchmark',
     'paths_benchmark',
-    'tensors_benchmark'
+    'tensors_benchmark',
+    'data_incremental_benchmark',
+    'benchmark_with_validation_stream'
 ]

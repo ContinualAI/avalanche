@@ -90,7 +90,7 @@ class EWCPlugin(StrategyPlugin):
         """
 
         importances = self.compute_importances(strategy.model,
-                                               strategy.criterion,
+                                               strategy._criterion,
                                                strategy.optimizer,
                                                strategy.experience.dataset,
                                                strategy.device,

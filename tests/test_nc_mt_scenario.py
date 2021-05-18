@@ -25,13 +25,14 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(10, my_nc_benchmark.n_classes)
         for task_id in range(5):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[task_id])
+                2, len(my_nc_benchmark.classes_in_experience['train'][task_id])
             )
 
         all_classes = set()
         all_original_classes = set()
         for task_id in range(5):
-            all_classes.update(my_nc_benchmark.classes_in_experience[task_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
             all_original_classes.update(
                 my_nc_benchmark.original_classes_in_exp[task_id])
 
@@ -51,12 +52,13 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(10, my_nc_benchmark.n_classes)
         for task_id in range(5):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[task_id])
+                2, len(my_nc_benchmark.classes_in_experience['train'][task_id])
             )
 
         all_classes = set()
         for task_id in range(my_nc_benchmark.n_experiences):
-            all_classes.update(my_nc_benchmark.classes_in_experience[task_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -72,7 +74,8 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = []
         for task_id in range(5):
-            all_classes.extend(my_nc_benchmark.classes_in_experience[task_id])
+            all_classes.extend(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
 
         self.assertEqual(order, all_classes)
 
@@ -86,16 +89,18 @@ class MultiTaskTests(unittest.TestCase):
             mnist_train, mnist_test, 4, task_labels=True,
             fixed_class_order=order, class_ids_from_zero_in_each_exp=True)
 
-        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience))
+        self.assertEqual(4, len(my_nc_benchmark.classes_in_experience['train']))
 
         all_classes = []
         for task_id in range(4):
             self.assertEqual(
-                2, len(my_nc_benchmark.classes_in_experience[task_id])
+                2, len(my_nc_benchmark.classes_in_experience['train'][task_id])
             )
-            self.assertEqual(set(order[task_id*2:(task_id+1)*2]),
-                             my_nc_benchmark.original_classes_in_exp[task_id])
-            all_classes.extend(my_nc_benchmark.classes_in_experience[task_id])
+            self.assertEqual(
+                set(order[task_id*2:(task_id+1)*2]),
+                my_nc_benchmark.original_classes_in_exp[task_id])
+            all_classes.extend(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
 
         self.assertEqual([0, 1] * 4, all_classes)
 
@@ -109,16 +114,18 @@ class MultiTaskTests(unittest.TestCase):
             mnist_train, mnist_test, 2, task_labels=True,
             fixed_class_order=order, class_ids_from_zero_in_each_exp=False)
 
-        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience))
+        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience['train']))
 
         all_classes = set()
         for task_id in range(2):
             self.assertEqual(
-                4, len(my_nc_benchmark.classes_in_experience[task_id])
+                4, len(my_nc_benchmark.classes_in_experience['train'][task_id])
             )
-            self.assertEqual(set(order[task_id*4:(task_id+1)*4]),
-                             my_nc_benchmark.original_classes_in_exp[task_id])
-            all_classes.update(my_nc_benchmark.classes_in_experience[task_id])
+            self.assertEqual(
+                set(order[task_id*4:(task_id+1)*4]),
+                my_nc_benchmark.original_classes_in_exp[task_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
 
         self.assertEqual(set(order), all_classes)
 
@@ -156,12 +163,16 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = set()
         for task_id in range(3):
-            all_classes.update(my_nc_benchmark.classes_in_experience[task_id])
+            all_classes.update(
+                my_nc_benchmark.classes_in_experience['train'][task_id])
         self.assertEqual(5, len(all_classes))
 
-        self.assertEqual(5, len(my_nc_benchmark.classes_in_experience[0]))
-        self.assertEqual(3, len(my_nc_benchmark.classes_in_experience[1]))
-        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience[2]))
+        self.assertEqual(
+            5, len(my_nc_benchmark.classes_in_experience['train'][0]))
+        self.assertEqual(
+            3, len(my_nc_benchmark.classes_in_experience['train'][1]))
+        self.assertEqual(
+            2, len(my_nc_benchmark.classes_in_experience['train'][2]))
 
     def test_mt_multi_dataset_one_task_per_set(self):
         split_mapping = [0, 1, 2, 0, 1, 2, 3, 4, 5, 6]
@@ -203,7 +214,7 @@ class MultiTaskTests(unittest.TestCase):
         for task_id, task_info in enumerate(my_nc_benchmark.train_stream):
             self.assertLessEqual(task_id, 1)
             all_classes_train.update(
-                my_nc_benchmark.classes_in_experience[task_id]
+                my_nc_benchmark.classes_in_experience['train'][task_id]
             )
             exp_classes_train.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_train))
@@ -211,16 +222,18 @@ class MultiTaskTests(unittest.TestCase):
         for task_id, task_info in enumerate(my_nc_benchmark.test_stream):
             self.assertLessEqual(task_id, 1)
             all_classes_test.update(
-                my_nc_benchmark.classes_in_experience[task_id]
+                my_nc_benchmark.classes_in_experience['test'][task_id]
             )
             exp_classes_test.append(task_info.classes_in_this_experience)
         self.assertEqual(7, len(all_classes_test))
 
         self.assertTrue(
-            (my_nc_benchmark.classes_in_experience[0] == {0, 1, 2} and
-             my_nc_benchmark.classes_in_experience[1] == set(range(0, 7))) or
-            (my_nc_benchmark.classes_in_experience[0] == set(range(0, 7)) and
-             my_nc_benchmark.classes_in_experience[1] == {0, 1, 2}))
+            (my_nc_benchmark.classes_in_experience['train'][0] == {0, 1, 2} and
+             my_nc_benchmark.classes_in_experience['train'][1] ==
+             set(range(0, 7))) or
+            (my_nc_benchmark.classes_in_experience['train'][0] ==
+             set(range(0, 7)) and
+             my_nc_benchmark.classes_in_experience['train'][1] == {0, 1, 2}))
 
         exp_classes_ref1 = [list(range(3)), list(range(7))]
         exp_classes_ref2 = [list(range(7)), list(range(3))]

@@ -18,16 +18,15 @@ from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_fmnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.2190,), (0.3318,))
+    transforms.Normalize((0.2860,), (0.3530,))
 ])
 
 _default_fmnist_eval_transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.2190,), (0.3318,))
+    transforms.Normalize((0.2860,), (0.3530,))
 ])
 
 
@@ -100,8 +99,7 @@ def SplitFMNIST(n_experiences: int,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    fmnist_train, fmnist_test = _get_fmnist_dataset(
-        train_transform, eval_transform)
+    fmnist_train, fmnist_test = _get_fmnist_dataset()
 
     if return_task_id:
         return nc_benchmark(
@@ -111,7 +109,9 @@ def SplitFMNIST(n_experiences: int,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_exp_classes={0: 5} if first_batch_with_half_classes else None)
+            per_exp_classes={0: 5} if first_batch_with_half_classes else None,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=fmnist_train,
@@ -120,16 +120,17 @@ def SplitFMNIST(n_experiences: int,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            per_exp_classes={0: 5} if first_batch_with_half_classes else None)
+            per_exp_classes={0: 5} if first_batch_with_half_classes else None,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
-def _get_fmnist_dataset(train_transformation, eval_transformation):
+def _get_fmnist_dataset():
     train_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
                              train=True, download=True)
     test_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
                             train=False, download=True)
-    return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+    return train_set, test_set
 
 
 __all__ = [

@@ -9,15 +9,15 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Optional, List, Sequence, Dict, Any, Set
+from typing import Optional, List, Sequence, Dict, Any
 
 import torch
 
+from avalanche.benchmarks.scenarios.generic_cl_scenario import \
+    GenericCLScenario, GenericScenarioStream, GenericExperience
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
     _exp_structure_from_assignment
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
-from avalanche.benchmarks.scenarios.generic_cl_scenario import \
-    GenericCLScenario, GenericScenarioStream, GenericExperience
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
@@ -113,6 +113,17 @@ class NIScenario(GenericCLScenario['NIExperience']):
         if min_class_patterns_in_exp < 0 and reproducibility_data is None:
             raise ValueError('Invalid min_class_patterns_in_exp parameter: '
                              'must be greater than or equal to 0')
+
+        # # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         unique_targets, unique_count = torch.unique(
             torch.as_tensor(train_dataset.targets), return_counts=True)
@@ -392,17 +403,18 @@ class NIScenario(GenericCLScenario['NIExperience']):
             complete_test_set_only=True,
             experience_factory=NIExperience)
 
-    @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        if self._classes_in_exp is None:
-            self._classes_in_exp = []
-            for exp_id in range(self.n_experiences):
-                self._classes_in_exp.append(set())
-                exp_s = self.exp_structure[exp_id]
-                for class_id, n_patterns_of_class in enumerate(exp_s):
-                    if n_patterns_of_class > 0:
-                        self._classes_in_exp[exp_id].add(class_id)
-        return self._classes_in_exp
+    # TODO: remove
+    # @property
+    # def classes_in_experience(self) -> Sequence[Set[int]]:
+    #     if self._classes_in_exp is None:
+    #         self._classes_in_exp = []
+    #         for exp_id in range(self.n_experiences):
+    #             self._classes_in_exp.append(set())
+    #             exp_s = self.exp_structure[exp_id]
+    #             for class_id, n_patterns_of_class in enumerate(exp_s):
+    #                 if n_patterns_of_class > 0:
+    #                     self._classes_in_exp[exp_id].add(class_id)
+    #     return self._classes_in_exp
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         reproducibility_data = {

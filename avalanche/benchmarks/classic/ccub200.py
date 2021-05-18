@@ -13,8 +13,8 @@ from avalanche.benchmarks.datasets import CUB200
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
+from os.path import expanduser
 
-from avalanche.benchmarks.utils import train_eval_avalanche_datasets
 
 _default_train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
@@ -30,7 +30,7 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitCUB200(root,
+def SplitCUB200(root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
                 n_experiences=11,
                 classes_first_batch=100,
                 return_task_id=False,
@@ -96,8 +96,7 @@ def SplitCUB200(root,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_cub200_dataset(
-        root, train_transform, eval_transform)
+    train_set, test_set = _get_cub200_dataset(root)
 
     if classes_first_batch is not None:
         per_exp_classes = {0: classes_first_batch}
@@ -114,7 +113,9 @@ def SplitCUB200(root,
             seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
-            one_dataset_per_exp=True)
+            one_dataset_per_exp=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -124,15 +125,16 @@ def SplitCUB200(root,
             per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
-            shuffle=shuffle)
+            shuffle=shuffle,
+            train_transform=train_transform,
+            eval_transform=eval_transform)
 
 
-def _get_cub200_dataset(root, train_transformation, eval_transformation):
+def _get_cub200_dataset(root):
     train_set = CUB200(root, train=True)
     test_set = CUB200(root, train=False)
 
-    return train_eval_avalanche_datasets(
-        train_set, test_set, train_transformation, eval_transformation)
+    return train_set, test_set
 
 
 __all__ = [
@@ -140,7 +142,8 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-    scenario = SplitCUB200("~/.avalanche/data/CUB_200_2011/")
+
+    scenario = SplitCUB200()
     for exp in scenario.train_stream:
         print("Experience: ", exp.current_experience)
         print("classes number: ", len(exp.classes_in_this_experience))

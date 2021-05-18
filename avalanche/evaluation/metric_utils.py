@@ -9,17 +9,14 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-import io
 from typing import Tuple, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
-from sklearn.metrics import ConfusionMatrixDisplay
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.strategies import BaseStrategy
     from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 
@@ -181,7 +178,8 @@ def bytes2human(n):
 
 def get_metric_name(metric: 'PluginMetric',
                     strategy: 'BaseStrategy',
-                    add_experience=False):
+                    add_experience=False,
+                    add_task=True):
     """
     Return the complete metric name used to report its current value.
     The name is composed by:
@@ -196,26 +194,25 @@ def get_metric_name(metric: 'PluginMetric',
     :param strategy: the current strategy object
     :param add_experience: if True, add eval_exp_id to the main metric name.
             Default to False.
+    :param add_task: if True the main metric name will include the task
+        information. Otherwise, it will not.
     """
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
-    if add_experience:
-        experience_label = strategy.experience.current_experience
-        metric_name = '{}/{}_phase/{}_stream/Task{:03}/Exp{:03}' \
-            .format(str(metric),
-                    phase_name,
-                    stream,
-                    task_label,
-                    experience_label)
-    else:
-        metric_name = '{}/{}_phase/{}_stream/Task{:03}' \
-            .format(str(metric),
-                    phase_name,
-                    stream,
-                    task_label)
+    base_name = '{}/{}_phase/{}_stream'.format(str(metric),
+                                               phase_name, stream)
+    task_name = '/Task{:03}'.format(task_label)
+    exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
 
-    return metric_name
+    if add_experience and not add_task:
+        return base_name + exp_name
+    elif add_experience and add_task:
+        return base_name + task_name + exp_name
+    elif not add_experience and not add_task:
+        return base_name
+    elif not add_experience and add_task:
+        return base_name + task_name
 
 
 __all__ = [

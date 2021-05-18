@@ -14,7 +14,6 @@
 import unittest
 
 from avalanche.benchmarks.classic import CORe50
-from avalanche.benchmarks.scenarios.generic_definitions import Experience
 
 
 class CORe50Test(unittest.TestCase):
@@ -27,6 +26,17 @@ class CORe50Test(unittest.TestCase):
         # scenario = CORe50(scenario="ni")
         # for task_info in scenario:
         #     self.assertIsInstance(task_info, IExperience)
+
+    def test_core50_nc_scenario(self):
+        benchmark_instance = CORe50(scenario='nc')
+
+        self.assertEqual(1, len(benchmark_instance.test_stream))
+
+        classes_in_test = benchmark_instance.\
+            classes_in_experience['test'][0]
+        self.assertSetEqual(
+            set(range(50)),
+            set(classes_in_test))
 
 
 if __name__ == '__main__':

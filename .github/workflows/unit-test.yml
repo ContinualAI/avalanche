@@ -31,6 +31,8 @@ jobs:
   unit-test:
     name: unit test
     runs-on: ubuntu-latest
+    container:
+      image: ggraffieti/avalanche-ds:latest
     strategy:
       fail-fast: false
       matrix:
@@ -42,24 +44,26 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: avalanche-env
-          python-version: ${{ matrix.python-version }}
-          auto-activate-base: false
+      - name: copy dataset in correct folder
+        run: cp -r /~/.avalanche /github/home
       - name: install conda environment < 3.9
         if: matrix.python-version != '3.9'
         run: |
-          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
+          conda activate avalanche-env
+          conda install pytorch=1.8.1 torchvision=0.9.1 cpuonly -c pytorch -y
           conda env update --file environment.yml
       - name: install conda environment = 3.9
         if: matrix.python-version == '3.9'
         run: |
+          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
+          conda activate avalanche-env
           conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
           conda env update --file environment.yml
       - name: python unit test
         id: unittest
         run: |
+          conda activate avalanche-env
           FAST_TEST=True USE_GPU=False python -m unittest
       - name: clone reports repository
         if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
@@ -72,12 +76,14 @@ jobs:
       - name: test success
         if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
+          conda activate avalanche-env
           rm -f avalanche-reports/packages/fail-${{ matrix.python-version }}-*
           rm -f avalanche-reports/packages/success-${{ matrix.python-version }}-*
           conda list > $"avalanche-reports/packages/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: test failure
         if: failure() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
+          conda activate avalanche-env
           conda list > $"avalanche-reports/packages/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
       - name: commit changes
         if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'

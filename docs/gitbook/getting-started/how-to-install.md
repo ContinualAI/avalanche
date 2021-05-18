@@ -16,7 +16,7 @@ In order to install _Avalanche_ we have three main options:
 
 The _Avalanche_ dependencies are the following:
 
-`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `googledrivedownloader`.
+`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `gdown`.
 
 {% hint style="info" %}
 _Avalanche may work on lower Python versions as well but we don't officially support it, nor recommend it._
@@ -56,7 +56,7 @@ These steps can be accomplished with the following lines of code:
 python="3.8"
 
 # Step 1
-git clone https://github.com/vlomonaco/avalanche.git
+git clone https://github.com/ContinualAI/avalanche.git
 cd avalanche
 conda create -n avalanche-env python=$python -c conda-forge
 conda activate avalanche-env
@@ -91,7 +91,7 @@ These three steps can be accomplished with the following lines of code:
 python="3.8"
 
 # Step 1
-git clone https://github.com/vlomonaco/avalanche.git
+git clone https://github.com/ContinualAI/avalanche.git
 cd avalanche
 conda create -n avalanche-dev-env python=$python -c conda-forge
 conda activate avalanche-dev-env
