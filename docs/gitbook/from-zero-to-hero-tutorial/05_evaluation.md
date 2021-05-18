@@ -62,9 +62,10 @@ We recommend to use the helper functions when creating plugin metrics.
 
 ```python
 from avalanche.evaluation.metrics import accuracy_metrics, \
-    loss_metrics, cpu_usage_metrics, disk_usage_metrics, \
-    gpu_usage_metrics, MAC_metrics, ram_usage_metrics, \
-    timing_metrics
+    loss_metrics, forgetting_metrics, bwt_metrics,\
+    confusion_matrix_metrics, cpu_usage_metrics, \
+    disk_usage_metrics, gpu_usage_metrics, MAC_metrics, \
+    ram_usage_metrics, timing_metrics
 
 # you may pass the result to the EvaluationPlugin
 metrics = accuracy_metrics(epoch=True, experience=True)
@@ -80,7 +81,8 @@ ExperienceAccuracy, StreamAccuracy, \
 Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
 ExperienceLoss, StreamLoss, \
 Forgetting, ExperienceForgetting, StreamForgetting, \
-ConfusionMatrix, StreamConfusionMatrix, \
+BWT, ExperienceBWT, StreamBWT, \
+ConfusionMatrix, StreamConfusionMatrix, WandBStreamConfusionMatrix, \
 CPUUsage, MinibatchCPUUsage, EpochCPUUsage, RunningEpochCPUUsage, \
 ExperienceCPUUsage, StreamCPUUsage, \
 DiskUsage, MinibatchDiskUsage, EpochDiskUsage, \
@@ -109,7 +111,6 @@ from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
 confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -237,7 +238,7 @@ class MyPluginMetric(PluginMetric[float]):
         predictions and targets
         """
         self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.mb_output)
+                                     strategy.logits)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         """
@@ -250,7 +251,7 @@ class MyPluginMetric(PluginMetric[float]):
         Emit the result
         """
         value = self._accuracy_metric.result()
-        self.x_coord += 1  # increment x value
+        self.x_coord += 1 # increment x value
         return [MetricValue(self, 'metric_full_name', value,
                             self.x_coord)]
 
