@@ -108,17 +108,16 @@ detail and make you a true Continual Learner! :woman_student:
 
 Cite Avalanche
 ----------------
-If you used Avalanche in your research project, please remember to cite our reference paper ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
+If you used Avalanche in your research project, please remember to cite our reference paper published at the [CLVision @ CVPR2021](https://sites.google.com/view/clvision2021/overview?authuser=0) workshop: ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
 This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
 
 ```
-@misc{lomonaco2021avalanche,
-      title={Avalanche: an End-to-End Library for Continual Learning}, 
-      author={Vincenzo Lomonaco and Lorenzo Pellegrini and Andrea Cossu and Antonio Carta and Gabriele Graffieti and Tyler L. Hayes and Matthias De Lange and Marc Masana and Jary Pomponi and Gido van de Ven and Martin Mundt and Qi She and Keiland Cooper and Jeremy Forest and Eden Belouadah and Simone Calderara and German I. Parisi and Fabio Cuzzolin and Andreas Tolias and Simone Scardapane and Luca Antiga and Subutai Amhad and Adrian Popescu and Christopher Kanan and Joost van de Weijer and Tinne Tuytelaars and Davide Bacciu and Davide Maltoni},
-      year={2021},
-      eprint={2104.00405},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+@InProceedings{lomonaco2021avalanche,
+    title={Avalanche: an End-to-End Library for Continual Learning},
+    author={Vincenzo Lomonaco and Lorenzo Pellegrini and Andrea Cossu and Antonio Carta and Gabriele Graffieti and Tyler L. Hayes and Matthias De Lange and Marc Masana and Jary Pomponi and Gido van de Ven and Martin Mundt and Qi She and Keiland Cooper and Jeremy Forest and Eden Belouadah and Simone Calderara and German I. Parisi and Fabio Cuzzolin and Andreas Tolias and Simone Scardapane and Luca Antiga and Subutai Amhad and Adrian Popescu and Christopher Kanan and Joost van de Weijer and Tinne Tuytelaars and Davide Bacciu and Davide Maltoni},
+    booktitle={Proceedings of IEEE Conference on Computer Vision and Pattern Recognition},
+    series={2nd Continual Learning in Computer Vision Workshop},
+    year={2021}
 }
 ```
 
