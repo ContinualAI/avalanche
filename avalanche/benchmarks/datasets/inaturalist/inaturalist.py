@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 10-10-2020                                                             #
-# Author: Vincenzo Lomonaco                                                    #
+# Date: 20-05-2021                                                             #
+# Author: Matthias De Lange                                                    #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
@@ -15,7 +15,6 @@ Download: https://github.com/visipedia/inat_comp/tree/master/2018
 Based on survey in CL: https://ieeexplore.ieee.org/document/9349197
 
 Images have a max dimension of 800px and have been converted to JPEG format
-
 You can select supercategories to include. By default 10 Super categories are
 selected from the 14 available, based on at least having 100 categories (leaving
 out Chromista, Protozoa, Bacteria), and omitting a random super category from
@@ -25,16 +24,18 @@ Example filename from the JSON:
  "file_name": "train_val2018/Insecta/1455/994fa5...f1e360d34aae943.jpg"
 """
 
+from typing import Any, List
+
 import os
 import logging
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import ToTensor
 from PIL import Image
 from os.path import expanduser
-import json
 import pprint
 
 from .inaturalist_data import INATURALIST_DATA
+from .coco_api import COCO
 
 
 def pil_loader(path):
@@ -51,7 +52,24 @@ def _isArrayLike(obj):
 
 
 class INATURALIST2018(Dataset):
-    """ INATURALIST Pytorch Dataset """
+    """ INATURALIST Pytorch Dataset
+
+    For default selection of 10 supercategories:
+    - Training Images in total: 428,830
+    - Validation Images in total:  23,229
+    - Shape of images: torch.Size([1, 3, 600, 800])
+    - Class counts per supercategory (both train/val):
+     { 'Amphibia': 144,
+      'Animalia': 178,
+      'Arachnida': 114,
+      'Aves': 1258,
+      'Fungi': 321,
+      'Insecta': 2031,
+      'Mammalia': 234,
+      'Mollusca': 262,
+      'Plantae': 2917,
+      'Reptilia': 284}
+    """
     splits = ['train', 'val', 'test']
 
     def_supcats = ['Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Fungi',
@@ -74,37 +92,26 @@ class INATURALIST2018(Dataset):
 
         if download:
             download_trainval = self.split in ['train', 'val']
-            self.core_data = INATURALIST_DATA(data_folder=root,
+            self.inat_data = INATURALIST_DATA(data_folder=root,
                                               trainval=download_trainval)
 
         # load annotations
         ann_file = f'{split}2018.json'
         self.log.info(f'Loading annotations from: {ann_file}')
+        self.ds = COCO(annotation_file=os.path.join(root, ann_file))
 
-        with open(os.path.join(root, ann_file)) as data_file:
-            data = json.load(data_file)
+        self.img_ids = []
+        self.cats_per_supcat = {}
 
-        # Connect through annotations
-        # annotation
-        # {
-        #     "id": int,
-        #     "image_id": int,
-        #     "category_id": int
-        # }
-        self.imgs = []
-        self.targets = []
-        self.suptargets = []
-        self.cats_per_supcat = {}  # Which categories in supercategories to define tasks later
-        for ann, img, cat in zip(data['annotations'],
-                                 data['images'],
-                                 data['categories']):
+        # Filter full dataset parsed
+        for ann in self.ds.anns.values():
             img_id = ann["image_id"]
             cat_id = ann["category_id"]
-            assert img_id == img["id"]
-            assert cat_id == cat["id"]
 
-            target = cat["class"]
-            supcat = cat["supercategory"]
+            # img = self.ds.loadImgs(img_id)[0]["file_name"]  # Img Path
+            cat = self.ds.loadCats(cat_id)[0]  # Get category
+            target = cat["name"]  # Is subdirectory
+            supcat = cat["supercategory"]  # Is parent directory
 
             if self.supcats is None or supcat in self.supcats:  # Made selection
 
@@ -114,15 +121,21 @@ class INATURALIST2018(Dataset):
                 self.cats_per_supcat[supcat].add(target)
 
                 # Add to list
-                self.imgs.append(img['file_name'])
-                self.targets.append(target)
-                self.suptargets.append(supcat)
+                self.img_ids.append(img_id)
+                # self.targets.append(target)
+                # self.suptargets.append(supcat)
 
         cnt_per_supcat = {k: len(v) for k, v in self.cats_per_supcat.items()}
         self.log.info("Classes per supercategories:")
         self.log.info(pprint.pformat(cnt_per_supcat, indent=2))
+        self.log.info(f"Images in total: {self.__len__()}")
 
-        self.log.info(f"Images in total: {len(self.targets)}")
+    def _load_image(self, img_id: int) -> Image.Image:
+        path = self.ds.loadImgs(img_id)[0]["file_name"]
+        return Image.open(os.path.join(self.root, path)).convert("RGB")
+
+    def _load_target(self, img_id) -> List[Any]:
+        return self.ds.loadAnns(self.ds.getAnnIds(img_id))
 
     def __getitem__(self, index):
         """
@@ -134,9 +147,9 @@ class INATURALIST2018(Dataset):
                 class.
         """
 
-        target = self.targets[index]
-        img = self.loader(os.path.join(self.root, self.imgs[index]))
-        # suptarget = self.suptargets[index] # uncomment if required
+        id = self.img_ids[index]
+        img = self._load_image(id)
+        target = self._load_target(id)
 
         if self.transform is not None:
             img = self.transform(img)
@@ -146,7 +159,7 @@ class INATURALIST2018(Dataset):
         return img, target
 
     def __len__(self):
-        return len(self.targets)
+        return len(self.img_ids)
 
 
 if __name__ == "__main__":
@@ -159,9 +172,11 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    train_data = INATURALIST2018(root='/usr/data/delangem/inaturalist2018')
+    train_data = INATURALIST2018()
+    test_data = INATURALIST2018(split='val')
     print("train size: ", len(train_data))
-    dataloader = DataLoader(train_data, batch_size=1)
+    print("test size: ", len(test_data))
+    dataloader = DataLoader(test_data, batch_size=1)
 
     for batch_data in dataloader:
         x, y = batch_data

@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 11-05-2020                                                             #
-# Author: ContinualAI                                                          #
+# Date: 20-05-2021                                                             #
+# Author: Matthias De Lange                                                    #
 # E-mail: contact@continualai.org                                              #
 # Website: continualai.org                                                     #
 ################################################################################
