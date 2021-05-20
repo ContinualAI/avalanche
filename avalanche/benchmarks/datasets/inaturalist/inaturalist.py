@@ -31,9 +31,10 @@ from torch.utils.data.dataset import Dataset
 from torchvision.transforms import ToTensor
 from PIL import Image
 from os.path import expanduser
-from .inaturalist_data import INATURALIST_DATA
 import json
 import pprint
+
+from .inaturalist_data import INATURALIST_DATA
 
 
 def pil_loader(path):
@@ -149,6 +150,7 @@ class INATURALIST2018(Dataset):
 
 
 if __name__ == "__main__":
+    # Run from outside this dir as 'python3 -m inaturalist.inaturalist'
 
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.

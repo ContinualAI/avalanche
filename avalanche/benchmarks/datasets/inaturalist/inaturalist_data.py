@@ -132,19 +132,21 @@ class INATURALIST_DATA(object):
 
         try:
             # Create target Directory for INATURALIST data
-            os.makedirs(self.data_folder)
+            os.makedirs(self.data_folder, exist_ok=True)
             self.log.info("Directory %s created", self.data_folder)
             self.download = True
             self.download_inaturalist()
 
         except OSError:
+            import traceback
+            traceback.print_exc()
             self.download = False
             self.log.error("Directory %s already exists", self.data_folder)
 
     def download_inaturalist(self):
         """ Download and extract inaturalist data
 
-            :param extra: download also additional CORe50 data not strictly
+            :param extra: download also additional INATURALIST data not strictly
                 required by the data loader.
         """
 
@@ -152,14 +154,24 @@ class INATURALIST_DATA(object):
 
         for name in data2download:
             self.log.info("Downloading " + name[1] + "...")
-            urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
+            save_name = os.path.join(self.data_folder, name[0])
+            if not os.path.exists(save_name):
+                urlretrieve(name[1], save_name)
+            else:
+                self.log.info("Skipping download, exists: ", save_name)
 
             if name[0].endswith("tar.gz"):
-                with tarfile.open(
-                        os.path.join(self.data_folder, name[0]), "r:gz") as tar:
-                    self.log.info('Extracting CORe50 images...')
-                    tar.extractall(self.data_folder)
-                    self.log.info('Done!')
+                untar_save_name = os.path.join(
+                    self.data_folder, '.'.join(name[0].split('.')[:-2]))
+                if not os.path.exists(untar_save_name):
+                    with tarfile.open(
+                            os.path.join(self.data_folder, name[0]),
+                            "r:gz") as tar:
+                        self.log.info('Extracting INATURALIST images...')
+                        tar.extractall(self.data_folder)
+                        self.log.info('Done!')
+                else:
+                    self.log.info("Skipping untarring, exists: ", save_name)
         self.log.info("Download complete.")
 
 

@@ -6,3 +6,4 @@ from .tiny_imagenet import *
 from .omniglot import *
 from .stream51 import *
 from .torchvision_wrapper import *
+from .inaturalist import *
