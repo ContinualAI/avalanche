@@ -42,7 +42,7 @@ def SplitImageNet(root,
                   train_transform=_default_train_transform,
                   eval_transform=_default_eval_transform):
     """
-    Creates a CL scenario using the Tiny ImageNet dataset.
+    Creates a CL scenario using the ImageNet dataset.
 
     If the dataset is not present in the computer, **this method will NOT be
     able automatically download** and store it.
