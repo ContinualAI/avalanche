@@ -60,6 +60,9 @@ class TensorboardLogger(StrategyLogger):
         self.writer = SummaryWriter(tb_log_dir,
                                     filename_suffix=filename_suffix)
 
+    def __del__(self):
+        self.writer.close()
+
     def log_metric(self, metric_value: MetricValue, callback: str):
         super().log_metric(metric_value, callback)
         name = metric_value.name
