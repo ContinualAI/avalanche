@@ -13,6 +13,7 @@
 Avalanche experiments. """
 
 from pathlib import Path
+from typing import Union
 
 from PIL.Image import Image
 from torch import Tensor
@@ -31,6 +32,9 @@ class TensorboardLogger(StrategyLogger):
     The user can inspect results in real time by appropriately launching
     tensorboard with `tensorboard --logdir=/path/to/tb_log_exp_name`.
 
+    AWS's S3 buckets and (if tensorflow is installed) GCloud storage url are
+    supported.
+
     If no parameters are provided, the default folder in which tensorboard
     log files are placed is "./runs/".
     .. note::
@@ -40,7 +44,8 @@ class TensorboardLogger(StrategyLogger):
         feature set. This should not impact on the logger performance.
     """
 
-    def __init__(self, tb_log_dir="./tb_data", filename_suffix=''):
+    def __init__(self, tb_log_dir: Union[str, Path] = "./tb_data",
+                 filename_suffix: str = ''):
         """
         Creates an instance of the `TensorboardLogger`.
 
@@ -51,8 +56,7 @@ class TensorboardLogger(StrategyLogger):
         """
 
         super().__init__()
-        tb_log_dir = Path(tb_log_dir)
-        tb_log_dir.mkdir(parents=True, exist_ok=True)
+        tb_log_dir = _make_path_if_local(tb_log_dir)
         self.writer = SummaryWriter(tb_log_dir,
                                     filename_suffix=filename_suffix)
 
@@ -84,6 +88,19 @@ class TensorboardLogger(StrategyLogger):
         elif isinstance(value, (float, int)):
             self.writer.add_scalar(name, value,
                                    global_step=metric_value.x_plot)
+
+
+def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:
+    if isinstance(tb_log_dir, str) and _is_aws_or_gcloud_path(tb_log_dir):
+        return tb_log_dir
+
+    tb_log_dir = Path(tb_log_dir)
+    tb_log_dir.mkdir(parents=True, exist_ok=True)
+    return tb_log_dir
+
+
+def _is_aws_or_gcloud_path(tb_log_dir: str) -> bool:
+    return tb_log_dir.startswith("gs://") or tb_log_dir.startswith("s3://")
 
 
 __all__ = [
