@@ -1,14 +1,15 @@
-from abc import ABC, abstractmethod
-from typing import Dict
 import random
+from abc import ABC, abstractmethod
+from typing import Dict, Optional
+
 from torch.utils.data import random_split
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset, \
     AvalancheDataset, AvalancheSubset
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
-import numpy as np
+from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.strategies import BaseStrategy
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -30,7 +31,8 @@ class ReplayPlugin(StrategyPlugin):
     in the external memory.
     """
 
-    def __init__(self, mem_size=200, storage_policy=None):
+    def __init__(self, mem_size: int = 200,
+                 storage_policy: Optional["StoragePolicy"] = None):
         super().__init__()
         self.mem_size = mem_size
 
@@ -46,8 +48,8 @@ class ReplayPlugin(StrategyPlugin):
                 mem_size=self.mem_size,
                 adaptive_size=True)
 
-    def before_training_exp(self, strategy, num_workers=0, shuffle=True,
-                            **kwargs):
+    def before_training_exp(self, strategy: BaseStrategy, num_workers: int = 0,
+                            shuffle: bool = True, **kwargs):
         """
         Dataloader to build batches containing examples from both memories and
         the training dataset
@@ -62,21 +64,20 @@ class ReplayPlugin(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy, **kwargs):
-        self.storage_policy(strategy)
+    def after_training_exp(self, strategy: BaseStrategy, **kwargs):
+        self.storage_policy(strategy, **kwargs)
 
 
 class StoragePolicy(ABC):
     """ A policy to store exemplars in a replay memory."""
 
     @abstractmethod
-    def __call__(self, data_source, **kwargs):
+    def __call__(self, data_source: AvalancheDataset, **kwargs):
         """Store exemplars in the replay memory"""
-        pass
 
 
 class ExperienceBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
                  num_experiences=-1):
         """
         Stores samples for replay, equally divided over experiences.
@@ -103,14 +104,14 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
             assert self.num_experiences > 0, \
                 """When fixed exp mem size, num_experiences should be > 0."""
 
-    def subsample_single(self, data, new_size):
+    def subsample_single(self, data: AvalancheDataset, new_size: int):
         """ Subsample `data` to match length `new_size`. """
         removed_els = len(data) - new_size
         if removed_els > 0:
             data, _ = random_split(data, [new_size, removed_els])
         return data
 
-    def subsample_all_groups(self, new_size):
+    def subsample_all_groups(self, new_size: int):
         """ Subsample all groups equally to match total buffer size
         `new_size`. """
         groups = list(self.ext_mem.keys())
@@ -127,7 +128,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         last = self.ext_mem[groups[-1]]
         self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
 
-    def __call__(self, strategy, **kwargs):
+    def __call__(self, strategy: BaseStrategy, **kwargs):
         num_exps = strategy.training_exp_counter + 1
         num_exps = num_exps if self.adaptive_size else self.num_experiences
         curr_data = strategy.experience.dataset
@@ -141,13 +142,13 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         self.ext_mem[strategy.training_exp_counter + 1] = curr_data
 
         # buffer size should always equal self.mem_size
-        len_tot = sum([len(el) for el in self.ext_mem.values()])
+        len_tot = sum(len(el) for el in self.ext_mem.values())
         assert len_tot == self.mem_size
 
 
 class ClassBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
-                 total_num_classes=-1):
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
+                 total_num_classes: int = -1):
         """
         Stores samples for replay, equally divided over classes.
         It should be called in the 'after_training_exp' phase (see
@@ -172,7 +173,7 @@ class ClassBalancedStoragePolicy(StoragePolicy):
             assert self.total_num_classes > 0, \
                 """When fixed exp mem size, total_num_classes should be > 0."""
 
-    def __call__(self, strategy, **kwargs):
+    def __call__(self, strategy: BaseStrategy, **kwargs):
         new_data = strategy.experience.dataset
 
         # Get sample idxs per class
@@ -209,14 +210,15 @@ class ClassBalancedStoragePolicy(StoragePolicy):
         # Use counts to remove samples from memory
         self.cutoff_memory(cutoff_per_exp)
 
-    def divide_remaining_samples(self, exp_mem_size, div_cnt):
+    def divide_remaining_samples(self, exp_mem_size: int, div_cnt: int) -> \
+            Dict[int, int]:
         # Find number of remaining samples
         samples_per_exp = {exp: len(mem) for exp, mem in
                            self.ext_mem.items()}
         rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
                          samples_per_exp.items() if
                          exp_mem_size - memsize > 0}
-        rem_from_div = self.mem_size % (div_cnt)
+        rem_from_div = self.mem_size % div_cnt
         free_mem = sum(rem_from_exps.values()) + rem_from_div
 
         # Divide the remaining samples randomly over the experiences
@@ -238,7 +240,7 @@ class ClassBalancedStoragePolicy(StoragePolicy):
 
         return cutoff_per_exp
 
-    def cutoff_memory(self, cutoff_per_exp):
+    def cutoff_memory(self, cutoff_per_exp: Dict[int, int]):
         # Allocate to experiences
         for exp, cutoff in cutoff_per_exp.items():
             self.ext_mem[exp], _ = random_split(
