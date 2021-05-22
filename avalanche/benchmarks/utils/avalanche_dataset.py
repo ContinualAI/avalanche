@@ -35,11 +35,11 @@ from .dataset_definitions import ITensorDataset, ClassificationDataset, \
 
 try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
-        TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple, Literal
+    TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple, Literal, \
+    Collection
 except ImportError:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
         TypeVar, SupportsInt, Generic, Callable, Dict, Tuple
-    from typing_extensions import Protocol, Literal
 
 T_co = TypeVar('T_co', covariant=True)
 TTargetType = TypeVar('TTargetType')
@@ -1494,7 +1494,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
     (if they are subclasses of :class:`AvalancheDataset`).
     """
     def __init__(self,
-                 datasets: Sequence[SupportedDataset],
+                 datasets: Collection[SupportedDataset],
                  *,
                  transform: Callable[[Any], Any] = None,
                  target_transform: Callable[[int], int] = None,
@@ -1511,7 +1511,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         """
         Creates a ``AvalancheConcatDataset`` instance.
 
-        :param datasets: A sequence of datasets.
+        :param datasets: A collection of datasets.
         :param transform: A function/transform that takes the X value of a
             pattern from the original dataset and returns a transformed version.
         :param target_transform: A function/transform that takes in the target
@@ -1573,14 +1573,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             the value of the second element returned by `__getitem__`.
             The adapter is used to adapt the values of the targets field only.
         """
+        dataset_list = list(datasets)
 
         dataset_type, collate_fn, targets_adapter = \
             self._get_dataset_type_collate_and_adapter(
-                datasets, dataset_type, collate_fn, targets_adapter)
+                self._dataset_list, dataset_type, collate_fn, targets_adapter)
 
-        self._dataset_list = list(datasets)
-        self._datasets_lengths = [len(dataset) for dataset in datasets]
-        self._datasets_cumulative_lengths = ConcatDataset.cumsum(datasets)
+        self._dataset_list = dataset_list
+        self._datasets_lengths = [len(dataset) for dataset in dataset_list]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(dataset_list)
         self._overall_length = sum(self._datasets_lengths)
 
         if initial_transform_group is None:
