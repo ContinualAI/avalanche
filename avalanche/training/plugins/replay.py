@@ -69,7 +69,15 @@ class ReplayPlugin(StrategyPlugin):
 
 
 class StoragePolicy(ABC):
-    """ A policy to store exemplars in a replay memory."""
+    """
+    A policy to store exemplars in a replay memory.
+
+    :param ext_mem: The replay memory dictionary to store samples.
+    :param mem_size: max number of total input samples in the replay memory.
+    """
+    def __init__(self, ext_mem: Dict[int, AvalancheDataset], mem_size: int):
+        self.ext_mem = ext_mem
+        self.mem_size = mem_size
 
     @abstractmethod
     def __call__(self, data_source: AvalancheDataset, **kwargs):
@@ -95,8 +103,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         :param num_experiences: If adaptive size is False, the fixed number
                                 of experiences to divide capacity over.
         """
-        self.ext_mem = ext_mem
-        self.mem_size = mem_size
+        super().__init__(ext_mem, mem_size)
         self.adaptive_size = adaptive_size
         self.num_experiences = num_experiences
 
@@ -163,8 +170,7 @@ class ClassBalancedStoragePolicy(StoragePolicy):
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
         """
-        self.ext_mem = ext_mem
-        self.mem_size = mem_size
+        super().__init__(ext_mem, mem_size)
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
