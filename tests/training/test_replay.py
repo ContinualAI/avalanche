@@ -1,12 +1,18 @@
 import unittest
+from typing import List, Dict
+from unittest.mock import MagicMock
+
+from torch import tensor
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+from torch.utils.data import TensorDataset
 
+from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ExperienceBalancedStoragePolicy, \
     ClassBalancedStoragePolicy, ReplayPlugin
-from avalanche.training.strategies import Naive
-
+from avalanche.training.plugins.replay import ClassExemplarsSelectionStrategy
+from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_scenario
 
 
@@ -69,3 +75,74 @@ class ReplayTest(unittest.TestCase):
             # buffer size should equal self.mem_size if data is large enough
             len_tot = sum([len(el) for el in ext_mem.values()])
             assert len_tot == policy.mem_size
+
+
+class ClassBalancePolicyTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.memory = {}
+        self.policy = ClassBalancedStoragePolicy(self.memory, mem_size=4)
+
+    def test_store_alone_with_enough_memory(self):
+        order = [2, 0, 1, 3]
+
+        self.observe_exemplars({0: list(range(4))}, selection_order=order)
+
+        self.assert_memory_equal({0: order})
+
+    def test_store_alone_without_enough_memory(self):
+        order = [6, 4, 2, 0, 1, 3, 5]
+
+        self.observe_exemplars({0: list(range(7))}, selection_order=order)
+
+        self.assert_memory_equal({0: order[:4]})
+
+    def test_store_multiple_with_enough_memory(self):
+        self.observe_exemplars({0: [0, 1], 1: [10, 11]}, selection_order=[1, 0])
+
+        self.assert_memory_equal({0: [1, 0], 1: [11, 10]})
+
+    def test_store_multiple_without_enough_memory(self):
+        self.observe_exemplars({0: [0, 1, 2], 1: [10, 11, 12]},
+                               selection_order=[2, 0, 1])
+
+        self.assert_memory_equal({0: [2, 0], 1: [12, 10]})
+
+    def test_sequence(self):
+        # 1st observation
+        self.observe_exemplars({0: [0, 1], 1: [10, 11]}, selection_order=[1, 0])
+        self.assert_memory_equal({0: [1, 0], 1: [11, 10]})
+
+        # 2nd observation
+        self.observe_exemplars({2: [20, 21, 22], 3: [30, 31, 32]},
+                               selection_order=[2, 1, 0])
+        self.assert_memory_equal({0: [1], 1: [11], 2: [22], 3: [32]})
+
+    def observe_exemplars(self, class2exemplars: Dict[int, List[int]],
+                          selection_order: List[int]):
+        self.policy.selection_strategy = FixedSelectionStrategy(selection_order)
+        x = tensor(
+            [i for exemplars in class2exemplars.values() for i in exemplars])
+        y = tensor(
+            [class_id for class_id, exemplars in class2exemplars.items() for _
+             in exemplars]).long()
+        dataset = AvalancheDataset(
+            TensorDataset(x, y),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION)
+
+        self.policy(MagicMock(experience=MagicMock(dataset=dataset)))
+
+    def assert_memory_equal(self, class2exemplars: Dict[int, List[int]]):
+        self.assertEqual(class2exemplars,
+                         {class_id: [x.tolist() for x, *_ in memory] for
+                          class_id, memory in self.memory.items()})
+
+
+class FixedSelectionStrategy(ClassExemplarsSelectionStrategy):
+    """This is a fake strategy used for testing the policy behavior"""
+
+    def __init__(self, indices: List[int]):
+        self.indices = indices
+
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        return self.indices

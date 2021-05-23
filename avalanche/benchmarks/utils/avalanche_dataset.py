@@ -1577,7 +1577,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         dataset_type, collate_fn, targets_adapter = \
             self._get_dataset_type_collate_and_adapter(
-                self._dataset_list, dataset_type, collate_fn, targets_adapter)
+                dataset_list, dataset_type, collate_fn, targets_adapter)
 
         self._dataset_list = dataset_list
         self._datasets_lengths = [len(dataset) for dataset in dataset_list]

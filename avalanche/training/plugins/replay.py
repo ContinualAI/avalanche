@@ -1,6 +1,6 @@
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from torch.utils.data import random_split
 
@@ -9,7 +9,6 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, \
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.strategies import BaseStrategy
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -48,8 +47,9 @@ class ReplayPlugin(StrategyPlugin):
                 mem_size=self.mem_size,
                 adaptive_size=True)
 
-    def before_training_exp(self, strategy: BaseStrategy, num_workers: int = 0,
-                            shuffle: bool = True, **kwargs):
+    def before_training_exp(self, strategy: "BaseStrategy",
+                            num_workers: int = 0, shuffle: bool = True,
+                            **kwargs):
         """
         Dataloader to build batches containing examples from both memories and
         the training dataset
@@ -64,7 +64,7 @@ class ReplayPlugin(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy: BaseStrategy, **kwargs):
+    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
         self.storage_policy(strategy, **kwargs)
 
 
@@ -135,7 +135,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         last = self.ext_mem[groups[-1]]
         self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
 
-    def __call__(self, strategy: BaseStrategy, **kwargs):
+    def __call__(self, strategy: "BaseStrategy", **kwargs):
         num_exps = strategy.training_exp_counter + 1
         num_exps = num_exps if self.adaptive_size else self.num_experiences
         curr_data = strategy.experience.dataset
@@ -155,7 +155,8 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
 
 class ClassBalancedStoragePolicy(StoragePolicy):
     def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
-                 total_num_classes: int = -1):
+                 total_num_classes: int = -1, selection_strategy:
+                 Optional["ClassExemplarsSelectionStrategy"] = None):
         """
         Stores samples for replay, equally divided over classes.
         It should be called in the 'after_training_exp' phase (see
@@ -171,6 +172,8 @@ class ClassBalancedStoragePolicy(StoragePolicy):
                                   of classes to divide capacity over.
         """
         super().__init__(ext_mem, mem_size)
+        self.selection_strategy = selection_strategy or \
+            RandomExemplarsSelectionStrategy()
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
@@ -179,7 +182,7 @@ class ClassBalancedStoragePolicy(StoragePolicy):
             assert self.total_num_classes > 0, \
                 """When fixed exp mem size, total_num_classes should be > 0."""
 
-    def __call__(self, strategy: BaseStrategy, **kwargs):
+    def __call__(self, strategy: "BaseStrategy", **kwargs):
         new_data = strategy.experience.dataset
 
         # Get sample idxs per class
@@ -204,11 +207,11 @@ class ClassBalancedStoragePolicy(StoragePolicy):
 
         # Add current classes data to memory
         for c, c_mem in cl_datasets.items():
-            if c not in self.ext_mem:
-                self.ext_mem[c] = c_mem
-            else:  # Merge data with previous seen data
-                self.ext_mem[c] = AvalancheConcatDataset(
-                    [c_mem, self.ext_mem[c]])
+            if c in self.ext_mem:  # Merge data with previous seen data
+                c_mem = AvalancheConcatDataset((c_mem, self.ext_mem[c]))
+            sorted_indices = self.selection_strategy.make_sorted_indices(
+                strategy, c_mem)
+            self.ext_mem[c] = AvalancheSubset(c_mem, sorted_indices)
 
         # Distribute remaining samples using counts
         cutoff_per_exp = self.divide_remaining_samples(class_mem_size, div_cnt)
@@ -247,8 +250,32 @@ class ClassBalancedStoragePolicy(StoragePolicy):
         return cutoff_per_exp
 
     def cutoff_memory(self, cutoff_per_exp: Dict[int, int]):
-        # Allocate to experiences
+        # No need to reselect at this point, we expect the first selection to
+        # have sorted the exemplars
         for exp, cutoff in cutoff_per_exp.items():
-            self.ext_mem[exp], _ = random_split(
-                self.ext_mem[exp],
-                [cutoff, len(self.ext_mem[exp]) - cutoff])
+            self.ext_mem[exp] = AvalancheSubset(self.ext_mem[exp],
+                                                list(range(cutoff)))
+
+
+class ClassExemplarsSelectionStrategy(ABC):
+    """
+    Base class to define how to select class exemplars from a dataset
+    """
+    @abstractmethod
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        """
+        Should return the sorted list of indices to keep as exemplars.
+
+        The last indices will be the first to be removed when cutoff memory.
+        """
+
+
+class RandomExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy):
+    """Select the exemplars at random in the dataset"""
+
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        indices = list(range(len(data)))
+        random.shuffle(indices)
+        return indices
