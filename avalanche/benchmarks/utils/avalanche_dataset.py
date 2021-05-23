@@ -25,21 +25,21 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 from torchvision.transforms import Compose
 
+from .dataset_definitions import ITensorDataset, ClassificationDataset, \
+    IDatasetWithTargets, ISupportedClassificationDataset
 from .dataset_utils import manage_advanced_indexing, \
     SequenceDataset, ClassificationSubset, \
     LazyConcatIntTargets, find_list_from_index, ConstantSequence, \
     LazyClassMapping, optimize_sequence, SubSequence, LazyConcatTargets, \
     TupleTLabel
-from .dataset_definitions import ITensorDataset, ClassificationDataset, \
-    IDatasetWithTargets, ISupportedClassificationDataset
 
 try:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
-    TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple, Literal, \
-    Collection
+        TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple, \
+        Literal, Collection
 except ImportError:
     from typing import List, Any, Iterable, Sequence, Union, Optional, \
-        TypeVar, SupportsInt, Generic, Callable, Dict, Tuple
+        TypeVar, SupportsInt, Generic, Callable, Dict, Tuple, Collection
 
 T_co = TypeVar('T_co', covariant=True)
 TTargetType = TypeVar('TTargetType')
@@ -95,6 +95,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     parameter, each pattern will be assigned a default task label "0".
     See the constructor for more details.
     """
+
     def __init__(self,
                  dataset: SupportedDataset,
                  *,
@@ -1034,6 +1035,7 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
     the targets field, class mapping and all the other goodies listed in
     :class:`AvalancheDataset`.
     """
+
     def __init__(self,
                  dataset: SupportedDataset,
                  indices: Sequence[int] = None,
@@ -1387,6 +1389,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
     the targets field and all the other goodies listed in
     :class:`AvalancheDataset`.
     """
+
     def __init__(self,
                  *dataset_tensors: Sequence,
                  transform: Callable[[Any], Any] = None,
@@ -1493,6 +1496,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
     and transformations groups are consistent across the concatenated dataset
     (if they are subclasses of :class:`AvalancheDataset`).
     """
+
     def __init__(self,
                  datasets: Collection[SupportedDataset],
                  *,
@@ -1649,7 +1653,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         if dataset_type != AvalancheDatasetType.UNDEFINED and \
                 (collate_fn is not None or targets_adapter is not None):
-
             raise ValueError(
                 'dataset_type {} was inferred from the list of '
                 'concatenated dataset. This dataset type can\'t be used '
@@ -1935,7 +1938,6 @@ def as_avalanche_dataset(
         dataset: ISupportedClassificationDataset[T_co],
         dataset_type: AvalancheDatasetType = None) \
         -> AvalancheDataset[T_co, TTargetType]:
-
     if isinstance(dataset, AvalancheDataset) and dataset_type is None:
         # There is no need to show the warning
         return dataset
@@ -2003,7 +2005,6 @@ def train_eval_avalanche_datasets(
 def _traverse_supported_dataset(
         dataset, values_selector: Callable[[Dataset, List[int]], List],
         indices=None) -> List:
-
     initial_error = None
     try:
         result = values_selector(dataset, indices)
