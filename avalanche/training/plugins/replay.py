@@ -2,12 +2,17 @@ import random
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from torch.utils.data import random_split
+import torch
+from numpy import inf
+from torch import Tensor, cat
+from torch.nn import Module
+from torch.utils.data import random_split, DataLoader
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset, \
     AvalancheDataset, AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
+from avalanche.models import FeatureExtractorBackbone
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
@@ -279,3 +284,73 @@ class RandomExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy):
         indices = list(range(len(data)))
         random.shuffle(indices)
         return indices
+
+
+class FeatureBasedExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy,
+                                             ABC):
+    """Base class to select exemplars from their features"""
+    def __init__(self, model: Module, layer_name: str):
+        self.feature_extractor = FeatureExtractorBackbone(model, layer_name)
+
+    @torch.no_grad()
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        self.feature_extractor.eval()
+        features = cat(
+            [
+                self.feature_extractor(x.to(strategy.device))
+                for x, *_ in DataLoader(data, batch_size=strategy.eval_mb_size)
+            ]
+        )
+        return self.make_sorted_indices_from_features(features)
+
+    @abstractmethod
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        Should return the sorted list of indices to keep as exemplars.
+
+        The last indices will be the first to be removed when cutoff memory.
+        """
+
+
+class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        The herding strategy as described in iCaRL
+
+        It is a greedy algorithm, that select the remaining exemplar that get
+        the center of already selected exemplars as close as possible as the
+        center of all elements (in the feature space).
+        """
+        selected_indices = []
+
+        center = features.mean(dim=0)
+        current_center = center * 0
+
+        for i in range(len(features)):
+            # Compute distances with real center
+            candidate_centers = current_center * i / (i + 1) + features / (i
+                                                                           + 1)
+            distances = pow(candidate_centers - center, 2).sum(dim=1)
+            distances[selected_indices] = inf
+
+            # Select best candidate
+            new_index = distances.argmin().tolist()
+            selected_indices.append(new_index)
+            current_center = candidate_centers[new_index]
+
+        return selected_indices
+
+
+class ClosestToCenterSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        A greedy algorithm that select the remaining exemplar that is the
+        closest to the center of all elements (in feature space)
+        """
+        center = features.mean(dim=0)
+        distances = pow(features - center, 2).sum(dim=1)
+        return distances.argsort()

@@ -2,8 +2,9 @@ import unittest
 from typing import List, Dict
 from unittest.mock import MagicMock
 
-from torch import tensor
-from torch.nn import CrossEntropyLoss
+import torch
+from torch import tensor, Tensor, zeros
+from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
 from torch.utils.data import TensorDataset
 
@@ -11,7 +12,8 @@ from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ExperienceBalancedStoragePolicy, \
     ClassBalancedStoragePolicy, ReplayPlugin
-from avalanche.training.plugins.replay import ClassExemplarsSelectionStrategy
+from avalanche.training.plugins.replay import ClassExemplarsSelectionStrategy, \
+    HerdingSelectionStrategy, ClosestToCenterSelectionStrategy
 from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_scenario
 
@@ -135,6 +137,61 @@ class ClassBalancePolicyTest(unittest.TestCase):
         self.assertEqual(class2exemplars,
                          {class_id: [x.tolist() for x, *_ in memory] for
                           class_id, memory in self.memory.items()})
+
+
+class SelectionStrategyTest(unittest.TestCase):
+    def test(self):
+        # Given
+        model = AbsModel()
+        herding = HerdingSelectionStrategy(model, "features")
+        closest_to_center = ClosestToCenterSelectionStrategy(model, "features")
+
+        # When
+        # Features are [[0], [4], [5]]
+        # Center is [3]
+        dataset = AvalancheDataset(
+            TensorDataset(tensor([0, -4, 5]).float(), zeros(3)),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        strategy = MagicMock(device="cpu", eval_mb_size=8)
+
+        # Then
+
+        # Herding:
+
+        # 1. At first pass, we select the -4 (at index 1)
+        #  because it is the closest ([4]) to the center in feature space
+        # 2. At second pass, we select 0 (of index 0)
+        #  because the center will be [2], closest to [3] than the center
+        #  obtained if we were to select 5 ([4.5])
+        # 3. Finally we select the last remaining exemplar
+        self.assertSequenceEqual([1, 0, 2],
+                                 herding.make_sorted_indices(strategy, dataset))
+        # Closest to center
+
+        # -4 (index 1) is the closest to the center in feature space.
+        # Then 5 (index 2) is closest than 0 (index 0)
+        self.assertSequenceEqual([1, 2, 0],
+                                 closest_to_center.make_sorted_indices(strategy,
+                                                                       dataset))
+
+
+class AbsModel(Module):
+    """Fake model, that simply compute the absolute value of the inputs"""
+
+    def __init__(self):
+        super().__init__()
+        self.features = AbsLayer()
+        self.classifier = Identity()
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+
+
+class AbsLayer(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return torch.abs(x).reshape((-1, 1))
 
 
 class FixedSelectionStrategy(ClassExemplarsSelectionStrategy):
