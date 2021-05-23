@@ -6,9 +6,9 @@ import torch
 from torch import tensor, Tensor, zeros
 from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
-from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType
+from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType, \
+    AvalancheTensorDataset
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ExperienceBalancedStoragePolicy, \
     ClassBalancedStoragePolicy, ReplayPlugin
@@ -127,9 +127,8 @@ class ClassBalancePolicyTest(unittest.TestCase):
         y = tensor(
             [class_id for class_id, exemplars in class2exemplars.items() for _
              in exemplars]).long()
-        dataset = AvalancheDataset(
-            TensorDataset(x, y),
-            dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset = AvalancheTensorDataset(
+            x, y, dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
         self.policy(MagicMock(experience=MagicMock(dataset=dataset)))
 
@@ -149,9 +148,10 @@ class SelectionStrategyTest(unittest.TestCase):
         # When
         # Features are [[0], [4], [5]]
         # Center is [3]
-        dataset = AvalancheDataset(
-            TensorDataset(tensor([0, -4, 5]).float(), zeros(3)),
-            dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset = AvalancheTensorDataset(
+            tensor([0, -4, 5]).float(), zeros(3),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION
+        )
         strategy = MagicMock(device="cpu", eval_mb_size=8)
 
         # Then
