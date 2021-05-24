@@ -8,7 +8,6 @@ from torch.nn.modules.batchnorm import _NormBase
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
-from avalanche.training import default_logger
 from avalanche.models import MobilenetV1
 from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
@@ -16,6 +15,7 @@ from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
 from avalanche.training.strategies import BaseStrategy
 from avalanche.training.utils import replace_bn_with_brn, get_last_fc_layer, \
     freeze_up_to, change_brn_pars, examples_per_class, LayerAndParameter
+from avalanche.training.plugins.evaluation import default_logger
 
 
 class AR1(BaseStrategy):

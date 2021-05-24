@@ -19,10 +19,9 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
-from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_forward
-from avalanche.training import default_logger
+from avalanche.training.plugins.evaluation import default_logger
 from typing import TYPE_CHECKING
 
 from avalanche.training.plugins import EvaluationPlugin

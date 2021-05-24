@@ -1,4 +1,3 @@
-import copy
 import sys
 
 import unittest
@@ -17,8 +16,7 @@ from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
 from avalanche.training.strategies import Naive
 from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
     pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, load_scenario, \
-    get_fast_scenario
+from tests.unit_tests_utils import common_setups, get_fast_scenario
 
 
 class PytorchcvWrapperTests(unittest.TestCase):

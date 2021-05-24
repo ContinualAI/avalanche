@@ -6,7 +6,7 @@ import torch
 
 from avalanche.training.plugins import StrategyPlugin
 from avalanche.training.strategies import BaseStrategy
-from avalanche.training import default_logger
+from avalanche.training.plugins.evaluation import default_logger
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 

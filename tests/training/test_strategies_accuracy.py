@@ -20,6 +20,7 @@ from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
+from avalanche.training.strategies.strategy_wrappers import PNNStrategy
 
 from tests.unit_tests_utils import get_fast_scenario, get_device
 
@@ -78,6 +79,26 @@ class StrategyTest(unittest.TestCase):
         strategy.eval(scenario.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
         assert main_metric.result() > 0.7
+
+    def test_pnn(self):
+        # only multi-task scenarios.
+        # eval on future tasks is not allowed.
+        main_metric = StreamAccuracy()
+        exp_acc = ExperienceAccuracy()
+        evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
+
+        strategy = PNNStrategy(
+            num_layers=1, in_features=6, hidden_features_per_column=20,
+            lr=1, train_mb_size=32, device=get_device(),
+            eval_mb_size=512, train_epochs=5, evaluator=evalp)
+
+        # train and test loop
+        scenario = get_fast_scenario(use_task_labels=True)
+        for train_task in scenario.train_stream:
+            strategy.train(train_task)
+        strategy.eval(scenario.train_stream)
+        print("TRAIN STREAM ACC: ", main_metric.result())
+        assert main_metric.result() > 0.8
 
 
 if __name__ == '__main__':

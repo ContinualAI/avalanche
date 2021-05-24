@@ -25,6 +25,7 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.strategies.strategy_wrappers import PNNStrategy
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
@@ -343,6 +344,20 @@ class StrategyTest(unittest.TestCase):
                         eval_mb_size=50, train_epochs=2)
         scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
+
+    def test_pnn(self):
+        # only multi-task scenarios.
+        # eval on future tasks is not allowed.
+        strategy = PNNStrategy(
+            num_layers=3, in_features=6, hidden_features_per_column=10,
+            lr=0.1, train_mb_size=10, device=self.device, eval_mb_size=50,
+            train_epochs=2)
+
+        # train and test loop
+        scenario = self.load_scenario(use_task_labels=True)
+        for train_task in scenario.train_stream:
+            strategy.train(train_task)
+        strategy.eval(scenario.test_stream)
 
     def load_scenario(self, use_task_labels=False):
         """
