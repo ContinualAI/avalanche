@@ -101,7 +101,7 @@ class CORe50(Dataset):
             self.paths.append(self.train_test_paths[idx])
             div = 1
             if not self.object_level:
-                div=5
+                div = 5
             self.targets.append(self.train_test_targets[idx] // div)
 
     def __getitem__(self, index):

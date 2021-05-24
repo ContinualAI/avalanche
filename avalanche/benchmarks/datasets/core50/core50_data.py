@@ -69,6 +69,7 @@ name2cat = {
     'remote_control': 9
 }
 
+
 class CORE50_DATA(object):
     """
     CORE50 downloader.
@@ -133,7 +134,6 @@ class CORE50_DATA(object):
 
         self.log.info("Download complete.")
 
-
     def _objlab2cat(self, label, scen, run):
         """ Mapping an object label into its corresponding category label
         based on the scenario. """
@@ -147,7 +147,7 @@ class CORE50_DATA(object):
         """ Generates corresponding filelists with category-wise labels. The
         default one are based on the object-level labels from 0 to 49."""
 
-        for k, v  in scen2dirs.items():
+        for k, v in scen2dirs.items():
             orig_root_path = os.path.join(self.data_folder, v)
             root_path = os.path.join(self.data_folder, v[:-1] + "_cat")
             if not os.path.exists(root_path):
