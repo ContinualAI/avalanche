@@ -52,7 +52,7 @@ jobs:
         run: |
           conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
           conda activate avalanche-env
-          conda install pytorch torchvision cpuonly -c pytorch -y
+          conda install pytorch=1.8.1 torchvision=0.9.1 cpuonly -c pytorch -y
           conda env update --file environment.yml
       - name: install conda environment = 3.9
         if: matrix.python-version == '3.9'

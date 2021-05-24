@@ -198,7 +198,7 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self._current_accuracy.update(strategy.mb_y,
-                                      strategy.logits)
+                                      strategy.mb_output)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
@@ -214,23 +214,22 @@ class ExperienceForgetting(PluginMetric[Dict[int, float]]):
             self.update(self.eval_exp_id,
                         self._current_accuracy.result())
 
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'BaseStrategy') \
+            -> MetricResult:
         # this checks if the evaluation experience has been
         # already encountered at training time
         # before the last training.
         # If not, forgetting should not be returned.
-        if self.result(k=self.eval_exp_id) is not None:
-            return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-
         forgetting = self.result(k=self.eval_exp_id)
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self.get_global_counter()
+        if forgetting is not None:
+            metric_name = get_metric_name(self, strategy, add_experience=True)
+            plot_x_position = self.get_global_counter()
 
-        metric_values = [MetricValue(
-            self, metric_name, forgetting, plot_x_position)]
-        return metric_values
+            metric_values = [MetricValue(
+                self, metric_name, forgetting, plot_x_position)]
+            return metric_values
 
     def __str__(self):
         return "ExperienceForgetting"
@@ -347,7 +346,7 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self._current_accuracy.update(strategy.mb_y,
-                                      strategy.logits)
+                                      strategy.mb_output)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
         # update experience on which training just ended
@@ -366,8 +365,8 @@ class StreamForgetting(PluginMetric[Dict[int, float]]):
         # already encountered at training time
         # before the last training.
         # If not, forgetting should not be returned.
-        if self.exp_result(k=self.eval_exp_id) is not None:
-            exp_forgetting = self.exp_result(k=self.eval_exp_id)
+        exp_forgetting = self.exp_result(k=self.eval_exp_id)
+        if exp_forgetting is not None:
             self.stream_forgetting.update(exp_forgetting, weight=1)
 
     def after_eval(self, strategy: 'BaseStrategy') -> \
@@ -418,9 +417,145 @@ def forgetting_metrics(*, experience=False, stream=False) \
     return metrics
 
 
+def forgetting_to_bwt(f):
+    """
+    Convert forgetting to backward transfer.
+    BWT = -1 * forgetting
+    """
+    if f is None:
+        return f
+    if isinstance(f, dict):
+        bwt = {k: -1 * v for k, v in f.items()}
+    elif isinstance(f, float):
+        bwt = -1 * f
+    else:
+        raise ValueError("Forgetting data type not recognized when converting"
+                         "to backward transfer.")
+    return bwt
+
+
+class BWT(Forgetting):
+    """
+    The standalone Backward Transfer metric.
+    This metric returns the backward transfer relative to a specific key.
+    Alternatively, this metric returns a dict in which each key is associated
+    to the backward transfer.
+    Backward transfer is computed as the difference between the last value
+    recorded for a specific key and the first value recorded for that key.
+    The value associated to a key can be update with the `update` method.
+
+    At initialization, this metric returns an empty dictionary.
+    """
+
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        Backward Transfer is returned only for keys encountered twice.
+        Backward Transfer is the negative forgetting.
+
+        :param k: the key for which returning backward transfer. If k has not
+            updated at least twice it returns None. If k is None,
+            backward transfer will be returned for all keys encountered at
+            least twice.
+
+        :return: the difference between the last value encountered for k
+            and its first value, if k is not None.
+            It returns None if k has not been updated
+            at least twice. If k is None, returns a dictionary
+            containing keys whose value has been updated at least twice. The
+            associated value is the difference between the last and first
+            value recorded for that key.
+        """
+
+        forgetting = super().result(k)
+        bwt = forgetting_to_bwt(forgetting)
+        return bwt
+
+
+class ExperienceBWT(ExperienceForgetting):
+    """
+    The Experience Backward Transfer metric.
+
+    This plugin metric, computed separately for each experience,
+    is the difference between the last accuracy result obtained on a certain
+    experience and the accuracy result obtained when first training on that
+    experience.
+
+    This metric is computed during the eval phase only.
+    """
+
+    def result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        See `Forgetting` documentation for more detailed information.
+
+        k: optional key from which compute forgetting.
+        """
+        forgetting = super().result(k)
+        return forgetting_to_bwt(forgetting)
+
+    def __str__(self):
+        return "ExperienceBWT"
+
+
+class StreamBWT(StreamForgetting):
+    """
+    The StreamBWT metric, emitting the average BWT across all experiences
+    encountered during training.
+
+    This plugin metric, computed over all observed experiences during training,
+    is the average over the difference between the last accuracy result
+    obtained on an experience and the accuracy result obtained when first
+    training on that experience.
+
+    This metric is computed during the eval phase only.
+    """
+
+    def exp_result(self, k=None) -> Union[float, None, Dict[int, float]]:
+        """
+        Result for experience defined by a key.
+        See `BWT` documentation for more detailed information.
+
+        k: optional key from which compute backward transfer.
+        """
+        forgetting = super().exp_result(k)
+        return forgetting_to_bwt(forgetting)
+
+    def __str__(self):
+        return "StreamBWT"
+
+
+def bwt_metrics(*, experience=False, stream=False) \
+        -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
+
+    :param experience: If True, will return a metric able to log
+        the backward transfer on each evaluation experience.
+    :param stream: If True, will return a metric able to log
+        the backward transfer averaged over the evaluation stream experiences
+        which have been observed during training.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+
+    if experience:
+        metrics.append(ExperienceBWT())
+
+    if stream:
+        metrics.append(StreamBWT())
+
+    return metrics
+
+
 __all__ = [
     'Forgetting',
     'ExperienceForgetting',
     'StreamForgetting',
-    'forgetting_metrics'
+    'forgetting_metrics',
+    'BWT',
+    'ExperienceBWT',
+    'StreamBWT',
+    'bwt_metrics'
 ]

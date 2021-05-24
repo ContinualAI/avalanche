@@ -59,11 +59,11 @@ class CoPEPlugin(StrategyPlugin):
 
         # PPP-loss
         self.T = T
-        self.loss = PPPloss(self.p_mem, T=self.T)
+        self.ppp_loss = PPPloss(self.p_mem, T=self.T)
 
     def before_training(self, strategy, **kwargs):
         """ Enforce using the PPP-loss and add a NN-classifier."""
-        strategy.criterion = self.loss
+        strategy._criterion = self.ppp_loss
         print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
 
         # Normalize representation of last layer
@@ -128,7 +128,7 @@ class CoPEPlugin(StrategyPlugin):
         for idx in range(y_unique.size(0)):
             c = y_unique[idx].item()
             idxs = torch.nonzero(strategy.mb_y == c).squeeze(1)
-            p_tmp_batch = strategy.logits[idxs].sum(dim=0).unsqueeze(0).to(
+            p_tmp_batch = strategy.mb_output[idxs].sum(dim=0).unsqueeze(0).to(
                 strategy.device)
 
             p_init, cnt_init = self.tmp_p_mem[c] \
@@ -157,7 +157,7 @@ class CoPEPlugin(StrategyPlugin):
         """ Convert output scores to probabilities for other metrics like
         accuracy and forgetting. We only do it at this point because before
         this,we still need the embedding outputs to obtain the PPP-loss."""
-        strategy.logits = self._get_nearest_neigbor_distr(strategy.logits)
+        strategy.mb_output = self._get_nearest_neigbor_distr(strategy.mb_output)
 
     def _get_nearest_neigbor_distr(self, x: Tensor) -> Tensor:
         """

@@ -12,7 +12,7 @@
 import time
 from typing import TYPE_CHECKING, List
 
-from avalanche.evaluation import Metric, PluginMetric
+from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
@@ -86,7 +86,18 @@ class ElapsedTime(Metric[float]):
         self._init_time = None
 
 
-class MinibatchTime(PluginMetric[float]):
+class TimePluginMetric(GenericPluginMetric[float]):
+    def __init__(self, reset_at, emit_at, mode):
+        self._time = ElapsedTime()
+
+        super(TimePluginMetric, self).__init__(
+            self._time, reset_at, emit_at, mode)
+
+    def update(self, strategy):
+        self._time.update()
+
+
+class MinibatchTime(TimePluginMetric):
     """
     The minibatch time metric.
     This plugin metric only works at training time.
@@ -101,39 +112,18 @@ class MinibatchTime(PluginMetric[float]):
         """
         Creates an instance of the minibatch time metric.
         """
-        super().__init__()
-
-        self._minibatch_time = ElapsedTime()
-
-    def result(self) -> float:
-        return self._minibatch_time.result()
-
-    def reset(self) -> None:
-        self._minibatch_time.reset()
+        super(MinibatchTime, self).__init__(
+            reset_at='iteration', emit_at='iteration', mode='train')
 
     def before_training_iteration(self, strategy) -> MetricResult:
-        self.reset()
-        self._minibatch_time.update()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        self._minibatch_time.update()
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super().before_training_iteration(strategy)
+        self._time.update()
 
     def __str__(self):
         return "Time_MB"
 
 
-class EpochTime(PluginMetric[float]):
+class EpochTime(TimePluginMetric):
     """
     The epoch elapsed time metric.
     This plugin metric only works at training time.
@@ -146,38 +136,18 @@ class EpochTime(PluginMetric[float]):
         Creates an instance of the epoch time metric.
         """
 
-        super().__init__()
-
-        self._elapsed_time = ElapsedTime()
+        super(EpochTime, self).__init__(
+            reset_at='epoch', emit_at='epoch', mode='train')
 
     def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-        self._elapsed_time.update()
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        self._elapsed_time.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._elapsed_time.reset()
-
-    def result(self) -> float:
-        return self._elapsed_time.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        elapsed_time = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, elapsed_time, plot_x_position)]
+        super().before_training_epoch(strategy)
+        self._time.update()
 
     def __str__(self):
         return "Time_Epoch"
 
 
-class RunningEpochTime(PluginMetric[float]):
+class RunningEpochTime(TimePluginMetric):
     """
     The running epoch time metric.
     This plugin metric only works at training time.
@@ -191,48 +161,31 @@ class RunningEpochTime(PluginMetric[float]):
         """
         Creates an instance of the running epoch time metric..
         """
-        super().__init__()
-
         self._time_mean = Mean()
-        self._epoch_time = ElapsedTime()
+
+        super(RunningEpochTime, self).__init__(
+            reset_at='epoch', emit_at='iteration', mode='train')
 
     def before_training_epoch(self, strategy) -> MetricResult:
-        self.reset()
-        self._epoch_time.update()
-
-    def before_training_iteration(self, strategy: 'BaseStrategy') \
-            -> None:
-        self._epoch_time.update()
+        super().before_training_epoch(strategy)
+        self._time_mean.reset()
+        self._time.update()
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         super().after_training_iteration(strategy)
-        self._epoch_time.update()
-        self._time_mean.update(self._epoch_time.result())
-        self._epoch_time.reset()
+        self._time_mean.update(self._time.result())
+        self._time.reset()
         return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._epoch_time.reset()
-        self._time_mean.reset()
 
     def result(self) -> float:
         return self._time_mean.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        average_epoch_time = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(
-            self, metric_name, average_epoch_time, plot_x_position)]
 
     def __str__(self):
         return "RunningTime_Epoch"
 
 
-class ExperienceTime(PluginMetric[float]):
+class ExperienceTime(TimePluginMetric):
     """
     The experience time metric.
     This plugin metric only works at eval time.
@@ -245,37 +198,18 @@ class ExperienceTime(PluginMetric[float]):
         """
         Creates an instance of the experience time metric.
         """
-        super().__init__()
-
-        self._elapsed_time = ElapsedTime()
+        super(ExperienceTime, self).__init__(
+            reset_at='experience', emit_at='experience', mode='eval')
 
     def before_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
-        self.reset()
-        self._elapsed_time.update()
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
-        self._elapsed_time.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._elapsed_time.reset()
-
-    def result(self) -> float:
-        return self._elapsed_time.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        exp_time = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, exp_time, plot_x_position)]
+        super().before_eval_exp(strategy)
+        self._time.update()
 
     def __str__(self):
         return "Time_Exp"
 
 
-class StreamTime(PluginMetric[float]):
+class StreamTime(TimePluginMetric):
     """
     The stream time metric.
     This metric only works at eval time.
@@ -288,31 +222,12 @@ class StreamTime(PluginMetric[float]):
         """
         Creates an instance of the stream time metric.
         """
-        super().__init__()
-
-        self._elapsed_time = ElapsedTime()
+        super(StreamTime, self).__init__(
+            reset_at='stream', emit_at='stream', mode='eval')
 
     def before_eval(self, strategy: 'BaseStrategy') -> MetricResult:
-        self.reset()
-        self._elapsed_time.update()
-
-    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
-        self._elapsed_time.update()
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._elapsed_time.reset()
-
-    def result(self) -> float:
-        return self._elapsed_time.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        exp_time = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, exp_time, plot_x_position)]
+        super().before_eval(strategy)
+        self._time.update()
 
     def __str__(self):
         return "Time_Stream"

@@ -9,18 +9,13 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import torch
 from torch import Tensor
 
-from avalanche.evaluation import PluginMetric, Metric
-from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation import PluginMetric, Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
-if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
 
 
 class Loss(Metric[float]):
@@ -81,7 +76,17 @@ class Loss(Metric[float]):
         self._mean_loss.reset()
 
 
-class MinibatchLoss(PluginMetric[float]):
+class LossPluginMetric(GenericPluginMetric[float]):
+    def __init__(self, reset_at, emit_at, mode):
+        self._loss = Loss()
+        super(LossPluginMetric, self).__init__(
+            self._loss, reset_at, emit_at, mode)
+
+    def update(self, strategy):
+        self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
+
+
+class MinibatchLoss(LossPluginMetric):
     """
     The minibatch loss metric.
     This plugin metric only works at training time.
@@ -98,37 +103,14 @@ class MinibatchLoss(PluginMetric[float]):
         """
         Creates an instance of the MinibatchLoss metric.
         """
-        super().__init__()
-
-        self._loss_metric = Loss()
-
-    def result(self) -> float:
-        return self._loss_metric.result()
-
-    def reset(self) -> None:
-        self._loss_metric.reset()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        self.reset()  # Because this metric computes the loss of a single mb
-        self._loss_metric.update(strategy.loss,
-                                 patterns=len(strategy.mb_y))
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(MinibatchLoss, self).__init__(
+            reset_at='iteration', emit_at='iteration', mode='train')
 
     def __str__(self):
         return "Loss_MB"
 
 
-class EpochLoss(PluginMetric[float]):
+class EpochLoss(LossPluginMetric):
     """
     The average loss over a single training epoch.
     This plugin metric only works at training time.
@@ -143,40 +125,14 @@ class EpochLoss(PluginMetric[float]):
         Creates an instance of the EpochLoss metric.
         """
 
-        super().__init__()
-
-        self._loss_metric = Loss()
-
-    def before_training_epoch(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_training_iteration(strategy)
-        self._loss_metric.update(strategy.loss, len(strategy.mb_y))
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
-
-    def reset(self) -> None:
-        self._loss_metric.reset()
-
-    def result(self) -> float:
-        return self._loss_metric.result()
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(EpochLoss, self).__init__(
+            reset_at='epoch', emit_at='epoch', mode='train')
 
     def __str__(self):
         return "Loss_Epoch"
 
 
-class RunningEpochLoss(EpochLoss):
+class RunningEpochLoss(LossPluginMetric):
     """
     The average loss across all minibatches up to the current
     epoch iteration.
@@ -192,31 +148,14 @@ class RunningEpochLoss(EpochLoss):
         Creates an instance of the RunningEpochLoss metric.
         """
 
-        super().__init__()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        return self._package_result(strategy)
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') -> None:
-        # Overrides the method from EpochLoss so that it doesn't
-        # emit a metric value on epoch end!
-        return None
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(RunningEpochLoss, self).__init__(
+            reset_at='epoch', emit_at='iteration', mode='train')
 
     def __str__(self):
         return "RunningLoss_Epoch"
 
 
-class ExperienceLoss(PluginMetric[float]):
+class ExperienceLoss(LossPluginMetric):
     """
     At the end of each experience, this metric reports
     the average loss over all patterns seen in that experience.
@@ -227,42 +166,14 @@ class ExperienceLoss(PluginMetric[float]):
         """
         Creates an instance of ExperienceLoss metric
         """
-        super().__init__()
-
-        self._loss_metric = Loss()
-
-    def reset(self) -> None:
-        self._loss_metric.reset()
-
-    def result(self) -> float:
-        return self._loss_metric.result()
-
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        self._loss_metric.update(strategy.loss, len(strategy.mb_y))
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(ExperienceLoss, self).__init__(
+            reset_at='experience', emit_at='experience', mode='eval')
 
     def __str__(self):
         return "Loss_Exp"
 
 
-class StreamLoss(PluginMetric[float]):
+class StreamLoss(LossPluginMetric):
     """
     At the end of the entire stream of experiences, this metric reports the
     average loss over all patterns seen in all experiences.
@@ -273,41 +184,8 @@ class StreamLoss(PluginMetric[float]):
         """
         Creates an instance of StreamLoss metric
         """
-        super().__init__()
-
-        self._loss_metric = Loss()
-
-    def reset(self) -> None:
-        self._loss_metric.reset()
-
-    def result(self) -> float:
-        return self._loss_metric.result()
-
-    def before_eval(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        self._loss_metric.update(strategy.loss, len(strategy.mb_y))
-
-    def after_eval(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
-        metric_value = self.result()
-
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
-
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(StreamLoss, self).__init__(
+            reset_at='stream', emit_at='stream', mode='eval')
 
     def __str__(self):
         return "Loss_Stream"

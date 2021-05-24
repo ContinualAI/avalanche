@@ -32,9 +32,9 @@ from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import InteractiveLogger, WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import forgetting_metrics, \
-    StreamConfusionMatrix, accuracy_metrics, loss_metrics, cpu_usage_metrics, \
+    accuracy_metrics, loss_metrics, cpu_usage_metrics, \
     timing_metrics, gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, \
-    MAC_metrics
+    MAC_metrics, confusion_matrix_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
@@ -83,7 +83,8 @@ def main(args):
             minibatch=True, epoch=True, epoch_running=True,
             experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
-        StreamConfusionMatrix(),
+        confusion_matrix_metrics(stream=True, wandb=True,
+                                 class_names=[str(i) for i in range(10)]),
         cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(

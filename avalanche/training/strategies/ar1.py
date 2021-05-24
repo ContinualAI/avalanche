@@ -212,14 +212,11 @@ class AR1(BaseStrategy):
             batch_size=current_batch_mb_size, shuffle=shuffle)
 
     def training_epoch(self, **kwargs):
-        for self.mb_it, (self.mb_x, self.mb_y, _) in \
+        for self.mb_it, self.mbatch in \
                 enumerate(self.dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.mb_x = self.mb_x.to(self.device)
-            self.mb_y = self.mb_y.to(self.device)
-
             if self.training_exp_counter > 0:
                 lat_mb_x = self.rm[0][self.mb_it * self.replay_mb_size:
                                       (self.mb_it + 1) * self.replay_mb_size]
@@ -227,7 +224,7 @@ class AR1(BaseStrategy):
                 lat_mb_y = self.rm[1][self.mb_it * self.replay_mb_size:
                                       (self.mb_it + 1) * self.replay_mb_size]
                 lat_mb_y = lat_mb_y.to(self.device)
-                self.mb_y = torch.cat((self.mb_y, lat_mb_y), 0)
+                self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
             else:
                 lat_mb_x = None
 
@@ -235,7 +232,7 @@ class AR1(BaseStrategy):
             # lat_mb_x will be None for the very first batch (batch 0), which
             # means that lat_acts.shape[0] == self.mb_x[0].
             self.before_forward(**kwargs)
-            self.logits, lat_acts = self.model(
+            self.mb_output, lat_acts = self.model(
                 self.mb_x, latent_input=lat_mb_x, return_lat_acts=True)
 
             if self.epoch == 0:
@@ -251,7 +248,7 @@ class AR1(BaseStrategy):
             # Loss & Backward
             # We don't need to handle latent replay, as self.mb_y already
             # contains both current and replay labels.
-            self.loss = self.criterion(self.logits, self.mb_y)
+            self.loss = self._criterion(self.mb_output, self.mb_y)
             self.before_backward(**kwargs)
             self.loss.backward()
             self.after_backward(**kwargs)

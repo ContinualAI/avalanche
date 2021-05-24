@@ -75,9 +75,11 @@ class WandBLogger(StrategyLogger):
 
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor,
-                                               Figure, float, int)
+                                               Figure, float, int,
+                                               self.wandb.viz.CustomChart)
 
-        if not isinstance(value, (Image, Tensor, Figure, float, int)):
+        if not isinstance(value, (Image, Tensor, Figure, float, int,
+                                  self.wandb.viz.CustomChart)):
             # Unsupported type
             return
 
@@ -88,7 +90,8 @@ class WandBLogger(StrategyLogger):
             value = np.histogram(value.view(-1).numpy())
             self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
 
-        elif isinstance(value, (float, int, Figure)):
+        elif isinstance(value, (float, int, Figure,
+                                self.wandb.viz.CustomChart)):
             self.wandb.log({name: value})
 
 

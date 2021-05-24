@@ -13,15 +13,8 @@ from typing import TYPE_CHECKING, List
 
 import torch
 from torch import Tensor
-
-from avalanche.evaluation import Metric, PluginMetric
-from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
-
-if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
 
 
 class Accuracy(Metric[float]):
@@ -107,7 +100,21 @@ class Accuracy(Metric[float]):
         self._mean_accuracy.reset()
 
 
-class MinibatchAccuracy(PluginMetric[float]):
+class AccuracyPluginMetric(GenericPluginMetric[float]):
+    """
+    Base class for all accuracies plugin metrics
+    """
+    def __init__(self, reset_at, emit_at, mode):
+        self._accuracy = Accuracy()
+        super(AccuracyPluginMetric, self).__init__(
+            self._accuracy, reset_at=reset_at, emit_at=emit_at,
+            mode=mode)
+
+    def update(self, strategy):
+        self._accuracy.update(strategy.mb_output, strategy.mb_y)
+
+
+class MinibatchAccuracy(AccuracyPluginMetric):
     """
     The minibatch plugin accuracy metric.
     This metric only works at training time.
@@ -119,43 +126,18 @@ class MinibatchAccuracy(PluginMetric[float]):
     If a more coarse-grained logging is needed, consider using
     :class:`EpochAccuracy` instead.
     """
-
     def __init__(self):
         """
         Creates an instance of the MinibatchAccuracy metric.
         """
-
-        super().__init__()
-
-        self._minibatch_accuracy = Accuracy()
-
-    def result(self) -> float:
-        return self._minibatch_accuracy.result()
-
-    def reset(self) -> None:
-        self._minibatch_accuracy.reset()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        self.reset()  # Because this metric computes the accuracy of a single mb
-        self._minibatch_accuracy.update(strategy.mb_y,
-                                        strategy.logits)
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(MinibatchAccuracy, self).__init__(
+            reset_at='iteration', emit_at='iteration', mode='train')
 
     def __str__(self):
         return "Top1_Acc_MB"
 
 
-class EpochAccuracy(PluginMetric[float]):
+class EpochAccuracy(AccuracyPluginMetric):
     """
     The average accuracy over a single training epoch.
     This plugin metric only works at training time.
@@ -169,41 +151,15 @@ class EpochAccuracy(PluginMetric[float]):
         """
         Creates an instance of the EpochAccuracy metric.
         """
-        super().__init__()
 
-        self._accuracy_metric = Accuracy()
-
-    def reset(self) -> None:
-        self._accuracy_metric.reset()
-
-    def result(self) -> float:
-        return self._accuracy_metric.result()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_training_iteration(strategy)
-        self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.logits)
-
-    def before_training_epoch(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(EpochAccuracy, self).__init__(
+            reset_at='epoch', emit_at='epoch', mode='train')
 
     def __str__(self):
         return "Top1_Acc_Epoch"
 
 
-class RunningEpochAccuracy(EpochAccuracy):
+class RunningEpochAccuracy(AccuracyPluginMetric):
     """
     The average accuracy across all minibatches up to the current
     epoch iteration.
@@ -219,31 +175,14 @@ class RunningEpochAccuracy(EpochAccuracy):
         Creates an instance of the RunningEpochAccuracy metric.
         """
 
-        super().__init__()
-
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
-        super().after_training_iteration(strategy)
-        return self._package_result(strategy)
-
-    def after_training_epoch(self, strategy: 'BaseStrategy') -> None:
-        # Overrides the method from EpochAccuracy so that it doesn't
-        # emit a metric value on epoch end!
-        return None
-
-    def _package_result(self, strategy: 'BaseStrategy'):
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(RunningEpochAccuracy, self).__init__(
+            reset_at='epoch', emit_at='iteration', mode='train')
 
     def __str__(self):
         return "Top1_RunningAcc_Epoch"
 
 
-class ExperienceAccuracy(PluginMetric[float]):
+class ExperienceAccuracy(AccuracyPluginMetric):
     """
     At the end of each experience, this plugin metric reports
     the average accuracy over all patterns seen in that experience.
@@ -254,43 +193,14 @@ class ExperienceAccuracy(PluginMetric[float]):
         """
         Creates an instance of ExperienceAccuracy metric
         """
-        super().__init__()
-
-        self._accuracy_metric = Accuracy()
-
-    def reset(self) -> None:
-        self._accuracy_metric.reset()
-
-    def result(self) -> float:
-        return self._accuracy_metric.result()
-
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.logits)
-
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
-        metric_value = self.result()
-
-        metric_name = get_metric_name(self, strategy, add_experience=True)
-
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(ExperienceAccuracy, self).__init__(
+            reset_at='experience', emit_at='experience', mode='eval')
 
     def __str__(self):
         return "Top1_Acc_Exp"
 
 
-class StreamAccuracy(PluginMetric[float]):
+class StreamAccuracy(AccuracyPluginMetric):
     """
     At the end of the entire stream of experiences, this plugin metric
     reports the average accuracy over all patterns seen in all experiences.
@@ -301,41 +211,8 @@ class StreamAccuracy(PluginMetric[float]):
         """
         Creates an instance of StreamAccuracy metric
         """
-        super().__init__()
-
-        self._accuracy_metric = Accuracy()
-
-    def reset(self) -> None:
-        self._accuracy_metric.reset()
-
-    def result(self) -> float:
-        return self._accuracy_metric.result()
-
-    def before_eval(self, strategy: 'BaseStrategy') -> None:
-        self.reset()
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.logits)
-
-    def after_eval(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
-        return self._package_result(strategy)
-
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
-        metric_value = self.result()
-
-        phase_name, _ = phase_and_task(strategy)
-        stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
-        plot_x_position = self.get_global_counter()
-
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        super(StreamAccuracy, self).__init__(
+            reset_at='stream', emit_at='stream', mode='eval')
 
     def __str__(self):
         return "Top1_Acc_Stream"
