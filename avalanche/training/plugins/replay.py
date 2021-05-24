@@ -1,6 +1,6 @@
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 import torch
 from numpy import inf
@@ -14,6 +14,9 @@ from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 from avalanche.models import FeatureExtractorBackbone
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+
+if TYPE_CHECKING:
+    from avalanche.training.strategies import BaseStrategy
 
 
 class ReplayPlugin(StrategyPlugin):
