@@ -33,6 +33,8 @@ class ReplayPlugin(StrategyPlugin):
 
     The :mem_size: attribute controls the total number of patterns to be stored 
     in the external memory.
+    :param storage_policy: The policy that controls how to add new exemplars
+                           in memory
     """
 
     def __init__(self, mem_size: int = 200,
@@ -175,6 +177,8 @@ class ClassBalancedStoragePolicy(StoragePolicy):
                             observed experiences (keys in replay_mem).
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
+        :param selection_strategy: The strategy used to select exemplars to 
+                                   keep in memory when cutting it off
         """
         super().__init__(ext_mem, mem_size)
         self.selection_strategy = selection_strategy or \
