@@ -41,6 +41,7 @@ scen2dirs = {
 def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
            scenario="nicv2_391",
            run=0,
+           object_lvl=True,
            train_transform=None,
            eval_transform=None):
     """
@@ -69,6 +70,8 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
     :param run: number of run for the scenario. Each run defines a different
         ordering. Must be a number between 0 and 9.
+    :param object_lvl: True for a 50-way classification at the object level.
+        False if you want to use the categories as classes. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -95,7 +98,11 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
     root = core_data.data_folder
     root_img = root + "core50_128x128/"
 
-    filelists_bp = scen2dirs[scenario] + "run" + str(run) + "/"
+    if object_lvl:
+        suffix = "/"
+    else:
+        suffix = "_cat/"
+    filelists_bp = scen2dirs[scenario][:-1] + suffix + "run" + str(run) + "/"
     train_failists_paths = []
     for i in range(nbatch[scenario]):
         train_failists_paths.append(
