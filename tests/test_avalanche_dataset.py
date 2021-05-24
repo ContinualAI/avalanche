@@ -1183,6 +1183,23 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
+    def test_avalanche_avalanche_subset_concat_stack_overflow(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True)
+
+        dataset_hierarchy_depth = 1000
+
+        leaf = dataset_mnist
+
+        for _ in range(dataset_hierarchy_depth):
+            subset = AvalancheSubset(leaf, indices=[0])
+            subset2 = AvalancheSubset(leaf, indices=[0])
+
+            leaf = AvalancheConcatDataset((subset, subset2))
+
+        x, y, t = leaf[0]
+
 
 class TransformationSubsetTests(unittest.TestCase):
     def test_avalanche_subset_transform(self):

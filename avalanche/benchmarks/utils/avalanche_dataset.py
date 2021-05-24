@@ -873,6 +873,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
+            if self._dataset.current_transform_group == group_name:
+                # Prevents a huge slowdown in some corner cases
+                # (apart from being actually more performant)
+                return
             self._dataset = self._dataset.with_transforms(group_name)
 
     def _freeze_original_dataset(
@@ -1239,6 +1243,11 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
 
     def _set_original_dataset_transform_group(self, group_name: str) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
+            if self._original_dataset.current_transform_group == group_name:
+                # Prevents a huge slowdown in some corner cases
+                # (apart from being actually more performant)
+                return
+
             self._original_dataset = \
                 self._original_dataset.with_transforms(group_name)
 
@@ -1741,6 +1750,11 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
+                if dataset.current_transform_group == group_name:
+                    # Prevents a huge slowdown in some corner cases
+                    # (apart from being actually more performant)
+                    continue
+
                 self._dataset_list[dataset_idx] = \
                     dataset.with_transforms(group_name)
 
