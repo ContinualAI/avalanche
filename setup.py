@@ -46,5 +46,6 @@ setuptools.setup(
         'quadprog',
         'wandb',
         'tensorboard',
+        'pycocotools'
     ]
 )
