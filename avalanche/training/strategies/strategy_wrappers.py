@@ -80,7 +80,7 @@ class PNNStrategy(BaseStrategy):
     def __init__(self, num_layers: int, in_features: int,
                  hidden_features_per_column: int,
                  lr: float, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False,
+                 weight_decay=0, nesterov=False, adapter='mlp',
                  criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
@@ -98,6 +98,7 @@ class PNNStrategy(BaseStrategy):
         :param weight_decay: weight decay (L2 penalty) (default: 0)
         :param dampening: dampening for momentum (default: 0)
         :param nesterov: enables Nesterov momentum (default: False)
+        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
         :param criterion: The loss criterion to use.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
@@ -117,7 +118,8 @@ class PNNStrategy(BaseStrategy):
         model = PNN(
             num_layers=num_layers,
             in_features=in_features,
-            hidden_features_per_column=hidden_features_per_column
+            hidden_features_per_column=hidden_features_per_column,
+            adapter=adapter
         )
         optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
                         weight_decay=weight_decay, dampening=dampening,

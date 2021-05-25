@@ -10,6 +10,12 @@ from avalanche.models import MultiHeadClassifier
 
 class LinearAdapter(nn.Module):
     def __init__(self, in_features, out_features_per_column, num_prev_modules):
+        """ Linear adapter for Progressive Neural Networks.
+
+        :param in_features: size of each input sample
+        :param out_features_per_column: size of each output sample
+        :param num_prev_modules: number of previous modules
+        """
         super().__init__()
         # Eq. 1 - lateral connections
         # one layer for each previous column. Empty for the first task.
@@ -29,6 +35,13 @@ class LinearAdapter(nn.Module):
 class MLPAdapter(nn.Module):
     def __init__(self, in_features, out_features_per_column, num_prev_modules,
                  activation=F.relu):
+        """ MLP adapter for Progressive Neural Networks.
+
+        :param in_features: size of each input sample
+        :param out_features_per_column: size of each output sample
+        :param num_prev_modules: number of previous modules
+        :param activation: activation function (default=ReLU)
+        """
         super().__init__()
         self.num_prev_modules = num_prev_modules
         self.activation = activation
@@ -62,8 +75,11 @@ class PNNColumn(nn.Module):
                  adapter='mlp'):
         """ Progressive Neural Network column.
 
-        :param in_features:
+        :param in_features: size of each input sample
         :param out_features_per_column:
+            size of each output sample (single column)
+        :param num_prev_modules: number of previous columns
+        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
         """
         super().__init__()
         self.in_features = in_features
@@ -92,26 +108,41 @@ class PNNColumn(nn.Module):
 
 
 class PNNLayer(MultiTaskModule, DynamicModule):
-    def __init__(self, in_features, out_features_per_column):
+    def __init__(self, in_features, out_features_per_column, adapter='mlp'):
         """ Progressive Neural Network layer.
 
-        :param in_features:
+        The adaptation phase assumes that each experience is a separate task.
+        Multiple experiences with the same task label or multiple task labels
+        within the same experience will result in a runtime error.
+
+        :param in_features: size of each input sample
         :param out_features_per_column:
+            size of each output sample (single column)
+        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
         """
         super().__init__()
         self.in_features = in_features
         self.out_features_per_column = out_features_per_column
+        self.adapter = adapter
 
         # convert from task label to module list order
         self.task_to_module_idx = {}
-        self.columns = nn.ModuleList([
-            PNNColumn(in_features, out_features_per_column, 0)])
+        first_col = PNNColumn(in_features, out_features_per_column,
+                              0, adapter=adapter)
+        self.columns = nn.ModuleList([first_col])
 
     @property
     def num_columns(self):
         return len(self.columns)
 
     def train_adaptation(self, dataset: AvalancheDataset):
+        """ Training adaptation for PNN layer.
+
+        Adds an additional column to the layer.
+
+        :param dataset:
+        :return:
+        """
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -134,17 +165,25 @@ class PNNLayer(MultiTaskModule, DynamicModule):
             self.task_to_module_idx[task_label] = 0
         else:
             self.task_to_module_idx[task_label] = self.num_columns
-            self.add_column()
+            self._add_column()
 
-    def add_column(self):
+    def _add_column(self):
+        """ Add a new column. """
         # Freeze old parameters
         for param in self.parameters():
             param.requires_grad = False
         self.columns.append(PNNColumn(self.in_features,
                                       self.out_features_per_column,
-                                      self.num_columns))
+                                      self.num_columns,
+                                      adapter=self.adapter))
 
     def forward_single_task(self, x, task_label):
+        """ Forward.
+
+        :param x: list of inputs.
+        :param task_label:
+        :return:
+        """
         col_idx = self.task_to_module_idx[task_label]
         hs = []
         for ii in range(col_idx + 1):
@@ -154,7 +193,19 @@ class PNNLayer(MultiTaskModule, DynamicModule):
 
 class PNN(MultiTaskModule):
     def __init__(self, num_layers=1, in_features=784,
-                 hidden_features_per_column=100):
+                 hidden_features_per_column=100, adapter='mlp'):
+        """ Progressive Neural Network.
+
+        The model assumes that each experience is a separate task.
+        Multiple experiences with the same task label or multiple task labels
+        within the same experience will result in a runtime error.
+
+        :param num_layers: number of layers (default=1)
+        :param in_features: size of each input sample
+        :param hidden_features_per_column:
+            number of hidden units for each column
+        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
+        """
         super().__init__()
         assert num_layers >= 1
         self.num_layers = num_layers
@@ -165,11 +216,18 @@ class PNN(MultiTaskModule):
         self.layers.append(PNNLayer(in_features, hidden_features_per_column))
         for _ in range(num_layers - 1):
             lay = PNNLayer(hidden_features_per_column,
-                           hidden_features_per_column)
+                           hidden_features_per_column,
+                           adapter=adapter)
             self.layers.append(lay)
         self.classifier = MultiHeadClassifier(hidden_features_per_column)
 
     def forward_single_task(self, x, task_label):
+        """ Forward.
+
+        :param x:
+        :param task_label:
+        :return:
+        """
         x = x.contiguous()
         x = x.view(x.size(0), self.in_features)
 
