@@ -33,13 +33,8 @@ from .dataset_utils import manage_advanced_indexing, \
 from .dataset_definitions import ITensorDataset, ClassificationDataset, \
     IDatasetWithTargets, ISupportedClassificationDataset
 
-try:
-    from typing import List, Any, Iterable, Sequence, Union, Optional, \
-        TypeVar, Protocol, SupportsInt, Generic, Callable, Dict, Tuple, Literal
-except ImportError:
-    from typing import List, Any, Iterable, Sequence, Union, Optional, \
-        TypeVar, SupportsInt, Generic, Callable, Dict, Tuple
-    from typing_extensions import Protocol, Literal
+from typing import List, Any, Sequence, Union, Optional, TypeVar, SupportsInt, \
+    Callable, Dict, Tuple, Collection
 
 T_co = TypeVar('T_co', covariant=True)
 TTargetType = TypeVar('TTargetType')
@@ -750,7 +745,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
             if not len(map_value) == 2:
                 raise ValueError(
-                    'Transformations for group "' + str(map_key) + '" must be ' 
+                    'Transformations for group "' + str(map_key) + '" must be '
                     'a tuple containing 2 elements: a transformation for the X '
                     'values and a transformation for the Y values')
 
@@ -1504,7 +1499,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
     (if they are subclasses of :class:`AvalancheDataset`).
     """
     def __init__(self,
-                 datasets: Sequence[SupportedDataset],
+                 datasets: Collection[SupportedDataset],
                  *,
                  transform: Callable[[Any], Any] = None,
                  target_transform: Callable[[int], int] = None,
@@ -1521,7 +1516,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         """
         Creates a ``AvalancheConcatDataset`` instance.
 
-        :param datasets: A sequence of datasets.
+        :param datasets: A collection of datasets.
         :param transform: A function/transform that takes the X value of a
             pattern from the original dataset and returns a transformed version.
         :param target_transform: A function/transform that takes in the target
@@ -1583,14 +1578,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             the value of the second element returned by `__getitem__`.
             The adapter is used to adapt the values of the targets field only.
         """
+        dataset_list = list(datasets)
 
         dataset_type, collate_fn, targets_adapter = \
             self._get_dataset_type_collate_and_adapter(
-                datasets, dataset_type, collate_fn, targets_adapter)
+                dataset_list, dataset_type, collate_fn, targets_adapter)
 
-        self._dataset_list = list(datasets)
-        self._datasets_lengths = [len(dataset) for dataset in datasets]
-        self._datasets_cumulative_lengths = ConcatDataset.cumsum(datasets)
+        self._dataset_list = dataset_list
+        self._datasets_lengths = [len(dataset) for dataset in dataset_list]
+        self._datasets_cumulative_lengths = ConcatDataset.cumsum(dataset_list)
         self._overall_length = sum(self._datasets_lengths)
 
         if initial_transform_group is None:
@@ -1658,7 +1654,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         if dataset_type != AvalancheDatasetType.UNDEFINED and \
                 (collate_fn is not None or targets_adapter is not None):
-
             raise ValueError(
                 'dataset_type {} was inferred from the list of '
                 'concatenated dataset. This dataset type can\'t be used '
@@ -2033,7 +2028,6 @@ def as_avalanche_dataset(
         dataset: ISupportedClassificationDataset[T_co],
         dataset_type: AvalancheDatasetType = None) \
         -> AvalancheDataset[T_co, TTargetType]:
-
     if isinstance(dataset, AvalancheDataset) and dataset_type is None:
         # There is no need to show the warning
         return dataset
@@ -2101,7 +2095,6 @@ def train_eval_avalanche_datasets(
 def _traverse_supported_dataset(
         dataset, values_selector: Callable[[Dataset, List[int]], List],
         indices=None) -> List:
-
     initial_error = None
     try:
         result = values_selector(dataset, indices)
