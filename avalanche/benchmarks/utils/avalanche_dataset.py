@@ -868,6 +868,11 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def _set_original_dataset_transform_group(
             self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
+            if self._dataset.current_transform_group == group_name:
+                # Prevents a huge slowdown in some corner cases
+                # (apart from being actually more performant)
+                return
+
             self._dataset = self._dataset.with_transforms(group_name)
 
     def _freeze_original_dataset(
@@ -1234,6 +1239,11 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
 
     def _set_original_dataset_transform_group(self, group_name: str) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
+            if self._original_dataset.current_transform_group == group_name:
+                # Prevents a huge slowdown in some corner cases
+                # (apart from being actually more performant)
+                return
+
             self._original_dataset = \
                 self._original_dataset.with_transforms(group_name)
 
@@ -1736,6 +1746,11 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
+                if dataset.current_transform_group == group_name:
+                    # Prevents a huge slowdown in some corner cases
+                    # (apart from being actually more performant)
+                    continue
+
                 self._dataset_list[dataset_idx] = \
                     dataset.with_transforms(group_name)
 
@@ -1830,6 +1845,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             # --------
             # elif isinstance(dataset, ConcatDataset):
             #    flattened_list.extend(dataset.datasets)
+            elif isinstance(dataset, AvalancheSubset):
+                flattened_list += self._flatten_subset_concat_branch(dataset)
             else:
                 flattened_list.append(dataset)
 
@@ -1837,6 +1854,88 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         self._datasets_lengths = [len(dataset) for dataset in flattened_list]
         self._datasets_cumulative_lengths = ConcatDataset.cumsum(flattened_list)
         self._overall_length = sum(self._datasets_lengths)
+
+    def _flatten_subset_concat_branch(self, dataset: AvalancheSubset) \
+            -> List[Dataset]:
+        """
+        Optimizes the dataset hierarchy in the corner case:
+
+        self -> [Subset, Subset, ] -> ConcatDataset -> [Dataset]
+
+        :param dataset: The dataset. This function returns [dataset] if the
+            dataset is not a subset containing a concat dataset (or if other
+            corner cases are encountered).
+        :return: The flattened list of datasets to be concatenated.
+        """
+        if not isinstance(dataset._original_dataset, AvalancheConcatDataset):
+            return [dataset]
+
+        concat_dataset: AvalancheConcatDataset = dataset._original_dataset
+        if concat_dataset._has_own_transformations():
+            # The dataset has custom transforms -> do nothing
+            return [dataset]
+
+        result: List[AvalancheSubset] = []
+        last_c_dataset = None
+        last_c_idxs = []
+        last_c_targets = []
+        last_c_tasks = []
+        for idx in dataset._indices:
+            dataset_idx, internal_idx = find_list_from_index(
+                idx, concat_dataset._datasets_lengths,
+                concat_dataset._overall_length,
+                cumulative_sizes=concat_dataset._datasets_cumulative_lengths)
+
+            if last_c_dataset is None:
+                last_c_dataset = dataset_idx
+            elif last_c_dataset != dataset_idx:
+                # Consolidate current subset
+                result.append(AvalancheConcatDataset._make_similar_subset(
+                    dataset, concat_dataset._dataset_list[last_c_dataset],
+                    last_c_idxs, last_c_targets, last_c_tasks))
+
+                # Switch to next dataset
+                last_c_dataset = dataset_idx
+                last_c_idxs = []
+                last_c_targets = []
+                last_c_tasks = []
+
+            last_c_idxs.append(internal_idx)
+            last_c_targets.append(dataset.targets[idx])
+            last_c_tasks.append(dataset.targets_task_labels[idx])
+
+        if last_c_dataset is not None:
+            result.append(AvalancheConcatDataset._make_similar_subset(
+                dataset, concat_dataset._dataset_list[last_c_dataset],
+                last_c_idxs, last_c_targets, last_c_tasks))
+
+        return result
+
+    @staticmethod
+    def _make_similar_subset(subset, ref_dataset, indices, targets, tasks):
+        t_groups = dict()
+        f_groups = dict()
+        AvalancheDataset._borrow_transformations(
+            subset, t_groups, f_groups)
+
+        collate_fn = None
+        if subset.dataset_type == AvalancheDatasetType.UNDEFINED:
+            collate_fn = subset.collate_fn
+
+        result = AvalancheSubset(
+            ref_dataset,
+            indices=indices,
+            class_mapping=subset._class_mapping,
+            transform_groups=t_groups,
+            initial_transform_group=subset.current_transform_group,
+            task_labels=tasks,
+            targets=targets,
+            dataset_type=subset.dataset_type,
+            collate_fn=collate_fn,
+        )
+
+        result._frozen_transforms = f_groups
+        return result
 
 
 def concat_datasets_sequentially(

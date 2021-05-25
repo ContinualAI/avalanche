@@ -35,13 +35,28 @@ class CORe50(Dataset):
 
     def __init__(self, root=expanduser("~")+"/.avalanche/data/core50/",
                  train=True, transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=True):
+                 loader=pil_loader, download=True, object_level=True):
+        """
+
+        :param root: root for the datasets data.
+        :param train: train or test split.
+        :param transform: eventual transformations to be applied.
+        :param target_transform: eventual transformation to be applied to the
+            targets.
+        :param loader: data loader method from disk.
+        :param download: boolean to automatically download data. Default to
+            True.
+        :param object_level: if the classification is objects based or
+            category based: 50 or 10 way classification problem. Default to True
+            (50-way object classification problem)
+        """
 
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
         self.root = root
         self.loader = loader
+        self.object_level = object_level
         self.log = logging.getLogger("avalanche")
 
         # any scenario and run is good here since we want just to load the
@@ -68,6 +83,10 @@ class CORe50(Dataset):
         with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 
+        self.log.info("Loading labels names...")
+        with open(os.path.join(root, 'labels2names.pkl'), 'rb') as f:
+            self.labels2names = pkl.load(f)
+
         self.idx_list = []
         if train:
             for i in range(nbatch + 1):
@@ -80,7 +99,10 @@ class CORe50(Dataset):
 
         for idx in self.idx_list:
             self.paths.append(self.train_test_paths[idx])
-            self.targets.append(self.train_test_targets[idx])
+            div = 1
+            if not self.object_level:
+                div = 5
+            self.targets.append(self.train_test_targets[idx] // div)
 
     def __getitem__(self, index):
         """
@@ -122,6 +144,7 @@ if __name__ == "__main__":
     test_data = CORe50(train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
+    print(train_data.labels2names)
     dataloader = DataLoader(train_data, batch_size=1)
 
     for batch_data in dataloader:
