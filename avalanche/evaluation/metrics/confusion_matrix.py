@@ -391,7 +391,7 @@ class WandBStreamConfusionMatrix(PluginMetric):
 
     def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super(WandBStreamConfusionMatrix, self).after_eval_iteration(strategy)
-        self.update(strategy.logits, strategy.mb_y)
+        self.update(strategy.mb_output, strategy.mb_y)
 
     def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         return self._package_result(strategy)
