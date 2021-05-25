@@ -35,7 +35,6 @@ from os.path import expanduser
 import pprint
 
 from .inaturalist_data import INATURALIST_DATA
-from .coco_api import COCO
 
 
 def pil_loader(path):
@@ -79,6 +78,10 @@ class INATURALIST2018(Dataset):
                  root=expanduser("~") + "/.avalanche/data/inaturalist2018/",
                  split='train', transform=ToTensor(), target_transform=None,
                  loader=pil_loader, download=True, supcats=None):
+        super().__init__()
+        # conda install -c conda-forge pycocotools
+        from pycocotools.coco import COCO as jsonparser
+
         assert split in self.splits
         self.split = split  # training set or test set
         self.transform = transform
@@ -98,9 +101,9 @@ class INATURALIST2018(Dataset):
         # load annotations
         ann_file = f'{split}2018.json'
         self.log.info(f'Loading annotations from: {ann_file}')
-        self.ds = COCO(annotation_file=os.path.join(root, ann_file))
+        self.ds = jsonparser(annotation_file=os.path.join(root, ann_file))
 
-        self.img_ids = []
+        self.img_ids, self.targets = [], []  # targets field is required!
         self.cats_per_supcat = {}
 
         # Filter full dataset parsed
@@ -118,11 +121,11 @@ class INATURALIST2018(Dataset):
                 # Add category to supercategory
                 if supcat not in self.cats_per_supcat:
                     self.cats_per_supcat[supcat] = set()
-                self.cats_per_supcat[supcat].add(target)
+                self.cats_per_supcat[supcat].add(int(target))  # Need int
 
                 # Add to list
                 self.img_ids.append(img_id)
-                # self.targets.append(target)
+                self.targets.append(target)
                 # self.suptargets.append(supcat)
 
         cnt_per_supcat = {k: len(v) for k, v in self.cats_per_supcat.items()}
@@ -149,7 +152,8 @@ class INATURALIST2018(Dataset):
 
         id = self.img_ids[index]
         img = self._load_image(id)
-        target = self._load_target(id)
+        # target = self._load_target(id)
+        target = self.targets[index]
 
         if self.transform is not None:
             img = self.transform(img)
@@ -163,8 +167,6 @@ class INATURALIST2018(Dataset):
 
 
 if __name__ == "__main__":
-    # Run from outside this dir as 'python3 -m inaturalist.inaturalist'
-
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.
     from torch.utils.data.dataloader import DataLoader
@@ -176,7 +178,8 @@ if __name__ == "__main__":
     test_data = INATURALIST2018(split='val')
     print("train size: ", len(train_data))
     print("test size: ", len(test_data))
-    dataloader = DataLoader(test_data, batch_size=1)
+
+    dataloader = DataLoader(train_data, batch_size=1)
 
     for batch_data in dataloader:
         x, y = batch_data

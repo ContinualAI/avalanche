@@ -114,42 +114,34 @@ def SplitInaturalist(root,
             'Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Fungi',
             'Insecta', 'Mammalia', 'Mollusca', 'Plantae', 'Reptilia']
 
-    # per_exp_classes = _get_per_exp_classes(super_categories, train_set)
-
-    list_train_dataset, list_test_dataset = [], []
-    # for every incremental experience
-    for idx, supcat in enumerate(super_categories):
-        # Isolate each super category as an experience
-        train_set, test_set = _get_inaturalist_dataset(
-            root, [supcat], download=download and idx == 0)
-
-        list_train_dataset.append(train_set)
-        list_test_dataset.append(test_set)
+    train_set, test_set = _get_inaturalist_dataset(
+        root, super_categories, download=download)
+    per_exp_classes, fixed_class_order = _get_split(super_categories, train_set)
 
     if return_task_id:
         return nc_benchmark(
-            train_dataset=list_train_dataset,
-            test_dataset=list_test_dataset,
+            fixed_class_order=fixed_class_order,
+            per_exp_classes=per_exp_classes,
+            train_dataset=train_set,
+            test_dataset=test_set,
             n_experiences=len(super_categories),
             task_labels=True,
-            # per_exp_classes=per_exp_classes,
             seed=seed,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
             eval_transform=eval_transform,
-            one_dataset_per_exp=True
         )
     else:
         return nc_benchmark(
-            train_dataset=list_train_dataset,
-            test_dataset=list_test_dataset,
+            fixed_class_order=fixed_class_order,
+            per_exp_classes=per_exp_classes,
+            train_dataset=train_set,
+            test_dataset=test_set,
             n_experiences=len(super_categories),
             task_labels=False,
-            # per_exp_classes=per_exp_classes,
             seed=seed,
             train_transform=train_transform,
             eval_transform=eval_transform,
-            one_dataset_per_exp=True
         )
 
 
@@ -162,12 +154,15 @@ def _get_inaturalist_dataset(root, super_categories, download):
     return train_set, test_set
 
 
-def _get_per_exp_classes(super_categories, train_set):
-    """Map list of super_categories to index-incremental dictionary."""
-    ret = {}
+def _get_split(super_categories, train_set):
+    """ Get number of classes per experience, and
+    the total order of the classes."""
+    per_exp_classes, fixed_class_order = {}, []
     for idx, supcat in enumerate(super_categories):
-        ret[idx] = train_set.cats_per_supcat[supcat]
-    return ret
+        new_cats = list(train_set.cats_per_supcat[supcat])
+        fixed_class_order += new_cats
+        per_exp_classes[idx] = len(new_cats)
+    return per_exp_classes, fixed_class_order
 
 
 __all__ = [
@@ -175,8 +170,12 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-    scenario = SplitInaturalist(
-        "/usr/data/delangem/inaturalist2018")  # TODO remove
+    import os
+
+    # Must define root manually to avoid automatic 120G download
+    your_root = os.path.expanduser("~") + "/.avalanche/data/inatuarlist2018/"
+    scenario = SplitInaturalist(your_root)
+
     for exp in scenario.train_stream:
         print("experience: ", exp.current_experience)
         print("classes number: ", len(exp.classes_in_this_experience))
