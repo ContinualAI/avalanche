@@ -50,6 +50,11 @@ def SplitInaturalist(root,
     automatically download** and store it if `download=True`
     (120Gtrain/val).
 
+    To parse the dataset jsons you need to install an additional dependency:
+    "pycocotools". You can install it like this:
+
+        "conda install -c conda-forge pycocotools"
+
     Implementation is based on the CL survey
     (https://ieeexplore.ieee.org/document/9349197) but differs slightly.
     The survey uses only the original iNaturalist2018 training dataset split
@@ -109,32 +114,43 @@ def SplitInaturalist(root,
             'Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Fungi',
             'Insecta', 'Mammalia', 'Mollusca', 'Plantae', 'Reptilia']
 
-    train_set, test_set = _get_inaturalist_dataset(
-        root, super_categories, download)
+    # per_exp_classes = _get_per_exp_classes(super_categories, train_set)
 
-    per_exp_classes = _get_per_exp_classes(super_categories, train_set)
+    list_train_dataset, list_test_dataset = [], []
+    # for every incremental experience
+    for idx, supcat in enumerate(super_categories):
+        # Isolate each super category as an experience
+        train_set, test_set = _get_inaturalist_dataset(
+            root, [supcat], download=download and idx == 0)
+
+        list_train_dataset.append(train_set)
+        list_test_dataset.append(test_set)
 
     if return_task_id:
         return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
+            train_dataset=list_train_dataset,
+            test_dataset=list_test_dataset,
             n_experiences=len(super_categories),
             task_labels=True,
-            per_exp_classes=per_exp_classes,
+            # per_exp_classes=per_exp_classes,
             seed=seed,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+            one_dataset_per_exp=True
+        )
     else:
         return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
+            train_dataset=list_train_dataset,
+            test_dataset=list_test_dataset,
             n_experiences=len(super_categories),
             task_labels=False,
-            per_exp_classes=per_exp_classes,
+            # per_exp_classes=per_exp_classes,
             seed=seed,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+            one_dataset_per_exp=True
+        )
 
 
 def _get_inaturalist_dataset(root, super_categories, download):
