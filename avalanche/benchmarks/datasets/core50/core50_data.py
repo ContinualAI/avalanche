@@ -14,7 +14,9 @@
 import os
 import sys
 import logging
-from zipfile import ZipFile 
+import glob
+import pickle as pkl
+from zipfile import ZipFile
 
 
 if sys.version_info[0] >= 3:
@@ -36,12 +38,36 @@ data = [
     ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
     ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
     ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
+    ('labels2names.pkl',
+     'https://vlomonaco.github.io/core50/data/labels2names.pkl')
 ]
 
 extra_data = [
     ('core50_imgs.npz',
      'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
 ]
+
+scen2dirs = {
+    'ni': "batches_filelists/NI_inc/",
+    'nc': "batches_filelists/NC_inc/",
+    'nic': "batches_filelists/NIC_inc/",
+    'nicv2_79': "NIC_v2_79/",
+    'nicv2_196': "NIC_v2_196/",
+    'nicv2_391': "NIC_v2_391/"
+}
+
+name2cat = {
+    'plug_adapter': 0,
+    'mobile_phone': 1,
+    'scissor': 2,
+    'light_bulb': 3,
+    'can': 4,
+    'glass': 5,
+    'ball': 6,
+    'marker': 7,
+    'cup': 8,
+    'remote_control': 9
+}
 
 
 class CORE50_DATA(object):
@@ -74,6 +100,15 @@ class CORE50_DATA(object):
             self.download = False
             self.log.error("Directory %s already exists", self.data_folder)
 
+        with open(os.path.join(data_folder, 'labels2names.pkl'), 'rb') as f:
+            self.labels2names = pkl.load(f)
+
+        if os.path.exists(os.path.join(data_folder, "NIC_v2_79_cat")):
+            # It means category filelists has been already created
+            pass
+        else:
+            self._create_cat_filelists()
+
     def download_core50(self, extra=False):
         """ Download and extract CORe50 data
 
@@ -98,6 +133,41 @@ class CORE50_DATA(object):
                     self.log.info('Done!')
 
         self.log.info("Download complete.")
+
+    def _objlab2cat(self, label, scen, run):
+        """ Mapping an object label into its corresponding category label
+        based on the scenario. """
+
+        if scen == "nc":
+            return name2cat[self.labels2names['nc'][run][label][:-1]]
+        else:
+            return int(label) // 5
+
+    def _create_cat_filelists(self):
+        """ Generates corresponding filelists with category-wise labels. The
+        default one are based on the object-level labels from 0 to 49."""
+
+        for k, v in scen2dirs.items():
+            orig_root_path = os.path.join(self.data_folder, v)
+            root_path = os.path.join(self.data_folder, v[:-1] + "_cat")
+            if not os.path.exists(root_path):
+                os.makedirs(root_path)
+            for run in range(10):
+                cur_path = os.path.join(root_path, "run"+str(run))
+                orig_cur_path = os.path.join(orig_root_path, "run"+str(run))
+                if not os.path.exists(cur_path):
+                    os.makedirs(cur_path)
+                for file in glob.glob(os.path.join(orig_cur_path, "*.txt")):
+                    o_filename = file
+                    _, d_filename = os.path.split(o_filename)
+                    orig_f = open(o_filename, "r")
+                    dst_f = open(os.path.join(cur_path, d_filename), "w")
+                    for line in orig_f:
+                        path, label = line.split(" ")
+                        new_label = self._objlab2cat(int(label), k, run)
+                        dst_f.write(path + " " + str(new_label) + "\n")
+                    orig_f.close()
+                    dst_f.close()
 
 
 __all__ = [

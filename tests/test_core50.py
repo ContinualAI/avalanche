@@ -12,6 +12,8 @@
 """ CORe50 Tests"""
 
 import unittest
+import os
+
 
 from avalanche.benchmarks.classic import CORe50
 
@@ -19,24 +21,25 @@ from avalanche.benchmarks.classic import CORe50
 class CORe50Test(unittest.TestCase):
     def test_core50_ni_scenario(self):
 
-        # for now we disable it as it takes a while to download the CORe50
-        # dataset.
-        pass
-
-        # scenario = CORe50(scenario="ni")
-        # for task_info in scenario:
-        #     self.assertIsInstance(task_info, IExperience)
+        if "FAST_TEST" in os.environ:
+            pass
+        else:
+            scenario = CORe50(scenario="ni")
+            for task_info in scenario:
+                pass
 
     def test_core50_nc_scenario(self):
-        benchmark_instance = CORe50(scenario='nc')
+        if "FAST_TEST" in os.environ:
+            pass
+        else:
+            benchmark_instance = CORe50(scenario='nc')
+            self.assertEqual(1, len(benchmark_instance.test_stream))
 
-        self.assertEqual(1, len(benchmark_instance.test_stream))
-
-        classes_in_test = benchmark_instance.\
-            classes_in_experience['test'][0]
-        self.assertSetEqual(
-            set(range(50)),
-            set(classes_in_test))
+            classes_in_test = benchmark_instance.\
+                classes_in_experience['test'][0]
+            self.assertSetEqual(
+                set(range(50)),
+                set(classes_in_test))
 
 
 if __name__ == '__main__':
