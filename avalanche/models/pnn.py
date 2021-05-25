@@ -19,14 +19,47 @@ class LinearAdapter(nn.Module):
             self.lat_layers.append(m)
 
     def forward(self, x):
+        assert len(x) == self.num_prev_modules
         hs = []
         for ii, lat in enumerate(self.lat_layers):
             hs.append(lat(x[ii]))
         return sum(hs)
 
 
+class MLPAdapter(nn.Module):
+    def __init__(self, in_features, out_features_per_column, num_prev_modules,
+                 activation=F.relu):
+        super().__init__()
+        self.num_prev_modules = num_prev_modules
+        self.activation = activation
+
+        if num_prev_modules == 0:
+            return  # first adapter is empty
+
+        # Eq. 2 - MLP adapter. Not needed for the first task.
+        self.V = nn.Linear(in_features * num_prev_modules,
+                           out_features_per_column)
+        self.alphas = nn.Parameter(torch.randn(num_prev_modules))
+        self.U = nn.Linear(out_features_per_column, out_features_per_column)
+
+    def forward(self, x):
+        if self.num_prev_modules == 0:
+            return 0  # first adapter is empty
+
+        assert len(x) == self.num_prev_modules
+        assert len(x[0].shape) == 2, \
+            "Inputs to MLPAdapter should have two dimensions: " \
+            "<batch_size, num_features>."
+        for i, el in enumerate(x):
+            x[i] = self.alphas[i] * el
+        x = torch.cat(x, dim=1)
+        x = self.U(self.activation(self.V(x)))
+        return x
+
+
 class PNNColumn(nn.Module):
-    def __init__(self, in_features, out_features_per_column, num_prev_modules):
+    def __init__(self, in_features, out_features_per_column, num_prev_modules,
+                 adapter='mlp'):
         """ Progressive Neural Network column.
 
         :param in_features:
@@ -37,19 +70,24 @@ class PNNColumn(nn.Module):
         self.out_features_per_column = out_features_per_column
         self.num_prev_modules = num_prev_modules
 
-        # Eq. 1 - input to hidden connections
-        # one module for each task
         self.itoh = nn.Linear(in_features, out_features_per_column)
-        self.adapter = LinearAdapter(in_features, out_features_per_column,
-                                     num_prev_modules)
+        if adapter == 'linear':
+            self.adapter = LinearAdapter(in_features, out_features_per_column,
+                                         num_prev_modules)
+        elif adapter == 'mlp':
+            self.adapter = MLPAdapter(in_features, out_features_per_column,
+                                      num_prev_modules)
+        else:
+            raise ValueError("`adapter` must be one of: {'mlp', `linear'}.")
 
     def freeze(self):
         for param in self.parameters():
             param.requires_grad = False
 
     def forward(self, x):
-        hs = self.adapter(x)
-        hs += self.itoh(x[-1])
+        prev_xs, last_x = x[:-1], x[-1]
+        hs = self.adapter(prev_xs)
+        hs += self.itoh(last_x)
         return hs
 
 
