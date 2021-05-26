@@ -1,3 +1,5 @@
+from .dataset_utils import *
+from .downloadable_dataset import *
 from .core50 import *
 from .cub200 import *
 from .mini_imagenet import *

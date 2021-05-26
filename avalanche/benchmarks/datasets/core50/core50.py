@@ -11,14 +11,18 @@
 
 """ CORe50 Pytorch Dataset """
 
-import os
+import glob
 import logging
-from torch.utils.data.dataset import Dataset
-from torchvision.transforms import ToTensor
-from PIL import Image
+import os
 import pickle as pkl
-from os.path import expanduser
-from .core50_data import CORE50_DATA
+
+from PIL import Image
+from torchvision.transforms import ToTensor
+
+from avalanche.benchmarks.datasets.core50 import core50_data
+from avalanche.benchmarks.datasets import get_default_dataset_location
+from avalanche.benchmarks.datasets.downloadable_dataset import \
+    DownloadableDataset
 
 
 def pil_loader(path):
@@ -30,10 +34,10 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
-class CORe50(Dataset):
+class CORe50Dataset(DownloadableDataset):
     """ CORe50 Pytorch Dataset """
 
-    def __init__(self, root=expanduser("~")+"/.avalanche/data/core50/",
+    def __init__(self, root=get_default_dataset_location('core50'),
                  train=True, transform=ToTensor(), target_transform=None,
                  loader=pil_loader, download=True, object_level=True):
         """
@@ -51,58 +55,24 @@ class CORe50(Dataset):
             (50-way object classification problem)
         """
 
+        super(CORe50Dataset, self).__init__(
+            root, download=download, verbose=True)
+
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
-        self.root = root
         self.loader = loader
         self.object_level = object_level
         self.log = logging.getLogger("avalanche")
 
         # any scenario and run is good here since we want just to load the
         # train images and targets with no particular order
-        scen = 'ni'
-        run = 0
-        nbatch = 8
+        self._scen = 'ni'
+        self._run = 0
+        self._nbatch = 8
 
-        if download:
-            self.core_data = CORE50_DATA(data_folder=root)
-
-        self.log.info("Loading paths...")
-        with open(os.path.join(root, 'paths.pkl'), 'rb') as f:
-            self.train_test_paths = pkl.load(f)
-
-        self.log.info("Loading labels...")
-        with open(os.path.join(root, 'labels.pkl'), 'rb') as f:
-            self.all_targets = pkl.load(f)
-            self.train_test_targets = []
-            for i in range(nbatch + 1):
-                self.train_test_targets += self.all_targets[scen][run][i]
-
-        self.log.info("Loading LUP...")
-        with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
-            self.LUP = pkl.load(f)
-
-        self.log.info("Loading labels names...")
-        with open(os.path.join(root, 'labels2names.pkl'), 'rb') as f:
-            self.labels2names = pkl.load(f)
-
-        self.idx_list = []
-        if train:
-            for i in range(nbatch + 1):
-                self.idx_list += self.LUP[scen][run][i]
-        else:
-            self.idx_list = self.LUP[scen][run][-1]
-
-        self.paths = []
-        self.targets = []
-
-        for idx in self.idx_list:
-            self.paths.append(self.train_test_paths[idx])
-            div = 1
-            if not self.object_level:
-                div = 5
-            self.targets.append(self.train_test_targets[idx] // div)
+        # Download the dataset and initialize metadata
+        self._load_dataset()
 
     def __getitem__(self, index):
         """
@@ -116,9 +86,7 @@ class CORe50(Dataset):
 
         target = self.targets[index]
         img = self.loader(
-            os.path.join(
-                self.root, "core50_128x128", self.paths[index]
-            )
+            str(self.root / "core50_128x128" / self.paths[index])
         )
         if self.transform is not None:
             img = self.transform(img)
@@ -130,6 +98,103 @@ class CORe50(Dataset):
     def __len__(self):
         return len(self.targets)
 
+    def _download_dataset(self) -> None:
+        data2download = core50_data.data
+
+        for name in data2download:
+            self.log.info("Downloading " + name[1] + "...")
+            file = self._download_file(name[1], name[0], None)
+            if name[1].endswith('.zip'):
+                self.log.info('Extracting CORe50 images...')
+                self._extract_archive(file)
+                self.log.info('Done!')
+
+        self.log.info("Download complete.")
+
+    def _load_metadata(self) -> bool:
+        with open(self.root / 'paths.pkl', 'rb') as f:
+            self.train_test_paths = pkl.load(f)
+
+        self.log.info("Loading labels...")
+        with open(self.root / 'labels.pkl', 'rb') as f:
+            self.all_targets = pkl.load(f)
+            self.train_test_targets = []
+            for i in range(self._nbatch + 1):
+                self.train_test_targets += \
+                    self.all_targets[self._scen][self._run][i]
+
+        self.log.info("Loading LUP...")
+        with open(self.root / 'LUP.pkl', 'rb') as f:
+            self.LUP = pkl.load(f)
+
+        self.log.info("Loading labels names...")
+        with open(self.root / 'labels2names.pkl', 'rb') as f:
+            self.labels2names = pkl.load(f)
+
+        self.idx_list = []
+        if self.train:
+            for i in range(self._nbatch + 1):
+                self.idx_list += self.LUP[self._scen][self._run][i]
+        else:
+            self.idx_list = self.LUP[self._scen][self._run][-1]
+
+        self.paths = []
+        self.targets = []
+
+        for idx in self.idx_list:
+            self.paths.append(self.train_test_paths[idx])
+            div = 1
+            if not self.object_level:
+                div = 5
+            self.targets.append(self.train_test_targets[idx] // div)
+
+        with open(self.root / 'labels2names.pkl', 'rb') as f:
+            self.labels2names = pkl.load(f)
+
+        if not (self.root / 'NIC_v2_79_cat').exists():
+            self._create_cat_filelists()
+
+        return True
+
+    def _download_error_message(self) -> str:
+        pass
+
+    def _create_cat_filelists(self):
+        """ Generates corresponding filelists with category-wise labels. The
+        default one are based on the object-level labels from 0 to 49."""
+
+        for k, v in core50_data.scen2dirs.items():
+            orig_root_path = os.path.join(self.root, v)
+            root_path = os.path.join(self.root, v[:-1] + "_cat")
+            if not os.path.exists(root_path):
+                os.makedirs(root_path)
+            for run in range(10):
+                cur_path = os.path.join(root_path, "run"+str(run))
+                orig_cur_path = os.path.join(orig_root_path, "run"+str(run))
+                if not os.path.exists(cur_path):
+                    os.makedirs(cur_path)
+                for file in glob.glob(os.path.join(orig_cur_path, "*.txt")):
+                    o_filename = file
+                    _, d_filename = os.path.split(o_filename)
+                    orig_f = open(o_filename, "r")
+                    dst_f = open(os.path.join(cur_path, d_filename), "w")
+                    for line in orig_f:
+                        path, label = line.split(" ")
+                        new_label = self._objlab2cat(int(label), k, run)
+                        dst_f.write(path + " " + str(new_label) + "\n")
+                    orig_f.close()
+                    dst_f.close()
+
+    def _objlab2cat(self, label, scen, run):
+        """ Mapping an object label into its corresponding category label
+        based on the scenario. """
+
+        if scen == "nc":
+            return core50_data.name2cat[
+                self.labels2names['nc'][run][label][:-1]]
+        else:
+            return int(label) // 5
+
 
 if __name__ == "__main__":
 
@@ -140,8 +205,8 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    train_data = CORe50()
-    test_data = CORe50(train=False)
+    train_data = CORe50Dataset()
+    test_data = CORe50Dataset(train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     print(train_data.labels2names)
@@ -159,5 +224,5 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    'CORe50'
+    'CORe50Dataset'
 ]

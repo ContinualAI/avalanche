@@ -14,10 +14,10 @@ basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets.core50.core50_data import CORE50_DATA
+from avalanche.benchmarks.datasets import get_default_dataset_location
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_filelists
-from os.path import expanduser
+from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset
 
 nbatch = {
     'ni': 8,
@@ -38,7 +38,7 @@ scen2dirs = {
 }
 
 
-def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
+def CORe50(root=get_default_dataset_location('core50'),
            scenario="nicv2_391",
            run=0,
            object_lvl=True,
@@ -90,28 +90,27 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
                                         "recognized: it should be 'ni', 'nc'," \
                                         "'nic', 'nicv2_79', 'nicv2_196' or " \
                                         "'nicv2_391'."
-    if root is None:
-        core_data = CORE50_DATA()
-    else:
-        core_data = CORE50_DATA(root)
 
-    root = core_data.data_folder
-    root_img = root + "core50_128x128/"
+    # Download the dataset and initialize filelists
+    core_data = CORe50Dataset(root=root)
+
+    root = core_data.root
+    root_img = root / "core50_128x128/"
 
     if object_lvl:
         suffix = "/"
     else:
         suffix = "_cat/"
-    filelists_bp = scen2dirs[scenario][:-1] + suffix + "run" + str(run) + "/"
+    filelists_bp = scen2dirs[scenario][:-1] + suffix + "run" + str(run)
     train_failists_paths = []
-    for i in range(nbatch[scenario]):
+    for batch_id in range(nbatch[scenario]):
         train_failists_paths.append(
-            root + filelists_bp + "train_batch_" +
-            str(i).zfill(2) + "_filelist.txt")
+            root / filelists_bp / ("train_batch_" +
+                                   str(batch_id).zfill(2) + "_filelist.txt"))
 
     scenario_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
-        [root + filelists_bp + "test_filelist.txt"],
+        [root / filelists_bp / "test_filelist.txt"],
         task_labels=[0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
