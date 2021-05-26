@@ -200,11 +200,11 @@ class RunningEpochCPUUsage(CPUPluginMetric):
 
     def before_training_iteration(self, strategy):
         super().before_training_iteration(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def after_training_iteration(self, strategy):
         super().after_training_iteration(strategy)
-        self.update()
+        self.update(strategy)
         self._mean.update(self._cpu.result())
         self._cpu.reset()
         return self._package_result(strategy)

@@ -1,14 +1,22 @@
-from abc import ABC, abstractmethod
-from typing import Dict
 import random
-from torch.utils.data import random_split
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+import torch
+from numpy import inf
+from torch import Tensor, cat
+from torch.nn import Module
+from torch.utils.data import random_split, DataLoader
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset, \
     AvalancheDataset, AvalancheSubset
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
-import numpy as np
+from avalanche.models import FeatureExtractorBackbone
+from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+
+if TYPE_CHECKING:
+    from avalanche.training.strategies import BaseStrategy
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -28,9 +36,12 @@ class ReplayPlugin(StrategyPlugin):
 
     The :mem_size: attribute controls the total number of patterns to be stored 
     in the external memory.
+    :param storage_policy: The policy that controls how to add new exemplars
+                           in memory
     """
 
-    def __init__(self, mem_size=200, storage_policy=None):
+    def __init__(self, mem_size: int = 200,
+                 storage_policy: Optional["StoragePolicy"] = None):
         super().__init__()
         self.mem_size = mem_size
 
@@ -46,7 +57,8 @@ class ReplayPlugin(StrategyPlugin):
                 mem_size=self.mem_size,
                 adaptive_size=True)
 
-    def before_training_exp(self, strategy, num_workers=0, shuffle=True,
+    def before_training_exp(self, strategy: "BaseStrategy",
+                            num_workers: int = 0, shuffle: bool = True,
                             **kwargs):
         """
         Dataloader to build batches containing examples from both memories and
@@ -62,21 +74,28 @@ class ReplayPlugin(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy, **kwargs):
-        self.storage_policy(strategy)
+    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+        self.storage_policy(strategy, **kwargs)
 
 
 class StoragePolicy(ABC):
-    """ A policy to store exemplars in a replay memory."""
+    """
+    A policy to store exemplars in a replay memory.
+
+    :param ext_mem: The replay memory dictionary to store samples.
+    :param mem_size: max number of total input samples in the replay memory.
+    """
+    def __init__(self, ext_mem: Dict[int, AvalancheDataset], mem_size: int):
+        self.ext_mem = ext_mem
+        self.mem_size = mem_size
 
     @abstractmethod
-    def __call__(self, data_source, **kwargs):
+    def __call__(self, data_source: AvalancheDataset, **kwargs):
         """Store exemplars in the replay memory"""
-        pass
 
 
 class ExperienceBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
                  num_experiences=-1):
         """
         Stores samples for replay, equally divided over experiences.
@@ -94,8 +113,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         :param num_experiences: If adaptive size is False, the fixed number
                                 of experiences to divide capacity over.
         """
-        self.ext_mem = ext_mem
-        self.mem_size = mem_size
+        super().__init__(ext_mem, mem_size)
         self.adaptive_size = adaptive_size
         self.num_experiences = num_experiences
 
@@ -103,14 +121,14 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
             assert self.num_experiences > 0, \
                 """When fixed exp mem size, num_experiences should be > 0."""
 
-    def subsample_single(self, data, new_size):
+    def subsample_single(self, data: AvalancheDataset, new_size: int):
         """ Subsample `data` to match length `new_size`. """
         removed_els = len(data) - new_size
         if removed_els > 0:
             data, _ = random_split(data, [new_size, removed_els])
         return data
 
-    def subsample_all_groups(self, new_size):
+    def subsample_all_groups(self, new_size: int):
         """ Subsample all groups equally to match total buffer size
         `new_size`. """
         groups = list(self.ext_mem.keys())
@@ -127,7 +145,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         last = self.ext_mem[groups[-1]]
         self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
 
-    def __call__(self, strategy, **kwargs):
+    def __call__(self, strategy: "BaseStrategy", **kwargs):
         num_exps = strategy.training_exp_counter + 1
         num_exps = num_exps if self.adaptive_size else self.num_experiences
         curr_data = strategy.experience.dataset
@@ -141,13 +159,14 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         self.ext_mem[strategy.training_exp_counter + 1] = curr_data
 
         # buffer size should always equal self.mem_size
-        len_tot = sum([len(el) for el in self.ext_mem.values()])
+        len_tot = sum(len(el) for el in self.ext_mem.values())
         assert len_tot == self.mem_size
 
 
 class ClassBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size=True,
-                 total_num_classes=-1):
+    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
+                 total_num_classes: int = -1, selection_strategy:
+                 Optional["ClassExemplarsSelectionStrategy"] = None):
         """
         Stores samples for replay, equally divided over classes.
         It should be called in the 'after_training_exp' phase (see
@@ -161,9 +180,12 @@ class ClassBalancedStoragePolicy(StoragePolicy):
                             observed experiences (keys in replay_mem).
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
+        :param selection_strategy: The strategy used to select exemplars to 
+                                   keep in memory when cutting it off
         """
-        self.ext_mem = ext_mem
-        self.mem_size = mem_size
+        super().__init__(ext_mem, mem_size)
+        self.selection_strategy = selection_strategy or \
+            RandomExemplarsSelectionStrategy()
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
@@ -172,7 +194,7 @@ class ClassBalancedStoragePolicy(StoragePolicy):
             assert self.total_num_classes > 0, \
                 """When fixed exp mem size, total_num_classes should be > 0."""
 
-    def __call__(self, strategy, **kwargs):
+    def __call__(self, strategy: "BaseStrategy", **kwargs):
         new_data = strategy.experience.dataset
 
         # Get sample idxs per class
@@ -197,11 +219,11 @@ class ClassBalancedStoragePolicy(StoragePolicy):
 
         # Add current classes data to memory
         for c, c_mem in cl_datasets.items():
-            if c not in self.ext_mem:
-                self.ext_mem[c] = c_mem
-            else:  # Merge data with previous seen data
-                self.ext_mem[c] = AvalancheConcatDataset(
-                    [c_mem, self.ext_mem[c]])
+            if c in self.ext_mem:  # Merge data with previous seen data
+                c_mem = AvalancheConcatDataset((c_mem, self.ext_mem[c]))
+            sorted_indices = self.selection_strategy.make_sorted_indices(
+                strategy, c_mem)
+            self.ext_mem[c] = AvalancheSubset(c_mem, sorted_indices)
 
         # Distribute remaining samples using counts
         cutoff_per_exp = self.divide_remaining_samples(class_mem_size, div_cnt)
@@ -209,14 +231,15 @@ class ClassBalancedStoragePolicy(StoragePolicy):
         # Use counts to remove samples from memory
         self.cutoff_memory(cutoff_per_exp)
 
-    def divide_remaining_samples(self, exp_mem_size, div_cnt):
+    def divide_remaining_samples(self, exp_mem_size: int, div_cnt: int) -> \
+            Dict[int, int]:
         # Find number of remaining samples
         samples_per_exp = {exp: len(mem) for exp, mem in
                            self.ext_mem.items()}
         rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
                          samples_per_exp.items() if
                          exp_mem_size - memsize > 0}
-        rem_from_div = self.mem_size % (div_cnt)
+        rem_from_div = self.mem_size % div_cnt
         free_mem = sum(rem_from_exps.values()) + rem_from_div
 
         # Divide the remaining samples randomly over the experiences
@@ -238,9 +261,103 @@ class ClassBalancedStoragePolicy(StoragePolicy):
 
         return cutoff_per_exp
 
-    def cutoff_memory(self, cutoff_per_exp):
-        # Allocate to experiences
+    def cutoff_memory(self, cutoff_per_exp: Dict[int, int]):
+        # No need to reselect at this point, we expect the first selection to
+        # have sorted the exemplars
         for exp, cutoff in cutoff_per_exp.items():
-            self.ext_mem[exp], _ = random_split(
-                self.ext_mem[exp],
-                [cutoff, len(self.ext_mem[exp]) - cutoff])
+            self.ext_mem[exp] = AvalancheSubset(self.ext_mem[exp],
+                                                list(range(cutoff)))
+
+
+class ClassExemplarsSelectionStrategy(ABC):
+    """
+    Base class to define how to select class exemplars from a dataset
+    """
+    @abstractmethod
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        """
+        Should return the sorted list of indices to keep as exemplars.
+
+        The last indices will be the first to be removed when cutoff memory.
+        """
+
+
+class RandomExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy):
+    """Select the exemplars at random in the dataset"""
+
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        indices = list(range(len(data)))
+        random.shuffle(indices)
+        return indices
+
+
+class FeatureBasedExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy,
+                                             ABC):
+    """Base class to select exemplars from their features"""
+    def __init__(self, model: Module, layer_name: str):
+        self.feature_extractor = FeatureExtractorBackbone(model, layer_name)
+
+    @torch.no_grad()
+    def make_sorted_indices(self, strategy: "BaseStrategy",
+                            data: AvalancheDataset) -> List[int]:
+        self.feature_extractor.eval()
+        features = cat(
+            [
+                self.feature_extractor(x.to(strategy.device))
+                for x, *_ in DataLoader(data, batch_size=strategy.eval_mb_size)
+            ]
+        )
+        return self.make_sorted_indices_from_features(features)
+
+    @abstractmethod
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        Should return the sorted list of indices to keep as exemplars.
+
+        The last indices will be the first to be removed when cutoff memory.
+        """
+
+
+class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        The herding strategy as described in iCaRL
+
+        It is a greedy algorithm, that select the remaining exemplar that get
+        the center of already selected exemplars as close as possible as the
+        center of all elements (in the feature space).
+        """
+        selected_indices = []
+
+        center = features.mean(dim=0)
+        current_center = center * 0
+
+        for i in range(len(features)):
+            # Compute distances with real center
+            candidate_centers = current_center * i / (i + 1) + features / (i
+                                                                           + 1)
+            distances = pow(candidate_centers - center, 2).sum(dim=1)
+            distances[selected_indices] = inf
+
+            # Select best candidate
+            new_index = distances.argmin().tolist()
+            selected_indices.append(new_index)
+            current_center = candidate_centers[new_index]
+
+        return selected_indices
+
+
+class ClosestToCenterSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    def make_sorted_indices_from_features(self, features: Tensor
+                                          ) -> List[int]:
+        """
+        A greedy algorithm that select the remaining exemplar that is the
+        closest to the center of all elements (in feature space)
+        """
+        center = features.mean(dim=0)
+        distances = pow(features - center, 2).sum(dim=1)
+        return distances.argsort()
