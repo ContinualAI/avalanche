@@ -104,7 +104,7 @@ class ICaRLPlugin(StrategyPlugin):
                 (self.embedding_size, n_classes)).to(strategy.device)
 
         for i, class_samples in enumerate(self.x_memory):
-            l = self.y_memory[i][0]
+            label = self.y_memory[i][0]
             class_samples = class_samples.to(strategy.device)
 
             with torch.no_grad():
@@ -120,13 +120,13 @@ class ICaRLPlugin(StrategyPlugin):
             D2 = mapped_prototypes2.T
             D2 = D2 / torch.norm(D2, dim=0)
 
-            div = torch.ones(class_samples.shape[0], device=strategy.device) \
-                  / class_samples.shape[0]
+            div = torch.ones(class_samples.shape[0], device=strategy.device)
+            div = div / class_samples.shape[0]
 
             m1 = torch.mm(D, div.unsqueeze(1)).squeeze(1)
             m2 = torch.mm(D2, div.unsqueeze(1)).squeeze(1)
-            self.class_means[:, l] = (m1 + m2) / 2
-            self.class_means[:, l] /= torch.norm(self.class_means[:, l])
+            self.class_means[:, label] = (m1 + m2) / 2
+            self.class_means[:, label] /= torch.norm(self.class_means[:, label])
 
             strategy.model.eval_head.class_means = self.class_means
 
@@ -139,7 +139,8 @@ class ICaRLPlugin(StrategyPlugin):
                 self.memory_size / len(self.observed_classes)))
         else:
             nb_protos_cl = self.memory_size
-        new_classes = self.observed_classes[tid*nb_cl[tid]:(tid+1)*nb_cl[tid]]
+        new_classes = self.observed_classes[tid * nb_cl[tid]:
+                                            (tid + 1) * nb_cl[tid]]
 
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
@@ -178,7 +179,7 @@ class ICaRLPlugin(StrategyPlugin):
             pick = (order > 0) * (order < nb_protos_cl + 1) * 1.
             self.x_memory.append(class_patterns[torch.where(pick == 1)[0]])
             self.y_memory.append(
-                [new_classes[iter_dico]]*len(torch.where(pick == 1)[0]))
+                [new_classes[iter_dico]] * len(torch.where(pick == 1)[0]))
             self.order.append(order[torch.where(pick == 1)[0]])
 
     def reduce_exemplar_set(self, strategy):
@@ -194,7 +195,7 @@ class ICaRLPlugin(StrategyPlugin):
         for i in range(len(self.x_memory) - nb_cl[tid]):
             pick = (self.order[i] < nb_protos_cl + 1) * 1.
             self.x_memory[i] = self.x_memory[i][torch.where(pick == 1)[0]]
-            self.y_memory[i] = self.y_memory[i][:len(torch.where(pick==1)[0])]
+            self.y_memory[i] = self.y_memory[i][:len(torch.where(pick == 1)[0])]
             self.order[i] = self.order[i][torch.where(pick == 1)[0]]
 
 
@@ -211,8 +212,8 @@ class DistillationLoss:
     def __call__(self, logits, targets):
         predictions = torch.sigmoid(logits)
 
-        one_hot = torch.zeros(targets.shape[0], logits.shape[1]
-                              , dtype=torch.float, device=logits.device)
+        one_hot = torch.zeros(targets.shape[0], logits.shape[1],
+                              dtype=torch.float, device=logits.device)
         one_hot[range(len(targets)), targets.long()] = 1
 
         if self.old_classes is not None:
