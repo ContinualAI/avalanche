@@ -15,7 +15,25 @@ if TYPE_CHECKING:
 
 
 class ICaRLPlugin(StrategyPlugin):
+    """
+        iCaRL Plugin.
+        iCaRL uses nearest class exemplar classification to prevent
+        forgetting to occur at the classification layer. The feature extractor
+        is continually learned using replay and distillation. The exemplars
+        used for replay and classification are selected through herding.
+        This plugin does not use task identities.
+        """
     def __init__(self, memory_size, diff_transform=None, fixed_memory=True):
+        """
+        :param memory_size: amount of patterns saved in the memory.
+        :param diff_transform: transform to apply to to test samples to
+            get train samples. If test_transform == train_transform,
+            diff_transform is None
+        :param fixed_memory: If True a memory of size memory_size is
+            allocated and divided between samples from the observed
+            experiences. If False every time a new class is observed
+            mememory_size samples of that class are added to the memory.
+        """
         super().__init__()
 
         self.memory_size = memory_size
