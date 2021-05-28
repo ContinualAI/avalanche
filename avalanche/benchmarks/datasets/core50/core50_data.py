@@ -13,7 +13,6 @@
 
 import os
 import sys
-import logging
 import glob
 import pickle as pkl
 from zipfile import ZipFile
@@ -44,7 +43,9 @@ data = [
 
 extra_data = [
     ('core50_imgs.npz',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz'),
+    ('core50_32x32.zip',
+     'http://vps.continualai.org/data/core50_32x32.zip')
 ]
 
 scen2dirs = {
@@ -75,13 +76,23 @@ class CORE50_DATA(object):
     CORE50 downloader.
     """
 
-    def __init__(self, data_folder='data/'):
+    def __init__(self, data_folder='data/', mini=False, obj_lvl=True):
         """
         Args:
-            data_folder (string): folder in which to download core50 dataset. 
+            data_folder (string): folder in which to download core50 dataset.
+            mini (bool): if we need to download/use only 32x32 data.
+            obj_lvl: classification level (object or categories level).
+                Default to objec-level (50 classes).
         """
 
-        self.log = logging.getLogger("avalanche")
+        self.mini = mini
+        self.obj_lvl = obj_lvl
+
+        if self.mini:
+            # we swap the main zip file to download: 32x32 instead of 128x128
+            app_tup = data[0]
+            data[0] = extra_data[1]
+            extra_data[1] = app_tup
 
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
@@ -92,13 +103,13 @@ class CORE50_DATA(object):
         try:
             # Create target Directory for CORE50 data
             os.makedirs(self.data_folder)
-            self.log.info("Directory %s created", self.data_folder)
+            print("Root data folder created at:", self.data_folder)
             self.download = True
             self.download_core50()
 
         except OSError:
             self.download = False
-            self.log.error("Directory %s already exists", self.data_folder)
+            print("Directory %s already exists", self.data_folder)
 
         with open(os.path.join(data_folder, 'labels2names.pkl'), 'rb') as f:
             self.labels2names = pkl.load(f)
@@ -106,7 +117,7 @@ class CORE50_DATA(object):
         if os.path.exists(os.path.join(data_folder, "NIC_v2_79_cat")):
             # It means category filelists has been already created
             pass
-        else:
+        elif not self.obj_lvl:
             self._create_cat_filelists()
 
     def download_core50(self, extra=False):
@@ -122,17 +133,17 @@ class CORE50_DATA(object):
             data2download = data
 
         for name in data2download:
-            self.log.info("Downloading " + name[1] + "...")
+            print("Downloading " + name[1] + "...")
             urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
 
             if name[1].endswith('.zip'):
                 with ZipFile(
                         os.path.join(self.data_folder, name[0]), 'r') as zipf:
-                    self.log.info('Extracting CORe50 images...')
+                    print('Extracting data from zip...')
                     zipf.extractall(self.data_folder) 
-                    self.log.info('Done!')
+                    print('Done!')
 
-        self.log.info("Download complete.")
+        print("Download complete.")
 
     def _objlab2cat(self, label, scen, run):
         """ Mapping an object label into its corresponding category label
