@@ -20,6 +20,8 @@ import random
 from torchvision.datasets.folder import default_loader
 from zipfile import ZipFile
 
+from torchvision.transforms import ToTensor
+
 from avalanche.benchmarks.datasets import DownloadableDataset, \
     get_default_dataset_location
 from avalanche.benchmarks.datasets.stream51 import stream51_data
@@ -48,7 +50,10 @@ class Stream51(DownloadableDataset):
 
     def _download_dataset(self) -> None:
         self._download_file(stream51_data.name[1], stream51_data.name[0],
-                            None)
+                            stream51_data.name[2])
+
+        if self.verbose:
+            print('[Stream-51] Extracting dataset...')
 
         if stream51_data.name[1].endswith('.zip'):
             lfilename = self.root / stream51_data.name[0]
@@ -73,7 +78,7 @@ class Stream51(DownloadableDataset):
                     with source, target:
                         shutil.copyfileobj(source, target)
 
-            lfilename.unlink()
+            # lfilename.unlink()
 
     def _load_metadata(self) -> bool:
         if self.train:
@@ -92,8 +97,9 @@ class Stream51(DownloadableDataset):
         return True
 
     def _download_error_message(self) -> str:
-        return '[Stream-51] Can\'t download the dataset. The dataset can be ' \
-               'downloaded manually from: ' + stream51_data.name[1]
+        return '[Stream-51] Error downloading the dataset. Consider ' \
+               'downloading it manually at: ' + stream51_data.name[1] + \
+               ' and placing it in: ' + str(self.root)
 
     @staticmethod
     def _instance_ordering(data_list, seed):
@@ -229,9 +235,8 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    train_data = Stream51(root=root_dir)
-    test_data = Stream51(root=root_dir, train=False)
+    train_data = Stream51(transform=ToTensor())
+    test_data = Stream51(transform=ToTensor(), train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     dataloader = DataLoader(train_data, batch_size=1)

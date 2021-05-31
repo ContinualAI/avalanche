@@ -99,7 +99,8 @@ class CUB200(PathsDataset, DownloadableDataset):
 
     def _download_error_message(self) -> str:
         return '[CUB200] Error downloading the dataset. Consider downloading ' \
-               'it manually at : ' + CUB200.official_url
+               'it manually at: ' + CUB200.official_url + ' and placing it ' \
+               'in: ' + str(self.root)
 
     def _load_metadata(self):
         """ Main method to load the CUB200 metadata """

@@ -250,7 +250,6 @@ if __name__ == "__main__":
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    # root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
     scenario = CLStream51(scenario="class_instance", seed=10,
                           bbox_crop=True)
 

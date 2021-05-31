@@ -14,16 +14,23 @@
 
 data = [
     ('core50_128x128.zip',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip'),
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip',
+     '745f3373fed08d69343f1058ee559e13'),
     ('batches_filelists.zip',
-     'https://vlomonaco.github.io/core50/data/batches_filelists.zip'),
+     'https://vlomonaco.github.io/core50/data/batches_filelists.zip',
+     'e3297508a8998ba0c99a83d6b36bde62'),
     ('batches_filelists_NICv2.zip',  
-     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip'),
-    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
-    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
-    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
+     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip',
+     '460f980a6c85b86b1ec8e7c6067bb7a3'),
+    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl',
+     'b568f86998849184df3ec3465290f1b0'),
+    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl',
+     '33afc26faa460aca98739137fdfa606e'),
+    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl',
+     '281c95774306a2196f4505f22fd60ab1'),
     ('labels2names.pkl',
-     'https://vlomonaco.github.io/core50/data/labels2names.pkl')
+     'https://vlomonaco.github.io/core50/data/labels2names.pkl',
+     '557d0b9f0ec32765ccea65624aa51b3b')
 ]
 
 extra_data = [

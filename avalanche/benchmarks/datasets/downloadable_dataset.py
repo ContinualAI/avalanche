@@ -292,8 +292,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
 
         return extract_root
 
-    @staticmethod
-    def check_file(path: Union[str, Path], checksum: str) -> bool:
+    def _check_file(self, path: Union[str, Path], checksum: str) -> bool:
         """
         Utility method to check a file.
 
@@ -380,8 +379,9 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
             remove_archive=False)
 
     def _download_error_message(self) -> str:
-        return 'Error initializing dataset. The dataset can be downloaded ' \
-               'manually at:\n' + self.url
+        return 'Error downloading the dataset. Consider downloading ' \
+               'it manually at: ' + self.url + ' and placing it ' \
+               'in: ' + str(self.root)
 
 
 __all__ = [

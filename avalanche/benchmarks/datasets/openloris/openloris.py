@@ -41,11 +41,12 @@ class OpenLORIS(DownloadableDataset):
     def _download_dataset(self) -> None:
         for name in openloris_data.filename:
             filepath = self.root / name[0]
-            if self.verbose:
-                print('[OpenLoris] Start downloading {}...'.format(name[0]))
-            url = openloris_data.base_gdrive_url + name[1]
-            gdown.download(url, str(filepath), quiet=False)
-            gdown.cached_download(url, str(filepath))
+            if not filepath.exists():
+                if self.verbose:
+                    print('[OpenLoris] Start downloading {}...'.format(name[0]))
+                url = openloris_data.base_gdrive_url + name[1]
+                gdown.download(url, str(filepath), quiet=False)
+                gdown.cached_download(url, str(filepath))
             self._extract_archive(filepath)
 
     def _load_metadata(self) -> bool:
@@ -99,11 +100,12 @@ class OpenLORIS(DownloadableDataset):
             '[OpenLoris] Direct download may no longer be supported!\n' \
             'You should download data manually using the following links:\n'
 
-        for url_idx in range(len(all_urls)-1):
-            base_msg += all_urls[url_idx]
+        for url in all_urls:
+            base_msg += url
             base_msg += '\n'
 
-        base_msg += all_urls[-1]
+        base_msg += 'and place these files in ' + str(self.root)
+
         return base_msg
 
     def _check_integrity(self):

@@ -21,12 +21,13 @@ from torchvision.transforms import ToTensor
 from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
     get_default_dataset_location
 
-filename = ('tiny-imagenet-200.zip',
-            'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
-
 
 class TinyImagenet(SimpleDownloadableDataset):
     """Tiny Imagenet Pytorch Dataset"""
+
+    filename = ('tiny-imagenet-200.zip',
+                'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
+    md5 = '90528d7ca1a48142e341f4ef8d21d0de'
 
     def __init__(
             self,
@@ -55,7 +56,7 @@ class TinyImagenet(SimpleDownloadableDataset):
         self.loader = loader
 
         super(TinyImagenet, self).__init__(
-            root, filename[1], None, download=download, verbose=True)
+            root, self.filename[1], self.md5, download=download, verbose=True)
 
         self._load_dataset()
 

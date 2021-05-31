@@ -101,7 +101,7 @@ class CORe50Dataset(DownloadableDataset):
 
         for name in data2download:
             self.log.info("Downloading " + name[1] + "...")
-            file = self._download_file(name[1], name[0], None)
+            file = self._download_file(name[1], name[0], name[2])
             if name[1].endswith('.zip'):
                 self.log.info('Extracting CORe50 images...')
                 self._extract_archive(file)
@@ -110,6 +110,12 @@ class CORe50Dataset(DownloadableDataset):
         self.log.info("Download complete.")
 
     def _load_metadata(self) -> bool:
+        if not (self.root / 'core50_128x128').exists():
+            return False
+
+        if not (self.root / 'batches_filelists').exists():
+            return False
+
         with open(self.root / 'paths.pkl', 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
@@ -155,7 +161,21 @@ class CORe50Dataset(DownloadableDataset):
         return True
 
     def _download_error_message(self) -> str:
-        pass
+        all_urls = [
+            name_url[1] for name_url in core50_data.data
+        ]
+
+        base_msg = \
+            '[CORe50] Error downloading the dataset!\n' \
+            'You should download data manually using the following links:\n'
+
+        for url in all_urls:
+            base_msg += url
+            base_msg += '\n'
+
+        base_msg += 'and place these files in ' + str(self.root)
+
+        return base_msg
 
     def _create_cat_filelists(self):
         """ Generates corresponding filelists with category-wise labels. The
