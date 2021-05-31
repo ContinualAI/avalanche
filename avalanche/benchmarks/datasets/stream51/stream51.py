@@ -14,30 +14,22 @@
 import os
 import logging
 from torch.utils.data.dataset import Dataset
-from torchvision.transforms import ToTensor
-from PIL import Image
 import json
 import random
+
+from torchvision.datasets.folder import default_loader
+
 from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
 
-
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
-
-
-def default_loader(path):
-    return pil_loader(path)
 
 
 class Stream51(Dataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root, train=True, transform=None,
-                 target_transform=None, loader=pil_loader, download=True):
+    def __init__(self, root,
+                 *,
+                 train=True, transform=None,
+                 target_transform=None, loader=default_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform

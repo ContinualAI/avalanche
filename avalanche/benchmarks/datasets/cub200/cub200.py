@@ -18,13 +18,16 @@ http://www.vision.caltech.edu/visipedia/CUB-200-2011.html.
 """
 
 import csv
+from pathlib import Path
+from typing import Union
+
 import gdown
 import os
 from collections import OrderedDict
-from os.path import expanduser
 from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import extract_archive
 
+from avalanche.benchmarks.datasets import get_default_dataset_location
 from avalanche.benchmarks.utils import PathsDataset
 
 
@@ -43,7 +46,10 @@ class CUB200(PathsDataset):
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
     def __init__(
-            self, root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
+            self,
+            root: Union[str, Path] =
+            get_default_dataset_location('CUB_200_2011'),
+            *,
             train=True, transform=None, target_transform=None,
             loader=default_loader, download=True):
         """

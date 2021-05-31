@@ -15,7 +15,7 @@ import csv
 from pathlib import Path
 from typing import Union
 
-from PIL import Image
+from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
@@ -23,15 +23,6 @@ from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
 
 filename = ('tiny-imagenet-200.zip',
             'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
-
-
-def pil_loader(path):
-    """ Load an Image with PIL """
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 class TinyImagenet(SimpleDownloadableDataset):
@@ -45,7 +36,7 @@ class TinyImagenet(SimpleDownloadableDataset):
             train: bool = True,
             transform=None,
             target_transform=None,
-            loader=pil_loader,
+            loader=default_loader,
             download=True):
         """
         Creates an instance of the Tiny Imagenet dataset.

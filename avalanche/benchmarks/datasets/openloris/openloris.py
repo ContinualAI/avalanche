@@ -14,21 +14,12 @@
 import pickle as pkl
 
 import gdown
-from PIL import Image
+from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets import DownloadableDataset, \
     get_default_dataset_location
 from avalanche.benchmarks.datasets.openloris import openloris_data
-
-
-def pil_loader(path):
-    """ Basic PIL data loader """
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 class OpenLORIS(DownloadableDataset):
@@ -37,7 +28,7 @@ class OpenLORIS(DownloadableDataset):
     def __init__(self, root=get_default_dataset_location('openloris'),
                  *,
                  train=True, transform=None, target_transform=None,
-                 loader=pil_loader, download=True):
+                 loader=default_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform

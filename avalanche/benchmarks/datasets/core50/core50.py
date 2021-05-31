@@ -19,22 +19,13 @@ from pathlib import Path
 from typing import Union
 from warnings import warn
 
-from PIL import Image
+from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets.core50 import core50_data
 from avalanche.benchmarks.datasets import get_default_dataset_location
 from avalanche.benchmarks.datasets.downloadable_dataset import \
     DownloadableDataset
-
-
-def pil_loader(path):
-    """ Load an Image with PIL """
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 class CORe50Dataset(DownloadableDataset):
@@ -45,7 +36,7 @@ class CORe50Dataset(DownloadableDataset):
             root: Union[str, Path] = get_default_dataset_location('core50'),
             *,
             train=True, transform=None, target_transform=None,
-            loader=pil_loader, download=True, object_level=True):
+            loader=default_loader, download=True, object_level=True):
         """
         Creates an instance of the CORe50 dataset.
 
