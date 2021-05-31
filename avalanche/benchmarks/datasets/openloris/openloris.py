@@ -11,15 +11,15 @@
 
 """ OpenLoris Pytorch Dataset """
 
-import os
 import pickle as pkl
-from os.path import expanduser
 
+import gdown
 from PIL import Image
-from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-from .openloris_data import OPENLORIS_DATA
+from avalanche.benchmarks.datasets import DownloadableDataset, \
+    get_default_dataset_location
+from avalanche.benchmarks.datasets.openloris import openloris_data
 
 
 def pil_loader(path):
@@ -31,19 +31,35 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
-class OpenLORIS(Dataset):
+class OpenLORIS(DownloadableDataset):
     """ OpenLORIS Pytorch Dataset """
 
-    def __init__(self, root=expanduser("~") + "/.avalanche/data/openloris/",
-                 train=True, transform=ToTensor(), target_transform=None,
+    def __init__(self, root=get_default_dataset_location('openloris'),
+                 *,
+                 train=True, transform=None, target_transform=None,
                  loader=pil_loader, download=True):
 
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
-        self.root = root
         self.loader = loader
-        self.openloris_data = OPENLORIS_DATA(root=root)
+
+        super(OpenLORIS, self).__init__(root, download=download, verbose=True)
+        self._load_dataset()
+
+    def _download_dataset(self) -> None:
+        for name in openloris_data.filename:
+            filepath = self.root / name[0]
+            if self.verbose:
+                print('[OpenLoris] Start downloading {}...'.format(name[0]))
+            url = openloris_data.base_gdrive_url + name[1]
+            gdown.download(url, str(filepath), quiet=False)
+            gdown.cached_download(url, str(filepath))
+            self._extract_archive(filepath)
+
+    def _load_metadata(self) -> bool:
+        if not self._check_integrity():
+            return False
 
         # any scenario and factor is good here since we want just to load the
         # train images and targets with no particular order
@@ -51,30 +67,23 @@ class OpenLORIS(Dataset):
         factor = 0
         ntask = 9
 
-        if not self._check_integrity():
-            if download:
-                self._download()
-            else:
-                raise RuntimeError('Dataset not found or corrupted. Please '
-                                   'download it manually and re-try.')
-
         print("Loading paths...")
-        with open(os.path.join(root, 'Paths.pkl'), 'rb') as f:
+        with open(str(self.root / 'Paths.pkl'), 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
         print("Loading labels...")
-        with open(os.path.join(root, 'Labels.pkl'), 'rb') as f:
+        with open(str(self.root / 'Labels.pkl'), 'rb') as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(ntask + 1):
                 self.train_test_targets += self.all_targets[scen][factor][i]
 
         print("Loading LUP...")
-        with open(os.path.join(root, 'LUP.pkl'), 'rb') as f:
+        with open(str(self.root / 'LUP.pkl'), 'rb') as f:
             self.LUP = pkl.load(f)
 
         self.idx_list = []
-        if train:
+        if self.train:
             for i in range(ntask + 1):
                 self.idx_list += self.LUP[scen][factor][i]
         else:
@@ -87,37 +96,41 @@ class OpenLORIS(Dataset):
             self.paths.append(self.train_test_paths[idx])
             self.targets.append(self.train_test_targets[idx])
 
+        return True
+
+    def _download_error_message(self) -> str:
+        base_url = openloris_data.base_gdrive_url
+        all_urls = [
+            base_url + name_url[1] for name_url in openloris_data.filename
+        ]
+
+        base_msg = \
+            '[OpenLoris] Direct download may no longer be supported!\n' \
+            'You should download data manually using the following links:\n'
+
+        for url_idx in range(len(all_urls)-1):
+            base_msg += all_urls[url_idx]
+            base_msg += '\n'
+
+        base_msg += all_urls[-1]
+        return base_msg
+
     def _check_integrity(self):
         """ Checks if the data is already available and intact """
 
-        for name, googledrive_id in self.openloris_data.filename:
-            filepath = os.path.join(self.root, name)
-            if not os.path.isfile(filepath):
-                print('[CUB200] Error checking integrity of:', filepath)
+        for name, googledrive_id in openloris_data.filename:
+            filepath = self.root / name
+            if not filepath.is_file():
+                if self.verbose:
+                    print('[CUB200] Error checking integrity of:',
+                          str(filepath))
                 return False
         return True
 
-    def _download(self):
-        """ Private method to download openloris data """
-
-        self.openloris_data.download()
-
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (sample, target) where target is class_index of the target
-                class.
-        """
-
         target = self.targets[index]
-        img = self.loader(
-            os.path.join(
-                self.root, self.paths[index]
-            )
-        )
+        img = self.loader(str(self.root / self.paths[index]))
+
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
@@ -131,15 +144,15 @@ class OpenLORIS(Dataset):
 
 if __name__ == "__main__":
 
-    # this litte example script can be used to visualize the first image
-    # leaded from the dataset.
+    # this little example script can be used to visualize the first image
+    # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader
     import matplotlib.pyplot as plt
     from torchvision import transforms
     import torch
 
-    train_data = OpenLORIS(download=True)
-    test_data = OpenLORIS(train=False)
+    train_data = OpenLORIS(download=True, transform=ToTensor())
+    test_data = OpenLORIS(train=False, transform=ToTensor())
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     dataloader = DataLoader(train_data, batch_size=1)

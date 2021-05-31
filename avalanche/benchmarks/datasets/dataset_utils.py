@@ -20,7 +20,7 @@ def get_default_dataset_location(dataset_name: str) -> Path:
     an environment variable bay be introduced to change the root path.
 
     :param dataset_name: The name of the dataset. Consider using a string that
-        can be used to name a directory in most file systems!
+        can be used to name a directory in most filesystems!
     :return: The default path for the dataset.
     """
     return Path.home() / f".avalanche/data/{dataset_name}"
