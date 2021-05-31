@@ -13,7 +13,7 @@
 pytorch datasets based on filelists (Caffe style) """
 
 from pathlib import Path
-from typing import Tuple, Sequence
+from typing import Tuple, Sequence, Optional
 
 import torch.utils.data as data
 
@@ -38,14 +38,12 @@ def default_image_loader(path):
     return Image.open(path).convert('RGB')
 
 
-def default_flist_reader(flist, root):
+def default_flist_reader(flist):
     """
     This reader reads a filelist and return a list of paths.
 
     :param flist: path of the flislist to read. The flist format should be:
         impath label, impath label,  ...(same to caffe's filelist)
-    :param root: path to the dataset root. Each file defined in the file list
-        will be searched in <root>/<impath>.
 
     :returns: Returns a list of paths (the examples to be loaded).
     """
@@ -54,7 +52,7 @@ def default_flist_reader(flist, root):
     with open(flist, 'r') as rf:
         for line in rf.readlines():
             impath, imlabel = line.strip().split()
-            imlist.append((os.path.join(root, impath), int(imlabel)))
+            imlist.append((impath, int(imlabel)))
 
     return imlist
 
@@ -83,9 +81,9 @@ class PathsDataset(data.Dataset):
         """
 
         if root is not None:
-            root = str(root)  # Manages Path objects
+            root = Path(root)
 
-        self.root = root
+        self.root: Optional[Path] = root
         self.imgs = files
         self.targets = [img_data[1] for img_data in self.imgs]
         self.transform = transform
@@ -108,7 +106,7 @@ class PathsDataset(data.Dataset):
             bbox = img_description[2]
 
         if self.root is not None:
-            impath = os.path.join(self.root, impath)
+            impath = self.root / impath
         img = self.loader(impath)
 
         # If a bounding box is provided, crop the image before passing it to
@@ -159,8 +157,8 @@ class FilelistDataset(PathsDataset):
         """
 
         flist = str(flist)  # Manages Path objects
-        files_and_labels = flist_reader(flist, root)
-        super().__init__(root, files_and_labels, transform=transform,
+        files_and_labels = flist_reader(flist)
+        super().__init__(None, files_and_labels, transform=transform,
                          target_transform=target_transform, loader=loader)
 
 
