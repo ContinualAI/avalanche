@@ -123,8 +123,8 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
     # get train and test sets and order them by scenario
     train_set = Stream51(root, train=True, download=download)
     test_set = Stream51(root, train=False, download=download)
-    samples = train_set._make_dataset(train_set.samples, ordering=scenario,
-                                      seed=seed)
+    samples = Stream51.make_dataset(train_set.samples, ordering=scenario,
+                                    seed=seed)
 
     # set appropriate train parameters
     train_set.samples = samples

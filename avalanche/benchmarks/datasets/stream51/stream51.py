@@ -12,21 +12,23 @@
 """ Stream-51 Pytorch Dataset """
 
 import os
-import logging
-from torch.utils.data.dataset import Dataset
+
+import shutil
 import json
 import random
 
 from torchvision.datasets.folder import default_loader
+from zipfile import ZipFile
 
-from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
+from avalanche.benchmarks.datasets import DownloadableDataset, \
+    get_default_dataset_location
+from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
-
-class Stream51(Dataset):
+class Stream51(DownloadableDataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root,
+    def __init__(self, root=get_default_dataset_location('stream51'),
                  *,
                  train=True, transform=None,
                  target_transform=None, loader=default_loader, download=True):
@@ -34,35 +36,67 @@ class Stream51(Dataset):
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
-        self.root = root
         self.loader = loader
-        self.log = logging.getLogger("avalanche")
+        self.transform = transform
+        self.target_transform = target_transform
+        self.bbox_crop = True
+        self.ratio = 1.1
 
-        if download:
-            self.log.info("Downloading Stream-51...")
-            self.stream51_data = STREAM51_DATA(data_folder=root)
+        super(Stream51, self).__init__(root, download=download, verbose=True)
 
-        self.log.info("Loading files...")
-        if train:
+        self._load_dataset()
+
+    def _download_dataset(self) -> None:
+        self._download_file(stream51_data.name[1], stream51_data.name[0],
+                            None)
+
+        if stream51_data.name[1].endswith('.zip'):
+            lfilename = self.root / stream51_data.name[0]
+            with ZipFile(str(lfilename), 'r') as zipf:
+                for member in zipf.namelist():
+                    filename = os.path.basename(member)
+                    # skip directories
+                    if not filename:
+                        continue
+
+                    # copy file (taken from zipfile's extract)
+                    source = zipf.open(member)
+                    if 'json' in filename:
+                        target = open(str(self.root / filename), "wb")
+                    else:
+                        dest_folder = os.path.join(
+                            *(member.split(os.path.sep)[1:-1]))
+                        dest_folder = self.root / dest_folder
+                        dest_folder.mkdir(exist_ok=True, parents=True)
+
+                        target = open(str(dest_folder / filename), "wb")
+                    with source, target:
+                        shutil.copyfileobj(source, target)
+
+            lfilename.unlink()
+
+    def _load_metadata(self) -> bool:
+        if self.train:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_meta_train.json')))
+                open(str(self.root / 'Stream-51_meta_train.json')))
         else:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_meta_test.json')))
-
-        self.root = root
-        self.loader = default_loader
+                open(str(self.root / 'Stream-51_meta_test.json')))
 
         self.samples = data_list
         self.targets = [s[0] for s in data_list]
 
-        self.transform = transform
-        self.target_transform = target_transform
-
         self.bbox_crop = True
         self.ratio = 1.1
 
-    def _instance_ordering(self, data_list, seed):
+        return True
+
+    def _download_error_message(self) -> str:
+        return '[Stream-51] Can\'t download the dataset. The dataset can be ' \
+               'downloaded manually from: ' + stream51_data.name[1]
+
+    @staticmethod
+    def _instance_ordering(data_list, seed):
         # organize data by video
         total_videos = 0
         new_data_list = []
@@ -86,7 +120,8 @@ class Stream51(Dataset):
                 data_list.append(x)
         return data_list
 
-    def _class_ordering(self, data_list, class_type, seed):
+    @staticmethod
+    def _class_ordering(data_list, class_type, seed):
         # organize data by class
         new_data_list = []
         for class_id in range(data_list[-1][0] + 1):
@@ -97,7 +132,8 @@ class Stream51(Dataset):
                 random.shuffle(class_data_list)
             else:
                 # shuffle clips within class
-                class_data_list = self._instance_ordering(class_data_list, seed)
+                class_data_list = Stream51._instance_ordering(
+                    class_data_list, seed)
             new_data_list.append(class_data_list)
         # shuffle classes
         random.seed(seed)
@@ -109,7 +145,8 @@ class Stream51(Dataset):
                 data_list.append(x)
         return data_list
 
-    def _make_dataset(self, data_list, ordering='class_instance', seed=666):
+    @staticmethod
+    def make_dataset(data_list, ordering='class_instance', seed=666):
         """
         data_list
         for train: [class_id, clip_num, video_num, frame_num, bbox, file_loc]
@@ -127,9 +164,9 @@ class Stream51(Dataset):
             random.shuffle(data_list)
             return data_list
         elif ordering == 'instance':
-            return self._instance_ordering(data_list, seed)
+            return Stream51._instance_ordering(data_list, seed)
         elif 'class' in ordering:
-            return self._class_ordering(data_list, ordering, seed)
+            return Stream51._class_ordering(data_list, ordering, seed)
 
     def __getitem__(self, index):
         """
@@ -141,7 +178,7 @@ class Stream51(Dataset):
             class.
         """
         fpath, target = self.samples[index][-1], self.targets[index]
-        sample = self.loader(os.path.join(self.root, fpath))
+        sample = self.loader(str(self.root / fpath))
         if self.bbox_crop:
             bbox = self.samples[index][-2]
             cw = bbox[0] - bbox[1]
