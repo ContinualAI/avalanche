@@ -12,6 +12,9 @@
 """ This module contains the high-level CORe50 scenario generator. It
 basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
+from pathlib import Path
+from typing import Union
+
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets import get_default_dataset_location
@@ -38,10 +41,10 @@ scen2dirs = {
 }
 
 
-def CORe50(root=get_default_dataset_location('core50'),
-           scenario="nicv2_391",
-           run=0,
-           object_lvl=True,
+def CORe50(root: Union[str, Path] = get_default_dataset_location('core50'),
+           scenario: str = "nicv2_391",
+           run: int = 0,
+           object_lvl: bool = True,
            train_transform=None,
            eval_transform=None):
     """

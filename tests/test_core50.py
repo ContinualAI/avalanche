@@ -25,7 +25,7 @@ class CORe50Test(unittest.TestCase):
             pass
         else:
             scenario = CORe50(scenario="ni")
-            for task_info in scenario:
+            for experience in scenario.train_stream:
                 pass
 
     def test_core50_nc_scenario(self):

@@ -15,6 +15,9 @@ import glob
 import logging
 import os
 import pickle as pkl
+from pathlib import Path
+from typing import Union
+from warnings import warn
 
 from PIL import Image
 from torchvision.transforms import ToTensor
@@ -37,17 +40,21 @@ def pil_loader(path):
 class CORe50Dataset(DownloadableDataset):
     """ CORe50 Pytorch Dataset """
 
-    def __init__(self, root=get_default_dataset_location('core50'),
-                 train=True, transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=True, object_level=True):
+    def __init__(
+            self,
+            root: Union[str, Path] = get_default_dataset_location('core50'),
+            *,
+            train=True, transform=None, target_transform=None,
+            loader=pil_loader, download=True, object_level=True):
         """
+        Creates an instance of the CORe50 dataset.
 
         :param root: root for the datasets data.
         :param train: train or test split.
         :param transform: eventual transformations to be applied.
         :param target_transform: eventual transformation to be applied to the
             targets.
-        :param loader: data loader method from disk.
+        :param loader: the procedure to load the instance from the storage.
         :param download: boolean to automatically download data. Default to
             True.
         :param object_level: if the classification is objects based or
@@ -196,6 +203,12 @@ class CORe50Dataset(DownloadableDataset):
             return int(label) // 5
 
 
+def CORe50(*args, **kwargs):
+    warn("Dataset CORe50 has been renamed CORe50Dataset to prevent confusion "
+         "with the CORe50 classic benchmark", DeprecationWarning, 2)
+    return CORe50Dataset(*args, **kwargs)
+
+
 if __name__ == "__main__":
 
     # this litte example script can be used to visualize the first image
@@ -205,8 +218,8 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    train_data = CORe50Dataset()
-    test_data = CORe50Dataset(train=False)
+    train_data = CORe50Dataset(transform=ToTensor())
+    test_data = CORe50Dataset(train=False, transform=ToTensor())
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     print(train_data.labels2names)
@@ -224,5 +237,6 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    'CORe50Dataset'
+    'CORe50Dataset',
+    'CORe50'
 ]

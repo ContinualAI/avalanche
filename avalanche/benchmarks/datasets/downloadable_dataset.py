@@ -64,7 +64,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
     def __init__(
             self,
             root: Union[str, Path],
-            download: bool = False,
+            download: bool = True,
             verbose: bool = False):
         """
         Creates an instance of a downloadable dataset.
@@ -82,7 +82,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
         :param download: If True, the dataset will be downloaded if needed.
             If False and the dataset can't be loaded from the provided root
             path, an error will be raised when calling the `_load_dataset`
-            method. Defaults to False.
+            method. Defaults to True.
         :param verbose: If True, some info about the download process will be
             printed. Defaults to False.
         """
@@ -159,6 +159,10 @@ class DownloadableDataset(Dataset[T_co], ABC):
         This procedure is called only if `_load_metadata` fails.
 
         This method must raise an error if the dataset can't be downloaded.
+
+        Hints: don't re-invent the wheel! There are ready-to-use helper methods
+        like `_download_and_extract_archive`, `_download_file` and
+        `_extract_archive` that can be used.
 
         :return: None
         """
