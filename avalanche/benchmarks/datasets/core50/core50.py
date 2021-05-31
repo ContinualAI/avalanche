@@ -36,7 +36,9 @@ class CORe50Dataset(DownloadableDataset):
             root: Union[str, Path] = get_default_dataset_location('core50'),
             *,
             train=True, transform=None, target_transform=None,
-            loader=default_loader, download=True, object_level=True):
+            loader=default_loader, download=True, mini=False,
+            object_level=True):
+
         """
         Creates an instance of the CORe50 dataset.
 
@@ -48,6 +50,8 @@ class CORe50Dataset(DownloadableDataset):
         :param loader: the procedure to load the instance from the storage.
         :param download: boolean to automatically download data. Default to
             True.
+        :param mini: boolean to use the 32x32 version instead of the 128x128.
+            Default to False.
         :param object_level: if the classification is objects based or
             category based: 50 or 10 way classification problem. Default to True
             (50-way object classification problem)
@@ -61,7 +65,7 @@ class CORe50Dataset(DownloadableDataset):
         self.target_transform = target_transform
         self.loader = loader
         self.object_level = object_level
-        self.log = logging.getLogger("avalanche")
+        self.mini = mini
 
         # any scenario and run is good here since we want just to load the
         # train images and targets with no particular order
@@ -83,8 +87,13 @@ class CORe50Dataset(DownloadableDataset):
         """
 
         target = self.targets[index]
+        if self.mini:
+            bp = "core50_32x32"
+        else:
+            bp = "core50_128x128"
+
         img = self.loader(
-            str(self.root / "core50_128x128" / self.paths[index])
+            str(self.root / bp / self.paths[index])
         )
         if self.transform is not None:
             img = self.transform(img)
@@ -99,18 +108,28 @@ class CORe50Dataset(DownloadableDataset):
     def _download_dataset(self) -> None:
         data2download = core50_data.data
 
+        if self.mini:
+            data2download = list(data2download)
+            data2download[0] = core50_data.extra_data[1]
+
         for name in data2download:
-            self.log.info("Downloading " + name[1] + "...")
+            if self.verbose:
+                print("Downloading " + name[1] + "...")
             file = self._download_file(name[1], name[0], name[2])
             if name[1].endswith('.zip'):
-                self.log.info('Extracting CORe50 images...')
+                if self.verbose:
+                    print(f'Extracting {name[0]}...')
                 self._extract_archive(file)
-                self.log.info('Done!')
-
-        self.log.info("Download complete.")
+                if self.verbose:
+                    print('Extraction completed!')
 
     def _load_metadata(self) -> bool:
-        if not (self.root / 'core50_128x128').exists():
+        if self.mini:
+            bp = "core50_32x32"
+        else:
+            bp = "core50_128x128"
+
+        if not (self.root / bp).exists():
             return False
 
         if not (self.root / 'batches_filelists').exists():
@@ -119,7 +138,8 @@ class CORe50Dataset(DownloadableDataset):
         with open(self.root / 'paths.pkl', 'rb') as f:
             self.train_test_paths = pkl.load(f)
 
-        self.log.info("Loading labels...")
+        if self.verbose:
+            print("Loading labels...")
         with open(self.root / 'labels.pkl', 'rb') as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
@@ -127,11 +147,13 @@ class CORe50Dataset(DownloadableDataset):
                 self.train_test_targets += \
                     self.all_targets[self._scen][self._run][i]
 
-        self.log.info("Loading LUP...")
+        if self.verbose:
+            print("Loading LUP...")
         with open(self.root / 'LUP.pkl', 'rb') as f:
             self.LUP = pkl.load(f)
 
-        self.log.info("Loading labels names...")
+        if self.verbose:
+            print("Loading labels names...")
         with open(self.root / 'labels2names.pkl', 'rb') as f:
             self.labels2names = pkl.load(f)
 

@@ -11,7 +11,6 @@
 
 """ CORe50 Metadata """
 
-
 data = [
     ('core50_128x128.zip',
      'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip',
@@ -35,7 +34,10 @@ data = [
 
 extra_data = [
     ('core50_imgs.npz',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz'),
+    ('core50_32x32.zip',
+     'http://vps.continualai.org/data/core50_32x32.zip',
+     'd89d34cdc0281fa84074430e9a22b728')
 ]
 
 scen2dirs = {
@@ -59,6 +61,7 @@ name2cat = {
     'cup': 8,
     'remote_control': 9
 }
+
 
 __all__ = [
     'data',

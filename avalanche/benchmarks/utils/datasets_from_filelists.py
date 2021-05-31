@@ -158,7 +158,7 @@ class FilelistDataset(PathsDataset):
 
         flist = str(flist)  # Manages Path objects
         files_and_labels = flist_reader(flist)
-        super().__init__(None, files_and_labels, transform=transform,
+        super().__init__(root, files_and_labels, transform=transform,
                          target_transform=target_transform, loader=loader)
 
 
