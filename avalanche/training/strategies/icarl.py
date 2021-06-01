@@ -1,20 +1,79 @@
 import copy
 import itertools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, List
 import torch
+from torch.optim import Optimizer
+
 from avalanche.benchmarks.utils import AvalancheConcatDataset, \
     AvalancheTensorDataset, AvalancheSubset
-from torch import nn
 from math import ceil
+
+from avalanche.models import TrainEvalModel, NCMClassifier
+from avalanche.training import EvaluationPlugin, default_logger
+from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from torch.nn import BCELoss
+from torch.nn import Module
 from torch.utils.data import DataLoader
-
-if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+from avalanche.training.strategies import BaseStrategy
 
 
-class ICaRLPlugin(StrategyPlugin):
+class ICaRL(BaseStrategy):
+    def __init__(self, feature_extractor: Module, classifier: Module,
+                 optimizer: Optimizer, memory_size, buffer_transform,
+                 fixed_memory, train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """ iCaRL Strategy.
+        This strategy does not use task identities.
+
+        :param feature_extractor: The feature extractor.
+        :param classifier: The differentiable classifier that takes as input
+            the output of the feature extractor.
+        :param optimizer: The optimizer to use.
+        :param memory_size: The nuber of patterns saved in the memory.
+        :param buffer_transform: transform applied on buffer elements already
+            modified by test_transform (if specified) before being used for
+             replay
+        :param fixed_memory: If True a memory of size memory_size is
+            allocated and partitioned between samples from the observed
+            experiences. If False every time a new class is observed
+            memory_size samples of that class are added to the memory.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+        model = TrainEvalModel(feature_extractor,
+                               train_classifier=classifier,
+                               eval_classifier=NCMClassifier())
+
+        loss = ICaRLLossPlugin()
+        icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
+
+        if plugins is None:
+            plugins = [icarl, loss]
+        else:
+            plugins += [icarl, loss]
+
+        super().__init__(
+            model, optimizer, criterion=loss,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
+class _ICaRLPlugin(StrategyPlugin):
     """
         iCaRL Plugin.
         iCaRL uses nearest class exemplar classification to prevent
@@ -23,21 +82,22 @@ class ICaRLPlugin(StrategyPlugin):
         used for replay and classification are selected through herding.
         This plugin does not use task identities.
         """
-    def __init__(self, memory_size, diff_transform=None, fixed_memory=True):
+
+    def __init__(self, memory_size, buffer_transform=None, fixed_memory=True):
         """
         :param memory_size: amount of patterns saved in the memory.
-        :param diff_transform: transform to apply to to test samples to
-            get train samples. If test_transform == train_transform,
-            diff_transform is None
+        :param buffer_transform: transform applied on buffer elements already
+            modified by test_transform (if specified) before being used for
+             replay
         :param fixed_memory: If True a memory of size memory_size is
-            allocated and divided between samples from the observed
+            allocated and partitioned between samples from the observed
             experiences. If False every time a new class is observed
-            mememory_size samples of that class are added to the memory.
+            memory_size samples of that class are added to the memory.
         """
         super().__init__()
 
         self.memory_size = memory_size
-        self.diff_transform = diff_transform
+        self.buffer_transform = buffer_transform
         self.fixed_memory = fixed_memory
 
         self.x_memory = []
@@ -51,23 +111,13 @@ class ICaRLPlugin(StrategyPlugin):
         self.output_size = None
         self.input_size = None
 
-        self.setup = False
-
-    def before_training(self, strategy: 'BaseStrategy', **kwargs):
-        if not self.setup:
-            strategy.model = ICaRLModel(strategy.model.feature_extractor,
-                                        train_head=strategy.model.classifier,
-                                        eval_head=NCMClassifier())
-            self.setup = True
-
     def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
                                        **kwargs):
-
         if strategy.training_exp_counter != 0:
             memory = AvalancheTensorDataset(
                 torch.cat(self.x_memory).cpu(),
                 list(itertools.chain.from_iterable(self.y_memory)),
-                transform=self.diff_transform, target_transform=None)
+                transform=self.buffer_transform, target_transform=None)
 
             strategy.adapted_dataset = \
                 AvalancheConcatDataset((strategy.adapted_dataset, memory))
@@ -88,26 +138,24 @@ class ICaRLPlugin(StrategyPlugin):
                 self.embedding_size = strategy.model.feature_extractor(
                     strategy.mb_x).shape[1]
 
-        tid = strategy.training_exp_counter
+        # tid = strategy.training_exp_counter
 
-        if tid > 0:
-            scenario = strategy.experience.scenario
-            old_classes = scenario.classes_in_exp_range(0, tid)
-            self.old_model.feature_extractor.eval()
-            self.old_model.feature_extractor.eval()
-            with torch.no_grad():
-                embds = self.old_model.feature_extractor(strategy.mb_x)
-                old_logits = self.old_model.train_head(embds)
-
-            strategy.criterion.set_old(old_classes, old_logits)
+        # if tid > 0:
+        #     old_classes = set(itertools.chain.from_iterable(self.y_memory))
+        #     self.old_model.eval()
+        #     with torch.no_grad():
+        #         embds = self.old_model.feature_extractor(strategy.mb_x)
+        #         old_logits = self.old_model.train_classifier(embds)
+        #
+        #     strategy.criterion.set_old(old_classes, old_logits)
 
     def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
 
-        if strategy.training_exp_counter == 0:
-            old_model = copy.deepcopy(strategy.model)
-            self.old_model = old_model.to(strategy.device)
-
-        self.old_model.load_state_dict(strategy.model.state_dict())
+        # if strategy.training_exp_counter == 0:
+        #     old_model = copy.deepcopy(strategy.model)
+        #     self.old_model = old_model.to(strategy.device)
+        #
+        # self.old_model.load_state_dict(strategy.model.state_dict())
 
         strategy.model.eval()
 
@@ -146,7 +194,7 @@ class ICaRLPlugin(StrategyPlugin):
             self.class_means[:, label] = (m1 + m2) / 2
             self.class_means[:, label] /= torch.norm(self.class_means[:, label])
 
-            strategy.model.eval_head.class_means = self.class_means
+            strategy.model.eval_classifier.class_means = self.class_means
 
     def construct_exemplar_set(self, strategy):
         tid = strategy.training_exp_counter
@@ -215,57 +263,3 @@ class ICaRLPlugin(StrategyPlugin):
             self.x_memory[i] = self.x_memory[i][torch.where(pick == 1)[0]]
             self.y_memory[i] = self.y_memory[i][:len(torch.where(pick == 1)[0])]
             self.order[i] = self.order[i][torch.where(pick == 1)[0]]
-
-
-class DistillationLoss:
-    def __init__(self):
-        self.criterion = BCELoss()
-        self.old_classes = None
-        self.old_logits = None
-
-    def set_old(self, old_classes, old_logits):
-        self.old_classes = old_classes
-        self.old_logits = old_logits
-
-    def __call__(self, logits, targets):
-        predictions = torch.sigmoid(logits)
-
-        one_hot = torch.zeros(targets.shape[0], logits.shape[1],
-                              dtype=torch.float, device=logits.device)
-        one_hot[range(len(targets)), targets.long()] = 1
-
-        if self.old_classes is not None:
-            old_predictions = torch.sigmoid(self.old_logits)
-            one_hot[:, self.old_classes] = old_predictions[:, self.old_classes]
-            self.old_classes, self.old_logits = None, None
-
-        return self.criterion(predictions, one_hot)
-
-
-class NCMClassifier(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.class_means = None
-
-    def forward(self, x):
-        pred_inter = (x.T / torch.norm(x.T, dim=0)).T
-        sqd = torch.cdist(self.class_means[:, :].T, pred_inter)
-        return (-sqd).T
-
-
-class ICaRLModel(nn.Module):
-    def __init__(self, feature_extractor, train_head, eval_head):
-        super().__init__()
-        self.feature_extractor = feature_extractor
-        self.train_head = train_head
-        self.eval_head = eval_head
-
-        self.classifier = train_head
-
-    def forward(self, x):
-        x = self.feature_extractor(x)
-        return self.classifier(x)
-
-    def train(self, mode=True):
-        super().train(mode)
-        self.classifier = self.train_head if mode else self.eval_head

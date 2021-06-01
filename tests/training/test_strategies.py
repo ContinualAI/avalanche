@@ -18,13 +18,14 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
 from avalanche.logging import TextLogger
-from avalanche.models import SimpleMLP
+from avalanche.models import SimpleMLP, make_icarl_net, initialize_icarl_net
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.strategies.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
@@ -344,6 +345,24 @@ class StrategyTest(unittest.TestCase):
         scenario = self.load_scenario(use_task_labels=True)
         self.run_strategy(scenario, strategy)
 
+    def test_icarl(self):
+        scenario = self.load_scenario()
+
+        model = make_icarl_net(num_classes=100)
+        model.apply(initialize_icarl_net)
+
+        optimizer = SGD(model.parameters(), lr=.2)
+
+        strategy = ICaRL(
+            model.feature_extractor, model.classifier, optimizer,
+            2000,
+            buffer_transform=None,
+            fixed_memory=True, train_mb_size=10,
+            train_epochs=1, eval_mb_size=50,
+            device=self.device,)
+
+        self.run_strategy(scenario, strategy)
+
     def load_scenario(self, use_task_labels=False):
         """
         Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
@@ -374,4 +393,5 @@ class StrategyTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    StrategyTest().test_icarl()
+    # unittest.main()
