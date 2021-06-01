@@ -21,6 +21,7 @@ import warnings
 from collections import OrderedDict, defaultdict, deque
 from enum import Enum, auto
 
+import torch
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 from torchvision.transforms import Compose
@@ -1091,9 +1092,7 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             instances.
         :param targets: The label of each pattern. Defaults to None, which
             means that the targets will be retrieved from the dataset (if
-            possible). This can either be a list of labels for the original
-            dataset or the list of labels for the patterns of the subset (an
-            automatic detection will be made).
+            possible).
         :param dataset_type: The type of the dataset. Defaults to None,
             which means that the type will be inferred from the input dataset.
             When the `dataset_type` is different than UNDEFINED, a
@@ -1185,20 +1184,15 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             self, dataset, targets, dataset_type, targets_adapter) \
             -> Sequence[TTargetType]:
         if targets is not None:
-            # For the reasoning behind this, have a look at
-            # _initialize_task_labels_sequence (it's basically the same).
 
-            if len(targets) == len(self._original_dataset):
-                return SubSequence(targets, indices=self._indices)
-            elif len(targets) == len(dataset):
+            if len(targets) == len(dataset):
                 return targets
             else:
                 raise ValueError(
                     'Invalid amount of targets. It must be equal to the '
-                    'number of patterns in the dataset or of the desired '
-                    'subset. Got {}, expected {} or {}!'.format(
-                        len(targets), len(self._original_dataset),
-                        len(dataset)))
+                    'number of patterns in the subset. '
+                    'Got {}, expected {}!'.format(
+                        len(targets), len(dataset)))
 
         return super()._initialize_targets_sequence(
             dataset, None, dataset_type, targets_adapter)
@@ -1208,32 +1202,19 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             task_labels: Optional[Sequence[int]]) -> Sequence[int]:
 
         if task_labels is not None:
-            # The task_labels parameter is kind of ambiguous...
-            # it may either be the list of task labels of the required subset
-            # or it may be the list of task labels of the original dataset.
-            # Simple solution: check the length of task_labels!
 
             if isinstance(task_labels, int):
                 # Simplest case: constant task label
                 return ConstantSequence(task_labels, len(dataset))
-            elif len(task_labels) == len(self._original_dataset):
-                # task_labels refers to the original dataset ...
-                # or, corner case, len(original) == len(subset), in which
-                # case the user just wants to obtain a dataset in which the
-                # position of the patterns has been changed according to
-                # "indices". This "if" will take care of the corner case, too.
-                return SubSequence(task_labels, indices=self._indices,
-                                   converter=int)
             elif len(task_labels) == len(dataset):
-                # task_labels refers to the subset
+                # One label for each instance
                 return SubSequence(task_labels, converter=int)
             else:
                 raise ValueError(
                     'Invalid amount of task labels. It must be equal to the '
-                    'number of patterns in the dataset or of the desired '
-                    'subset. Got {}, expected {} or {}!'.format(
-                        len(task_labels), len(self._original_dataset),
-                        len(dataset)))
+                    'number of patterns in the subset. '
+                    'Got {}, expected {}!'.format(
+                        len(task_labels), len(dataset)))
 
         return super()._initialize_task_labels_sequence(dataset, None)
 
@@ -1880,7 +1861,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         last_c_idxs = []
         last_c_targets = []
         last_c_tasks = []
-        for idx in dataset._indices:
+        for subset_idx, idx in enumerate(dataset._indices):
             dataset_idx, internal_idx = find_list_from_index(
                 idx, concat_dataset._datasets_lengths,
                 concat_dataset._overall_length,
@@ -1901,8 +1882,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                 last_c_tasks = []
 
             last_c_idxs.append(internal_idx)
-            last_c_targets.append(dataset.targets[idx])
-            last_c_tasks.append(dataset.targets_task_labels[idx])
+            last_c_targets.append(dataset.targets[subset_idx])
+            last_c_tasks.append(dataset.targets_task_labels[subset_idx])
 
         if last_c_dataset is not None:
             result.append(AvalancheConcatDataset._make_similar_subset(
