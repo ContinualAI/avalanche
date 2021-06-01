@@ -1084,7 +1084,10 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             of ints, one for each instance in the dataset. This can either be a
             list of task labels for the original dataset or the list of task
             labels for the instances of the subset (an automatic detection will
-            be made). Alternatively can be a single int value, in which case
+            be made). In the unfortunate case in which the original dataset and
+            the subset contain the same amount of instances, then this parameter
+            is considered to contain the task labels of the subset.
+            Alternatively can be a single int value, in which case
             that value will be used as the task label for all the instances.
             Defaults to None, which means that the dataset will try to
             obtain the task labels from the original dataset. If no task labels
@@ -1092,7 +1095,12 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             instances.
         :param targets: The label of each pattern. Defaults to None, which
             means that the targets will be retrieved from the dataset (if
-            possible).
+            possible). This can either be a list of target labels for the
+            original dataset or the list of target labels for the instances of
+            the subset (an automatic detection will be made). In the unfortunate
+            case in which the original dataset and the subset contain the same
+            amount of instances, then this parameter is considered to contain
+            the target labels of the subset.
         :param dataset_type: The type of the dataset. Defaults to None,
             which means that the type will be inferred from the input dataset.
             When the `dataset_type` is different than UNDEFINED, a
@@ -1184,8 +1192,13 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             self, dataset, targets, dataset_type, targets_adapter) \
             -> Sequence[TTargetType]:
         if targets is not None:
+            # For the reasoning behind this, have a look at
+            # _initialize_task_labels_sequence (it's basically the same).
 
-            if len(targets) == len(dataset):
+            if len(targets) == len(self._original_dataset) and \
+                    not len(targets) == len(dataset):
+                return SubSequence(targets, indices=self._indices)
+            elif len(targets) == len(dataset):
                 return targets
             else:
                 raise ValueError(
@@ -1202,10 +1215,22 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             task_labels: Optional[Sequence[int]]) -> Sequence[int]:
 
         if task_labels is not None:
+            # The task_labels parameter is kind of ambiguous...
+            # it may either be the list of task labels of the required subset
+            # or it may be the list of task labels of the original dataset.
+            # Simple solution: check the length of task_labels!
+            # However, if task_labels, the original dataset and this subset have
+            # the same size, then task_labels is considered to contain the task
+            # labels for the subset!
 
             if isinstance(task_labels, int):
                 # Simplest case: constant task label
                 return ConstantSequence(task_labels, len(dataset))
+            elif len(task_labels) == len(self._original_dataset) and \
+                    not len(task_labels) == len(dataset):
+                # task_labels refers to the original dataset ...
+                return SubSequence(task_labels, indices=self._indices,
+                                   converter=int)
             elif len(task_labels) == len(dataset):
                 # One label for each instance
                 return SubSequence(task_labels, converter=int)
