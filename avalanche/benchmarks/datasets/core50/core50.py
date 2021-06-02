@@ -35,7 +35,8 @@ class CORe50(Dataset):
 
     def __init__(self, root=expanduser("~")+"/.avalanche/data/core50/",
                  train=True, transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=True, object_level=True):
+                 loader=pil_loader, download=True, mini=False,
+                 object_level=True):
         """
 
         :param root: root for the datasets data.
@@ -46,6 +47,8 @@ class CORe50(Dataset):
         :param loader: data loader method from disk.
         :param download: boolean to automatically download data. Default to
             True.
+        :param mini: boolean to use the 32x32 version instead of the 128x128.
+            Default to False.
         :param object_level: if the classification is objects based or
             category based: 50 or 10 way classification problem. Default to True
             (50-way object classification problem)
@@ -57,6 +60,7 @@ class CORe50(Dataset):
         self.root = root
         self.loader = loader
         self.object_level = object_level
+        self.mini = mini
         self.log = logging.getLogger("avalanche")
 
         # any scenario and run is good here since we want just to load the
@@ -66,7 +70,7 @@ class CORe50(Dataset):
         nbatch = 8
 
         if download:
-            self.core_data = CORE50_DATA(data_folder=root)
+            self.core_data = CORE50_DATA(data_folder=root, mini=mini)
 
         self.log.info("Loading paths...")
         with open(os.path.join(root, 'paths.pkl'), 'rb') as f:
@@ -114,10 +118,15 @@ class CORe50(Dataset):
                 class.
         """
 
+        if self.mini:
+            bp = "core50_32x32"
+        else:
+            bp = "core50_128x128"
+
         target = self.targets[index]
         img = self.loader(
             os.path.join(
-                self.root, "core50_128x128", self.paths[index]
+                self.root, bp, self.paths[index]
             )
         )
         if self.transform is not None:

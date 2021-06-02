@@ -42,6 +42,7 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
            scenario="nicv2_391",
            run=0,
            object_lvl=True,
+           mini=False,
            train_transform=None,
            eval_transform=None):
     """
@@ -63,7 +64,7 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Path indicating where to store the dataset and related
+    :param root: Absolute path indicating where to store the dataset and related
         metadata. By default they will be stored in
         "~/.avalanche/datasets/core50/data/".
     :param scenario: CORe50 main scenario. It can be chosen between 'ni', 'nc',
@@ -72,6 +73,8 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
         ordering. Must be a number between 0 and 9.
     :param object_lvl: True for a 50-way classification at the object level.
         False if you want to use the categories as classes. Default to True.
+    :param mini: True for processing reduced 32x32 images instead of the
+        original 128x128. Default to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -91,12 +94,16 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
                                         "'nic', 'nicv2_79', 'nicv2_196' or " \
                                         "'nicv2_391'."
     if root is None:
-        core_data = CORE50_DATA()
+        core_data = CORE50_DATA(mini=mini)
     else:
-        core_data = CORE50_DATA(root)
+        core_data = CORE50_DATA(data_folder=root, mini=mini)
 
     root = core_data.data_folder
-    root_img = root + "core50_128x128/"
+    if mini:
+        bp = "core50_32x32/"
+    else:
+        bp = "core50_128x128/"
+    root_img = root + bp
 
     if object_lvl:
         suffix = "/"
