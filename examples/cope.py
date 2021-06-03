@@ -42,10 +42,7 @@ def main(args):
         Top1_Acc_Stream/eval_phase/test_stream = 0.9421
 
     # TODO result not reproducible for data incremental setting:
-    -- >> End of eval phase << --
-	Loss_Stream/eval_phase/test_stream = 53.5903
-	StreamForgetting/eval_phase/test_stream = 0.0000
-	Top1_Acc_Stream/eval_phase/test_stream = 0.6559
+        Top1_Acc_Stream/eval_phase/test_stream = 0.6559
     """
     # --- DEFAULT PARAMS ONLINE DATA INCREMENTAL LEARNING
     nb_tasks = 5  # Can still design the data stream based on tasks
