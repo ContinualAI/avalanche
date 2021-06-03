@@ -28,7 +28,7 @@ from avalanche.training.strategies import Naive
 from avalanche.training.plugins import CoPEPlugin
 from avalanche.evaluation.metrics import StreamForgetting, \
     accuracy_metrics, loss_metrics
-from avalanche.logging import InteractiveLogger
+from avalanche.logging import TextLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.generators.benchmark_generators import \
     data_incremental_benchmark
@@ -36,8 +36,16 @@ from avalanche.benchmarks.generators.benchmark_generators import \
 
 def main(args):
     """
-    Last Avalanche version reference performance (online):
+    Last Avalanche version reference performance (online = 1 epoch):
+
+    Class-incremental (online):
         Top1_Acc_Stream/eval_phase/test_stream = 0.9421
+
+    # TODO result not reproducible for data incremental setting:
+    -- >> End of eval phase << --
+	Loss_Stream/eval_phase/test_stream = 53.5903
+	StreamForgetting/eval_phase/test_stream = 0.0000
+	Top1_Acc_Stream/eval_phase/test_stream = 0.6559
     """
     # --- DEFAULT PARAMS ONLINE DATA INCREMENTAL LEARNING
     nb_tasks = 5  # Can still design the data stream based on tasks
@@ -59,6 +67,8 @@ def main(args):
     # Make data incremental (one batch = one experience)
     scenario = data_incremental_benchmark(task_scenario,
                                           experience_size=batch_size)
+    print(f"{scenario.n_experiences} batches in online data incremental setup.")
+    # 6002 batches for SplitMNIST with batch size 10
     # ---------
 
     # MODEL CREATION
@@ -66,7 +76,7 @@ def main(args):
                       hidden_size=400, hidden_layers=2)
 
     # choose some metrics and evaluation method
-    interactive_logger = InteractiveLogger()
+    interactive_logger = TextLogger()
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(experience=False, stream=True),
