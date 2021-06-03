@@ -42,15 +42,14 @@ But let's see how we can use this module in practice!
 
 Let's start with the `Datasets`. As we previously hinted, in _Avalanche_ you'll find all the standard Pytorch Datasets available in the torchvision package as well as a few others that are useful for continual learning but not already officially available within the Pytorch ecosystem.
 
-
 ```python
 import torch
 import torchvision
-from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
-QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
-CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
-VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
+from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST,
+    QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10,
+    CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection,
+    VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101,
+    CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS
 
 # As we would simply do with any Pytorch dataset we can create the train and 
 # test sets from it. We could use any of the above imported Datasets, but let's

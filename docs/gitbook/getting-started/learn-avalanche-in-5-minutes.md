@@ -70,11 +70,11 @@ The benchmark module offers three main features:
 Datasets can be imported in _Avalanche_ as simply as:
 
 ```python
-from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
-QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
-CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
-VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS, MiniImageNetDataset, Stream51
+from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST,
+    QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10,
+    CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection,
+    VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101,
+    CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS, MiniImageNetDataset, Stream51
 ```
 
 Of course, you can use them as you would use any _PyTorch Dataset_.

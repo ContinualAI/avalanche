@@ -16,7 +16,7 @@ In order to install _Avalanche_ we have three main options:
 
 The _Avalanche_ dependencies are the following:
 
-`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `gdown`.
+`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `gdown`, `pycocotools`.
 
 {% hint style="info" %}
 _Avalanche may work on lower Python versions as well but we don't officially support it, nor recommend it._
