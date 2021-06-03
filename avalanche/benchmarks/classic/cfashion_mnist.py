@@ -158,4 +158,3 @@ if __name__ == "__main__":
     benchmark_instance = SplitFMNIST(n_experiences=10)
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
-
