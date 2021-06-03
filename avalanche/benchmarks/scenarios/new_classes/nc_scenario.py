@@ -457,12 +457,12 @@ class NCScenario(GenericCLScenario['NCExperience']):
         if exp_end is None:
             return [
                 item for sublist in
-                self.classes_in_experience[exp_start:]
+                self.classes_in_experience['train'][exp_start:]
                 for item in sublist]
 
         return [
             item for sublist in
-            self.classes_in_experience[exp_start:exp_end]
+            self.classes_in_experience['train'][exp_start:exp_end]
             for item in sublist]
 
 
