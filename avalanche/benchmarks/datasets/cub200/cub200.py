@@ -18,17 +18,20 @@ http://www.vision.caltech.edu/visipedia/CUB-200-2011.html.
 """
 
 import csv
+from pathlib import Path
+from typing import Union
+
 import gdown
 import os
 from collections import OrderedDict
-from os.path import expanduser
 from torchvision.datasets.folder import default_loader
-from torchvision.datasets.utils import extract_archive
 
+from avalanche.benchmarks.datasets import get_default_dataset_location, \
+    DownloadableDataset
 from avalanche.benchmarks.utils import PathsDataset
 
 
-class CUB200(PathsDataset):
+class CUB200(PathsDataset, DownloadableDataset):
     """ Basic CUB200 PathsDataset to be used as a standard PyTorch Dataset.
         A classic continual learning benchmark built on top of this dataset
         can be found in 'benchmarks.classic', while for more custom benchmark
@@ -43,7 +46,10 @@ class CUB200(PathsDataset):
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
     def __init__(
-            self, root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
+            self,
+            root: Union[str, Path] =
+            get_default_dataset_location('CUB_200_2011'),
+            *,
             train=True, transform=None, target_transform=None,
             loader=default_loader, download=True):
         """
@@ -62,31 +68,47 @@ class CUB200(PathsDataset):
             downloaded it will skip the download.
         """
 
-        self.root = os.path.expanduser(root)
         self.train = train
 
-        # we create the dir if it does not exists
-        if not os.path.exists(self.root):
-            os.makedirs(self.root)
+        DownloadableDataset.__init__(
+            self, root, download=download, verbose=True)
+        self._load_dataset()
 
-        if not self._check_integrity():
-            if download:
-                self._download()
-            else:
-                raise RuntimeError('Dataset not found or corrupted. ')
-
-        super().__init__(
-            os.path.join(self.root, CUB200.images_folder), self._images,
+        PathsDataset.__init__(
+            self, os.path.join(root, CUB200.images_folder), self._images,
             transform=transform, target_transform=target_transform,
             loader=loader)
+
+    def _download_dataset(self) -> None:
+        try:
+            self._download_and_extract_archive(
+                    CUB200.official_url, CUB200.filename,
+                    checksum=CUB200.tgz_md5)
+        except Exception:
+            if self.verbose:
+                print('[CUB200] Direct download may no longer be possible, '
+                      'will try GDrive.')
+
+        filepath = self.root / self.filename
+        gdown.download(self.gdrive_url, str(filepath), quiet=False)
+        gdown.cached_download(
+            self.gdrive_url, str(filepath), md5=self.tgz_md5
+        )
+
+        self._extract_archive(filepath)
+
+    def _download_error_message(self) -> str:
+        return '[CUB200] Error downloading the dataset. Consider downloading ' \
+               'it manually at: ' + CUB200.official_url + ' and placing it ' \
+               'in: ' + str(self.root)
 
     def _load_metadata(self):
         """ Main method to load the CUB200 metadata """
 
-        cub_dir = os.path.join(self.root, 'CUB_200_2011')
+        cub_dir = self.root / 'CUB_200_2011'
         self._images = OrderedDict()
 
-        with open(os.path.join(cub_dir, 'train_test_split.txt')) as csv_file:
+        with open(str(cub_dir / 'train_test_split.txt')) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=' ')
             for row in csv_reader:
                 img_id = int(row[0])
@@ -94,14 +116,14 @@ class CUB200(PathsDataset):
                 if is_train_instance == self.train:
                     self._images[img_id] = []
 
-        with open(os.path.join(cub_dir, 'images.txt')) as csv_file:
+        with open(str(cub_dir / 'images.txt')) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=' ')
             for row in csv_reader:
                 img_id = int(row[0])
                 if img_id in self._images:
                     self._images[img_id].append(row[1])
 
-        with open(os.path.join(cub_dir, 'image_class_labels.txt')) as csv_file:
+        with open(str(cub_dir / 'image_class_labels.txt')) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=' ')
             for row in csv_reader:
                 img_id = int(row[0])
@@ -109,7 +131,7 @@ class CUB200(PathsDataset):
                     # CUB starts counting classes from 1 ...
                     self._images[img_id].append(int(row[1]) - 1)
 
-        with open(os.path.join(cub_dir, 'bounding_boxes.txt')) as csv_file:
+        with open(str(cub_dir / 'bounding_boxes.txt')) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=' ')
             for row in csv_reader:
                 img_id = int(row[0])
@@ -124,37 +146,15 @@ class CUB200(PathsDataset):
             images_tuples.append(tuple(img_tuple))
         self._images = images_tuples
 
-    def _check_integrity(self):
-        """ Checks if the data is already available and intact """
-
-        try:
-            self._load_metadata()
-        except Exception as _:
-            return False
-
+        # Integrity check
         for row in self._images:
-            filepath = os.path.join(self.root, CUB200.images_folder, row[0])
-            if not os.path.isfile(filepath):
-                print('[CUB200] Error checking integrity of:', filepath)
+            filepath = self.root / CUB200.images_folder / row[0]
+            if not filepath.is_file():
+                if self.verbose:
+                    print('[CUB200] Error checking integrity of:', filepath)
                 return False
+
         return True
-
-    def _download(self):
-        if self._check_integrity():
-            print('Files already downloaded and verified')
-            return
-
-        try:
-            filepath = os.path.join(self.root, self.filename)
-            gdown.download(self.gdrive_url, filepath, quiet=False)
-            gdown.cached_download(
-                self.gdrive_url, filepath, md5=self.tgz_md5
-            )
-        except Exception as e:
-            print('[CUB200] Direct download may no longer be supported!')
-            raise e
-
-        extract_archive(filepath, to_path=self.root)
 
 
 if __name__ == "__main__":
