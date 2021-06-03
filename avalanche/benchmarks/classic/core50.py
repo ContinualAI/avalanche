@@ -15,7 +15,8 @@ number of configuration parameters."""
 from pathlib import Path
 from typing import Union, Optional, Any
 
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Normalize, Compose, \
+    RandomHorizontalFlip
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import \
     check_vision_benchmark
@@ -43,14 +44,29 @@ scen2dirs = {
 }
 
 
+normalize = Normalize(mean=[0.485, 0.456, 0.406],
+                      std=[0.229, 0.224, 0.225])
+
+_default_train_transform = Compose([
+    ToTensor(),
+    RandomHorizontalFlip(),
+    normalize
+])
+
+_default_eval_transform = Compose([
+    ToTensor(),
+    normalize
+])
+
+
 def CORe50(
         *,
         scenario: str = "nicv2_391",
         run: int = 0,
         object_lvl: bool = True,
         mini: bool = False,
-        train_transform: Optional[Any] = None,
-        eval_transform: Optional[Any] = None,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform,
         dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario for CORe50.
@@ -144,9 +160,6 @@ __all__ = [
 if __name__ == "__main__":
     import sys
 
-    benchmark_instance = CORe50(scenario="nicv2_79",
-                                train_transform=ToTensor(),
-                                eval_transform=ToTensor(),
-                                mini=True)
+    benchmark_instance = CORe50(scenario="nicv2_79", mini=False)
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
