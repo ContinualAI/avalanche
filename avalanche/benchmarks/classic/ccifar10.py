@@ -8,14 +8,15 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-
-from typing import Sequence, Optional
-from os.path import expanduser
+from pathlib import Path
+from typing import Sequence, Optional, Union, Any
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
-
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
 
 _default_cifar10_train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -32,13 +33,17 @@ _default_cifar10_eval_transform = transforms.Compose([
 ])
 
 
-def SplitCIFAR10(n_experiences: int,
-                 first_exp_with_half_classes: bool = False,
-                 return_task_id=False,
-                 seed: Optional[int] = None,
-                 fixed_class_order: Optional[Sequence[int]] = None,
-                 train_transform=_default_cifar10_train_transform,
-                 eval_transform=_default_cifar10_eval_transform) -> NCScenario:
+def SplitCIFAR10(
+        n_experiences: int,
+        *,
+        first_exp_with_half_classes: bool = False,
+        return_task_id=False,
+        seed: Optional[int] = None,
+        fixed_class_order: Optional[Sequence[int]] = None,
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_cifar10_train_transform,
+        eval_transform: Optional[Any] = _default_cifar10_eval_transform,
+        dataset_root: Union[str, Path] = None) -> NCScenario:
     """
     Creates a CL scenario using the CIFAR10 dataset.
 
@@ -82,6 +87,8 @@ def SplitCIFAR10(n_experiences: int,
         order. If None, value of ``seed`` will be used to define the class
         order. If not None, the ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -94,10 +101,12 @@ def SplitCIFAR10(n_experiences: int,
         comprehensive list of possible transformations).
         If no transformation is passed, the default eval transformation
         will be used.
+    :param dataset_root: The root path of the dataset. Defaults to None, which
+        means that the default location for 'cifar10' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
-    cifar_train, cifar_test = _get_cifar10_dataset()
+    cifar_train, cifar_test = _get_cifar10_dataset(dataset_root)
 
     if return_task_id:
         return nc_benchmark(
@@ -107,6 +116,7 @@ def SplitCIFAR10(n_experiences: int,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             per_exp_classes={0: 5} if first_exp_with_half_classes else None,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
@@ -119,20 +129,28 @@ def SplitCIFAR10(n_experiences: int,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             per_exp_classes={0: 5} if first_exp_with_half_classes else None,
             train_transform=train_transform,
             eval_transform=eval_transform)
 
 
-def _get_cifar10_dataset():
-    train_set = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
-                        train=True, download=True)
+def _get_cifar10_dataset(dataset_root):
+    if dataset_root is None:
+        dataset_root = default_dataset_location('cifar10')
 
-    test_set = CIFAR10(expanduser("~") + "/.avalanche/data/cifar10/",
-                       train=False, download=True)
+    train_set = CIFAR10(dataset_root, train=True, download=True)
+    test_set = CIFAR10(dataset_root, train=False, download=True)
 
     return train_set, test_set
 
+
+if __name__ == "__main__":
+    import sys
+
+    benchmark_instance = SplitCIFAR10(5)
+    check_vision_benchmark(benchmark_instance)
+    sys.exit(0)
 
 __all__ = [
     'SplitCIFAR10'

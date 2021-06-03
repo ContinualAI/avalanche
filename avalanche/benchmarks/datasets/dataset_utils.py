@@ -12,7 +12,7 @@
 from pathlib import Path
 
 
-def get_default_dataset_location(dataset_name: str) -> Path:
+def default_dataset_location(dataset_name: str) -> Path:
     """
     Return the default location of a dataset.
 
@@ -27,5 +27,5 @@ def get_default_dataset_location(dataset_name: str) -> Path:
 
 
 __all__ = [
-    'get_default_dataset_location'
+    'default_dataset_location'
 ]

@@ -13,11 +13,13 @@
 basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional, Any
 
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets import get_default_dataset_location
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_filelists
 from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset
@@ -41,13 +43,15 @@ scen2dirs = {
 }
 
 
-def CORe50(root: Union[str, Path] = get_default_dataset_location('core50'),
-           scenario: str = "nicv2_391",
-           run: int = 0,
-           object_lvl: bool = True,
-           mini: bool = False,
-           train_transform=None,
-           eval_transform=None):
+def CORe50(
+        *,
+        scenario: str = "nicv2_391",
+        run: int = 0,
+        object_lvl: bool = True,
+        mini: bool = False,
+        train_transform: Optional[Any] = None,
+        eval_transform: Optional[Any] = None,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario for CORe50.
 
@@ -67,9 +71,6 @@ def CORe50(root: Union[str, Path] = get_default_dataset_location('core50'),
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Absolute path indicating where to store the dataset and related
-        metadata. By default they will be stored in
-        "~/.avalanche/datasets/core50/data/".
     :param scenario: CORe50 main scenario. It can be chosen between 'ni', 'nc',
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
     :param run: number of run for the scenario. Each run defines a different
@@ -86,6 +87,10 @@ def CORe50(root: Union[str, Path] = get_default_dataset_location('core50'),
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
+    :param dataset_root: Absolute path indicating where to store the dataset
+        and related metadata. Defaults to None, which means that the default
+        location for
+        'core50' will be used.
 
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
@@ -97,8 +102,11 @@ def CORe50(root: Union[str, Path] = get_default_dataset_location('core50'),
                                         "'nic', 'nicv2_79', 'nicv2_196' or " \
                                         "'nicv2_391'."
 
+    if dataset_root is None:
+        dataset_root = default_dataset_location('core50')
+
     # Download the dataset and initialize filelists
-    core_data = CORe50Dataset(root=root, mini=mini)
+    core_data = CORe50Dataset(root=dataset_root, mini=mini)
 
     root = core_data.root
     if mini:
@@ -134,21 +142,11 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-
-    # this below can be taken as a usage example or a simple test script
     import sys
-    from torch.utils.data.dataloader import DataLoader
 
-    scenario = CORe50(scenario="nicv2_79",
-                      train_transform=ToTensor(),
-                      eval_transform=ToTensor(), mini=True)
-    for i, batch in enumerate(scenario.train_stream):
-        print(i, batch)
-        dataset, t = batch.dataset, batch.task_label
-        dl = DataLoader(dataset, batch_size=300)
-
-        for mb in dl:
-            x, y, t = mb
-            print(x.shape)
-            print(y.shape)
-        sys.exit(0)
+    benchmark_instance = CORe50(scenario="nicv2_79",
+                                train_transform=ToTensor(),
+                                eval_transform=ToTensor(),
+                                mini=True)
+    check_vision_benchmark(benchmark_instance)
+    sys.exit(0)
