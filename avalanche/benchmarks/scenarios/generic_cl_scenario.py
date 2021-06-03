@@ -10,6 +10,7 @@ from torch.utils.data.dataset import Dataset
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TExperience, ScenarioStream, TScenarioStream, Experience, TScenario
 from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
 TGenericExperience = TypeVar('TGenericExperience', bound='GenericExperience')
@@ -485,7 +486,7 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
         warnings.warn(
             'Using classes_in_experience[exp_id] is deprecated. '
             'Consider using classes_in_experience[stream_name][exp_id]'
-            'instead.')
+            'instead.', stacklevel=2)
         return self._default_lcie[stream_name_or_exp_id]
 
     def __iter__(self):
@@ -501,13 +502,24 @@ class LazyClassesInExps(Sequence[Set[int]]):
         return len(self._scenario.streams[self._stream])
 
     def __getitem__(self, exp_id) -> Set[int]:
-        return set(self._scenario.stream_definitions[self._stream]
-                   .exps_data[exp_id].targets)
+        return manage_advanced_indexing(
+            exp_id, self._get_single_exp_classes,
+            len(self), LazyClassesInExps._slice_collate)
 
     def __str__(self):
         return '[' + \
                ', '.join([str(self[idx]) for idx in range(len(self))]) + \
                ']'
+
+    def _get_single_exp_classes(self, exp_id):
+        return set(self._scenario.stream_definitions[self._stream]
+                   .exps_data[exp_id].targets)
+
+    @staticmethod
+    def _slice_collate(*classes_in_exps: Set[int]):
+        return [
+            list(x) for x in classes_in_exps
+        ]
 
 
 def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
