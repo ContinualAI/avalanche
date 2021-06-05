@@ -25,7 +25,7 @@ class ICaRLLossPlugin(StrategyPlugin):
         self.old_model = None
         self.old_logits = None
 
-    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def before_forward(self, strategy, **kwargs):
         if self.old_model is not None:
             with torch.no_grad():
                 self.old_logits = self.old_model(strategy.mb_x)
@@ -44,7 +44,7 @@ class ICaRLLossPlugin(StrategyPlugin):
 
         return self.criterion(predictions, one_hot)
 
-    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         if self.old_model is None:
             old_model = copy.deepcopy(strategy.model)
             old_model.eval()

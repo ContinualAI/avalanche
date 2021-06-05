@@ -18,7 +18,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
 from avalanche.logging import TextLogger
-from avalanche.models import SimpleMLP, make_icarl_net, initialize_icarl_net
+from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
@@ -346,16 +346,11 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(scenario, strategy)
 
     def test_icarl(self):
-        scenario = self.load_scenario()
-
-        model = make_icarl_net(num_classes=100)
-        model.apply(initialize_icarl_net)
-
+        model, _, _, scenario = self.init_sit()
         optimizer = SGD(model.parameters(), lr=.2)
 
         strategy = ICaRL(
-            model.feature_extractor, model.classifier, optimizer,
-            2000,
+            model.features, model.classifier, optimizer, 2000,
             buffer_transform=None,
             fixed_memory=True, train_mb_size=10,
             train_epochs=1, eval_mb_size=50,
@@ -393,5 +388,4 @@ class StrategyTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    StrategyTest().test_icarl()
-    # unittest.main()
+    unittest.main()

@@ -180,8 +180,11 @@ class _ICaRLPlugin(StrategyPlugin):
             D = D / torch.norm(D, dim=0)
 
             with torch.no_grad():
+                if len(class_samples.shape) == 4:
+                    class_samples = torch.flip(class_samples, [3])
+
                 mapped_prototypes2 = strategy.model.feature_extractor(
-                    torch.flip(class_samples, [3])).detach()
+                    class_samples).detach()
 
             D2 = mapped_prototypes2.T
             D2 = D2 / torch.norm(D2, dim=0)

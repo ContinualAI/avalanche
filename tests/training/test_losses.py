@@ -2,8 +2,7 @@
 import unittest
 
 import torch
-
-from avalanche.training.losses import ICaRLDistillationLoss
+from avalanche.training.losses import ICaRLLossPlugin
 
 
 class TestICaRLLossPlugin(unittest.TestCase):
@@ -28,12 +27,14 @@ class TestICaRLLossPlugin(unittest.TestCase):
         criterion = ICaRLLossPlugin()
         loss1 = criterion(new_pred, mb_y)
 
-        criterion.set_old([0, 1], old_pred)
+        criterion.old_logits = old_pred
+        criterion.old_classes = [0, 1]
+
         loss2 = criterion(new_pred, mb_y)
 
         assert loss2 < loss1
 
-        criterion = ICaRLDistillationLoss()
+        criterion = ICaRLLossPlugin()
         loss3 = criterion(new_pred, mb_y)
 
         assert loss3 == loss1
