@@ -20,7 +20,8 @@ from avalanche.training.strategies import BaseStrategy
 class ICaRL(BaseStrategy):
     def __init__(self, feature_extractor: Module, classifier: Module,
                  optimizer: Optimizer, memory_size, buffer_transform,
-                 fixed_memory, train_mb_size: int = 1, train_epochs: int = 1,
+                 fixed_memory, criterion=ICaRLLossPlugin(),
+                 train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
@@ -58,16 +59,18 @@ class ICaRL(BaseStrategy):
                                train_classifier=classifier,
                                eval_classifier=NCMClassifier())
 
-        loss = ICaRLLossPlugin()
         icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
 
         if plugins is None:
-            plugins = [icarl, loss]
+            plugins = [icarl]
         else:
-            plugins += [icarl, loss]
+            plugins += [icarl]
+
+        if isinstance(criterion, StrategyPlugin):
+            plugins += [criterion]
 
         super().__init__(
-            model, optimizer, criterion=loss,
+            model, optimizer, criterion=criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
@@ -138,25 +141,7 @@ class _ICaRLPlugin(StrategyPlugin):
                 self.embedding_size = strategy.model.feature_extractor(
                     strategy.mb_x).shape[1]
 
-        # tid = strategy.training_exp_counter
-
-        # if tid > 0:
-        #     old_classes = set(itertools.chain.from_iterable(self.y_memory))
-        #     self.old_model.eval()
-        #     with torch.no_grad():
-        #         embds = self.old_model.feature_extractor(strategy.mb_x)
-        #         old_logits = self.old_model.train_classifier(embds)
-        #
-        #     strategy.criterion.set_old(old_classes, old_logits)
-
     def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
-
-        # if strategy.training_exp_counter == 0:
-        #     old_model = copy.deepcopy(strategy.model)
-        #     self.old_model = old_model.to(strategy.device)
-        #
-        # self.old_model.load_state_dict(strategy.model.state_dict())
-
         strategy.model.eval()
 
         self.construct_exemplar_set(strategy)
@@ -179,10 +164,10 @@ class _ICaRLPlugin(StrategyPlugin):
             D = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
 
-            with torch.no_grad():
-                if len(class_samples.shape) == 4:
-                    class_samples = torch.flip(class_samples, [3])
+            if len(class_samples.shape) == 4:
+                class_samples = torch.flip(class_samples, [3])
 
+            with torch.no_grad():
                 mapped_prototypes2 = strategy.model.feature_extractor(
                     class_samples).detach()
 
