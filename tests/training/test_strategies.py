@@ -14,13 +14,8 @@ import unittest
 import os
 import sys
 
-from torch.nn.init import kaiming_normal_, zeros_
-
-from avalanche.benchmarks import nc_benchmark
-from sklearn.model_selection import train_test_split
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss, Linear
-from torch.utils.data import TensorDataset
 
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
@@ -34,28 +29,7 @@ from avalanche.training.strategies.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-# from tests.unit_tests_utils import get_fast_scenario
-from sklearn.datasets import make_classification
-
-def get_fast_scenario(use_task_labels=False, shuffle=True):
-    n_samples_per_class = 100
-    dataset = make_classification(
-        n_samples=10 * n_samples_per_class,
-        n_classes=10,
-        n_features=6, n_informative=6, n_redundant=0)
-
-    X = torch.from_numpy(dataset[0]).float()
-    y = torch.from_numpy(dataset[1]).long()
-
-    train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y)
-
-    train_dataset = TensorDataset(train_X, train_y)
-    test_dataset = TensorDataset(test_X, test_y)
-    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
-                                   task_labels=use_task_labels, shuffle=shuffle)
-    return my_nc_benchmark
-
+from tests.unit_tests_utils import get_fast_scenario
 
 
 class BaseStrategyTest(unittest.TestCase):
