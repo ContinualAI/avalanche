@@ -253,7 +253,7 @@ Check out more details about what Avalanche can offer in this module following t
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done through the **Metrics** and the **Loggers.** The **Metrics** provide a set of classes which implements the main continual learning metrics like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.   
+This is mostly done through the **Metrics** and the **Loggers.** The **Metrics** provide a set of classes which implements the main continual learning metrics like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.  
 Metrics should be created via the utility functions \(e.g. `accuracy_metrics`, `timing_metrics`and others\) specifying in the arguments when those metrics should be computed \(after each minibatch, epoch, experience etc...\).  
 The **Loggers** specify a way to report the metrics \(e.g. with Tensorboard, on console or others\). Loggers are created by instantiating the respective class.
 
@@ -283,7 +283,6 @@ eval_plugin = EvaluationPlugin(
 # strategy = EWC(..., evaluator=eval_plugin)
 
 # THAT'S IT!!
-                           
 ```
 
 For more details about the evaluation module \(how to write new metrics/loggers, a deeper tutorial on metrics\) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
