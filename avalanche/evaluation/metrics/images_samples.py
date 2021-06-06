@@ -75,6 +75,7 @@ class BalancedImagesSamplesMetric(Metric):
         self.n_images_per_label = n_images_per_label
         self.task2label2images: Dict[int, Dict[int, List[Tensor]]] = {}
         self.un_normalize = make_un_normalize(means, std)
+        self.reset()
 
     def reset(self) -> None:
         self.task2label2images = defaultdict(lambda: defaultdict(list))
@@ -181,17 +182,7 @@ class BalancedImagesSamplesPlugin(GenericPluginMetric[TensorImage]):
         self.n_cols = n_cols
         self.group_by = group_by
 
-    def before_training_iteration(
-        self, strategy: "BaseStrategy"
-    ) -> "MetricResult":
-        if self._mode == "train":
-            return self._update(strategy)
-
-    def before_eval_iteration(self, strategy: "BaseStrategy") -> "MetricResult":
-        if self._mode == "eval":
-            return self._update(strategy)
-
-    def _update(self, strategy: "BaseStrategy"):
+    def update(self, strategy: "BaseStrategy"):
         self._metric.update(
             strategy.mb_x, strategy.mb_y.tolist(), strategy.mb_task_id.tolist()
         )

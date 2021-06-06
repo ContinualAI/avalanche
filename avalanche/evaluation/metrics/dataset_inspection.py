@@ -35,6 +35,7 @@ class LabelsRepartition(Metric):
         super().__init__()
         self.task2label2count: Dict[int, Dict[int, int]] = {}
         self.class_order = None
+        self.reset()
 
     def reset(self) -> None:
         self.task2label2count = defaultdict(Counter)
@@ -85,21 +86,11 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
             dict
         )
 
-    def before_training_iteration(
-        self, strategy: "BaseStrategy"
-    ) -> "MetricResult":
-        if self._mode == "train":
-            return self._update(strategy)
-
-    def before_eval_iteration(self, strategy: "BaseStrategy") -> "MetricResult":
-        if self._mode == "eval":
-            return self._update(strategy)
-
     def reset(self) -> None:
         self.steps.append(self.global_it_counter)
         return super().reset()
 
-    def _update(self, strategy: "BaseStrategy"):
+    def update(self, strategy: "BaseStrategy"):
         self._metric.update(
             strategy.mb_task_id.tolist(),
             strategy.mb_y.tolist(),
