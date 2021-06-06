@@ -8,17 +8,28 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-
-from typing import Union, List, Tuple, Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import List, Optional, TYPE_CHECKING, Tuple, Union
 
 from PIL.Image import Image
+from matplotlib.figure import Figure
 from torch import Tensor
 
 if TYPE_CHECKING:
     from .metric_definitions import Metric
 
-MetricType = Union[float, int, Tensor, Image]
 MetricResult = Optional[List['MetricValue']]
+
+
+@dataclass
+class TensorImage:
+    image: Tensor
+
+    def __array__(self):
+        return self.image.numpy()
+
+
+MetricType = Union[float, int, Tensor, Image, TensorImage, Figure]
 
 
 class AlternativeValues:
@@ -87,5 +98,6 @@ __all__ = [
     'MetricType',
     'MetricResult',
     'AlternativeValues',
-    'MetricValue'
+    'MetricValue',
+    'TensorImage',
 ]

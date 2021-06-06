@@ -9,16 +9,19 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 import sys
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Tuple, Type
 
 import torch
 
-from avalanche.evaluation.metric_results import MetricValue
+from avalanche.evaluation.metric_results import MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
 from avalanche.evaluation.metric_utils import stream_type
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.strategies import BaseStrategy
+
+
+UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage, )
 
 
 class TextLogger(StrategyLogger):
@@ -74,6 +77,8 @@ class TextLogger(StrategyLogger):
         sorted_vals = sorted(self.metric_vals.values(),
                              key=lambda x: x[0])
         for name, x, val in sorted_vals:
+            if isinstance(val, UNSUPPORTED_TYPES):
+                continue
             val = self._val_to_str(val)
             print(f'\t{name} = {val}', file=self.file, flush=True)
 
