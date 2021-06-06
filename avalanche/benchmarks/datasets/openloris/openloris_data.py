@@ -13,7 +13,7 @@
 
 
 base_gdrive_url = "https://drive.google.com/u/0/uc?id="
-filename = [
+gdrive_data = [
     ('train.zip',
      '11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF'),
     ('valid.zip',
@@ -29,9 +29,25 @@ filename = [
     ('batches_filelists.zip',
      '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
 ]
-
+avl_vps_data = [
+    ('train.zip',
+     'http://vps.continualai.org/data/openloris/train.zip'),
+    ('valid.zip',
+     'http://vps.continualai.org/data/openloris/valid.zip'),
+    ('test.zip',
+     'http://vps.continualai.org/data/openloris/test.zip'),
+    ('LUP.pkl',
+     'http://vps.continualai.org/data/openloris/LUP.pkl'),
+    ('Paths.pkl',
+     'http://vps.continualai.org/data/openloris/Paths.pkl'),
+    ('Labels.pkl',
+     'http://vps.continualai.org/data/openloris/Labels.pkl'),
+    ('batches_filelists.zip',
+     'http://vps.continualai.org/data/openloris/batches_filelists.zip')
+]
 
 __all__ = [
     'base_gdrive_url',
-    'filename'
+    'gdrive_data',
+    'avl_vps_data'
 ]
