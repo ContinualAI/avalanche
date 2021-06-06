@@ -10,7 +10,7 @@
 ################################################################################
 from typing import Optional, Sequence, List, Union
 
-from torch.nn import Module
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training import default_logger
@@ -27,7 +27,8 @@ class Naive(BaseStrategy):
     performing baseline.
     """
 
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+    def __init__(self, model: Module, optimizer: Optimizer,
+                 criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,

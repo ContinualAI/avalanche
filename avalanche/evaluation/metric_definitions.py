@@ -4,21 +4,21 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 30-12-2020                                                             #
-# Author(s): Lorenzo Pellegrini                                                #
+# Author(s): Lorenzo Pellegrini, Antonio Carta, Andrea Cossu                   #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Optional, Dict, TYPE_CHECKING
-
+from typing import TypeVar, Optional, TYPE_CHECKING
 from typing_extensions import Protocol
-
+from .metric_results import MetricValue
+from .metric_utils import get_metric_name
 from ..core import StrategyCallbacks
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from ..training import BaseStrategy
+    from ..training.strategies import BaseStrategy
 
 TResult = TypeVar('TResult')
 TAggregated = TypeVar('TAggregated', bound='PluginMetric')
@@ -201,4 +201,118 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         self.global_it_counter += 1
 
 
-__all__ = ['Metric', 'PluginMetric']
+class GenericPluginMetric(PluginMetric[TResult]):
+    """
+    This class provides a generic implementation of a Plugin Metric.
+    The user can subclass this class to easily implement custom plugin
+    metrics.
+    """
+    def __init__(self, metric, reset_at='experience', emit_at='experience',
+                 mode='eval'):
+        super(GenericPluginMetric, self).__init__()
+        assert mode in {'train', 'eval'}
+        if mode == 'train':
+            assert reset_at in {'iteration', 'epoch'}
+            assert reset_at in {'iteration', 'epoch'}
+        else:
+            assert reset_at in {'experience', 'stream'}
+            assert reset_at in {'experience', 'stream'}
+        self._metric = metric
+        self._reset_at = reset_at
+        self._emit_at = emit_at
+        self._mode = mode
+
+    def reset(self) -> None:
+        self._metric.reset()
+
+    def result(self) -> float:
+        return self._metric.result()
+
+    def update(self, strategy):
+        assert NotImplementedError()
+
+    def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
+        metric_value = self.result()
+
+        add_exp = self._emit_at == 'experience'
+        add_task = self._emit_at != 'stream'
+        metric_name = get_metric_name(self, strategy, add_experience=add_exp,
+                                      add_task=add_task)
+        plot_x_position = self.get_global_counter()
+
+        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+    def before_training(self, strategy: 'BaseStrategy'):
+        super().before_training(strategy)
+        if self._reset_at == 'stream' and self._mode == 'train':
+            self.reset()
+
+    def before_training_exp(self, strategy: 'BaseStrategy'):
+        super().before_training_exp(strategy)
+        if self._reset_at == 'experience' and self._mode == 'train':
+            self.reset()
+
+    def before_training_epoch(self, strategy: 'BaseStrategy'):
+        super().before_training_epoch(strategy)
+        if self._reset_at == 'epoch' and self._mode == 'train':
+            self.reset()
+
+    def before_training_iteration(self, strategy: 'BaseStrategy'):
+        super().before_training_iteration(strategy)
+        if self._reset_at == 'iteration' and self._mode == 'train':
+            self.reset()
+
+    def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
+        super().after_training_iteration(strategy)
+        self.update(strategy)
+        if self._emit_at == 'iteration' and self._mode == 'train':
+            return self._package_result(strategy)
+
+    def after_training_epoch(self, strategy: 'BaseStrategy'):
+        super().after_training_epoch(strategy)
+        if self._emit_at == 'epoch' and self._mode == 'train':
+            return self._package_result(strategy)
+
+    def after_training_exp(self, strategy: 'BaseStrategy'):
+        super().after_training_exp(strategy)
+        if self._emit_at == 'experience' and self._mode == 'train':
+            return self._package_result(strategy)
+
+    def after_training(self, strategy: 'BaseStrategy'):
+        super().after_training(strategy)
+        if self._emit_at == 'stream' and self._mode == 'train':
+            return self._package_result(strategy)
+
+    def before_eval(self, strategy: 'BaseStrategy'):
+        super().before_eval(strategy)
+        if self._reset_at == 'stream' and self._mode == 'eval':
+            self.reset()
+
+    def before_eval_exp(self, strategy: 'BaseStrategy'):
+        super().before_eval_exp(strategy)
+        if self._reset_at == 'experience' and self._mode == 'eval':
+            self.reset()
+
+    def after_eval_exp(self, strategy: 'BaseStrategy'):
+        super().after_eval_exp(strategy)
+        if self._emit_at == 'experience' and self._mode == 'eval':
+            return self._package_result(strategy)
+
+    def after_eval(self, strategy: 'BaseStrategy'):
+        super().after_eval(strategy)
+        if self._emit_at == 'stream' and self._mode == 'eval':
+            return self._package_result(strategy)
+
+    def before_eval_iteration(self, strategy: 'BaseStrategy'):
+        super().before_eval_iteration(strategy)
+        if self._emit_at == 'iteration' and self._mode == 'eval':
+            return self._package_result(strategy)
+
+    def after_eval_iteration(self, strategy: 'BaseStrategy'):
+        super().after_eval_iteration(strategy)
+        self.update(strategy)
+        if self._reset_at == 'iteration' and self._mode == 'eval':
+            self.reset()
+
+
+__all__ = ['Metric', 'PluginMetric', 'GenericPluginMetric']

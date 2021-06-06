@@ -8,21 +8,25 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-
+from numpy import arange, ndarray
 from typing_extensions import Literal
-from typing import Callable, Union, Optional, Mapping, TYPE_CHECKING
+from typing import Callable, Union, Optional, Mapping, TYPE_CHECKING, List, \
+    Sequence
 
+import wandb
 import numpy as np
 import torch
 from PIL.Image import Image
 from torch import Tensor
 from torch.nn.functional import pad
 
+from avalanche.benchmarks import NCScenario
 from avalanche.evaluation import PluginMetric, Metric
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import default_cm_image_creator, \
     phase_and_task, stream_type
+
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 
@@ -241,8 +245,8 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
                  num_classes: Union[int, Mapping[int, int]] = None,
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
-                 image_creator: Callable[[Tensor], Image] =
-                 default_cm_image_creator):
+                 image_creator: Callable[[Tensor, Sequence], Image] =
+                 default_cm_image_creator, absolute_class_order: bool = False):
         """
         Creates an instance of the Stream Confusion Matrix metric.
 
@@ -266,20 +270,23 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             matrix will be logged, too. If False, only the Tensor representation
             will be logged. Defaults to True.
         :param image_creator: A callable that, given the tensor representation
-            of the confusion matrix, returns a graphical representation of the
-            matrix as a PIL Image. Defaults to `default_cm_image_creator`.
+            of the confusion matrix and the corresponding labels, returns a
+            graphical representation of the matrix as a PIL Image. Defaults to
+            `default_cm_image_creator`.
+        :param absolute_class_order: If true, the labels in the created image
+            will be sorted by id, otherwise they will be sorted by order of
+            encounter at training time. This parameter is ignored if
+            `save_image` is False, or the scenario is not a NCScenario.
         """
         super().__init__()
 
         self._save_image: bool = save_image
         self.num_classes = num_classes
         self.normalize = normalize
+        self.absolute_class_order = absolute_class_order
         self._matrix: ConfusionMatrix = ConfusionMatrix(num_classes=num_classes,
                                                         normalize=normalize)
-
-        if image_creator is None:
-            image_creator = default_cm_image_creator
-        self._image_creator: Callable[[Tensor], Image] = image_creator
+        self._image_creator = image_creator
 
     def reset(self) -> None:
         self._matrix = ConfusionMatrix(num_classes=self.num_classes,
@@ -298,7 +305,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         super().after_eval_iteration(strategy)
         self.update(strategy.mb_y,
-                    strategy.logits)
+                    strategy.mb_output)
 
     def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
         return self._package_result(strategy)
@@ -314,7 +321,12 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         plot_x_position = self.get_global_counter()
 
         if self._save_image:
-            cm_image = self._image_creator(exp_cm)
+            class_order = self._get_display_class_order(exp_cm, strategy)
+
+            cm_image = self._image_creator(
+                exp_cm[class_order][:, class_order],
+                class_order
+            )
             metric_representation = MetricValue(
                 self, metric_name, AlternativeValues(cm_image, exp_cm),
                 plot_x_position)
@@ -324,11 +336,159 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
         return [metric_representation]
 
+    def _get_display_class_order(self, exp_cm: Tensor, strategy: 'BaseStrategy'
+                                 ) -> ndarray:
+        scenario = strategy.experience.scenario
+
+        if self.absolute_class_order or not isinstance(scenario, NCScenario):
+            return arange(len(exp_cm))
+
+        return scenario.classes_order
+
     def __str__(self):
         return "ConfusionMatrix_Stream"
 
 
+class WandBStreamConfusionMatrix(PluginMetric):
+    """
+    Confusion Matrix metric compatible with Weights and Biases logger.
+    Differently from the `StreamConfusionMatrix`, this metric will use W&B
+    built-in functionalities to log the Confusion Matrix.
+
+    This metric may not produce meaningful outputs with other loggers.
+
+    https://docs.wandb.ai/guides/track/log#custom-charts
+    """
+
+    def __init__(self, class_names=None):
+        """
+        :param class_names: list of names for the classes.
+            E.g. ["cat", "dog"] if class 0 == "cat" and class 1 == "dog"
+            If None, no class names will be used. Default None.
+        """
+
+        super().__init__()
+
+        self.outputs = []  # softmax-ed or logits outputs
+        self.targets = []  # target classes
+        self.class_names = class_names
+
+    def reset(self) -> None:
+        self.outputs = []
+        self.targets = []
+
+    def before_eval(self, strategy) -> None:
+        self.reset()
+
+    def result(self):
+        outputs = torch.cat(self.outputs, dim=0)
+        targets = torch.cat(self.targets, dim=0)
+        return outputs, targets
+
+    def update(self, output, target):
+        self.outputs.append(output)
+        self.targets.append(target)
+
+    def after_eval_iteration(self, strategy: 'BaseStrategy'):
+        super(WandBStreamConfusionMatrix, self).after_eval_iteration(strategy)
+        self.update(strategy.mb_output, strategy.mb_y)
+
+    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
+        outputs, targets = self.result()
+        phase_name, _ = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+        metric_name = '{}/{}_phase/{}_stream' \
+            .format(str(self),
+                    phase_name,
+                    stream)
+        plot_x_position = self.get_global_counter()
+
+        # compute predicted classes
+        preds = torch.argmax(outputs, dim=1).cpu().numpy()
+        result = wandb.plot.confusion_matrix(preds=preds,
+                                             y_true=targets.cpu().numpy(),
+                                             class_names=self.class_names)
+
+        metric_representation = MetricValue(
+            self, metric_name, AlternativeValues(result),
+            plot_x_position)
+
+        return [metric_representation]
+
+    def __str__(self):
+        return "W&BConfusionMatrix_Stream"
+
+
+def confusion_matrix_metrics(
+        num_classes=None,
+        normalize=None,
+        save_image=True,
+        image_creator=default_cm_image_creator,
+        class_names=None,
+        stream=False,
+        wandb=False,
+        absolute_class_order: bool = False,
+) -> List[PluginMetric]:
+    """
+    Helper method that can be used to obtain the desired set of
+    plugin metrics.
+
+    :param num_classes: The number of classes. Defaults to None,
+        which means that the number of classes will be inferred from
+        ground truth and prediction Tensors (see class description for more
+        details). If not None, the confusion matrix will always be of size
+        `num_classes, num_classes` and only the first `num_classes` values
+        of output logits or target logits will be considered in the update.
+        If the output or targets are provided as numerical labels,
+        there can be no label greater than `num_classes`.
+    :param normalize: Normalizes confusion matrix over the true (rows),
+        predicted (columns) conditions or all the population. If None,
+        confusion matrix will not be normalized. Valid values are: 'true',
+        'pred' and 'all' or None.
+    :param save_image: If True, a graphical representation of the confusion
+        matrix will be logged, too. If False, only the Tensor representation
+        will be logged. Defaults to True.
+    :param image_creator: A callable that, given the tensor representation
+        of the confusion matrix, returns a graphical representation of the
+        matrix as a PIL Image. Defaults to `default_cm_image_creator`.
+    :param class_names: W&B only. List of names for the classes.
+        E.g. ["cat", "dog"] if class 0 == "cat" and class 1 == "dog"
+        If None, no class names will be used. Default None.
+    :param stream: If True, will return a metric able to log
+        the confusion matrix averaged over the entire evaluation stream
+        of experiences.
+    :param wandb: if True, will return a Weights and Biases confusion matrix
+        together with all the other confusion matrixes requested.
+    :param absolute_class_order: Not W&B. If true, the labels in the created
+        image will be sorted by id, otherwise they will be sorted by order of
+        encounter at training time. This parameter is ignored if `save_image` is
+         False, or the scenario is not a NCScenario.
+
+    :return: A list of plugin metrics.
+    """
+
+    metrics = []
+
+    if stream:
+        metrics.append(
+            StreamConfusionMatrix(num_classes=num_classes,
+                                  normalize=normalize,
+                                  save_image=save_image,
+                                  image_creator=image_creator,
+                                  absolute_class_order=absolute_class_order,
+                                  ))
+        if wandb:
+            metrics.append(WandBStreamConfusionMatrix(class_names=class_names))
+
+    return metrics
+
+
 __all__ = [
     'ConfusionMatrix',
-    'StreamConfusionMatrix'
+    'StreamConfusionMatrix',
+    'WandBStreamConfusionMatrix',
+    'confusion_matrix_metrics'
 ]

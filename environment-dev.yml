@@ -27,6 +27,7 @@ dependencies:
 - sphinx_rtd_theme
 - conda-forge::astroid=2.4.2
 - conda-forge::sphinx-autoapi
+- conda-forge::pycocotools
 - pip:
     - pytorchcv
-    - googledrivedownloader
+    - gdown

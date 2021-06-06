@@ -19,7 +19,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics, \
-    loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix, disk_usage_metrics
+    loss_metrics, timing_metrics, cpu_usage_metrics, confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -50,7 +50,8 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True, epoch_running=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False,
+                             stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )

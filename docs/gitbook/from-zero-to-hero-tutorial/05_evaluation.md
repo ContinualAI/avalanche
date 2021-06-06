@@ -57,9 +57,10 @@ We recommend to use the helper functions when creating plugin metrics.
 
 ```python
 from avalanche.evaluation.metrics import accuracy_metrics, \
-    loss_metrics, cpu_usage_metrics, disk_usage_metrics, \
-    gpu_usage_metrics, MAC_metrics, ram_usage_metrics, \
-    timing_metrics
+    loss_metrics, forgetting_metrics, bwt_metrics,\
+    confusion_matrix_metrics, cpu_usage_metrics, \
+    disk_usage_metrics, gpu_usage_metrics, MAC_metrics, \
+    ram_usage_metrics, timing_metrics
 
 # you may pass the result to the EvaluationPlugin
 metrics = accuracy_metrics(epoch=True, experience=True)
@@ -74,7 +75,8 @@ ExperienceAccuracy, StreamAccuracy, \
 Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
 ExperienceLoss, StreamLoss, \
 Forgetting, ExperienceForgetting, StreamForgetting, \
-ConfusionMatrix, StreamConfusionMatrix, \
+BWT, ExperienceBWT, StreamBWT, \
+ConfusionMatrix, StreamConfusionMatrix, WandBStreamConfusionMatrix, \
 CPUUsage, MinibatchCPUUsage, EpochCPUUsage, RunningEpochCPUUsage, \
 ExperienceCPUUsage, StreamCPUUsage, \
 DiskUsage, MinibatchDiskUsage, EpochDiskUsage, \
@@ -100,9 +102,8 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
-StreamConfusionMatrix, disk_usage_metrics
+confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
@@ -122,7 +123,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True)
 )
 
@@ -265,7 +266,7 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     collect_all=True # this is default value anyway
 )

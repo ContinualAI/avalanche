@@ -1,1 +1,1 @@
-from .core50 import CORe50
+from .core50 import CORe50Dataset

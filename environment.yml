@@ -21,7 +21,8 @@ dependencies:
 - tqdm
 - wandb
 - tensorboard
+- conda-forge::pycocotools
 - pip
 - pip:
     - pytorchcv
-    - googledrivedownloader
+    - gdown
