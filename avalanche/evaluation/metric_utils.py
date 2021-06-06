@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Tuple, TYPE_CHECKING, Dict, Union, Iterable
+from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +28,7 @@ TRAIN = "train"
 
 
 def default_cm_image_creator(confusion_matrix_tensor: Tensor,
-                             display_labels=None,
+                             display_labels: Sequence = None,
                              include_values=False,
                              xticks_rotation=0,
                              yticks_rotation=0,

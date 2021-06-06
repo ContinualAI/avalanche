@@ -129,7 +129,8 @@ def nc_scenario(
     :return: A properly initialized :class:`NCScenario` instance.
     """
 
-    warnings.warn('nc_scenario is deprecated in favor of nc_benchmark.')
+    warnings.warn('nc_scenario is deprecated in favor of nc_benchmark.',
+                  DeprecationWarning)
 
     if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
         raise ValueError('Invalid mutually exclusive options '
@@ -254,7 +255,8 @@ def ni_scenario(
     :return: A properly initialized :class:`NIScenario` instance.
     """
 
-    warnings.warn('ni_scenario is deprecated in favor of ni_benchmark.')
+    warnings.warn('ni_scenario is deprecated in favor of ni_benchmark.',
+                  DeprecationWarning)
 
     seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
@@ -332,7 +334,7 @@ def dataset_scenario(
     """
 
     warnings.warn('dataset_scenario is deprecated in favor of '
-                  'dataset_benchmark.')
+                  'dataset_benchmark.', DeprecationWarning)
 
     return create_multi_dataset_generic_scenario(
         train_dataset_list=train_dataset_list,
@@ -405,7 +407,7 @@ def filelist_scenario(
     """
 
     warnings.warn('filelist_scenario is deprecated in favor of '
-                  'filelist_benchmark.')
+                  'filelist_benchmark.', DeprecationWarning)
 
     return create_generic_scenario_from_filelists(
         root=root,
@@ -498,7 +500,8 @@ def paths_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('paths_scenario is deprecated in favor of paths_benchmark.')
+    warnings.warn('paths_scenario is deprecated in favor of paths_benchmark.',
+                  DeprecationWarning)
 
     return create_generic_scenario_from_paths(
         train_list_of_files=train_list_of_files,
@@ -583,7 +586,7 @@ def tensors_scenario(
     """
 
     warnings.warn('tensors_scenario is deprecated in favor of '
-                  'tensors_benchmark.')
+                  'tensors_benchmark.', DeprecationWarning)
 
     return create_generic_scenario_from_tensor_lists(
         train_tensors=train_tensors,
@@ -676,7 +679,8 @@ def tensor_scenario(
     warnings.warn('tensor_scenario is deprecated in favor '
                   'of tensors_benchmark. When switching'
                   ' to the new function, please keep in mind that the format of'
-                  ' the parameters is completely different!')
+                  ' the parameters is completely different!',
+                  DeprecationWarning)
 
     if isinstance(test_data_x, Tensor):
         test_data_x = [test_data_x]
