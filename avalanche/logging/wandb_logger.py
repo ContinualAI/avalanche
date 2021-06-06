@@ -76,7 +76,7 @@ class WandBLogger(StrategyLogger):
         value = metric_value.value
 
         if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, Tensor, NpImage,
+            value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
                                                self.wandb.viz.CustomChart)
 

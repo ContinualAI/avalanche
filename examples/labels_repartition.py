@@ -55,7 +55,7 @@ def main(cuda: int):
                 Normalize(means, std),
             ]
         ),
-        eval_transform=Compose([ToTensor(), Normalize(means, std),]),
+        eval_transform=Compose([ToTensor(), Normalize(means, std)]),
     )
     # ---------
 
