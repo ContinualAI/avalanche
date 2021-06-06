@@ -7,7 +7,7 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import StrategyLogger
-    from avalanche.training import BaseStrategy
+    from avalanche.training.strategies import BaseStrategy
 
 
 class EvaluationPlugin(StrategyPlugin):

@@ -52,7 +52,6 @@ class Metric(Protocol[TResult]):
 
         :return: The value of the metric.
         """
-        pass
 
     def reset(self) -> None:
         """
@@ -60,7 +59,6 @@ class Metric(Protocol[TResult]):
 
         :return: None.
         """
-        pass
 
 
 class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
@@ -212,11 +210,11 @@ class GenericPluginMetric(PluginMetric[TResult]):
         super(GenericPluginMetric, self).__init__()
         assert mode in {'train', 'eval'}
         if mode == 'train':
-            assert reset_at in {'iteration', 'epoch'}
-            assert reset_at in {'iteration', 'epoch'}
+            assert reset_at in {'iteration', 'epoch', 'experience', 'stream'}
+            assert emit_at in {'iteration', 'epoch', 'experience', 'stream'}
         else:
-            assert reset_at in {'experience', 'stream'}
-            assert reset_at in {'experience', 'stream'}
+            assert reset_at in {'iteration', 'experience', 'stream'}
+            assert emit_at in {'iteration', 'experience', 'stream'}
         self._metric = metric
         self._reset_at = reset_at
         self._emit_at = emit_at
@@ -293,6 +291,12 @@ class GenericPluginMetric(PluginMetric[TResult]):
         if self._reset_at == 'experience' and self._mode == 'eval':
             self.reset()
 
+    def after_eval_iteration(self, strategy: 'BaseStrategy'):
+        super().after_eval_iteration(strategy)
+        self.update(strategy)
+        if self._reset_at == 'iteration' and self._mode == 'eval':
+            self.reset()
+
     def after_eval_exp(self, strategy: 'BaseStrategy'):
         super().after_eval_exp(strategy)
         if self._emit_at == 'experience' and self._mode == 'eval':
@@ -307,12 +311,6 @@ class GenericPluginMetric(PluginMetric[TResult]):
         super().before_eval_iteration(strategy)
         if self._emit_at == 'iteration' and self._mode == 'eval':
             return self._package_result(strategy)
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy'):
-        super().after_eval_iteration(strategy)
-        self.update(strategy)
-        if self._reset_at == 'iteration' and self._mode == 'eval':
-            self.reset()
 
 
 __all__ = ['Metric', 'PluginMetric', 'GenericPluginMetric']
