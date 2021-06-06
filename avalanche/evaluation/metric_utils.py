@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING
+from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -129,15 +129,16 @@ SEABORN_COLORS = (
 )
 
 
-def default_repartition_pie_chart_image_creator(
-    label2count: Dict[int, int],
+def repartition_pie_chart_image_creator(
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
     colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
     fmt: str = "%1.1f%%",
 ):
     fig, ax = plt.subplots()
     ax: Axes
 
-    labels, counts = zip(*label2count.items())
+    labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
 
     ax.pie(counts, labels=labels, autopct=fmt, colors=colors)
 
@@ -146,14 +147,15 @@ def default_repartition_pie_chart_image_creator(
 
 
 def repartition_bar_chart_image_creator(
-    label2count: Dict[int, int],
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
     colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
 ):
     fig, ax = plt.subplots()
     ax: Axes
 
-    y = -arange(len(label2count))
-    labels, counts = zip(*label2count.items())
+    y = -arange(len(label2counts))
+    labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
     total = sum(counts)
 
     ax.barh(y, width=counts, color=colors)
@@ -165,6 +167,28 @@ def repartition_bar_chart_image_creator(
 
     for i, count in enumerate(counts):
         ax.text(count / 2, -i, f"{count/total:.1%}", va="center", ha="center")
+
+    fig.tight_layout()
+    return fig
+
+
+def default_history_repartition_image_creator(
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
+    colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
+):
+    fig, ax = plt.subplots()
+    ax: Axes
+
+    ax.stackplot(
+        counters,
+        label2counts.values(),
+        labels=label2counts.keys(),
+        colors=colors,
+    )
+    ax.legend(loc='upper left')
+    ax.set_ylabel("Number of examples")
+    ax.set_xlabel("step")
 
     fig.tight_layout()
     return fig
@@ -278,5 +302,5 @@ __all__ = [
     "get_metric_name",
     "stream_type",
     "bytes2human",
-    "default_repartition_pie_chart_image_creator",
+    "repartition_pie_chart_image_creator",
 ]

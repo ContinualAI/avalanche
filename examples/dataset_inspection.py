@@ -22,6 +22,9 @@ from torchvision.transforms import (
 )
 
 from avalanche.benchmarks import SplitCIFAR10
+from avalanche.evaluation.metric_utils import (
+    repartition_bar_chart_image_creator,
+)
 from avalanche.evaluation.metrics.dataset_inspection import (
     labels_repartition_metrics,
 )
