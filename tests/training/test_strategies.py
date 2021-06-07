@@ -15,7 +15,7 @@ import os
 import sys
 
 from torch.optim import SGD
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Linear
 
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
@@ -25,6 +25,7 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.strategies.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
@@ -342,6 +343,18 @@ class StrategyTest(unittest.TestCase):
                         train_mb_size=10, device=self.device,
                         eval_mb_size=50, train_epochs=2)
         scenario = self.load_scenario(use_task_labels=True)
+        self.run_strategy(scenario, strategy)
+
+    def test_icarl(self):
+        model, optimizer, criterion, scenario = self.init_sit()
+
+        strategy = ICaRL(
+            model.features, model.classifier, optimizer, 20,
+            buffer_transform=None, criterion=criterion,
+            fixed_memory=True, train_mb_size=10,
+            train_epochs=2, eval_mb_size=50,
+            device=self.device,)
+
         self.run_strategy(scenario, strategy)
 
     def load_scenario(self, use_task_labels=False):
