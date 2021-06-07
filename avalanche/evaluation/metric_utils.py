@@ -202,7 +202,10 @@ def get_metric_name(metric: 'PluginMetric',
     stream = stream_type(strategy.experience)
     base_name = '{}/{}_phase/{}_stream'.format(str(metric),
                                                phase_name, stream)
-    task_name = '/Task{:03}'.format(task_label)
+    if isinstance(add_task, int):
+        task_name = '/Task{:03}'.format(add_task)
+    else:
+        task_name = '/Task{:03}'.format(task_label)
     exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
 
     if add_experience and not add_task:

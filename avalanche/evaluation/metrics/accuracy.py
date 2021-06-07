@@ -9,12 +9,13 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import List
+from typing import List, Union, Dict
 
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
+from collections import defaultdict
 
 
 class Accuracy(Metric[float]):
@@ -43,14 +44,16 @@ class Accuracy(Metric[float]):
         value of 0. The metric can be updated by using the `update` method
         while the running accuracy can be retrieved using the `result` method.
         """
-
-        self._mean_accuracy = Mean()
+        super().__init__()
+        self._mean_accuracy = defaultdict(Mean)
         """
-        The mean utility that will be used to store the running accuracy.
+        The mean utility that will be used to store the running accuracy
+        for each task label.
         """
 
     @torch.no_grad()
-    def update(self, predicted_y: Tensor, true_y: Tensor) -> None:
+    def update(self, predicted_y: Tensor, true_y: Tensor,
+               task_labels: Union[float, Tensor]) -> None:
         """
         Update the running accuracy given the true and predicted labels.
 
@@ -58,10 +61,17 @@ class Accuracy(Metric[float]):
             are supported.
         :param true_y: The ground truth. Both labels and one-hot vectors
             are supported.
+        :param task_labels: the int task label associated to the current
+            experience or the task labels vector showing the task label
+            for each pattern.
+
         :return: None.
         """
         if len(true_y) != len(predicted_y):
             raise ValueError('Size mismatch for true_y and predicted_y tensors')
+
+        if isinstance(task_labels, Tensor) and len(task_labels) != len(true_y):
+            raise ValueError('Size mismatch for true_y and task_labels tensors')
 
         true_y = torch.as_tensor(true_y)
         predicted_y = torch.as_tensor(predicted_y)
@@ -75,29 +85,39 @@ class Accuracy(Metric[float]):
             # Logits -> transform to labels
             true_y = torch.max(true_y, 1)[1]
 
-        true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
-        total_patterns = len(true_y)
+        if isinstance(task_labels, int):
+            true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
+            total_patterns = len(true_y)
+            self._mean_accuracy[task_labels].update(
+                true_positives / total_patterns, total_patterns)
+        elif isinstance(task_labels, Tensor):
+            for pred, true, t in zip(predicted_y, true_y, task_labels):
+                true_positives = (pred == true).float().item()
+                self._mean_accuracy[t.item()].update(
+                    true_positives, 1)
+        else:
+            raise ValueError(f"Task label type: {type(task_labels)}, "
+                             f"expected int/float or Tensor")
 
-        self._mean_accuracy.update(true_positives / total_patterns,
-                                   total_patterns)
-
-    def result(self) -> float:
+    def result(self) -> Dict[int, float]:
         """
         Retrieves the running accuracy.
 
         Calling this method will not change the internal state of the metric.
 
-        :return: The running accuracy, as a float value between 0 and 1.
+        :return: A dict of running accuracies for each task label,
+            where each value is a float value between 0 and 1.
         """
-        return self._mean_accuracy.result()
+        return {k: v.result() for k, v in self._mean_accuracy.items()}
 
-    def reset(self) -> None:
+    def reset(self, task_label=None) -> None:
         """
         Resets the metric.
-
+        :param task_label: if None, reset the entire dictionary.
+            Otherwise, reset the value associated to `task_label`.
         :return: None.
         """
-        self._mean_accuracy.reset()
+        self._mean_accuracy = defaultdict(Mean)
 
 
 class AccuracyPluginMetric(GenericPluginMetric[float]):
@@ -111,7 +131,13 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
             mode=mode)
 
     def update(self, strategy):
-        self._accuracy.update(strategy.mb_output, strategy.mb_y)
+        try:
+            # task labels defined for each pattern
+            task_labels = strategy.mb_task_id
+        except AssertionError:
+            # task labels defined for each experience
+            task_labels = strategy.experience.task_label
+        self._accuracy.update(strategy.mb_output, strategy.mb_y, task_labels)
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):

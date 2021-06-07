@@ -233,14 +233,22 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
         metric_value = self.result()
-
+        # print(metric_value)
         add_exp = self._emit_at == 'experience'
         add_task = self._emit_at != 'stream'
-        metric_name = get_metric_name(self, strategy, add_experience=add_exp,
-                                      add_task=add_task)
         plot_x_position = self.get_global_counter()
 
-        return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+        if isinstance(metric_value, dict):
+            metrics = []
+            for k, v in metric_value.items():
+                metric_name = get_metric_name(self, strategy, add_experience=add_exp,
+                                              add_task=k)
+                metrics.append(MetricValue(self, metric_name, v, plot_x_position))
+            return metrics
+        else:
+            metric_name = get_metric_name(self, strategy, add_experience=add_exp,
+                                          add_task=add_task)
+            return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
     def before_training(self, strategy: 'BaseStrategy'):
         super().before_training(strategy)
