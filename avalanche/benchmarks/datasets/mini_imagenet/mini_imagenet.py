@@ -67,6 +67,8 @@ import csv
 import glob
 from pathlib import Path
 from typing import Union, List, Tuple, Dict
+
+from torchvision.datasets.folder import default_loader
 from typing_extensions import Literal
 
 import PIL
@@ -78,14 +80,6 @@ from torchvision.transforms import Resize
 from avalanche.benchmarks.datasets.mini_imagenet.mini_imagenet_data import \
     MINI_IMAGENET_WNIDS, MINI_IMAGENET_WNID_TO_IDX, MINI_IMAGENET_CLASSES, \
     MINI_IMAGENET_CLASS_TO_IDX
-
-
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 
 class MiniImageNetDataset(Dataset):
@@ -110,7 +104,8 @@ class MiniImageNetDataset(Dataset):
     """
     def __init__(self, imagenet_path: Union[str, Path],
                  split: Literal['all', 'train', 'val', 'test'] = 'all',
-                 resize_to: Union[int, Tuple[int, int]] = 84):
+                 resize_to: Union[int, Tuple[int, int]] = 84,
+                 loader=default_loader):
         """
         Creates an instance of the Mini ImageNet dataset.
 
@@ -191,6 +186,8 @@ class MiniImageNetDataset(Dataset):
         field to their numerical label. That is, this dictionary contains the 
         inverse mapping of classes field.
         """
+
+        self.loader = loader
 
         if not self.imagenet_path.exists():
             raise ValueError('The provided directory does not exist.')
@@ -279,7 +276,7 @@ class MiniImageNetDataset(Dataset):
         return len(self.targets)
 
     def __getitem__(self, item):
-        img = pil_loader(self.image_paths[item])
+        img = self.loader(self.image_paths[item])
         img = self._transform(img)
         return img, self.targets[item]
 

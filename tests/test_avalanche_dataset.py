@@ -1212,8 +1212,28 @@ class AvalancheDatasetTests(unittest.TestCase):
         leaf = dataset
 
         for idx in range(dataset_hierarchy_depth):
+            intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheSubset(leaf, indices=rolling_indices[idx])
             leaf = AvalancheConcatDataset((subset, leaf))
+
+            # Regression test for #616 (second bug)
+            # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
+            all_targets = []
+            for c_dataset in leaf._dataset_list:
+                all_targets += c_dataset.targets
+
+            all_targets = torch.tensor(all_targets)
+
+            for idx_internal in range(idx+1):
+                leaf_range = range(idx_internal * d_sz,
+                                   (idx_internal + 1) * d_sz)
+                permuted = expect_indices[idx_internal+intermediate_idx_test]
+                self.assertTrue(torch.equal(tensor_y[permuted],
+                                            all_targets[leaf_range]))
+
+            self.assertTrue(torch.equal(tensor_y,
+                                        torch.tensor(all_targets)[-d_sz:]))
+
         self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(leaf))
 
         for idx in range(dataset_hierarchy_depth):
@@ -1223,6 +1243,8 @@ class AvalancheDatasetTests(unittest.TestCase):
                                         leaf[leaf_range][0]))
             self.assertTrue(torch.equal(tensor_y[permuted],
                                         leaf[leaf_range][1]))
+            self.assertTrue(torch.equal(tensor_y[permuted],
+                                        torch.tensor(leaf.targets)[leaf_range]))
             self.assertTrue(torch.equal(tensor_t[permuted],
                                         leaf[leaf_range][2]))
 
@@ -1230,6 +1252,9 @@ class AvalancheDatasetTests(unittest.TestCase):
                                     leaf[d_sz*dataset_hierarchy_depth:][0]))
         self.assertTrue(torch.equal(tensor_y,
                                     leaf[d_sz*dataset_hierarchy_depth:][1]))
+        self.assertTrue(torch.equal(
+            tensor_y,
+            torch.tensor(leaf.targets)[d_sz * dataset_hierarchy_depth:]))
         self.assertTrue(torch.equal(tensor_t,
                                     leaf[d_sz*dataset_hierarchy_depth:][2]))
 

@@ -12,94 +12,76 @@
 """ Tiny-Imagenet Pytorch Dataset """
 
 import csv
-import os
-import logging
-import sys
-from zipfile import ZipFile
-from os.path import expanduser
-from torch.utils.data.dataset import Dataset
-from PIL import Image
+from pathlib import Path
+from typing import Union
+
+from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
-if sys.version_info[0] >= 3:
-    from urllib.request import urlretrieve
-else:
-    # Not Python 3 - today, it is most likely to be Python 2
-    # But note that this might need an update when Python 4
-    # might be around one day
-    from urllib import urlretrieve
-
-filename = ('tiny-imagenet-200.zip',
-            'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
+from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
+    get_default_dataset_location
 
 
-class TinyImagenet(Dataset):
+class TinyImagenet(SimpleDownloadableDataset):
     """Tiny Imagenet Pytorch Dataset"""
 
-    def __init__(self, data_folder=expanduser("~") +
-                 "/.avalanche/data/tinyimagenet/",
-                 train=True, transform=ToTensor(),
-                 target_transform=None, download=True):
+    filename = ('tiny-imagenet-200.zip',
+                'http://cs231n.stanford.edu/tiny-imagenet-200.zip')
+    md5 = '90528d7ca1a48142e341f4ef8d21d0de'
+
+    def __init__(
+            self,
+            root: Union[str, Path] =
+            get_default_dataset_location('tinyimagenet'),
+            *,
+            train: bool = True,
+            transform=None,
+            target_transform=None,
+            loader=default_loader,
+            download=True):
         """
-        Args:
-            :param string data_folder: folder in which to download dataset
-            :param boolean train: True for train set, False for test set
-            :param fun transform: Pytorch transformation founction for x
-            :param fun target_transform: Pytorch transformation founction for y
-            :param bool download: True for downloading the dataset
+        Creates an instance of the Tiny Imagenet dataset.
+
+        :param root: folder in which to download dataset.
+        :param train: True for training set, False for test set.
+        :param transform: Pytorch transformation function for x.
+        :param target_transform: Pytorch transformation function for y.
+        :param loader: the procedure to load the instance from the storage.
+        :param bool download: If True, the dataset will be  downloaded if
+            needed.
         """
-        self.log = logging.getLogger("avalanche")
         self.transform = transform
         self.target_transform = target_transform
         self.train = train
-        if os.path.isabs(data_folder):
-            self.data_folder = data_folder
-        else:
-            self.data_folder = os.path.join(
-                os.path.dirname(__file__),
-                data_folder
-            )
+        self.loader = loader
 
-        if os.path.exists(self.data_folder):
-            if download:
-                self.log.info(
-                    "Directory {} already exists".format(self.data_folder))
-        else:
-            # Create target Directory for Tiny ImageNet data
-            os.makedirs(self.data_folder)
-            self.log.info("Directory {} created".format(self.data_folder))
-            self.download = download
-            self.download_tinyImageNet()
+        super(TinyImagenet, self).__init__(
+            root, self.filename[1], self.md5, download=download, verbose=True)
 
-        self.data_folder = os.path.join(self.data_folder, 'tiny-imagenet-200')
+        self._load_dataset()
 
-        self.label2id, self.id2label = self.labels2dict()
-        self.data, self.targets = self.load_data(train=train)
+    def _load_metadata(self) -> bool:
+        self.data_folder = self.root / 'tiny-imagenet-200'
 
-    def download_tinyImageNet(self):
-        """ Downloads the TintImagenet Dataset """
+        self.label2id, self.id2label = TinyImagenet.labels2dict(
+            self.data_folder)
+        self.data, self.targets = self.load_data()
+        return True
 
-        self.log.info("Downloading {}...".format(filename[1]))
-        urlretrieve(filename[1], os.path.join(self.data_folder, filename[0]))
-
-        with ZipFile(os.path.join(self.data_folder, filename[0]), 'r') as zipf:
-            self.log.info('Extracting Tiny ImageNet images...')
-            zipf.extractall(self.data_folder)
-            self.log.info('Done!')
-
-        self.log.info("Download complete.")
-
-    def labels2dict(self):
+    @staticmethod
+    def labels2dict(data_folder: Path):
         """
         Returns dictionaries to convert class names into progressive ids
         and viceversa.
+
+        :param data_folder: The root path of tiny imagenet
         :returns: label2id, id2label: two Python dictionaries.
         """
 
         label2id = {}
         id2label = {}
 
-        with open(os.path.join(self.data_folder, 'wnids.txt'), 'r') as f:
+        with open(str(data_folder / 'wnids.txt'), 'r') as f:
 
             reader = csv.reader(f)
             curr_idx = 0
@@ -111,12 +93,10 @@ class TinyImagenet(Dataset):
 
         return label2id, id2label
 
-    def load_data(self, train=True):
+    def load_data(self):
         """
         Load all images paths and targets.
 
-        :param bool train: True for loading the training set, False for the
-            test set.
         :return: train_set, test_set: (train_X_paths, train_y).
         """
 
@@ -126,7 +106,7 @@ class TinyImagenet(Dataset):
         for class_id in classes:
             class_name = self.id2label[class_id]
 
-            if train:
+            if self.train:
                 X = self.get_train_images_paths(class_name)
                 Y = [class_id] * len(X)
             else:
@@ -140,48 +120,47 @@ class TinyImagenet(Dataset):
         return data
 
     def get_train_images_paths(self, class_name):
-        """ Gets the training set image paths
-
-            :param class_name: names of the classes of the images to be
-                collected.
-            :returns img_paths: list of strings (paths)
         """
-        train_img_folder = os.path.join(self.data_folder,
-                                        'train', class_name, 'images')
+        Gets the training set image paths.
 
-        img_paths = [os.path.join(train_img_folder, f)
-                     for f in os.listdir(train_img_folder)
-                     if os.path.isfile(os.path.join(train_img_folder, f))]
+        :param class_name: names of the classes of the images to be
+            collected.
+        :returns img_paths: list of strings (paths)
+        """
+        train_img_folder = self.data_folder / 'train' / class_name / 'images'
+
+        img_paths = [f for f in train_img_folder.iterdir() if f.is_file()]
 
         return img_paths
 
     def get_test_images_paths(self, class_name):
-        """ Gets the test set image paths
+        """
+        Gets the test set image paths
 
-            :param class_name: names of the classes of the images to be
-                collected.
-            :returns img_paths: list of strings (paths)
+        :param class_name: names of the classes of the images to be
+            collected.
+        :returns img_paths: list of strings (paths)
         """
 
-        val_img_folder = os.path.join(self.data_folder, 'val', 'images')
+        val_img_folder = self.data_folder / 'val' / 'images'
+        annotations_file = self.data_folder / 'val' / 'val_annotations.txt'
 
         valid_names = []
+
         # filter validation images by class using appropriate file
-        with open(
-                os.path.join(self.data_folder, 'val', 'val_annotations.txt'),
-                'r') as f:
+        with open(str(annotations_file), 'r') as f:
 
             reader = csv.reader(f, dialect='excel-tab')
             for ll in reader:
                 if ll[1] == class_name:
                     valid_names.append(ll[0])
 
-        img_paths = [os.path.join(val_img_folder, f) for f in valid_names]
+        img_paths = [val_img_folder / f for f in valid_names]
 
         return img_paths
 
     def __len__(self):
-        """ Returns the lenght of the set """
+        """ Returns the length of the set """
         return len(self.data)
 
     def __getitem__(self, index):
@@ -191,7 +170,7 @@ class TinyImagenet(Dataset):
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
-        img = Image.open(path).convert('RGB')
+        img = self.loader(path)
 
         if self.transform is not None:
             img = self.transform(img)
@@ -204,14 +183,14 @@ class TinyImagenet(Dataset):
 
 if __name__ == "__main__":
 
-    # this litte example script can be used to visualize the first image
-    # leaded from the dataset.
+    # this little example script can be used to visualize the first image
+    # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader
     import matplotlib.pyplot as plt
     from torchvision import transforms
     import torch
 
-    train_data = TinyImagenet()
+    train_data = TinyImagenet(transform=ToTensor())
     dataloader = DataLoader(train_data, batch_size=1)
 
     for batch_data in dataloader:
