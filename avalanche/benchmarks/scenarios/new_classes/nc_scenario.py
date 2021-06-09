@@ -266,8 +266,9 @@ class NCScenario(GenericCLScenario['NCExperience']):
             # by the number of experiences
             if self.n_classes % n_experiences > 0:
                 raise ValueError(
-                    'Invalid number of experiences: classes contained in '
-                    'dataset cannot be divided by n_experiences')
+                    f'Invalid number of experiences: classes contained in '
+                    f'dataset ({self.n_classes}) cannot be divided by '
+                    f'n_experiences ({n_experiences})')
             self.n_classes_per_exp = \
                 [self.n_classes // n_experiences] * n_experiences
 

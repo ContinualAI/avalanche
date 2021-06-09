@@ -8,7 +8,7 @@ from torch import Tensor
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets import CIFAR100, get_default_dataset_location
+from avalanche.benchmarks.datasets import CIFAR100, default_dataset_location
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
@@ -358,10 +358,10 @@ class SITTests(unittest.TestCase):
         self.assertIsInstance(ds_test_train[0][0], Tensor)
 
     def test_nc_benchmark_classes_in_exp_range(self):
-        train_set = CIFAR100(get_default_dataset_location('cifar100'),
+        train_set = CIFAR100(default_dataset_location('cifar100'),
                              train=True, download=True)
 
-        test_set = CIFAR100(get_default_dataset_location('cifar100'),
+        test_set = CIFAR100(default_dataset_location('cifar100'),
                             train=False, download=True)
 
         benchmark_instance = nc_benchmark(

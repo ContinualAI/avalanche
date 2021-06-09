@@ -26,7 +26,7 @@ import os
 from collections import OrderedDict
 from torchvision.datasets.folder import default_loader
 
-from avalanche.benchmarks.datasets import get_default_dataset_location, \
+from avalanche.benchmarks.datasets import default_dataset_location, \
     DownloadableDataset
 from avalanche.benchmarks.utils import PathsDataset
 
@@ -47,15 +47,15 @@ class CUB200(PathsDataset, DownloadableDataset):
 
     def __init__(
             self,
-            root: Union[str, Path] =
-            get_default_dataset_location('CUB_200_2011'),
+            root: Union[str, Path] = None,
             *,
             train=True, transform=None, target_transform=None,
             loader=default_loader, download=True):
         """
 
         :param root: root dir where the dataset can be found or downloaded.
-            Default to '~/.avalanche/data/CUB_200_2011'.
+            Defaults to None, which means that the default location for
+            'CUB_200_2011' will be used.
         :param train: train or test subset of the original dataset. Default
             to True.
         :param transform: eventual input data transformations to apply.
@@ -67,6 +67,9 @@ class CUB200(PathsDataset, DownloadableDataset):
         :param download: default set to True. If the data is already
             downloaded it will skip the download.
         """
+
+        if root is None:
+            root = default_dataset_location('CUB_200_2011')
 
         self.train = train
 
