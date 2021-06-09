@@ -43,7 +43,7 @@ class OpenLORIS(DownloadableDataset):
         for name in data2download:
             if self.verbose:
                 print("Downloading " + name[1] + "...")
-            file = self._download_file(name[1], name[0])
+            file = self._download_file(name[1], name[0], name[2])
             if name[1].endswith('.zip'):
                 if self.verbose:
                     print(f'Extracting {name[0]}...')
@@ -95,7 +95,7 @@ class OpenLORIS(DownloadableDataset):
     def _download_error_message(self) -> str:
         base_url = openloris_data.base_gdrive_url
         all_urls = [
-            base_url + name_url[1] for name_url in openloris_data.filename
+            base_url + name_url[1] for name_url in openloris_data.avl_vps_data
         ]
 
         base_msg = \
@@ -113,11 +113,11 @@ class OpenLORIS(DownloadableDataset):
     def _check_integrity(self):
         """ Checks if the data is already available and intact """
 
-        for name, googledrive_id in openloris_data.filename:
+        for name, url, md5 in openloris_data.avl_vps_data:
             filepath = self.root / name
             if not filepath.is_file():
                 if self.verbose:
-                    print('[CUB200] Error checking integrity of:',
+                    print('[OpenLORIS] Error checking integrity of:',
                           str(filepath))
                 return False
         return True
