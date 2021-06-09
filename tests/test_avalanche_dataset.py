@@ -1232,7 +1232,7 @@ class AvalancheDatasetTests(unittest.TestCase):
                                             all_targets[leaf_range]))
 
             self.assertTrue(torch.equal(tensor_y,
-                                        torch.tensor(all_targets)[-d_sz:]))
+                                        all_targets[-d_sz:]))
 
         self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(leaf))
 

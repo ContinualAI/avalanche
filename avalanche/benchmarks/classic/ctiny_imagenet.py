@@ -8,8 +8,13 @@
 # E-mail: contact@continualai.org                                              #
 # Website: continualai.org                                                     #
 ################################################################################
+from pathlib import Path
+from typing import Union, Any, Optional
 
 from torchvision import transforms
+
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
 from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.generators import nc_benchmark
 
@@ -28,10 +33,16 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
-                      fixed_class_order=None,
-                      train_transform=_default_train_transform,
-                      eval_transform=_default_eval_transform):
+def SplitTinyImageNet(
+        n_experiences=10,
+        *,
+        return_task_id=False,
+        seed=0,
+        fixed_class_order=None,
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario using the Tiny ImageNet dataset.
 
@@ -67,6 +78,8 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -79,11 +92,14 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'tinyimagenet' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_tiny_imagenet_dataset()
+    train_set, test_set = _get_tiny_imagenet_dataset(dataset_root)
 
     if return_task_id:
         return nc_benchmark(
@@ -93,6 +109,7 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
             eval_transform=eval_transform)
@@ -104,17 +121,25 @@ def SplitTinyImageNet(n_experiences=10, return_task_id=False, seed=0,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             train_transform=train_transform,
             eval_transform=eval_transform)
 
 
-def _get_tiny_imagenet_dataset():
-    train_set = TinyImagenet(train=True)
+def _get_tiny_imagenet_dataset(dataset_root):
+    train_set = TinyImagenet(root=dataset_root, train=True)
 
-    test_set = TinyImagenet(train=False)
+    test_set = TinyImagenet(root=dataset_root, train=False)
 
     return train_set, test_set
 
+
+if __name__ == "__main__":
+    import sys
+
+    benchmark_instance = SplitTinyImageNet()
+    check_vision_benchmark(benchmark_instance)
+    sys.exit(0)
 
 __all__ = [
     'SplitTinyImageNet'
