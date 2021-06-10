@@ -170,6 +170,8 @@ class BaseStrategy:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
+        self._stop_training = False
+
     @property
     def is_eval(self):
         """ True if the strategy is in evaluation mode. """
@@ -213,6 +215,8 @@ class BaseStrategy:
             each metric name.
         """
         self.is_training = True
+        self._stop_training = False
+
         self.model.train()
         self.model.to(self.device)
 
@@ -265,6 +269,10 @@ class BaseStrategy:
 
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
+            if self._stop_training:  # Early stopping
+                self._stop_training = False
+                break
+
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
@@ -298,6 +306,10 @@ class BaseStrategy:
         self.dataloader = _prev_state[3]
         self.is_training = _prev_state[4]
         self.model.train()
+
+    def stop_training(self):
+        """ Signals to stop training at the next iteration. """
+        self._stop_training = True
 
     def train_dataset_adaptation(self, **kwargs):
         """ Initialize `self.adapted_dataset`. """
@@ -414,6 +426,9 @@ class BaseStrategy:
         :return:
         """
         for self.mb_it, self.mbatch in enumerate(self.dataloader):
+            if self._stop_training:
+                break
+
             self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 

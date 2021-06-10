@@ -19,7 +19,7 @@ from torch.nn import CrossEntropyLoss, Linear
 
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA
@@ -30,7 +30,7 @@ from avalanche.training.strategies.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
-from tests.unit_tests_utils import get_fast_scenario
+from tests.unit_tests_utils import get_fast_scenario, get_device
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -93,6 +93,27 @@ class BaseStrategyTest(unittest.TestCase):
         strategy.mbatch = mb_x, None, None
         strategy.forward()
         assert was_hook_called
+
+    def test_early_stop(self):
+        class EarlyStopP(StrategyPlugin):
+            def after_training_iteration(self, strategy: 'BaseStrategy',
+                                         **kwargs):
+                if strategy.mb_it == 10:
+                    strategy.stop_training()
+
+        model = SimpleMLP(input_size=6, hidden_size=100)
+        criterion = CrossEntropyLoss()
+        optimizer = SGD(model.parameters(), lr=1)
+
+        strategy = Cumulative(
+            model, optimizer, criterion, train_mb_size=1, device=get_device(),
+            eval_mb_size=512, train_epochs=1, evaluator=None,
+            plugins=[EarlyStopP()])
+        scenario = get_fast_scenario()
+
+        for train_batch_info in scenario.train_stream:
+            strategy.train(train_batch_info)
+            assert strategy.mb_it == 11
 
 
 class StrategyTest(unittest.TestCase):
