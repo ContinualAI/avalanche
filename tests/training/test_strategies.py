@@ -22,7 +22,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining, CoPE, StreamingLDA
+    SynapticIntelligence, JointTraining, CoPE, StreamingLDA, BaseStrategy
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.training.strategies.strategy_wrappers import PNNStrategy
