@@ -11,6 +11,7 @@ from torch.utils.data import TensorDataset, Subset, ConcatDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop, ToPILImage, Compose, \
     Lambda, CenterCrop
+from typing import List
 
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_tensor_lists
@@ -1182,6 +1183,80 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(expected_y4, y4)
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
+
+    def test_avalanche_avalanche_subset_concat_stack_overflow(self):
+        d_sz = 25
+        tensor_x = torch.rand(d_sz, 3, 28, 28)
+        tensor_y = torch.randint(0, 10, (d_sz,))
+        tensor_t = torch.randint(0, 10, (d_sz,))
+        dataset = AvalancheTensorDataset(
+            tensor_x, tensor_y, task_labels=tensor_t)
+        dataset_hierarchy_depth = 500
+
+        rolling_indices: List[List[int]] = []
+        expect_indices: List[List[int]] = []
+
+        for _ in range(dataset_hierarchy_depth):
+            idx_permuted = list(range(d_sz))
+            random.shuffle(idx_permuted)
+            rolling_indices.append(idx_permuted)
+
+        forward_indices = range(d_sz)
+        expect_indices.append(list(forward_indices))
+        for idx in range(dataset_hierarchy_depth):
+            forward_indices = [forward_indices[x] for x in rolling_indices[idx]]
+            expect_indices.append(forward_indices)
+
+        expect_indices = list(reversed(expect_indices))
+
+        leaf = dataset
+
+        for idx in range(dataset_hierarchy_depth):
+            intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
+            subset = AvalancheSubset(leaf, indices=rolling_indices[idx])
+            leaf = AvalancheConcatDataset((subset, leaf))
+
+            # Regression test for #616 (second bug)
+            # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
+            all_targets = []
+            for c_dataset in leaf._dataset_list:
+                all_targets += c_dataset.targets
+
+            all_targets = torch.tensor(all_targets)
+
+            for idx_internal in range(idx+1):
+                leaf_range = range(idx_internal * d_sz,
+                                   (idx_internal + 1) * d_sz)
+                permuted = expect_indices[idx_internal+intermediate_idx_test]
+                self.assertTrue(torch.equal(tensor_y[permuted],
+                                            all_targets[leaf_range]))
+
+            self.assertTrue(torch.equal(tensor_y,
+                                        all_targets[-d_sz:]))
+
+        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(leaf))
+
+        for idx in range(dataset_hierarchy_depth):
+            leaf_range = range(idx*d_sz, (idx+1) * d_sz)
+            permuted = expect_indices[idx]
+            self.assertTrue(torch.equal(tensor_x[permuted],
+                                        leaf[leaf_range][0]))
+            self.assertTrue(torch.equal(tensor_y[permuted],
+                                        leaf[leaf_range][1]))
+            self.assertTrue(torch.equal(tensor_y[permuted],
+                                        torch.tensor(leaf.targets)[leaf_range]))
+            self.assertTrue(torch.equal(tensor_t[permuted],
+                                        leaf[leaf_range][2]))
+
+        self.assertTrue(torch.equal(tensor_x,
+                                    leaf[d_sz*dataset_hierarchy_depth:][0]))
+        self.assertTrue(torch.equal(tensor_y,
+                                    leaf[d_sz*dataset_hierarchy_depth:][1]))
+        self.assertTrue(torch.equal(
+            tensor_y,
+            torch.tensor(leaf.targets)[d_sz * dataset_hierarchy_depth:]))
+        self.assertTrue(torch.equal(tensor_t,
+                                    leaf[d_sz*dataset_hierarchy_depth:][2]))
 
 
 class TransformationSubsetTests(unittest.TestCase):

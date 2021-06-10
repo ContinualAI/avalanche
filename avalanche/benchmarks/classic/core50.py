@@ -12,12 +12,18 @@
 """ This module contains the high-level CORe50 scenario generator. It
 basically returns a iterable scenario object ``GenericCLScenario`` given a
 number of configuration parameters."""
-from torchvision.transforms import ToTensor
+from pathlib import Path
+from typing import Union, Optional, Any
 
-from avalanche.benchmarks.datasets.core50.core50_data import CORE50_DATA
+from torchvision.transforms import ToTensor, Normalize, Compose, \
+    RandomHorizontalFlip
+
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_filelists
-from os.path import expanduser
+from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset
 
 nbatch = {
     'ni': 8,
@@ -38,11 +44,30 @@ scen2dirs = {
 }
 
 
-def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
-           scenario="nicv2_391",
-           run=0,
-           train_transform=None,
-           eval_transform=None):
+normalize = Normalize(mean=[0.485, 0.456, 0.406],
+                      std=[0.229, 0.224, 0.225])
+
+_default_train_transform = Compose([
+    ToTensor(),
+    RandomHorizontalFlip(),
+    normalize
+])
+
+_default_eval_transform = Compose([
+    ToTensor(),
+    normalize
+])
+
+
+def CORe50(
+        *,
+        scenario: str = "nicv2_391",
+        run: int = 0,
+        object_lvl: bool = True,
+        mini: bool = False,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario for CORe50.
 
@@ -62,13 +87,14 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Path indicating where to store the dataset and related
-        metadata. By default they will be stored in
-        "~/.avalanche/datasets/core50/data/".
     :param scenario: CORe50 main scenario. It can be chosen between 'ni', 'nc',
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
     :param run: number of run for the scenario. Each run defines a different
         ordering. Must be a number between 0 and 9.
+    :param object_lvl: True for a 50-way classification at the object level.
+        False if you want to use the categories as classes. Default to True.
+    :param mini: True for processing reduced 32x32 images instead of the
+        original 128x128. Default to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -77,6 +103,10 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
+    :param dataset_root: Absolute path indicating where to store the dataset
+        and related metadata. Defaults to None, which means that the default
+        location for
+        'core50' will be used.
 
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
@@ -87,24 +117,34 @@ def CORe50(root=expanduser("~") + "/.avalanche/data/core50/",
                                         "recognized: it should be 'ni', 'nc'," \
                                         "'nic', 'nicv2_79', 'nicv2_196' or " \
                                         "'nicv2_391'."
-    if root is None:
-        core_data = CORE50_DATA()
+
+    if dataset_root is None:
+        dataset_root = default_dataset_location('core50')
+
+    # Download the dataset and initialize filelists
+    core_data = CORe50Dataset(root=dataset_root, mini=mini)
+
+    root = core_data.root
+    if mini:
+        bp = "core50_32x32"
     else:
-        core_data = CORE50_DATA(root)
+        bp = "core50_128x128"
+    root_img = root / bp
 
-    root = core_data.data_folder
-    root_img = root + "core50_128x128/"
-
-    filelists_bp = scen2dirs[scenario] + "run" + str(run) + "/"
+    if object_lvl:
+        suffix = "/"
+    else:
+        suffix = "_cat/"
+    filelists_bp = scen2dirs[scenario][:-1] + suffix + "run" + str(run)
     train_failists_paths = []
-    for i in range(nbatch[scenario]):
+    for batch_id in range(nbatch[scenario]):
         train_failists_paths.append(
-            root + filelists_bp + "train_batch_" +
-            str(i).zfill(2) + "_filelist.txt")
+            root / filelists_bp / ("train_batch_" +
+                                   str(batch_id).zfill(2) + "_filelist.txt"))
 
     scenario_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
-        [root + filelists_bp + "test_filelist.txt"],
+        [root / filelists_bp / "test_filelist.txt"],
         task_labels=[0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
@@ -118,21 +158,8 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-
-    # this below can be taken as a usage example or a simple test script
     import sys
-    from torch.utils.data.dataloader import DataLoader
 
-    scenario = CORe50(scenario="nicv2_79",
-                      train_transform=ToTensor(),
-                      eval_transform=ToTensor())
-    for i, batch in enumerate(scenario.train_stream):
-        print(i, batch)
-        dataset, t = batch.dataset, batch.task_label
-        dl = DataLoader(dataset, batch_size=300)
-
-        for mb in dl:
-            x, y, t = mb
-            print(x.shape)
-            print(y.shape)
-        sys.exit(0)
+    benchmark_instance = CORe50(scenario="nicv2_79", mini=False)
+    check_vision_benchmark(benchmark_instance)
+    sys.exit(0)

@@ -8,7 +8,8 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-from os.path import expanduser
+from pathlib import Path
+from typing import Union
 
 from typing_extensions import Literal
 
@@ -56,14 +57,19 @@ def _adjust_bbox(img_shapes, bbox, ratio=1.1):
     return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
-def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
-               scenario: Literal[
-                   'iid', 'class_iid', 'instance',
-                   'class_instance'] = "class_instance",
-               seed=10, eval_num=None, bbox_crop=True, ratio: float = 1.10,
-               download=True,
-               train_transform=_default_stream51_transform,
-               eval_transform=_default_stream51_transform):
+def CLStream51(
+        *,
+        scenario: Literal[
+            'iid', 'class_iid', 'instance',
+            'class_instance'] = "class_instance",
+        seed=10,
+        eval_num=None,
+        bbox_crop=True,
+        ratio: float = 1.10,
+        download=True,
+        train_transform=_default_stream51_transform,
+        eval_transform=_default_stream51_transform,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario for Stream-51.
 
@@ -85,9 +91,6 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Path indicating where to store the dataset and related
-        metadata. By default they will be stored in
-        "~/.avalanche/datasets/stream51/data/".
     :param scenario: A string defining which Stream-51 scenario to return.
         Can be chosen between 'iid', 'class_iid', 'instance', and
         'class_instance'. Defaults to 'class_instance'.
@@ -116,15 +119,19 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
         comprehensive list of possible transformations).
         If no transformation is passed, the default eval transformation
         will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'stream51' will be used.
 
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
     # get train and test sets and order them by scenario
-    train_set = Stream51(root, train=True, download=download)
-    test_set = Stream51(root, train=False, download=download)
-    samples = train_set._make_dataset(train_set.samples, ordering=scenario,
-                                      seed=seed)
+    train_set = Stream51(root=dataset_root, train=True, download=download)
+    test_set = Stream51(root=dataset_root, train=False, download=download)
+    samples = Stream51.make_dataset(train_set.samples, ordering=scenario,
+                                    seed=seed)
+    dataset_root = train_set.root
 
     # set appropriate train parameters
     train_set.samples = samples
@@ -153,7 +160,7 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
             train_filelists_paths.append(
-                [(os.path.join(root, train_set.samples[j][-1]),
+                [(os.path.join(dataset_root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
                   _adjust_bbox(train_set.samples[j][-3],
                                train_set.samples[j][-2],
@@ -162,12 +169,12 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
-                                 test_set.samples[j][0],
-                                 _adjust_bbox(test_set.samples[j][-3],
-                                              test_set.samples[j][-2],
-                                              ratio)) for
-                                j in range(len(test_set))]
+        test_filelists_paths = \
+            [(os.path.join(dataset_root, test_set.samples[j][-1]),
+              test_set.samples[j][0],
+              _adjust_bbox(test_set.samples[j][-3],
+                           test_set.samples[j][-2],
+                           ratio)) for j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
         # break files into task lists based on classes
@@ -195,19 +202,19 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
                 else:
                     test_ood_files.append(ix)
             test_filelists_paths.append(
-                [(os.path.join(root, test_set.samples[j][-1]),
+                [(os.path.join(dataset_root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
                   _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
                                ratio)) for j in
                  test_files])
             test_ood_filelists_paths.append(
-                [(os.path.join(root, test_set.samples[j][-1]),
+                [(os.path.join(dataset_root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
                   _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
                                ratio)) for j in
                  test_ood_files])
             train_filelists_paths.append(
-                [(os.path.join(root, train_set.samples[j][-1]),
+                [(os.path.join(dataset_root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
                   _adjust_bbox(train_set.samples[j][-3],
                                train_set.samples[j][-2],
@@ -244,13 +251,10 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-
-    # this code can be taken as a usage example or a simple test script
     from torch.utils.data.dataloader import DataLoader
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    # root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
     scenario = CLStream51(scenario="class_instance", seed=10,
                           bbox_crop=True)
 

@@ -2,12 +2,13 @@ import unittest
 
 from os.path import expanduser
 
+import random
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets import CIFAR100
+from avalanche.benchmarks.datasets import CIFAR100, default_dataset_location
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
@@ -355,6 +356,53 @@ class SITTests(unittest.TestCase):
 
         ds_test_train = scenario.test_stream[0].dataset.train()
         self.assertIsInstance(ds_test_train[0][0], Tensor)
+
+    def test_nc_benchmark_classes_in_exp_range(self):
+        train_set = CIFAR100(default_dataset_location('cifar100'),
+                             train=True, download=True)
+
+        test_set = CIFAR100(default_dataset_location('cifar100'),
+                            train=False, download=True)
+
+        benchmark_instance = nc_benchmark(
+            train_dataset=train_set,
+            test_dataset=test_set,
+            n_experiences=5,
+            task_labels=False,
+            seed=1234,
+            shuffle=False)
+
+        cie_data = benchmark_instance.classes_in_exp_range(0, None)
+        self.assertEqual(5, len(cie_data))
+
+        for i in range(5):
+            expected = set(range(i*20, (i+1)*20))
+            self.assertSetEqual(expected, set(cie_data[i]))
+
+        cie_data = benchmark_instance.classes_in_exp_range(1, 4)
+        self.assertEqual(3, len(cie_data))
+
+        for i in range(1, 3):
+            expected = set(range(i * 20, (i + 1) * 20))
+            self.assertSetEqual(expected, set(cie_data[i-1]))
+
+        random_class_order = list(range(100))
+        random.shuffle(random_class_order)
+        benchmark_instance = nc_benchmark(
+            train_dataset=train_set,
+            test_dataset=test_set,
+            n_experiences=5,
+            task_labels=False,
+            seed=1234,
+            fixed_class_order=random_class_order,
+            shuffle=False)
+
+        cie_data = benchmark_instance.classes_in_exp_range(0, None)
+        self.assertEqual(5, len(cie_data))
+
+        for i in range(5):
+            expected = set(random_class_order[i * 20: (i + 1) * 20])
+            self.assertSetEqual(expected, set(cie_data[i]))
 
 
 if __name__ == '__main__':

@@ -121,6 +121,16 @@ class LazyConcatTargets(Sequence[TTargetType]):
             return target
         return self.converter(target)
 
+    def __iter__(self):
+        if self.converter is None:
+            for x in self._targets_list:
+                for y in x:
+                    yield y
+        else:
+            for x in self._targets_list:
+                for y in x:
+                    yield self.converter(y)
+
     def __str__(self):
         return '[' + \
                ', '.join([str(self[idx]) for idx in range(len(self))]) + \
@@ -139,10 +149,7 @@ class LazyConcatIntTargets(LazyConcatTargets[int]):
     Elements returned by `__getitem__` will be int values.
     """
     def __init__(self, targets_list: Sequence[Sequence[SupportsInt]]):
-        super().__init__(targets_list)
-
-    def __getitem__(self, item_idx) -> int:
-        return int(super().__getitem__(item_idx))
+        super().__init__(targets_list, converter=int)
 
 
 class ConstantSequence(Sequence[int]):
@@ -362,6 +369,7 @@ def optimize_sequence(sequence: Sequence[TTargetType]) -> Sequence[TTargetType]:
 
     if isinstance(sequence, list):
         return sequence
+
     return list(sequence)
 
 

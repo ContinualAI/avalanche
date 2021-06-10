@@ -12,65 +12,115 @@
 """ Stream-51 Pytorch Dataset """
 
 import os
-import logging
-from torch.utils.data.dataset import Dataset
-from torchvision.transforms import ToTensor
-from PIL import Image
+
+import shutil
 import json
 import random
-from avalanche.benchmarks.datasets.stream51.stream51_data import STREAM51_DATA
+from pathlib import Path
+from typing import Union
+
+from torchvision.datasets.folder import default_loader
+from zipfile import ZipFile
+
+from torchvision.transforms import ToTensor
+
+from avalanche.benchmarks.datasets import DownloadableDataset, \
+    default_dataset_location
+from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning
-    # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
-
-
-def default_loader(path):
-    return pil_loader(path)
-
-
-class Stream51(Dataset):
+class Stream51(DownloadableDataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root, train=True, transform=None,
-                 target_transform=None, loader=pil_loader, download=True):
+    def __init__(self, root: Union[str, Path] = None,
+                 *,
+                 train=True, transform=None,
+                 target_transform=None, loader=default_loader, download=True):
+        """
+        Creates an instance of the Stream-51 dataset.
+
+        :param root: The directory where the dataset can be found or downloaded.
+            Defaults to None, which means that the default location for
+            'stream51' will be used.
+        :param train: If True, the training set will be returned. If False,
+            the test set will be returned.
+        :param transform: The transformations to apply to the X values.
+        :param target_transform: The transformations to apply to the Y values.
+        :param loader: The image loader to use.
+        :param download: If True, the dataset will be downloaded if needed.
+        """
+
+        if root is None:
+            root = default_dataset_location('stream51')
 
         self.train = train  # training set or test set
         self.transform = transform
         self.target_transform = target_transform
-        self.root = root
         self.loader = loader
-        self.log = logging.getLogger("avalanche")
+        self.transform = transform
+        self.target_transform = target_transform
+        self.bbox_crop = True
+        self.ratio = 1.1
 
-        if download:
-            self.log.info("Downloading Stream-51...")
-            self.stream51_data = STREAM51_DATA(data_folder=root)
+        super(Stream51, self).__init__(root, download=download, verbose=True)
 
-        self.log.info("Loading files...")
-        if train:
+        self._load_dataset()
+
+    def _download_dataset(self) -> None:
+        self._download_file(stream51_data.name[1], stream51_data.name[0],
+                            stream51_data.name[2])
+
+        if self.verbose:
+            print('[Stream-51] Extracting dataset...')
+
+        if stream51_data.name[1].endswith('.zip'):
+            lfilename = self.root / stream51_data.name[0]
+            with ZipFile(str(lfilename), 'r') as zipf:
+                for member in zipf.namelist():
+                    filename = os.path.basename(member)
+                    # skip directories
+                    if not filename:
+                        continue
+
+                    # copy file (taken from zipfile's extract)
+                    source = zipf.open(member)
+                    if 'json' in filename:
+                        target = open(str(self.root / filename), "wb")
+                    else:
+                        dest_folder = os.path.join(
+                            *(member.split(os.path.sep)[1:-1]))
+                        dest_folder = self.root / dest_folder
+                        dest_folder.mkdir(exist_ok=True, parents=True)
+
+                        target = open(str(dest_folder / filename), "wb")
+                    with source, target:
+                        shutil.copyfileobj(source, target)
+
+            # lfilename.unlink()
+
+    def _load_metadata(self) -> bool:
+        if self.train:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_meta_train.json')))
+                open(str(self.root / 'Stream-51_meta_train.json')))
         else:
             data_list = json.load(
-                open(os.path.join(root, 'Stream-51_meta_test.json')))
-
-        self.root = root
-        self.loader = default_loader
+                open(str(self.root / 'Stream-51_meta_test.json')))
 
         self.samples = data_list
         self.targets = [s[0] for s in data_list]
 
-        self.transform = transform
-        self.target_transform = target_transform
-
         self.bbox_crop = True
         self.ratio = 1.1
 
-    def _instance_ordering(self, data_list, seed):
+        return True
+
+    def _download_error_message(self) -> str:
+        return '[Stream-51] Error downloading the dataset. Consider ' \
+               'downloading it manually at: ' + stream51_data.name[1] + \
+               ' and placing it in: ' + str(self.root)
+
+    @staticmethod
+    def _instance_ordering(data_list, seed):
         # organize data by video
         total_videos = 0
         new_data_list = []
@@ -94,7 +144,8 @@ class Stream51(Dataset):
                 data_list.append(x)
         return data_list
 
-    def _class_ordering(self, data_list, class_type, seed):
+    @staticmethod
+    def _class_ordering(data_list, class_type, seed):
         # organize data by class
         new_data_list = []
         for class_id in range(data_list[-1][0] + 1):
@@ -105,7 +156,8 @@ class Stream51(Dataset):
                 random.shuffle(class_data_list)
             else:
                 # shuffle clips within class
-                class_data_list = self._instance_ordering(class_data_list, seed)
+                class_data_list = Stream51._instance_ordering(
+                    class_data_list, seed)
             new_data_list.append(class_data_list)
         # shuffle classes
         random.seed(seed)
@@ -117,7 +169,8 @@ class Stream51(Dataset):
                 data_list.append(x)
         return data_list
 
-    def _make_dataset(self, data_list, ordering='class_instance', seed=666):
+    @staticmethod
+    def make_dataset(data_list, ordering='class_instance', seed=666):
         """
         data_list
         for train: [class_id, clip_num, video_num, frame_num, bbox, file_loc]
@@ -135,9 +188,9 @@ class Stream51(Dataset):
             random.shuffle(data_list)
             return data_list
         elif ordering == 'instance':
-            return self._instance_ordering(data_list, seed)
+            return Stream51._instance_ordering(data_list, seed)
         elif 'class' in ordering:
-            return self._class_ordering(data_list, ordering, seed)
+            return Stream51._class_ordering(data_list, ordering, seed)
 
     def __getitem__(self, index):
         """
@@ -149,7 +202,7 @@ class Stream51(Dataset):
             class.
         """
         fpath, target = self.samples[index][-1], self.targets[index]
-        sample = self.loader(os.path.join(self.root, fpath))
+        sample = self.loader(str(self.root / fpath))
         if self.bbox_crop:
             bbox = self.samples[index][-2]
             cw = bbox[0] - bbox[1]
@@ -200,9 +253,8 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    root_dir = '/home/tyler/codes/avalanche/avalanche/data/stream51'
-    train_data = Stream51(root=root_dir)
-    test_data = Stream51(root=root_dir, train=False)
+    train_data = Stream51(transform=ToTensor())
+    test_data = Stream51(transform=ToTensor(), train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
     dataloader = DataLoader(train_data, batch_size=1)

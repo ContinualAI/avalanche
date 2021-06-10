@@ -9,97 +9,63 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-""" CORe50 Data handling utilities """
-
-import os
-import sys
-import logging
-from zipfile import ZipFile 
-
-
-if sys.version_info[0] >= 3:
-    from urllib.request import urlretrieve
-else:
-    # Not Python 3 - today, it is most likely to be Python 2
-    # But note that this might need an update when Python 4
-    # might be around one day
-    from urllib import urlretrieve
-
+""" CORe50 Metadata """
 
 data = [
     ('core50_128x128.zip',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip'),
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_128x128.zip',
+     '745f3373fed08d69343f1058ee559e13'),
     ('batches_filelists.zip',
-     'https://vlomonaco.github.io/core50/data/batches_filelists.zip'),
+     'https://vlomonaco.github.io/core50/data/batches_filelists.zip',
+     'e3297508a8998ba0c99a83d6b36bde62'),
     ('batches_filelists_NICv2.zip',  
-     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip'),
-    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl'),
-    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl'),
-    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl'),
+     'https://vlomonaco.github.io/core50/data/batches_filelists_NICv2.zip',
+     '460f980a6c85b86b1ec8e7c6067bb7a3'),
+    ('paths.pkl', 'https://vlomonaco.github.io/core50/data/paths.pkl',
+     'b568f86998849184df3ec3465290f1b0'),
+    ('LUP.pkl', 'https://vlomonaco.github.io/core50/data/LUP.pkl',
+     '33afc26faa460aca98739137fdfa606e'),
+    ('labels.pkl', 'https://vlomonaco.github.io/core50/data/labels.pkl',
+     '281c95774306a2196f4505f22fd60ab1'),
+    ('labels2names.pkl',
+     'https://vlomonaco.github.io/core50/data/labels2names.pkl',
+     '557d0b9f0ec32765ccea65624aa51b3b')
 ]
 
 extra_data = [
     ('core50_imgs.npz',
-     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz')
+     'http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz'),
+    ('core50_32x32.zip',
+     'http://vps.continualai.org/data/core50_32x32.zip',
+     'd89d34cdc0281fa84074430e9a22b728')
 ]
 
+scen2dirs = {
+    'ni': "batches_filelists/NI_inc/",
+    'nc': "batches_filelists/NC_inc/",
+    'nic': "batches_filelists/NIC_inc/",
+    'nicv2_79': "NIC_v2_79/",
+    'nicv2_196': "NIC_v2_196/",
+    'nicv2_391': "NIC_v2_391/"
+}
 
-class CORE50_DATA(object):
-    """
-    CORE50 downloader.
-    """
-
-    def __init__(self, data_folder='data/'):
-        """
-        Args:
-            data_folder (string): folder in which to download core50 dataset. 
-        """
-
-        self.log = logging.getLogger("avalanche")
-
-        if os.path.isabs(data_folder):
-            self.data_folder = data_folder
-        else:
-            self.data_folder = os.path.join(os.path.dirname(__file__),
-                                            data_folder)
-
-        try:
-            # Create target Directory for CORE50 data
-            os.makedirs(self.data_folder)
-            self.log.info("Directory %s created", self.data_folder)
-            self.download = True
-            self.download_core50()
-
-        except OSError:
-            self.download = False
-            self.log.error("Directory %s already exists", self.data_folder)
-
-    def download_core50(self, extra=False):
-        """ Download and extract CORe50 data
-
-            :param extra: download also additional CORe50 data not strictly
-                required by the data loader.
-        """
-
-        if extra:
-            data2download = data + extra_data
-        else:
-            data2download = data
-
-        for name in data2download:
-            self.log.info("Downloading " + name[1] + "...")
-            urlretrieve(name[1], os.path.join(self.data_folder, name[0]))
-
-            if name[1].endswith('.zip'):
-                with ZipFile(
-                        os.path.join(self.data_folder, name[0]), 'r') as zipf:
-                    self.log.info('Extracting CORe50 images...')
-                    zipf.extractall(self.data_folder) 
-                    self.log.info('Done!')
-
-        self.log.info("Download complete.")
+name2cat = {
+    'plug_adapter': 0,
+    'mobile_phone': 1,
+    'scissor': 2,
+    'light_bulb': 3,
+    'can': 4,
+    'glass': 5,
+    'ball': 6,
+    'marker': 7,
+    'cup': 8,
+    'remote_control': 9
+}
 
 
 __all__ = [
-    'CORE50_DATA'
+    'data',
+    'extra_data',
+    'scen2dirs',
+    'name2cat'
 ]

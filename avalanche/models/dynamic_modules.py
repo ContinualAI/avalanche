@@ -34,7 +34,7 @@ class DynamicModule(Module, ABC):
         current experience.
     """
 
-    def adaptation(self, dataset: AvalancheDataset):
+    def adaptation(self, dataset: AvalancheDataset = None):
         """ Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -241,9 +241,44 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
         return self.classifiers[str(task_label)](x)
 
 
+class TrainEvalModel(DynamicModule):
+    """
+        TrainEvalModel.
+        This module allows to wrap together a common feature extractor and
+        two classifiers: one used during training time and another
+        used at test time. The classifier is switched when `self.adaptation()`
+        is called.
+    """
+    def __init__(self, feature_extractor, train_classifier, eval_classifier):
+        """
+        :param feature_extractor: a differentiable feature extractor
+        :param train_classifier: a differentiable classifier used
+            during training
+        :param eval_classifier: a classifier used during testing.
+            Doesn't have to be differentiable.
+        """
+        super().__init__()
+        self.feature_extractor = feature_extractor
+        self.train_classifier = train_classifier
+        self.eval_classifier = eval_classifier
+
+        self.classifier = train_classifier
+
+    def forward(self, x):
+        x = self.feature_extractor(x)
+        return self.classifier(x)
+
+    def train_adaptation(self, dataset: AvalancheDataset = None):
+        self.classifier = self.train_classifier
+
+    def eval_adaptation(self, dataset: AvalancheDataset = None):
+        self.classifier = self.eval_classifier
+
+
 __all__ = [
     'DynamicModule',
     'MultiTaskModule',
     'IncrementalClassifier',
-    'MultiHeadClassifier'
+    'MultiHeadClassifier',
+    'TrainEvalModel'
 ]
