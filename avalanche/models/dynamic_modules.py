@@ -13,8 +13,6 @@
     to allow architectural modifications (multi-head classifiers, progressive
     networks, ...).
 """
-from typing import Protocol, runtime_checkable
-
 import torch
 from torch.nn import Module
 
