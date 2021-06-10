@@ -37,6 +37,7 @@ from avalanche.models import SimpleMLP, SimpleCNN
 from avalanche.training import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
+
 def main(args):
     # Device config
     device = torch.device(f"cuda:{args.cuda}"
@@ -65,7 +66,7 @@ def main(args):
                          stream=True),
         loss_metrics(minibatch=False, epoch=True, experience=True,
                      stream=True),
-    loggers=[InteractiveLogger()])
+        loggers=[InteractiveLogger()])
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, train_epochs=200,
         eval_mb_size=128, device=device, evaluator=logger)
@@ -76,13 +77,11 @@ def main(args):
         cl_strategy.train(train_task)
         cl_strategy.eval(test_stream)
 
-
-    # print()
-
     transfer_mat = []
     for tid in range(len(train_stream)):
         transfer_mat.append(
-            logger.all_metric_results[f'Top1_Acc_Exp/eval_phase/test_stream/Task00{tid}/Exp00{tid}'][1])
+            logger.all_metric_results[f'Top1_Acc_Exp/eval_phase/test_stream/'
+                                      f'Task00{tid}/Exp00{tid}'][1])
     # cl_strategy.evaluator.all_metric_results[
     #     f'Top1_Acc_Exp/eval_phase/test_stream/Task00{tid}/Exp00{tid}'][1])
 
@@ -99,7 +98,9 @@ def main(args):
     print()
     print(res)
 
-    print(transfer_mat[-1][-1] - res['Top1_Acc_Exp/eval_phase/test_stream/Task005/Exp-01'])
+    print(transfer_mat[-1][-1] - res['Top1_Acc_Exp/eval_phase/test_stream/'
+                                     'Task005/Exp-01'])
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
