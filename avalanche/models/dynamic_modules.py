@@ -18,10 +18,9 @@ from torch.nn import Module
 
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from abc import ABC, abstractmethod
 
 
-class DynamicModule(Module, ABC):
+class DynamicModule(Module):
     """
         Dynamic Modules are Avalanche modules that can be incrementally
         expanded to allow architectural modifications (multi-head
@@ -78,7 +77,7 @@ class DynamicModule(Module, ABC):
         pass
 
 
-class MultiTaskModule(Module, ABC):
+class MultiTaskModule(Module):
     """
         Multi-task modules are `torch.nn.Modules`s for multi-task
         scenarios. The `forward` method accepts task labels, one for
@@ -115,7 +114,6 @@ class MultiTaskModule(Module, ABC):
             out[task_mask] = out_task
         return out
 
-    @abstractmethod
     def forward_single_task(self, x: torch.Tensor, task_label: int)\
             -> torch.Tensor:
         """ compute the output given the input `x` and task label.
@@ -124,7 +122,7 @@ class MultiTaskModule(Module, ABC):
         :param task_label: a single task label.
         :return:
         """
-        ...
+        raise NotImplementedError()
 
 
 class IncrementalClassifier(DynamicModule):
