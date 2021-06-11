@@ -218,6 +218,44 @@ class AvalancheDatasetTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             subset_task0 = dataset.task_set[0]
 
+    def test_avalanche_dataset_tensor_task_labels(self):
+        x = torch.rand(32, 10)
+        y = torch.rand(32, 10)
+        t = torch.ones(32)  # Single task
+        dataset = AvalancheTensorDataset(x, y, targets=1, task_labels=t)
+
+        x2, y2, t2 = dataset[:]
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(y2, Tensor)
+        self.assertIsInstance(t2, Tensor)
+        self.assertTrue(torch.equal(x, x2))
+        self.assertTrue(torch.equal(y, y2))
+        self.assertTrue(torch.equal(t.to(int), t2))
+
+        self.assertListEqual([1] * 32,
+                             list(dataset.targets_task_labels))
+
+        # Regression test for #654
+        self.assertEqual(1, len(dataset.task_set))
+
+        subset_task1 = dataset.task_set[1]
+        self.assertIsInstance(subset_task1, AvalancheDataset)
+        self.assertEqual(len(dataset), len(subset_task1))
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[0]
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[2]
+
+        # Check single instance types
+        x2, y2, t2 = dataset[0]
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(y2, Tensor)
+        self.assertIsInstance(t2, int)
+
     def test_avalanche_dataset_uniform_task_labels_simple_def(self):
         dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                               download=True)
@@ -1232,7 +1270,7 @@ class AvalancheDatasetTests(unittest.TestCase):
                                             all_targets[leaf_range]))
 
             self.assertTrue(torch.equal(tensor_y,
-                                        torch.tensor(all_targets)[-d_sz:]))
+                                        all_targets[-d_sz:]))
 
         self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(leaf))
 

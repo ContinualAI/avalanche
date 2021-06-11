@@ -6,9 +6,8 @@
 # Date: 13-02-2021                                                             #
 # Author(s): Jary Pomponi                                                      #
 ################################################################################
-
+from pathlib import Path
 from typing import Optional, Sequence, Any, Union
-from os.path import expanduser
 import torch
 from torch import Tensor
 from torchvision.transforms import ToTensor, Compose, Normalize, \
@@ -16,6 +15,9 @@ from torchvision.transforms import ToTensor, Compose, Normalize, \
 from PIL.Image import Image
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.omniglot import Omniglot
 from avalanche.benchmarks.utils import AvalancheDataset
 import numpy as np
@@ -62,11 +64,14 @@ class PixelsPermutation(object):
 
 def SplitOmniglot(
         n_experiences: int,
+        *,
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
-        train_transform=_default_omniglot_train_transform,
-        eval_transform=_default_omniglot_eval_transform):
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_omniglot_train_transform,
+        eval_transform: Optional[Any] = _default_omniglot_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario using the OMNIGLOT dataset.
 
@@ -80,8 +85,8 @@ def SplitOmniglot(
     scenario are "Class Incremental", "New Classes", etc.
 
     By default, an equal amount of classes will be assigned to each experience.
-    OMNIGLOT consists of 1623 classes, which means that the number of
-    experiences can be 1, 3, 541, 1623.
+    OMNIGLOT consists of 964 classes, which means that the number of
+    experiences can be 1, 2, 4, 241, 482, 964.
 
     This generator doesn't force a choice on the availability of task labels,
     a choice that is left to the user (see the `return_task_id` parameter for
@@ -106,6 +111,8 @@ def SplitOmniglot(
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -118,11 +125,13 @@ def SplitOmniglot(
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset. Defaults to None, which
+        means that the default location for 'omniglot' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    omniglot_train, omniglot_test = _get_omniglot_dataset()
+    omniglot_train, omniglot_test = _get_omniglot_dataset(dataset_root)
 
     if return_task_id:
         return nc_benchmark(
@@ -132,6 +141,7 @@ def SplitOmniglot(
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
             eval_transform=eval_transform)
@@ -143,15 +153,18 @@ def SplitOmniglot(
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             train_transform=train_transform,
             eval_transform=eval_transform)
 
 
 def PermutedOmniglot(
         n_experiences: int,
+        *,
         seed: Optional[int] = None,
-        train_transform: Any = _default_omniglot_train_transform,
-        eval_transform: Any = _default_omniglot_eval_transform) -> NCScenario:
+        train_transform: Optional[Any] = _default_omniglot_train_transform,
+        eval_transform: Optional[Any] = _default_omniglot_eval_transform,
+        dataset_root: Union[str, Path] = None) -> NCScenario:
     """
     Creates a Permuted Omniglot scenario.
 
@@ -160,7 +173,7 @@ def PermutedOmniglot(
 
     Random pixel permutations are used to permute the Omniglot images in
     ``n_experiences`` different manners. This means that each experience is
-    composed of all the original 1623 Omniglot classes, but the pixel in the
+    composed of all the original 964 Omniglot classes, but the pixel in the
     images are permuted in a different way.
 
     The scenario instance returned by this method will have two fields,
@@ -191,6 +204,8 @@ def PermutedOmniglot(
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset. Defaults to None, which
+        means that the default location for 'omniglot' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
@@ -199,12 +214,12 @@ def PermutedOmniglot(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
-    omniglot_train, omniglot_test = _get_omniglot_dataset()
+    omniglot_train, omniglot_test = _get_omniglot_dataset(dataset_root)
 
     # for every incremental experience
     for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
-        idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
+        idx_permute = torch.from_numpy(rng_permute.permutation(11025)).type(
             torch.int64)
 
         permutation = PixelsPermutation(idx_permute)
@@ -242,10 +257,12 @@ def PermutedOmniglot(
 
 def RotatedOmniglot(
         n_experiences: int,
+        *,
         seed: Optional[int] = None,
         rotations_list: Optional[Sequence[int]] = None,
-        train_transform=_default_omniglot_train_transform,
-        eval_transform=_default_omniglot_eval_transform) -> NCScenario:
+        train_transform: Optional[Any] = _default_omniglot_train_transform,
+        eval_transform: Optional[Any] = _default_omniglot_eval_transform,
+        dataset_root: Union[str, Path] = None) -> NCScenario:
     """
     Creates a Rotated Omniglot scenario.
 
@@ -254,7 +271,7 @@ def RotatedOmniglot(
 
     Random angles are used to rotate the Omniglot images in ``n_experiences``
     different manners. This means that each experience is
-    composed of all the original 1623 Omniglot classes, but each image is
+    composed of all the original 964 Omniglot classes, but each image is
     rotated in a different way.
 
     The scenario instance returned by this method will have two fields,
@@ -292,6 +309,8 @@ def RotatedOmniglot(
         documentation for a comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset. Defaults to None, which
+        means that the default location for 'omniglot' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
@@ -312,7 +331,7 @@ def RotatedOmniglot(
     list_train_dataset = []
     list_test_dataset = []
 
-    omniglot_train, omniglot_test = _get_omniglot_dataset()
+    omniglot_train, omniglot_test = _get_omniglot_dataset(dataset_root)
 
     # for every incremental experience
     for experience in range(n_experiences):
@@ -351,11 +370,12 @@ def RotatedOmniglot(
         eval_transform=eval_transform)
 
 
-def _get_omniglot_dataset():
-    train = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
-                     train=True, download=True)
-    test = Omniglot(root=expanduser("~") + "/.avalanche/data/omniglot/",
-                    train=False, download=True)
+def _get_omniglot_dataset(dataset_root):
+    if dataset_root is None:
+        dataset_root = default_dataset_location('omniglot')
+
+    train = Omniglot(root=dataset_root, train=True, download=True)
+    test = Omniglot(root=dataset_root, train=False, download=True)
 
     return train, test
 
@@ -366,6 +386,22 @@ __all__ = [
     'RotatedOmniglot'
 ]
 
-if __name__ == '__main__':
-    _get_omniglot_dataset()
-    rot = RotatedOmniglot(n_experiences=10, seed=1)
+if __name__ == "__main__":
+    import sys
+
+    print('Split Omniglot')
+    benchmark_instance = SplitOmniglot(
+        4, train_transform=None, eval_transform=None)
+    check_vision_benchmark(benchmark_instance)
+
+    print('Permuted Omniglot')
+    benchmark_instance = PermutedOmniglot(
+        5, train_transform=None, eval_transform=None)
+    check_vision_benchmark(benchmark_instance)
+
+    print('Rotated Omniglot')
+    benchmark_instance = RotatedOmniglot(
+        5, train_transform=None, eval_transform=None)
+    check_vision_benchmark(benchmark_instance)
+
+    sys.exit(0)

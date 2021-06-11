@@ -8,12 +8,17 @@
 # E-mail: contact@continualai.org                                              #
 # Website: continualai.org                                                     #
 ################################################################################
+from pathlib import Path
+from typing import Union, Optional, Any
 
+from torchvision.transforms import Compose, ToTensor, Resize
+
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
 from avalanche.benchmarks.datasets import CUB200
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
-from os.path import expanduser
 
 
 _default_train_transform = transforms.Compose([
@@ -30,15 +35,17 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitCUB200(root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
-                n_experiences=11,
-                classes_first_batch=100,
-                return_task_id=False,
-                seed=0,
-                fixed_class_order=None,
-                shuffle=False,
-                train_transform=_default_train_transform,
-                eval_transform=_default_eval_transform):
+def SplitCUB200(
+        n_experiences=11,
+        *,
+        classes_first_batch=100,
+        return_task_id=False,
+        seed=0,
+        fixed_class_order=None,
+        shuffle=False,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
     Creates a CL scenario using the Cub-200 dataset.
 
@@ -65,7 +72,6 @@ def SplitCUB200(root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Base path where Cub-200 data is stored.
     :param n_experiences: The number of experiences in the current scenario.
         Defaults to 11.
     :param classes_first_batch: Number of classes in the first batch.
@@ -92,11 +98,14 @@ def SplitCUB200(root=expanduser("~") + "/.avalanche/data/CUB_200_2011/",
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'CUB_200_2011' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_cub200_dataset(root)
+    train_set, test_set = _get_cub200_dataset(dataset_root)
 
     if classes_first_batch is not None:
         per_exp_classes = {0: classes_first_batch}
@@ -142,9 +151,12 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
+    import sys
 
-    scenario = SplitCUB200()
-    for exp in scenario.train_stream:
-        print("Experience: ", exp.current_experience)
-        print("classes number: ", len(exp.classes_in_this_experience))
-        print("classes: ", exp.classes_in_this_experience)
+    benchmark_instance = SplitCUB200(
+        5,
+        train_transform=Compose([
+            ToTensor(), Resize((128, 128))
+        ]))
+    check_vision_benchmark(benchmark_instance, show_without_transforms=False)
+    sys.exit(0)
