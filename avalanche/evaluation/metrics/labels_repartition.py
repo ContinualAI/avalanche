@@ -12,7 +12,7 @@ from typing import (
 
 from matplotlib.figure import Figure
 
-from avalanche.evaluation import GenericPluginMetric, Metric
+from avalanche.evaluation import GenericPluginMetric, Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, AlternativeValues
 from avalanche.evaluation.metric_utils import (
     stream_type,
@@ -31,6 +31,9 @@ if TYPE_CHECKING:
 
 
 class LabelsRepartition(Metric):
+    """
+    Metric used to monitor the labels repartition.
+    """
     def __init__(self):
         super().__init__()
         self.task2label2count: Dict[int, Dict[int, int]] = {}
@@ -72,13 +75,27 @@ LabelsRepartitionImageCreator = Callable[
 
 
 class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
+    """
+    A plugin to monitor the labels repartition.
+
+    :param image_creator: The function to use to create an image from the
+        history of the labels repartition. It will receive a dictionary of the
+        form {label_id: [count_at_step_0, count_at_step_1, ...], ...}
+        and the list of the corresponding steps [step_0, step_1, ...].
+        If set to None, only the raw data is emitted.
+    :param mode: Indicates if this plugin should run on train or eval.
+    :param emit_reset_at: The refreshment rate of the plugin.
+    :return: The list of corresponding plugins.
+    """
+
     def __init__(
         self,
+        *,
         image_creator: Optional[
             LabelsRepartitionImageCreator
         ] = default_history_repartition_image_creator,
         mode: Literal["train", "eval"] = "train",
-        emit_reset_at: Literal["stream", "experience"] = "stream",
+        emit_reset_at: Literal["stream", "experience", "epoch"] = "epoch",
     ):
         self.labels_repartition = LabelsRepartition()
         super().__init__(
@@ -100,7 +117,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         return super().reset()
 
     def update(self, strategy: "BaseStrategy"):
-        if strategy.epoch:
+        if strategy.epoch and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
             strategy.mb_task_id.tolist(),
@@ -145,23 +162,52 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
 def labels_repartition_metrics(
     *,
     on_train: bool = True,
+    emit_train_at: Literal["stream", "experience", "epoch"] = "epoch",
     on_eval: bool = False,
+    emit_eval_at: Literal["stream", "experience"] = "stream",
     image_creator: Optional[
         LabelsRepartitionImageCreator
     ] = default_history_repartition_image_creator,
-    emit_at: Literal['stream', 'experience'] = 'stream',
-):
-    modes = []
-    if on_eval:
-        modes.append("eval")
-    if on_train:
-        modes.append("train")
+) -> List[PluginMetric]:
+    """
+    Create plugins to monitor the labels repartition.
 
-    return [
-        LabelsRepartitionPlugin(
-            image_creator=image_creator,
-            mode=mode,
-            emit_reset_at=emit_at,
+    :param on_train: If True, emit the metrics during training.
+    :param emit_train_at: (only if on_train is True) when to emit the training
+        metrics.
+    :param on_eval:  If True, emit the metrics during evaluation.
+    :param emit_eval_at: (only if on_eval is True) when to emit the evaluation
+        metrics.
+    :param image_creator: The function to use to create an image from the
+        history of the labels repartition. It will receive a dictionary of the
+        form {label_id: [count_at_step_0, count_at_step_1, ...], ...}
+        and the list of the corresponding steps [step_0, step_1, ...].
+        If set to None, only the raw data is emitted.
+    :return: The list of corresponding plugins.
+    """
+    plugins = []
+    if on_eval:
+        plugins.append(
+            LabelsRepartitionPlugin(
+                image_creator=image_creator,
+                mode="eval",
+                emit_reset_at=emit_eval_at,
+            )
         )
-        for mode in modes
-    ]
+    if on_train:
+        plugins.append(
+            LabelsRepartitionPlugin(
+                image_creator=image_creator,
+                mode="train",
+                emit_reset_at=emit_train_at,
+            )
+        )
+
+    return plugins
+
+
+__all__ = [
+    LabelsRepartitionPlugin,
+    LabelsRepartition,
+    labels_repartition_metrics,
+]
