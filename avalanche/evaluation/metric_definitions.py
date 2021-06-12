@@ -52,6 +52,7 @@ class Metric(Protocol[TResult]):
 
         :return: The value of the metric.
         """
+        pass
 
     def reset(self) -> None:
         """
@@ -59,6 +60,7 @@ class Metric(Protocol[TResult]):
 
         :return: None.
         """
+        pass
 
 
 class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
