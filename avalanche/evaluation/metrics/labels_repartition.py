@@ -66,23 +66,32 @@ class LabelsRepartition(Metric):
         }
 
 
+LabelsRepartitionImageCreator = Callable[
+    [Dict[int, List[int]], List[int]], Figure
+]
+
+
 class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
     def __init__(
         self,
-        image_creator: Callable[
-            [Dict[int, List[int]], List[int]], Figure
+        image_creator: Optional[
+            LabelsRepartitionImageCreator
         ] = default_history_repartition_image_creator,
         mode: Literal["train", "eval"] = "train",
+        emit_reset_at: Literal["stream", "experience"] = "stream",
     ):
+        self.labels_repartition = LabelsRepartition()
         super().__init__(
-            metric=LabelsRepartition(),
-            emit_at="stream",
-            reset_at="stream",
+            metric=self.labels_repartition,
+            emit_at=emit_reset_at,
+            reset_at=emit_reset_at,
             mode=mode,
         )
+        self.emit_reset_at = emit_reset_at
+        self.mode = mode
         self.image_creator = image_creator
         self.steps = [0]
-        self.task2labels2counts: Dict[int, Dict[int, List[int]]] = defaultdict(
+        self.task2label2counts: Dict[int, Dict[int, List[int]]] = defaultdict(
             dict
         )
 
@@ -91,7 +100,9 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         return super().reset()
 
     def update(self, strategy: "BaseStrategy"):
-        self._metric.update(
+        if strategy.epoch:
+            return
+        self.labels_repartition.update(
             strategy.mb_task_id.tolist(),
             strategy.mb_y.tolist(),
             class_order=getattr(
@@ -101,12 +112,15 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
 
     def _package_result(self, strategy: "BaseStrategy") -> "MetricResult":
         self.steps.append(self.global_it_counter)
-        task2label2count: Dict[int, Dict[int, int]] = self._metric.result()
+        task2label2count = self.labels_repartition.result()
         for task, label2count in task2label2count.items():
             for label, count in label2count.items():
-                self.task2labels2counts[task].setdefault(
+                self.task2label2counts[task].setdefault(
                     label, [0] * (len(self.steps) - 2)
                 ).extend((count, count))
+        for task, label2counts in self.task2label2counts.items():
+            for label, counts in label2counts.items():
+                counts.extend([0] * (len(self.steps) - len(counts)))
         return [
             MetricValue(
                 self,
@@ -116,10 +130,12 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 f"/Task_{task:03}",
                 value=AlternativeValues(
                     self.image_creator(label2counts, self.steps), label2counts,
-                ),
+                )
+                if self.image_creator is not None
+                else label2counts,
                 x_plot=self.get_global_counter(),
             )
-            for task, label2counts in self.task2labels2counts.items()
+            for task, label2counts in self.task2label2counts.items()
         ]
 
     def __str__(self):
@@ -130,7 +146,10 @@ def labels_repartition_metrics(
     *,
     on_train: bool = True,
     on_eval: bool = False,
-    image_creator=default_history_repartition_image_creator,
+    image_creator: Optional[
+        LabelsRepartitionImageCreator
+    ] = default_history_repartition_image_creator,
+    emit_at: Literal['stream', 'experience'] = 'stream',
 ):
     modes = []
     if on_eval:
@@ -139,6 +158,10 @@ def labels_repartition_metrics(
         modes.append("train")
 
     return [
-        LabelsRepartitionPlugin(image_creator=image_creator, mode=mode)
+        LabelsRepartitionPlugin(
+            image_creator=image_creator,
+            mode=mode,
+            emit_reset_at=emit_at,
+        )
         for mode in modes
     ]

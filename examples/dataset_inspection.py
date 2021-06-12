@@ -25,7 +25,7 @@ from avalanche.benchmarks import SplitCIFAR10
 from avalanche.evaluation.metric_utils import (
     repartition_bar_chart_image_creator,
 )
-from avalanche.evaluation.metrics.dataset_inspection import (
+from avalanche.evaluation.metrics.labels_repartition import (
     labels_repartition_metrics,
 )
 

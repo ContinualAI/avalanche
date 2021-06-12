@@ -262,7 +262,8 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
         super().after_training_iteration(strategy)
-        self.update(strategy)
+        if self._mode == 'train':
+            self.update(strategy)
         if self._emit_at == 'iteration' and self._mode == 'train':
             return self._package_result(strategy)
 
@@ -293,7 +294,8 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super().after_eval_iteration(strategy)
-        self.update(strategy)
+        if self._mode == 'eval':
+            self.update(strategy)
         if self._reset_at == 'iteration' and self._mode == 'eval':
             self.reset()
 
