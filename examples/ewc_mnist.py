@@ -1,11 +1,14 @@
 import torch
+from os.path import expanduser
 import argparse
-from avalanche.benchmarks import PermutedMNIST, SplitMNIST
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
+from avalanche.benchmarks import PermutedMNIST, nc_benchmark
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics
-from avalanche.logging import InteractiveLogger
+from avalanche.logging import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 """
@@ -40,20 +43,25 @@ def main(args):
     if args.scenario == 'pmnist':
         scenario = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == 'smnist':
-        scenario = SplitMNIST(n_experiences=5, return_task_id=False)
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True, transform=ToTensor())
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True, transform=ToTensor())
+        scenario = nc_benchmark(
+            mnist_train, mnist_test, 5, task_labels=True, seed=1234)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
-
+    tensorboard_logger = TensorboardLogger()
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True),
-        loggers=[interactive_logger])
+        forgetting_metrics(experience=True, stream=True),
+        loggers=[interactive_logger, tensorboard_logger])
 
     # create strategy
     strategy = EWC(model, optimizer, criterion, args.ewc_lambda,
@@ -72,6 +80,7 @@ def main(args):
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 
+    #print(eval_plugin.get_all_metrics())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

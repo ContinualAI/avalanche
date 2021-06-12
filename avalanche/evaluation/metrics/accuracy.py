@@ -99,7 +99,7 @@ class Accuracy(Metric[float]):
             raise ValueError(f"Task label type: {type(task_labels)}, "
                              f"expected int/float or Tensor")
 
-    def result(self) -> Dict[int, float]:
+    def result(self, task_label=None) -> Dict[int, float]:
         """
         Retrieves the running accuracy.
 
@@ -108,7 +108,11 @@ class Accuracy(Metric[float]):
         :return: A dict of running accuracies for each task label,
             where each value is a float value between 0 and 1.
         """
-        return {k: v.result() for k, v in self._mean_accuracy.items()}
+        assert(task_label is None or isinstance(task_label, int))
+        if task_label is None:
+            return {k: v.result() for k, v in self._mean_accuracy.items()}
+        else:
+            return {task_label: self._mean_accuracy[task_label].result()}
 
     def reset(self, task_label=None) -> None:
         """
@@ -117,7 +121,11 @@ class Accuracy(Metric[float]):
             Otherwise, reset the value associated to `task_label`.
         :return: None.
         """
-        self._mean_accuracy = defaultdict(Mean)
+        assert(task_label is None or isinstance(task_label, int))
+        if task_label is None:
+            self._mean_accuracy = defaultdict(Mean)
+        else:
+            self._mean_accuracy[task_label].reset()
 
 
 class AccuracyPluginMetric(GenericPluginMetric[float]):
@@ -131,12 +139,13 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
             mode=mode)
 
     def update(self, strategy):
-        try:
+        # task labels defined for each experience
+        task_labels = strategy.experience.task_labels
+        if len(task_labels) > 1:
             # task labels defined for each pattern
             task_labels = strategy.mb_task_id
-        except AssertionError:
-            # task labels defined for each experience
-            task_labels = strategy.experience.task_label
+        else:
+            task_labels = task_labels[0]
         self._accuracy.update(strategy.mb_output, strategy.mb_y, task_labels)
 
 

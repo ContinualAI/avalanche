@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING
 from typing_extensions import Protocol
 from .metric_results import MetricValue
-from .metric_utils import get_metric_name
+from .metric_utils import get_metric_name, phase_and_task
 from ..core import StrategyCallbacks
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class Metric(Protocol[TResult]):
     update and results. See :class:`PluginMetric` for more details.
     """
 
-    def result(self) -> Optional[TResult]:
+    def result(self, **kwargs) -> Optional[TResult]:
         """
         Obtains the value of the metric.
 
@@ -54,7 +54,7 @@ class Metric(Protocol[TResult]):
         """
         pass
 
-    def reset(self) -> None:
+    def reset(self, **kwargs) -> None:
         """
         Resets the metric internal state.
 
@@ -95,11 +95,11 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         """
 
     @abstractmethod
-    def result(self) -> Optional[TResult]:
+    def result(self, **kwargs) -> Optional[TResult]:
         pass
 
     @abstractmethod
-    def reset(self) -> None:
+    def reset(self, **kwargs) -> None:
         pass
 
     def get_global_counter(self):
@@ -222,20 +222,28 @@ class GenericPluginMetric(PluginMetric[TResult]):
         self._emit_at = emit_at
         self._mode = mode
 
-    def reset(self) -> None:
-        self._metric.reset()
+    def reset(self, strategy=None) -> None:
+        if strategy is None:
+            self._metric.reset()
+        else:
+            self._metric.reset(phase_and_task(strategy)[1])
 
-    def result(self) -> float:
-        return self._metric.result()
+    def result(self, strategy=None) -> float:
+        if strategy is None:
+            return self._metric.result()
+        else:
+            return self._metric.result(phase_and_task(strategy)[1])
 
     def update(self, strategy):
         assert NotImplementedError()
 
     def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
-        metric_value = self.result()
+        if self._emit_at != 'stream':
+            metric_value = self.result(strategy)
+        else:
+            metric_value = self.result()
         # print(metric_value)
         add_exp = self._emit_at == 'experience'
-        add_task = self._emit_at != 'stream'
         plot_x_position = self.get_global_counter()
 
         if isinstance(metric_value, dict):
@@ -247,7 +255,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
             return metrics
         else:
             metric_name = get_metric_name(self, strategy, add_experience=add_exp,
-                                          add_task=add_task)
+                                          add_task=True)
             return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
     def before_training(self, strategy: 'BaseStrategy'):
@@ -258,21 +266,22 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_training_exp(self, strategy: 'BaseStrategy'):
         super().before_training_exp(strategy)
         if self._reset_at == 'experience' and self._mode == 'train':
-            self.reset()
+            self.reset(strategy)
 
     def before_training_epoch(self, strategy: 'BaseStrategy'):
         super().before_training_epoch(strategy)
         if self._reset_at == 'epoch' and self._mode == 'train':
-            self.reset()
+            self.reset(strategy)
 
     def before_training_iteration(self, strategy: 'BaseStrategy'):
         super().before_training_iteration(strategy)
         if self._reset_at == 'iteration' and self._mode == 'train':
-            self.reset()
+            self.reset(strategy)
 
     def after_training_iteration(self, strategy: 'BaseStrategy') -> None:
         super().after_training_iteration(strategy)
-        self.update(strategy)
+        if self._mode == 'train':
+            self.update(strategy)
         if self._emit_at == 'iteration' and self._mode == 'train':
             return self._package_result(strategy)
 
@@ -299,7 +308,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_eval_exp(self, strategy: 'BaseStrategy'):
         super().before_eval_exp(strategy)
         if self._reset_at == 'experience' and self._mode == 'eval':
-            self.reset()
+            self.reset(strategy)
 
     def after_eval_exp(self, strategy: 'BaseStrategy'):
         super().after_eval_exp(strategy)
@@ -318,9 +327,10 @@ class GenericPluginMetric(PluginMetric[TResult]):
 
     def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super().after_eval_iteration(strategy)
-        self.update(strategy)
+        if self._mode == 'eval':
+            self.update(strategy)
         if self._reset_at == 'iteration' and self._mode == 'eval':
-            self.reset()
+            self.reset(strategy)
 
 
 __all__ = ['Metric', 'PluginMetric', 'GenericPluginMetric']
