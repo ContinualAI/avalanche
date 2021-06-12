@@ -135,6 +135,16 @@ def repartition_pie_chart_image_creator(
     colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
     fmt: str = "%1.1f%%",
 ):
+    """
+    Create a pie chart representing the labels repartition.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}. Only the last count of
+        each label is used here.
+    :param counters: (unused) The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    :param fmt: Formatting used to display the text values in the chart.
+    """
     fig, ax = plt.subplots()
     ax: Axes
 
@@ -151,6 +161,15 @@ def repartition_bar_chart_image_creator(
     counters: List[int],
     colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
 ):
+    """
+    Create a bar chart representing the labels repartition.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}. Only the last count of
+        each label is used here.
+    :param counters: (unused) The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    """
     fig, ax = plt.subplots()
     ax: Axes
 
@@ -177,6 +196,14 @@ def default_history_repartition_image_creator(
     counters: List[int],
     colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
 ):
+    """
+    Create a stack plot representing the labels repartition with their history.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}.
+    :param counters: The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    """
     fig, ax = plt.subplots()
     ax: Axes
 
