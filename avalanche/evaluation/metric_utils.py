@@ -302,5 +302,7 @@ __all__ = [
     "get_metric_name",
     "stream_type",
     "bytes2human",
+    "default_history_repartition_image_creator",
     "repartition_pie_chart_image_creator",
+    "repartition_bar_chart_image_creator",
 ]
