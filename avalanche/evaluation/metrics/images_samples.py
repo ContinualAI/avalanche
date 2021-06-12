@@ -33,6 +33,16 @@ GroupByMode = Literal["label", "task", None]
 
 
 class ImagesSamplesMetric(Metric):
+    """
+    A metric used to sample images at random.
+
+    :param means: The means that were used during a normalization step, to
+        reverse it before displaying
+    :param std: The std that were used during a normalization step, to
+        reverse it before displaying
+    :param n_images: The number of images to sample.
+    """
+
     def __init__(
         self, *, n_images: int, means: Iterable[float], std: Iterable[float]
     ):
@@ -42,10 +52,20 @@ class ImagesSamplesMetric(Metric):
         self.n_seen_images = 0
 
     def reset(self):
+        """
+        Drop the current sampling.
+        """
         self.images = []
         self.n_seen_images = 0
 
     def update(self, images: Tensor):
+        """
+        Will update the selected samples to randomly select some of the new
+            images. New images have the same probability of being selected than
+            old images.
+
+        :param images: New images from which to sample.
+        """
         free_memory = self.n_images - len(self.images)
 
         images_to_add = images[:free_memory]
@@ -59,16 +79,33 @@ class ImagesSamplesMetric(Metric):
                 self.images[i] = self.un_normalize(image)
 
     def result(self) -> List[Tensor]:
+        """
+        :return: The image that were sampled during the successive update calls
+        """
         return self.images
 
 
 class BalancedImagesSamplesMetric(Metric):
+    """
+    A metric used to sample images balanced by label.
+
+    :param means: The means that were used during a normalization step, to
+        reverse it before displaying
+    :param std: The std that were used during a normalization step, to
+        reverse it before displaying
+    :param n_images_per_label: The number of images to sample per label.
+    :param group_by: The images can be grouped by labels (1 list is emitted per
+        tuple task,label), by tasks (1 list per task, the images of same labels
+        will follow each other). If None, only 1 list is emitted, images from
+        the same labels will follow each other.
+    """
+
     def __init__(
         self,
         *,
-        n_images_per_label: Optional[int],
         means: Iterable[float],
         std: Iterable[float],
+        n_images_per_label: Optional[int],
         group_by: GroupByMode,
     ):
         self.group_by = group_by
@@ -78,15 +115,31 @@ class BalancedImagesSamplesMetric(Metric):
         self.reset()
 
     def reset(self) -> None:
+        """
+        Drop the current sampling.
+        """
         self.task2label2images = defaultdict(lambda: defaultdict(list))
 
     def update(self, images: Tensor, labels: List[int], tasks: List[int]):
+        """
+        Update the sampling with new images.
+
+        :param images: New images to sample.
+        :param labels: Corresponding labels.
+        :param tasks: Corresponding tasks labels.
+        """
         for image, label, task in zip(images, labels, tasks):
             label_images = self.task2label2images[task][label]
             if len(label_images) < self.n_images_per_label:
                 label_images.append(self.un_normalize(image))
 
     def results(self) -> Iterable[Tuple[Iterable[Tensor], str]]:
+        """
+        :return: An iterable of tuples (images, name). The number of elements
+            is controlled by the group_by attribute of the object (only 1 if no
+            grouping, 1 per task if grouping by task, or one per tuple
+            task,label if grouping per label).
+        """
         if self.group_by is None:
             return [
                 (
@@ -111,6 +164,18 @@ class BalancedImagesSamplesMetric(Metric):
 
 
 class RandomImagesSamplesPlugin(GenericPluginMetric[TensorImage]):
+    """
+    A plugin to log some images samples taken at random in a grid.
+
+    :param means: The means that were used during a normalization step, to
+        reverse it before displaying
+    :param std: The std that were used during a normalization step, to
+        reverse it before displaying
+    :param n_rows: The numbers of raws to use in the grid of images.
+    :param n_cols: The numbers of columns to use in the grid of images.
+    :param mode: This plugin can work during training or evaluation.
+    """
+
     def __init__(
         self,
         means: Iterable[float],
@@ -158,8 +223,27 @@ class RandomImagesSamplesPlugin(GenericPluginMetric[TensorImage]):
 
 
 class BalancedImagesSamplesPlugin(GenericPluginMetric[TensorImage]):
+    """
+    A plugin to log some images samples in grids, with each label being
+        represented evenly.
+
+    :param means: The means that were used during a normalization step, to
+        reverse it before displaying
+    :param std: The std that were used during a normalization step, to
+        reverse it before displaying
+    :param n_rows: The numbers of raws to use in the grid of images. Only used
+        when grouping by labels, otherwise the number of labels is used.
+    :param n_cols: The numbers of columns to use in the grid of images.
+    :param mode: This plugin can work during training or evaluation.
+    :param group_by: The images can be grouped by labels (1 grid is emitted per
+        tuple task,label), by tasks (1 grid per task, the images of same labels
+        will be on the same raw). If None, only 1 grid is emitted, with on a
+        given raw images from the same tuple task,label.
+    """
+
     def __init__(
         self,
+        *,
         means: Iterable[float],
         std: Iterable[float],
         n_rows: int = 3,
@@ -212,10 +296,34 @@ def images_samples_metrics(
     n_cols: int = 5,
     on_train: bool = True,
     on_eval: bool = False,
-    group_by: GroupByMode = "train",
+    group_by: GroupByMode = "task",
     do_balanced_sampling: bool = True,
     do_random_sampling: bool = True,
 ) -> List[PluginMetric]:
+    """
+    Create the plugins to log some images samples in grids.
+
+    :param means: The means that were used during a normalization step, to
+        reverse it before displaying
+    :param std: The std that were used during a normalization step, to
+        reverse it before displaying
+    :param n_rows: The numbers of raws to use in the grid of images. Ignored
+        during balanced sampling when the number of raws matches the number of
+        labels.
+    :param n_cols: The numbers of columns to use in the grid of images.
+    :param on_train: If True, will emit some images samples during training.
+    :param on_eval: If True, will emit some images samples during evaluation.
+    :param group_by: (only in case of balanced sampling, ignored otherwise)
+        The images can be grouped by labels (1 grid is emitted per tuple
+        task,label), by tasks (1 grid per task, the images of same labels will
+        be on the same raw). If None, only 1 grid is emitted, with on a given
+        raw images from the same tuple task,label.
+    :param do_balanced_sampling: If True, will emit grids with each label being
+        represented evenly.
+    :param do_random_sampling: If True, will emit grids with images taken at
+        random.
+    :return: The corresponding plugins.
+    """
     modes = []
     if on_eval:
         modes.append("eval")
@@ -253,7 +361,22 @@ def images_samples_metrics(
 def make_un_normalize(
     means: Iterable[float], std: Iterable[float]
 ) -> Normalize:
+    """
+    Reverse the normalization step.
+
+    :param means: The mean used in the normalization step.
+    :param std: The std used in the normalization step.
+    """
     return Normalize(
         mean=[-mean / s for mean, s in zip(means, std)],
         std=[1 / s for s in std],
     )
+
+
+__all__ = [
+    images_samples_metrics,
+    BalancedImagesSamplesPlugin,
+    BalancedImagesSamplesMetric,
+    RandomImagesSamplesPlugin,
+    ImagesSamplesMetric,
+]
