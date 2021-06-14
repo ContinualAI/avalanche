@@ -96,7 +96,7 @@ class StrategyTest(unittest.TestCase):
 
         strategy.eval(scenario.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
-        assert main_metric.result() > 0.7
+        assert main_metric.result() > 0.5
 
 
 if __name__ == '__main__':
