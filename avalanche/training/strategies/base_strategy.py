@@ -218,12 +218,12 @@ class BaseStrategy:
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if isinstance(experiences, Experience):
+        if not isinstance(experiences, Sequence):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
         for i, exp in enumerate(eval_streams):
-            if isinstance(exp, Experience):
+            if not isinstance(exp, Sequence):
                 eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
@@ -322,7 +322,7 @@ class BaseStrategy:
         self.is_training = False
         self.model.eval()
 
-        if isinstance(exp_list, Experience):
+        if not isinstance(exp_list, Sequence):
             exp_list = [exp_list]
 
         self.before_eval(**kwargs)
