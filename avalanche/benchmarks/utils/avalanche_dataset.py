@@ -835,7 +835,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                     'Invalid amount of task labels. It must be equal to the '
                     'number of patterns in the dataset. Got {}, expected '
                     '{}!'.format(len(task_labels), len(dataset)))
-            return task_labels
+
+            return SubSequence(task_labels, converter=int)
 
         return _make_task_labels_from_supported_dataset(dataset)
 
@@ -1406,7 +1407,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
                                                    YTransform]] = None,
                  initial_transform_group: str = 'train',
                  task_labels: Union[int, Sequence[int]] = None,
-                 targets: Sequence[TTargetType] = None,
+                 targets: Union[Sequence[TTargetType], int] = None,
                  dataset_type: AvalancheDatasetType =
                  AvalancheDatasetType.UNDEFINED,
                  collate_fn: Callable[[List], Any] = None,
@@ -1730,7 +1731,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                     'Invalid amount of task labels. It must be equal to the '
                     'number of patterns in the dataset. Got {}, expected '
                     '{}!'.format(len(task_labels), self._overall_length))
-            return task_labels
+            return SubSequence(task_labels, converter=int)
 
         concat_t_labels = []
         for dataset_idx, single_dataset in enumerate(self._dataset_list):

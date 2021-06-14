@@ -80,7 +80,7 @@ class CustomStreamsTests(unittest.TestCase):
 
             self.assertTrue(torch.equal(expect_x, got_x))
             self.assertTrue(torch.equal(expect_y, got_y))
-            self.assertTrue(torch.equal(expect_t, got_t))
+            self.assertEqual(int(expect_t), got_t)
 
             exp_t_labels = set(exp.task_labels)
             self.assertLess(max(exp_t_labels), 5)
@@ -92,7 +92,7 @@ class CustomStreamsTests(unittest.TestCase):
 
             self.assertTrue(torch.equal(expect_x, got_x))
             self.assertTrue(torch.equal(expect_y, got_y))
-            self.assertTrue(torch.equal(expect_t, got_t))
+            self.assertEqual(int(expect_t), got_t)
 
             exp_t_labels = set(exp.task_labels)
             self.assertLess(max(exp_t_labels), 3)
@@ -104,7 +104,7 @@ class CustomStreamsTests(unittest.TestCase):
 
             self.assertTrue(torch.equal(expect_x, got_x))
             self.assertTrue(torch.equal(expect_y, got_y))
-            self.assertTrue(torch.equal(expect_t, got_t))
+            self.assertEqual(int(expect_t), got_t)
 
             exp_t_labels = set(exp.task_labels)
 
