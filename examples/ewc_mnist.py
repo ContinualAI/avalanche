@@ -48,7 +48,7 @@ def main(args):
         mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                            train=False, download=True, transform=ToTensor())
         scenario = nc_benchmark(
-            mnist_train, mnist_test, 5, task_labels=True, seed=1234)
+            mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
@@ -60,8 +60,8 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True, stream=True, task=True),
-        bwt_metrics(experience=True, stream=True, task=True),
+        forgetting_metrics(experience=True, stream=True),
+        bwt_metrics(experience=True, stream=True),
         loggers=[interactive_logger, tensorboard_logger])
 
     # create strategy

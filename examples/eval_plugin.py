@@ -62,7 +62,7 @@ def main(args):
     mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
                        train=False, download=True, transform=test_transform)
     scenario = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=True, seed=1234)
+        mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
