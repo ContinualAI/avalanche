@@ -32,5 +32,10 @@ def CTrL(stream_name: str, seed: int = None):
     return dataset_benchmark(
         train_datasets=exps[0],
         test_datasets=exps[2],
-        other_streams_datasets=dict(valid=exps[1]),
+        other_streams_datasets=dict(val=exps[1]),
     )
+
+
+__all__ = [
+    'CTrL'
+]
