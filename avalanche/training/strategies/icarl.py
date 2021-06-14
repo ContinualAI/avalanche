@@ -9,7 +9,8 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset, \
 from math import ceil
 
 from avalanche.models import TrainEvalModel, NCMClassifier
-from avalanche.training import EvaluationPlugin, default_logger
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from torch.nn import Module

@@ -13,25 +13,23 @@
     to allow architectural modifications (multi-head classifiers, progressive
     networks, ...).
 """
-from typing import Dict
-
 import torch
+from torch.nn import Module
+
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
-class DynamicModule(torch.nn.Module):
-    def __init__(self):
-        """
-            Dynamic Modules are Avalanche modules that can be incrementally
-            expanded to allow architectural modifications (multi-head
-            classifiers, progressive networks, ...).
+class DynamicModule(Module):
+    """
+        Dynamic Modules are Avalanche modules that can be incrementally
+        expanded to allow architectural modifications (multi-head
+        classifiers, progressive networks, ...).
 
-            Compared to pytoch Modules, they provide an additional method,
-            `model_adaptation`, which adapts the model given data from the
-            current experience.
-        """
-        super().__init__()
+        Compared to pytoch Modules, they provide an additional method,
+        `model_adaptation`, which adapts the model given data from the
+        current experience.
+    """
 
     def adaptation(self, dataset: AvalancheDataset = None):
         """ Adapt the module (freeze units, add units...) using the current
@@ -79,18 +77,16 @@ class DynamicModule(torch.nn.Module):
         pass
 
 
-class MultiTaskModule:
-    def __init__(self):
-        """
-            Multi-task modules are `torch.nn.Modules`s for multi-task
-            scenarios. The `forward` method accepts task labels, one for
-            each sample in the mini-batch.
+class MultiTaskModule(Module):
+    """
+        Multi-task modules are `torch.nn.Modules`s for multi-task
+        scenarios. The `forward` method accepts task labels, one for
+        each sample in the mini-batch.
 
-            By default the `forward` method splits the mini-batch by task
-            and calls `forward_single_task`. Subclasses must implement
-            `forward_single_task` or override `forward.
-        """
-        super().__init__()
+        By default the `forward` method splits the mini-batch by task
+        and calls `forward_single_task`. Subclasses must implement
+        `forward_single_task` or override `forward.
+    """
 
     def forward(self, x: torch.Tensor, task_labels: torch.Tensor)\
             -> torch.Tensor:
@@ -100,7 +96,12 @@ class MultiTaskModule:
         :param task_labels: task labels for each sample.
         :return:
         """
-        unique_tasks = torch.unique(task_labels)
+        if isinstance(task_labels, int):
+            # fast path. mini-batch is single task.
+            return self.forward_single_task(x, task_labels)
+        else:
+            unique_tasks = torch.unique(task_labels)
+
         out = None
         for task in unique_tasks:
             task_mask = task_labels == task
@@ -121,7 +122,7 @@ class MultiTaskModule:
         :param task_label: a single task label.
         :return:
         """
-        assert NotImplementedError()
+        raise NotImplementedError()
 
 
 class IncrementalClassifier(DynamicModule):
