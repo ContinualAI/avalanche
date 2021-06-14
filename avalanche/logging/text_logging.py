@@ -15,7 +15,7 @@ import torch
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import StrategyLogger
-from avalanche.evaluation.metric_utils import stream_type
+from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -98,10 +98,16 @@ class TextLogger(StrategyLogger):
                        metric_values: List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
         exp_id = strategy.experience.current_experience
-        print(f'> Eval on experience {exp_id} (Task '
-              f'{strategy.experience.task_label}) '
-              f'from {stream_type(strategy.experience)} stream ended.',
-              file=self.file, flush=True)
+        task_id = phase_and_task(strategy)[1]
+        if task_id is None:
+            print(f'> Eval on experience {exp_id} '
+                  f'from {stream_type(strategy.experience)} stream ended.',
+                  file=self.file, flush=True)
+        else:
+            print(f'> Eval on experience {exp_id} (Task '
+                  f'{task_id}) '
+                  f'from {stream_type(strategy.experience)} stream ended.',
+                  file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
@@ -130,8 +136,15 @@ class TextLogger(StrategyLogger):
     def _on_exp_start(self, strategy: 'BaseStrategy'):
         action_name = 'training' if strategy.is_training else 'eval'
         exp_id = strategy.experience.current_experience
-        task_id = strategy.experience.task_label
+        task_id = phase_and_task(strategy)[1]
         stream = stream_type(strategy.experience)
-        print('-- Starting {} on experience {} (Task {}) from {} stream --'
-              .format(action_name, exp_id, task_id, stream), file=self.file,
-              flush=True)
+        if task_id is None:
+            print('-- Starting {} on experience {} from {} stream --'
+                  .format(action_name, exp_id, stream),
+                  file=self.file,
+                  flush=True)
+        else:
+            print('-- Starting {} on experience {} (Task {}) from {} stream --'
+                  .format(action_name, exp_id, task_id, stream),
+                  file=self.file,
+                  flush=True)

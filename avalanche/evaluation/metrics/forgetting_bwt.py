@@ -467,8 +467,9 @@ class GenericTaskForgetting(PluginMetric[Dict[int, float]]):
     def after_training_iteration(self, strategy: 'BaseStrategy'):
         super().__init__()
         try:
-            for t in strategy.mb_task_id:
-                self._current_train_metric.reset(t)
+            unique_tasks = strategy.mb_task_id.unique()
+            for t in unique_tasks:
+                self._current_train_metric.reset(t.item())
         except AssertionError:
             self._current_train_metric.reset()
         self.metric_update(strategy, train=True)
