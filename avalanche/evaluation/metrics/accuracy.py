@@ -20,12 +20,11 @@ from collections import defaultdict
 
 class Accuracy(Metric[float]):
     """
-    The Accuracy metric. This is a standalone metric
-    used to compute more specific ones.
+    The Accuracy metric. This is a standalone metric.
 
-    Instances of this metric keeps the running average accuracy
-    over multiple <prediction, target> pairs of Tensors,
-    provided incrementally.
+    The metric keeps a dictionary of <task_label, accuracy value> pairs.
+    and update the values through a running average over multiple
+    <prediction, target> pairs of Tensors, provided incrementally.
     The "prediction" and "target" tensors may contain plain labels or
     one-hot/logit vectors.
 
@@ -56,6 +55,10 @@ class Accuracy(Metric[float]):
                task_labels: Union[float, Tensor]) -> None:
         """
         Update the running accuracy given the true and predicted labels.
+        Parameter `task_labels` is used to decide how to update the inner
+        dictionary: if Float, only the dictionary value related to that task
+        is updated. If Tensor, all the dictionary elements belonging to the
+        task labels will be updated.
 
         :param predicted_y: The model prediction. Both labels and logit vectors
             are supported.
@@ -105,6 +108,9 @@ class Accuracy(Metric[float]):
 
         Calling this method will not change the internal state of the metric.
 
+        :param task_label: if None, return the entire dictionary of accuracies
+            for each task. Otherwise return the dictionary
+            `{task_label: accuracy}`.
         :return: A dict of running accuracies for each task label,
             where each value is a float value between 0 and 1.
         """
@@ -119,6 +125,7 @@ class Accuracy(Metric[float]):
         Resets the metric.
         :param task_label: if None, reset the entire dictionary.
             Otherwise, reset the value associated to `task_label`.
+
         :return: None.
         """
         assert(task_label is None or isinstance(task_label, int))
