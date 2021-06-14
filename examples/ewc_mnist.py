@@ -7,7 +7,7 @@ from avalanche.benchmarks import PermutedMNIST, nc_benchmark
 from avalanche.training.strategies import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import forgetting_metrics, \
-    accuracy_metrics, loss_metrics
+    accuracy_metrics, loss_metrics, bwt_metrics
 from avalanche.logging import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -60,7 +60,8 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(
             minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True, stream=True),
+        forgetting_metrics(experience=True, stream=True, task=True),
+        bwt_metrics(experience=True, stream=True, task=True),
         loggers=[interactive_logger, tensorboard_logger])
 
     # create strategy

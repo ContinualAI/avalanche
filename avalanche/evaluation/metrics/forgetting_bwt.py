@@ -109,11 +109,12 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
     a metric detected for a certain experience. The user should
     subclass this and provide the desired metric.
 
-    In particular, the user should override __init__ by calling `super`
-    and instantiating the `self.current_metric` property as a valid
-    avalanche metric. The user should also override `after_eval_iteration`,
-    call `super` and the `update` method of the chosen metric.
-    In addition, the method `__str__` must be defined.
+    In particular, the user should override:
+    * __init__ by calling `super` and instantiating the `self.current_metric`
+    property as a valid avalanche metric
+    * `metric_update`, to update `current_metric`
+    * `metric_result` to get the result from `current_metric`.
+    * `__str__` to define the experience forgetting  name.
 
     This plugin metric, computed separately for each experience,
     is the difference between the metric result obtained after
@@ -204,22 +205,21 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
     def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
-        # override, call super and call the update method here for
-        # the desired metric
+        self.metric_update(strategy)
 
     def after_eval_exp(self, strategy: 'BaseStrategy') \
             -> MetricResult:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.update(self.eval_exp_id,
-                        self._current_metric.result(phase_and_task(strategy)[1]),
+                        self.metric_result(strategy),
                         initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
             self.update(self.eval_exp_id,
-                        self._current_metric.result(phase_and_task(strategy)[1]))
+                        self.metric_result(strategy))
 
         return self._package_result(strategy)
 
@@ -237,6 +237,12 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
             metric_values = [MetricValue(
                 self, metric_name, forgetting, plot_x_position)]
             return metric_values
+
+    def metric_update(self, strategy):
+        raise NotImplementedError
+
+    def metric_result(self, strategy):
+        raise NotImplementedError
 
     def __str__(self):
         raise NotImplementedError
@@ -267,23 +273,18 @@ class ExperienceForgetting(GenericExperienceForgetting):
         The average accuracy over the current evaluation experience
         """
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        # task labels defined for each experience
-        task_labels = strategy.experience.task_labels
-        if len(task_labels) > 1:
-            # task labels defined for each pattern
-            task_labels = strategy.mb_task_id
-        else:
-            task_labels = task_labels[0]
+    def metric_update(self, strategy):
         self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, task_labels)
+                                    strategy.mb_output, 0)
+
+    def metric_result(self, strategy):
+        return self._current_metric.result(0)[0]
 
     def __str__(self):
         return "ExperienceForgetting"
 
 
-class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
+class GenericStreamForgetting(GenericExperienceForgetting):
     """
     The GenericStreamForgetting metric, describing the average evaluation change
     in the desired metric detected over all experiences observed during training.
@@ -314,26 +315,6 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
         The average forgetting over all experiences
         """
 
-        self.forgetting = Forgetting()
-        """
-        The general metric to compute forgetting
-        """
-
-        self._current_metric = None
-        """
-        The average metric over the current evaluation experience
-        """
-
-        self.eval_exp_id = None
-        """
-        The current evaluation experience id
-        """
-
-        self.train_exp_id = None
-        """
-        The last encountered training experience id
-        """
-
     def reset(self) -> None:
         """
         Resets the forgetting metrics.
@@ -343,19 +324,8 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
 
         :return: None.
         """
-        self.forgetting.reset()
+        super().reset()
         self.stream_forgetting.reset()
-
-    def reset_last(self) -> None:
-        """
-        Resets the last metric.
-
-        This will preserve the initial metric value of each experience.
-        To be used at the beginning of each eval experience.
-
-        :return: None.
-        """
-        self.forgetting.reset_last()
 
     def exp_update(self, k, v, initial=False):
         """
@@ -367,7 +337,7 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
         :param initial: update initial value. If False, update
             last value.
         """
-        self.forgetting.update(k, v, initial=initial)
+        super().update(k, v, initial=initial)
 
     def exp_result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
@@ -376,7 +346,7 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
 
         k: optional key from which compute forgetting.
         """
-        return self.forgetting.result(k=k)
+        return super().result(k)
 
     def result(self, k=None) -> Union[float, None, Dict[int, float]]:
         """
@@ -386,34 +356,22 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
         """
         return self.stream_forgetting.result()
 
-    def before_training_exp(self, strategy: 'BaseStrategy') -> None:
-        self.train_exp_id = strategy.experience.current_experience
-
     def before_eval(self, strategy) -> None:
-        self.reset_last()
+        super().before_eval(strategy)
         self.stream_forgetting.reset()
-
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
-        self._current_metric.reset()
-
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
-        super().after_eval_iteration(strategy)
-        self.eval_exp_id = strategy.experience.current_experience
-        # override, call super and call the update method here for
-        # the desired metric
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.exp_update(self.eval_exp_id,
-                            self._current_metric.result(phase_and_task(strategy)[1]),
+                            self.metric_result(strategy),
                             initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
             self.exp_update(self.eval_exp_id,
-                            self._current_metric.result(phase_and_task(strategy)[1]))
+                            self.metric_result(strategy))
 
         # this checks if the evaluation experience has been
         # already encountered at training time
@@ -440,6 +398,12 @@ class GenericStreamForgetting(PluginMetric[Dict[int, float]]):
         plot_x_position = self.get_global_counter()
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+
+    def metric_update(self, strategy):
+        raise NotImplementedError
+
+    def metric_result(self, strategy):
+        raise NotImplementedError
 
     def __str__(self):
         raise NotImplementedError
@@ -470,8 +434,87 @@ class StreamForgetting(GenericStreamForgetting):
         The average accuracy over the current evaluation experience
         """
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+    def metric_update(self, strategy):
+        self._current_metric.update(strategy.mb_y,
+                                    strategy.mb_output, 0)
+
+    def metric_result(self, strategy):
+        return self._current_metric.result(0)[0]
+
+    def __str__(self):
+        return "StreamForgetting"
+
+
+class GenericTaskForgetting(PluginMetric[Dict[int, float]]):
+    def __init__(self):
+        super().__init__()
+        self.forgetting = Forgetting()
+        self._current_train_metric = None
+        self._current_eval_metric = None
+
+    def reset(self, **kwargs) -> None:
+        self.forgetting.reset()
+
+    def result(self, **kwargs):
+        return self.forgetting.result()
+
+    def update(self, k, v, initial):
+        self.forgetting.update(k, v, initial=initial)
+
+    def before_training(self, strategy: 'BaseStrategy'):
+        self._current_train_metric.reset()
+
+    def after_training_iteration(self, strategy: 'BaseStrategy'):
+        super().__init__()
+        try:
+            for t in strategy.mb_task_id:
+                self._current_train_metric.reset(t)
+        except AssertionError:
+            self._current_train_metric.reset()
+        self.metric_update(strategy, train=True)
+
+    def before_eval(self, strategy: 'BaseStrategy'):
+        self.forgetting.reset_last()
+        for k, v in self._current_train_metric.result().items():
+            self.update(k, v, initial=True)
+        self._current_eval_metric.reset()
+
+    def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super().after_eval_iteration(strategy)
+        self.metric_update(strategy, train=False)
+
+    def after_eval(self, strategy: 'BaseStrategy') -> 'MetricResult':
+        for k, v in self._current_eval_metric.result().items():
+            self.update(k, v, initial=False)
+        return self._package_result(strategy)
+
+    def _package_result(self, strategy: 'BaseStrategy') -> \
+            MetricResult:
+        metric_value = self.result()
+        plot_x_position = self.get_global_counter()
+        results = []
+        for k, v in metric_value.items():
+            metric_name = get_metric_name(self, strategy, add_experience=False,
+                                          add_task=k)
+            results.append(MetricValue(self, metric_name, v, plot_x_position))
+
+        return results
+
+    def metric_update(self, strategy, train):
+        raise NotImplementedError
+
+    def __str__(self):
+        raise NotImplementedError
+
+
+class TaskForgetting(GenericTaskForgetting):
+
+    def __init__(self):
+        super().__init__()
+        self._current_train_metric = Accuracy()
+        self._current_eval_metric = Accuracy()
+
+    def metric_update(self, strategy, train):
         # task labels defined for each experience
         task_labels = strategy.experience.task_labels
         if len(task_labels) > 1:
@@ -479,14 +522,18 @@ class StreamForgetting(GenericStreamForgetting):
             task_labels = strategy.mb_task_id
         else:
             task_labels = task_labels[0]
-        self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, task_labels)
+        if train:
+            self._current_train_metric.update(strategy.mb_output, strategy.mb_y,
+                                              task_labels)
+        else:
+            self._current_eval_metric.update(strategy.mb_output, strategy.mb_y,
+                                             task_labels)
 
     def __str__(self):
-        return "StreamForgetting"
+        return "TaskForgetting"
 
 
-def forgetting_metrics(*, experience=False, stream=False) \
+def forgetting_metrics(*, experience=False, stream=False, task=False) \
         -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
@@ -497,6 +544,8 @@ def forgetting_metrics(*, experience=False, stream=False) \
     :param stream: If True, will return a metric able to log
         the forgetting averaged over the evaluation stream experiences,
         which have been observed during training.
+    :param task: If True, will return a metric able to log the forgetting
+        across each task encountered during training and evaluation.
 
     :return: A list of plugin metrics.
     """
@@ -508,6 +557,9 @@ def forgetting_metrics(*, experience=False, stream=False) \
 
     if stream:
         metrics.append(StreamForgetting())
+
+    if task:
+        metrics.append(TaskForgetting())
 
     return metrics
 
@@ -618,7 +670,32 @@ class StreamBWT(StreamForgetting):
         return "StreamBWT"
 
 
-def bwt_metrics(*, experience=False, stream=False) \
+class TaskBWT(TaskForgetting):
+    """
+    The TaskBWT metric, emitting the average BWT task-wise.
+
+    This plugin metric, computed over all observed tasks during training,
+    is the average over the difference between the last accuracy result
+    obtained on a task and the accuracy result obtained when
+    training on that task.
+
+    This metric is computed during the eval phase only.
+    """
+
+    def result(self) -> Union[float, None, Dict[int, float]]:
+        """
+        Result for experience defined by a key.
+        See `BWT` documentation for more detailed information.
+
+        """
+        forgetting = super().result()
+        return forgetting_to_bwt(forgetting)
+
+    def __str__(self):
+        return "TaskBWT"
+
+
+def bwt_metrics(*, experience=False, stream=False, task=False) \
         -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
@@ -629,7 +706,8 @@ def bwt_metrics(*, experience=False, stream=False) \
     :param stream: If True, will return a metric able to log
         the backward transfer averaged over the evaluation stream experiences
         which have been observed during training.
-
+    :param task: If True, will return a metric able to log
+        the backward transfer for each task in the evaluation stream
     :return: A list of plugin metrics.
     """
 
@@ -641,16 +719,24 @@ def bwt_metrics(*, experience=False, stream=False) \
     if stream:
         metrics.append(StreamBWT())
 
+    if task:
+        metrics.append(TaskBWT())
+
     return metrics
 
 
 __all__ = [
     'Forgetting',
+    'GenericExperienceForgetting',
+    'GenericStreamForgetting',
+    'GenericTaskForgetting',
     'ExperienceForgetting',
     'StreamForgetting',
+    'TaskForgetting',
     'forgetting_metrics',
     'BWT',
     'ExperienceBWT',
     'StreamBWT',
+    'TaskBWT',
     'bwt_metrics'
 ]
