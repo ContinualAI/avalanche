@@ -1,7 +1,11 @@
 import unittest
 
 from os.path import expanduser
-
+from avalanche.models import SimpleMLP
+from torch.optim import SGD
+from torch.nn import CrossEntropyLoss
+from avalanche.training.strategies import Naive
+from avalanche.benchmarks.generators import dataset_benchmark
 import PIL
 import torch
 from PIL import ImageChops
@@ -309,6 +313,24 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             subset_task11 = dataset.task_set[11]
+
+    def test_avalanche_tensor_dataset_task_labels_train(self):
+        tr_ds = [AvalancheTensorDataset(torch.randn(10, 4), torch.randint(0, 3, (10,)),
+                                        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                                        task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+        ts_ds = [AvalancheTensorDataset(torch.randn(10, 4), torch.randint(0, 3, (10,)),
+                                        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                                        task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+        scenario = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
+        model = SimpleMLP(input_size=4, num_classes=3)
+        cl_strategy = Naive(model, SGD(model.parameters(), lr=0.001, momentum=0.9),
+                            CrossEntropyLoss(), train_mb_size=5, train_epochs=1, eval_mb_size=5,
+                            device='cpu', evaluator=None)
+        exp = []
+        for i, experience in enumerate(scenario.train_stream):
+            exp.append(i)
+            cl_strategy.train(experience)
+        self.assertEqual(len(exp), 3)
 
     def test_avalanche_dataset_task_labels_inheritance(self):
         dataset_mnist = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
