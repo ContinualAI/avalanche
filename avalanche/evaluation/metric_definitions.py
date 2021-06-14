@@ -222,27 +222,17 @@ class GenericPluginMetric(PluginMetric[TResult]):
         self._emit_at = emit_at
         self._mode = mode
 
-    def reset(self, strategy=None) -> None:
-        if strategy is None:
-            self._metric.reset()
-        else:
-            self._metric.reset(phase_and_task(strategy)[1])
+    def reset(self, strategy) -> None:
+        self._metric.reset()
 
-    def result(self, strategy=None) -> float:
-        if strategy is None:
-            return self._metric.result()
-        else:
-            return self._metric.result(phase_and_task(strategy)[1])
+    def result(self, strategy):
+        return self._metric.result()
 
     def update(self, strategy):
-        assert NotImplementedError()
+        pass
 
     def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
-        if self._emit_at != 'stream':
-            metric_value = self.result(strategy)
-        else:
-            metric_value = self.result()
-        # print(metric_value)
+        metric_value = self.result(strategy)
         add_exp = self._emit_at == 'experience'
         plot_x_position = self.get_global_counter()
 
@@ -303,7 +293,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_eval(self, strategy: 'BaseStrategy'):
         super().before_eval(strategy)
         if self._reset_at == 'stream' and self._mode == 'eval':
-            self.reset()
+            self.reset(strategy)
 
     def before_eval_exp(self, strategy: 'BaseStrategy'):
         super().before_eval_exp(strategy)

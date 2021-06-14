@@ -16,6 +16,7 @@ from torch import Tensor
 
 from avalanche.evaluation import PluginMetric, Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
+from avalanche.evaluation.metric_utils import phase_and_task
 from collections import defaultdict
 
 
@@ -98,6 +99,18 @@ class LossPluginMetric(GenericPluginMetric[float]):
         self._loss = Loss()
         super(LossPluginMetric, self).__init__(
             self._loss, reset_at, emit_at, mode)
+
+    def reset(self, strategy=None) -> None:
+        if self._reset_at == 'stream' or strategy is None:
+            self._metric.reset()
+        else:
+            self._metric.reset(phase_and_task(strategy)[1])
+
+    def result(self, strategy=None) -> float:
+        if self._emit_at == 'stream' or strategy is None:
+            return self._metric.result()
+        else:
+            return self._metric.result(phase_and_task(strategy)[1])
 
     def update(self, strategy):
         # task labels defined for each experience

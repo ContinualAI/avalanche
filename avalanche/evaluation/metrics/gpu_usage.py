@@ -248,7 +248,7 @@ class StreamMaxGPU(GPUPluginMetric):
             gpu_id, every,
             reset_at='stream', emit_at='stream', mode='eval')
 
-    def before_eval(self, strategy) -> MetricResult:
+    def before_eval(self, strategy):
         super().before_eval(strategy)
         self._gpu.start_thread()
 
