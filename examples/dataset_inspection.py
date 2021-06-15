@@ -43,23 +43,8 @@ def main(cuda: int):
     device = torch.device(
         f"cuda:{cuda}" if torch.cuda.is_available() else "cpu"
     )
-    means = (0.4914, 0.4822, 0.4465)
-    std = (0.2023, 0.1994, 0.2010)
-
     # --- SCENARIO CREATION
-    scenario = SplitCIFAR10(
-        n_experiences=5,
-        seed=42,
-        train_transform=Compose(
-            [
-                RandomCrop(32, padding=4),
-                RandomHorizontalFlip(),
-                ToTensor(),
-                Normalize(means, std),
-            ]
-        ),
-        eval_transform=Compose([ToTensor(), Normalize(means, std)]),
-    )
+    scenario = SplitCIFAR10(n_experiences=2, seed=42)
     # ---------
 
     # MODEL CREATION
@@ -69,13 +54,7 @@ def main(cuda: int):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(stream=True, experience=True),
         images_samples_metrics(
-            means=means,
-            std=std,
-            group_by="task",
-            on_train=True,
-            on_eval=True,
-            n_cols=10,
-            n_rows=10,
+            on_train=True, on_eval=True, n_cols=10, n_rows=10,
         ),
         labels_repartition_metrics(
             # image_creator=repartition_bar_chart_image_creator,
