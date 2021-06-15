@@ -19,10 +19,9 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
-from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_forward
-from avalanche.training import default_logger
+from avalanche.training.plugins.evaluation import default_logger
 from typing import TYPE_CHECKING
 
 from avalanche.training.plugins import EvaluationPlugin
@@ -171,6 +170,8 @@ class BaseStrategy:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
+        self._stop_training = False
+
     @property
     def is_eval(self):
         """ True if the strategy is in evaluation mode. """
@@ -214,16 +215,18 @@ class BaseStrategy:
             each metric name.
         """
         self.is_training = True
+        self._stop_training = False
+
         self.model.train()
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if isinstance(experiences, Experience):
+        if not isinstance(experiences, Sequence):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
         for i, exp in enumerate(eval_streams):
-            if isinstance(exp, Experience):
+            if not isinstance(exp, Sequence):
                 eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
@@ -266,6 +269,10 @@ class BaseStrategy:
 
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
+            if self._stop_training:  # Early stopping
+                self._stop_training = False
+                break
+
             self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
@@ -300,6 +307,10 @@ class BaseStrategy:
         self.is_training = _prev_state[4]
         self.model.train()
 
+    def stop_training(self):
+        """ Signals to stop training at the next iteration. """
+        self._stop_training = True
+
     def train_dataset_adaptation(self, **kwargs):
         """ Initialize `self.adapted_dataset`. """
         self.adapted_dataset = self.experience.dataset
@@ -322,7 +333,7 @@ class BaseStrategy:
         self.is_training = False
         self.model.eval()
 
-        if isinstance(exp_list, Experience):
+        if not isinstance(exp_list, Sequence):
             exp_list = [exp_list]
 
         self.before_eval(**kwargs)
@@ -415,6 +426,9 @@ class BaseStrategy:
         :return:
         """
         for self.mb_it, self.mbatch in enumerate(self.dataloader):
+            if self._stop_training:
+                break
+
             self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 

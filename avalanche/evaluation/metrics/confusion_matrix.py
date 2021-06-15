@@ -246,7 +246,8 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
                  normalize: Literal['true', 'pred', 'all'] = None,
                  save_image: bool = True,
                  image_creator: Callable[[Tensor, Sequence], Image] =
-                 default_cm_image_creator, absolute_class_order: bool = False):
+                 default_cm_image_creator,
+                 absolute_class_order: bool = False):
         """
         Creates an instance of the Stream Confusion Matrix metric.
 

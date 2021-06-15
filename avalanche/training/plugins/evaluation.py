@@ -2,11 +2,13 @@ import warnings
 from copy import copy
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
+
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.logging import StrategyLogger, InteractiveLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
-    from avalanche.logging import StrategyLogger
     from avalanche.training import BaseStrategy
 
 
@@ -209,3 +211,15 @@ class EvaluationPlugin(StrategyPlugin):
 
     def after_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_eval_iteration')
+
+
+default_logger = EvaluationPlugin(
+    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+    loggers=[InteractiveLogger()])
+
+
+__all__ = [
+    'EvaluationPlugin',
+    'default_logger'
+]
