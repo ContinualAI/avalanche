@@ -12,6 +12,8 @@ from avalanche.models import FeatureExtractorBackbone
 
 
 class StreamingLDA(BaseStrategy):
+    DISABLED_CALLBACKS = ("before_backward", "after_backward")
+
     """
     Deep Streaming Linear Discriminant Analysis.
     This strategy does not use backpropagation.
