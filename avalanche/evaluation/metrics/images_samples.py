@@ -118,7 +118,6 @@ class ImagesSamplePlugin(PluginMetric):
                 return images, labels, tasks
 
     def sort_images(self, labels: List[int], tasks: List[int]):
-        print('sorting')
         self.images = [
             image
             for task, label, image in sorted(

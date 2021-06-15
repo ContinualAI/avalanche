@@ -21,7 +21,7 @@ from torchvision.datasets.utils import download_and_extract_archive, \
     extract_archive, download_url, check_integrity
 
 from avalanche.benchmarks.datasets.dataset_utils import \
-    get_default_dataset_location
+    default_dataset_location
 
 
 class DownloadableDataset(Dataset[T_co], ABC):
@@ -78,7 +78,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
 
         :param root: The root path where the dataset will be downloaded.
             Consider passing a path obtained by calling
-            `get_default_dataset_location` with the name of the dataset.
+            `default_dataset_location` with the name of the dataset.
         :param download: If True, the dataset will be downloaded if needed.
             If False and the dataset can't be loaded from the provided root
             path, an error will be raised when calling the `_load_dataset`
@@ -343,7 +343,7 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
 
         :param root_or_dataset_name: The root path where the dataset will be
             downloaded. If a directory name is passed, then the root obtained by
-            calling `get_default_dataset_location` will be used (recommended).
+            calling `default_dataset_location` will be used (recommended).
             To check if this parameter is a path, the constructor will check if
             it contains the '\' or '/' characters or if it is a Path instance.
         :param url: The url of the archive.
@@ -367,7 +367,7 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
         if is_path:
             root = Path(root_or_dataset_name)
         else:
-            root = get_default_dataset_location(root_or_dataset_name)
+            root = default_dataset_location(root_or_dataset_name)
 
         super(SimpleDownloadableDataset, self).__init__(
             root, download=download, verbose=verbose)

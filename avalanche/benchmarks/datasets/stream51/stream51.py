@@ -16,6 +16,8 @@ import os
 import shutil
 import json
 import random
+from pathlib import Path
+from typing import Union
 
 from torchvision.datasets.folder import default_loader
 from zipfile import ZipFile
@@ -23,17 +25,33 @@ from zipfile import ZipFile
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets import DownloadableDataset, \
-    get_default_dataset_location
+    default_dataset_location
 from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
 class Stream51(DownloadableDataset):
     """ Stream-51 Pytorch Dataset """
 
-    def __init__(self, root=get_default_dataset_location('stream51'),
+    def __init__(self, root: Union[str, Path] = None,
                  *,
                  train=True, transform=None,
                  target_transform=None, loader=default_loader, download=True):
+        """
+        Creates an instance of the Stream-51 dataset.
+
+        :param root: The directory where the dataset can be found or downloaded.
+            Defaults to None, which means that the default location for
+            'stream51' will be used.
+        :param train: If True, the training set will be returned. If False,
+            the test set will be returned.
+        :param transform: The transformations to apply to the X values.
+        :param target_transform: The transformations to apply to the Y values.
+        :param loader: The image loader to use.
+        :param download: If True, the dataset will be downloaded if needed.
+        """
+
+        if root is None:
+            root = default_dataset_location('stream51')
 
         self.train = train  # training set or test set
         self.transform = transform

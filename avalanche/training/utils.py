@@ -17,12 +17,10 @@ General utility functions for pytorch.
 from collections import defaultdict
 from typing import NamedTuple, List, Optional, Tuple, Callable
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import Module, Linear
 from torch.utils.data import Dataset, DataLoader
-import logging
 
 from avalanche.models.batch_renorm import BatchRenorm2D
 

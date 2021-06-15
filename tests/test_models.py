@@ -1,4 +1,3 @@
-import copy
 import sys
 
 import unittest
@@ -11,14 +10,13 @@ from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
 from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
-    MultiHeadClassifier
+    MultiHeadClassifier, SimpleCNN, NCMClassifier, TrainEvalModel
 from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
     update_optimizer
 from avalanche.training.strategies import Naive
 from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
     pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, load_scenario, \
-    get_fast_scenario
+from tests.unit_tests_utils import common_setups, get_fast_scenario
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -258,3 +256,56 @@ class DynamicModelsTests(unittest.TestCase):
             y_t = model_t4(x)
             assert ((y_mh - y_t) ** 2).sum() < 1.e-7
             break
+
+
+class TrainEvalModelTests(unittest.TestCase):
+
+    def test_classifier_selection(self):
+        base_model = SimpleCNN()
+
+        feature_extractor = base_model.features
+        classifier1 = base_model.classifier
+        classifier2 = NCMClassifier()
+
+        model = TrainEvalModel(feature_extractor,
+                               train_classifier=classifier1,
+                               eval_classifier=classifier2)
+
+        model.eval()
+        model.adaptation()
+        assert model.classifier is classifier2
+
+        model.train()
+        model.adaptation()
+        assert model.classifier is classifier1
+
+        model.eval_adaptation()
+        assert model.classifier is classifier2
+
+        model.train_adaptation()
+        assert model.classifier is classifier1
+
+
+class NCMClassifierTest(unittest.TestCase):
+
+    def test_ncm_classification(self):
+        class_means = torch.tensor([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ], dtype=torch.float)
+
+        mb_x = torch.tensor([
+            [4, 3, 2, 1],
+            [3, 4, 2, 1],
+            [3, 2, 4, 1],
+            [3, 2, 1, 4]
+        ], dtype=torch.float)
+
+        mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
+
+        classifier = NCMClassifier(class_means)
+
+        pred = classifier(mb_x)
+        assert torch.all(torch.max(pred, 1)[1] == mb_y)
