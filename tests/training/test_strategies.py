@@ -20,7 +20,7 @@ from torch.nn import CrossEntropyLoss, Linear
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin, \
-    LwFPlugin
+    LwFPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA, BaseStrategy
@@ -245,7 +245,8 @@ class StrategyTest(unittest.TestCase):
         with self.assertLogs('avalanche.training.strategies', "WARNING") as cm:
             StreamingLDA(model, criterion, input_size=10,
                          output_layer_name='features', num_classes=10,
-                         plugins=[LwFPlugin()])
+                         plugins=[LwFPlugin(), ReplayPlugin()])
+        self.assertEqual(1, len(cm.output))
         self.assertIn(
             "LwFPlugin seems to use the callback before_backward"
             " which is disabled by StreamingLDA",

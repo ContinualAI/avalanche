@@ -12,7 +12,7 @@ import logging
 
 import torch
 from torch.utils.data import DataLoader
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING
 from avalanche.training.plugins import EvaluationPlugin
 
 if TYPE_CHECKING:
+    from avalanche.core import StrategyCallbacks
     from avalanche.training.plugins import StrategyPlugin
 
 
@@ -178,7 +179,8 @@ class BaseStrategy:
 
         self._stop_training = False
 
-        self._alert_disabled_plugins_callbacks()
+        self._warn_for_disabled_plugins_callbacks()
+        self._warn_for_disabled_metrics_callbacks()
 
     @property
     def is_eval(self):
@@ -598,18 +600,26 @@ class BaseStrategy:
         # freezing old units during the model's adaptation phase.
         reset_optimizer(self.optimizer, self.model)
 
-    def _alert_disabled_plugins_callbacks(self):
+    def _warn_for_disabled_plugins_callbacks(self):
+        self._warn_for_disabled_callbacks(self.plugins)
+
+    def _warn_for_disabled_metrics_callbacks(self):
+        self._warn_for_disabled_callbacks(self.evaluator.metrics)
+
+    def _warn_for_disabled_callbacks(
+            self,
+            plugins: List["StrategyCallbacks"]
+    ):
         """
         Will log some warnings in case some plugins appear to be using callbacks
         that have been de-activated by the strategy class.
         """
         for disabled_callback_name in self.DISABLED_CALLBACKS:
-            for plugin in self.plugins:
-                plugin_callback = getattr(plugin, disabled_callback_name)
-                callback_class = plugin_callback.__qualname__.split('.')[0]
-                if (
-                    not isinstance(plugin, EvaluationPlugin)
-                    and callback_class != "StrategyPlugin"
+            for plugin in plugins:
+                callback = getattr(plugin, disabled_callback_name)
+                callback_class = callback.__qualname__.split('.')[0]
+                if callback_class not in (
+                    "StrategyPlugin", "PluginMetric", "EvaluationPlugin"
                 ):
                     logger.warning(
                         f"{plugin.__class__.__name__} seems to use "
