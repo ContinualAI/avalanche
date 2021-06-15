@@ -1,20 +1,11 @@
-import random
-from collections import defaultdict
-from itertools import chain
-from typing import Dict, Iterable, List, TYPE_CHECKING, Optional, Tuple
+from typing import List, TYPE_CHECKING, Tuple
 
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torchvision.transforms import Normalize, ToTensor
+from torchvision.transforms import ToTensor
 from torchvision.utils import make_grid
 
-from avalanche.benchmarks.utils import AvalancheDataset
-from avalanche.evaluation import Metric
-from avalanche.evaluation.metric_definitions import (
-    GenericPluginMetric,
-    PluginMetric,
-    TResult,
-)
+from avalanche.evaluation.metric_definitions import PluginMetric
 
 from avalanche.evaluation.metric_results import (
     MetricResult,
@@ -46,6 +37,7 @@ class ImagesSamplePlugin(PluginMetric):
     :param mode: The plugin can be used at train or eval time.
     :return: The corresponding plugins.
     """
+
     def __init__(
         self,
         *,
@@ -121,8 +113,7 @@ class ImagesSamplePlugin(PluginMetric):
         self.images = [
             image
             for task, label, image in sorted(
-                zip(tasks, labels, self.images),
-                key=lambda t: (t[0], t[1]),
+                zip(tasks, labels, self.images), key=lambda t: (t[0], t[1]),
             )
         ]
 
