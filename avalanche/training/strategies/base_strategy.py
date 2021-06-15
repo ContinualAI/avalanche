@@ -8,6 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+import logging
 
 import torch
 from torch.utils.data import DataLoader
@@ -30,7 +31,12 @@ if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
 
 
+logger = logging.getLogger(__name__)
+
+
 class BaseStrategy:
+    DISABLED_CALLBACKS: Sequence[str] = ()
+
     def __init__(self, model: Module, optimizer: Optimizer,
                  criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
@@ -171,6 +177,8 @@ class BaseStrategy:
         """ True if the strategy is in training mode. """
 
         self._stop_training = False
+
+        self._alert_disabled_plugins_callbacks()
 
     @property
     def is_eval(self):
@@ -589,6 +597,25 @@ class BaseStrategy:
         # This allows to add new parameters (new heads) and
         # freezing old units during the model's adaptation phase.
         reset_optimizer(self.optimizer, self.model)
+
+    def _alert_disabled_plugins_callbacks(self):
+        """
+        Will log some warnings in case some plugins appear to be using callbacks
+        that have been de-activated by the strategy class.
+        """
+        for disabled_callback_name in self.DISABLED_CALLBACKS:
+            for plugin in self.plugins:
+                plugin_callback = getattr(plugin, disabled_callback_name)
+                callback_class = plugin_callback.__qualname__.split('.')[0]
+                if (
+                    not isinstance(plugin, EvaluationPlugin)
+                    and callback_class != "StrategyPlugin"
+                ):
+                    logger.warning(
+                        f"{plugin.__class__.__name__} seems to use "
+                        f"the callback {disabled_callback_name} "
+                        f"which is disabled by {self.__class__.__name__}"
+                    )
 
 
 __all__ = ['BaseStrategy']
