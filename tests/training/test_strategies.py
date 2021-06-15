@@ -253,7 +253,6 @@ class StrategyTest(unittest.TestCase):
             cm.output[0]
         )
 
-
     def test_lwf(self):
         # SIT scenario
         model, optimizer, criterion, my_nc_benchmark = self.init_sit()
