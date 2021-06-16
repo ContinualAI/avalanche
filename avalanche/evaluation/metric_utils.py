@@ -248,7 +248,7 @@ def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
 
     try:
         task = strategy.experience.task_label
-    except AttributeError:
+    except (AttributeError, ValueError):
         task = None  # task labels per patterns
 
     if strategy.is_eval:
@@ -302,14 +302,15 @@ def get_metric_name(metric: 'PluginMetric',
     base_name = '{}/{}_phase/{}_stream'.format(str(metric),
                                                phase_name, stream)
     exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
-    if isinstance(add_task, bool):
-        task_name = '/Task{:03}'.format(task_label)
-    elif isinstance(add_task, int):
-        task_name = '/Task{:03}'.format(add_task)
-        add_task = True
 
-    if task_label is None:
+    if task_label is None and isinstance(add_task, bool):
         add_task = False
+    else:
+        if isinstance(add_task, bool) and add_task:
+            task_name = '/Task{:03}'.format(task_label)
+        elif isinstance(add_task, int):
+            task_name = '/Task{:03}'.format(add_task)
+            add_task = True
 
     if add_experience and not add_task:
         return base_name + exp_name

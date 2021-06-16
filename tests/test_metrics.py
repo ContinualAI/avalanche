@@ -8,13 +8,16 @@ import random
 from copy import deepcopy
 from os.path import expanduser
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
-    DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, Forgetting
+    DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
+    Forgetting
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
-from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.utils import AvalancheTensorDataset, \
+    AvalancheDatasetType
+from avalanche.benchmarks import nc_benchmark, dataset_benchmark
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
@@ -203,9 +206,11 @@ class PluginMetricTests(unittest.TestCase):
             transforms.Normalize((0.1307,), (0.3081,))
         ])
         mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                            train=True, download=True, transform=train_transform)
+                            train=True, download=True,
+                            transform=train_transform)
         mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                           train=False, download=True, transform=test_transform)
+                           train=False, download=True,
+                           transform=test_transform)
         scenario = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=False, seed=0)
         model = SimpleMLP(num_classes=scenario.n_classes)
@@ -214,12 +219,13 @@ class PluginMetricTests(unittest.TestCase):
         text_logger = TextLogger(f)
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
-                minibatch=True, epoch=True, epoch_running=True, experience=True,
-                stream=True),
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True),
-            confusion_matrix_metrics(num_classes=10, save_image=False, normalize='all', stream=True),
+            confusion_matrix_metrics(num_classes=10, save_image=False,
+                                     normalize='all', stream=True),
             bwt_metrics(experience=True, stream=True),
             cpu_usage_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
@@ -238,8 +244,9 @@ class PluginMetricTests(unittest.TestCase):
             collect_all=True)  # collect all metrics (set to True by default)
         cl_strategy = Naive(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=500, train_epochs=2, eval_mb_size=100,
-            device=device, evaluator=eval_plugin, eval_every=1)
+            CrossEntropyLoss(), train_mb_size=500, train_epochs=2,
+            eval_mb_size=100, device=device, evaluator=eval_plugin,
+            eval_every=1)
         for i, experience in enumerate(scenario.train_stream):
             cl_strategy.train(experience,
                               eval_streams=[scenario.test_stream[i]])
@@ -277,7 +284,8 @@ class PluginMetricTests(unittest.TestCase):
             elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004':
                 self.assertAlmostEqual(v[1][-1], 0.8487, delta=self.delta)
             else:
-                raise KeyError("Key in dictionary not recognized: {}".format(k))
+                raise KeyError("Key in dictionary not recognized: {}"
+                               .format(k))
 
     def test_loss(self):
         d = self.filter_dict('Loss')
@@ -301,7 +309,8 @@ class PluginMetricTests(unittest.TestCase):
             elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp004':
                 self.assertAlmostEqual(v[1][-1], 0.7772, delta=self.delta)
             else:
-                raise KeyError("Key in dictionary not recognized: {}".format(k))
+                raise KeyError("Key in dictionary not recognized: {}"
+                               .format(k))
 
     def test_mac(self):
         d = self.filter_dict('MAC')
@@ -321,7 +330,8 @@ class PluginMetricTests(unittest.TestCase):
             elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp004':
                 self.assertEqual(v[1][-1], 406528)
             else:
-                raise KeyError("Key in dictionary not recognized: {}".format(k))
+                raise KeyError("Key in dictionary not recognized: {}"
+                               .format(k))
 
     def test_forgetting_bwt(self):
         df = self.filter_dict('Forgetting')
@@ -337,20 +347,29 @@ class PluginMetricTests(unittest.TestCase):
             if kf == 'StreamForgetting/eval_phase/test_stream' and \
                     kb == 'StreamBWT/eval_phase/test_stream':
                 self.assertAlmostEqual(vf[1][-1], 0.9376, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp000' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/Task000/Exp000':
+            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
+                       'Task000/Exp000' and \
+                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
+                          'Task000/Exp000':
                 self.assertAlmostEqual(vf[1][-1], 0.9541, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp001' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/Task000/Exp001':
+            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
+                       'Task000/Exp001' and \
+                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
+                          'Task000/Exp001':
                 self.assertAlmostEqual(vf[1][-1], 0.9145, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp002' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/Task000/Exp002':
+            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
+                       'Task000/Exp002' and \
+                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
+                          'Task000/Exp002':
                 self.assertAlmostEqual(vf[1][-1], 0.9390, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/Task000/Exp003' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/Task000/Exp003':
+            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
+                       'Task000/Exp003' and \
+                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
+                          'Task000/Exp003':
                 self.assertAlmostEqual(vf[1][-1], 0.9426, delta=self.delta)
             else:
-                raise KeyError("Keys in dictionary not recognized: {} and {}".format(kf, kb))
+                raise KeyError("Keys in dictionary not recognized: {} and {}"
+                               .format(kf, kb))
 
     def test_cm(self):
         d = self.filter_dict('ConfusionMatrix')
@@ -381,7 +400,68 @@ class PluginMetricTests(unittest.TestCase):
                     dtype=torch.float64)
                 self.assertTrue((v[1][-1] == target_cm).all())
             else:
-                raise KeyError("Key in dictionary not recognized: {}".format(k))
+                raise KeyError("Key in dictionary not recognized: {}"
+                               .format(k))
+
+
+class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
+    def setUp(self) -> None:
+        torch.manual_seed(0)
+        np.random.seed(0)
+        random.seed(0)
+        device = 'cpu'
+        tr_ds = [AvalancheTensorDataset(
+            torch.randn(10, 3), torch.randint(0, 3, (10,)),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+        ts_ds = [AvalancheTensorDataset(
+            torch.randn(10, 3), torch.randint(0, 3, (10,)),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+        scenario = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
+        model = SimpleMLP(num_classes=3, input_size=3)
+
+        f = open('log.txt', 'w')
+        text_logger = TextLogger(f)
+        eval_plugin = EvaluationPlugin(
+            accuracy_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            loss_metrics(minibatch=True, epoch=True, epoch_running=True,
+                         experience=True, stream=True),
+            forgetting_metrics(experience=True, stream=True, task=True),
+            confusion_matrix_metrics(num_classes=10, save_image=False,
+                                     normalize='all', stream=True),
+            bwt_metrics(experience=True, stream=True, task=True),
+            cpu_usage_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            timing_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            ram_usage_metrics(
+                every=0.5, minibatch=True, epoch=True,
+                experience=True, stream=True),
+            disk_usage_metrics(
+                minibatch=True, epoch=True, experience=True, stream=True),
+            MAC_metrics(
+                minibatch=True, epoch=True, experience=True),
+            loggers=[text_logger],
+            collect_all=True)  # collect all metrics (set to True by default)
+        cl_strategy = Naive(
+            model, SGD(model.parameters(), lr=0.001, momentum=0.9),
+            CrossEntropyLoss(), train_mb_size=2, train_epochs=2,
+            eval_mb_size=2, device=device, evaluator=eval_plugin, eval_every=1)
+        for i, experience in enumerate(scenario.train_stream):
+            cl_strategy.train(experience,
+                              eval_streams=[scenario.test_stream[i]])
+            cl_strategy.eval(scenario.test_stream)
+        self.all_metrics = cl_strategy.evaluator.get_all_metrics()
+        f.close()
+        self.delta = 0.01
+
+    def test_metrics(self):
+        self.assertEqual(len(self.all_metrics), 86)
 
 
 if __name__ == '__main__':

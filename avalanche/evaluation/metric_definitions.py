@@ -239,14 +239,17 @@ class GenericPluginMetric(PluginMetric[TResult]):
         if isinstance(metric_value, dict):
             metrics = []
             for k, v in metric_value.items():
-                metric_name = get_metric_name(self, strategy, add_experience=add_exp,
-                                              add_task=k)
-                metrics.append(MetricValue(self, metric_name, v, plot_x_position))
+                metric_name = get_metric_name(
+                    self, strategy, add_experience=add_exp, add_task=k)
+                metrics.append(MetricValue(self, metric_name, v,
+                                           plot_x_position))
             return metrics
         else:
-            metric_name = get_metric_name(self, strategy, add_experience=add_exp,
+            metric_name = get_metric_name(self, strategy,
+                                          add_experience=add_exp,
                                           add_task=True)
-            return [MetricValue(self, metric_name, metric_value, plot_x_position)]
+            return [MetricValue(self, metric_name, metric_value,
+                                plot_x_position)]
 
     def before_training(self, strategy: 'BaseStrategy'):
         super().before_training(strategy)

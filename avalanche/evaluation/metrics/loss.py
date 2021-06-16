@@ -121,7 +121,8 @@ class LossPluginMetric(GenericPluginMetric[float]):
             task_label = 0
         else:
             task_label = task_labels[0]
-        self._loss.update(strategy.loss, patterns=len(strategy.mb_y), task_label=task_label)
+        self._loss.update(strategy.loss,
+                          patterns=len(strategy.mb_y), task_label=task_label)
 
 
 class MinibatchLoss(LossPluginMetric):

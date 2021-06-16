@@ -286,8 +286,9 @@ class ExperienceForgetting(GenericExperienceForgetting):
 
 class GenericStreamForgetting(GenericExperienceForgetting):
     """
-    The GenericStreamForgetting metric, describing the average evaluation change
-    in the desired metric detected over all experiences observed during training.
+    The GenericStreamForgetting metric, describing the average evaluation
+    change in the desired metric detected over all experiences observed
+    during training.
 
     In particular, the user should override __init__ by calling `super`
     and instantiating the `self.current_metric` property as a valid
