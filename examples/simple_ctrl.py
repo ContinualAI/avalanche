@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import operator
 from copy import deepcopy
 
 import torch
@@ -34,7 +35,8 @@ from avalanche.training.strategies import Naive
 
 
 class EarlyStopper(StrategyPlugin):
-    def __init__(self, patience, val_stream_name):
+    def __init__(self, patience: int, val_stream_name: str,
+                 metric_name: str = 'Top1_Acc_Stream', mode: str = 'max'):
         """
         Simple plugin stopping the training when the accuracy on the
         corresponding validation task stopped progressing for a few epochs.
@@ -43,31 +45,39 @@ class EarlyStopper(StrategyPlugin):
         :param val_stream_name: Name of the validation stream to search in the
         metrics. The corresponding stream will be used to keep track of the
         evolution of the performance of a model.
+        :param metric_name: The name of the metric to watch as it will be
+        reported in the evaluator.
+        :param mode: Must be "max" or "min". max (resp. min) means that the
+        given metric should me maximized (resp. minimized).
         """
         super().__init__()
         self.val_stream_name = val_stream_name
         self.patience = patience
+        self.metric_name = metric_name
+        self.metric_key = f'{self.metric_name}/eval_phase/' \
+                          f'{self.val_stream_name}'
+        if mode not in ('max', 'min'):
+            raise ValueError(f'Mode must be "max" or "min", got {mode}.')
+        self.operator = operator.gt if mode == 'max' else operator.lt
 
         self.best = None  # Contains the best val acc on the current experience
-        self.best_it = None
         self.best_epoch = None
-        self.cur_exp = None
 
     def before_training(self, strategy, **kwargs):
         self.best = None
-        self.best_it = None
         self.best_epoch = None
-        self.cur_exp = 0 if self.cur_exp is None else self.cur_exp + 1
 
     def after_training_epoch(self, strategy, **kwargs):
-        res = strategy.evaluator.get_last_metrics()
-        val_acc = res.get(f'Top1_Acc_Stream/eval_phase/{self.val_stream_name}')
-        if self.best is None or val_acc > self.best:
-            self.best = val_acc
-            self.best_it = strategy.mb_it
-            self.best_epoch = strategy.epoch
-        if strategy.epoch - self.best_epoch > self.patience:
+        self._update_best(strategy)
+        if strategy.epoch - self.best_epoch >= self.patience:
             strategy.stop_training()
+
+    def _update_best(self, strategy):
+        res = strategy.evaluator.get_last_metrics()
+        val_acc = res.get(self.metric_key)
+        if self.best is None or self.operator(val_acc, self.best):
+            self.best = val_acc
+            self.best_epoch = strategy.epoch
 
 
 def main(args):
@@ -99,7 +109,7 @@ def main(args):
     cl_strategy = Naive(
         model, optimizer, criterion, train_mb_size=32, device=device,
         train_epochs=args.max_epochs, eval_mb_size=128, evaluator=logger,
-        plugins=[EarlyStopper(100, 'val_stream')], eval_every=5
+        plugins=[EarlyStopper(50, 'val_stream')], eval_every=5
     )
 
     # train and test loop
