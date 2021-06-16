@@ -37,6 +37,10 @@ class CTrLTests(unittest.TestCase):
                 bench = CTrL(stream)
                 self.assertEqual(length, bench.n_experiences)
 
+    def test_length_long(self):
+        bench = CTrL('s_long', save_to_disk=True)
+        self.assertEqual(100, bench.n_experiences)
+
     def test_determinism(self):
         for stream in self.stream_lengths.keys():
             with self.subTest(stream=stream):
