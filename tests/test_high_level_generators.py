@@ -11,7 +11,10 @@ from torchvision.transforms import ToTensor
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
     tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
     benchmark_with_validation_stream
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_lazy_generic_benchmark
+from avalanche.benchmarks.utils import AvalancheDataset, AvalancheTensorDataset, \
+    AvalancheDatasetType
 from tests.unit_tests_utils import common_setups
 
 
@@ -196,6 +199,84 @@ class HighLevelGeneratorTests(unittest.TestCase):
             test_tensors=[(test_x, test_y)],
             task_labels=[0, 0],  # Task label of each train exp
             complete_test_set_only=True)
+
+        data_incremental_instance = data_incremental_benchmark(
+            initial_benchmark_instance, 12, shuffle=False, drop_last=False)
+
+        self.assertEqual(16, len(data_incremental_instance.train_stream))
+        self.assertEqual(1, len(data_incremental_instance.test_stream))
+        self.assertTrue(data_incremental_instance.complete_test_set_only)
+
+        tensor_idx = 0
+        ref_tensor_x = experience_1_x
+        ref_tensor_y = experience_1_y
+        for exp in data_incremental_instance.train_stream:
+            if exp.current_experience == 8:
+                # Last mini-exp from 1st exp
+                self.assertEqual(4, len(exp.dataset))
+            elif exp.current_experience == 15:
+                # Last mini-exp from 2nd exp
+                self.assertEqual(8, len(exp.dataset))
+            else:
+                # Other mini-exp
+                self.assertEqual(12, len(exp.dataset))
+
+            if tensor_idx >= 100:
+                ref_tensor_x = experience_2_x
+                ref_tensor_y = experience_2_y
+                tensor_idx = 0
+
+            for x, y, *_ in exp.dataset:
+                self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], y))
+                tensor_idx += 1
+
+        exp = data_incremental_instance.test_stream[0]
+        self.assertEqual(50, len(exp.dataset))
+
+        tensor_idx = 0
+        for x, y, *_ in exp.dataset:
+            self.assertTrue(torch.equal(test_x[tensor_idx], x))
+            self.assertTrue(torch.equal(test_y[tensor_idx], y))
+            tensor_idx += 1
+
+    def test_data_incremental_benchmark_from_lazy_benchmark(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.zeros(100, dtype=torch.long)
+        experience_1_dataset = AvalancheTensorDataset(
+            experience_1_x, experience_1_y)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.ones(80, dtype=torch.long)
+        experience_2_dataset = AvalancheTensorDataset(
+            experience_2_x, experience_2_y)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+        experience_test = AvalancheTensorDataset(
+            test_x, test_y)
+
+        def train_gen():
+            # Lazy generator of the training stream
+            for dataset in [experience_1_dataset, experience_2_dataset]:
+                yield dataset
+
+        def test_gen():
+            # Lazy generator of the test stream
+            for dataset in [experience_test]:
+                yield dataset
+
+        initial_benchmark_instance = create_lazy_generic_benchmark(
+            train_generator=(train_gen(), 2, [0, 0]),
+            test_generator=(test_gen(), 1, [0]),
+            complete_test_set_only=True,
+            dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
         data_incremental_instance = data_incremental_benchmark(
             initial_benchmark_instance, 12, shuffle=False, drop_last=False)

@@ -64,13 +64,11 @@ class Experience(Protocol[TScenario, TScenarioStream]):
     original stream and may be unrelated to the order in which the strategy will
     encounter experiences.
     """
-    @property
-    @abstractmethod
-    def dataset(self) -> AvalancheDataset:
-        """
-        The dataset containing the patterns available in this experience.
-        """
-        ...
+
+    dataset: AvalancheDataset
+    """
+    The dataset containing the patterns available in this experience.
+    """
 
     @property
     @abstractmethod

@@ -9,6 +9,8 @@ from torch.utils.data.dataset import Dataset
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TExperience, ScenarioStream, TScenarioStream, Experience, TScenario
+from avalanche.benchmarks.scenarios.lazy_dataset_sequence import \
+    LazyDatasetSequence
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
@@ -18,7 +20,7 @@ TGenericScenarioStream = TypeVar('TGenericScenarioStream',
                                  bound='GenericScenarioStream')
 
 TStreamDataOrigin = Union[AvalancheDataset, Sequence[AvalancheDataset],
-                          Tuple[Iterator[AvalancheDataset], int]]
+                          Tuple[Iterable[AvalancheDataset], int]]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
 
@@ -43,7 +45,7 @@ TStreamsUserDict = Dict[str, TStreamUserDef]
 
 # The definitions used to store stream definitions
 class StreamDef(NamedTuple):
-    exps_data: Sequence[AvalancheDataset]
+    exps_data: LazyDatasetSequence
     exps_task_labels: Sequence[Set[int]]
     origin_dataset: TOriginDataset
 
@@ -225,7 +227,8 @@ class GenericCLScenario(Generic[TExperience]):
         return dict()
 
     @property
-    def classes_in_experience(self) -> Mapping[str, Sequence[Set[int]]]:
+    def classes_in_experience(self) -> Mapping[str,
+                                               Sequence[Optional[Set[int]]]]:
         """
         A dictionary mapping each stream (by name) to a list.
 
@@ -261,29 +264,53 @@ class GenericCLScenario(Generic[TExperience]):
             classes seen in previous experiences, the third returns a cumulative
             list of classes (that is, the union of the first two list) while the
             last one returns a list of classes that will be encountered in next
-            experiences.
+            experiences. Beware that each of these elements can be None when
+            the benchmark is initialized by using a lazy generator.
         """
 
         class_set_current_exp = \
             self.classes_in_experience[stream][current_experience]
 
-        classes_in_this_exp = list(class_set_current_exp)
+        if class_set_current_exp is not None:
+            # May be None in lazy benchmarks
+            classes_in_this_exp = list(class_set_current_exp)
+        else:
+            classes_in_this_exp = None
 
         class_set_prev_exps = set()
         for exp_id in range(0, current_experience):
-            class_set_prev_exps.update(
-                self.classes_in_experience[stream][exp_id])
-        previous_classes = list(class_set_prev_exps)
+            prev_exp_classes = self.classes_in_experience[stream][exp_id]
+            if prev_exp_classes is None:
+                # May be None in lazy benchmarks
+                class_set_prev_exps = None
+                break
+            class_set_prev_exps.update(prev_exp_classes)
 
-        classes_seen_so_far = \
-            list(class_set_current_exp.union(class_set_prev_exps))
+        if class_set_prev_exps is not None:
+            previous_classes = list(class_set_prev_exps)
+        else:
+            previous_classes = None
+
+        if class_set_current_exp is not None and \
+                class_set_prev_exps is not None:
+            classes_seen_so_far = \
+                list(class_set_current_exp.union(class_set_prev_exps))
+        else:
+            classes_seen_so_far = None
 
         class_set_future_exps = set()
-        stream_n_exps = len(self.stream_definitions[stream].exps_data)
-        for exp_id in range(current_experience, stream_n_exps):
-            class_set_prev_exps.update(
-                self.classes_in_experience[stream][exp_id])
-        future_classes = list(class_set_future_exps)
+        stream_n_exps = len(self.classes_in_experience[stream])
+        for exp_id in range(current_experience+1, stream_n_exps):
+            future_exp_classes = self.classes_in_experience[stream][exp_id]
+            if future_exp_classes is None:
+                class_set_future_exps = None
+                break
+            class_set_future_exps.update(future_exp_classes)
+
+        if class_set_future_exps is not None:
+            future_classes = list(class_set_future_exps)
+        else:
+            future_classes = None
 
         return (classes_in_this_exp, previous_classes, classes_seen_so_far,
                 future_classes)
@@ -294,7 +321,6 @@ class GenericCLScenario(Generic[TExperience]):
                 continue
 
             orig_dataset = stream_def.origin_dataset
-
             setattr(self, f'original_{stream_name}_dataset', orig_dataset)
 
     def _make_stream_fields(self):
@@ -343,37 +369,41 @@ class GenericCLScenario(Generic[TExperience]):
         exp_data = stream_def[0]
         task_labels = None
         origin_dataset = None
+
         if len(stream_def) > 1:
             task_labels = stream_def[1]
 
         if len(stream_def) > 2:
             origin_dataset = stream_def[2]
 
-        if isinstance(exp_data, Dataset):
+        if isinstance(exp_data, AvalancheDataset):
             # Single element
             exp_data = [exp_data]
+            is_lazy = False
+            stream_length = 1
         elif isinstance(exp_data, tuple):
-            # Generator
-            # We currently don't support lazily created experiences...
-            exp_data_lst = []
-            n_exps = exp_data[1]
-            exp_idx = 0
-            for exp in exp_data[0]:
-                if exp_idx >= n_exps:
-                    break
-                exp_data_lst.append(exp)
-                exp_idx += 1
-            exp_data = exp_data_lst
+            # Creation based on a generator
+            # exp_data[0] must contain the generator
+            stream_length = exp_data[1]
+            is_lazy = True
         else:
             # Standard def
-            exp_data = list(exp_data)
+            stream_length = len(exp_data)
+            is_lazy = False
 
-        for i, dataset in enumerate(exp_data):
-            if not isinstance(dataset, AvalancheDataset):
-                raise ValueError('All experience datasets must be subclasses of'
-                                 ' AvalancheDataset')
+        if not is_lazy:
+            for i, dataset in enumerate(exp_data):
+                if not isinstance(dataset, AvalancheDataset):
+                    raise ValueError(
+                        'All experience datasets must be subclasses of'
+                        ' AvalancheDataset')
 
         if task_labels is None:
+            if is_lazy:
+                raise ValueError(
+                    'Task labels must be defined for each experience when '
+                    'creating the stream using a generator.')
+
             # Extract task labels from the dataset
             task_labels = []
             for i in range(len(exp_data)):
@@ -388,12 +418,21 @@ class GenericCLScenario(Generic[TExperience]):
                 elif not isinstance(task_labels[i], set):
                     task_labels[i] = set(task_labels[i])
 
-        if len(exp_data) != len(task_labels):
+        if stream_length != len(task_labels):
             raise ValueError(
                 f'{len(exp_data)} experiences have been defined, but task '
                 f'labels for {len(task_labels)} experiences are given.')
 
-        return StreamDef(exp_data, task_labels, origin_dataset)
+        if is_lazy:
+            lazy_sequence = LazyDatasetSequence(exp_data[0], stream_length)
+        else:
+            lazy_sequence = LazyDatasetSequence(exp_data, stream_length)
+            lazy_sequence.load_all_experiences()
+
+        return StreamDef(
+            lazy_sequence,
+            task_labels,
+            origin_dataset)
 
 
 class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
@@ -411,7 +450,14 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         Can be None, which means that this object is the original stream. """
 
         self.name: str = name
+        """
+        The name of the stream (for instance: "train", "test", "valid", ...).
+        """
+
         self.scenario = scenario
+        """
+        A reference to the scenario.
+        """
 
     def __len__(self) -> int:
         """
@@ -469,8 +515,40 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
             stream_copy.slice_ids = [self.slice_ids[x] for x in slice_exps]
         return stream_copy
 
+    def drop_previous_experiences(self, to_exp: int) -> None:
+        """
+        Drop the reference to experiences up to a certain experience ID
+        (inclusive).
 
-class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
+        This means that any reference to experiences with ID [0, from_exp] will
+        be released. By dropping the reference to previous experiences, the
+        memory associated with them can be freed, especially the one occupied by
+        the dataset. However, if external references to the experience or the
+        dataset still exist, dropping previous experiences at the stream level
+        will have little to no impact on the memory usage.
+
+        To make sure that the underlying dataset can be freed, make sure that:
+        - No reference to previous datasets or experiences are kept in you code;
+        - The replay implementation doesn't keep a reference to previous
+            datasets (in which case, is better to store a copy of the raw
+            tensors instead);
+        - The benchmark is being generated using a lazy initializer.
+
+        By dropping previous experiences, those experiences will no longer be
+        available in the stream. Trying to access them will result in an
+        exception.
+
+        :param to_exp: The ID of the last exp to drop (inclusive). Can be a
+            negative number, in which case this method doesn't have any effect.
+            Can be greater or equal to the stream length, in which case all
+            currently loaded experiences will be dropped.
+        :return: None
+        """
+        self.scenario.stream_definitions[
+            self.name].exps_data.drop_previous_experiences(to_exp)
+
+
+class LazyStreamClassesInExps(Mapping[str, Sequence[Optional[Set[int]]]]):
     def __init__(self, scenario: GenericCLScenario):
         self._scenario = scenario
         self._default_lcie = LazyClassesInExps(scenario, stream='train')
@@ -493,7 +571,7 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
         yield from self._scenario.stream_definitions.keys()
 
 
-class LazyClassesInExps(Sequence[Set[int]]):
+class LazyClassesInExps(Sequence[Optional[Set[int]]]):
     def __init__(self, scenario: GenericCLScenario, stream: str = 'train'):
         self._scenario = scenario
         self._stream = stream
@@ -512,11 +590,17 @@ class LazyClassesInExps(Sequence[Set[int]]):
                ']'
 
     def _get_single_exp_classes(self, exp_id):
-        return set(self._scenario.stream_definitions[self._stream]
-                   .exps_data[exp_id].targets)
+        targets = self._scenario.stream_definitions[
+            self._stream].exps_data.targets_field_sequence[exp_id]
+        if targets is None:
+            return None
+        return set(targets)
 
     @staticmethod
-    def _slice_collate(*classes_in_exps: Set[int]):
+    def _slice_collate(*classes_in_exps: Optional[Set[int]]):
+        if any(x is None for x in classes_in_exps):
+            return None
+
         return [
             list(x) for x in classes_in_exps
         ]
@@ -647,6 +731,9 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
+        self.dataset: AvalancheDataset = \
+            origin_stream.scenario.stream_definitions[
+                origin_stream.name].exps_data[current_experience]
 
         (classes_in_this_exp, previous_classes, classes_seen_so_far,
          future_classes) = origin_stream.scenario.get_classes_timeline(
@@ -658,10 +745,6 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
     def _get_stream_def(self):
         return self.scenario.stream_definitions[self.origin_stream.name]
-
-    @property
-    def dataset(self) -> AvalancheDataset:
-        return self._get_stream_def().exps_data[self.current_experience]
 
     @property
     def task_labels(self) -> List[int]:
