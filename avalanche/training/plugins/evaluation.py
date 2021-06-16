@@ -9,7 +9,8 @@ from avalanche.logging import StrategyLogger, InteractiveLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
-    from avalanche.training import BaseStrategy
+    from avalanche.logging import StrategyLogger
+    from avalanche.training.strategies import BaseStrategy
 
 
 class EvaluationPlugin(StrategyPlugin):
