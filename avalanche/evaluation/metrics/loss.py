@@ -9,13 +9,15 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import List
+from typing import List, Dict
 
 import torch
 from torch import Tensor
 
 from avalanche.evaluation import PluginMetric, Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
+from avalanche.evaluation.metric_utils import phase_and_task
+from collections import defaultdict
 
 
 class Loss(Metric[float]):
@@ -43,37 +45,53 @@ class Loss(Metric[float]):
         value of 0. The metric can be updated by using the `update` method
         while the running loss can be retrieved using the `result` method.
         """
-        self._mean_loss = Mean()
+        self._mean_loss = defaultdict(Mean)
+        """
+        The mean utility that will be used to store the running accuracy
+        for each task label.
+        """
 
     @torch.no_grad()
-    def update(self, loss: Tensor, patterns: int) -> None:
+    def update(self, loss: Tensor, patterns: int, task_label: int) -> None:
         """
         Update the running loss given the loss Tensor and the minibatch size.
 
         :param loss: The loss Tensor. Different reduction types don't affect
             the result.
         :param patterns: The number of patterns in the minibatch.
+        :param task_label: the task label associated to the current experience
         :return: None.
         """
-        self._mean_loss.update(torch.mean(loss), weight=patterns)
+        self._mean_loss[task_label].update(torch.mean(loss), weight=patterns)
 
-    def result(self) -> float:
+    def result(self, task_label=None) -> Dict[int, float]:
         """
         Retrieves the running average loss per pattern.
 
         Calling this method will not change the internal state of the metric.
-
+        :param task_label: None to return metric values for all the task labels.
+            If an int, return value only for that task label
         :return: The running loss, as a float.
         """
-        return self._mean_loss.result()
+        assert(task_label is None or isinstance(task_label, int))
+        if task_label is None:
+            return {k: v.result() for k, v in self._mean_loss.items()}
+        else:
+            return {task_label: self._mean_loss[task_label].result()}
 
-    def reset(self) -> None:
+    def reset(self, task_label=None) -> None:
         """
         Resets the metric.
 
+        :param task_label: None to reset all metric values. If an int,
+            reset metric value corresponding to that task label.
         :return: None.
         """
-        self._mean_loss.reset()
+        assert(task_label is None or isinstance(task_label, int))
+        if task_label is None:
+            self._mean_loss = defaultdict(Mean)
+        else:
+            self._mean_loss[task_label].reset()
 
 
 class LossPluginMetric(GenericPluginMetric[float]):
@@ -82,8 +100,28 @@ class LossPluginMetric(GenericPluginMetric[float]):
         super(LossPluginMetric, self).__init__(
             self._loss, reset_at, emit_at, mode)
 
+    def reset(self, strategy=None) -> None:
+        if self._reset_at == 'stream' or strategy is None:
+            self._metric.reset()
+        else:
+            self._metric.reset(phase_and_task(strategy)[1])
+
+    def result(self, strategy=None) -> float:
+        if self._emit_at == 'stream' or strategy is None:
+            return self._metric.result()
+        else:
+            return self._metric.result(phase_and_task(strategy)[1])
+
     def update(self, strategy):
-        self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
+        # task labels defined for each experience
+        task_labels = strategy.experience.task_labels
+        if len(task_labels) > 1:
+            # task labels defined for each pattern
+            # fall back to single task case
+            task_label = 0
+        else:
+            task_label = task_labels[0]
+        self._loss.update(strategy.loss, patterns=len(strategy.mb_y), task_label=task_label)
 
 
 class MinibatchLoss(LossPluginMetric):
