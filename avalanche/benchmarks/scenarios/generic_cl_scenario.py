@@ -2,7 +2,7 @@ import copy
 import re
 from abc import ABC
 from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List, Set, Iterator, Tuple, NamedTuple, Mapping
+    Dict, Any, Iterable, List, Set, Tuple, NamedTuple, Mapping
 
 import warnings
 from torch.utils.data.dataset import Dataset
@@ -97,7 +97,8 @@ class GenericCLScenario(Generic[TExperience]):
             is the definition of that stream. "train" and "test" streams are
             mandatory. This class supports custom streams as well. The name of
             custom streams can only contain letters, numbers and the "_"
-            character and must not start with a number. The definition of each
+            character and must not start with a number. Streams can be defined
+            is two ways: static and lazy. In the static case, the
             stream must be a tuple containing 1, 2 or 3 elements:
             - The first element must be a list containing the datasets
             describing each experience. Datasets must be instances of
@@ -112,6 +113,13 @@ class GenericCLScenario(Generic[TExperience]):
             this may be a reference to the whole MNIST dataset. If the stream
             definition tuple contains less than 3 elements, then the reference
             to the original dataset will be set to None.
+            In the lazy case, the stream must be defined as a tuple with 2
+            elements:
+            - The first element must be a tuple containing the dataset generator
+            (one for each experience) and the number of experiences in that
+            stream.
+            - The second element must be a list containing the task labels of
+            each experience (as an int or a set of ints).
         :param complete_test_set_only: If True, the test stream will contain
             a single experience containing the complete test set. This also
             means that the definition for the test stream must contain the
@@ -126,6 +134,9 @@ class GenericCLScenario(Generic[TExperience]):
 
         self.stream_definitions = \
             self._check_stream_definitions(stream_definitions)
+        """
+        A structure containing the definition of the streams.
+        """
 
         self.original_train_dataset: Optional[Dataset] = \
             self.stream_definitions['train'].origin_dataset
@@ -176,7 +187,10 @@ class GenericCLScenario(Generic[TExperience]):
         self.experience_factory: Callable[[TGenericScenarioStream, int],
                                           TExperience] = experience_factory
 
+        # Create the original_<stream_name>_dataset fields for other streams
         self._make_original_dataset_fields()
+
+        # Create the <stream_name>_stream fields for other streams
         self._make_stream_fields()
 
     @property
