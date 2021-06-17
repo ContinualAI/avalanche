@@ -269,11 +269,12 @@ class BaseStrategy:
 
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
+            self.before_training_epoch(**kwargs)
+
             if self._stop_training:  # Early stopping
                 self._stop_training = False
                 break
 
-            self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
             self._periodic_eval(eval_streams, do_final=False)
