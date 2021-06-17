@@ -123,7 +123,11 @@ def main(args):
             logger.all_metric_results[f'Top1_Acc_Exp/eval_phase/test_stream/'
                                       f'Task00{tid}/Exp00{tid}'][1])
 
-    if args.stream != 's_long:':
+    if args.stream == 's_long':
+        res = logger.last_metric_results["Top1_Acc_Stream/eval_phase/" \
+                                         "test_stream"]
+        print(f'Average accuracy on S_long : {res}')
+    else:
         optimizer = SGD(model_init.parameters(), lr=0.001, momentum=0.9)
         cl_strategy = Naive(
             model_init, optimizer, criterion, train_mb_size=32, device=device,
@@ -144,17 +148,15 @@ def main(args):
         print(f'Accuracy on probe task after trained '
               f'independently: {acc_last_only}')
         print(f'T({args.stream})={transfer_value}')
-    else:
-        res = logger.last_metric_results["Top1_Acc_Exp/eval_phase/test_stream"]
-        print(f'Avg Acc = {res}')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--stream', type=str, default='s_plus',
-                        choices=['s_plus', 's_minus', 's_in', 's_out', 's_pl'],
+                        choices=['s_plus', 's_minus', 's_in', 's_out', 's_pl',
+                                 's_long'],
                         help='Select the CTrL Stream to train on: [s_plus], '
-                             's_minus, s_in, s_out or s_pl.')
+                             's_minus, s_in, s_out, s_pl or s_long.')
     parser.add_argument('--save', type=bool, default=False,
                         help='Whether to save the generated experiences to'
                              ' disk or load them all in memory.')
