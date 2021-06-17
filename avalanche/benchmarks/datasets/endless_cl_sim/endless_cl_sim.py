@@ -65,15 +65,17 @@ class ClassificationSubSequence(Dataset):
         return len(self.file_paths)
 
 class VideoSubSequence(Dataset):
-    def __init__(self, file_paths, target_paths, patch_size=(240, 135),
+    def __init__(self, file_paths, target_paths, sequence_file, 
+            segmentation_file, patch_size=(240, 135), 
             transform=None, target_transform=None):
 
         """
         # TODO
         """
-
         self.file_paths = file_paths
         self.target_paths = target_paths
+        self.sequence_file = sequence_file
+        self.segmentation_file = segmentation_file
         self.patch_size = patch_size
         self.transform = transform
         self.target_transform = transform
@@ -107,6 +109,9 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         """
         Creates an instance of the Endless-Continual-Leanring-Simulator Dataset.
+
+
+        Note: For video sequences currently only one sequence per dataset is supported!
 
         :param root: root for the datasets data. Defaults to None, which means
         that the default location for 'endless-cl-sim' will be used.
@@ -153,9 +158,15 @@ class EndlessCLSimDataset(DownloadableDataset):
         # TODO:
         """
         data = endless_cl_sim_data.data
+        # Video data
         if self.semseg:
-            raise NotImplementedError
-        
+            if self.scenario == "Classes":
+                return data[3]
+            if self.scenario == "Illumination":
+                return data[4]
+            if self.scenario == "Weather":
+                return data[5]
+        # Image-patch (classification) data
         if self.scenario == "Classes":
             return data[0]
         if self.scenario == "Illumination":
@@ -181,7 +192,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 targets = []
 
                 # Get class dirs
-                class_name_dirs = class_name_dirs = [f.name for f \
+                class_name_dirs = [f.name for f \
                     in os.scandir(sub_sequence_path + os.path.sep) if f.is_dir()]
                 
                 # Load file_paths and targets
@@ -217,7 +228,84 @@ class EndlessCLSimDataset(DownloadableDataset):
         return True
 
     def _prepare_video_subsequence_datasets(self, path) -> bool:
+        """
+        # TODO:
+        """
+        # Get sequence dirs
+        sequence_paths = glob.glob(path + os.path.sep + "*" + os.path.sep)
+
+        # For every sequence (train, test)
+        for sequence_path in sequence_paths:
+            # Get dir contents (data + files)
+            data_contents = glob.glob(sequence_path + os.path.sep + "*")
+            print("data_contents:")
+            print(data_contents)
+            
+            image_paths = []
+            target_paths = []
+            sequence_file = None
+            segmentation_file = None
+
+            # Get Color, Seg dirs  # TODO: Normals, Depth
+            for data_content in data_contents:
+                # If directory
+                if Path(data_content).is_dir():
+                    print(data_content, "is dir")
+                    dir_name = data_content.split(os.path.sep)[-1]
+                    if "Color" == dir_name:
+                        print("Color dir found!")
+                        # Extend color path
+                        color_path = data_content + os.path.sep + "0" + os.path.sep
+                        # Get all files
+                        for file_name in sorted(os.listdir(color_path)):
+                            image_paths.append(file_name)
+                    elif "Seg" == dir_name:
+                        print("Seg dir found")
+                        # Extend seg path
+                        seg_path = data_content + os.path.sep + "0" + os.path.sep
+                        # Get all files
+                        for file_name in sorted(os.listdir(seg_path)):
+                            target_paths.append(file_name)
+
+                # If file
+                if Path(data_content).is_file():
+                    print(data_content, "is file")
+                    if "Sequence.json" in data_content:
+                        sequence_file = data_content
+                        print("Sequence file found!")
+                    elif "Segmentation.json" in data_content:
+                        segmentation_file = data_content
+                        print("Segmentation file found!")
+
+            # Final checks
+            if not len(image_paths) == len(target_paths):
+                print("Not equal number of images and targets!")
+                return False
+            if sequence_file is None:
+                print("No Sequence.json found!")
+                return False
+            if segmentation_file is None:
+                print("No Segmentation.json found!")
+                return False
+            
+            if self.verbose:
+                print("All metadata checks complete!")
+
+            # Create subsequence dataset
+            subsequence_dataset = VideoSubSequence(image_paths, target_paths, sequence_file,
+                    segmentation_file, transform=self.transform,
+                    target_transform=self.target_transform)
+            if "train" in (sequence_path.lower()):
+                self.train_sub_sequence_datasets.append(subsequence_dataset)
+            elif "test" in (sequence_path.lower()):
+                self.test_sub_sequence_datasets.append(subsequence_dataset)
+            else:
+                raise ValueError("Sequence path contains neighter 'train' nor 'test' identifiers!")
+            
+        print("train sets:", len(self.train_sub_sequence_datasets))
+        print("test sets:", len(self.test_sub_sequence_datasets))
         raise NotImplementedError
+        return True
 
     def __getitem__(self, index):
         """
@@ -242,6 +330,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 print(f'Extracting {data_name[0]}...')
             extract_subdir = data_name[0].split(".")[0]
             extract_root = self._extract_archive(file, extract_subdir)
+            
             # see all extracted files and extract all .zip again
             extract_root_file_list = glob.glob(str(extract_root) + "/*")
             for file_name in extract_root_file_list:
@@ -252,35 +341,39 @@ class EndlessCLSimDataset(DownloadableDataset):
                 self._extract_archive(file_name, extract_subdir, remove_archive=True)
                 if self.verbose:
                     print("Extraction complete!")
+
             if self.verbose:
                 print("All extractions complete!")
 
     def _load_metadata(self) -> bool:
         # If a 'named'-scenario has been selected
         if not self.scenario is None:
+            print("using named scenario")
             # Get data name
             scenario_data_name = self._get_scenario_data()
             scenario_data_name = scenario_data_name[0].split(".")[0]
-            # Get list of directories in root
-            root_file_list = glob.glob(str(self.root))
             # Check matching directory exists in endless_cl_sim_data
             match_path = None
             for data_name in endless_cl_sim_data.data:
                 name = data_name[0].split(".")[0]
-
                 # Omit non selected directories
-                #print(f"{scenario_data_name} == {name}")
                 if str(scenario_data_name) == str(name):
                     # Check there is such a directory
                     if (self.root / name).exists():
                         if not match_path is None:
                             raise ValueError("Two directories match the selected scenario!")
                         match_path = str(self.root / name)
-                
+            
+            print("match_path:", match_path)
             if match_path is None:
                 return False
-                
-            is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(match_path)
+
+            if not self.semseg:     
+                is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(match_path)
+            else:
+                print("preparing video..")
+                is_subsequence_preparation_done = self._prepare_video_subsequence_datasets(match_path)
+        
             if is_subsequence_preparation_done and self.verbose:
                 print("Data is loaded..")
             else:
@@ -288,8 +381,12 @@ class EndlessCLSimDataset(DownloadableDataset):
             return True
 
         # If a 'generic'-endless-cl-sim-scenario has been selected
-        print("loading generic dataset")
-        is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(str(self.root))
+        if not self.semseg:
+            is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(str(self.root))
+        else:
+            print("preparing video..")
+            is_subsequence_preparation_done = self._prepare_video_subsequence_datasets(str(self.root))
+        
         if is_subsequence_preparation_done and self.verbose:
             print("Data is loaded...")
         else:
@@ -297,6 +394,7 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         # Finally
         return True
+
 
     def _download_error_message(self) -> str:
         scenario_data_name = self._get_scenario_data()
@@ -324,12 +422,15 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
     
-    #train_data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche")
-    data = EndlessCLSimDataset(scenario=None, download=False, root="/data/avalanche/IncrementalClasses_Classification",
-            transform=transforms.ToTensor())
+    train_data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
+            semseg=True)
+    #data = EndlessCLSimDataset(scenario=None, download=False, root="/data/avalanche/IncrementalClasses_Classification",
+    #        transform=transforms.ToTensor())
     
     print("num subseqeunces: ", len(data.train_sub_sequence_datasets))
-
+    
+    sys.exit()
+    
     sub_sequence_index = 0
     subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
 
