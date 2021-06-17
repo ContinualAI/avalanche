@@ -94,7 +94,7 @@ class MaxGPU(Metric[float]):
                                      % self.every))
 
     def start_thread(self):
-        if self.gpu_id:
+        if self.gpu_id is not None:
             assert not self.thread, "Trying to start thread " \
                                     "without joining the previous."
             self.thread = Thread(target=self._f, daemon=True)

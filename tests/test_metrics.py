@@ -5,6 +5,9 @@ import unittest
 import torch
 import numpy as np
 import random
+import pickle
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_classification
 from copy import deepcopy
 from os.path import expanduser
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
@@ -189,13 +192,24 @@ class GeneralMetricTests(unittest.TestCase):
 #################################
 #################################
 
+DEVICE = 'cpu'
+DELTA = 0.01
+
+
+def filter_dict(d, name):
+    out = {}
+    for k, v in sorted(d.items()):
+        if name in k:
+            out[k] = deepcopy(v)
+    return out
+
 
 class PluginMetricTests(unittest.TestCase):
     def setUp(self) -> None:
         torch.manual_seed(0)
         np.random.seed(0)
         random.seed(0)
-        device = 'cpu'
+
         train_transform = transforms.Compose([
             RandomCrop(28, padding=4),
             ToTensor(),
@@ -223,10 +237,10 @@ class PluginMetricTests(unittest.TestCase):
                 experience=True, stream=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
-            forgetting_metrics(experience=True, stream=True),
+            forgetting_metrics(experience=True, stream=True, task=True),
             confusion_matrix_metrics(num_classes=10, save_image=False,
                                      normalize='all', stream=True),
-            bwt_metrics(experience=True, stream=True),
+            bwt_metrics(experience=True, stream=True, task=True),
             cpu_usage_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
                 experience=True, stream=True),
@@ -245,7 +259,7 @@ class PluginMetricTests(unittest.TestCase):
         cl_strategy = Naive(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(), train_mb_size=500, train_epochs=2,
-            eval_mb_size=100, device=device, evaluator=eval_plugin,
+            eval_mb_size=100, device=DEVICE, evaluator=eval_plugin,
             eval_every=1)
         for i, experience in enumerate(scenario.train_stream):
             cl_strategy.train(experience,
@@ -253,155 +267,175 @@ class PluginMetricTests(unittest.TestCase):
             cl_strategy.eval(scenario.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        self.delta = 0.01
+        # with open('sit.pickle', 'wb') as f:
+        #     pickle.dump(dict(self.all_metrics), f,
+        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        with open('sit.pickle', 'rb') as f:
+            self.ref = pickle.load(f)
 
-    def filter_dict(self, name):
-        out = {}
-        for k, v in self.all_metrics.items():
-            if name in k:
-                out[k] = deepcopy(v)
-        return out
+    def metric_check(self, name):
+        d = filter_dict(self.all_metrics, name)
+        d_ref = filter_dict(self.ref, name)
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            init = -1
+            for el in v[0]:
+                self.assertTrue(el > init)
+                init = el
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertAlmostEqual(el, elref, delta=DELTA)
 
     def test_accuracy(self):
-        d = self.filter_dict('Acc')
-        for k, v in d.items():
-            if k == 'Top1_Acc_MB/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 0.6941, delta=self.delta)
-            elif k == 'Top1_RunningAcc_Epoch/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 0.5752, delta=self.delta)
-            elif k == 'Top1_Acc_Epoch/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 0.5752, delta=self.delta)
-            elif k == 'Top1_Acc_Stream/eval_phase/test_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 0.1689, delta=self.delta)
-            elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000':
-                self.assertAlmostEqual(v[1][-1], 0, delta=self.delta)
-            elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp001':
-                self.assertAlmostEqual(v[1][-1], 0, delta=self.delta)
-            elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp002':
-                self.assertAlmostEqual(v[1][-1], 0, delta=self.delta)
-            elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp003':
-                self.assertAlmostEqual(v[1][-1], 0, delta=self.delta)
-            elif k == 'Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp004':
-                self.assertAlmostEqual(v[1][-1], 0.8487, delta=self.delta)
-            else:
-                raise KeyError("Key in dictionary not recognized: {}"
-                               .format(k))
+        self.metric_check('Acc')
 
     def test_loss(self):
-        d = self.filter_dict('Loss')
-        for k, v in d.items():
-            if k == 'Loss_MB/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 0.9629, delta=self.delta)
-            elif k == 'RunningLoss_Epoch/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 1.4509, delta=self.delta)
-            elif k == 'Loss_Epoch/train_phase/train_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 1.4509, delta=self.delta)
-            elif k == 'Loss_Stream/eval_phase/test_stream/Task000':
-                self.assertAlmostEqual(v[1][-1], 2.8269, delta=self.delta)
-            elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp000':
-                self.assertAlmostEqual(v[1][-1], 3.4117, delta=self.delta)
-            elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp001':
-                self.assertAlmostEqual(v[1][-1], 3.6090, delta=self.delta)
-            elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp002':
-                self.assertAlmostEqual(v[1][-1], 3.4580, delta=self.delta)
-            elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp003':
-                self.assertAlmostEqual(v[1][-1], 2.8601, delta=self.delta)
-            elif k == 'Loss_Exp/eval_phase/test_stream/Task000/Exp004':
-                self.assertAlmostEqual(v[1][-1], 0.7772, delta=self.delta)
-            else:
-                raise KeyError("Key in dictionary not recognized: {}"
-                               .format(k))
+        self.metric_check('Loss')
 
     def test_mac(self):
-        d = self.filter_dict('MAC')
-        for k, v in d.items():
-            if k == 'MAC_MB/train_phase/train_stream/Task000':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Epoch/train_phase/train_stream/Task000':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp000':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp001':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp002':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp003':
-                self.assertEqual(v[1][-1], 406528)
-            elif k == 'MAC_Exp/eval_phase/test_stream/Task000/Exp004':
-                self.assertEqual(v[1][-1], 406528)
-            else:
-                raise KeyError("Key in dictionary not recognized: {}"
-                               .format(k))
+        self.metric_check('MAC')
 
     def test_forgetting_bwt(self):
-        df = self.filter_dict('Forgetting')
-        db = self.filter_dict('BWT')
+        df = filter_dict(self.all_metrics, 'Forgetting')
+        db = filter_dict(self.all_metrics, 'BWT')
+        self.metric_check('Forgetting')
+        self.metric_check('BWT')
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
                 (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience'))
+                (kf.startswith('Experience') and kb.startswith('Experience')) or
+                (kf.startswith('Task') and kb.startswith('Task'))
             )
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 
-            if kf == 'StreamForgetting/eval_phase/test_stream' and \
-                    kb == 'StreamBWT/eval_phase/test_stream':
-                self.assertAlmostEqual(vf[1][-1], 0.9376, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
-                       'Task000/Exp000' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
-                          'Task000/Exp000':
-                self.assertAlmostEqual(vf[1][-1], 0.9541, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
-                       'Task000/Exp001' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
-                          'Task000/Exp001':
-                self.assertAlmostEqual(vf[1][-1], 0.9145, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
-                       'Task000/Exp002' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
-                          'Task000/Exp002':
-                self.assertAlmostEqual(vf[1][-1], 0.9390, delta=self.delta)
-            elif kf == 'ExperienceForgetting/eval_phase/test_stream/' \
-                       'Task000/Exp003' and \
-                    kb == 'ExperienceBWT/eval_phase/test_stream/' \
-                          'Task000/Exp003':
-                self.assertAlmostEqual(vf[1][-1], 0.9426, delta=self.delta)
-            else:
-                raise KeyError("Keys in dictionary not recognized: {} and {}"
-                               .format(kf, kb))
+    def test_cm(self):
+        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
+        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertTrue((el == elref).all())
+
+
+class PluginMetricMultiTaskTests(unittest.TestCase):
+    def setUp(self) -> None:
+        torch.manual_seed(0)
+        np.random.seed(0)
+        random.seed(0)
+
+        train_transform = transforms.Compose([
+            RandomCrop(28, padding=4),
+            ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        test_transform = transforms.Compose([
+            ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                            train=True, download=True,
+                            transform=train_transform)
+        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
+                           train=False, download=True,
+                           transform=test_transform)
+        scenario = nc_benchmark(
+            mnist_train, mnist_test, 5, task_labels=True, seed=0)
+        model = SimpleMLP(num_classes=scenario.n_classes)
+
+        f = open('log.txt', 'w')
+        text_logger = TextLogger(f)
+        eval_plugin = EvaluationPlugin(
+            accuracy_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            loss_metrics(minibatch=True, epoch=True, epoch_running=True,
+                         experience=True, stream=True),
+            forgetting_metrics(experience=True, stream=True, task=True),
+            confusion_matrix_metrics(num_classes=10, save_image=False,
+                                     normalize='all', stream=True),
+            bwt_metrics(experience=True, stream=True, task=True),
+            cpu_usage_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            timing_metrics(
+                minibatch=True, epoch=True, epoch_running=True,
+                experience=True, stream=True),
+            ram_usage_metrics(
+                every=0.5, minibatch=True, epoch=True,
+                experience=True, stream=True),
+            disk_usage_metrics(
+                minibatch=True, epoch=True, experience=True, stream=True),
+            MAC_metrics(
+                minibatch=True, epoch=True, experience=True),
+            loggers=[text_logger],
+            collect_all=True)  # collect all metrics (set to True by default)
+        cl_strategy = Naive(
+            model, SGD(model.parameters(), lr=0.001, momentum=0.9),
+            CrossEntropyLoss(), train_mb_size=500, train_epochs=2,
+            eval_mb_size=100, device=DEVICE, evaluator=eval_plugin,
+            eval_every=1)
+        for i, experience in enumerate(scenario.train_stream):
+            cl_strategy.train(experience,
+                              eval_streams=[scenario.test_stream[i]])
+            cl_strategy.eval(scenario.test_stream)
+        self.all_metrics = cl_strategy.evaluator.get_all_metrics()
+        f.close()
+        # with open('mt.pickle', 'wb') as f:
+        #     pickle.dump(dict(self.all_metrics), f,
+        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        with open('mt.pickle', 'rb') as f:
+            self.ref = pickle.load(f)
+
+    def metric_check(self, name):
+        d = filter_dict(self.all_metrics, name)
+        d_ref = filter_dict(self.ref, name)
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            init = -1
+            for el in v[0]:
+                self.assertTrue(el > init)
+                init = el
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertAlmostEqual(el, elref, delta=DELTA)
+
+    def test_accuracy(self):
+        self.metric_check('Acc')
+
+    def test_loss(self):
+        self.metric_check('Loss')
+
+    def test_mac(self):
+        self.metric_check('MAC')
+
+    def test_forgetting_bwt(self):
+        df = filter_dict(self.all_metrics, 'Forgetting')
+        db = filter_dict(self.all_metrics, 'BWT')
+        self.metric_check('Forgetting')
+        self.metric_check('BWT')
+        for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
+            self.assertTrue(
+                (kf.startswith('Stream') and kb.startswith('Stream')) or
+                (kf.startswith('Experience') and kb.startswith('Experience')) or
+                (kf.startswith('Task') and kb.startswith('Task')),
+            )
+            for f, b in zip(vf[1], vb[1]):
+                self.assertEqual(f, -b)
 
     def test_cm(self):
-        d = self.filter_dict('ConfusionMatrix')
-        for k, v in d.items():
-            if k == 'ConfusionMatrix_Stream/eval_phase/test_stream':
-                self.assertTrue(v[1][-1].size() == torch.Size([10, 10]))
-                target_cm = torch.tensor([
-                    [0.0000, 0.0000, 0.0923, 0.0000, 0.0000, 0.0000, 0.0057,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0971, 0.0000, 0.0000, 0.0000, 0.0164,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0994, 0.0000, 0.0000, 0.0000, 0.0038,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0901, 0.0000, 0.0000, 0.0000, 0.0109,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0143, 0.0000, 0.0000, 0.0000, 0.0839,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0605, 0.0000, 0.0000, 0.0000, 0.0287,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0263, 0.0000, 0.0000, 0.0000, 0.0695,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0806, 0.0000, 0.0000, 0.0000, 0.0222,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0761, 0.0000, 0.0000, 0.0000, 0.0213,
-                     0.0000, 0.0000, 0.0000],
-                    [0.0000, 0.0000, 0.0434, 0.0000, 0.0000, 0.0000, 0.0575,
-                     0.0000, 0.0000, 0.0000]],
-                    dtype=torch.float64)
-                self.assertTrue((v[1][-1] == target_cm).all())
-            else:
-                raise KeyError("Key in dictionary not recognized: {}"
-                               .format(k))
+        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
+        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertTrue((el == elref).all())
 
 
 class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
@@ -409,15 +443,30 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         torch.manual_seed(0)
         np.random.seed(0)
         random.seed(0)
-        device = 'cpu'
+
+        n_samples_per_class = 100
+        datasets = []
+        for i in range(3):
+            dataset = make_classification(
+                n_samples=10 * n_samples_per_class,
+                n_classes=3,
+                n_features=3, n_informative=3, n_redundant=0)
+            X = torch.from_numpy(dataset[0]).float()
+            y = torch.from_numpy(dataset[1]).long()
+            train_X, test_X, train_y, test_y = train_test_split(
+                X, y, train_size=0.5, shuffle=True, stratify=y)
+            datasets.append((train_X, train_y, test_X, test_y))
+
         tr_ds = [AvalancheTensorDataset(
-            torch.randn(10, 3), torch.randint(0, 3, (10,)),
+            tr_X, tr_y,
             dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+            task_labels=torch.randint(0, 3, (500,)).tolist())
+            for tr_X, tr_y, _, _ in datasets]
         ts_ds = [AvalancheTensorDataset(
-            torch.randn(10, 3), torch.randint(0, 3, (10,)),
+            ts_X, ts_y,
             dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
+            task_labels=torch.randint(0, 3, (500,)).tolist())
+            for _, _, ts_X, ts_y in datasets]
         scenario = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
         model = SimpleMLP(num_classes=3, input_size=3)
 
@@ -451,17 +500,65 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         cl_strategy = Naive(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(), train_mb_size=2, train_epochs=2,
-            eval_mb_size=2, device=device, evaluator=eval_plugin, eval_every=1)
+            eval_mb_size=2, device=DEVICE,
+            evaluator=eval_plugin, eval_every=1)
         for i, experience in enumerate(scenario.train_stream):
             cl_strategy.train(experience,
                               eval_streams=[scenario.test_stream[i]])
             cl_strategy.eval(scenario.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        self.delta = 0.01
+        # with open('tpp.pickle', 'wb') as f:
+        #     pickle.dump(dict(self.all_metrics), f,
+        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        with open('tpp.pickle', 'rb') as f:
+            self.ref = pickle.load(f)
 
-    def test_metrics(self):
-        self.assertEqual(len(self.all_metrics), 86)
+    def metric_check(self, name):
+        d = filter_dict(self.all_metrics, name)
+        d_ref = filter_dict(self.ref, name)
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            init = -1
+            for el in v[0]:
+                self.assertTrue(el > init)
+                init = el
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertAlmostEqual(el, elref, delta=DELTA)
+
+    def test_accuracy(self):
+        self.metric_check('Acc')
+
+    def test_loss(self):
+        self.metric_check('Loss')
+
+    def test_mac(self):
+        self.metric_check('MAC')
+
+    def test_forgetting_bwt(self):
+        df = filter_dict(self.all_metrics, 'Forgetting')
+        db = filter_dict(self.all_metrics, 'BWT')
+        self.metric_check('Forgetting')
+        self.metric_check('BWT')
+        for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
+            self.assertTrue(
+                (kf.startswith('Stream') and kb.startswith('Stream')) or
+                (kf.startswith('Experience') and kb.startswith('Experience') or
+                 (kf.startswith('Task') and kb.startswith('Task'))))
+            for f, b in zip(vf[1], vb[1]):
+                self.assertEqual(f, -b)
+
+    def test_cm(self):
+        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
+        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
+            self.assertEqual(k, kref)
+            for el, elref in zip(v[0], vref[0]):
+                self.assertEqual(el, elref)
+            for el, elref in zip(v[1], vref[1]):
+                self.assertTrue((el == elref).all())
 
 
 if __name__ == '__main__':

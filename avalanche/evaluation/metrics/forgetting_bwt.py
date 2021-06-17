@@ -290,11 +290,12 @@ class GenericStreamForgetting(GenericExperienceForgetting):
     change in the desired metric detected over all experiences observed
     during training.
 
-    In particular, the user should override __init__ by calling `super`
-    and instantiating the `self.current_metric` property as a valid
-    avalanche metric. The user should also override `after_eval_iteration`,
-    call `super` and the `update` method of the chosen metric.
-    In addition, the method `__str__` must be defined.
+    In particular, the user should override:
+    * __init__ by calling `super` and instantiating the `self.current_metric`
+    property as a valid avalanche metric
+    * `metric_update`, to update `current_metric`
+    * `metric_result` to get the result from `current_metric`.
+    * `__str__` to define the experience forgetting  name.
 
     This plugin metric, computed over all observed experiences during training,
     is the average over the difference between the metric result obtained
@@ -447,6 +448,26 @@ class StreamForgetting(GenericStreamForgetting):
 
 
 class GenericTaskForgetting(PluginMetric[Dict[int, float]]):
+    """
+    The GenericTaskForgetting metric, describing the average evaluation
+    change in the desired metric detected over all tasks observed
+    during training and evaluation.
+
+    In particular, the user should override:
+    * __init__ by calling `super` and instantiating the
+      `self.current_train_metric` and `current_eval_metric` properties as
+      valid avalanche metrics (the same metric for both properties).
+      The metric should be able to return values for each task separately.
+    * `metric_update`, to update `current_metric`
+    * `__str__` to define the experience forgetting  name.
+
+    This plugin metric, computed over all observed experiences during training,
+    is the average over the difference between the metric result obtained
+    after first training on a experience and the metric result obtained
+    on the same experience at the end of successive experiences.
+
+    This metric is computed during the eval phase only.
+    """
     def __init__(self):
         super().__init__()
         self.forgetting = Forgetting()
@@ -466,7 +487,7 @@ class GenericTaskForgetting(PluginMetric[Dict[int, float]]):
         self._current_train_metric.reset()
 
     def after_training_iteration(self, strategy: 'BaseStrategy'):
-        super().__init__()
+        super().after_training_iteration(strategy)
         try:
             unique_tasks = strategy.mb_task_id.unique()
             for t in unique_tasks:
@@ -510,7 +531,13 @@ class GenericTaskForgetting(PluginMetric[Dict[int, float]]):
 
 
 class TaskForgetting(GenericTaskForgetting):
+    """
+    The Task Forgetting metric returns the amount of forgetting
+    on each task separately. The task-wise forgetting is computed
+    as the difference between the accuracy when last training on the
+    task and the accuracy when last evaluating on the same task.
 
+    """
     def __init__(self):
         super().__init__()
         self._current_train_metric = Accuracy()
@@ -678,7 +705,7 @@ class TaskBWT(TaskForgetting):
 
     This plugin metric, computed over all observed tasks during training,
     is the average over the difference between the last accuracy result
-    obtained on a task and the accuracy result obtained when
+    obtained on a task and the accuracy result obtained when last
     training on that task.
 
     This metric is computed during the eval phase only.
