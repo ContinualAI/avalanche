@@ -19,7 +19,7 @@ data = [
     ("IncrementalLighting_Classification.zip",
     "https://zenodo.org/record/4899267/files/IncrementalLighting_Classification.zip",
     "61a36070d6aae926ef3d121fd17ec501"),
-    ("IncrementalWeather_Classification.zip"
+    ("IncrementalWeather_Classification.zip",
     "https://zenodo.org/record/4899267/files/IncrementalWeather_Classification.zip",
     "60e1a0d50b0091e16424d8e88ae2a2a2"),
     ("IncrementalClasses_Video.zip",

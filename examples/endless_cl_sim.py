@@ -39,9 +39,9 @@ def main(args):
 
     # CL Benchmark Creation
     scenario = EndlessCLSim(
-        scenario="Classes", # "Illumination", "Weather"
-        sequence_order=[0,1,2,3],
-        task_order=[0,1,2,3],
+        scenario=args.scenario, # "Classes", "Illumination", "Weather"
+        sequence_order=None,
+        task_order=None,
         dataset_root="/data/avalanche")
 
     train_stream = scenario.train_stream
@@ -69,6 +69,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument('--scenario', type=str, default="Classes",
+                        help='Select scenario: Classes, Illumination, Weather')
     args = parser.parse_args()
     main(args)
 

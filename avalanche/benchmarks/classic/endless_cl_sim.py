@@ -65,9 +65,13 @@ def EndlessCLSim(
             scenario=scenario, transform=None, 
             download=True, semseg=False)
     
+    # Default sequence_order if None
     if sequence_order is None:
         sequence_order = list(range(len(endless_cl_sim_dataset)))
 
+    # Default sequence_order if None
+    if task_order is None:
+        task_order = list(range(len(endless_cl_sim_dataset)))
 
     train_datasets = []
     eval_datasets = []

@@ -29,7 +29,12 @@ from avalanche.benchmarks.datasets.downloadable_dataset import \
     DownloadableDataset
 
 class ClassificationSubSequence(Dataset):
-    def __init__(self, file_paths, targets, patch_size=64, transform=None, target_transform=None):
+    def __init__(self, file_paths, targets, patch_size=64, 
+        transform=None, target_transform=None):
+
+        """
+        # TODO:
+        """
         self.file_paths = file_paths
         self.targets = targets
         self.patch_size = patch_size
@@ -43,7 +48,7 @@ class ClassificationSubSequence(Dataset):
                 (self.patch_size, self.patch_size), Image.NEAREST)
         return img
 
-    def __getitem__(self, index):
+    def __getitem__(self, index:int):
         img_path = self.file_paths[index]
         target = self.targets[index]
 
@@ -59,21 +64,71 @@ class ClassificationSubSequence(Dataset):
     def __len__(self) -> int:
         return len(self.file_paths)
 
+class VideoSubSequence(Dataset):
+    def __init__(self, file_paths, target_paths, patch_size=(240, 135),
+            transform=None, target_transform=None):
+
+        """
+        # TODO
+        """
+
+        self.file_paths = file_paths
+        self.target_paths = target_paths
+        self.patch_size = patch_size
+        self.transform = transform
+        self.target_transform = transform
+        return
+
+    def _pil_loader(self, file_path, is_target=False):
+        with open(file_path, "rb") as f:
+            convert_identifier = "RGB"
+            if is_target:
+                convert_identifier = "L"
+            img = Image.open(f).convert(convert_identifier).resize(
+                (self.patch_size[0], self.patch_size[1]), Image.NEAREST)
+        return img
+
+    def __getitem__(self, index: int):
+        return None, None
+
+    def __len__(self) -> int:
+        return len(self.file_paths)
+
 class EndlessCLSimDataset(DownloadableDataset):
     """ Endless-CL-Sim Dataset """ 
     def __init__(
-        self,
-        root: Union[str, Path] = None,
-        *,
-        scenario=None, # "Classes", "Illumination", "Weather"
-        transform=None, target_transform=None,
-        download=True, semseg=False
-    ):
+            self,
+            root: Union[str, Path] = None,
+            *,
+            scenario=None,
+            transform=None, target_transform=None,
+            download=True, semseg=False,
+            labelmap=None):
 
-        # TODO: define dataloader
+        """
+        Creates an instance of the Endless-Continual-Leanring-Simulator Dataset.
+
+        :param root: root for the datasets data. Defaults to None, which means
+        that the default location for 'endless-cl-sim' will be used.
+        :param scenario: identifier for the dataset to be used. Predefined options 
+            are 'Classes', for incremental classes scenario, 'Illumination', for the 
+            decreasing lighting scenario, and 'Weather', for the scenario of
+            shifting weather conditions. 
+            To load a custom (non-predefined/downloadable) dataset, the identifier
+            needs to be set to None.
+            Defaults to None.
+        :param transform: optional transformations to be applied to the image data.
+        :param target_transform: optional transformations to be applied to the targets.
+        :param download: boolean to automatically download data. 
+            Defaults to True.
+        :param semseg: boolean to use targets for a semantic segmentation task. 
+            Defaults to False.
+        :param labelmap: dictionary mapping 'class-names'(str) to class-labels(int). 
+            The 'class-names' are derived from the sub-directory names for each subsequence.
+        """
+
         if root is None:
             root = default_dataset_location('endless-cl-sim')
-        print("root path:", root)
 
         if scenario is None and download:
             raise ValueError("No scenario defined to download!")
@@ -94,7 +149,9 @@ class EndlessCLSimDataset(DownloadableDataset):
         return
 
     def _get_scenario_data(self):
-        # TODO: define return data-type
+        """
+        # TODO:
+        """
         data = endless_cl_sim_data.data
         if self.semseg:
             raise NotImplementedError
@@ -108,7 +165,10 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         raise ValueError("Provided 'scenario' parameter is not valid!")
         
-    def _prepare_subsequence_datasets(self, path) -> bool:
+    def _prepare_classification_subsequence_datasets(self, path) -> bool:
+        """
+        # TODO:
+        """
         # Get sequence dirs
         sequence_paths = glob.glob(path + os.path.sep + "*" + os.path.sep)
 
@@ -156,10 +216,19 @@ class EndlessCLSimDataset(DownloadableDataset):
             print("Successfully created subsequence datasets..")
         return True
 
+    def _prepare_video_subsequence_datasets(self, path) -> bool:
+        raise NotImplementedError
+
     def __getitem__(self, index):
+        """
+        # TODO:
+        """
         return self.train_sub_sequence_datasets[index], self.test_sub_sequence_datasets[index]
 
     def __len__(self):
+        """
+        # TODO:
+        """
         return len(self.train_sub_sequence_datasets)
 
     def _download_dataset(self)->None:
@@ -211,7 +280,7 @@ class EndlessCLSimDataset(DownloadableDataset):
             if match_path is None:
                 return False
                 
-            is_subsequence_preparation_done = self._prepare_subsequence_datasets(match_path)
+            is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(match_path)
             if is_subsequence_preparation_done and self.verbose:
                 print("Data is loaded..")
             else:
@@ -220,10 +289,9 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         # If a 'generic'-endless-cl-sim-scenario has been selected
         print("loading generic dataset")
-        is_subsequence_preparation_done = self._prepare_subsequence_datasets(str(self.root))
+        is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(str(self.root))
         if is_subsequence_preparation_done and self.verbose:
             print("Data is loaded...")
-            print()
         else:
             return False
 
