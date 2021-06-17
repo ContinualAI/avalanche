@@ -18,6 +18,8 @@ from typing import Union
 from warnings import warn
 import sys
 
+from PIL import Image
+
 from torch.utils.data import Dataset
 
 from avalanche.benchmarks.datasets import default_dataset_location
@@ -27,24 +29,35 @@ from avalanche.benchmarks.datasets.downloadable_dataset import \
     DownloadableDataset
 
 class ClassificationSubSequence(Dataset):
-    def __init__(self, file_paths, targets, patch_size=64, transform=None, traget_transform=None):
+    def __init__(self, file_paths, targets, patch_size=64, transform=None, target_transform=None):
         self.file_paths = file_paths
         self.targets = targets
         self.patch_size = patch_size
-        self.transform = None
-        self.traget_transform = None
+        self.transform = transform
+        self.target_transform = target_transform
         return
 
+    def _pil_loader(self, file_path):
+        with open(file_path, "rb") as f:
+            img = Image.open(f).convert("RGB").resize(
+                (self.patch_size, self.patch_size), Image.NEAREST)
+        return img
+
     def __getitem__(self, index):
-        # TODO:
-        raise NotImplementedError
-        #return None, None
+        img_path = self.file_paths[index]
+        target = self.targets[index]
+
+        img = self._pil_loader(img_path)
+        
+        img = self.transform(img)
+
+        if not self.target_transform is None:
+            target = self.target_transform(target)
+
+        return img, target
 
     def __len__(self) -> int:
-        # TODO
-        raise NotImplementedError
-        #return None
-
+        return len(self.file_paths)
 
 class EndlessCLSimDataset(DownloadableDataset):
     """ Endless-CL-Sim Dataset """ 
@@ -123,7 +136,8 @@ class EndlessCLSimDataset(DownloadableDataset):
                         targets.append(label)
                 
                 # Create sub-sequence dataset
-                subseqeunce_dataset = ClassificationSubSequence(image_paths, targets)
+                subseqeunce_dataset = ClassificationSubSequence(image_paths, targets, 
+                    transform=self.transform, target_transform=self.target_transform)
                 if "train" in (sequence_path.lower()):
                     self.train_sub_sequence_datasets.append(subseqeunce_dataset)
                 elif "test" in (sequence_path.lower()):
@@ -132,6 +146,9 @@ class EndlessCLSimDataset(DownloadableDataset):
                     raise ValueError("Sequence path contains neighter 'train' not 'test' identifier!")
         
         # Check number of train and test subsequence datasets are equal
+        if self.verbose:
+            print("Num train subsequences:", len(self.train_sub_sequence_datasets), \
+                "Num test subsequences:", len(self.test_sub_sequence_datasets))
         assert(len(self.train_sub_sequence_datasets) == len(self.test_sub_sequence_datasets))
         
         # Has run without errors
@@ -183,7 +200,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 name = data_name[0].split(".")[0]
 
                 # Omit non selected directories
-                print(f"{scenario_data_name} == {name}")
+                #print(f"{scenario_data_name} == {name}")
                 if str(scenario_data_name) == str(name):
                     # Check there is such a directory
                     if (self.root / name).exists():
@@ -191,21 +208,27 @@ class EndlessCLSimDataset(DownloadableDataset):
                             raise ValueError("Two directories match the selected scenario!")
                         match_path = str(self.root / name)
                 
-                if match_path is None:
-                    return False
+            if match_path is None:
+                return False
                 
-                is_subsequence_preparation_done = self._prepare_subsequence_datasets(match_path)
-                if is_subsequence_preparation_done and self.verbose:
-                    print("Data is loaded..")
-                else:
-                    return False    
+            is_subsequence_preparation_done = self._prepare_subsequence_datasets(match_path)
+            if is_subsequence_preparation_done and self.verbose:
+                print("Data is loaded..")
+            else:
+                return False    
             return True
 
         # If a 'generic'-endless-cl-sim-scenario has been selected
-        # TODO:
-        raise NotImplementedError
+        print("loading generic dataset")
+        is_subsequence_preparation_done = self._prepare_subsequence_datasets(str(self.root))
+        if is_subsequence_preparation_done and self.verbose:
+            print("Data is loaded...")
+            print()
+        else:
+            return False
+
         # Finally
-        return False
+        return True
 
     def _download_error_message(self) -> str:
         scenario_data_name = self._get_scenario_data()
@@ -228,6 +251,36 @@ class EndlessCLSimDataset(DownloadableDataset):
 
 
 if __name__ == "__main__":
-    train_data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche")
+    from torch.utils.data.dataloader import DataLoader
+    import matplotlib.pyplot as plt
+    from torchvision import transforms
+    import torch
+    
+    #train_data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche")
+    data = EndlessCLSimDataset(scenario=None, download=False, root="/data/avalanche/IncrementalClasses_Classification",
+            transform=transforms.ToTensor())
+    
+    print("num subseqeunces: ", len(data.train_sub_sequence_datasets))
 
+    sub_sequence_index = 0
+    subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
+
+    print(f"num samples in subseqeunce {sub_sequence_index} = {len(subsequence)}")
+
+    dataloader = DataLoader(subsequence, batch_size=1)
+
+    for i, (img, target) in enumerate(dataloader):
+        print(i)
+        print(img.shape)
+        img = torch.squeeze(img)
+        img = transforms.ToPILImage()(img)
+        print(img.size)
+        #plt.imshow(img)
+        #plt.show()
+        break
     print("Done...")
+
+
+__all__ = [
+    'EndlessCLSimDataset'
+]

@@ -226,6 +226,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
         self.root.mkdir(parents=True, exist_ok=True)
         download_url(url, str(self.root), filename=file_name,
                      md5=checksum)
+        print("DEBUG: Download successfull")
         return self.root / file_name
 
     def _extract_archive(self,

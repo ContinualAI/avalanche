@@ -123,7 +123,7 @@ class CORe50Dataset(DownloadableDataset):
             if name[1].endswith('.zip'):
                 if self.verbose:
                     print(f'Extracting {name[0]}...')
-                self._extract_archive(file)
+                extract_root = self._extract_archive(file)
                 if self.verbose:
                     print('Extraction completed!')
 
