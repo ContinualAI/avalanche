@@ -13,8 +13,8 @@ from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
     benchmark_with_validation_stream
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_lazy_generic_benchmark
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheTensorDataset, \
-    AvalancheDatasetType
+from avalanche.benchmarks.utils import AvalancheDataset, \
+    AvalancheTensorDataset, AvalancheDatasetType
 from tests.unit_tests_utils import common_setups
 
 
