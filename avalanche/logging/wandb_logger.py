@@ -20,6 +20,7 @@ from avalanche.evaluation.metric_results import AlternativeValues, \
 from avalanche.logging import StrategyLogger
 import numpy as np
 import os
+import errno
 
 
 class WandBLogger(StrategyLogger):
