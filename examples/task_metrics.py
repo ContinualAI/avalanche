@@ -47,11 +47,14 @@ def main(args):
                           args.cuda >= 0 else "cpu")
     # ---------
 
-    tr_ds = [AvalancheTensorDataset(torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
-                                    task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
-    ts_ds = [AvalancheTensorDataset(torch.randn(10, 3), torch.randint(0,3,(10,)).tolist(),
-                                    task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
-    scenario = create_multi_dataset_generic_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
+    tr_ds = [AvalancheTensorDataset(
+        torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
+        task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
+    ts_ds = [AvalancheTensorDataset(
+        torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
+        task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
+    scenario = create_multi_dataset_generic_benchmark(
+        train_datasets=tr_ds, test_datasets=ts_ds)
     # ---------
 
     # MODEL CREATION
