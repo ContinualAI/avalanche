@@ -47,32 +47,15 @@ def main(args):
                           args.cuda >= 0 else "cpu")
     # ---------
 
-    # --- TRANSFORMATIONS
-    train_transform = transforms.Compose([
-        RandomCrop(28, padding=4),
-        ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    test_transform = transforms.Compose([
-        ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    # ---------
-
-    # --- SCENARIO CREATION
-    mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                        train=True, download=True, transform=train_transform)
-    mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                       train=False, download=True, transform=test_transform)
-    tr_ds = [AvalancheTensorDataset(torch.randn(10,7,3), torch.randint(0,3,(10,)).tolist(),
-                                    task_labels=torch.randint(0,5,(10,)).tolist()) for _ in range(3)]
-    ts_ds = [AvalancheTensorDataset(torch.randn(10,7,3), torch.randint(0,3,(10,)).tolist(),
-                                    task_labels=torch.randint(0,5,(10,)).tolist()) for _ in range(3)]
+    tr_ds = [AvalancheTensorDataset(torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
+                                    task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
+    ts_ds = [AvalancheTensorDataset(torch.randn(10, 3), torch.randint(0,3,(10,)).tolist(),
+                                    task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
     scenario = create_multi_dataset_generic_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=3)
+    model = SimpleMLP(num_classes=3, input_size=3)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
     # The evaluation plugin manages the metrics computation.
