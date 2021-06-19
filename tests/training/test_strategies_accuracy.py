@@ -81,7 +81,6 @@ class StrategyTest(unittest.TestCase):
         assert sum(main_metric.result().values()) / \
                float(len(main_metric.result().keys())) > 0.7
 
-
     def test_pnn(self):
         # check that pnn reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
