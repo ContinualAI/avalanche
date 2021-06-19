@@ -391,7 +391,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                               'sit.pickle'), 'rb') as f:
+                               'mt.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -516,7 +516,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                               'sit.pickle'), 'rb') as f:
+                               'tpp.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
     def metric_check(self, name):
