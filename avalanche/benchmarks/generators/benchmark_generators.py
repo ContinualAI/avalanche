@@ -335,6 +335,7 @@ dataset_benchmark = create_multi_dataset_generic_benchmark
 filelist_benchmark = create_generic_benchmark_from_filelists
 paths_benchmark = create_generic_benchmark_from_paths
 tensors_benchmark = create_generic_benchmark_from_tensor_lists
+lazy_benchmark = create_lazy_generic_benchmark
 
 
 def _one_dataset_per_exp_class_order(
