@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import random
 import pickle
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification
 from copy import deepcopy
@@ -13,6 +14,7 @@ from os.path import expanduser
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
     Forgetting
+import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torchvision import transforms
@@ -270,7 +272,8 @@ class PluginMetricTests(unittest.TestCase):
         # with open('sit.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open('sit.pickle', 'rb') as f:
+        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'sit.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -387,7 +390,8 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         # with open('mt.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open('mt.pickle', 'rb') as f:
+        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'sit.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -511,7 +515,8 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         # with open('tpp.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open('tpp.pickle', 'rb') as f:
+        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'sit.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
     def metric_check(self, name):
