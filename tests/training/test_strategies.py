@@ -39,7 +39,7 @@ class BaseStrategyTest(unittest.TestCase):
         scenario = get_fast_scenario()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        curve_key = 'Top1_Acc_Stream/eval_phase/train_stream'
+        curve_key = 'Top1_Acc_Stream/eval_phase/train_stream/Task000'
 
         ###################
         # Case #1: No eval
