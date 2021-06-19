@@ -246,10 +246,11 @@ def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
         associated task label.
     """
 
-    try:
-        task = strategy.experience.task_label
-    except (AttributeError, ValueError):
+    task = strategy.experience.task_labels
+    if len(task) > 1:
         task = None  # task labels per patterns
+    else:
+        task = task[0]
 
     if strategy.is_eval:
         return EVAL, task

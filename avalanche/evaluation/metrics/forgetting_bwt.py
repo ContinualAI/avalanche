@@ -534,8 +534,8 @@ class TaskForgetting(GenericTaskForgetting):
     """
     The Task Forgetting metric returns the amount of forgetting
     on each task separately. The task-wise forgetting is computed
-    as the difference between the accuracy when last training on the
-    task and the accuracy when last evaluating on the same task.
+    as the difference between the average accuracy when last training
+    on the task and the average accuracy when last evaluating on the same task.
 
     """
     def __init__(self):
