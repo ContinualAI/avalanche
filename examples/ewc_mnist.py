@@ -81,7 +81,6 @@ def main(args):
         print('Computing accuracy on the test set')
         results.append(strategy.eval(scenario.test_stream[:]))
 
-    #print(eval_plugin.get_all_metrics())
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -94,24 +94,24 @@ def main(args):
             stream=True),
         loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                      experience=True, stream=True),
-        # forgetting_metrics(experience=True, stream=True),
-        # bwt_metrics(experience=True, stream=True),
-        # cpu_usage_metrics(
-        #     minibatch=True, epoch=True, epoch_running=True,
-        #     experience=True, stream=True),
-        # timing_metrics(
-        #     minibatch=True, epoch=True, epoch_running=True,
-        #     experience=True, stream=True),
-        # ram_usage_metrics(
-        #     every=0.5, minibatch=True, epoch=True,
-        #     experience=True, stream=True),
-        # gpu_usage_metrics(
-        #     args.cuda, every=0.5, minibatch=True, epoch=True,
-        #     experience=True, stream=True),
-        # disk_usage_metrics(
-        #     minibatch=True, epoch=True, experience=True, stream=True),
-        # MAC_metrics(
-        #     minibatch=True, epoch=True, experience=True),
+        forgetting_metrics(experience=True, stream=True, task=True),
+        bwt_metrics(experience=True, stream=True, task=True),
+        cpu_usage_metrics(
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
+        timing_metrics(
+            minibatch=True, epoch=True, epoch_running=True,
+            experience=True, stream=True),
+        ram_usage_metrics(
+            every=0.5, minibatch=True, epoch=True,
+            experience=True, stream=True),
+        gpu_usage_metrics(
+            args.cuda, every=0.5, minibatch=True, epoch=True,
+            experience=True, stream=True),
+        disk_usage_metrics(
+            minibatch=True, epoch=True, experience=True, stream=True),
+        MAC_metrics(
+            minibatch=True, epoch=True, experience=True),
         loggers=[interactive_logger, text_logger, csv_logger],
         collect_all=True)  # collect all metrics (set to True by default)
 
