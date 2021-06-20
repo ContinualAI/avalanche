@@ -619,7 +619,10 @@ class BaseStrategy:
                 callback = getattr(plugin, disabled_callback_name)
                 callback_class = callback.__qualname__.split('.')[0]
                 if callback_class not in (
-                    "StrategyPlugin", "PluginMetric", "EvaluationPlugin"
+                    "StrategyPlugin",
+                    "PluginMetric",
+                    "EvaluationPlugin",
+                    "GenericPluginMetric",
                 ):
                     logger.warning(
                         f"{plugin.__class__.__name__} seems to use "
