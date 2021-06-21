@@ -22,10 +22,10 @@ from typing import Sequence, Optional, Dict, Union, Any, List, Callable, Set, \
 import torch
 
 from avalanche.benchmarks import GenericCLScenario, Experience, \
-    GenericExperience, GenericScenarioStream
+    GenericScenarioStream
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.generic_cl_scenario import StreamDef, \
-    TStreamsDict
+from avalanche.benchmarks.scenarios.generic_cl_scenario import \
+    TStreamsUserDict, StreamUserDef
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
     NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
@@ -494,7 +494,7 @@ def data_incremental_benchmark(
             fixed_size_experience_split_strategy, experience_size, shuffle,
             drop_last)
 
-    stream_definitions: TStreamsDict = dict(
+    stream_definitions: TStreamsUserDict = dict(
         benchmark_instance.stream_definitions)
 
     for stream_name in split_streams:
@@ -514,8 +514,10 @@ def data_incremental_benchmark(
             for _ in range(len(experiences)):
                 split_task_labels.append(set(exp.task_labels))
 
-        stream_def = StreamDef(split_datasets, split_task_labels,
-                               stream_definitions[stream_name].origin_dataset)
+        stream_def = StreamUserDef(
+            split_datasets, split_task_labels,
+            stream_definitions[stream_name].origin_dataset,
+            False)
 
         stream_definitions[stream_name] = stream_def
 
@@ -528,7 +530,8 @@ def data_incremental_benchmark(
 
 
 def random_validation_split_strategy(
-        validation_size: Union[int, float], shuffle: bool,
+        validation_size: Union[int, float],
+        shuffle: bool,
         experience: Experience):
     """
     The default splitting strategy used by
@@ -595,8 +598,10 @@ def benchmark_with_validation_stream(
         custom_split_strategy: Callable[[Experience],
                                         Tuple[AvalancheDataset,
                                               AvalancheDataset]] = None,
+        *,
         experience_factory: Callable[[GenericScenarioStream, int],
-                                     Experience] = None):
+                                     Experience] = None,
+        lazy_splitting: bool = None):
     """
     Helper that can be used to obtain a benchmark with a validation stream.
 
@@ -647,6 +652,10 @@ def benchmark_with_validation_stream(
         :func:`random_validation_split_strategy`.
     :param experience_factory: The experience factory. Defaults to
         :class:`GenericExperience`.
+    :param lazy_splitting: If True, the stream will be split in a lazy way.
+        If False, the stream will be split immediately. Defaults to None, which
+        means that the stream will be split in a lazy or non-lazy way depending
+        on the laziness of the `input_stream`.
     :return: A benchmark instance in which the validation stream has been added.
     """
 
@@ -656,7 +665,7 @@ def benchmark_with_validation_stream(
             random_validation_split_strategy, validation_size,
             shuffle)
 
-    stream_definitions: TStreamsDict = dict(
+    stream_definitions: TStreamsUserDict = dict(
         benchmark_instance.stream_definitions)
     streams = benchmark_instance.streams
 
@@ -682,12 +691,17 @@ def benchmark_with_validation_stream(
         split_task_labels.append(set(exp.task_labels))
 
     train_stream_def = \
-        StreamDef(split_train_datasets, split_task_labels,
-                  stream_definitions[input_stream].origin_dataset)
+        StreamUserDef(
+            split_train_datasets, split_task_labels,
+            stream_definitions[input_stream].origin_dataset,
+            False)
 
     valid_stream_def = \
-        StreamDef(split_valid_datasets, split_task_labels,
-                  stream_definitions[input_stream].origin_dataset)
+        StreamUserDef(
+            split_valid_datasets,
+            split_task_labels,
+            stream_definitions[input_stream].origin_dataset,
+            False)
 
     stream_definitions[input_stream] = train_stream_def
     stream_definitions[output_stream] = valid_stream_def

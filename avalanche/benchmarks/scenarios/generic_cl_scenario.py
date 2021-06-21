@@ -32,15 +32,16 @@ class StreamUserDef(NamedTuple):
     exps_data: TStreamDataOrigin
     exps_task_labels: TStreamTaskLabels = None
     origin_dataset: TOriginDataset = None
+    is_lazy: Optional[bool] = None
 
 
 TStreamUserDef = \
-    Union[Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset],
+    Union[Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset, bool],
+          Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset],
           Tuple[TStreamDataOrigin, TStreamTaskLabels],
           Tuple[TStreamDataOrigin]]
 
-
-TStreamsUserDict = Dict[str, TStreamUserDef]
+TStreamsUserDict = Dict[str, StreamUserDef]
 
 
 # The definitions used to store stream definitions
@@ -48,10 +49,10 @@ class StreamDef(NamedTuple):
     exps_data: LazyDatasetSequence
     exps_task_labels: Sequence[Set[int]]
     origin_dataset: TOriginDataset
+    is_lazy: bool
 
 
 TStreamsDict = Dict[str, StreamDef]
-
 
 STREAM_NAME_REGEX = re.compile('^[A-Za-z][A-Za-z_\\d]*$')
 
@@ -76,6 +77,7 @@ class GenericCLScenario(Generic[TExperience]):
     The name of custom streams can only contain letters, numbers or the "_"
     character and must not start with a number.
     """
+
     def __init__(self: TGenericCLScenario,
                  *,
                  stream_definitions: TStreamsUserDict,
@@ -133,7 +135,7 @@ class GenericCLScenario(Generic[TExperience]):
         """
 
         self.stream_definitions = \
-            self._check_stream_definitions(stream_definitions)
+            GenericCLScenario._check_stream_definitions(stream_definitions)
         """
         A structure containing the definition of the streams.
         """
@@ -169,7 +171,7 @@ class GenericCLScenario(Generic[TExperience]):
         """
         If True, only the complete test set will be returned from experience
         instances.
-        
+
         This flag is usually set to True in scenarios where having one separate
         test set aligned to each training experience is impossible or doesn't
         make sense from a semantic point of view.
@@ -314,7 +316,7 @@ class GenericCLScenario(Generic[TExperience]):
 
         class_set_future_exps = set()
         stream_n_exps = len(self.classes_in_experience[stream])
-        for exp_id in range(current_experience+1, stream_n_exps):
+        for exp_id in range(current_experience + 1, stream_n_exps):
             future_exp_classes = self.classes_in_experience[stream][exp_id]
             if future_exp_classes is None:
                 class_set_future_exps = None
@@ -345,8 +347,9 @@ class GenericCLScenario(Generic[TExperience]):
             stream_obj = GenericScenarioStream(stream_name, self)
             setattr(self, f'{stream_name}_stream', stream_obj)
 
+    @staticmethod
     def _check_stream_definitions(
-            self, stream_definitions: TStreamsUserDict) -> TStreamsDict:
+            stream_definitions: TStreamsUserDict) -> TStreamsDict:
         """
         A function used to check the input stream definitions.
 
@@ -366,23 +369,28 @@ class GenericCLScenario(Generic[TExperience]):
             raise ValueError('No test stream found!')
 
         for stream_name, stream_def in stream_definitions.items():
-            self._check_stream_name(stream_name)
-            stream_def = self._check_single_stream_def(stream_def)
+            GenericCLScenario._check_stream_name(stream_name)
+            stream_def = GenericCLScenario._check_and_adapt_user_stream_def(
+                stream_def, stream_name)
             streams_defs[stream_name] = stream_def
 
         return streams_defs
 
-    def _check_stream_name(self, stream_name: Any):
+    @staticmethod
+    def _check_stream_name(stream_name: Any):
         if not isinstance(stream_name, str):
             raise ValueError('Invalid type for stream name. Must be a "str"')
 
         if STREAM_NAME_REGEX.fullmatch(stream_name) is None:
             raise ValueError(f'Invalid name for stream {stream_name}')
 
-    def _check_single_stream_def(self, stream_def: TStreamUserDef) -> StreamDef:
+    @staticmethod
+    def _check_and_adapt_user_stream_def(
+            stream_def: TStreamUserDef, stream_name: str) -> StreamDef:
         exp_data = stream_def[0]
         task_labels = None
         origin_dataset = None
+        is_lazy = None
 
         if len(stream_def) > 1:
             task_labels = stream_def[1]
@@ -390,16 +398,44 @@ class GenericCLScenario(Generic[TExperience]):
         if len(stream_def) > 2:
             origin_dataset = stream_def[2]
 
-        if isinstance(exp_data, AvalancheDataset):
+        if len(stream_def) > 3:
+            is_lazy = stream_def[3]
+
+        if is_lazy or (isinstance(exp_data, tuple) and (is_lazy is None)):
+            # Creation based on a generator
+            if is_lazy:
+                # We also check for LazyDatasetSequence, which is sufficient
+                # per se (only if is_lazy==True, otherwise is treated as a
+                # standard Sequence)
+                if not isinstance(exp_data, LazyDatasetSequence):
+                    if (not isinstance(exp_data, tuple)) or \
+                            (not len(exp_data) == 2):
+                        raise ValueError(
+                            f'The stream {stream_name} was flagged as '
+                            f'lazy-generated but its definition is not a '
+                            f'2-elements tuple (generator and stream length).')
+            else:
+                if (not len(exp_data) == 2) or \
+                        (not isinstance(exp_data[1], int)):
+                    raise ValueError(
+                        f'The stream {stream_name} was detected '
+                        f'as lazy-generated but its definition is not a '
+                        f'2-elements tuple. If you\'re trying to define a '
+                        f'non-lazily generated stream, don\'t use a tuple '
+                        f'when passing the list of datasets, use a list '
+                        f'instead.')
+
+            if isinstance(exp_data, LazyDatasetSequence):
+                stream_length = len(exp_data)
+            else:
+                # exp_data[0] must contain the generator
+                stream_length = exp_data[1]
+            is_lazy = True
+        elif isinstance(exp_data, AvalancheDataset):
             # Single element
             exp_data = [exp_data]
             is_lazy = False
             stream_length = 1
-        elif isinstance(exp_data, tuple):
-            # Creation based on a generator
-            # exp_data[0] must contain the generator
-            stream_length = exp_data[1]
-            is_lazy = True
         else:
             # Standard def
             stream_length = len(exp_data)
@@ -438,7 +474,10 @@ class GenericCLScenario(Generic[TExperience]):
                 f'labels for {len(task_labels)} experiences are given.')
 
         if is_lazy:
-            lazy_sequence = LazyDatasetSequence(exp_data[0], stream_length)
+            if isinstance(exp_data, LazyDatasetSequence):
+                lazy_sequence = exp_data
+            else:
+                lazy_sequence = LazyDatasetSequence(exp_data[0], stream_length)
         else:
             lazy_sequence = LazyDatasetSequence(exp_data, stream_length)
             lazy_sequence.load_all_experiences()
@@ -446,7 +485,8 @@ class GenericCLScenario(Generic[TExperience]):
         return StreamDef(
             lazy_sequence,
             task_labels,
-            origin_dataset)
+            origin_dataset,
+            is_lazy)
 
 
 class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
@@ -767,6 +807,9 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
 
 __all__ = [
+    'StreamUserDef',
+    'TStreamUserDef',
+    'TStreamsUserDict',
     'StreamDef',
     'TStreamsDict',
     'TGenericCLScenario',
