@@ -150,7 +150,6 @@ class VideoSubSequence(Dataset):
             label_name = self._get_label_name(unique_label)
             class_label = self.classmap[label_name]
             # Convert instance label to object class label
-            print("converting", unique_label, "to", class_label)
             target[target == unique_label] = class_label
         return target
 
@@ -492,7 +491,6 @@ class EndlessCLSimDataset(DownloadableDataset):
     def _load_metadata(self) -> bool:
         # If a 'named'-scenario has been selected
         if self.scenario is not None:
-            print("using named scenario")
             # Get data name
             scenario_data_name = self._get_scenario_data()
             scenario_data_name = scenario_data_name[0].split(".")[0]
@@ -509,7 +507,6 @@ class EndlessCLSimDataset(DownloadableDataset):
                                 "Two directories match the selected scenario!")
                         match_path = str(self.root / name)
 
-            print("match_path:", match_path)
             if match_path is None:
                 return False
 
@@ -518,7 +515,6 @@ class EndlessCLSimDataset(DownloadableDataset):
                     self._prepare_classification_subsequence_datasets(
                         match_path)
             else:
-                print("preparing video..")
                 is_subsequence_preparation_done = \
                     self._prepare_video_subsequence_datasets(match_path)
 
@@ -534,7 +530,6 @@ class EndlessCLSimDataset(DownloadableDataset):
                 self._prepare_classification_subsequence_datasets(
                     str(self.root))
         else:
-            print("preparing video..")
             is_subsequence_preparation_done = \
                 self._prepare_video_subsequence_datasets(
                     str(self.root))
@@ -575,10 +570,13 @@ if __name__ == "__main__":
     _default_transform = transforms.Compose([
         transforms.ToTensor()])
 
-    data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
+    # data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
+    #                           semseg=True, transform=_default_transform)
+    data = EndlessCLSimDataset(scenario=None, download=False, 
+                               root="/data/avalanche/IncrementalClasses_Video",
                                semseg=True, transform=_default_transform)
 
-    print("num subseqeunces: ", len(data.train_sub_sequence_datasets))
+    print("num subseqeunces:", len(data.train_sub_sequence_datasets))
 
     sub_sequence_index = 0
     subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
