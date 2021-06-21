@@ -16,8 +16,9 @@ the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
 from functools import partial
+from itertools import tee
 from typing import Sequence, Optional, Dict, Union, Any, List, Callable, Set, \
-    Tuple
+    Tuple, Iterable, Generator
 
 import torch
 
@@ -589,6 +590,44 @@ def random_validation_split_strategy(
     return result_train_dataset, result_valid_dataset
 
 
+def _gen_split(split_generator: Iterable[Tuple[AvalancheDataset,
+                                               AvalancheDataset]]) -> \
+    Tuple[Generator[AvalancheDataset, None, None],
+          Generator[AvalancheDataset, None, None]]:
+    """
+    Internal utility function to split the train-validation generator
+    into two distinct generators (one for the train stream and another one
+    for the valid stream).
+
+    :param split_generator: The lazy stream generator returning tuples of train
+        and valid datasets.
+    :return: Two generators (one for the train, one for the valuid).
+    """
+
+    # For more info: https://stackoverflow.com/a/28030261
+    gen_a, gen_b = tee(split_generator, 2)
+    return (a for a, b in gen_a), (b for a, b in gen_b)
+
+
+def _lazy_train_val_split(
+        split_strategy: Callable[[Experience],
+                                 Tuple[AvalancheDataset, AvalancheDataset]],
+        experiences: Iterable[Experience]) -> \
+        Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+    """
+    Creates a generator operating around the split strategy and the
+    experiences stream.
+
+    :param split_strategy: The strategy used to split each experience in train
+        and validation datasets.
+    :return: A generator returning a 2 elements tuple (the train and validation
+        datasets).
+    """
+
+    for new_experience in experiences:
+        yield split_strategy(new_experience)
+
+
 def benchmark_with_validation_stream(
         benchmark_instance: GenericCLScenario,
         validation_size: Union[int, float],
@@ -624,12 +663,12 @@ def benchmark_with_validation_stream(
     The `custom_split_strategy` parameter can be used if a more specific
     splitting is required.
 
-    Beware that experience splitting is NOT executed in a lazy way. This
-    means that the splitting process takes place immediately. This is usually
-    fast even for streams with many experiences.
-
-    Please note that the resulting experiences will have a task  labels field
+    Please note that the resulting experiences will have a task labels field
     equal to the one of the originating experience.
+
+    Experience splitting can be executed in a lazy way. This behavior can be
+    controlled using the `lazy_splitting` parameter. By default, experiences
+    are split in a lazy way only when the input stream is lazily generated.
 
     :param benchmark_instance: The benchmark to split.
     :param validation_size: The size of the validation experience, as an int
@@ -679,29 +718,44 @@ def benchmark_with_validation_stream(
 
     stream = streams[input_stream]
 
-    split_train_datasets: List[AvalancheDataset] = []
-    split_valid_datasets: List[AvalancheDataset] = []
-    split_task_labels: List[Set[int]] = []
+    split_lazily = lazy_splitting
+    if split_lazily is None:
+        split_lazily = stream_definitions[input_stream].is_lazy
 
-    exp: Experience
-    for exp in stream:
-        train_exp, valid_exp = split_strategy(exp)
-        split_train_datasets.append(train_exp)
-        split_valid_datasets.append(valid_exp)
-        split_task_labels.append(set(exp.task_labels))
+    exps_tasks_labels = list(
+        stream_definitions[input_stream].exps_task_labels
+    )
+
+    if not split_lazily:
+        # Classic static splitting
+        train_exps_source = []
+        valid_exps_source = []
+
+        exp: Experience
+        for exp in stream:
+            train_exp, valid_exp = split_strategy(exp)
+            train_exps_source.append(train_exp)
+            valid_exps_source.append(valid_exp)
+    else:
+        # Lazy splitting (based on a generator)
+        split_generator = _lazy_train_val_split(split_strategy, stream)
+        train_exps_gen, valid_exps_gen = _gen_split(split_generator)
+        train_exps_source = (train_exps_gen, len(stream))
+        valid_exps_source = (valid_exps_gen, len(stream))
 
     train_stream_def = \
         StreamUserDef(
-            split_train_datasets, split_task_labels,
+            train_exps_source,
+            exps_tasks_labels,
             stream_definitions[input_stream].origin_dataset,
-            False)
+            split_lazily)
 
     valid_stream_def = \
         StreamUserDef(
-            split_valid_datasets,
-            split_task_labels,
+            valid_exps_source,
+            exps_tasks_labels,
             stream_definitions[input_stream].origin_dataset,
-            False)
+            split_lazily)
 
     stream_definitions[input_stream] = train_stream_def
     stream_definitions[output_stream] = valid_stream_def
