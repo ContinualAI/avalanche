@@ -12,7 +12,9 @@
 
 """
 This example makes use of the Endless-Continual-Learning-Simulator's derived 
-dataset scenario, trained with a Naive strategy.
+dataset scenario, trained with a Naive strategy. The default scenario is an
+incremental classification learning setting ('scenario = Classes'), however
+also the 'Illumination' and 'Weather' learning scenarios can be selected.
 """
 
 

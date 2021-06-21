@@ -109,9 +109,20 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         """
         Creates an instance of the Endless-Continual-Leanring-Simulator Dataset.
+        This dataset is able to download and prepare datasets derived from the Endless-Continual-Learning
+        Simulator, including settings of incremental classes, decrasing illumination, and 
+        shifting weather conditions, as described in the paper
+        A Procedural World Generation Framework for Systematic Evaluation of 
+        Continual Learning (https://arxiv.org/abs/2106.02585).
+        Also custom datasets are supported when following the same structure. Such can
+        be obtained from the Endless-CL-Simulator standalone application (https://zenodo.org/record/4899294).
 
-
-        Note: For video sequences currently only one sequence per dataset is supported!
+        Please note:
+        1) The EndlessCLSimDataset does not provide examples directly, but 
+        SubseqeunceDatasets (ClassificationSubSequence, VideoSubSequence). Each 
+        SubSeqeunceDataset will contain the samples for one respective sub sequence. 
+        
+        2) For video sequences currently only one sequence per dataset is supported!
 
         :param root: root for the datasets data. Defaults to None, which means
         that the default location for 'endless-cl-sim' will be used.
@@ -126,7 +137,7 @@ class EndlessCLSimDataset(DownloadableDataset):
         :param target_transform: optional transformations to be applied to the targets.
         :param download: boolean to automatically download data. 
             Defaults to True.
-        :param semseg: boolean to use targets for a semantic segmentation task. 
+        :param semseg: boolean to indicate the use of targets for a semantic segmentation task. 
             Defaults to False.
         :param labelmap: dictionary mapping 'class-names'(str) to class-labels(int). 
             The 'class-names' are derived from the sub-directory names for each subsequence.
@@ -155,7 +166,9 @@ class EndlessCLSimDataset(DownloadableDataset):
 
     def _get_scenario_data(self):
         """
-        # TODO:
+        Returns:
+            tuple: ("DataName.zip", "download-url", "MD5-checksum") of a derived data
+            to be used, as defined in endless_cl_sim_data.py
         """
         data = endless_cl_sim_data.data
         # Video data
@@ -178,7 +191,11 @@ class EndlessCLSimDataset(DownloadableDataset):
         
     def _prepare_classification_subsequence_datasets(self, path) -> bool:
         """
-        # TODO:
+        Args:
+            path (str): Path to the root of the data to be loaded.
+
+        Returns:
+            success (bool): Boolean wether the preparation was successfull.
         """
         # Get sequence dirs
         sequence_paths = glob.glob(path + os.path.sep + "*" + os.path.sep)
@@ -229,7 +246,11 @@ class EndlessCLSimDataset(DownloadableDataset):
 
     def _prepare_video_subsequence_datasets(self, path) -> bool:
         """
-        # TODO:
+        Args:
+            path (str): Path to the root of the data to be loaded.
+
+        Returns:
+            success (bool): Boolean wether the preparation was successfull.
         """
         # Get sequence dirs
         sequence_paths = glob.glob(path + os.path.sep + "*" + os.path.sep)
@@ -309,14 +330,16 @@ class EndlessCLSimDataset(DownloadableDataset):
 
     def __getitem__(self, index):
         """
-        # TODO:
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (TrainSubSeqeunceDataset, TestSubSeqeunceDataset), the i-th subsequence
+            data, as requested by the provided index.
         """
         return self.train_sub_sequence_datasets[index], self.test_sub_sequence_datasets[index]
 
     def __len__(self):
-        """
-        # TODO:
-        """
         return len(self.train_sub_sequence_datasets)
 
     def _download_dataset(self)->None:
