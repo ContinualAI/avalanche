@@ -14,22 +14,28 @@
 
 data = [
     ("IncrementalClasses_Classification.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalClasses_Classification.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalClasses_Classification.zip",
      "8f53c18e46de35ba375d6ed8fced5d47"),
     ("IncrementalLighting_Classification.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalLighting_Classification.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalLighting_Classification.zip",
      "61a36070d6aae926ef3d121fd17ec501"),
     ("IncrementalWeather_Classification.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalWeather_Classification.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalWeather_Classification.zip",
      "60e1a0d50b0091e16424d8e88ae2a2a2"),
     ("IncrementalClasses_Video.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalClasses_Video.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalClasses_Video.zip",
      "d354832d0004e16a429f2231f79a4c40"),
     ("IncrementalLighting_Video.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalLighting_Video.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalLighting_Video.zip",
      "a7cf1914fd6548e57ab268820045f19b"),
     ("IncrementalWeather_Video.zip",
-     "https://zenodo.org/record/4899267/files/IncrementalWeather_Video.zip",
+     "https://zenodo.org/record/4899267/files/\
+         IncrementalWeather_Video.zip",
      "5fc0718e06faa36da94adefb7e29ac0f")
 ]
 

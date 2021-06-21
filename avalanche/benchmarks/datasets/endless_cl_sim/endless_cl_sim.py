@@ -58,7 +58,7 @@ class ClassificationSubSequence(Dataset):
 
         img = self.transform(img)
 
-        if not self.target_transform is None:
+        if self.target_transform is not None:
             target = self.target_transform(target)
 
         return img, target
@@ -185,38 +185,44 @@ class EndlessCLSimDataset(DownloadableDataset):
             labelmap=None):
         """
         Creates an instance of the Endless-Continual-Leanring-Simulator Dataset.
-        This dataset is able to download and prepare datasets derived from the Endless-Continual-Learning
-        Simulator, including settings of incremental classes, decrasing illumination, and 
-        shifting weather conditions, as described in the paper
-        A Procedural World Generation Framework for Systematic Evaluation of 
-        Continual Learning (https://arxiv.org/abs/2106.02585).
-        Also custom datasets are supported when following the same structure. Such can
-        be obtained from the Endless-CL-Simulator standalone application (https://zenodo.org/record/4899294).
+        This dataset is able to download and prepare datasets derived from the 
+        Endless-Continual-Learning Simulator, including settings of incremental 
+        classes, decrasing illumination, and shifting weather conditions, as 
+        described in the paper A Procedural World Generation Framework for 
+        Systematic Evaluation of Continual Learning 
+        (https://arxiv.org/abs/2106.02585). Also custom datasets are supported 
+        when following the same structure. Such can be obtained from the 
+        Endless-CL-Simulator standalone application 
+        (https://zenodo.org/record/4899294).
 
         Please note:
         1) The EndlessCLSimDataset does not provide examples directly, but 
         SubseqeunceDatasets (ClassificationSubSequence, VideoSubSequence). Each 
-        SubSeqeunceDataset will contain the samples for one respective sub sequence. 
+        SubSeqeunceDataset will contain the samples for one respective sub 
+        sequence. 
 
-        2) For video sequences currently only one sequence per dataset is supported!
+        2) For video sequences currently only one sequence per dataset is 
+        supported!
 
         :param root: root for the datasets data. Defaults to None, which means
         that the default location for 'endless-cl-sim' will be used.
-        :param scenario: identifier for the dataset to be used. Predefined options 
-            are 'Classes', for incremental classes scenario, 'Illumination', for the 
-            decreasing lighting scenario, and 'Weather', for the scenario of
-            shifting weather conditions. 
-            To load a custom (non-predefined/downloadable) dataset, the identifier
-            needs to be set to None.
-            Defaults to None.
-        :param transform: optional transformations to be applied to the image data.
-        :param target_transform: optional transformations to be applied to the targets.
+        :param scenario: identifier for the dataset to be used. 
+        Predefined options are 'Classes', for incremental classes scenario, 
+            'Illumination', for the decreasing lighting scenario, 
+            and 'Weather', for the scenario of shifting weather conditions.
+            To load a custom (non-predefined/downloadable) dataset, the 
+            identifier needs to be set to None. Defaults to None.
+        :param transform: optional transformations to be applied to the image 
+            data.
+        :param target_transform: optional transformations to be applied to the 
+            targets.
         :param download: boolean to automatically download data. 
             Defaults to True.
-        :param semseg: boolean to indicate the use of targets for a semantic segmentation task. 
-            Defaults to False.
-        :param labelmap: dictionary mapping 'class-names'(str) to class-labels(int). 
-            The 'class-names' are derived from the sub-directory names for each subsequence.
+        :param semseg: boolean to indicate the use of targets for a 
+            semantic segmentation task. Defaults to False.
+        :param labelmap: dictionary mapping 'class-names'(str) to 
+            class-labels(int). The 'class-names' are derived from the 
+            sub-directory names for each subsequence.
         """
 
         if root is None:
@@ -243,8 +249,8 @@ class EndlessCLSimDataset(DownloadableDataset):
     def _get_scenario_data(self):
         """
         Returns:
-            tuple: ("DataName.zip", "download-url", "MD5-checksum") of a derived data
-            to be used, as defined in endless_cl_sim_data.py
+            tuple: ("DataName.zip", "download-url", "MD5-checksum") of a 
+            derived data to be used, as defined in endless_cl_sim_data.py
         """
         data = endless_cl_sim_data.data
         # Video data
@@ -287,35 +293,44 @@ class EndlessCLSimDataset(DownloadableDataset):
 
                 # Get class dirs
                 class_name_dirs = [f.name for f
-                                   in os.scandir(sub_sequence_path + os.path.sep) if f.is_dir()]
+                                   in os.scandir(
+                                       sub_sequence_path + os.path.sep) 
+                                   if f.is_dir()]
 
                 # Load file_paths and targets
                 for class_name in class_name_dirs:
                     try:
-                        label = endless_cl_sim_data.default_classification_labelmap[class_name]
-                    except:
+                        label = endless_cl_sim_data.\
+                            default_classification_labelmap[class_name]
+                    except Exception:
                         ValueError(
-                            f"{class_name} is not part of the provided labelmap!")
+                            f"{class_name} is not part of the provided \
+                            labelmap!")
                     class_path = sub_sequence_path + class_name + os.path.sep
                     for file_name in os.listdir(class_path):
                         image_paths.append(class_path + file_name)
                         targets.append(label)
 
                 # Create sub-sequence dataset
-                subseqeunce_dataset = ClassificationSubSequence(image_paths, targets, 
-                                                                transform=self.transform, target_transform=self.target_transform)
+                subseqeunce_dataset = ClassificationSubSequence(
+                        image_paths, targets, 
+                        transform=self.transform, 
+                        target_transform=self.target_transform)
                 if "train" in (sequence_path.lower()):
                     self.train_sub_sequence_datasets.append(subseqeunce_dataset)
                 elif "test" in (sequence_path.lower()):
                     self.test_sub_sequence_datasets.append(subseqeunce_dataset)
                 else:
                     raise ValueError(
-                        "Sequence path contains neighter 'train' not 'test' identifier!")
+                        "Sequence path contains neighter 'train' nor \
+                            'test' identifier!")
 
         # Check number of train and test subsequence datasets are equal
         if self.verbose:
-            print("Num train subsequences:", len(self.train_sub_sequence_datasets),
-                  "Num test subsequences:", len(self.test_sub_sequence_datasets))
+            print("Num train subsequences:", 
+                  len(self.train_sub_sequence_datasets),
+                  "Num test subsequences:", 
+                  len(self.test_sub_sequence_datasets))
         assert(len(self.train_sub_sequence_datasets)
                == len(self.test_sub_sequence_datasets))
 
@@ -365,14 +380,16 @@ class EndlessCLSimDataset(DownloadableDataset):
                     if "Color" == dir_name:
                         print("Color dir found!")
                         # Extend color path
-                        color_path = data_content + os.path.sep + "0" + os.path.sep
+                        color_path = data_content + os.path.sep + "0" +\
+                            os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(color_path)):
                             image_paths.append(color_path + file_name)
                     elif "Seg" == dir_name:
                         print("Seg dir found")
                         # Extend seg path
-                        seg_path = data_content + os.path.sep + "0" + os.path.sep
+                        seg_path = data_content + os.path.sep + "0" +\
+                            os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(seg_path)):
                             target_paths.append(seg_path + file_name)
@@ -424,17 +441,20 @@ class EndlessCLSimDataset(DownloadableDataset):
                        len(target_subsequence_paths))
 
                 # Create subsequence dataset
-                subsequence_dataset = VideoSubSequence(image_subsequence_paths, 
-                                                       target_subsequence_paths,
-                                                       segmentation_file, transform=self.transform,
-                                                       target_transform=self.target_transform)
+                subsequence_dataset = \
+                    VideoSubSequence(image_subsequence_paths, 
+                                     target_subsequence_paths,
+                                     segmentation_file, 
+                                     transform=self.transform,
+                                     target_transform=self.target_transform)
                 if "train" in (sequence_path.lower()):
                     self.train_sub_sequence_datasets.append(subsequence_dataset)
                 elif "test" in (sequence_path.lower()):
                     self.test_sub_sequence_datasets.append(subsequence_dataset)
                 else:
                     raise ValueError(
-                        "Sequence path contains neighter 'train' nor 'test' identifiers!")
+                        "Sequence path contains neighter 'train' nor \
+                             'test' identifiers!")
 
         print("train sets:", len(self.train_sub_sequence_datasets))
         print("test sets:", len(self.test_sub_sequence_datasets))
@@ -446,10 +466,11 @@ class EndlessCLSimDataset(DownloadableDataset):
             index (int): Index
 
         Returns:
-            tuple: (TrainSubSeqquenceDataset, TestSubSequenceDataset), the i-th subsequence
-            data, as requested by the provided index.
+            tuple: (TrainSubSeqquenceDataset, TestSubSequenceDataset), 
+            the i-th subsequence data, as requested by the provided index.
         """
-        return self.train_sub_sequence_datasets[index], self.test_sub_sequence_datasets[index]
+        return self.train_sub_sequence_datasets[index], \
+            self.test_sub_sequence_datasets[index]
 
     def __len__(self):
         return len(self.train_sub_sequence_datasets)
@@ -484,7 +505,7 @@ class EndlessCLSimDataset(DownloadableDataset):
 
     def _load_metadata(self) -> bool:
         # If a 'named'-scenario has been selected
-        if not self.scenario is None:
+        if self.scenario is not None:
             print("using named scenario")
             # Get data name
             scenario_data_name = self._get_scenario_data()
@@ -497,7 +518,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 if str(scenario_data_name) == str(name):
                     # Check there is such a directory
                     if (self.root / name).exists():
-                        if not match_path is None:
+                        if match_path is not None:
                             raise ValueError(
                                 "Two directories match the selected scenario!")
                         match_path = str(self.root / name)
@@ -507,12 +528,13 @@ class EndlessCLSimDataset(DownloadableDataset):
                 return False
 
             if not self.semseg:     
-                is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(
-                    match_path)
+                is_subsequence_preparation_done = \
+                    self._prepare_classification_subsequence_datasets(
+                        match_path)
             else:
                 print("preparing video..")
-                is_subsequence_preparation_done = self._prepare_video_subsequence_datasets(
-                    match_path)
+                is_subsequence_preparation_done = \
+                    self._prepare_video_subsequence_datasets(match_path)
 
             if is_subsequence_preparation_done and self.verbose:
                 print("Data is loaded..")
@@ -522,12 +544,14 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         # If a 'generic'-endless-cl-sim-scenario has been selected
         if not self.semseg:
-            is_subsequence_preparation_done = self._prepare_classification_subsequence_datasets(
-                str(self.root))
+            is_subsequence_preparation_done = \
+                self._prepare_classification_subsequence_datasets(
+                    str(self.root))
         else:
             print("preparing video..")
-            is_subsequence_preparation_done = self._prepare_video_subsequence_datasets(
-                str(self.root))
+            is_subsequence_preparation_done = \
+                self._prepare_video_subsequence_datasets(
+                    str(self.root))
 
         if is_subsequence_preparation_done and self.verbose:
             print("Data is loaded...")
@@ -567,8 +591,6 @@ if __name__ == "__main__":
 
     data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
                                semseg=True, transform=_default_transform)
-    # data = EndlessCLSimDataset(scenario=None, download=False, root="/data/avalanche/IncrementalClasses_Classification",
-    #        transform=transforms.ToTensor())
 
     print("num subseqeunces: ", len(data.train_sub_sequence_datasets))
 
@@ -576,7 +598,8 @@ if __name__ == "__main__":
     subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
 
     print(
-        f"num samples in subseqeunce {sub_sequence_index} = {len(subsequence)}")
+        f"num samples in subseqeunce {sub_sequence_index} \
+            = {len(subsequence)}")
 
     dataloader = DataLoader(subsequence, batch_size=1)
 

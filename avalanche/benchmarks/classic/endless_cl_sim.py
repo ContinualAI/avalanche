@@ -10,25 +10,27 @@
 ################################################################################
 
 """
-This module contains the high-level EndlessCLSim scenario generator. It returns an
-iterable scenario object ``GenericCLScenario`` given a number of configuration
-parameters.
+This module contains the high-level EndlessCLSim scenario 
+generator. It returns an iterable scenario object 
+``GenericCLScenario`` given a number of configuration parameters.
 """
 
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDataset
-from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim import EndlessCLSimDataset
+from avalanche.benchmarks.utils.avalanche_dataset \
+    import AvalancheDataset
+from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim\
+    import EndlessCLSimDataset
 from pathlib import Path
 from typing import List, Union, Optional, Any
 
 from torchvision.transforms import ToTensor
 from torchvision.transforms.transforms import Compose
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
-from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.classic.classic_benchmarks_utils \
+    import check_vision_benchmark
+from avalanche.benchmarks.datasets import \
+    default_dataset_location
 from avalanche.benchmarks.generators import dataset_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
-from avalanche.benchmarks.datasets.endless_cl_sim import endless_cl_sim
 
 _default_transform = Compose([
     ToTensor()
@@ -48,43 +50,51 @@ def EndlessCLSim(
         dataset_root: Union[str, Path] = None,
         semseg=False):
     """ 
-    Creates a CL scenario for the Endless-Continual-Learning Simulator's derived datasets,
-    which are available at: https://zenodo.org/record/4899267, or custom datasets
-    created from the Endless-Continual-Learning-Simulator's standalone application,
+    Creates a CL scenario for the Endless-Continual-Learning Simulator's 
+    derived datasets, which are available at: 
+    https://zenodo.org/record/4899267, or custom datasets created from 
+    the Endless-Continual-Learning-Simulator's standalone application, 
     available at: https://zenodo.org/record/4899294. 
-    Both are part of the publication of `A Procedural World Generation Framework 
-    for Systematic Evaluation of Continual Learning`(https://arxiv.org/abs/2106.02585).
+    Both are part of the publication of `A Procedural World Generation 
+    Framework for Systematic Evaluation of Continual Learning 
+    (https://arxiv.org/abs/2106.02585).
 
-    If the dataset is not present in the computer, this method will
+    If the dataset is not present in the computer, this method will 
     automatically download and store it.
 
     All generated scenarios make use of 'task labels'. We regard a full dataset
-    as one learning 'sequence', aligned to the terminology in the above paper, with
-    'subseqeunces' being the iterative learning tasks. Each subsequence is realized 
-    as one `AvalancheDataset` with ordering inforaced by task labels.
+    as one learning 'sequence', aligned to the terminology in the above paper,
+    with 'subseqeunces' being the iterative learning tasks. Each subsequence 
+    is realized as one `AvalancheDataset` with ordering inforaced by task 
+    labels.
 
     :param scenario: Available, predefined, learning scenarios are:
-        'Classes': An learning scenario based on incremental availability of object 
-        class examples,
-        'Illumination': A learning scenario based on iteratively decreasing scene illumination.
-        'Weather': A learning scenario based on iteratively shifting weather conditions.
-    :param patch_size: The dimension of the image-patches. Int in the case of image-patch
-            classification, because the image-patches need to be quadratic. Tupel of integers
-            for image segmentation tasks.
+        'Classes': An learning scenario based on incremental availability of 
+        object class examples,
+        'Illumination': A learning scenario based on iteratively decreasing 
+        scene illumination.
+        'Weather': A learning scenario based on iteratively shifting weather 
+        conditions.
+    :param patch_size: The dimension of the image-patches. Int in the case of 
+            image-patch classification, because the image-patches need to be 
+            quadratic. Tupel of integers for image segmentation tasks.
     :param sequence_order: List of intergers indexing the subseqeunces, 
-            enables reordering of the subseqeunces, especially subseqeunces can be
-            omitted. Defaults to None, loading subsequences in their original order.
-    :param task_order: List of intergers, assigning task labels to each respective 
-            subseqeunce.
+            enables reordering of the subseqeunces, especially subseqeunces can
+            be omitted. Defaults to None, loading subsequences in their 
+            original order.
+    :param task_order: List of intergers, assigning task labels to each 
+            respective subseqeunce.
     :param train_transform: The transformation to apply to the training data.
-            Defaults to `_default_transform`, i.e. conversion ToTensor of torchvision.
+            Defaults to `_default_transform`, i.e. conversion ToTensor of 
+            torchvision.
     :param eval_transform: The transformation to apply to the eval data.
-            Defaults to `_default_transform`, i.e. conversion ToTensor of torchvision.
+            Defaults to `_default_transform`, i.e. conversion ToTensor of 
+            torchvision.
     :param dataset_root: Absolute path indicating where to stroe the dataset.
-            Defaults to None, which means the default location for 'endless-cl-sim'
-            will be used.
-    :param semseg: boolean to indicate the use of targets for a semantic segmentation task. 
-            Defaults to False.
+            Defaults to None, which means the default location for 
+            'endless-cl-sim' will be used.
+    :param semseg: boolean to indicate the use of targets for a semantic 
+            segmentation task. Defaults to False.
 
     :returns: A properly initialized :class:`EndlessCLSim` instance.
     """
@@ -100,8 +110,10 @@ def EndlessCLSim(
 
     # Download and prepare the dataset
     endless_cl_sim_dataset = EndlessCLSimDataset(root=dataset_root, 
-                                                 scenario=scenario, transform=None, 
-                                                 download=True, semseg=semseg)
+                                                 scenario=scenario, 
+                                                 transform=None, 
+                                                 download=True, 
+                                                 semseg=semseg)
 
     # Default sequence_order if None
     if sequence_order is None:
