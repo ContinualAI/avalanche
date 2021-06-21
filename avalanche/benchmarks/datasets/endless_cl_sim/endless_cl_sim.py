@@ -363,8 +363,6 @@ class EndlessCLSimDataset(DownloadableDataset):
         for sequence_path in sequence_paths:
             # Get dir contents (data + files)
             data_contents = glob.glob(sequence_path + os.path.sep + "*")
-            print("data_contents:")
-            print(data_contents)
 
             image_paths = []
             target_paths = []
@@ -375,10 +373,8 @@ class EndlessCLSimDataset(DownloadableDataset):
             for data_content in data_contents:
                 # If directory
                 if Path(data_content).is_dir():
-                    print(data_content, "is dir")
                     dir_name = data_content.split(os.path.sep)[-1]
                     if "Color" == dir_name:
-                        print("Color dir found!")
                         # Extend color path
                         color_path = data_content + os.path.sep + "0" +\
                             os.path.sep
@@ -386,7 +382,6 @@ class EndlessCLSimDataset(DownloadableDataset):
                         for file_name in sorted(os.listdir(color_path)):
                             image_paths.append(color_path + file_name)
                     elif "Seg" == dir_name:
-                        print("Seg dir found")
                         # Extend seg path
                         seg_path = data_content + os.path.sep + "0" +\
                             os.path.sep
@@ -396,13 +391,10 @@ class EndlessCLSimDataset(DownloadableDataset):
 
                 # If file
                 if Path(data_content).is_file():
-                    print(data_content, "is file")
                     if "Sequence.json" in data_content:
                         sequence_file = data_content
-                        print("Sequence file found!")
                     elif "Segmentation.json" in data_content:
                         segmentation_file = data_content
-                        print("Segmentation file found!")
 
             # Final checks
             if not len(image_paths) == len(target_paths):
@@ -424,10 +416,7 @@ class EndlessCLSimDataset(DownloadableDataset):
             if self.verbose:
                 print("Seqeunce file loaded..")
 
-            print("Sequnce indeices:", sequence_indices)
-
             for i in range(len(sequence_indices)):
-                print("subsequence index:", i)
                 last_index = sequence_indices[i]
                 if (i+1) == len(sequence_indices):
                     next_index = len(image_paths)
@@ -455,9 +444,6 @@ class EndlessCLSimDataset(DownloadableDataset):
                     raise ValueError(
                         "Sequence path contains neighter 'train' nor \
                              'test' identifiers!")
-
-        print("train sets:", len(self.train_sub_sequence_datasets))
-        print("test sets:", len(self.test_sub_sequence_datasets))
         return True
 
     def __getitem__(self, index):
