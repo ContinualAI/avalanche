@@ -15,7 +15,8 @@ them fit your needs, then the helper functions here listed may help.
 """
 
 from pathlib import Path
-from typing import Sequence, Union, Any, Tuple, Dict, Optional
+from typing import Sequence, Union, Any, Tuple, Dict, Optional, Iterable, \
+    NamedTuple
 
 from avalanche.benchmarks.utils import AvalancheTensorDataset, \
     SupportedDataset, AvalancheDataset, FilelistDataset, \
@@ -60,8 +61,7 @@ def create_multi_dataset_generic_benchmark(
     :param complete_test_set_only: If True, only the complete test set will
         be returned by the scenario. This means that the ``test_dataset_list``
         parameter must be list with a single element (the complete test set).
-        Defaults to False, which means that ``train_dataset_list`` and
-        ``test_dataset_list`` must contain the same amount of datasets.
+        Defaults to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -142,6 +142,193 @@ def create_multi_dataset_generic_benchmark(
         complete_test_set_only=complete_test_set_only)
 
 
+def _adapt_lazy_stream(
+        generator, transform_groups, initial_transform_group, dataset_type):
+    """
+    A simple internal utility to apply transforms and dataset type to all lazily
+    generated datasets. Used in the :func:`create_lazy_generic_benchmark`
+    benchmark creation helper.
+
+    :return: A datasets in which the proper transformation groups and dataset
+        type are applied.
+    """
+
+    for dataset in generator:
+        dataset = AvalancheDataset(
+            dataset, transform_groups=transform_groups,
+            initial_transform_group=initial_transform_group,
+            dataset_type=dataset_type)
+        yield dataset
+
+
+class LazyStreamDefinition(NamedTuple):
+    """
+    A simple class that can be used when preparing the parameters for the
+    :func:`create_lazy_generic_benchmark` helper.
+
+    This class is a named tuple containing the fields required for defining
+    a lazily-created benchmark.
+
+    - exps_generator: The experiences generator. Can be a "yield"-based
+      generator, a custom sequence, a standard list or any kind of
+      iterable returning :class:`AvalancheDataset`.
+    - stream_length: The number of experiences in the stream. Must match the
+      number of experiences returned by the generator.
+    - exps_task_labels: A list containing the list of task labels of each
+      experience. If an experience contains a single task label, a single int
+      can be used.
+    """
+
+    exps_generator: Iterable[AvalancheDataset]
+    """
+    The experiences generator. Can be a "yield"-based generator, a custom
+    sequence, a standard list or any kind of iterable returning
+    :class:`AvalancheDataset`.
+    """
+
+    stream_length: int
+    """
+    The number of experiences in the stream. Must match the number of
+    experiences returned by the generator
+    """
+
+    exps_task_labels: Sequence[Union[int, Iterable[int]]]
+    """
+    A list containing the list of task labels of each experience.
+    If an experience contains a single task label, a single int can be used.
+    
+    This field is temporary required for internal purposes to support lazy
+    streams. This field may become optional in the future.
+    """
+
+
+def create_lazy_generic_benchmark(
+        train_generator: LazyStreamDefinition,
+        test_generator: LazyStreamDefinition,
+        *,
+        other_streams_generators: Dict[str, LazyStreamDefinition] = None,
+        complete_test_set_only: bool = False,
+        train_transform=None, train_target_transform=None,
+        eval_transform=None, eval_target_transform=None,
+        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
+        dataset_type: AvalancheDatasetType = None) \
+        -> GenericCLScenario:
+    """
+    Creates a lazily-defined benchmark instance given a dataset generator for
+    each stream.
+
+    Generators must return properly initialized instances of
+    :class:`AvalancheDataset` which will be used to create experiences.
+
+    The created datasets can have transformations already set.
+    However, if transformations are shared across all datasets of the same
+    stream, it is recommended to use the `train_transform`, `eval_transform`
+    and `other_streams_transforms` parameters, so that transformations groups
+    can be correctly applied (transformations are lazily added atop the datasets
+    returned by the generators). The same reasoning applies to the
+    `dataset_type` parameter.
+
+    This function allows for the creation of custom streams as well.
+    While "train" and "test" streams must be always set, the generators
+    for other streams can be defined by using the `other_streams_generators`
+    parameter.
+
+    :param train_generator: A proper lazy-generation definition for the training
+        stream. It is recommended to pass an instance
+        of :class:`LazyStreamDefinition`. See its description for more details.
+    :param test_generator: A proper lazy-generation definition for the test
+        stream. It is recommended to pass an instance
+        of :class:`LazyStreamDefinition`. See its description for more details.
+    :param other_streams_generators: A dictionary describing the content of
+        custom streams. Keys must be valid stream names (letters and numbers,
+        not starting with a number) while the value must be a
+        lazy-generation definition (like the ones of the training and
+        test streams). If this dictionary contains the definition for
+        "train" or "test" streams then those definition will override the
+        `train_generator` and `test_generator` parameters.
+    :param complete_test_set_only: If True, only the complete test set will
+        be returned by the scenario. This means that the ``test_generator``
+        parameter must define a stream with a single experience (the complete
+        test set). Defaults to False.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param train_target_transform: The transformation to apply to training
+        patterns targets. Defaults to None.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations). Defaults to None.
+    :param eval_target_transform: The transformation to apply to test
+        patterns targets. Defaults to None.
+    :param other_streams_transforms: Transformations to apply to custom
+        streams. If no transformations are defined for a custom stream,
+        then "train" transformations will be used. This parameter must be a
+        dictionary mapping stream names to transformations. The transformations
+        must be a two elements tuple where the first element defines the
+        X transformation while the second element is the Y transformation.
+        Those elements can be None. If this dictionary contains the
+        transformations for "train" or "test" streams then those transformations
+        will override the `train_transform`, `train_target_transform`,
+        `eval_transform` and `eval_target_transform` parameters.
+    :param dataset_type: The type of the datasets. Defaults to None, which
+        means that the type will be obtained from the input datasets. This
+        type will be applied to all the datasets returned by the generators.
+
+    :returns: A lazily-initialized :class:`GenericCLScenario` instance.
+    """
+
+    transform_groups = dict(
+        train=(train_transform, train_target_transform),
+        eval=(eval_transform, eval_target_transform))
+
+    if other_streams_transforms is not None:
+        for stream_name, stream_transforms in other_streams_transforms.items():
+            if isinstance(stream_transforms, Sequence):
+                if len(stream_transforms) == 1:
+                    # Suppose we got only the transformation for X values
+                    stream_transforms = (stream_transforms[0], None)
+            else:
+                # Suppose it's the transformation for X values
+                stream_transforms = (stream_transforms, None)
+
+            transform_groups[stream_name] = stream_transforms
+
+    input_streams = dict(
+        train=train_generator,
+        test=test_generator)
+
+    if other_streams_generators is not None:
+        input_streams = {**input_streams, **other_streams_generators}
+
+    if complete_test_set_only:
+        if input_streams['test'][1] != 1:
+            raise ValueError('Test stream must contain one experience when'
+                             'complete_test_set_only is True')
+
+    stream_definitions = dict()
+
+    for stream_name, (generator, stream_length, task_labels) in \
+            input_streams.items():
+        initial_transform_group = 'train'
+        if stream_name in transform_groups:
+            initial_transform_group = stream_name
+
+        adapted_stream_generator = _adapt_lazy_stream(
+            generator, transform_groups,
+            initial_transform_group=initial_transform_group,
+            dataset_type=dataset_type)
+
+        stream_definitions[stream_name] = (
+            (adapted_stream_generator, stream_length), task_labels
+        )
+
+    return GenericCLScenario(
+        stream_definitions=stream_definitions,
+        complete_test_set_only=complete_test_set_only)
+
+
 def create_generic_benchmark_from_filelists(
         root: Optional[Union[str, Path]],
         train_file_lists: Sequence[Union[str, Path]],
@@ -203,8 +390,7 @@ def create_generic_benchmark_from_filelists(
         be returned by the scenario. This means that the ``test_file_lists``
         parameter must be list with a single element (the complete test set).
         Alternatively, can be a plain string or :class:`Path` object.
-        Defaults to False, which means that ``train_file_lists`` and
-        ``test_file_lists`` must contain the same amount of filelists paths.
+        Defaults to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -328,8 +514,7 @@ def create_generic_benchmark_from_paths(
     :param complete_test_set_only: If True, only the complete test set will
         be returned by the scenario. This means that the ``test_list_of_files``
         parameter must define a single experience (the complete test set).
-        Defaults to False, which means that ``train_list_of_files`` and
-        ``test_list_of_files`` must contain the same amount of paths.
+        Defaults to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -448,9 +633,7 @@ def create_generic_benchmark_from_tensor_lists(
         see the function description.
     :param complete_test_set_only: If True, only the complete test set will
         be returned by the scenario. This means that ``test_tensors`` must
-        define a single experience. Defaults to False, which means that
-        ``train_tensors`` and ``test_tensors`` must define the same
-        amount of experiences.
+        define a single experience. Defaults to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -510,6 +693,8 @@ def create_generic_benchmark_from_tensor_lists(
 
 __all__ = [
     'create_multi_dataset_generic_benchmark',
+    'LazyStreamDefinition',
+    'create_lazy_generic_benchmark',
     'create_generic_benchmark_from_filelists',
     'create_generic_benchmark_from_paths',
     'create_generic_benchmark_from_tensor_lists',
