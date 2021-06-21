@@ -32,7 +32,7 @@ class WandBLogger(StrategyLogger):
 
     def __init__(self, project_name: str = "Avalanche", 
                  run_name: str = "Test", log_artifacts: bool = False,
-                 path: str = "Checkpoints", checkpoint: str = "Model.h5", 
+                 path: str = "Checkpoints", checkpoint: str = "Model.pth", 
                  uri: str = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
@@ -78,6 +78,7 @@ class WandBLogger(StrategyLogger):
             self.wandb.init(**self.init_kwargs)
         else:
             self.wandb.init()
+        self.wandb.run._label(repo="Avalanche")
 
     def log_metric(self, metric_value: MetricValue, callback: str):
         super().log_metric(metric_value, callback)
