@@ -36,6 +36,7 @@ _default_transform = Compose([
 
 _scenario_names = ["Classes", "Illumination", "Weather"]
 
+
 def EndlessCLSim(
         *,
         scenario: str = _scenario_names[0],
@@ -46,7 +47,6 @@ def EndlessCLSim(
         eval_transform: Optional[Any] = _default_transform,
         dataset_root: Union[str, Path] = None,
         semseg=False):
-
     """ 
     Creates a CL scenario for the Endless-Continual-Learning Simulator's derived datasets,
     which are available at: https://zenodo.org/record/4899267, or custom datasets
@@ -100,9 +100,9 @@ def EndlessCLSim(
 
     # Download and prepare the dataset
     endless_cl_sim_dataset = EndlessCLSimDataset(root=dataset_root, 
-            scenario=scenario, transform=None, 
-            download=True, semseg=semseg)
-    
+                                                 scenario=scenario, transform=None, 
+                                                 download=True, semseg=semseg)
+
     # Default sequence_order if None
     if sequence_order is None:
         sequence_order = list(range(len(endless_cl_sim_dataset)))
@@ -129,7 +129,7 @@ def EndlessCLSim(
                 dataset=eval_data, task_labels=task_order[i]
             )
         )
-    
+
     scenario_obj = dataset_benchmark(train_datasets, eval_datasets)
 
     return scenario_obj
@@ -146,12 +146,12 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     scenario_obj = EndlessCLSim(scenario="Classes",
-            sequence_order=[0,1,2,3],
-            task_order=[0,1,2,3],
-            dataset_root="/data/avalanche")
- 
-    #FIXME: check_vision_benchmark function is crashing -> this is not..
-    #check_vision_benchmark(scenario_obj)
+                                sequence_order=[0, 1, 2, 3],
+                                task_order=[0, 1, 2, 3],
+                                dataset_root="/data/avalanche")
+
+    # FIXME: check_vision_benchmark function is crashing -> this is not..
+    # check_vision_benchmark(scenario_obj)
     print('The benchmark instance contains',
           len(scenario_obj.train_stream), 'training experiences.')
 
@@ -159,12 +159,12 @@ if __name__ == "__main__":
         dataset, t = exp.dataset, exp.task_label
         print(dataset, t)
         print(len(dataset))
-    
+
     dataloader = DataLoader(dataset, batch_size=300)
     print('Train experience', exp.current_experience)
-    
+
     for batch in dataloader:
-        x,y, *other = batch
+        x, y, *other = batch
         print('X tensor:', x.shape)
         print('Y tensor:', y.shape)
         if len(other) > 0:
@@ -173,7 +173,7 @@ if __name__ == "__main__":
         img = ToPILImage()(x[0])
         plt.title('Experience: ' + str(exp.current_experience))
         plt.imshow(img)
-        #plt.show()
+        # plt.show()
         break
 
     print("Done..")

@@ -33,15 +33,15 @@ from avalanche.training.strategies import Naive
 def main(args):
     # Config
     device = torch.device(f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu")
+                          if torch.cuda.is_available() and args.cuda >= 0
+                          else "cpu")
 
     # Model
     model = SimpleCNN(num_classes=5)
 
     # CL Benchmark Creation
     scenario = EndlessCLSim(
-        scenario=args.scenario, # "Classes", "Illumination", "Weather"
+        scenario=args.scenario,  # "Classes", "Illumination", "Weather"
         sequence_order=None,
         task_order=None,
         dataset_root="/data/avalanche")
@@ -66,6 +66,7 @@ def main(args):
         strategy.eval(test_stream)
 
     return
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
