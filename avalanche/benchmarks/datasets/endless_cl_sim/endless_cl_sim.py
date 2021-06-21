@@ -17,7 +17,9 @@ import os
 from typing import Union
 from warnings import warn
 import sys
+import json
 
+import numpy as np
 from PIL import Image
 
 from torch.utils.data import Dataset
@@ -65,20 +67,25 @@ class ClassificationSubSequence(Dataset):
         return len(self.file_paths)
 
 class VideoSubSequence(Dataset):
-    def __init__(self, file_paths, target_paths, sequence_file, 
-            segmentation_file, patch_size=(240, 135), 
+    def __init__(self, file_paths, target_paths, 
+            segmentation_file, classmap_file=None, patch_size=(240, 135), 
             transform=None, target_transform=None):
-
         """
         # TODO
         """
         self.file_paths = file_paths
         self.target_paths = target_paths
-        self.sequence_file = sequence_file
         self.segmentation_file = segmentation_file
+        self.classmap_file = classmap_file
         self.patch_size = patch_size
         self.transform = transform
         self.target_transform = transform
+        
+        # Init classmap
+        self.classmap = self._load_classmap(classmap_file=self.classmap_file)
+
+        # Init labelmap
+        self.labelmap = self._load_labelmap(labelmap_file=self.segmentation_file)
         return
 
     def _pil_loader(self, file_path, is_target=False):
@@ -90,8 +97,74 @@ class VideoSubSequence(Dataset):
                 (self.patch_size[0], self.patch_size[1]), Image.NEAREST)
         return img
 
+    def _load_classmap(self, classmap_file):
+        classmap = {}
+        if classmap_file is None:
+            classmap = endless_cl_sim_data.default_semseg_classmap_obj
+        elif Path(classmap_file).exists():
+            with open(classmap_file) as file:
+                json_array = json.load(file)
+                classmap = json_array["ClassMapping"]
+        else:
+            raise ValueError(f"classmap_file: {classmap_file} does not exist!")
+        return classmap
+
+    def _load_labelmap(self, labelmap_file):
+        labelmap = {}
+        if Path(labelmap_file).exists():
+            with open(labelmap_file) as file:
+                json_array = json.load(file)
+
+                segMin = json_array[0]["ObjectClassMapping"]
+                segMax = json_array[1]["ObjectClassMapping"]
+
+                for key in segMin:
+                    labelmap[key] = [segMin[key], segMax[key]]
+        else:
+            raise ValueError(f"labelmap_file: {labelmap_file} does not exist!")
+        return labelmap
+
+    def _get_label_name(self, label):
+        for key in self.labelmap:
+            min_val, max_val = self.labelmap[key]
+            if min_val == max_val:
+                if label == min_val:
+                    return key
+            else:
+                if label >= min_val and label<=max_val:
+                    return key
+        raise ValueError(f"label: {label} could not be converted!")
+
+    def _convert_target(self, target):
+        """ 
+        Converts segmentation target (instance-segmented) according to classmap
+        """ 
+        # Get all unique labels in target
+        target = target.copy()
+        unique_labels = torch.unique(torch.tensor(target)).numpy()
+
+        for unique_label in unique_labels:
+            # Get respective obj class label
+            label_name = self._get_label_name(unique_label)
+            class_label = self.classmap[label_name]
+            # Convert instance label to object class label
+            print("converting", unique_label, "to", class_label)
+            target[target == unique_label] = class_label
+        return target
+
     def __getitem__(self, index: int):
-        return None, None
+        img_path = self.file_paths[index]
+        target_path = self.target_paths[index]
+        
+        # Load image
+        img = self._pil_loader(img_path, is_target=False)
+        img = self.transform(img)
+
+        # Load target
+        target = self._pil_loader(target_path, is_target=True)
+        target = self._convert_target(np.asarray(target))
+
+        return img, target
 
     def __len__(self) -> int:
         return len(self.file_paths)
@@ -244,6 +317,15 @@ class EndlessCLSimDataset(DownloadableDataset):
             print("Successfully created subsequence datasets..")
         return True
 
+    def _load_sequence_indices(self, sequence_file):
+        sequence_indices = {}
+        with open(sequence_file) as file:
+            json_array = json.load(file)
+
+            for i in range(len(json_array)):
+                sequence_indices[i] = json_array[i]["Sequence"]["ImageCounter"]
+        return sequence_indices
+
     def _prepare_video_subsequence_datasets(self, path) -> bool:
         """
         Args:
@@ -279,14 +361,14 @@ class EndlessCLSimDataset(DownloadableDataset):
                         color_path = data_content + os.path.sep + "0" + os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(color_path)):
-                            image_paths.append(file_name)
+                            image_paths.append(color_path + file_name)
                     elif "Seg" == dir_name:
                         print("Seg dir found")
                         # Extend seg path
                         seg_path = data_content + os.path.sep + "0" + os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(seg_path)):
-                            target_paths.append(file_name)
+                            target_paths.append(seg_path + file_name)
 
                 # If file
                 if Path(data_content).is_file():
@@ -311,21 +393,42 @@ class EndlessCLSimDataset(DownloadableDataset):
             
             if self.verbose:
                 print("All metadata checks complete!")
+ 
+            sequence_indices = self._load_sequence_indices(sequence_file=
+                    sequence_file)
+            
+            if self.verbose:
+                print("Seqeunce file loaded..")
 
-            # Create subsequence dataset
-            subsequence_dataset = VideoSubSequence(image_paths, target_paths, sequence_file,
-                    segmentation_file, transform=self.transform,
-                    target_transform=self.target_transform)
-            if "train" in (sequence_path.lower()):
-                self.train_sub_sequence_datasets.append(subsequence_dataset)
-            elif "test" in (sequence_path.lower()):
-                self.test_sub_sequence_datasets.append(subsequence_dataset)
-            else:
-                raise ValueError("Sequence path contains neighter 'train' nor 'test' identifiers!")
+            print("Sequnce indeices:", sequence_indices)
+            
+            for i in range(len(sequence_indices)):
+                print("subsequence index:", i)
+                last_index = sequence_indices[i]
+                if (i+1) == len(sequence_indices):
+                    next_index = len(image_paths)
+                else:
+                    next_index = sequence_indices[i+1]
+
+                image_subsequence_paths = image_paths[last_index:next_index]
+                target_subsequence_paths = target_paths[last_index:next_index]
+
+                assert(len(image_subsequence_paths) == len(target_subsequence_paths))
+
+                # Create subsequence dataset
+                subsequence_dataset = VideoSubSequence(image_subsequence_paths, 
+                        target_subsequence_paths,
+                        segmentation_file, transform=self.transform,
+                        target_transform=self.target_transform)
+                if "train" in (sequence_path.lower()):
+                    self.train_sub_sequence_datasets.append(subsequence_dataset)
+                elif "test" in (sequence_path.lower()):
+                    self.test_sub_sequence_datasets.append(subsequence_dataset)
+                else:
+                    raise ValueError("Sequence path contains neighter 'train' nor 'test' identifiers!")
             
         print("train sets:", len(self.train_sub_sequence_datasets))
         print("test sets:", len(self.test_sub_sequence_datasets))
-        raise NotImplementedError
         return True
 
     def __getitem__(self, index):
@@ -445,14 +548,15 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
     
-    train_data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
-            semseg=True)
+    _default_transform = transforms.Compose([
+        transforms.ToTensor()])
+
+    data = EndlessCLSimDataset(scenario="Classes", root="/data/avalanche",
+            semseg=True, transform=_default_transform)
     #data = EndlessCLSimDataset(scenario=None, download=False, root="/data/avalanche/IncrementalClasses_Classification",
     #        transform=transforms.ToTensor())
     
     print("num subseqeunces: ", len(data.train_sub_sequence_datasets))
-    
-    sys.exit()
     
     sub_sequence_index = 0
     subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
@@ -465,8 +569,9 @@ if __name__ == "__main__":
         print(i)
         print(img.shape)
         img = torch.squeeze(img)
-        img = transforms.ToPILImage()(img)
-        print(img.size)
+        img = transforms.ToPILImage()(img)        
+        print("img size:", img.size)
+        print("targets:", np.unique(target))
         #plt.imshow(img)
         #plt.show()
         break

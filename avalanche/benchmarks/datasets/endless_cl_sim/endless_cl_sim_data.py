@@ -41,3 +41,28 @@ default_classification_labelmap = {
     "People": 3,
     "Streetlamp": 4
 }
+
+default_semseg_classmap_obj = {
+    "": 0,
+    "Tree": 4,
+    "Car": 5,
+    "People": 6,
+    "Streetlamp": 7,
+    "Street": 1,
+    "SideWalk": 2,
+    "Terrain": 0,
+    "Building": 3
+}
+
+default_semseg_classmap_obj_reduced = {
+    "": 0,
+    "Tree": 1,
+    "Car": 2,
+    "People": 3,
+    "Streetlamp": 4,
+    "Street": 0,
+    "SideWalk": 0,
+    "Terrain": 0,
+    "Building": 0
+}
+
