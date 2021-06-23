@@ -44,7 +44,8 @@ def main(args):
         scenario=args.scenario,  # "Classes", "Illumination", "Weather"
         sequence_order=None,
         task_order=None,
-        dataset_root="/data/avalanche")
+        semseg=args.semseg,
+        dataset_root=args.dataset_root)
 
     train_stream = scenario.train_stream
     test_stream = scenario.test_stream
@@ -74,6 +75,8 @@ if __name__ == "__main__":
                         help='Select zero-indexed cuda device. -1 to use CPU.')
     parser.add_argument('--scenario', type=str, default="Classes",
                         help='Select scenario: Classes, Illumination, Weather')
+    parser.add_argument('--semseg', action='store_true', default=False)
+    parser.add_argument('--dataset_root', type=str, default=None)
     args = parser.parse_args()
     main(args)
 

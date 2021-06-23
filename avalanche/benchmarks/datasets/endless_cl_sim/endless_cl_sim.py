@@ -32,8 +32,8 @@ from avalanche.benchmarks.datasets.downloadable_dataset import \
 
 
 class ClassificationSubSequence(Dataset):
-    def __init__(self, file_paths, targets, patch_size=64, 
-                 transform=None, target_transform=None):
+    def __init__(self, file_paths, targets, patch_size=64,
+                 labelmap_path=None, transform=None, target_transform=None):
         """
         # TODO:
         """
@@ -42,6 +42,9 @@ class ClassificationSubSequence(Dataset):
         self.patch_size = patch_size
         self.transform = transform
         self.target_transform = target_transform
+
+        self.labelmap = self._load_labelmap(labelmap_path)
+
         return
 
     def _pil_loader(self, file_path):
@@ -50,12 +53,29 @@ class ClassificationSubSequence(Dataset):
                 (self.patch_size, self.patch_size), Image.NEAREST)
         return img
 
+    def _load_labelmap(self, path):
+        # If path is None, load default labelmap
+        if path is None:
+            return endless_cl_sim_data.default_classification_labelmap
+
+        # If path is valid, load labelmap from json file
+        elif Path(path).exists():
+            with open(path) as file:
+                json_array = json.load(file)
+                labelmap = json_array["SegmentationClasses"]
+                return labelmap
+
+        # Finally, raise value error
+        raise ValueError(f"path: {path} does not exist!")
+
+    def _convert_target(self, target):
+        return self.labelmap[target]
+
     def __getitem__(self, index: int):
         img_path = self.file_paths[index]
-        target = self.targets[index]
+        target = self._convert_target(self.targets[index])
 
         img = self._pil_loader(img_path)
-
         img = self.transform(img)
 
         if self.target_transform is not None:
@@ -178,10 +198,10 @@ class EndlessCLSimDataset(DownloadableDataset):
             self,
             root: Union[str, Path] = None,
             *,
-            scenario=None,
+            scenario=None, patch_size=64,
             transform=None, target_transform=None,
             download=True, semseg=False,
-            labelmap=None):
+            labelmap_path=None):
         """
         Creates an instance of the Endless-Continual-Leanring-Simulator Dataset.
         This dataset is able to download and prepare datasets derived from the 
@@ -211,6 +231,10 @@ class EndlessCLSimDataset(DownloadableDataset):
             and 'Weather', for the scenario of shifting weather conditions.
             To load a custom (non-predefined/downloadable) dataset, the 
             identifier needs to be set to None. Defaults to None.
+        :param patch_size: optional size of image data to be loaded. 
+            For classification the patch_size is of type `int`, because we only
+            consider quadratic input sizes. If the `semseg` flag is set, 
+            the patch_size type is `tupel`, with `(width, height)`.
         :param transform: optional transformations to be applied to the image 
             data.
         :param target_transform: optional transformations to be applied to the 
@@ -219,7 +243,8 @@ class EndlessCLSimDataset(DownloadableDataset):
             Defaults to True.
         :param semseg: boolean to indicate the use of targets for a 
             semantic segmentation task. Defaults to False.
-        :param labelmap: dictionary mapping 'class-names'(str) to 
+        :param labelmap_path: path (str) to a labelmap.json file,
+            that provides a dictionary mapping 'class-names'(str) to 
             class-labels(int). The 'class-names' are derived from the 
             sub-directory names for each subsequence.
         """
@@ -234,12 +259,21 @@ class EndlessCLSimDataset(DownloadableDataset):
             root, download=download, verbose=True)
 
         self.scenario = scenario
+        self.patch_size = patch_size
         self.transform = transform
         self.target_transform = target_transform
         self.semseg = semseg
+        self.labelmap_path = labelmap_path
 
         self.train_sub_sequence_datasets = []
         self.test_sub_sequence_datasets = []
+
+        if self.semseg:
+            assert isinstance(self.patch_size, tuple), \
+                "If semseg is False, patch_size needs to be of type `int`"
+        else:
+            assert isinstance(self.patch_size, int), \
+                "If semseg is True, patch_size needs to be of type `tuple`"
 
         # Download the dataset and initialize metadata
         self._load_dataset()
@@ -298,27 +332,28 @@ class EndlessCLSimDataset(DownloadableDataset):
 
                 # Load file_paths and targets
                 for class_name in class_name_dirs:
-                    try:
-                        label = endless_cl_sim_data.\
-                            default_classification_labelmap[class_name]
-                    except Exception:
-                        ValueError(
-                            f"{class_name} is not part of the provided \
-                            labelmap!")
+                    # try:
+                    #     label = endless_cl_sim_data.\
+                    #         default_classification_labelmap[class_name]
+                    # except Exception:
+                    #     ValueError(
+                    #         f"{class_name} is not part of the provided \
+                    #         labelmap!")
                     class_path = sub_sequence_path + class_name + os.path.sep
                     for file_name in os.listdir(class_path):
                         image_paths.append(class_path + file_name)
-                        targets.append(label)
+                        targets.append(class_name)
 
                 # Create sub-sequence dataset
-                subseqeunce_dataset = ClassificationSubSequence(
-                        image_paths, targets, 
+                subsequence_dataset = ClassificationSubSequence(
+                        image_paths, targets, patch_size=self.patch_size,
+                        labelmap_path=self.labelmap_path,
                         transform=self.transform, 
                         target_transform=self.target_transform)
                 if "train" in (sequence_path.lower()):
-                    self.train_sub_sequence_datasets.append(subseqeunce_dataset)
+                    self.train_sub_sequence_datasets.append(subsequence_dataset)
                 elif "test" in (sequence_path.lower()):
-                    self.test_sub_sequence_datasets.append(subseqeunce_dataset)
+                    self.test_sub_sequence_datasets.append(subsequence_dataset)
                 else:
                     raise ValueError(
                         "Sequence path contains neighter 'train' nor \
@@ -433,6 +468,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                     VideoSubSequence(image_subsequence_paths, 
                                      target_subsequence_paths,
                                      segmentation_file, 
+                                     patch_size=self.patch_size,
                                      transform=self.transform,
                                      target_transform=self.target_transform)
                 if "train" in (sequence_path.lower()):
