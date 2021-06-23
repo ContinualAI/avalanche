@@ -6,7 +6,8 @@ import torch
 
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
-    DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, Forgetting
+    DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
+    Forgetting, ClassAccuracy
 
 
 #################################
@@ -14,6 +15,7 @@ from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
 #    STANDALONE METRIC TEST     #
 #################################
 #################################
+
 
 class GeneralMetricTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -131,6 +133,19 @@ class GeneralMetricTests(unittest.TestCase):
         metric.update(0, 0.4)
         f = metric.result(k=0)
         self.assertEqual(f, 0.6)
+        metric.reset()
+        self.assertEqual(metric.result(), {})
+
+    def test_class_accuracy(self):
+        metric = ClassAccuracy()
+        self.assertEqual(metric.result(), {})
+
+        metric.update(self.out, self.y)
+        result = metric.result()
+        for value in result.values():
+            self.assertLessEqual(value, 1)
+            self.assertGreaterEqual(value, 0)
+        self.assertEqual(set(self.y.numpy()), set(metric.result().keys()))
         metric.reset()
         self.assertEqual(metric.result(), {})
 
