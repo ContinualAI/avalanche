@@ -11,7 +11,6 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification
 from copy import deepcopy
-from os.path import expanduser
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
     Forgetting
@@ -19,9 +18,6 @@ from avalanche.training.strategies.base_strategy import BaseStrategy
 import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop
 from avalanche.benchmarks.utils import AvalancheTensorDataset, \
     AvalancheDatasetType
 from avalanche.benchmarks import nc_benchmark, dataset_benchmark
@@ -270,10 +266,11 @@ class PluginMetricTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('sit.pickle', 'wb') as f:
+        # with open('target_metrics/sit.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'target_metrics',
                                'sit.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
@@ -386,10 +383,11 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('mt.pickle', 'wb') as f:
+        # with open('target_metrics/mt.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'target_metrics',
                                'mt.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
@@ -512,10 +510,11 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('tpp.pickle', 'wb') as f:
+        # with open('target_metrics/tpp.pickle', 'wb') as f:
         #     pickle.dump(dict(self.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                               'target_metrics',
                                'tpp.pickle'), 'rb') as f:
             self.ref = pickle.load(f)
 
