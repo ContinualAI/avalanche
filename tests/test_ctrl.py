@@ -1,5 +1,7 @@
 import unittest
+from pathlib import Path
 
+from tempfile import TemporaryDirectory
 import torch
 
 from avalanche.benchmarks.classic.ctrl import CTrL
@@ -31,6 +33,8 @@ class CTrLTests(unittest.TestCase):
         s_pl=5,
     )
 
+    long_stream_lengths = [8, 15]
+
     def test_length(self):
         for stream, length in self.stream_lengths.items():
             with self.subTest(stream=stream, length=length):
@@ -38,8 +42,20 @@ class CTrLTests(unittest.TestCase):
                 self.assertEqual(length, bench.n_experiences)
 
     def test_length_long(self):
-        bench = CTrL('s_long', save_to_disk=True)
-        self.assertEqual(100, bench.n_experiences)
+        for n_tasks in self.long_stream_lengths:
+            with self.subTest(n_tasks=n_tasks), TemporaryDirectory() as tmp:
+                bench = CTrL('s_long', save_to_disk=True, path=Path(tmp),
+                             n_tasks=n_tasks)
+                self.assertEqual(n_tasks, bench.n_experiences)
+
+    def test_n_tasks_param(self):
+        for stream in self.stream_lengths.keys():
+            with self.subTest(stream=stream):
+                with self.assertRaises(ValueError):
+                    CTrL(stream, n_tasks=3)
+
+        with self.subTest(stream='s_long'):
+            CTrL('s_long',  n_tasks=3)
 
     def test_determinism(self):
         for stream in self.stream_lengths.keys():

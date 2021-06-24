@@ -25,7 +25,8 @@ from avalanche.benchmarks.utils import AvalancheTensorDataset, \
 
 
 def CTrL(stream_name: str, save_to_disk: bool = False,
-         path: Path = default_dataset_location(''), seed: int = None):
+         path: Path = default_dataset_location(''), seed: int = None,
+         n_tasks: int = None):
     """
     Gives access to the Continual Transfer Learning benchmark streams
     introduced in https://arxiv.org/abs/2012.12631.
@@ -39,9 +40,17 @@ def CTrL(stream_name: str, save_to_disk: bool = False,
     :param seed: The seed to use to generate the streams. If no seed is given,
     a random one will be used to make sure that the generated stream can
     be reproduced.
+    :param n_tasks: The number of tasks to generate. This parameter is only
+    relevant for the `s_long` stream, as all other streams have a fixed number
+    of tasks.
     :return: A scenario containing 3 streams: train, val and test.
     """
     seed = seed or random.randint(0, sys.maxsize)
+    if stream_name != 's_long' and n_tasks is not None:
+        raise ValueError('The n_tasks parameter can only be used with the '
+                         f'"s_long" stream, asked {n_tasks} for {stream_name}')
+    elif stream_name == 's_long' and n_tasks is None:
+        n_tasks = 100
 
     stream = ctrl.get_stream(stream_name, seed)
 
@@ -81,7 +90,7 @@ def CTrL(stream_name: str, save_to_disk: bool = False,
                                                  task_labels=task_labels,
                                                  transform=trans)
             exp.append(dataset)
-        if stream_name == 's_long' and t_id == 99:
+        if stream_name == 's_long' and t_id == n_tasks - 1:
             break
 
     return dataset_benchmark(
