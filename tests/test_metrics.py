@@ -3,6 +3,7 @@
 import unittest
 
 import torch
+from torch.utils.data import TensorDataset
 import numpy as np
 import random
 import pickle
@@ -14,6 +15,7 @@ from os.path import expanduser
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
     Forgetting
+from avalanche.training.strategies.base_strategy import BaseStrategy
 import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -194,6 +196,7 @@ class GeneralMetricTests(unittest.TestCase):
 #################################
 #################################
 
+
 DEVICE = 'cpu'
 DELTA = 0.01
 
@@ -212,24 +215,21 @@ class PluginMetricTests(unittest.TestCase):
         np.random.seed(0)
         random.seed(0)
 
-        train_transform = transforms.Compose([
-            RandomCrop(28, padding=4),
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        test_transform = transforms.Compose([
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                            train=True, download=True,
-                            transform=train_transform)
-        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                           train=False, download=True,
-                           transform=test_transform)
-        scenario = nc_benchmark(
-            mnist_train, mnist_test, 5, task_labels=False, seed=0)
-        model = SimpleMLP(num_classes=scenario.n_classes)
+        n_samples_per_class = 100
+        dataset = make_classification(
+            n_samples=6 * n_samples_per_class,
+            n_classes=6,
+            n_features=4, n_informative=4, n_redundant=0)
+        X = torch.from_numpy(dataset[0]).float()
+        y = torch.from_numpy(dataset[1]).long()
+        train_X, test_X, train_y, test_y = train_test_split(
+            X, y, train_size=0.5, shuffle=True, stratify=y)
+        tr_d = TensorDataset(train_X, train_y)
+        ts_d = TensorDataset(test_X, test_y)
+        benchmark = nc_benchmark(train_dataset=tr_d, test_dataset=ts_d,
+                                 n_experiences=3,
+                                 task_labels=False, shuffle=False, seed=0)
+        model = SimpleMLP(input_size=4, num_classes=benchmark.n_classes)
 
         f = open('log.txt', 'w')
         text_logger = TextLogger(f)
@@ -258,15 +258,16 @@ class PluginMetricTests(unittest.TestCase):
                 minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
             collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = Naive(
+        cl_strategy = BaseStrategy(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=500, train_epochs=2,
-            eval_mb_size=100, device=DEVICE, evaluator=eval_plugin,
+            CrossEntropyLoss(), train_mb_size=10, train_epochs=2,
+            eval_mb_size=10, device=DEVICE, evaluator=eval_plugin,
             eval_every=1)
-        for i, experience in enumerate(scenario.train_stream):
+        for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[scenario.test_stream[i]])
-            cl_strategy.eval(scenario.test_stream)
+                              eval_streams=[benchmark.test_stream[i]],
+                              shuffle=False)
+            cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
         # with open('sit.pickle', 'wb') as f:
@@ -330,24 +331,21 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         np.random.seed(0)
         random.seed(0)
 
-        train_transform = transforms.Compose([
-            RandomCrop(28, padding=4),
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        test_transform = transforms.Compose([
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        mnist_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                            train=True, download=True,
-                            transform=train_transform)
-        mnist_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                           train=False, download=True,
-                           transform=test_transform)
-        scenario = nc_benchmark(
-            mnist_train, mnist_test, 5, task_labels=True, seed=0)
-        model = SimpleMLP(num_classes=scenario.n_classes)
+        n_samples_per_class = 100
+        dataset = make_classification(
+            n_samples=6 * n_samples_per_class,
+            n_classes=6,
+            n_features=4, n_informative=4, n_redundant=0)
+        X = torch.from_numpy(dataset[0]).float()
+        y = torch.from_numpy(dataset[1]).long()
+        train_X, test_X, train_y, test_y = train_test_split(
+            X, y, train_size=0.5, shuffle=True, stratify=y)
+        tr_d = TensorDataset(train_X, train_y)
+        ts_d = TensorDataset(test_X, test_y)
+        benchmark = nc_benchmark(train_dataset=tr_d, test_dataset=ts_d,
+                                 n_experiences=3,
+                                 task_labels=True, shuffle=False, seed=0)
+        model = SimpleMLP(input_size=4, num_classes=benchmark.n_classes)
 
         f = open('log.txt', 'w')
         text_logger = TextLogger(f)
@@ -358,7 +356,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True, task=True),
-            confusion_matrix_metrics(num_classes=10, save_image=False,
+            confusion_matrix_metrics(num_classes=6, save_image=False,
                                      normalize='all', stream=True),
             bwt_metrics(experience=True, stream=True, task=True),
             cpu_usage_metrics(
@@ -376,15 +374,16 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
                 minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
             collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = Naive(
+        cl_strategy = BaseStrategy(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=500, train_epochs=2,
-            eval_mb_size=100, device=DEVICE, evaluator=eval_plugin,
+            CrossEntropyLoss(), train_mb_size=10, train_epochs=2,
+            eval_mb_size=10, device=DEVICE, evaluator=eval_plugin,
             eval_every=1)
-        for i, experience in enumerate(scenario.train_stream):
+        for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[scenario.test_stream[i]])
-            cl_strategy.eval(scenario.test_stream)
+                              eval_streams=[benchmark.test_stream[i]],
+                              shuffle=False)
+            cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
         # with open('mt.pickle', 'wb') as f:
@@ -452,7 +451,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         datasets = []
         for i in range(3):
             dataset = make_classification(
-                n_samples=10 * n_samples_per_class,
+                n_samples=3 * n_samples_per_class,
                 n_classes=3,
                 n_features=3, n_informative=3, n_redundant=0)
             X = torch.from_numpy(dataset[0]).float()
@@ -464,14 +463,14 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         tr_ds = [AvalancheTensorDataset(
             tr_X, tr_y,
             dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 3, (500,)).tolist())
+            task_labels=torch.randint(0, 3, (150,)).tolist())
             for tr_X, tr_y, _, _ in datasets]
         ts_ds = [AvalancheTensorDataset(
             ts_X, ts_y,
             dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 3, (500,)).tolist())
+            task_labels=torch.randint(0, 3, (150,)).tolist())
             for _, _, ts_X, ts_y in datasets]
-        scenario = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
+        benchmark = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
         model = SimpleMLP(num_classes=3, input_size=3)
 
         f = open('log.txt', 'w')
@@ -483,7 +482,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True, task=True),
-            confusion_matrix_metrics(num_classes=10, save_image=False,
+            confusion_matrix_metrics(num_classes=3, save_image=False,
                                      normalize='all', stream=True),
             bwt_metrics(experience=True, stream=True, task=True),
             cpu_usage_metrics(
@@ -501,15 +500,16 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
                 minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
             collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = Naive(
+        cl_strategy = BaseStrategy(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(), train_mb_size=2, train_epochs=2,
             eval_mb_size=2, device=DEVICE,
             evaluator=eval_plugin, eval_every=1)
-        for i, experience in enumerate(scenario.train_stream):
+        for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[scenario.test_stream[i]])
-            cl_strategy.eval(scenario.test_stream)
+                              eval_streams=[benchmark.test_stream[i]],
+                              shuffle=False)
+            cl_strategy.eval(benchmark.test_stream)
         self.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
         # with open('tpp.pickle', 'wb') as f:
