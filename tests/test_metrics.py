@@ -206,7 +206,8 @@ def filter_dict(d, name):
 
 
 class PluginMetricTests(unittest.TestCase):
-    def setUp(self) -> None:
+    @classmethod
+    def setUpClass(cls) -> None:
         torch.manual_seed(0)
         np.random.seed(0)
         random.seed(0)
@@ -264,15 +265,17 @@ class PluginMetricTests(unittest.TestCase):
                               eval_streams=[benchmark.test_stream[i]],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
-        self.all_metrics = cl_strategy.evaluator.get_all_metrics()
+        cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('target_metrics/sit.pickle', 'wb') as f:
-        #     pickle.dump(dict(self.all_metrics), f,
+        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        #                        'target_metrics',
+        #                        'sit.pickle'), 'wb') as f:
+        #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'sit.pickle'), 'rb') as f:
-            self.ref = pickle.load(f)
+            cls.ref = pickle.load(f)
 
     def metric_check(self, name):
         d = filter_dict(self.all_metrics, name)
@@ -323,7 +326,8 @@ class PluginMetricTests(unittest.TestCase):
 
 
 class PluginMetricMultiTaskTests(unittest.TestCase):
-    def setUp(self) -> None:
+    @classmethod
+    def setUpClass(cls) -> None:
         torch.manual_seed(0)
         np.random.seed(0)
         random.seed(0)
@@ -381,15 +385,17 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
                               eval_streams=[benchmark.test_stream[i]],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
-        self.all_metrics = cl_strategy.evaluator.get_all_metrics()
+        cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('target_metrics/mt.pickle', 'wb') as f:
-        #     pickle.dump(dict(self.all_metrics), f,
+        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        #                        'target_metrics',
+        #                        'mt.pickle'), 'wb') as f:
+        #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'mt.pickle'), 'rb') as f:
-            self.ref = pickle.load(f)
+            cls.ref = pickle.load(f)
 
     def metric_check(self, name):
         d = filter_dict(self.all_metrics, name)
@@ -440,7 +446,8 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
 
 
 class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
-    def setUp(self) -> None:
+    @classmethod
+    def setUpClass(cls) -> None:
         torch.manual_seed(0)
         np.random.seed(0)
         random.seed(0)
@@ -508,15 +515,17 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
                               eval_streams=[benchmark.test_stream[i]],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
-        self.all_metrics = cl_strategy.evaluator.get_all_metrics()
+        cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # with open('target_metrics/tpp.pickle', 'wb') as f:
-        #     pickle.dump(dict(self.all_metrics), f,
+        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        #                        'target_metrics',
+        #                        'tpp.pickle'), 'wb') as f:
+        #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'tpp.pickle'), 'rb') as f:
-            self.ref = pickle.load(f)
+            cls.ref = pickle.load(f)
 
     def metric_check(self, name):
         d = filter_dict(self.all_metrics, name)
