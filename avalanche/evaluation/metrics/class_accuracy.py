@@ -5,6 +5,7 @@
 ################################################################################
 
 from typing import Dict, List
+from collections import defaultdict
 
 import torch
 from torch import Tensor
@@ -47,7 +48,7 @@ class ClassAccuracy(Metric[Dict[int, float]]):
             self.classes = set(int(c) for c in classes)
         else:
             self.classes = None
-        self._class_accuracies: Dict[int, Accuracy] = {}
+        self._class_accuracies: Dict[int, Accuracy] = defaultdict(Accuracy)
 
     @torch.no_grad()
     def update(self, predicted_y: Tensor, true_y: Tensor) -> None:
@@ -72,19 +73,18 @@ class ClassAccuracy(Metric[Dict[int, float]]):
             # Logits -> transform to labels
             predicted_y = torch.max(predicted_y, 1)[1]
 
+        if len(true_y.shape) > 1:
+            # Logits -> transform to labels
+            true_y = torch.max(true_y, 1)[1]
+
         for label in true_y.unique():
             label = int(label)
             if self.classes is not None and label not in self.classes:
                 continue
 
             mask = torch.eq(true_y, label)
-            try:
-                self._class_accuracies[label].update(predicted_y[mask],
-                                                     true_y[mask])
-            except KeyError:
-                self._class_accuracies[label] = Accuracy()
-                self._class_accuracies[label].update(predicted_y[mask],
-                                                     true_y[mask])
+            self._class_accuracies[label].update(predicted_y[mask],
+                                                 true_y[mask])
 
     def result(self) -> Dict[int, float]:
         """
@@ -103,7 +103,7 @@ class ClassAccuracy(Metric[Dict[int, float]]):
 
         :return: None.
         """
-        self._class_accuracies = {}
+        self._class_accuracies = defaultdict(Accuracy)
 
 
 class ClassAccuracyPluginMetric(GenericPluginMetric[float]):
