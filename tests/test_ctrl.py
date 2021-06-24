@@ -55,7 +55,7 @@ class CTrLTests(unittest.TestCase):
                     CTrL(stream, n_tasks=3)
 
         with self.subTest(stream='s_long'):
-            CTrL('s_long',  n_tasks=3)
+            CTrL('s_long', n_tasks=3)
 
     def test_determinism(self):
         for stream in self.stream_lengths.keys():
