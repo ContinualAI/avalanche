@@ -1,7 +1,7 @@
 """ Metrics Tests"""
 
 import unittest
-
+from pathlib import Path
 import torch
 from torch.utils.data import TensorDataset
 import numpy as np
@@ -272,7 +272,7 @@ class PluginMetricTests(unittest.TestCase):
         #                        'sit.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        with open(os.path.join('tests',
                                'target_metrics',
                                'sit.pickle'), 'rb') as f:
             cls.ref = pickle.load(f)
@@ -392,7 +392,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         #                        'mt.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        with open(os.path.join('tests',
                                'target_metrics',
                                'mt.pickle'), 'rb') as f:
             cls.ref = pickle.load(f)
@@ -522,7 +522,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         #                        'tpp.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
         #                 protocol=pickle.HIGHEST_PROTOCOL)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+        with open(os.path.join('tests',
                                'target_metrics',
                                'tpp.pickle'), 'rb') as f:
             cls.ref = pickle.load(f)
