@@ -33,6 +33,7 @@ from avalanche.benchmarks.datasets.downloadable_dataset import \
 
 class ClassificationSubSequence(Dataset):
     """Image-Patch Classification Subsequence Dataset"""
+
     def __init__(self, file_paths, targets, patch_size=64,
                  labelmap_path=None, transform=None, target_transform=None):
         """
@@ -105,21 +106,17 @@ class ClassificationSubSequence(Dataset):
 
 class VideoSubSequence(Dataset):
     """Video Subsequence Dataset"""
+
     def __init__(self, file_paths, target_paths, 
                  segmentation_file, classmap_file=None, patch_size=(240, 135), 
-                 transform=None, target_transform=None,
-                 normal_estim=False, depth_estim=False):
+                 transform=None, target_transform=None):
         """
-        Dataset that contains the (image) data and targets for one 
-        subsequence of a video sequence. Targets can be object annotations 
-        for semantic segmentation, normal estimation or depth estimation. 
-        If not specified the target formate is defaulting to semantic 
-        annotation.
+        Dataset that contains the (image) data and semantic segmentation targets 
+        for one subsequence of a video sequence. 
 
         :param file_paths: List containing the paths to all images files that 
             are part of this subsequence.
         :param target_paths: List containing the paths to all target files 
-            (semantic cannotation masks, normal information, depth information)
             corresponding to the `file_paths`. 
         :param segmentation_file: Path to a `segmentation.json` file that 
             specifies a mapping from label indices to object  
@@ -135,20 +132,15 @@ class VideoSubSequence(Dataset):
             data.
         :param target_transform: Eventual transformations to be applied to the 
             target data.
-        :param normal_estim: Boolean that indicates wether the target data 
-            contains annotations for normal estimation. Defaults to False.
-        :param depth_estim: Boolean that indicates wether the target data 
-            contains annotations for depth estimation. Defaults to False.
         """
         self.file_paths = file_paths
-        self.target_paths = target_paths
+        self.targets = target_paths
+        #self.target_paths = target_paths
         self.segmentation_file = segmentation_file
         self.classmap_file = classmap_file
         self.patch_size = patch_size
         self.transform = transform
         self.target_transform = transform
-        self.normal_estim = normal_estim
-        self.depth_estim = depth_estim
 
         # Init classmap
         self.classmap = self._load_classmap(classmap_file=self.classmap_file)
@@ -223,7 +215,7 @@ class VideoSubSequence(Dataset):
 
     def __getitem__(self, index: int):
         img_path = self.file_paths[index]
-        target_path = self.target_paths[index]
+        target_path = self.targets[index]
 
         # Load image
         img = self._pil_loader(img_path, is_target=False)
@@ -255,8 +247,8 @@ class EndlessCLSimDataset(DownloadableDataset):
         This dataset is able to download and prepare datasets derived from the 
         Endless-Continual-Learning Simulator, including settings of incremental 
         classes, decrasing illumination, and shifting weather conditions, as 
-        described in the paper A Procedural World Generation Framework for 
-        Systematic Evaluation of Continual Learning 
+        described in the paper `A Procedural World Generation Framework for 
+        Systematic Evaluation of Continual Learning' 
         (https://arxiv.org/abs/2106.02585). Also custom datasets are supported 
         when following the same structure. Such can be obtained from the 
         Endless-CL-Simulator standalone application 
@@ -264,8 +256,8 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         Please note:
         1) The EndlessCLSimDataset does not provide examples directly, but 
-        SubseqeunceDatasets (ClassificationSubSequence, VideoSubSequence). Each 
-        SubSeqeunceDataset will contain the samples for one respective sub 
+        SubsequenceDatasets (ClassificationSubSequence, VideoSubSequence). Each 
+        SubSequenceDataset will contain the samples for one respective sub 
         sequence. 
 
         2) For video sequences currently only one sequence per dataset is 
@@ -282,7 +274,7 @@ class EndlessCLSimDataset(DownloadableDataset):
         :param patch_size: optional size of image data to be loaded. 
             For classification the patch_size is of type `int`, because we only
             consider quadratic input sizes. If the `semseg` flag is set, 
-            the patch_size type is `tupel`, with `(width, height)`.
+            the patch_size type is `tuple`, with `(width, height)`.
         :param transform: optional transformations to be applied to the image 
             data.
         :param target_transform: optional transformations to be applied to the 
@@ -315,6 +307,9 @@ class EndlessCLSimDataset(DownloadableDataset):
 
         self.train_sub_sequence_datasets = []
         self.test_sub_sequence_datasets = []
+
+        if self.semseg and self.patch_size == 64:
+            self.patch_size = (240, 135)
 
         if self.semseg:
             assert isinstance(self.patch_size, tuple), \
@@ -380,13 +375,6 @@ class EndlessCLSimDataset(DownloadableDataset):
 
                 # Load file_paths and targets
                 for class_name in class_name_dirs:
-                    # try:
-                    #     label = endless_cl_sim_data.\
-                    #         default_classification_labelmap[class_name]
-                    # except Exception:
-                    #     ValueError(
-                    #         f"{class_name} is not part of the provided \
-                    #         labelmap!")
                     class_path = sub_sequence_path + class_name + os.path.sep
                     for file_name in os.listdir(class_path):
                         image_paths.append(class_path + file_name)
@@ -451,7 +439,7 @@ class EndlessCLSimDataset(DownloadableDataset):
             sequence_file = None
             segmentation_file = None
 
-            # Get Color, Seg dirs  # TODO: Normals, Depth
+            # Get Color, Seg dirs
             for data_content in data_contents:
                 # If directory
                 if Path(data_content).is_dir():
@@ -660,13 +648,13 @@ if __name__ == "__main__":
                                root="/data/avalanche/IncrementalClasses_Video",
                                semseg=True, transform=_default_transform)
 
-    print("num subseqeunces:", len(data.train_sub_sequence_datasets))
+    print("num subsequence:", len(data.train_sub_sequence_datasets))
 
     sub_sequence_index = 0
     subsequence = data.train_sub_sequence_datasets[sub_sequence_index]
 
     print(
-        f"num samples in subseqeunce {sub_sequence_index} \
+        f"num samples in subsequence {sub_sequence_index} \
             = {len(subsequence)}")
 
     dataloader = DataLoader(subsequence, batch_size=1)

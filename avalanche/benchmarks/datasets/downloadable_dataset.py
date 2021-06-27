@@ -61,6 +61,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
     a message (a string) to show to the user. That message should contain
     instructions on how to download and prepare the dataset manually.
     """
+
     def __init__(
             self,
             root: Union[str, Path],
@@ -226,7 +227,6 @@ class DownloadableDataset(Dataset[T_co], ABC):
         self.root.mkdir(parents=True, exist_ok=True)
         download_url(url, str(self.root), filename=file_name,
                      md5=checksum)
-        print("DEBUG: Download successfull")
         return self.root / file_name
 
     def _extract_archive(self,
@@ -325,6 +325,7 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
     Apart from that, the same assumptions of :class:`DownloadableDataset` hold.
     Remember to call the `_load_dataset` method in the child class constructor.
     """
+
     def __init__(
             self,
             root_or_dataset_name: str,

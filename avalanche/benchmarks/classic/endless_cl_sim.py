@@ -160,6 +160,7 @@ if __name__ == "__main__":
     scenario_obj = EndlessCLSim(scenario="Classes",
                                 sequence_order=[0, 1, 2, 3],
                                 task_order=[0, 1, 2, 3],
+                                semseg=True,
                                 dataset_root="/data/avalanche")
 
     # FIXME: check_vision_benchmark function is crashing -> this is not..
@@ -167,6 +168,7 @@ if __name__ == "__main__":
     print('The benchmark instance contains',
           len(scenario_obj.train_stream), 'training experiences.')
 
+    
     for i, exp in enumerate(scenario_obj.train_stream):
         dataset, t = exp.dataset, exp.task_label
         print(dataset, t)

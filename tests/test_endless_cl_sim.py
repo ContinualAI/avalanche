@@ -26,7 +26,7 @@ class EndlessCLSimTest(unittest.TestCase):
         else:
             # "Classes"
             scenario = EndlessCLSim(
-                scenario="Classes",  # "Classes", "Illumination", "Weather"
+                scenario="Classes", 
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
@@ -37,7 +37,7 @@ class EndlessCLSimTest(unittest.TestCase):
 
             # Illumination
             scenario = EndlessCLSim(
-                scenario="Illumination",  # "Classes", "Illumination", "Weather"
+                scenario="Illumination", 
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
@@ -48,7 +48,7 @@ class EndlessCLSimTest(unittest.TestCase):
 
             # Weather
             scenario = EndlessCLSim(
-                scenario="Weather",  # "Classes", "Illumination", "Weather"
+                scenario="Weather", 
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
@@ -59,6 +59,41 @@ class EndlessCLSimTest(unittest.TestCase):
         return
 
     def test_endless_cl_video(self):
+        if "FAST_TEST" in os.environ:
+            pass
+        else:
+            # "Classes"
+            scenario = EndlessCLSim(
+                scenario="Classes",  
+                sequence_order=None,
+                task_order=None,
+                semseg=True,
+                dataset_root="/data/avalanche"
+            )
+            for experience in scenario.train_stream:
+                pass
+
+            # Illumination
+            scenario = EndlessCLSim(
+                scenario="Illumination", 
+                sequence_order=None,
+                task_order=None,
+                semseg=True,
+                dataset_root=None
+            )
+            for experience in scenario.train_stream:
+                pass
+
+            # Weather
+            scenario = EndlessCLSim(
+                scenario="Weather",  
+                sequence_order=None,
+                task_order=None,
+                semseg=True,
+                dataset_root=None
+            )
+            for experience in scenario.train_stream:
+                pass
         return
 
 
