@@ -64,7 +64,7 @@ def EndlessCLSim(
 
     All generated scenarios make use of 'task labels'. We regard a full dataset
     as one learning 'sequence', aligned to the terminology in the above paper,
-    with 'subseqeunces' being the iterative learning tasks. Each subsequence 
+    with 'subsequences' being the iterative learning tasks. Each subsequence 
     is realized as one `AvalancheDataset` with ordering inforaced by task 
     labels.
 
@@ -77,20 +77,20 @@ def EndlessCLSim(
         conditions.
     :param patch_size: The dimension of the image-patches. Int in the case of 
             image-patch classification, because the image-patches need to be 
-            quadratic. Tupel of integers for image segmentation tasks.
-    :param sequence_order: List of intergers indexing the subseqeunces, 
-            enables reordering of the subseqeunces, especially subseqeunces can
+            quadratic. Tuple of integers for image segmentation tasks.
+    :param sequence_order: List of intergers indexing the subsequences, 
+            enables reordering of the subsequences, especially subsequences can
             be omitted. Defaults to None, loading subsequences in their 
             original order.
     :param task_order: List of intergers, assigning task labels to each 
-            respective subseqeunce.
+            respective subsequence.
     :param train_transform: The transformation to apply to the training data.
             Defaults to `_default_transform`, i.e. conversion ToTensor of 
             torchvision.
     :param eval_transform: The transformation to apply to the eval data.
             Defaults to `_default_transform`, i.e. conversion ToTensor of 
             torchvision.
-    :param dataset_root: Absolute path indicating where to stroe the dataset.
+    :param dataset_root: Absolute path indicating where to store the dataset.
             Defaults to None, which means the default location for 
             'endless-cl-sim' will be used.
     :param semseg: boolean to indicate the use of targets for a semantic 

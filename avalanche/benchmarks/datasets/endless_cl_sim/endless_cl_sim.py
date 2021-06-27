@@ -32,10 +32,26 @@ from avalanche.benchmarks.datasets.downloadable_dataset import \
 
 
 class ClassificationSubSequence(Dataset):
+    """Image-Patch Classification Subsequence Dataset"""
     def __init__(self, file_paths, targets, patch_size=64,
                  labelmap_path=None, transform=None, target_transform=None):
         """
-        # TODO:
+        Dataset that contains image-patches and targets for one subsequence of an
+        endless continual learning simulator's sequence, that has been
+        converted for image-patch classification.
+
+        :param file_paths: List that contains the paths to all images files
+            that are part of this subsequence.
+        :param targets: List that contains the targets (`object category 
+            names` (str)) for each respective image.
+        :param patch_size: Int defining the quadratic patch-size the 
+            image-patches are resized to.
+        :param labelmap_path: Path to a `labelmap.json` file that specifies
+            a mapping from `object category names` to labels. 
+        :param transform: Eventual transformations to be applied to the image 
+            data.
+        :param target_transform: Eventual transformations to be applied to the 
+            target data.
         """
         self.file_paths = file_paths
         self.targets = targets
@@ -88,11 +104,41 @@ class ClassificationSubSequence(Dataset):
 
 
 class VideoSubSequence(Dataset):
+    """Video Subsequence Dataset"""
     def __init__(self, file_paths, target_paths, 
                  segmentation_file, classmap_file=None, patch_size=(240, 135), 
-                 transform=None, target_transform=None):
+                 transform=None, target_transform=None,
+                 normal_estim=False, depth_estim=False):
         """
-        # TODO
+        Dataset that contains the (image) data and targets for one 
+        subsequence of a video sequence. Targets can be object annotations 
+        for semantic segmentation, normal estimation or depth estimation. 
+        If not specified the target formate is defaulting to semantic 
+        annotation.
+
+        :param file_paths: List containing the paths to all images files that 
+            are part of this subsequence.
+        :param target_paths: List containing the paths to all target files 
+            (semantic cannotation masks, normal information, depth information)
+            corresponding to the `file_paths`. 
+        :param segmentation_file: Path to a `segmentation.json` file that 
+            specifies a mapping from label indices to object  
+            (or object category) names. Defaults to None, which loads a 
+            predefined default mapping.
+        :param classmap_file: Path to a `classmap.json' file that specifies
+            the mapping from object (or object category) names to a 
+            respective label. Defaults to None, which loads a predefined
+            default mapping.
+        :param patch_size: Size of the images and target data to be resized to.
+            Defaults to (240, 135).
+        :param transform: Eventual transformations to be applied to the image 
+            data.
+        :param target_transform: Eventual transformations to be applied to the 
+            target data.
+        :param normal_estim: Boolean that indicates wether the target data 
+            contains annotations for normal estimation. Defaults to False.
+        :param depth_estim: Boolean that indicates wether the target data 
+            contains annotations for depth estimation. Defaults to False.
         """
         self.file_paths = file_paths
         self.target_paths = target_paths
@@ -101,6 +147,8 @@ class VideoSubSequence(Dataset):
         self.patch_size = patch_size
         self.transform = transform
         self.target_transform = transform
+        self.normal_estim = normal_estim
+        self.depth_estim = depth_estim
 
         # Init classmap
         self.classmap = self._load_classmap(classmap_file=self.classmap_file)
@@ -192,7 +240,7 @@ class VideoSubSequence(Dataset):
 
 
 class EndlessCLSimDataset(DownloadableDataset):
-    """ Endless-CL-Sim Dataset """ 
+    """ Endless Continual Leanring Simulator Dataset """ 
 
     def __init__(
             self,
