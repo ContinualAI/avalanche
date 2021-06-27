@@ -37,8 +37,8 @@ class ClassificationSubSequence(Dataset):
     def __init__(self, file_paths, targets, patch_size=64,
                  labelmap_path=None, transform=None, target_transform=None):
         """
-        Dataset that contains image-patches and targets for one subsequence of an
-        endless continual learning simulator's sequence, that has been
+        Dataset that contains image-patches and targets for one subsequence of
+        an endless continual learning simulator's sequence, that has been
         converted for image-patch classification.
 
         :param file_paths: List that contains the paths to all images files
@@ -135,7 +135,6 @@ class VideoSubSequence(Dataset):
         """
         self.file_paths = file_paths
         self.targets = target_paths
-        #self.target_paths = target_paths
         self.segmentation_file = segmentation_file
         self.classmap_file = classmap_file
         self.patch_size = patch_size

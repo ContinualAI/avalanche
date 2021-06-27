@@ -168,7 +168,6 @@ if __name__ == "__main__":
     print('The benchmark instance contains',
           len(scenario_obj.train_stream), 'training experiences.')
 
-    
     for i, exp in enumerate(scenario_obj.train_stream):
         dataset, t = exp.dataset, exp.task_label
         print(dataset, t)
