@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 15-06-2021                                                             #
-# Author: TimmHess                                                             #
+# Date: 28-06-2021                                                             #
+# Author: Timm Hess                                                            #
 # E-mail: hess@ccc.cs.uni-frankfurt.de                                         #
 # Website: continualai.org                                                     #
 ################################################################################
@@ -483,7 +483,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 sequence_file=sequence_file)
 
             if self.verbose:
-                print("Seqeunce file loaded..")
+                print("Sequence file loaded..")
 
             for i in range(len(sequence_indices)):
                 last_index = sequence_indices[i]

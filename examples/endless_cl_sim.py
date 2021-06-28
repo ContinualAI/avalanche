@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 01-12-2020                                                             #
-# Author(s): Timm Hess                                                         #
+# Date: 28-06-2021                                                             #
+# Author: Timm Hess                                                            #
 # E-mail: hess@ccc.cs.uni-frankfurt.de                                         #
 # Website: avalanche.continualai.org                                           #
 ################################################################################

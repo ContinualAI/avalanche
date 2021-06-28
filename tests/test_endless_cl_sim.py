@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 1-05-2020                                                              #
-# Author(s): Timm hess                                                         #
+# Date: 28-06-2021                                                             #
+# Author(s): Timm Hess                                                         #
 # E-mail: hess@ccc.cs.uni-frankfurt.de                                         #
 # Website: www.continualai.org                                                 #
 ################################################################################
