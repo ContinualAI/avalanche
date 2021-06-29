@@ -127,7 +127,7 @@ class GenericCLScenario(Generic[TExperience]):
             means that the definition for the test stream must contain the
             definition for a single experience.
         :param experience_factory: If not None, a callable that, given the
-            scenario instance and the experience ID, returns a experience
+            benchmark instance and the experience ID, returns a experience
             instance. This parameter is usually used in subclasses (when
             invoking the super constructor) to specialize the experience class.
             Defaults to None, which means that the :class:`GenericExperience`

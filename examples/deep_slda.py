@@ -50,8 +50,8 @@ def main(args):
     ])
     # ---------
 
-    # --- SCENARIO CREATION
-    scenario = CORe50(scenario=args.scenario, train_transform=transform,
+    # --- BENCHMARK CREATION
+    benchmark = CORe50(scenario=args.scenario, train_transform=transform,
                       eval_transform=transform)
 
     # ---------
@@ -85,13 +85,13 @@ def main(args):
 
     # TRAINING LOOP
     print('Starting experiment...')
-    for i, exp in enumerate(scenario.train_stream):
+    for i, exp in enumerate(benchmark.train_stream):
 
         # fit SLDA model to batch (one sample at a time)
         cl_strategy.train(exp)
 
         # evaluate model on test data
-        cl_strategy.eval(scenario.test_stream)
+        cl_strategy.eval(benchmark.test_stream)
 
 
 if __name__ == '__main__':

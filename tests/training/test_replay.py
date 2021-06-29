@@ -15,7 +15,7 @@ from avalanche.training.plugins import ExperienceBalancedStoragePolicy, \
 from avalanche.training.plugins.replay import ClassExemplarsSelectionStrategy, \
     HerdingSelectionStrategy, ClosestToCenterSelectionStrategy
 from avalanche.training.strategies import Naive, BaseStrategy
-from tests.unit_tests_utils import get_fast_scenario
+from tests.unit_tests_utils import get_fast_benchmark
 
 
 class ReplayTest(unittest.TestCase):
@@ -28,7 +28,7 @@ class ReplayTest(unittest.TestCase):
             self._test_replay_balanced_memory(policy, mem_size)
 
     def _test_replay_balanced_memory(self, storage_policy, mem_size):
-        scenario = get_fast_scenario(use_task_labels=True)
+        benchmark = get_fast_benchmark(use_task_labels=True)
         model = SimpleMLP(input_size=6, hidden_size=10)
         replayPlugin = ReplayPlugin(mem_size=mem_size,
                                     storage_policy=storage_policy)
@@ -40,7 +40,7 @@ class ReplayTest(unittest.TestCase):
         )
 
         n_seen_data = 0
-        for step in scenario.train_stream:
+        for step in benchmark.train_stream:
             n_seen_data += len(step.dataset)
             mem_fill = min(mem_size, n_seen_data)
             cl_strategy.train(step)
@@ -59,9 +59,9 @@ class ReplayTest(unittest.TestCase):
 
     def assert_balancing(self, policy):
         ext_mem = policy.ext_mem
-        scenario = get_fast_scenario(use_task_labels=True)
+        benchmark = get_fast_benchmark(use_task_labels=True)
         replay = ReplayPlugin(mem_size=100, storage_policy=policy)
-        model = SimpleMLP(num_classes=scenario.n_classes)
+        model = SimpleMLP(num_classes=benchmark.n_classes)
 
         # CREATE THE STRATEGY INSTANCE (NAIVE)
         cl_strategy = Naive(model,
@@ -70,7 +70,7 @@ class ReplayTest(unittest.TestCase):
                             train_epochs=0,
                             eval_mb_size=100, plugins=[replay], evaluator=None)
 
-        for exp in scenario.train_stream:
+        for exp in benchmark.train_stream:
             cl_strategy.train(exp)
             print(list(ext_mem.keys()), [len(el) for el in ext_mem.values()])
 

@@ -22,7 +22,7 @@ from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
 from avalanche.training.strategies.strategy_wrappers import PNNStrategy
 
-from tests.unit_tests_utils import get_fast_scenario, get_device
+from tests.unit_tests_utils import get_fast_benchmark, get_device
 
 
 class TestMLP(nn.Module):
@@ -72,11 +72,11 @@ class StrategyTest(unittest.TestCase):
         strategy = Cumulative(
             model, optimizer, criterion, train_mb_size=32, device=get_device(),
             eval_mb_size=512, train_epochs=1, evaluator=evalp)
-        scenario = get_fast_scenario(use_task_labels=True)
+        benchmark = get_fast_benchmark(use_task_labels=True)
 
-        for train_batch_info in scenario.train_stream:
+        for train_batch_info in benchmark.train_stream:
             strategy.train(train_batch_info)
-        strategy.eval(scenario.train_stream[:])
+        strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
         assert main_metric.result() > 0.7
 
@@ -89,12 +89,12 @@ class StrategyTest(unittest.TestCase):
         strategy = PNNStrategy(
             1, 6, 50, 0.1, train_mb_size=32, device=get_device(),
             eval_mb_size=512, train_epochs=1, evaluator=evalp)
-        scenario = get_fast_scenario(use_task_labels=True)
+        benchmark = get_fast_benchmark(use_task_labels=True)
 
-        for train_batch_info in scenario.train_stream:
+        for train_batch_info in benchmark.train_stream:
             strategy.train(train_batch_info)
 
-        strategy.eval(scenario.train_stream[:])
+        strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
         assert main_metric.result() > 0.5
 
