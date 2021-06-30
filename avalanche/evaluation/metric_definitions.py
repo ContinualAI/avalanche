@@ -313,15 +313,15 @@ class GenericPluginMetric(PluginMetric[TResult]):
         if self._emit_at == 'stream' and self._mode == 'eval':
             return self._package_result(strategy)
 
-    def before_eval_iteration(self, strategy: 'BaseStrategy'):
-        super().before_eval_iteration(strategy)
-        if self._emit_at == 'iteration' and self._mode == 'eval':
-            return self._package_result(strategy)
-
     def after_eval_iteration(self, strategy: 'BaseStrategy'):
         super().after_eval_iteration(strategy)
         if self._mode == 'eval':
             self.update(strategy)
+        if self._emit_at == 'iteration' and self._mode == 'eval':
+            return self._package_result(strategy)
+
+    def before_eval_iteration(self, strategy: 'BaseStrategy'):
+        super().before_eval_iteration(strategy)
         if self._reset_at == 'iteration' and self._mode == 'eval':
             self.reset(strategy)
 
