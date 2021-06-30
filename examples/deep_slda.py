@@ -52,7 +52,7 @@ def main(args):
 
     # --- BENCHMARK CREATION
     benchmark = CORe50(scenario=args.scenario, train_transform=transform,
-                      eval_transform=transform)
+                       eval_transform=transform)
 
     # ---------
 
