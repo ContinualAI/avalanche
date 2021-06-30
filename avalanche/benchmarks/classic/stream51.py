@@ -256,7 +256,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     benchmark = CLStream51(scenario="class_instance", seed=10,
-                          bbox_crop=True)
+                           bbox_crop=True)
 
     train_imgs_count = 0
     for i, batch in enumerate(benchmark.train_stream):

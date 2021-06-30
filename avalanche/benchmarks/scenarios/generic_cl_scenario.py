@@ -709,7 +709,7 @@ class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
             classes_seen_so_far: Sequence[int],
             future_classes: Optional[Sequence[int]]):
         """
-        Creates an instance of the abstract experience given the scenario
+        Creates an instance of the abstract experience given the benchmark
         stream, the current experience ID and data about the classes timeline.
 
         :param origin_stream: The stream from which this experience was
@@ -770,7 +770,7 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
     This experience implementation uses the generic experience-patterns
     assignment defined in the :class:`GenericCLScenario` instance. Instances of
-    this class are usually obtained from a scenario stream.
+    this class are usually obtained from a benchmark stream.
     """
 
     def __init__(self: TGenericExperience,

@@ -96,7 +96,8 @@ class DynamicOptimizersTests(unittest.TestCase):
 class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
-        self.benchmark = get_fast_benchmark(use_task_labels=False, shuffle=False)
+        self.benchmark = get_fast_benchmark(
+            use_task_labels=False, shuffle=False)
 
     def test_incremental_classifier(self):
         model = SimpleMLP(input_size=6, hidden_size=10)

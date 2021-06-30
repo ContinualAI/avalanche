@@ -79,7 +79,7 @@ class StrategyTest(unittest.TestCase):
         strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
         assert sum(main_metric.result().values()) / \
-               float(len(main_metric.result().keys())) > 0.7
+            float(len(main_metric.result().keys())) > 0.7
 
     def test_pnn(self):
         # check that pnn reaches high enough accuracy.
@@ -98,7 +98,7 @@ class StrategyTest(unittest.TestCase):
         strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
         assert sum(main_metric.result().values()) / \
-               float(len(main_metric.result().keys())) > 0.5
+            float(len(main_metric.result().keys())) > 0.5
 
 
 if __name__ == '__main__':
