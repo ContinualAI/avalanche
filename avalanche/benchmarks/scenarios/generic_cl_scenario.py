@@ -495,7 +495,7 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
 
     def __init__(self: TGenericScenarioStream,
                  name: str,
-                 scenario: TGenericCLScenario,
+                 benchmark: TGenericCLScenario,
                  *,
                  slice_ids: List[int] = None):
         self.slice_ids: Optional[List[int]] = slice_ids
@@ -508,9 +508,9 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         The name of the stream (for instance: "train", "test", "valid", ...).
         """
 
-        self.scenario = scenario
+        self.benchmark = benchmark
         """
-        A reference to the scenario.
+        A reference to the benchmark.
         """
 
     def __len__(self) -> int:
@@ -520,7 +520,7 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         :return: The number of experiences in this stream.
         """
         if self.slice_ids is None:
-            return len(self.scenario.stream_definitions[self.name].exps_data)
+            return len(self.benchmark.stream_definitions[self.name].exps_data)
         else:
             return len(self.slice_ids)
 
@@ -539,9 +539,9 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         if isinstance(exp_idx, int):
             if exp_idx < len(self):
                 if self.slice_ids is None:
-                    return self.scenario.experience_factory(self, exp_idx)
+                    return self.benchmark.experience_factory(self, exp_idx)
                 else:
-                    return self.scenario.experience_factory(
+                    return self.benchmark.experience_factory(
                         self, self.slice_ids[exp_idx])
             raise IndexError('Experience index out of bounds' +
                              str(int(exp_idx)))
@@ -598,21 +598,21 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
             currently loaded experiences will be dropped.
         :return: None
         """
-        self.scenario.stream_definitions[
+        self.benchmark.stream_definitions[
             self.name].exps_data.drop_previous_experiences(to_exp)
 
 
 class LazyStreamClassesInExps(Mapping[str, Sequence[Optional[Set[int]]]]):
-    def __init__(self, scenario: GenericCLScenario):
-        self._scenario = scenario
-        self._default_lcie = LazyClassesInExps(scenario, stream='train')
+    def __init__(self, benchmark: GenericCLScenario):
+        self._benchmark = benchmark
+        self._default_lcie = LazyClassesInExps(benchmark, stream='train')
 
     def __len__(self):
-        return len(self._scenario.stream_definitions)
+        return len(self._benchmark.stream_definitions)
 
     def __getitem__(self, stream_name_or_exp_id):
         if isinstance(stream_name_or_exp_id, str):
-            return LazyClassesInExps(self._scenario,
+            return LazyClassesInExps(self._benchmark,
                                      stream=stream_name_or_exp_id)
 
         warnings.warn(
@@ -622,16 +622,16 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Optional[Set[int]]]]):
         return self._default_lcie[stream_name_or_exp_id]
 
     def __iter__(self):
-        yield from self._scenario.stream_definitions.keys()
+        yield from self._benchmark.stream_definitions.keys()
 
 
 class LazyClassesInExps(Sequence[Optional[Set[int]]]):
-    def __init__(self, scenario: GenericCLScenario, stream: str = 'train'):
-        self._scenario = scenario
+    def __init__(self, benchmark: GenericCLScenario, stream: str = 'train'):
+        self._benchmark = benchmark
         self._stream = stream
 
     def __len__(self):
-        return len(self._scenario.streams[self._stream])
+        return len(self._benchmark.streams[self._stream])
 
     def __getitem__(self, exp_id) -> Set[int]:
         return manage_advanced_indexing(
@@ -644,7 +644,7 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
                ']'
 
     def _get_single_exp_classes(self, exp_id):
-        targets = self._scenario.stream_definitions[
+        targets = self._benchmark.stream_definitions[
             self._stream].exps_data.targets_field_sequence[exp_id]
         if targets is None:
             return None
@@ -724,8 +724,8 @@ class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
 
         self.origin_stream: TScenarioStream = origin_stream
 
-        # scenario keeps a reference to the base scenario
-        self.scenario: TScenario = origin_stream.scenario
+        # benchmark keeps a reference to the base benchmark
+        self.benchmark: TScenario = origin_stream.benchmark
 
         # current_experience is usually an incremental, 0-indexed, value used to
         # keep track of the current batch/task.
@@ -786,11 +786,11 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
         :param current_experience: The current experience ID, as an integer.
         """
         self.dataset: AvalancheDataset = \
-            origin_stream.scenario.stream_definitions[
+            origin_stream.benchmark.stream_definitions[
                 origin_stream.name].exps_data[current_experience]
 
         (classes_in_this_exp, previous_classes, classes_seen_so_far,
-         future_classes) = origin_stream.scenario.get_classes_timeline(
+         future_classes) = origin_stream.benchmark.get_classes_timeline(
             current_experience, stream=origin_stream.name)
 
         super(GenericExperience, self).__init__(
@@ -798,7 +798,7 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
             previous_classes, classes_seen_so_far, future_classes)
 
     def _get_stream_def(self):
-        return self.scenario.stream_definitions[self.origin_stream.name]
+        return self.benchmark.stream_definitions[self.origin_stream.name]
 
     @property
     def task_labels(self) -> List[int]:
