@@ -177,6 +177,9 @@ class BaseStrategy:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
+        self.current_eval_stream = None
+        """User-provided evaluation stream on `eval` call"""
+
         self._stop_training = False
 
         self._warn_for_disabled_plugins_callbacks()
@@ -346,6 +349,7 @@ class BaseStrategy:
 
         if not isinstance(exp_list, Sequence):
             exp_list = [exp_list]
+        self.current_eval_stream = exp_list
 
         self.before_eval(**kwargs)
         for self.experience in exp_list:

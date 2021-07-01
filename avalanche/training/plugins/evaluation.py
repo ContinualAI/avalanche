@@ -31,7 +31,9 @@ class EvaluationPlugin(StrategyPlugin):
                  *metrics: Union['PluginMetric', Sequence['PluginMetric']],
                  loggers: Union['StrategyLogger',
                                 Sequence['StrategyLogger']] = None,
-                 collect_all=True):
+                 collect_all=True,
+                 benchmark=None,
+                 strict_checks=False):
         """
         Creates an instance of the evaluation plugin.
 
@@ -40,9 +42,19 @@ class EvaluationPlugin(StrategyPlugin):
         :param collect_all: if True, collect in a separate dictionary all
             metric curves values. This dictionary is accessible with
             `get_all_metrics` method.
+        :param benchmark: continual learning benchmark needed to check stream
+            completeness during evaluation or other kind of properties. If
+            None, no check will be conducted and the plugin will emit a
+            warning to signal this fact.
+        :param strict_checks: if True, `benchmark` has to be provided.
+            In this case, only full evaluation streams are admitted when
+            calling `eval`. An error will be raised otherwise. When False,
+            `benchmark` can be `None` and only warnings will be raised.
         """
         super().__init__()
         self.collect_all = collect_all
+        self.benchmark = benchmark
+        self.strict_checks = strict_checks
         flat_metrics_list = []
         for metric in metrics:
             if isinstance(metric, Sequence):
@@ -55,6 +67,18 @@ class EvaluationPlugin(StrategyPlugin):
             loggers = []
         elif not isinstance(loggers, Sequence):
             loggers = [loggers]
+
+        if benchmark is None:
+            if strict_checks:
+                raise ValueError("Benchmark cannot be None in strict mode.")
+            else:
+                warnings.warn(
+                    "No benchmark provided to the evaluation plugin. "
+                    "Metrics may be computed on inconsistent portion "
+                    "of streams, use at your own risk.")
+        else:
+            self.complete_test_stream = benchmark.test_stream
+
         self.loggers: Sequence['StrategyLogger'] = loggers
 
         if len(self.loggers) == 0:
@@ -159,7 +183,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._update_metrics(strategy, 'after_forward')
 
     def before_backward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_backward')
+        self.update_metrics = self._update_metrics(strategy, 'before_backward')
 
     def after_backward(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'after_backward')
@@ -184,6 +208,26 @@ class EvaluationPlugin(StrategyPlugin):
 
     def before_eval(self, strategy: 'BaseStrategy', **kwargs):
         self._update_metrics(strategy, 'before_eval')
+        msgw = "Evaluation stream is not equal to the complete test stream. " \
+               "This may result in inconsistent metrics. Use at your own risk."
+        msge = "Stream provided to `eval` must be the same of the entire " \
+               "evaluation stream."
+        if self.benchmark is not None:
+            if len(strategy.current_eval_stream) != \
+                    len(self.complete_test_stream):
+                if self.strict_checks:
+                    raise ValueError(msge)
+                else:
+                    warnings.warn(msgw)
+            else:
+                for exp_curr, exp_target in zip(strategy.current_eval_stream,
+                                                self.complete_test_stream):
+                    if exp_curr.current_experience != \
+                            exp_target.current_experience:
+                        if self.strict_checks:
+                            raise ValueError(msge)
+                        else:
+                            warnings.warn(msgw)
 
     def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
                                        **kwargs):
@@ -214,10 +258,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._update_metrics(strategy, 'after_eval_iteration')
 
 
-default_logger = EvaluationPlugin(
-    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loggers=[InteractiveLogger()])
+default_logger = None
 
 
 __all__ = [
