@@ -213,21 +213,19 @@ class EvaluationPlugin(StrategyPlugin):
         msge = "Stream provided to `eval` must be the same of the entire " \
                "evaluation stream."
         if self.benchmark is not None:
-            if len(strategy.current_eval_stream) != \
-                    len(self.complete_test_stream):
-                if self.strict_checks:
-                    raise ValueError(msge)
-                else:
-                    warnings.warn(msgw)
-            else:
-                for exp_curr, exp_target in zip(strategy.current_eval_stream,
-                                                self.complete_test_stream):
-                    if exp_curr.current_experience != \
-                            exp_target.current_experience:
+            for i, exp in enumerate(self.complete_test_stream):
+                try:
+                    current_exp = strategy.current_eval_stream[i]
+                    if exp.current_experience != current_exp.current_experience:
                         if self.strict_checks:
                             raise ValueError(msge)
                         else:
                             warnings.warn(msgw)
+                except IndexError:
+                    if self.strict_checks:
+                        raise ValueError(msge)
+                    else:
+                        warnings.warn(msgw)
 
     def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
                                        **kwargs):
