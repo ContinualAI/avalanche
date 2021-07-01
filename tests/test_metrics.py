@@ -1,7 +1,6 @@
 """ Metrics Tests"""
 
 import unittest
-from pathlib import Path
 import torch
 from torch.utils.data import TensorDataset
 import numpy as np
@@ -28,7 +27,6 @@ from avalanche.evaluation.metrics import forgetting_metrics, \
 from avalanche.models import SimpleMLP
 from avalanche.logging import TextLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
 
 
 #################################
