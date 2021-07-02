@@ -101,7 +101,7 @@ class Experience(Protocol[TScenario, TScenarioStream]):
     def scenario(self) -> TScenario:
         """ This property is DEPRECATED, use self.benchmark instead."""
         warnings.warn(
-            'Using self.scenario is deprecated. '
+            'Using self.scenario is deprecated in Experience. '
             'Consider using self.benchmark instead.', stacklevel=2)
         return self.benchmark
 
@@ -131,7 +131,7 @@ class ScenarioStream(Protocol[TScenario, TExperience]):
     def scenario(self) -> TScenario:
         """ This property is DEPRECATED, use self.benchmark instead."""
         warnings.warn(
-            'Using self.scenario is deprecated. '
+            'Using self.scenario is deprecated ScenarioStream. '
             'Consider using self.benchmark instead.', stacklevel=2)
         return self.benchmark
 
