@@ -36,8 +36,8 @@ class CSVLogger(StrategyLogger):
     associated to the current training experience, set
     `eval_every=1` (or larger value) in the strategy constructor
     and pass the eval experience to the `train` method:
-    `for i, exp in enumerate(scenario.train_stream):`
-        `strategy.train(exp, eval_streams=[scenario.test_stream[i]])`
+    `for i, exp in enumerate(benchmark.train_stream):`
+        `strategy.train(exp, eval_streams=[benchmark.test_stream[i]])`
 
     When not provided, validation loss and validation accuracy
     will be logged as zero.

@@ -147,7 +147,7 @@ train_stream = split_mnist.train_stream
 print(train_stream.name)
 
 # we have access to the scenario from which the stream was taken
-train_stream.scenario
+train_stream.benchmark
 
 # we can slice and reorder the stream as we like!
 substream = train_stream[0]
@@ -176,7 +176,7 @@ experience.classes_seen_so_far
 experience.previous_classes
 experience.future_classes
 experience.origin_stream
-experience.scenario
+experience.benchmark
 
 # As always, we can iterate over it normally or with a pytorch
 # data loader.

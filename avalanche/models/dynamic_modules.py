@@ -130,7 +130,7 @@ class IncrementalClassifier(DynamicModule):
         """ Output layer that incrementally adds units whenever new classes are
         encountered.
 
-        Typically used in class-incremental scenarios where the number of
+        Typically used in class-incremental benchmarks where the number of
         classes grows over time.
 
         :param in_features: number of input features.
@@ -173,7 +173,7 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
     def __init__(self, in_features, initial_out_features=2):
         """ Multi-head classifier with separate heads for each task.
 
-        Typically used in task-incremental scenarios where task labels are
+        Typically used in task-incremental benchmarks where task labels are
         available and provided to the model.
 
         .. note::
@@ -187,7 +187,7 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
 
             These can be easily ensured in two possible ways:
             - each minibatch contains a single task, which is the case in most
-                common scenarios in Avalanche. Some exceptions to this setting
+                common benchmarks in Avalanche. Some exceptions to this setting
                 are multi-task replay or cumulative strategies.
             - each head has the same size, which can be enforced by setting a
                 large enough `initial_out_features`.

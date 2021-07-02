@@ -339,12 +339,12 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def _get_display_class_order(self, exp_cm: Tensor, strategy: 'BaseStrategy'
                                  ) -> ndarray:
-        scenario = strategy.experience.scenario
+        benchmark = strategy.experience.benchmark
 
-        if self.absolute_class_order or not isinstance(scenario, NCScenario):
+        if self.absolute_class_order or not isinstance(benchmark, NCScenario):
             return arange(len(exp_cm))
 
-        return scenario.classes_order
+        return benchmark.classes_order
 
     def __str__(self):
         return "ConfusionMatrix_Stream"

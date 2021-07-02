@@ -59,7 +59,7 @@ def create_multi_dataset_generic_benchmark(
         streams then those definition will override the `train_datasets` and
         `test_datasets` parameters.
     :param complete_test_set_only: If True, only the complete test set will
-        be returned by the scenario. This means that the ``test_dataset_list``
+        be returned by the benchmark. This means that the ``test_dataset_list``
         parameter must be list with a single element (the complete test set).
         Defaults to False.
     :param train_transform: The transformation to apply to the training data,
@@ -247,7 +247,7 @@ def create_lazy_generic_benchmark(
         "train" or "test" streams then those definition will override the
         `train_generator` and `test_generator` parameters.
     :param complete_test_set_only: If True, only the complete test set will
-        be returned by the scenario. This means that the ``test_generator``
+        be returned by the benchmark. This means that the ``test_generator``
         parameter must define a stream with a single experience (the complete
         test set). Defaults to False.
     :param train_transform: The transformation to apply to the training data,
@@ -387,7 +387,7 @@ def create_generic_benchmark_from_filelists(
         applied to all patterns of a certain experience. For more info on that,
         see the function description.
     :param complete_test_set_only: If True, only the complete test set will
-        be returned by the scenario. This means that the ``test_file_lists``
+        be returned by the benchmark. This means that the ``test_file_lists``
         parameter must be list with a single element (the complete test set).
         Alternatively, can be a plain string or :class:`Path` object.
         Defaults to False.
@@ -512,7 +512,7 @@ def create_generic_benchmark_from_paths(
         applied to all patterns of a certain experience. For more info on that,
         see the function description.
     :param complete_test_set_only: If True, only the complete test set will
-        be returned by the scenario. This means that the ``test_list_of_files``
+        be returned by the benchmark. This means that the ``test_list_of_files``
         parameter must define a single experience (the complete test set).
         Defaults to False.
     :param train_transform: The transformation to apply to the training data,
@@ -590,7 +590,7 @@ def create_generic_benchmark_from_tensor_lists(
     be created from each Tensor tuple (x, y, z, ...) and each of those training
     datasets will be considered a separate training experience. Using this
     helper function is the lowest-level way to create a Continual Learning
-    scenario. When possible, consider using higher level helpers.
+    benchmark. When possible, consider using higher level helpers.
 
     Experiences are defined by passing lists of tensors as the `train_tensors`,
     `test_tensors` (and `other_streams_tensors`) parameters. Those parameters
@@ -632,7 +632,7 @@ def create_generic_benchmark_from_tensor_lists(
         applied to all patterns of a certain experience. For more info on that,
         see the function description.
     :param complete_test_set_only: If True, only the complete test set will
-        be returned by the scenario. This means that ``test_tensors`` must
+        be returned by the benchmark. This means that ``test_tensors`` must
         define a single experience. Defaults to False.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different

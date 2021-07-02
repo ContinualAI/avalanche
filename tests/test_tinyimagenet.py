@@ -24,11 +24,11 @@ class TinyImagenetTest(unittest.TestCase):
         logger.setLevel(logging.INFO)
         logger.addHandler(logging.StreamHandler())
 
-        scenario = SplitTinyImageNet()
-        for task_info in scenario.train_stream:
+        benchmark = SplitTinyImageNet()
+        for task_info in benchmark.train_stream:
             self.assertIsInstance(task_info, Experience)
 
-        for task_info in scenario.test_stream:
+        for task_info in benchmark.test_stream:
             self.assertIsInstance(task_info, Experience)
 
 

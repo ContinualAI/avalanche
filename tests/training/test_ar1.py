@@ -21,15 +21,15 @@ from tests.training.test_strategies import StrategyTest
 
 class AR1Test(unittest.TestCase):
     def test_ar1(self):
-        my_nc_benchmark = self.load_ar1_scenario()
+        my_nc_benchmark = self.load_ar1_benchmark()
         strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
                        rm_sz=200)
         StrategyTest.run_strategy(self, my_nc_benchmark, strategy)
 
-    def load_ar1_scenario(self):
+    def load_ar1_benchmark(self):
         """
-        Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
-        2 classes per experience. This toy scenario is intended
+        Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
+        2 classes per experience. This toy benchmark is intended
         """
         n_samples_per_class = 50
         dataset = make_classification(
