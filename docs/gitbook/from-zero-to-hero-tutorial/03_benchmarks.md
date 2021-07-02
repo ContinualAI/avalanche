@@ -6,6 +6,7 @@ description: Create your Continual Learning Benchmark and Start Prototyping
 
 Welcome to the "_benchmarks_" tutorial of the "_From Zero to Hero_" series. In this part we will present the functionalities offered by the `Benchmarks` module.
 
+
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
@@ -41,14 +42,15 @@ But let's see how we can use this module in practice!
 
 Let's start with the `Datasets`. As we previously hinted, in _Avalanche_ you'll find all the standard Pytorch Datasets available in the torchvision package as well as a few others that are useful for continual learning but not already officially available within the Pytorch ecosystem.
 
+
 ```python
 import torch
 import torchvision
-from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST,
-    QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10,
-    CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection,
-    VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101,
-    CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS
+from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
+QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
+CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
+VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
+CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
 
 # As we would simply do with any Pytorch dataset we can create the train and 
 # test sets from it. We could use any of the above imported Datasets, but let's
@@ -78,6 +80,7 @@ Of course also the basic utilities `ImageFolder` and `DatasetFolder` can be used
 
 We also provide an additional `FilelistDataset` and `AvalancheDataset` classes. The former to construct a dataset from a filelist [\(caffe style\)](https://ceciliavision.wordpress.com/2016/03/08/caffedata-layer/) pointing to files anywhere on the disk. The latter to augment the basic Pytorch Dataset functionalities with an extention to better deal with a stack of transformations to be used during train and test.
 
+
 ```python
 from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, AvalancheDataset
 ```
@@ -99,6 +102,7 @@ This means that memory requirements are very low, while the speed is guaranteed 
 #### Scenarios
 
 So, as we have seen, each `scenario` object in _Avalanche_ has several useful attributes that characterizes the benchmark, including the two important `train` and `test streams`. Let's check what you can get from a scenario object more in details:
+
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
@@ -141,6 +145,7 @@ split_mnist.classes_in_experience
 
 The _train_ and _test streams_ can be used for training and testing purposes, respectively. This is what you can do with these streams:
 
+
 ```python
 # each stream has a name: "train" or "test"
 train_stream = split_mnist.train_stream
@@ -160,6 +165,7 @@ len(substream)
 #### Experiences
 
 Each stream can in turn be treated as an iterator that produces a unique `experience`, containing all the useful data regarding a _batch_ or _task_ in the continual stream our algorithms will face. Check out how can you use these experiences below:
+
 
 ```python
 # we get the first experience
@@ -192,6 +198,7 @@ print("Task Label:", t_label)
 
 Now that we know how our benchmarks work in general through scenarios, streams and experiences objects, in this section we are going to explore **common benchmarks** already available for you with one line of code yet flexible enough to allow proper tuning based on your needs:
 
+
 ```python
 from avalanche.benchmarks.classic import CORe50, SplitTinyImageNet, \
 SplitCIFAR10, SplitCIFAR100, SplitCIFAR110, SplitMNIST, RotatedMNIST, \
@@ -209,6 +216,7 @@ Many of the classic benchmarks will download the original datasets they are base
 ### How to Use the Benchmarks
 
 Let's see now how we can use the classic benchmark or the ones that you can create through the generators \(see next section\). For example, let's try out the classic `PermutedMNIST` benchmark \(_Task-Incremental_ scenario\).
+
 
 ```python
 # creating the benchmark instance (scenario object)
@@ -254,11 +262,13 @@ for the **New Instances**:
 
 * `ni_benchmark`
 
+
 ```python
 from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
 ```
 
 Let's start by creating the MNIST dataset object as we would normally do in Pytorch:
+
 
 ```python
 from torchvision.transforms import Compose, ToTensor, Normalize, RandomCrop
@@ -283,6 +293,7 @@ mnist_test = MNIST(
 
 Then we can, for example, create a new benchmark based on MNIST and the classic _Domain-Incremental_ scenario:
 
+
 ```python
 scenario = ni_benchmark(
     mnist_train, mnist_test, n_experiences=10, shuffle=True, seed=1234,
@@ -300,6 +311,7 @@ for experience in train_stream:
 ```
 
 Or, we can create a benchmark based on MNIST and the _Class-Incremental_ \(what's commonly referred to as "_Split-MNIST_" benchmark\):
+
 
 ```python
 scenario = nc_benchmark(
@@ -326,6 +338,7 @@ Finally, if you cannot create your ideal benchmark since it does not fit well in
 * **dataset\_benchmark**
 * **tensors\_benchmark**
 
+
 ```python
 from avalanche.benchmarks.generators import filelist_benchmark, dataset_benchmark, \
                                             tensors_benchmark, paths_benchmark
@@ -342,9 +355,11 @@ For _Avalanche_ we follow the same format of the _Caffe_ filelists \("_path_ _cl
 /path/to/another/file.jpg M  
 ...  
 /path/to/another/file.jpg N  
-/path/to/another/file.jpg N
+/path/to/another/file.jpg N  
+
 
 So let's download the classic "_Cats vs Dogs_" dataset as an example:
+
 
 ```python
 !wget -N --no-check-certificate \
@@ -353,6 +368,7 @@ So let's download the classic "_Cats vs Dogs_" dataset as an example:
 ```
 
 You can now see in the `content` directory on colab the image we downloaded. We are now going to create the filelists and then use the `filelist_benchmark` function to create our benchmark:
+
 
 ```python
 import os
@@ -402,6 +418,7 @@ generic_scenario = filelist_benchmark(
 
 In the previous cell we created a benchmark instance starting from file lists. However, `paths_benchmark` is a better choice if you already have the list of paths directly loaded in memory:
 
+
 ```python
 train_experiences = []
 for rel_dir, label in zip(
@@ -429,7 +446,8 @@ generic_scenario = paths_benchmark(
 )
 ```
 
-Let us see how we can use the `dataset_benchmark` utility, where we can use several PyTorch datasets as different batches or tasks. This utility expectes a list of datasets for the train, test \(and other custom\) streams. Each dataset will be used to create an experience:
+Let us see how we can use the `dataset_benchmark` utility, where we can use several PyTorch datasets as different batches or tasks. This utility expectes a list of datasets for the train, test (and other custom) streams. Each dataset will be used to create an experience:
+
 
 ```python
 train_cifar10 = CIFAR10(
@@ -445,7 +463,8 @@ generic_scenario = dataset_benchmark(
 )
 ```
 
-Adding task labels can be achieved by wrapping each datasets using `AvalancheDataset`. Apart from task labels, `AvalancheDataset` allows for more control over transformations and offers an ever growing set of utilities \(check the documentation for more details\).
+Adding task labels can be achieved by wrapping each datasets using `AvalancheDataset`. Apart from task labels, `AvalancheDataset` allows for more control over transformations and offers an ever growing set of utilities (check the documentation for more details).
+
 
 ```python
 # Alternatively, task labels can also be a list (or tensor)
@@ -470,6 +489,7 @@ print('With custom task labels:',
 ```
 
 And finally, the `tensors_benchmark` generator:
+
 
 ```python
 pattern_shape = (3, 32, 32)
@@ -502,4 +522,3 @@ This completes the "_Benchmark_" tutorial for the "_From Zero to Hero_" series. 
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/2.-benchmarks.ipynb)
-
