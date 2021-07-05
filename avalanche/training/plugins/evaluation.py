@@ -98,7 +98,23 @@ class EvaluationPlugin(StrategyPlugin):
         # metric value.
         self.last_metric_results = {}
 
+        self._active = True
+        """If True, no metrics will be collected."""
+
+    @property
+    def active(self):
+        return self._active
+
+    @active.setter
+    def active(self, value):
+        assert value is True or value is False, \
+            "Active must be set as either True or False"
+        self._active = value
+
     def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
+        if not self.active:
+            return []
+
         metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
