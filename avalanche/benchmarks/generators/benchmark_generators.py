@@ -69,11 +69,11 @@ def nc_benchmark(
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
     There are other important parameters that can be specified in order to tweak
-    the behaviour of the resulting scenario. Please take a few minutes to read
+    the behaviour of the resulting benchmark. Please take a few minutes to read
     and understand them as they may save you a lot of work.
 
     This generator features a integrated reproducibility mechanism that allows
-    the user to store and later re-load a scenario. For more info see the
+    the user to store and later re-load a benchmark. For more info see the
     ``reproducibility_data`` parameter.
 
     :param train_dataset: A list of training datasets, or a single dataset.
@@ -132,7 +132,7 @@ def nc_benchmark(
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
-        scenario definition options. This is usually a dictionary containing
+        benchmark definition options. This is usually a dictionary containing
         data used to reproduce a specific experiment. One can use the
         ``get_reproducibility_data`` method to get (and even distribute)
         the experiment setup so that it can be loaded by passing it as this
@@ -172,7 +172,7 @@ def nc_benchmark(
 
         if one_dataset_per_exp:
             # If one_dataset_per_exp is True, each dataset will be treated as
-            # a experience. In this scenario, shuffle refers to the experience
+            # a experience. In this benchmark, shuffle refers to the experience
             # order, not to the class one.
             fixed_class_order, per_exp_classes = \
                 _one_dataset_per_exp_class_order(mapping, shuffle, seed)
@@ -242,11 +242,11 @@ def ni_benchmark(
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
     There are other important parameters that can be specified in order to tweak
-    the behaviour of the resulting scenario. Please take a few minutes to read
+    the behaviour of the resulting benchmark. Please take a few minutes to read
     and understand them as they may save you a lot of work.
 
     This generator features an integrated reproducibility mechanism that allows
-    the user to store and later re-load a scenario. For more info see the
+    the user to store and later re-load a benchmark. For more info see the
     ``reproducibility_data`` parameter.
 
     :param train_dataset: A list of training datasets, or a single dataset.
@@ -278,7 +278,7 @@ def ni_benchmark(
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
     :param reproducibility_data: If not None, overrides all the other
-        scenario definition options, including ``fixed_exp_assignment``.
+        benchmark definition options, including ``fixed_exp_assignment``.
         This is usually a dictionary containing data used to
         reproduce a specific experiment. One can use the
         ``get_reproducibility_data`` method to get (and even distribute)

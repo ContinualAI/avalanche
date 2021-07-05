@@ -9,8 +9,8 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-""" This module contains the high-level CORe50 scenario generator. It
-basically returns a iterable scenario object ``GenericCLScenario`` given a
+""" This module contains the high-level CORe50 benchmark generator. It
+basically returns a iterable benchmark object ``GenericCLScenario`` given a
 number of configuration parameters."""
 from pathlib import Path
 from typing import Union, Optional, Any
@@ -69,27 +69,27 @@ def CORe50(
         eval_transform: Optional[Any] = _default_eval_transform,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario for CORe50.
+    Creates a CL benchmark for CORe50.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
 
     This generator can be used to obtain the NI, NC, NIC and NICv2-* scenarios.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
     The task label "0" will be assigned to each experience.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param scenario: CORe50 main scenario. It can be chosen between 'ni', 'nc',
         'nic', 'nicv2_79', 'nicv2_196' or 'nicv2_391.'
-    :param run: number of run for the scenario. Each run defines a different
+    :param run: number of run for the benchmark. Each run defines a different
         ordering. Must be a number between 0 and 9.
     :param object_lvl: True for a 50-way classification at the object level.
         False if you want to use the categories as classes. Default to True.
@@ -142,7 +142,7 @@ def CORe50(
             root / filelists_bp / ("train_batch_" +
                                    str(batch_id).zfill(2) + "_filelist.txt"))
 
-    scenario_obj = create_generic_benchmark_from_filelists(
+    benchmark_obj = create_generic_benchmark_from_filelists(
         root_img, train_failists_paths,
         [root / filelists_bp / "test_filelist.txt"],
         task_labels=[0 for _ in range(nbatch[scenario])],
@@ -150,7 +150,7 @@ def CORe50(
         train_transform=train_transform,
         eval_transform=eval_transform)
 
-    return scenario_obj
+    return benchmark_obj
 
 
 __all__ = [

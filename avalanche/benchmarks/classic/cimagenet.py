@@ -48,12 +48,12 @@ def SplitImageNet(
         train_transform: Optional[Any] = _default_train_transform,
         eval_transform: Optional[Any] = _default_eval_transform):
     """
-    Creates a CL scenario using the ImageNet dataset.
+    Creates a CL benchmark using the ImageNet dataset.
 
     If the dataset is not present in the computer, **this method will NOT be
     able automatically download** and store it.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -64,17 +64,17 @@ def SplitImageNet(
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param dataset_root: Base path where Imagenet data is stored.
-    :param n_experiences: The number of experiences in the current scenario.
+    :param n_experiences: The number of experiences in the current benchmark.
     :param per_exp_classes: Is not None, a dictionary whose keys are
         (0-indexed) experience IDs and their values are the number of classes
         to include in the respective experiences. The dictionary doesn't

@@ -47,7 +47,7 @@ def SplitInaturalist(
         eval_transform: Optional[Any] = _default_eval_transform,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario using the iNaturalist2018 dataset.
+    Creates a CL benchmark using the iNaturalist2018 dataset.
     A selection of supercategories (by default 10) define the experiences.
     Note that the supercategories are highly imbalanced in the number of classes
     and the amount of data available.
@@ -68,7 +68,7 @@ def SplitInaturalist(
     iNaturalist2018 training set to make the `train_stream`, whereas the
     `test_stream` is defined by the original iNaturalist2018 validation data.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -79,12 +79,12 @@ def SplitInaturalist(
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
