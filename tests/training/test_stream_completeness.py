@@ -16,7 +16,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 from avalanche.evaluation.metrics import accuracy_metrics
-from tests.unit_tests_utils import get_fast_scenario
+from tests.unit_tests_utils import get_fast_benchmark
 
 
 class TestStreamCompleteness(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestStreamCompleteness(unittest.TestCase):
         cls.optimizer = SGD(cls.model.parameters(), lr=1e-3)
         cls.criterion = CrossEntropyLoss()
 
-        cls.benchmark = get_fast_scenario()
+        cls.benchmark = get_fast_benchmark()
 
     def test_raise_error(self):
         eval_plugin = EvaluationPlugin(accuracy_metrics(stream=True),
