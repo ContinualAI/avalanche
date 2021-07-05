@@ -112,7 +112,7 @@ class EvaluationPlugin(StrategyPlugin):
         self._active = value
 
     def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
-        if not self.active:
+        if not self._active:
             return []
 
         metric_values = []
