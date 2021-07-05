@@ -191,7 +191,7 @@ class RunningEpochCPUUsage(CPUPluginMetric):
         super(RunningEpochCPUUsage, self).__init__(
             reset_at='epoch', emit_at='iteration', mode='train')
 
-    def result(self) -> float:
+    def result(self, strategy) -> float:
         return self._mean.result()
 
     def before_training_epoch(self, strategy):

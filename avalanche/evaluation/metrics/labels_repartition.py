@@ -123,7 +123,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
             strategy.mb_task_id.tolist(),
             strategy.mb_y.tolist(),
             class_order=getattr(
-                strategy.experience.scenario, "classes_order", None
+                strategy.experience.benchmark, "classes_order", None
             ),
         )
 

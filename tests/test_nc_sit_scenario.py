@@ -327,34 +327,34 @@ class SITTests(unittest.TestCase):
                       train=True, download=True)
         ds = AvalancheDataset(ds, transform=ToTensor())
 
-        scenario = nc_benchmark(
+        benchmark = nc_benchmark(
             ds, ds, n_experiences=10, shuffle=True, seed=1234,
             task_labels=False
         )
 
-        exp_0_dataset = scenario.train_stream[0].dataset
+        exp_0_dataset = benchmark.train_stream[0].dataset
         self.assertIsInstance(exp_0_dataset[0][0], Tensor)
 
     def test_nc_benchmark_transformations_advanced(self):
         # Regression for #577
         ds = CIFAR100(root=expanduser("~") + "/.avalanche/data/cifar100/",
                       train=True, download=True)
-        scenario = nc_benchmark(
+        benchmark = nc_benchmark(
             ds, ds, n_experiences=10, shuffle=True, seed=1234,
             task_labels=False, train_transform=ToTensor(),
             eval_transform=None
         )
 
-        ds_train_train = scenario.train_stream[0].dataset
+        ds_train_train = benchmark.train_stream[0].dataset
         self.assertIsInstance(ds_train_train[0][0], Tensor)
 
-        ds_train_eval = scenario.train_stream[0].dataset.eval()
+        ds_train_eval = benchmark.train_stream[0].dataset.eval()
         self.assertIsInstance(ds_train_eval[0][0], Image)
 
-        ds_test_eval = scenario.test_stream[0].dataset
+        ds_test_eval = benchmark.test_stream[0].dataset
         self.assertIsInstance(ds_test_eval[0][0], Image)
 
-        ds_test_train = scenario.test_stream[0].dataset.train()
+        ds_test_train = benchmark.test_stream[0].dataset.train()
         self.assertIsInstance(ds_test_train[0][0], Tensor)
 
     def test_nc_benchmark_classes_in_exp_range(self):

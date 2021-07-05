@@ -137,7 +137,7 @@ class NCScenario(GenericCLScenario['NCExperience']):
         class_mapping stores the class mapping so that 
         `mapped_class_id = class_mapping[original_class_id]`. 
         
-        If the scenario is created with an amount of classes which is less than
+        If the benchmark is created with an amount of classes which is less than
         the amount of all classes in the dataset, then class_mapping will 
         contain some -1 values corresponding to ignored classes. This can
         happen when passing a fixed class order to the constructor.

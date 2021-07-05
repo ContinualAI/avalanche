@@ -94,7 +94,7 @@ class MaxGPU(Metric[float]):
                                      % self.every))
 
     def start_thread(self):
-        if self.gpu_id:
+        if self.gpu_id is not None:
             assert not self.thread, "Trying to start thread " \
                                     "without joining the previous."
             self.thread = Thread(target=self._f, daemon=True)
@@ -248,7 +248,7 @@ class StreamMaxGPU(GPUPluginMetric):
             gpu_id, every,
             reset_at='stream', emit_at='stream', mode='eval')
 
-    def before_eval(self, strategy) -> MetricResult:
+    def before_eval(self, strategy):
         super().before_eval(strategy)
         self._gpu.start_thread()
 

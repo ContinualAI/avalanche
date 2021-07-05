@@ -39,7 +39,7 @@ from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader, TaskBalancedDataLoader, GroupBalancedDataLoader
 
 
-def get_fast_scenario():
+def get_fast_benchmark():
     n_samples_per_class = 100
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
@@ -61,8 +61,8 @@ def get_fast_scenario():
 
 class DataLoaderTests(unittest.TestCase):
     def test_basic(self):
-        scenario = get_fast_scenario()
-        ds = [el.dataset for el in scenario.train_stream]
+        benchmark = get_fast_benchmark()
+        ds = [el.dataset for el in benchmark.train_stream]
         data = AvalancheConcatDataset(ds)
         dl = TaskBalancedDataLoader(data)
         for el in dl:
@@ -77,7 +77,7 @@ class DataLoaderTests(unittest.TestCase):
             pass
 
     def test_dataload_reinit(self):
-        scenario = get_fast_scenario()
+        benchmark = get_fast_benchmark()
         model = SimpleMLP(input_size=6, hidden_size=10)
 
         replayPlugin = ReplayPlugin(mem_size=5)
@@ -88,11 +88,11 @@ class DataLoaderTests(unittest.TestCase):
             eval_mb_size=16,
             plugins=[replayPlugin]
         )
-        for step in scenario.train_stream[:2]:
+        for step in benchmark.train_stream[:2]:
             cl_strategy.train(step)
 
     def test_dataload_batch_balancing(self):
-        scenario = get_fast_scenario()
+        benchmark = get_fast_benchmark()
         batch_size = 32
         replayPlugin = ReplayPlugin(mem_size=20)
 
@@ -103,7 +103,7 @@ class DataLoaderTests(unittest.TestCase):
             CrossEntropyLoss(), train_mb_size=batch_size, train_epochs=1,
             eval_mb_size=100, plugins=[replayPlugin]
         )
-        for step in scenario.train_stream:
+        for step in benchmark.train_stream:
             adapted_dataset = step.dataset
             dataloader = ReplayDataLoader(
                     adapted_dataset,

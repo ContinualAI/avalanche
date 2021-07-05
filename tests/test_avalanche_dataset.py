@@ -324,7 +324,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             torch.randn(10, 4), torch.randint(0, 3, (10,)),
             dataset_type=AvalancheDatasetType.CLASSIFICATION,
             task_labels=torch.randint(0, 5, (10,)).tolist()) for i in range(3)]
-        scenario = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
+        benchmark = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
         model = SimpleMLP(input_size=4, num_classes=3)
         cl_strategy = Naive(model, SGD(model.parameters(), lr=0.001,
                                        momentum=0.9),
@@ -332,7 +332,7 @@ class AvalancheDatasetTests(unittest.TestCase):
                             train_epochs=1, eval_mb_size=5,
                             device='cpu', evaluator=None)
         exp = []
-        for i, experience in enumerate(scenario.train_stream):
+        for i, experience in enumerate(benchmark.train_stream):
             exp.append(i)
             cl_strategy.train(experience)
         self.assertEqual(len(exp), 3)
@@ -1545,17 +1545,17 @@ class TransformationTensorDatasetTests(unittest.TestCase):
         self.assertEqual(5, cl_benchmark.n_experiences)
 
         for exp_id in range(cl_benchmark.n_experiences):
-            scenario_train_x, scenario_train_y, _ = \
+            benchmark_train_x, benchmark_train_y, _ = \
                 load_all_dataset(cl_benchmark.train_stream[exp_id].dataset)
-            scenario_test_x, scenario_test_y, _ = \
+            benchmark_test_x, benchmark_test_y, _ = \
                 load_all_dataset(cl_benchmark.test_stream[exp_id].dataset)
 
             self.assertTrue(torch.all(torch.eq(
                 train_exps[exp_id][0],
-                scenario_train_x)))
+                benchmark_train_x)))
             self.assertTrue(torch.all(torch.eq(
                 train_exps[exp_id][1],
-                scenario_train_y)))
+                benchmark_train_y)))
             self.assertSequenceEqual(
                 train_exps[exp_id][1].tolist(),
                 cl_benchmark.train_stream[exp_id].dataset.targets)
@@ -1563,10 +1563,10 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
             self.assertTrue(torch.all(torch.eq(
                 test_exps[exp_id][0],
-                scenario_test_x)))
+                benchmark_test_x)))
             self.assertTrue(torch.all(torch.eq(
                 test_exps[exp_id][1],
-                scenario_test_y)))
+                benchmark_test_y)))
             self.assertSequenceEqual(
                 test_exps[exp_id][1].tolist(),
                 cl_benchmark.test_stream[exp_id].dataset.targets)
@@ -1587,17 +1587,17 @@ class TransformationTensorDatasetTests(unittest.TestCase):
         self.assertEqual(5, cl_benchmark.n_experiences)
 
         for exp_id in range(cl_benchmark.n_experiences):
-            scenario_train_x, scenario_train_y, _ = \
+            benchmark_train_x, benchmark_train_y, _ = \
                 load_all_dataset(cl_benchmark.train_stream[exp_id].dataset)
-            scenario_test_x, scenario_test_y, _ = \
+            benchmark_test_x, benchmark_test_y, _ = \
                 load_all_dataset(cl_benchmark.test_stream[exp_id].dataset)
 
             self.assertTrue(torch.all(torch.eq(
                 train_exps[exp_id][0],
-                scenario_train_x)))
+                benchmark_train_x)))
             self.assertSequenceEqual(
                 train_exps[exp_id][1],
-                scenario_train_y.tolist())
+                benchmark_train_y.tolist())
             self.assertSequenceEqual(
                 train_exps[exp_id][1],
                 cl_benchmark.train_stream[exp_id].dataset.targets)
@@ -1605,10 +1605,10 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
             self.assertTrue(torch.all(torch.eq(
                 test_exps[exp_id][0],
-                scenario_test_x)))
+                benchmark_test_x)))
             self.assertSequenceEqual(
                 test_exps[exp_id][1],
-                scenario_test_y.tolist())
+                benchmark_test_y.tolist())
             self.assertSequenceEqual(
                 test_exps[exp_id][1],
                 cl_benchmark.test_stream[exp_id].dataset.targets)

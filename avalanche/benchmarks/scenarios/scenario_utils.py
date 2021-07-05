@@ -1,3 +1,14 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 15-06-2021                                                             #
+# Author(s): Lorenzo Pellegrini                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
 """
 A set of internal utils used by nc and ni scenario.
 """

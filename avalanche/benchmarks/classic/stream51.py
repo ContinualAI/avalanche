@@ -71,7 +71,7 @@ def CLStream51(
         eval_transform=_default_stream51_transform,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario for Stream-51.
+    Creates a CL benchmark for Stream-51.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -79,7 +79,7 @@ def CLStream51(
     This generator can be used to obtain the 'iid', 'class_iid', 'instance', and
     'class_instance' scenarios.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Avalanche will support the
     "out of distribution" stream in the near future!
@@ -87,7 +87,7 @@ def CLStream51(
     Each Experience contains the `dataset` and the associated task label, which
     is always 0 for Stream51.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
@@ -126,7 +126,7 @@ def CLStream51(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    # get train and test sets and order them by scenario
+    # get train and test sets and order them by benchmark
     train_set = Stream51(root=dataset_root, train=True, download=download)
     test_set = Stream51(root=dataset_root, train=False, download=download)
     samples = Stream51.make_dataset(train_set.samples, ordering=scenario,
@@ -234,7 +234,7 @@ def CLStream51(
             test_ood_filelists_paths = [[[j[0], j[1]] for j in i] for i in
                                         test_ood_filelists_paths]
 
-    scenario_obj = create_generic_benchmark_from_paths(
+    benchmark_obj = create_generic_benchmark_from_paths(
         train_lists_of_files=train_filelists_paths,
         test_lists_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
@@ -243,7 +243,7 @@ def CLStream51(
         eval_transform=eval_transform,
         dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
-    return scenario_obj
+    return benchmark_obj
 
 
 __all__ = [
@@ -255,11 +255,11 @@ if __name__ == "__main__":
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    scenario = CLStream51(scenario="class_instance", seed=10,
-                          bbox_crop=True)
+    benchmark = CLStream51(scenario="class_instance", seed=10,
+                           bbox_crop=True)
 
     train_imgs_count = 0
-    for i, batch in enumerate(scenario.train_stream):
+    for i, batch in enumerate(benchmark.train_stream):
         print(i, batch)
         dataset, _ = batch.dataset, batch.task_label
         train_imgs_count += len(dataset)

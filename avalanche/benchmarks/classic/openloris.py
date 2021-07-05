@@ -9,9 +9,10 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-""" This module contains the high-level OpenLORIS scenario/factor generator.
-It basically returns a iterable scenario object ``GenericCLScenario`` given
+""" This module contains the high-level OpenLORIS benchmark/factor generator.
+It basically returns a iterable benchmark object ``GenericCLScenario`` given
 a number of configuration parameters."""
+
 from pathlib import Path
 from typing import Union, Any, Optional
 from typing_extensions import Literal
@@ -49,7 +50,7 @@ def OpenLORIS(
         eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario for OpenLORIS.
+    Creates a CL benchmark for OpenLORIS.
 
     If the dataset is not present in the computer, **this method will NOT be
     able automatically download** and store it.
@@ -58,14 +59,14 @@ def OpenLORIS(
     Valid factors include 'clutter', 'illumination', 'occlusion', 'pixel', or
     'mixture-iros'.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
     The task label "0" will be assigned to each experience.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 

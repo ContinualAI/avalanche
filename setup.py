@@ -19,7 +19,7 @@ def get_version(rel_path):
         raise RuntimeError("Unable to find version string.")
 
 setuptools.setup(
-    name="avalanche", # Replace with your own username
+    name="avalanche-lib", # Replace with your own username
     version=get_version("avalanche/__init__.py"),
     author="ContinualAI",
     author_email="contact@continualai.org",
@@ -46,6 +46,7 @@ setuptools.setup(
         'quadprog',
         'wandb',
         'tensorboard',
-        'pycocotools'
+        'pycocotools',
+        'tqdm'
     ]
 )
