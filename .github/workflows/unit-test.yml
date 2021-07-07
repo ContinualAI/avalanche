@@ -46,19 +46,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: copy dataset in correct folder
         run: cp -r /~/.avalanche /github/home
-      - name: install conda environment < 3.9
-        if: matrix.python-version != '3.9'
+      - name: install conda environment
         run: |
           conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
           conda activate avalanche-env
-          conda install pytorch=1.8.1 torchvision=0.9.1 cpuonly -c pytorch -y
-          conda env update --file environment.yml
-      - name: install conda environment = 3.9
-        if: matrix.python-version == '3.9'
-        run: |
-          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
-          conda activate avalanche-env
-          conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
+          conda install pytorch torchvision cpuonly -c pytorch -y
           conda env update --file environment.yml
       - name: python unit test
         id: unittest
