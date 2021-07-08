@@ -194,7 +194,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertIsNone(f)
         metric.update(0, 0.4)
         f = metric.result(k=0)
-        self.assertEqual(f, 0.6)
+        self.assertEqual(f, -0.6)
         metric.reset()
         self.assertEqual(metric.result(), {})
 
