@@ -12,7 +12,7 @@ from sklearn.datasets import make_classification
 from copy import deepcopy
 from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
     DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
-    Forgetting
+    Forgetting, ForwardTransfer
 from avalanche.training.strategies.base_strategy import BaseStrategy
 import pathlib
 from torch.nn import CrossEntropyLoss
@@ -23,7 +23,7 @@ from avalanche.benchmarks import nc_benchmark, dataset_benchmark
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
-    bwt_metrics, confusion_matrix_metrics
+    bwt_metrics, confusion_matrix_metrics, forward_transfer_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -183,6 +183,20 @@ class GeneralMetricTests(unittest.TestCase):
         metric.reset()
         self.assertEqual(metric.result(), {})
 
+    def test_forward_transfer(self):
+        metric = ForwardTransfer()
+        f = metric.result()
+        self.assertEqual(f, {})
+        f = metric.result(k=0)
+        self.assertIsNone(f)
+        metric.update(0, 1, initial=True)
+        f = metric.result(k=0)
+        self.assertIsNone(f)
+        metric.update(0, 0.4)
+        f = metric.result(k=0)
+        self.assertEqual(f, 0.6)
+        metric.reset()
+        self.assertEqual(metric.result(), {})
 
 #################################
 #################################
@@ -234,10 +248,11 @@ class PluginMetricTests(unittest.TestCase):
                 experience=True, stream=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
-            forgetting_metrics(experience=True, stream=True, task=True),
+            forgetting_metrics(experience=True, stream=True),
+            forward_transfer_metrics(experience=True, stream=True),
             confusion_matrix_metrics(num_classes=10, save_image=False,
                                      normalize='all', stream=True),
-            bwt_metrics(experience=True, stream=True, task=True),
+            bwt_metrics(experience=True, stream=True),
             cpu_usage_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
                 experience=True, stream=True),
@@ -260,7 +275,7 @@ class PluginMetricTests(unittest.TestCase):
             eval_every=1)
         for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream[i]],
+                              eval_streams=[benchmark.test_stream],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
@@ -306,11 +321,12 @@ class PluginMetricTests(unittest.TestCase):
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
                 (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience')) or
-                (kf.startswith('Task') and kb.startswith('Task'))
-            )
+                (kf.startswith('Experience') and kb.startswith('Experience')))
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
+
+    def test_fwt(self):
+        self.metric_check('ForwardTransfer')
 
     def test_cm(self):
         d = filter_dict(self.all_metrics, 'ConfusionMatrix')
@@ -354,10 +370,11 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
                 experience=True, stream=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
-            forgetting_metrics(experience=True, stream=True, task=True),
+            forgetting_metrics(experience=True, stream=True),
             confusion_matrix_metrics(num_classes=6, save_image=False,
                                      normalize='all', stream=True),
-            bwt_metrics(experience=True, stream=True, task=True),
+            bwt_metrics(experience=True, stream=True),
+            forward_transfer_metrics(experience=True, stream=True),
             cpu_usage_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
                 experience=True, stream=True),
@@ -380,7 +397,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             eval_every=1)
         for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream[i]],
+                              eval_streams=[benchmark.test_stream],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
@@ -418,6 +435,9 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
     def test_mac(self):
         self.metric_check('MAC')
 
+    def test_fwt(self):
+        self.metric_check('ForwardTransfer')
+
     def test_forgetting_bwt(self):
         df = filter_dict(self.all_metrics, 'Forgetting')
         db = filter_dict(self.all_metrics, 'BWT')
@@ -426,9 +446,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
                 (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience')) or
-                (kf.startswith('Task') and kb.startswith('Task')),
-            )
+                (kf.startswith('Experience') and kb.startswith('Experience')))
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 
@@ -484,10 +502,11 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
                 experience=True, stream=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
-            forgetting_metrics(experience=True, stream=True, task=True),
+            forgetting_metrics(experience=True, stream=True),
             confusion_matrix_metrics(num_classes=3, save_image=False,
                                      normalize='all', stream=True),
-            bwt_metrics(experience=True, stream=True, task=True),
+            bwt_metrics(experience=True, stream=True),
+            forward_transfer_metrics(experience=True, stream=True),
             cpu_usage_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
                 experience=True, stream=True),
@@ -510,7 +529,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             evaluator=eval_plugin, eval_every=1)
         for i, experience in enumerate(benchmark.train_stream):
             cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream[i]],
+                              eval_streams=[benchmark.test_stream],
                               shuffle=False)
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
@@ -548,6 +567,9 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
     def test_mac(self):
         self.metric_check('MAC')
 
+    def test_fwt(self):
+        self.metric_check('ForwardTransfer')
+
     def test_forgetting_bwt(self):
         df = filter_dict(self.all_metrics, 'Forgetting')
         db = filter_dict(self.all_metrics, 'BWT')
@@ -556,8 +578,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
                 (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience') or
-                 (kf.startswith('Task') and kb.startswith('Task'))))
+                (kf.startswith('Experience') and kb.startswith('Experience')))
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 

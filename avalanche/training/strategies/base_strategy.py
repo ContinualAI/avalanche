@@ -99,9 +99,10 @@ class BaseStrategy:
             training loop.
                 if -1: no evaluation during training.
                 if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+                    experience and before training on the first experience.
+                if >0: calls `eval` every `eval_every` epochs, at the end
+                    of all the epochs for a single experience and before
+                    training on the first experience.
         """
         self._criterion = criterion
 
@@ -243,6 +244,9 @@ class BaseStrategy:
                 eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
+
+        self._periodic_eval(eval_streams, do_final=False, do_initial=True)
+
         for self.experience in experiences:
             self.train_exp(self.experience, eval_streams, **kwargs)
         self.after_training(**kwargs)
@@ -296,7 +300,7 @@ class BaseStrategy:
         self._periodic_eval(eval_streams, do_final=do_final)
         self.after_training_exp(**kwargs)
 
-    def _periodic_eval(self, eval_streams, do_final):
+    def _periodic_eval(self, eval_streams, do_final, do_initial=False):
         """ Periodic eval controlled by `self.eval_every`. """
         # Since we are switching from train to eval model inside the training
         # loop, we need to save the training state, and restore it after the
@@ -308,8 +312,9 @@ class BaseStrategy:
             self.dataloader,
             self.is_training)
 
-        if (self.eval_every == 0 and do_final) or \
-           (self.eval_every > 0 and self.epoch % self.eval_every == 0):
+        if (self.eval_every == 0 and (do_final or do_initial)) or \
+           (self.eval_every > 0 and do_initial) or \
+                (self.eval_every > 0 and self.epoch % self.eval_every == 0):
             # in the first case we are outside epoch loop
             # in the second case we are within epoch loop
             for exp in eval_streams:
