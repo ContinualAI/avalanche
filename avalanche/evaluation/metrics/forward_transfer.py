@@ -4,7 +4,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 4-02-2021                                                              #
-# Author(s): Ryan Lindeborg                                                    #
+# Author(s): Ryan Lindeborg, Andrea Cossu                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
