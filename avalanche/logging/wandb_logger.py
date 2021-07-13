@@ -33,7 +33,8 @@ class WandBLogger(StrategyLogger):
     def __init__(self, project_name: str = "Avalanche", 
                  run_name: str = "Test", log_artifacts: bool = False,
                  path: str = "Checkpoints", checkpoint: str = "Model.pth", 
-                 uri: str = None, params: dict = None):
+                 uri: str = None, sync_tfboard: bool = False, 
+                 config: object = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
         :param project_name: Name of the W&B project.:
@@ -42,6 +43,8 @@ class WandBLogger(StrategyLogger):
         :param path: Path to locally save the model checkpoints.:
         :param checkpoint: Name of the model checkpoint file.:
         :param uri: Reference to external URI.:
+        :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.:
+        :param config: Syncs hyper-parameters and config values used to W&B.:
         :param params: All arguments for wandb.init() function call. 
          Visit https://docs.wandb.ai/ref/python/init to learn about all 
          wand.init() parameters.:
@@ -54,6 +57,8 @@ class WandBLogger(StrategyLogger):
         self.path = path
         self.checkpoint = checkpoint
         self.uri = uri
+        self.sync_tfboard = sync_tfboard
+        self.config = config
         self.params = params
         self.args_parse()
         self.before_run()
@@ -67,7 +72,9 @@ class WandBLogger(StrategyLogger):
         self.wandb = wandb
 
     def args_parse(self):
-        self.init_kwargs = {"project": self.project_name, "name": self.run_name}
+        self.init_kwargs = {"project": self.project_name, "name": self.run_name, 
+                            "sync_tensorboard": self.sync_tfboard, 
+                            "config": self.config}
         if self.params:
             self.init_kwargs.update(self.params)
 
