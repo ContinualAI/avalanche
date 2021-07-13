@@ -8,10 +8,11 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+import logging
 
 import torch
 from torch.utils.data import DataLoader
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -27,10 +28,16 @@ from typing import TYPE_CHECKING
 from avalanche.training.plugins import EvaluationPlugin
 
 if TYPE_CHECKING:
+    from avalanche.core import StrategyCallbacks
     from avalanche.training.plugins import StrategyPlugin
 
 
+logger = logging.getLogger(__name__)
+
+
 class BaseStrategy:
+    DISABLED_CALLBACKS: Sequence[str] = ()
+
     def __init__(self, model: Module, optimizer: Optimizer,
                  criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
@@ -170,7 +177,13 @@ class BaseStrategy:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
+        self.current_eval_stream = None
+        """User-provided evaluation stream on `eval` call"""
+
         self._stop_training = False
+
+        self._warn_for_disabled_plugins_callbacks()
+        self._warn_for_disabled_metrics_callbacks()
 
     @property
     def is_eval(self):
@@ -269,11 +282,12 @@ class BaseStrategy:
 
         self.epoch = 0
         for self.epoch in range(self.train_epochs):
+            self.before_training_epoch(**kwargs)
+
             if self._stop_training:  # Early stopping
                 self._stop_training = False
                 break
 
-            self.before_training_epoch(**kwargs)
             self.training_epoch(**kwargs)
             self.after_training_epoch(**kwargs)
             self._periodic_eval(eval_streams, do_final=False)
@@ -335,6 +349,7 @@ class BaseStrategy:
 
         if not isinstance(exp_list, Sequence):
             exp_list = [exp_list]
+        self.current_eval_stream = exp_list
 
         self.before_eval(**kwargs)
         for self.experience in exp_list:
@@ -589,6 +604,36 @@ class BaseStrategy:
         # This allows to add new parameters (new heads) and
         # freezing old units during the model's adaptation phase.
         reset_optimizer(self.optimizer, self.model)
+
+    def _warn_for_disabled_plugins_callbacks(self):
+        self._warn_for_disabled_callbacks(self.plugins)
+
+    def _warn_for_disabled_metrics_callbacks(self):
+        self._warn_for_disabled_callbacks(self.evaluator.metrics)
+
+    def _warn_for_disabled_callbacks(
+            self,
+            plugins: List["StrategyCallbacks"]
+    ):
+        """
+        Will log some warnings in case some plugins appear to be using callbacks
+        that have been de-activated by the strategy class.
+        """
+        for disabled_callback_name in self.DISABLED_CALLBACKS:
+            for plugin in plugins:
+                callback = getattr(plugin, disabled_callback_name)
+                callback_class = callback.__qualname__.split('.')[0]
+                if callback_class not in (
+                    "StrategyPlugin",
+                    "PluginMetric",
+                    "EvaluationPlugin",
+                    "GenericPluginMetric",
+                ):
+                    logger.warning(
+                        f"{plugin.__class__.__name__} seems to use "
+                        f"the callback {disabled_callback_name} "
+                        f"which is disabled by {self.__class__.__name__}"
+                    )
 
 
 __all__ = ['BaseStrategy']

@@ -59,7 +59,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     """
     The Dataset used as the base implementation for Avalanche.
 
-    Instances of this dataset are usually returned from scenarios, but it can
+    Instances of this dataset are usually returned from benchmarks, but it can
     also be used in a completely standalone manner. This dataset can be used
     to apply transformations before returning patterns/targets, it supports
     slicing and advanced indexing and it also contains useful fields as

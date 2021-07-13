@@ -221,21 +221,6 @@ def default_history_repartition_image_creator(
     return fig
 
 
-def get_task_label(strategy: "BaseStrategy") -> int:
-    """
-    Returns the current task label.
-
-    The current task label depends on the phase. During the training
-    phase, the task label is the one defined in the "train_task_label"
-    field. On the contrary, during the eval phase the task label is the one
-    defined in the "eval_task_label" field.
-
-    :param strategy: The strategy instance to get the task label from.
-    :return: The current train or eval task label.
-    """
-    return strategy.experience.task_label
-
-
 def stream_type(experience: 'Experience') -> str:
     """
     Returns the stream name from which the experience belongs to.
@@ -261,10 +246,16 @@ def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
         associated task label.
     """
 
-    if strategy.is_eval:
-        return EVAL, strategy.experience.task_label
+    task = strategy.experience.task_labels
+    if len(task) > 1:
+        task = None  # task labels per patterns
+    else:
+        task = task[0]
 
-    return TRAIN, strategy.experience.task_label
+    if strategy.is_eval:
+        return EVAL, task
+    else:
+        return TRAIN, task
 
 
 def bytes2human(n):
@@ -303,14 +294,24 @@ def get_metric_name(metric: 'PluginMetric',
     :param add_experience: if True, add eval_exp_id to the main metric name.
             Default to False.
     :param add_task: if True the main metric name will include the task
-        information. Otherwise, it will not.
+        information. If False, no task label will be displayed.
+        If an int, that value will be used as task label for the metric name.
     """
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
-    base_name = f"{metric}/{phase_name}_phase/{stream}_stream"
-    task_name = f"/Task{task_label:03}"
-    exp_name = f"/Exp{strategy.experience.current_experience:03}"
+    base_name = '{}/{}_phase/{}_stream'.format(str(metric),
+                                               phase_name, stream)
+    exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
+
+    if task_label is None and isinstance(add_task, bool):
+        add_task = False
+    else:
+        if isinstance(add_task, bool) and add_task:
+            task_name = '/Task{:03}'.format(task_label)
+        elif isinstance(add_task, int):
+            task_name = '/Task{:03}'.format(add_task)
+            add_task = True
 
     if add_experience and not add_task:
         return base_name + exp_name
@@ -324,7 +325,6 @@ def get_metric_name(metric: 'PluginMetric',
 
 __all__ = [
     "default_cm_image_creator",
-    "get_task_label",
     "phase_and_task",
     "get_metric_name",
     "stream_type",

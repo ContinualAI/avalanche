@@ -70,6 +70,17 @@ class Mean(Metric[float]):
         self.summed = 0.0
         self.weight = 0.0
 
+    def __add__(self, other: 'Mean') -> "Mean":
+        """
+        Return a metric representing the weighted mean of the 2 means.
+
+        :param other: the other mean
+        :return: The weighted mean"""
+        res = Mean()
+        res.summed = self.summed + other.summed
+        res.weight = self.weight + other.weight
+        return res
+
 
 class Sum(Metric[float]):
     """
