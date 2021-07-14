@@ -37,17 +37,17 @@ class WandBLogger(StrategyLogger):
                  config: object = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
-        :param project_name: Name of the W&B project.:
-        :param run_name: Name of the W&B run.:
-        :param log_artifacts: Option to log model weights as W&B Artifacts.:
-        :param path: Path to locally save the model checkpoints.:
-        :param checkpoint: Name of the model checkpoint file.:
-        :param uri: Reference to external URI.:
-        :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.:
-        :param config: Syncs hyper-parameters and config values used to W&B.:
+        :param project_name: Name of the W&B project.
+        :param run_name: Name of the W&B run.
+        :param log_artifacts: Option to log model weights as W&B Artifacts.
+        :param path: Path to locally save the model checkpoints.
+        :param checkpoint: Name of the model checkpoint file.
+        :param uri: Reference to external URI.
+        :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.
+        :param config: Syncs hyper-parameters and config values used to W&B.
         :param params: All arguments for wandb.init() function call. 
          Visit https://docs.wandb.ai/ref/python/init to learn about all 
-         wand.init() parameters.:
+         wand.init() parameters.
         """
         super().__init__()
         self.import_wandb()
