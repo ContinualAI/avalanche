@@ -46,7 +46,8 @@ class WandBLogger(StrategyLogger):
 
     def __init__(self, project_name: str = "Avalanche", 
                  run_name: str = "Test", log_artifacts: bool = False,
-                 path: str = "Checkpoints", checkpoint: str = "Model.pth", 
+                 path: Union[str, Path] = "/Checkpoints", 
+                 checkpoint: str = "Model.pth", 
                  uri: str = None, sync_tfboard: bool = False, 
                  save_code: bool = True, config: object = None, 
                  dir: Union[str, Path] = None, params: dict = None):
