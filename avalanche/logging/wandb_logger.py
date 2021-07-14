@@ -10,17 +10,23 @@
 ################################################################################
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
-from PIL.Image import Image
+
+from typing import Union
+from pathlib import Path
+import os
+import errno
+
+import numpy as np
 from numpy import array
 from torch import Tensor
 import torch
+
+from PIL.Image import Image
 from matplotlib.pyplot import Figure
+
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
-import numpy as np
-import os
-import errno
 
 
 class WandBLogger(StrategyLogger):
@@ -43,7 +49,7 @@ class WandBLogger(StrategyLogger):
                  path: str = "Checkpoints", checkpoint: str = "Model.pth", 
                  uri: str = None, sync_tfboard: bool = False, 
                  save_code: bool = True, config: object = None, 
-                 dir: str = None, params: dict = None):
+                 dir: Union[str, Path] = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
         :param project_name: Name of the W&B project.
