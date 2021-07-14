@@ -28,6 +28,14 @@ class WandBLogger(StrategyLogger):
     The `WandBLogger` provides an easy integration with
     Weights & Biases logging. Each monitored metric is automatically
     logged to a dedicated Weights & Biases project dashboard.
+
+    External storage for W&B Artifacts (for instance - AWS S3 and GCS
+    buckets) uri are supported.
+
+    The wandb log files are placed by default in "./wandb/".
+
+    .. note::
+        TensorBoard can be synced on to the W&B dedicated dashboard.
     """
 
     def __init__(self, project_name: str = "Avalanche", 
