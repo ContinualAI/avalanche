@@ -32,7 +32,7 @@ class WandBLogger(StrategyLogger):
     External storage for W&B Artifacts (for instance - AWS S3 and GCS
     buckets) uri are supported.
 
-    The wandb log files are placed by default in "./wandb/".
+    The wandb log files are placed by default in "./wandb/" unless specified.
 
     .. note::
         TensorBoard can be synced on to the W&B dedicated dashboard.
@@ -43,7 +43,7 @@ class WandBLogger(StrategyLogger):
                  path: str = "Checkpoints", checkpoint: str = "Model.pth", 
                  uri: str = None, sync_tfboard: bool = False, 
                  save_code: bool = True, config: object = None, 
-                 params: dict = None):
+                 dir: str = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
         :param project_name: Name of the W&B project.
@@ -55,6 +55,7 @@ class WandBLogger(StrategyLogger):
         :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.
         :param save_code: Saves the main training script to W&B. 
         :param config: Syncs hyper-parameters and config values used to W&B.
+        :param dir: Path to the local log directory for W&B logs to be saved at.
         :param params: All arguments for wandb.init() function call. 
          Visit https://docs.wandb.ai/ref/python/init to learn about all 
          wand.init() parameters.
@@ -70,6 +71,7 @@ class WandBLogger(StrategyLogger):
         self.sync_tfboard = sync_tfboard
         self.save_code = save_code
         self.config = config
+        self.dir = dir
         self.params = params
         self.args_parse()
         self.before_run()
@@ -85,7 +87,8 @@ class WandBLogger(StrategyLogger):
     def args_parse(self):
         self.init_kwargs = {"project": self.project_name, "name": self.run_name, 
                             "sync_tensorboard": self.sync_tfboard, 
-                            "save_code": self.save_code, "config": self.config}
+                            "dir": self.dir, "save_code": self.save_code, 
+                            "config": self.config}
         if self.params:
             self.init_kwargs.update(self.params)
 
