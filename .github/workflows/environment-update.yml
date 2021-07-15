@@ -28,7 +28,7 @@ jobs:
     name: new environment creation
     runs-on: ubuntu-latest
     container:
-      image: continuumio/anaconda3:latests
+      image: continuumio/anaconda3:latest
     strategy:
       fail-fast: false
       matrix:
