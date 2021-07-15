@@ -42,7 +42,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         super().__init__()
         self.weights = None
 
-    def update(self, weights) -> 'Tensor':
+    def update(self, weights) -> Tensor:
         """
         Update the weight checkpoint at the current experience.
 
@@ -51,7 +51,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         """
         self.weights = weights
 
-    def result(self) -> 'Tensor':
+    def result(self) -> Tensor:
         """
         Retrieves the weight checkpoint at the current experience.
 
