@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-docker'
-          ref: main
+          ref: master
           path: 'avalanche-docker'
           token: ${{ secrets.BOT_TOKEN }}
       - name: test failure
@@ -103,6 +103,6 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           repository: ContinualAI/avalanche-docker
-          branch: main
+          branch: master
           directory: avalanche-docker
           github_token: ${{ secrets.BOT_TOKEN }}
