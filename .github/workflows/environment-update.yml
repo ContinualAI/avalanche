@@ -23,10 +23,12 @@ on:
 
 
 jobs:
-  unit-test:
+  environment-creation:
     # if: github.repository == 'ContinualAI/avalanche'
-    name: unit test
+    name: new environment creation
     runs-on: ubuntu-latest
+    container:
+      image: continuumio/anaconda3:latests
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +53,7 @@ jobs:
           FAST_TEST=True USE_GPU=False python -m unittest
 
       - name: checkout avalanche-docker repo
+        if: always()
         uses: actions/checkout@v2
         with:
           repository: 'ContinualAI/avalanche-docker'
@@ -63,7 +66,7 @@ jobs:
           conda activate avalanche-env
           conda env export > failed-environment.yml
           diff avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml failed-environment.yml > diff_fail.txt
-      - name: test failure
+      - name: test failure - open an issue
         if: failure()
         uses: actions/github-script@v3
         with:
@@ -94,7 +97,7 @@ jobs:
           git add .
           git commit -m $"Update environment with python "${{ matrix.python-version }} -a || true
           git pull
-      - name: Push changes
+      - name: Push changes to avalanche-docker
         if: success()
         continue-on-error: true
         uses: ad-m/github-push-action@master
