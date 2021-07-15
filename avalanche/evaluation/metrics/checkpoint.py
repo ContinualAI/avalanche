@@ -69,8 +69,10 @@ class WeightCheckpoint(PluginMetric[Tensor]):
 
     def _package_result(self, strategy) -> 'MetricResult':
         weights = self.result()
-        metric_name = get_metric_name(self, strategy, add_experience=True, add_task=False)
-        return [MetricValue(self, metric_name, weights, self.get_global_counter())]
+        metric_name = get_metric_name(self, strategy, 
+                                      add_experience=True, add_task=False)
+        return [MetricValue(self, metric_name, weights, 
+                            self.get_global_counter())]
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
         self.update(strategy.model.parameters())
