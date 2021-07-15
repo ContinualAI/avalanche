@@ -3,7 +3,7 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 28-01-2021                                                             #
+# Date: 15-07-2021                                                             #
 # Author(s): Gabriele Graffieti                                                #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
@@ -32,7 +32,7 @@ jobs:
     name: unit test
     runs-on: ubuntu-latest
     container:
-      image: ggraffieti/avalanche-ds:latest
+      image: continualai/avalanche-test-${{ matrix.python-version }}:latest
     strategy:
       fail-fast: false
       matrix:
@@ -44,63 +44,47 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: copy dataset in correct folder
-        run: cp -r /~/.avalanche /github/home
-      - name: install conda environment < 3.9
-        if: matrix.python-version != '3.9'
-        run: |
-          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
-          conda activate avalanche-env
-          conda install pytorch=1.8.1 torchvision=0.9.1 cpuonly -c pytorch -y
-          conda env update --file environment.yml
-      - name: install conda environment = 3.9
-        if: matrix.python-version == '3.9'
-        run: |
-          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
-          conda activate avalanche-env
-          conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge -y
-          conda env update --file environment.yml
       - name: python unit test
         id: unittest
         run: |
           conda activate avalanche-env
           FAST_TEST=True USE_GPU=False python -m unittest
-      - name: clone reports repository
-        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
-        uses: actions/checkout@v2
-        with:
-          repository: 'ContinualAI/avalanche-report'
-          ref: main
-          path: 'avalanche-reports'
-          token: ${{ secrets.REPORT_TOKEN }}
-      - name: test success
-        if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
-        run: |
-          conda activate avalanche-env
-          rm -f avalanche-reports/packages/fail-${{ matrix.python-version }}-*
-          rm -f avalanche-reports/packages/success-${{ matrix.python-version }}-*
-          conda list > $"avalanche-reports/packages/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
-      - name: test failure
-        if: failure() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
-        run: |
-          conda activate avalanche-env
-          conda list > $"avalanche-reports/packages/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
-      - name: commit changes
-        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
-        run: |
-          cd avalanche-reports
-          git config --local user.email ${{ secrets.EMAIL }}
-          git config --local user.name ${{ secrets.NAME }}
-          git pull
-          git add .
-          git commit -m "Update packages files" -a || true
-          git pull
-      - name: Push changes
-        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
-        continue-on-error: true
-        uses: ad-m/github-push-action@master
-        with:
-          repository: ContinualAI/avalanche-report
-          branch: main
-          directory: avalanche-reports
-          github_token: ${{ secrets.REPORT_TOKEN }}
+#      - name: clone reports repository
+#        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+#        uses: actions/checkout@v2
+#        with:
+#          repository: 'ContinualAI/avalanche-report'
+#          ref: main
+#          path: 'avalanche-reports'
+#          token: ${{ secrets.REPORT_TOKEN }}
+#      - name: test success
+#        if: success() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+#        run: |
+#          conda activate avalanche-env
+#          rm -f avalanche-reports/packages/fail-${{ matrix.python-version }}-*
+#          rm -f avalanche-reports/packages/success-${{ matrix.python-version }}-*
+#          conda list > $"avalanche-reports/packages/success-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+#      - name: test failure
+#        if: failure() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+#        run: |
+#          conda activate avalanche-env
+#          conda list > $"avalanche-reports/packages/fail-"${{ matrix.python-version }}"-"$GITHUB_SHA".txt"
+#      - name: commit changes
+#        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+#        run: |
+#          cd avalanche-reports
+#          git config --local user.email ${{ secrets.EMAIL }}
+#          git config --local user.name ${{ secrets.NAME }}
+#          git pull
+#          git add .
+#          git commit -m "Update packages files" -a || true
+#          git pull
+#      - name: Push changes
+#        if: always() && github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
+#        continue-on-error: true
+#        uses: ad-m/github-push-action@master
+#        with:
+#          repository: ContinualAI/avalanche-report
+#          branch: main
+#          directory: avalanche-reports
+#          github_token: ${{ secrets.REPORT_TOKEN }}
