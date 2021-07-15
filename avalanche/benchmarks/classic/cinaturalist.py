@@ -8,9 +8,13 @@
 # E-mail: contact@continualai.org                                              #
 # Website: continualai.org                                                     #
 ################################################################################
+from pathlib import Path
+from typing import Union, Any, Optional
 
-
-from avalanche.benchmarks.datasets import INATURALIST2018
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import INATURALIST2018, \
+    default_dataset_location
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
@@ -33,15 +37,17 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitInaturalist(root,
-                     super_categories=None,
-                     return_task_id=False,
-                     download=False,
-                     seed=0,
-                     train_transform=_default_train_transform,
-                     eval_transform=_default_eval_transform):
+def SplitInaturalist(
+        *,
+        super_categories=None,
+        return_task_id=False,
+        download=False,
+        seed=0,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario using the iNaturalist2018 dataset.
+    Creates a CL benchmark using the iNaturalist2018 dataset.
     A selection of supercategories (by default 10) define the experiences.
     Note that the supercategories are highly imbalanced in the number of classes
     and the amount of data available.
@@ -62,7 +68,7 @@ def SplitInaturalist(root,
     iNaturalist2018 training set to make the `train_stream`, whereas the
     `test_stream` is defined by the original iNaturalist2018 validation data.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -73,16 +79,15 @@ def SplitInaturalist(root,
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Base path where Inaturalist data is stored.
     :param super_categories: The list of supercategories which define the
     tasks, i.e. each task consists of all classes in a super-category.
     :param download: If true and the dataset is not present in the computer,
@@ -104,6 +109,9 @@ def SplitInaturalist(root,
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'inatuarlist2018' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
@@ -115,7 +123,7 @@ def SplitInaturalist(root,
             'Insecta', 'Mammalia', 'Mollusca', 'Plantae', 'Reptilia']
 
     train_set, test_set = _get_inaturalist_dataset(
-        root, super_categories, download=download)
+        dataset_root, super_categories, download=download)
     per_exp_classes, fixed_class_order = _get_split(super_categories, train_set)
 
     if return_task_id:
@@ -145,11 +153,16 @@ def SplitInaturalist(root,
         )
 
 
-def _get_inaturalist_dataset(root, super_categories, download):
-    train_set = INATURALIST2018(root, split="train", supcats=super_categories,
-                                download=download)
-    test_set = INATURALIST2018(root, split="val", supcats=super_categories,
-                               download=download)
+def _get_inaturalist_dataset(dataset_root, super_categories, download):
+    if dataset_root is None:
+        dataset_root = default_dataset_location('inatuarlist2018')
+
+    train_set = INATURALIST2018(
+        dataset_root, split="train", supcats=super_categories,
+        download=download)
+    test_set = INATURALIST2018(
+        dataset_root, split="val", supcats=super_categories,
+        download=download)
 
     return train_set, test_set
 
@@ -169,14 +182,10 @@ __all__ = [
     'SplitInaturalist'
 ]
 
+
 if __name__ == "__main__":
-    import os
+    import sys
 
-    # Must define root manually to avoid automatic 120G download
-    your_root = os.path.expanduser("~") + "/.avalanche/data/inatuarlist2018/"
-    scenario = SplitInaturalist(your_root)
-
-    for exp in scenario.train_stream:
-        print("experience: ", exp.current_experience)
-        print("classes number: ", len(exp.classes_in_this_experience))
-        print("classes: ", exp.classes_in_this_experience)
+    benchmark_instance = SplitInaturalist()
+    check_vision_benchmark(benchmark_instance, show_without_transforms=False)
+    sys.exit(0)

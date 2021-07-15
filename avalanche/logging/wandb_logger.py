@@ -12,10 +12,12 @@
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
 from PIL.Image import Image
+from numpy import array
 from torch import Tensor
 from matplotlib.pyplot import Figure
 
-from avalanche.evaluation.metric_results import AlternativeValues, MetricValue
+from avalanche.evaluation.metric_results import AlternativeValues, \
+    MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
 import numpy as np
 
@@ -74,7 +76,7 @@ class WandBLogger(StrategyLogger):
         value = metric_value.value
 
         if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, Tensor,
+            value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
                                                self.wandb.viz.CustomChart)
 
@@ -93,6 +95,9 @@ class WandBLogger(StrategyLogger):
         elif isinstance(value, (float, int, Figure,
                                 self.wandb.viz.CustomChart)):
             self.wandb.log({name: value})
+
+        elif isinstance(value, TensorImage):
+            self.wandb.log({name: self.wandb.Image(array(value))})
 
 
 __all__ = [

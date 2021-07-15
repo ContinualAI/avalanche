@@ -19,7 +19,7 @@ from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
-    get_default_dataset_location
+    default_dataset_location
 
 
 class TinyImagenet(SimpleDownloadableDataset):
@@ -31,8 +31,7 @@ class TinyImagenet(SimpleDownloadableDataset):
 
     def __init__(
             self,
-            root: Union[str, Path] =
-            get_default_dataset_location('tinyimagenet'),
+            root: Union[str, Path] = None,
             *,
             train: bool = True,
             transform=None,
@@ -42,7 +41,9 @@ class TinyImagenet(SimpleDownloadableDataset):
         """
         Creates an instance of the Tiny Imagenet dataset.
 
-        :param root: folder in which to download dataset.
+        :param root: folder in which to download dataset. Defaults to None,
+            which means that the default location for 'tinyimagenet' will be
+            used.
         :param train: True for training set, False for test set.
         :param transform: Pytorch transformation function for x.
         :param target_transform: Pytorch transformation function for y.
@@ -50,6 +51,10 @@ class TinyImagenet(SimpleDownloadableDataset):
         :param bool download: If True, the dataset will be  downloaded if
             needed.
         """
+
+        if root is None:
+            root = default_dataset_location('tinyimagenet')
+
         self.transform = transform
         self.target_transform = target_transform
         self.train = train

@@ -45,7 +45,7 @@ This is the **safest option** since it allows you to build an isolated environme
 
 Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
 
-1. Install the `avalanche.yml` environment and activate it.
+1. Install the `avalanche-env` environment and activate it.
 2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\)
 3. Update the Conda Environment
 
@@ -80,7 +80,7 @@ If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero 
 
 Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
 
-1. Install the `avalanche-dev.yml` environment and activate it.
+1. Install the `avalanche-dev-env` environment and activate it.
 2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\).
 3. Update the Conda Environment.
 

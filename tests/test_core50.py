@@ -19,16 +19,16 @@ from avalanche.benchmarks.classic import CORe50
 
 
 class CORe50Test(unittest.TestCase):
-    def test_core50_ni_scenario(self):
+    def test_core50_ni_benchmark(self):
 
         if "FAST_TEST" in os.environ:
             pass
         else:
-            scenario = CORe50(scenario="ni")
-            for experience in scenario.train_stream:
+            benchmark = CORe50(scenario="ni")
+            for experience in benchmark.train_stream:
                 pass
 
-    def test_core50_nc_scenario(self):
+    def test_core50_nc_benchmark(self):
         if "FAST_TEST" in os.environ:
             pass
         else:

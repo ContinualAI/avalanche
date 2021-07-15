@@ -11,13 +11,15 @@
 
 """ This module implements an high-level function to create the classic
 Fashion MNIST split CL scenario. """
-
-from typing import Sequence, Optional
-from os.path import expanduser
+from pathlib import Path
+from typing import Sequence, Optional, Union, Any
 from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
 
 _default_fmnist_train_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -30,20 +32,24 @@ _default_fmnist_eval_transform = transforms.Compose([
 ])
 
 
-def SplitFMNIST(n_experiences: int,
-                first_batch_with_half_classes: bool = False,
-                return_task_id=False,
-                seed: Optional[int] = None,
-                fixed_class_order: Optional[Sequence[int]] = None,
-                train_transform=_default_fmnist_train_transform,
-                eval_transform=_default_fmnist_eval_transform):
+def SplitFMNIST(
+        n_experiences: int,
+        *,
+        first_batch_with_half_classes: bool = False,
+        return_task_id=False,
+        seed: Optional[int] = None,
+        fixed_class_order: Optional[Sequence[int]] = None,
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_fmnist_train_transform,
+        eval_transform: Optional[Any] = _default_fmnist_eval_transform,
+        dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario using the Fashion MNIST dataset.
+    Creates a CL benchmark using the Fashion MNIST dataset.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -54,17 +60,17 @@ def SplitFMNIST(n_experiences: int,
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of experiences in the current
-        scenario. If the first experience is a "pretraining" step and it
+        benchmark. If the first experience is a "pretraining" step and it
         contains half of the classes. The value of this parameter should be a
         divisor of 10 if first_task_with_half_classes if false, a divisor of 5
         otherwise.
@@ -83,6 +89,8 @@ def SplitFMNIST(n_experiences: int,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -95,11 +103,13 @@ def SplitFMNIST(n_experiences: int,
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param dataset_root: The root path of the dataset. Defaults to None, which
+        means that the default location for 'fashionmnist' will be used.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    fmnist_train, fmnist_test = _get_fmnist_dataset()
+    fmnist_train, fmnist_test = _get_fmnist_dataset(dataset_root)
 
     if return_task_id:
         return nc_benchmark(
@@ -109,6 +119,7 @@ def SplitFMNIST(n_experiences: int,
             task_labels=True,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None,
             train_transform=train_transform,
             eval_transform=eval_transform)
@@ -120,15 +131,19 @@ def SplitFMNIST(n_experiences: int,
             task_labels=False,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None,
             train_transform=train_transform,
             eval_transform=eval_transform)
 
 
-def _get_fmnist_dataset():
-    train_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
+def _get_fmnist_dataset(dataset_root):
+    if dataset_root is None:
+        dataset_root = default_dataset_location('fashionmnist')
+
+    train_set = FashionMNIST(dataset_root,
                              train=True, download=True)
-    test_set = FashionMNIST(expanduser("~") + "/.avalanche/data/fashionmnist/",
+    test_set = FashionMNIST(dataset_root,
                             train=False, download=True)
     return train_set, test_set
 
@@ -138,8 +153,8 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
+    import sys
 
-    nc_benchmark = SplitFMNIST(n_experiences=10)
-
-    for i, batch in enumerate(nc_benchmark.train_stream):
-        print(i, batch)
+    benchmark_instance = SplitFMNIST(n_experiences=10)
+    check_vision_benchmark(benchmark_instance)
+    sys.exit(0)

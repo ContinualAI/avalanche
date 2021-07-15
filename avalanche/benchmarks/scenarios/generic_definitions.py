@@ -8,7 +8,9 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+
 from abc import abstractmethod
+import warnings
 
 try:
     from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
@@ -50,9 +52,9 @@ class Experience(Protocol[TScenario, TScenarioStream]):
     A reference to the original stream from which this experience was obtained.
     """
 
-    scenario: TScenario
+    benchmark: TScenario
     """
-    A reference to the scenario.
+    A reference to the benchmark.
     """
 
     current_experience: int
@@ -64,13 +66,11 @@ class Experience(Protocol[TScenario, TScenarioStream]):
     original stream and may be unrelated to the order in which the strategy will
     encounter experiences.
     """
-    @property
-    @abstractmethod
-    def dataset(self) -> AvalancheDataset:
-        """
-        The dataset containing the patterns available in this experience.
-        """
-        ...
+
+    dataset: AvalancheDataset
+    """
+    The dataset containing the patterns available in this experience.
+    """
 
     @property
     @abstractmethod
@@ -97,6 +97,14 @@ class Experience(Protocol[TScenario, TScenarioStream]):
         """
         ...
 
+    @property
+    def scenario(self) -> TScenario:
+        """ This property is DEPRECATED, use self.benchmark instead."""
+        warnings.warn(
+            'Using self.scenario is deprecated in Experience. '
+            'Consider using self.benchmark instead.', stacklevel=2)
+        return self.benchmark
+
 
 class ScenarioStream(Protocol[TScenario, TExperience]):
     """
@@ -114,10 +122,18 @@ class ScenarioStream(Protocol[TScenario, TExperience]):
     The name of the stream.
     """
 
-    scenario: TScenario
+    benchmark: TScenario
     """
     A reference to the scenario this stream belongs to.
     """
+
+    @property
+    def scenario(self) -> TScenario:
+        """ This property is DEPRECATED, use self.benchmark instead."""
+        warnings.warn(
+            'Using self.scenario is deprecated ScenarioStream. '
+            'Consider using self.benchmark instead.', stacklevel=2)
+        return self.benchmark
 
     def __getitem__(self: TScenarioStream,
                     experience_idx: Union[int, slice, Iterable[int]]) \
