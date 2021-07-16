@@ -72,7 +72,7 @@ jobs:
         with:
           github-token: ${{ secrets.BOT_TOKEN }}
           script: |
-            var title = "New envirnment failed for python "${{ matrix.python-version }}
+            var title = "Creation of a new envirnment failed for python " + ${{ matrix.python-version }}
             var message = "Here are the differences between the last working environment and the new one that I tried to run:\n\n```\n"
             var fs = require("fs");
             var diff = fs.readFileSync("diff_fail.txt", "utf-8");
@@ -80,9 +80,9 @@ jobs:
             github.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title = title,
+              title: title,
               body: text_complete,
-              labels: [Continuous integration, test]
+              labels: ['Continuous integration', 'test']
             })
       - name: test success
         if: success()
