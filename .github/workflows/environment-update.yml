@@ -24,7 +24,7 @@ on:
 
 jobs:
   environment-creation:
-    # if: github.repository == 'ContinualAI/avalanche'
+    if: github.repository == 'ContinualAI/avalanche'
     name: new environment creation
     runs-on: ubuntu-latest
     container:
