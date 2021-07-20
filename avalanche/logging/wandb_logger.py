@@ -57,7 +57,7 @@ class WandBLogger(StrategyLogger):
         :param run_name: Name of the W&B run.
         :param log_artifacts: Option to log model weights as W&B Artifacts.
         :param path: Path to locally save the model checkpoints.
-        :param uri: Reference to external URI.
+        :param uri: URI identifier for external storage buckets (GCS, S3).
         :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.
         :param save_code: Saves the main training script to W&B. 
         :param config: Syncs hyper-parameters and config values used to W&B.
