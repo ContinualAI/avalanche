@@ -31,7 +31,7 @@ from avalanche.benchmarks.utils import AvalancheTensorDataset
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
-    bwt_metrics, forward_transfer_metrics
+    bwt_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -79,7 +79,6 @@ def main(args):
                      experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
         bwt_metrics(experience=True, stream=True),
-        forward_transfer_metrics(experience=True, stream=True),
         cpu_usage_metrics(
             minibatch=True, epoch=True, epoch_running=True,
             experience=True, stream=True),
