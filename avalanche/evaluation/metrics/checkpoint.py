@@ -14,7 +14,7 @@ import copy
 from torch import Tensor
 
 from avalanche.evaluation import PluginMetric
-from avalanche.evaluation.metrics.results import MetricValue, MetricResult
+from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.training.strategies import BaseStrategy
 
