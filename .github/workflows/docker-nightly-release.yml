@@ -1,0 +1,30 @@
+name: docker nightly release
+
+on:
+  workflow_run:
+    workflows: ["unit test"]
+    types: [completed]
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'docker/nightly/**'
+
+jobs:
+  docker-nightly-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success'  && github.repository == 'ContinualAI/avalanche' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PSW }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/nightly
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/avalanche-nightly:latest
