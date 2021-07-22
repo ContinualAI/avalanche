@@ -238,9 +238,6 @@ class BaseStrategy:
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
-        for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Sequence):
-                eval_streams[i] = [exp]
 
         self.before_training(**kwargs)
         for self.experience in experiences:
@@ -250,18 +247,24 @@ class BaseStrategy:
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(self, experience: Experience, eval_streams, **kwargs):
+    def train_exp(self, experience: Experience, eval_streams=None, **kwargs):
         """
         Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param eval_streams: list of streams for evaluation.
-            If None: use training experiences for evaluation.
+            If None: use the training experience for evaluation.
             Use [] if you do not want to evaluate during training.
         :param kwargs: custom arguments.
         """
         self.experience = experience
         self.model.train()
+
+        if eval_streams is None:
+            eval_streams = [experience]
+        for i, exp in enumerate(eval_streams):
+            if not isinstance(exp, Sequence):
+                eval_streams[i] = [exp]
 
         # Data Adaptation (e.g. add new samples/data augmentation)
         self.before_train_dataset_adaptation(**kwargs)
