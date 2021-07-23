@@ -66,9 +66,10 @@ class AGEMPlugin(StrategyPlugin):
         Project gradient based on reference gradients
         """
         if len(self.buffers) > 0:
-            current_gradients = [p.grad.view(-1)
+            current_gradients = [
+                p.grad.view(-1)
                 for n, p in strategy.model.named_parameters()
-                                 if p.requires_grad]
+                if p.requires_grad]
             current_gradients = torch.cat(current_gradients)
 
             assert current_gradients.shape == self.reference_gradients.shape, \
@@ -79,7 +80,7 @@ class AGEMPlugin(StrategyPlugin):
                 alpha2 = dotg / torch.dot(self.reference_gradients,
                                           self.reference_gradients)
                 grad_proj = current_gradients - \
-                            self.reference_gradients * alpha2
+                    self.reference_gradients * alpha2
                 
                 count = 0 
                 for n, p in strategy.model.named_parameters():
@@ -110,9 +111,10 @@ class AGEMPlugin(StrategyPlugin):
                                       [self.patterns_per_experience,
                                        removed_els])
         self.buffers.append(dataset)
-        self.buffer_dataloader = GroupBalancedInfiniteDataLoader(self.buffers,
-                                            batch_size=self.sample_size // len(self.buffers),
-                                            num_workers=4,
-                                            pin_memory=True,
-                                            persistent_workers=True)
+        self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
+            self.buffers,
+            batch_size=self.sample_size // len(self.buffers),
+            num_workers=4,
+            pin_memory=True,
+            persistent_workers=True)
         self.buffer_dliter = iter(self.buffer_dataloader)
