@@ -77,7 +77,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
     wandb_logger = WandBLogger(project_name=args.project, run_name=args.run, 
                                log_artifacts=args.artifacts,
-                               path= args.path if args.path else None,
+                               path=args.path if args.path else None,
                                config=args)
 
     eval_plugin = EvaluationPlugin(
