@@ -21,6 +21,8 @@ from __future__ import print_function
 from os.path import expanduser
 
 import argparse
+
+from click import Path
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -74,6 +76,8 @@ def main(args):
 
     interactive_logger = InteractiveLogger()
     wandb_logger = WandBLogger(project_name=args.project, run_name=args.run, 
+                               log_artifacts=args.artifacts,
+                               path= args.path if args.path else None,
                                config=args)
 
     eval_plugin = EvaluationPlugin(
@@ -127,8 +131,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
-    parser.add_argument('--run', type=str, help='Provide a run name for WandB')
     parser.add_argument('--project', type=str,
                         help='Define the name of the WandB project')
+    parser.add_argument('--run', type=str, help='Provide a run name for WandB')
+    parser.add_argument('--artifacts', type=bool, default=False, 
+                        help='Log Model Checkpoints as W&B Artifacts')
+    parser.add_argument('--path', type=str, default=None,
+                        help='Local path to save the model checkpoints')
     args = parser.parse_args()
     main(args)
