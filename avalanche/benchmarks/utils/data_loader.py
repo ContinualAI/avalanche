@@ -18,6 +18,7 @@ from itertools import chain
 from typing import Dict, Sequence
 
 import torch
+from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils import AvalancheDataset
@@ -159,6 +160,54 @@ class GroupBalancedDataLoader:
             if is_removed_dataloader:
                 while None in iter_dataloaders:
                     iter_dataloaders.remove(None)
+
+    def __len__(self):
+        return self.max_len
+
+
+class GroupBalancedInfiniteDataLoader:
+    def __init__(self, datasets: Sequence[AvalancheDataset],
+                 collate_mbatches=_default_collate_mbatches_fn,
+                 **kwargs):
+        """ Data loader that balances data from multiple datasets emitting an
+        infinite stream.
+
+        Mini-batches emitted by this dataloader are created by collating
+        together mini-batches from each group. It may be used to balance data
+        among classes, experiences, tasks, and so on.
+
+        :param datasets: an instance of `AvalancheDataset`.
+        :param collate_mbatches: function that given a sequence of mini-batches
+            (one for each task) combines them into a single mini-batch. Used to
+            combine the mini-batches obtained separately from each task.
+        :param kwargs: data loader arguments used to instantiate the loader for
+            each group separately. See pytorch :class:`DataLoader`.
+        """
+        self.datasets = datasets
+        self.dataloaders = []
+        self.collate_mbatches = collate_mbatches
+
+        for data in self.datasets:
+            infinite_sampler = RandomSampler(data, replacement=True,
+                                             num_samples=10 ** 10)
+            dl = DataLoader(
+                data,
+                sampler=infinite_sampler,
+                **kwargs)
+            self.dataloaders.append(dl)
+        self.max_len = max([len(d) for d in self.dataloaders])
+
+    def __iter__(self):
+        iter_dataloaders = []
+        for dl in self.dataloaders:
+            iter_dataloaders.append(iter(dl))
+
+        while True:
+            mb_curr = []
+            for tid, t_loader in enumerate(iter_dataloaders):
+                batch = next(t_loader)
+                mb_curr.append(batch)
+            yield self.collate_mbatches(mb_curr)
 
     def __len__(self):
         return self.max_len
