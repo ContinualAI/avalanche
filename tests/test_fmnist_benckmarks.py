@@ -27,13 +27,13 @@ class FMNISTBenchmarksTests(unittest.TestCase):
             cfashion_mnist._get_fmnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
-    def test_SplitFMNIST_scenario(self):
-        scenario = SplitFMNIST(5)
-        self.assertEqual(5, len(scenario.train_stream))
-        self.assertEqual(5, len(scenario.test_stream))
+    def test_SplitFMNIST_benchmark(self):
+        benchmark = SplitFMNIST(5)
+        self.assertEqual(5, len(benchmark.train_stream))
+        self.assertEqual(5, len(benchmark.test_stream))
 
         train_sz = 0
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
 
@@ -42,7 +42,7 @@ class FMNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(60000, train_sz)
 
         test_sz = 0
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
 

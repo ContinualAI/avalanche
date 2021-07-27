@@ -5,7 +5,7 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training import default_logger
+from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.training.strategies import BaseStrategy
 

@@ -137,7 +137,7 @@ class NCScenario(GenericCLScenario['NCExperience']):
         class_mapping stores the class mapping so that 
         `mapped_class_id = class_mapping[original_class_id]`. 
         
-        If the scenario is created with an amount of classes which is less than
+        If the benchmark is created with an amount of classes which is less than
         the amount of all classes in the dataset, then class_mapping will 
         contain some -1 values corresponding to ignored classes. This can
         happen when passing a fixed class order to the constructor.
@@ -266,8 +266,9 @@ class NCScenario(GenericCLScenario['NCExperience']):
             # by the number of experiences
             if self.n_classes % n_experiences > 0:
                 raise ValueError(
-                    'Invalid number of experiences: classes contained in '
-                    'dataset cannot be divided by n_experiences')
+                    f'Invalid number of experiences: classes contained in '
+                    f'dataset ({self.n_classes}) cannot be divided by '
+                    f'n_experiences ({n_experiences})')
             self.n_classes_per_exp = \
                 [self.n_classes // n_experiences] * n_experiences
 
@@ -457,12 +458,12 @@ class NCScenario(GenericCLScenario['NCExperience']):
         if exp_end is None:
             return [
                 item for sublist in
-                self.classes_in_experience[exp_start:]
+                self.classes_in_experience['train'][exp_start:]
                 for item in sublist]
 
         return [
             item for sublist in
-            self.classes_in_experience[exp_start:exp_end]
+            self.classes_in_experience['train'][exp_start:exp_end]
             for item in sublist]
 
 

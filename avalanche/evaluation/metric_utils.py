@@ -9,10 +9,12 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Sequence, TYPE_CHECKING, Tuple
+from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING, List
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
+from numpy import ndarray, arange
 from torch import Tensor
 
 if TYPE_CHECKING:
@@ -45,7 +47,7 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
         will be used if it is defined, otherwise the values will be inferred by
         the matrix tensor.
     :param include_values: Includes values in confusion matrix. Defaults to
-        `True`.
+        `False`.
     :param xticks_rotation: Rotation of xtick labels. Valid values are
         float point value. Defaults to 0.
     :param yticks_rotation: Rotation of ytick labels. Valid values are
@@ -113,19 +115,110 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
     return fig
 
 
-def get_task_label(strategy: 'BaseStrategy') -> int:
-    """
-    Returns the current task label.
+SEABORN_COLORS = (
+    (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
+    (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
+    (0.3333333333333333, 0.6588235294117647, 0.40784313725490196),
+    (0.7686274509803922, 0.3058823529411765, 0.3215686274509804),
+    (0.5058823529411764, 0.4470588235294118, 0.7019607843137254),
+    (0.5764705882352941, 0.47058823529411764, 0.3764705882352941),
+    (0.8549019607843137, 0.5450980392156862, 0.7647058823529411),
+    (0.5490196078431373, 0.5490196078431373, 0.5490196078431373),
+    (0.8, 0.7254901960784313, 0.4549019607843137),
+    (0.39215686274509803, 0.7098039215686275, 0.803921568627451),
+)
 
-    The current task label depends on the phase. During the training
-    phase, the task label is the one defined in the "train_task_label"
-    field. On the contrary, during the eval phase the task label is the one
-    defined in the "eval_task_label" field.
 
-    :param strategy: The strategy instance to get the task label from.
-    :return: The current train or eval task label.
+def repartition_pie_chart_image_creator(
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
+    colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
+    fmt: str = "%1.1f%%",
+):
     """
-    return strategy.experience.task_label
+    Create a pie chart representing the labels repartition.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}. Only the last count of
+        each label is used here.
+    :param counters: (unused) The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    :param fmt: Formatting used to display the text values in the chart.
+    """
+    fig, ax = plt.subplots()
+    ax: Axes
+
+    labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
+
+    ax.pie(counts, labels=labels, autopct=fmt, colors=colors)
+
+    fig.tight_layout()
+    return fig
+
+
+def repartition_bar_chart_image_creator(
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
+    colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
+):
+    """
+    Create a bar chart representing the labels repartition.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}. Only the last count of
+        each label is used here.
+    :param counters: (unused) The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    """
+    fig, ax = plt.subplots()
+    ax: Axes
+
+    y = -arange(len(label2counts))
+    labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
+    total = sum(counts)
+
+    ax.barh(y, width=counts, color=colors)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+
+    ax.set_xlabel("Number of exemplars")
+    ax.set_ylabel("Class")
+
+    for i, count in enumerate(counts):
+        ax.text(count / 2, -i, f"{count/total:.1%}", va="center", ha="center")
+
+    fig.tight_layout()
+    return fig
+
+
+def default_history_repartition_image_creator(
+    label2counts: Dict[int, List[int]],
+    counters: List[int],
+    colors: Union[ndarray, Iterable, int, float] = SEABORN_COLORS,
+):
+    """
+    Create a stack plot representing the labels repartition with their history.
+
+    :param label2counts: A dict holding the counts for each label, of the form
+        {label: [count_at_step_0, count_at_step_1, ...]}.
+    :param counters: The steps the counts were taken at.
+    :param colors: The colors to use in the chart.
+    """
+    fig, ax = plt.subplots()
+    ax: Axes
+
+    ax.stackplot(
+        counters,
+        label2counts.values(),
+        labels=label2counts.keys(),
+        colors=colors,
+    )
+    ax.legend(loc='upper left')
+    ax.set_ylabel("Number of examples")
+    ax.set_xlabel("step")
+
+    fig.tight_layout()
+    return fig
 
 
 def stream_type(experience: 'Experience') -> str:
@@ -153,10 +246,16 @@ def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
         associated task label.
     """
 
-    if strategy.is_eval:
-        return EVAL, strategy.experience.task_label
+    task = strategy.experience.task_labels
+    if len(task) > 1:
+        task = None  # task labels per patterns
+    else:
+        task = task[0]
 
-    return TRAIN, strategy.experience.task_label
+    if strategy.is_eval:
+        return EVAL, task
+    else:
+        return TRAIN, task
 
 
 def bytes2human(n):
@@ -195,15 +294,24 @@ def get_metric_name(metric: 'PluginMetric',
     :param add_experience: if True, add eval_exp_id to the main metric name.
             Default to False.
     :param add_task: if True the main metric name will include the task
-        information. Otherwise, it will not.
+        information. If False, no task label will be displayed.
+        If an int, that value will be used as task label for the metric name.
     """
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
     base_name = '{}/{}_phase/{}_stream'.format(str(metric),
                                                phase_name, stream)
-    task_name = '/Task{:03}'.format(task_label)
     exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
+
+    if task_label is None and isinstance(add_task, bool):
+        add_task = False
+    else:
+        if isinstance(add_task, bool) and add_task:
+            task_name = '/Task{:03}'.format(task_label)
+        elif isinstance(add_task, int):
+            task_name = '/Task{:03}'.format(add_task)
+            add_task = True
 
     if add_experience and not add_task:
         return base_name + exp_name
@@ -216,10 +324,12 @@ def get_metric_name(metric: 'PluginMetric',
 
 
 __all__ = [
-    'default_cm_image_creator',
-    'get_task_label',
-    'phase_and_task',
-    'get_metric_name',
-    'stream_type',
-    'bytes2human'
+    "default_cm_image_creator",
+    "phase_and_task",
+    "get_metric_name",
+    "stream_type",
+    "bytes2human",
+    "default_history_repartition_image_creator",
+    "repartition_pie_chart_image_creator",
+    "repartition_bar_chart_image_creator",
 ]

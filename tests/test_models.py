@@ -1,4 +1,3 @@
-import copy
 import sys
 
 import unittest
@@ -11,14 +10,13 @@ from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
 from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
-    MultiHeadClassifier
+    MultiHeadClassifier, SimpleCNN, NCMClassifier, TrainEvalModel
 from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
     update_optimizer
 from avalanche.training.strategies import Naive
 from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
     pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, load_scenario, \
-    get_fast_scenario
+from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -98,26 +96,27 @@ class DynamicOptimizersTests(unittest.TestCase):
 class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
-        self.scenario = get_fast_scenario(use_task_labels=False, shuffle=False)
+        self.benchmark = get_fast_benchmark(
+            use_task_labels=False, shuffle=False)
 
     def test_incremental_classifier(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
         model.classifier = IncrementalClassifier(in_features=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        scenario = self.scenario
+        benchmark = self.benchmark
 
         strategy = Naive(model, optimizer, criterion,
                          train_mb_size=100, train_epochs=1,
                          eval_mb_size=100, device='cpu')
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         print("Current Classes: ",
-              scenario.train_stream[0].classes_in_this_experience)
+              benchmark.train_stream[0].classes_in_this_experience)
         print("Current Classes: ",
-              scenario.train_stream[4].classes_in_this_experience)
+              benchmark.train_stream[4].classes_in_this_experience)
 
         # train on first task
-        strategy.train(scenario.train_stream[0])
+        strategy.train(benchmark.train_stream[0])
         w_ptr = model.classifier.classifier.weight.data_ptr()
         b_ptr = model.classifier.classifier.bias.data_ptr()
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
@@ -127,7 +126,7 @@ class DynamicModelsTests(unittest.TestCase):
         assert b_ptr in opt_params_ptrs
 
         # train again on the same task.
-        strategy.train(scenario.train_stream[0])
+        strategy.train(benchmark.train_stream[0])
         # parameters should not change.
         assert w_ptr == model.classifier.classifier.weight.data_ptr()
         assert b_ptr == model.classifier.classifier.bias.data_ptr()
@@ -137,7 +136,7 @@ class DynamicModelsTests(unittest.TestCase):
 
         # update classifier with new classes.
         old_w_ptr, old_b_ptr = w_ptr, b_ptr
-        strategy.train(scenario.train_stream[4])
+        strategy.train(benchmark.train_stream[4])
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
                            for w in group['params']]
         new_w_ptr = model.classifier.classifier.weight.data_ptr()
@@ -155,7 +154,7 @@ class DynamicModelsTests(unittest.TestCase):
         model = IncrementalClassifier(in_features=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        scenario = self.scenario
+        benchmark = self.benchmark
 
         strategy = Naive(model, optimizer, criterion,
                          train_mb_size=100, train_epochs=1,
@@ -167,7 +166,7 @@ class DynamicModelsTests(unittest.TestCase):
         b_old = model.classifier.bias.clone()
 
         # adaptation. Increase number of classes
-        dataset = scenario.train_stream[4].dataset
+        dataset = benchmark.train_stream[4].dataset
         model.adaptation(dataset)
         w_new = model.classifier.weight.clone()
         b_new = model.classifier.bias.clone()
@@ -186,19 +185,19 @@ class DynamicModelsTests(unittest.TestCase):
         model = MTSimpleMLP(input_size=6, hidden_size=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        scenario = get_fast_scenario(use_task_labels=True, shuffle=False)
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
         strategy = Naive(model, optimizer, criterion,
                          train_mb_size=100, train_epochs=1,
                          eval_mb_size=100, device='cpu')
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         print("Current Classes: ",
-              scenario.train_stream[4].classes_in_this_experience)
+              benchmark.train_stream[4].classes_in_this_experience)
         print("Current Classes: ",
-              scenario.train_stream[0].classes_in_this_experience)
+              benchmark.train_stream[0].classes_in_this_experience)
 
         # head creation
-        strategy.train(scenario.train_stream[0])
+        strategy.train(benchmark.train_stream[0])
         w_ptr = model.classifier.classifiers['0'].classifier.weight.data_ptr()
         b_ptr = model.classifier.classifiers['0'].classifier.bias.data_ptr()
         opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
@@ -207,7 +206,7 @@ class DynamicModelsTests(unittest.TestCase):
         assert b_ptr in opt_params_ptrs
 
         # head update
-        strategy.train(scenario.train_stream[4])
+        strategy.train(benchmark.train_stream[4])
         w_ptr_t0 = model.classifier.classifiers[
             '0'].classifier.weight.data_ptr()
         b_ptr_t0 = model.classifier.classifiers['0'].classifier.bias.data_ptr()
@@ -230,7 +229,7 @@ class DynamicModelsTests(unittest.TestCase):
         model = MultiHeadClassifier(in_features=6)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        scenario = get_fast_scenario(use_task_labels=True, shuffle=False)
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
         strategy = Naive(model, optimizer, criterion,
                          train_mb_size=100, train_epochs=1,
@@ -238,23 +237,76 @@ class DynamicModelsTests(unittest.TestCase):
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
 
         # initialize head
-        strategy.train(scenario.train_stream[0])
-        strategy.train(scenario.train_stream[4])
+        strategy.train(benchmark.train_stream[0])
+        strategy.train(benchmark.train_stream[4])
 
         # create models with fixed head
         model_t0 = model.classifiers['0']
         model_t4 = model.classifiers['4']
 
         # check head task0
-        for x, y, t in DataLoader(scenario.train_stream[0].dataset):
+        for x, y, t in DataLoader(benchmark.train_stream[0].dataset):
             y_mh = model(x, t)
             y_t = model_t0(x)
             assert ((y_mh - y_t) ** 2).sum() < 1.e-7
             break
 
         # check head task4
-        for x, y, t in DataLoader(scenario.train_stream[4].dataset):
+        for x, y, t in DataLoader(benchmark.train_stream[4].dataset):
             y_mh = model(x, t)
             y_t = model_t4(x)
             assert ((y_mh - y_t) ** 2).sum() < 1.e-7
             break
+
+
+class TrainEvalModelTests(unittest.TestCase):
+
+    def test_classifier_selection(self):
+        base_model = SimpleCNN()
+
+        feature_extractor = base_model.features
+        classifier1 = base_model.classifier
+        classifier2 = NCMClassifier()
+
+        model = TrainEvalModel(feature_extractor,
+                               train_classifier=classifier1,
+                               eval_classifier=classifier2)
+
+        model.eval()
+        model.adaptation()
+        assert model.classifier is classifier2
+
+        model.train()
+        model.adaptation()
+        assert model.classifier is classifier1
+
+        model.eval_adaptation()
+        assert model.classifier is classifier2
+
+        model.train_adaptation()
+        assert model.classifier is classifier1
+
+
+class NCMClassifierTest(unittest.TestCase):
+
+    def test_ncm_classification(self):
+        class_means = torch.tensor([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ], dtype=torch.float)
+
+        mb_x = torch.tensor([
+            [4, 3, 2, 1],
+            [3, 4, 2, 1],
+            [3, 2, 4, 1],
+            [3, 2, 1, 4]
+        ], dtype=torch.float)
+
+        mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
+
+        classifier = NCMClassifier(class_means)
+
+        pred = classifier(mb_x)
+        assert torch.all(torch.max(pred, 1)[1] == mb_y)
