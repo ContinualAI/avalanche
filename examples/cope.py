@@ -11,7 +11,15 @@
 
 """
 This is a simple example on how to use the CoPE plugin.
-It's an example in the online data incremental setting.
+It's an example in the online data incremental setting, where both learning and
+evaluation is completely task-agnostic.
+
+Original implementation:
+https://github.com/Mattdl/ContinualPrototypeEvolution
+
+Reference:
+De Lange, Matthias, et al. "Continual prototype evolution: Learning online from
+non-stationary data streams." ICCV. 2021.
 """
 
 from __future__ import absolute_import
@@ -40,15 +48,16 @@ def main(args):
 
     Class-incremental (online):
         Top1_Acc_Stream/eval_phase/test_stream = 0.9421
+    Data-incremental (online:
+        Top1_Acc_Stream/eval_phase/test_stream = 0.9309
 
-    # TODO result not reproducible for data incremental setting:
-        Top1_Acc_Stream/eval_phase/test_stream = 0.6559
+    These are reference results for a single run.
     """
     # --- DEFAULT PARAMS ONLINE DATA INCREMENTAL LEARNING
     nb_tasks = 5  # Can still design the data stream based on tasks
     batch_size = 10  # Learning agent only has small amount of data available
     epochs = 1  # How many times to process each mini-batch
-    return_task_id = True  # Data incremental (task-agnostic/task-free)
+    return_task_id = False  # Data incremental (task-agnostic/task-free)
 
     # --- CONFIG
     device = torch.device(
@@ -70,19 +79,21 @@ def main(args):
 
     # MODEL CREATION
     model = SimpleMLP(num_classes=args.featsize,
-                      hidden_size=400, hidden_layers=2)
+                      hidden_size=400, hidden_layers=2, drop_rate=0)
 
     # choose some metrics and evaluation method
-    interactive_logger = TextLogger()
+    logger = TextLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(experience=False, stream=True),
+        accuracy_metrics(experience=True, stream=True),
         loss_metrics(experience=False, stream=True),
         StreamForgetting(),
-        loggers=[interactive_logger])
+        loggers=[logger],
+        benchmark=scenario)
 
     # CoPE PLUGIN
-    cope = CoPEPlugin(mem_size=2000, p_size=args.featsize, n_classes=n_classes)
+    cope = CoPEPlugin(mem_size=2000, alpha=0.99,
+                      p_size=args.featsize, n_classes=n_classes)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE) WITH CoPE PLUGIN
     cl_strategy = Naive(model, torch.optim.SGD(model.parameters(), lr=0.01),
@@ -96,10 +107,7 @@ def main(args):
     # TRAINING LOOP
     print('Starting experiment...')
     results = []
-    for experience in scenario.train_stream:
-        print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
-        print('Training completed')
+    cl_strategy.train(scenario.train_stream)
 
     print('Computing accuracy on the whole test set')
     results.append(cl_strategy.eval(scenario.test_stream))
@@ -109,7 +117,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', type=int, default=0,
                         help='Select zero-indexed cuda device. -1 to use CPU.')
-    parser.add_argument('--featsize', type=int, default=100,
+    parser.add_argument('--featsize', type=int, default=32,
                         help='Feature size for the embedding.')
     args = parser.parse_args()
     main(args)
