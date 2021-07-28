@@ -161,10 +161,12 @@ class StrategyTest(unittest.TestCase):
                 super().__init__()
                 self.benchmark = benchmark
 
-            def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       **kwargs):
-                """ Check that the dataset used for training contains the
-                correct number of samples. """
+            def after_train_dataset_adaptation(self, strategy: 'BaseStrategy', 
+                                               **kwargs):
+                """ 
+                Check that the dataset used for training contains the
+                correct number of samples. 
+                """
                 cum_len = sum([len(exp.dataset) for exp
                                in self.benchmark.train_stream])
                 assert len(strategy.adapted_dataset) == cum_len
@@ -180,16 +182,16 @@ class StrategyTest(unittest.TestCase):
 
         # MT scenario
         my_nc_benchmark = self.load_benchmark(use_task_labels=True)
-        strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device, eval_mb_size=50, train_epochs=2,
-                         plugins=[JointSTestPlugin(my_nc_benchmark)])
+        strategy = JointTraining(
+            model, optimizer, criterion, train_mb_size=64,
+            device=self.device, eval_mb_size=50, train_epochs=2,
+            plugins=[JointSTestPlugin(my_nc_benchmark)])
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         strategy.train(my_nc_benchmark.train_stream)
 
         # Raise error when retraining
         self.assertRaises(AlreadyTrainedError,
                           lambda: strategy.train(my_nc_benchmark.train_stream))
-
 
     def test_cwrstar(self):
         # SIT scenario
