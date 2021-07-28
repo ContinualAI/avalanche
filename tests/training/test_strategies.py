@@ -25,6 +25,7 @@ from avalanche.training.strategies import Naive, Replay, CWRStar, \
     GDumb, LwF, AGEM, GEM, EWC, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA, BaseStrategy
 from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.strategies.joint_training import AlreadyTrainedError
 from avalanche.training.strategies.strategy_wrappers import PNNStrategy
 from avalanche.training.strategies.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
@@ -155,18 +156,40 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
     def test_joint(self):
+        class JointSTestPlugin(StrategyPlugin):
+            def __init__(self, benchmark):
+                super().__init__()
+                self.benchmark = benchmark
+
+            def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
+                """ Check that the dataset used for training contains the
+                correct number of samples. """
+                cum_len = sum([len(exp.dataset) for exp
+                               in self.benchmark.train_stream])
+                assert len(strategy.adapted_dataset) == cum_len
+
         # SIT scenario
         model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
                                  device=self.device, eval_mb_size=50,
-                                 train_epochs=2)
-        self.run_strategy(my_nc_benchmark, strategy)
+                                 train_epochs=2,
+                                 plugins=[JointSTestPlugin(my_nc_benchmark)])
+        strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        strategy.train(my_nc_benchmark.train_stream)
 
         # MT scenario
-        strategy = Naive(model, optimizer, criterion, train_mb_size=64,
-                         device=self.device, eval_mb_size=50, train_epochs=2)
-        benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        my_nc_benchmark = self.load_benchmark(use_task_labels=True)
+        strategy = JointTraining(model, optimizer, criterion, train_mb_size=64,
+                         device=self.device, eval_mb_size=50, train_epochs=2,
+                         plugins=[JointSTestPlugin(my_nc_benchmark)])
+        strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        strategy.train(my_nc_benchmark.train_stream)
+
+        # Raise error when retraining
+        self.assertRaises(AlreadyTrainedError,
+                          lambda: strategy.train(my_nc_benchmark.train_stream))
+
 
     def test_cwrstar(self):
         # SIT scenario
