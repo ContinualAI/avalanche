@@ -8,6 +8,7 @@ on:
       - 'master'
     paths:
       - 'docker/nightly/**'
+      - '.github/workflows/docker-nightly-release.yml'
 
 jobs:
   docker-nightly-release:
