@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Check date of last commit
         run: |
-          let DIFF=(`date +%s -d "1 day ago"`-`git log -1 --pretty=format:%ct`)
+          let DIFF=(`date +%s`-`git log -1 --pretty=format:%ct`)
           echo "date_diff=$DIFF" >> $GITHUB_ENV
       - name: Login to DockerHub
         if: ${{ env.date_diff <= 0 }}  # last commit < 24h ago
