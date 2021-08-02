@@ -92,6 +92,7 @@ Stream             Metric emitted at the end of each evaluation        Eval
 
 from .mean import *
 from .accuracy import *
+from .checkpoint import *
 from .confusion_matrix import *
 from .cpu_usage import *
 from .disk_usage import *
