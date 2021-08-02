@@ -24,9 +24,6 @@ import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks.generators.benchmark_generators import \
     create_multi_dataset_generic_benchmark
@@ -80,8 +77,8 @@ def main(args):
             stream=True),
         loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                      experience=True, stream=True),
-        forgetting_metrics(experience=True, stream=True, task=True),
-        bwt_metrics(experience=True, stream=True, task=True),
+        forgetting_metrics(experience=True, stream=True),
+        bwt_metrics(experience=True, stream=True),
         cpu_usage_metrics(
             minibatch=True, epoch=True, epoch_running=True,
             experience=True, stream=True),
@@ -117,7 +114,7 @@ def main(args):
         # train returns a dictionary containing last recorded value
         # for each metric.
         res = cl_strategy.train(experience,
-                                eval_streams=[scenario.test_stream[i]])
+                                eval_streams=[scenario.test_stream])
         print('Training completed')
 
         print('Computing accuracy on the whole test set')
