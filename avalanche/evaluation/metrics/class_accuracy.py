@@ -84,7 +84,7 @@ class ClassAccuracy(Metric[Dict[int, float]]):
 
             mask = torch.eq(true_y, label)
             self._class_accuracies[label].update(predicted_y[mask],
-                                                 true_y[mask])
+                                                 true_y[mask], 0)
 
     def result(self) -> Dict[int, float]:
         """
@@ -94,8 +94,9 @@ class ClassAccuracy(Metric[Dict[int, float]]):
 
         :return: The running accuracy, as a float value between 0 and 1.
         """
-        return {label: acc.result() for label, acc in
-                self._class_accuracies.items()}
+        return [(label, acc.result(0)[0]) for label, acc in
+                self._class_accuracies.items()
+                if label != "default_factory"]
 
     def reset(self) -> None:
         """
