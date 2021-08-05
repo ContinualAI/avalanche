@@ -113,10 +113,10 @@ class ConfusionMatrix(Metric[Tensor]):
         # SELECT VALID PORTION OF TARGET AND PREDICTIONS
         true_y = torch.as_tensor(true_y)
         if len(true_y.shape) == 2 and self._num_classes is not None:
-            true_y = true_y[:, :max_label]
+            true_y = true_y[:, :max_label+1]
         predicted_y = torch.as_tensor(predicted_y)
         if len(predicted_y.shape) == 2 and self._num_classes is not None:
-            predicted_y = predicted_y[:, :max_label]
+            predicted_y = predicted_y[:, :max_label+1]
 
         # COMPUTE MAX LABEL AND CONVERT TARGET AND PREDICTIONS IF NEEDED
         if len(predicted_y.shape) > 1:
