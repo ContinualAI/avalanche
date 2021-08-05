@@ -27,6 +27,7 @@ from matplotlib.pyplot import Figure
 
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
+from avalanche.evaluation.metrics_utils import phase_and_task
 from avalanche.logging import StrategyLogger
 
 
@@ -84,7 +85,8 @@ class WandBLogger(StrategyLogger):
     def import_wandb(self):
         try:
             import wandb
-        except ImportError:
+            assert hasattr(wandb, '__version__')
+        except (ImportError, AssertionError):
             raise ImportError(
                 'Please run "pip install wandb" to install wandb')
         self.wandb = wandb
@@ -150,7 +152,14 @@ class WandBLogger(StrategyLogger):
                 if isinstance(value, Tensor):
                     torch.save(value, dir_name)
                     name = os.path.splittext(self.checkpoint)
-                    artifact = self.wandb.Artifact(name, type='model')
+                    metadata = {'experience': 
+                                self.strategy.experience.current_experience,
+                                **({'task_id': 
+                                    phase_and_task(self.strategy)[1]} 
+                                    if phase_and_task(self.strategy)[1] 
+                                    else {})}
+                    artifact = self.wandb.Artifact(name, type='model', 
+                                                   metadata=metadata)
                     artifact.add_file(dir_name, name=artifact_name)
                     self.wandb.run.log_artifact(artifact)
                     if self.uri is not None:
