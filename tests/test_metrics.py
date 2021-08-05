@@ -245,7 +245,7 @@ class PluginMetricTests(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                experience=True, stream=True, trained_experience=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True),
@@ -280,11 +280,13 @@ class PluginMetricTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
+        # # Uncomment me to regenerate the reference metrics. Make sure
+        # # the old tests were passing for all unchanged metrics
         # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
         #                        'target_metrics',
         #                        'sit.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        #                 protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'sit.pickle'), 'rb') as f:
@@ -367,7 +369,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                experience=True, stream=True, trained_experience=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True),
@@ -402,11 +404,13 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
+        # # Uncomment me to regenerate the reference metrics. Make sure
+        # # the old tests were passing for all unchanged metrics
         # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
         #                        'target_metrics',
         #                        'mt.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        #                 protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'mt.pickle'), 'rb') as f:
@@ -499,7 +503,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
                 minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                experience=True, stream=True, trained_experience=True),
             loss_metrics(minibatch=True, epoch=True, epoch_running=True,
                          experience=True, stream=True),
             forgetting_metrics(experience=True, stream=True),
@@ -534,11 +538,13 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
+        # # Uncomment me to regenerate the reference metrics. Make sure
+        # # the old tests were passing for all unchanged metrics
         # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
         #                        'target_metrics',
         #                        'tpp.pickle'), 'wb') as f:
         #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=pickle.HIGHEST_PROTOCOL)
+        #                 protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'tpp.pickle'), 'rb') as f:
