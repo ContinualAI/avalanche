@@ -54,4 +54,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/avalanche-nightly:latest
-            ghcr.io/${{ github.repository_owner }}/avalanche-nightly:latest
+            ghcr.io/continualai/avalanche-nightly:latest
