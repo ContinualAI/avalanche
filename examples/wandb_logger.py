@@ -134,6 +134,7 @@ if __name__ == '__main__':
                         help='Define the name of the WandB project')
     parser.add_argument('--run', type=str, help='Provide a run name for WandB')
     parser.add_argument('--artifacts', type=bool, default=False, 
+                        action="store_true",
                         help='Log Model Checkpoints as W&B Artifacts')
     parser.add_argument('--path', type=str, default=None,
                         help='Local path to save the model checkpoints')
