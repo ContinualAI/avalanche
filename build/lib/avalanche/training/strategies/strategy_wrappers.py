@@ -10,13 +10,11 @@
 ################################################################################
 from typing import Optional, Sequence, List, Union
 
-from torch.nn import Module
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-
-from avalanche.training import default_logger
-from avalanche.training.plugins import GSSPlugin, StrategyPlugin, CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
-
+from avalanche.training import default_logger
+from avalanche.training.plugins import GSS_greedyPlugin, StrategyPlugin, CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 
 class Naive(BaseStrategy):
     """
@@ -29,7 +27,8 @@ class Naive(BaseStrategy):
     performing baseline.
     """
 
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+    def __init__(self, model: Module, optimizer: Optimizer,
+                 criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
@@ -134,6 +133,7 @@ class Replay(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
+        
         rp = ReplayPlugin(mem_size)
         if plugins is None:
             plugins = [rp]
@@ -145,10 +145,12 @@ class Replay(BaseStrategy):
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
 
-class GSS(BaseStrategy):
+
+
+class GSS_greedy(BaseStrategy):
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 mem_size: int = 200, n=1,
+                 mem_size: int = 200, mem_strength =1, input_size=[],
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
@@ -176,7 +178,8 @@ class GSS(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
-        rp = GSSPlugin(mem_size)
+
+        rp = GSS_greedyPlugin(mem_size=mem_size,mem_strength =mem_strength, input_size=input_size)
         if plugins is None:
             plugins = [rp]
         else:
@@ -229,6 +232,7 @@ class GDumb(BaseStrategy):
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
+
 
 
 class LwF(BaseStrategy):
@@ -489,6 +493,60 @@ class SynapticIntelligence(BaseStrategy):
         )
 
 
+class CoPE(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 mem_size: int = 200, n_classes: int = 10, p_size: int = 100,
+                 alpha: float = 0.99, T: float = 0.1,
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger,
+                 eval_every=-1):
+        """ Continual Prototype Evolution strategy.
+        See CoPEPlugin for more details.
+        This strategy does not use task identities during training.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: Loss criterion to use. Standard overwritten by
+        PPPloss (see CoPEPlugin).
+        :param mem_size: replay buffer size.
+        :param n_classes: total number of classes that will be encountered. This
+        is used to output predictions for all classes, with zero probability
+        for unseen classes.
+        :param p_size: The prototype size, which equals the feature size of the
+        last layer.
+        :param alpha: The momentum for the exponentially moving average of the
+        prototypes.
+        :param T: The softmax temperature, used as a concentration parameter.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+        copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
+        if plugins is None:
+            plugins = [copep]
+        else:
+            plugins.append(copep)
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
 __all__ = [
     'Naive',
     'CWRStar',
@@ -499,5 +557,6 @@ __all__ = [
     'GEM',
     'EWC',
     'SynapticIntelligence',
-    'GSS'
+    'GSS_greedy',
+    'CoPE'
 ]

@@ -8,3 +8,4 @@ pytorchcv
 quadprog
 wandb
 tensorboard
+pycocotools

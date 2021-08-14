@@ -9,20 +9,14 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-import os
-import sys
-import logging
+""" OpenLoris data. """
 
-if sys.version_info[0] >= 3:
-    pass
-else:
-    # Not Python 3 - today, it is most likely to be Python 2
-    # But note that this might need an update when Python 4
-    # might be around one day
-    pass
 
+base_gdrive_url = "https://drive.google.com/u/0/uc?id="
 filename = [
     ('train.zip',
+     '11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF'),
+    ('valid.zip',
      '1ChoBAGcQ_wkclPXsel8CjJHC0tD7b4ga'),
     ('test.zip',
      '1J7_ljcwSZNXo6KwlhRZoG0kiEcRK7U6x'),
@@ -36,55 +30,8 @@ filename = [
      '1r0gbo5_Qlzrdet1GPIrJpVSGRgFU7NEp')
 ]
 
-# id of the real train.zip, the current one above is the validation.zip
-# 11jgiPB2Z9WRI3bW6VSN8fJZgwFl5mLsF
-
-
-class OPENLORIS_DATA(object):
-    """
-    OpenlORIS downloader.
-    """
-
-    def __init__(self, data_folder='data/'):
-        """
-        Args:
-            data_folder (string): folder in which to download openloris dataset.
-        """
-        self.log = logging.getLogger("avalanche")
-        if os.path.isabs(data_folder):
-            self.data_folder = data_folder
-        else:
-            self.data_folder = os.path.join(os.path.dirname(__file__),
-                                            data_folder)
-
-        try:
-            # Create target Directory for openloris data
-            os.makedirs(self.data_folder)
-            self.log.info("Directory %s created", self.data_folder)
-            self.download = True
-            self.download_openloris()
-
-        except OSError:
-            self.download = False
-            self.log.error("Directory %s already exists", self.data_folder)
-
-    def download_openloris(self):
-        # DEPRECATED: fix this below once the OpenLoris is on a server
-        # for name in filename:
-        #     print("Downloading " + name[1] + "...")
-        #     gdd.download_file_from_google_drive(
-        #     file_id=name[1],
-        #     dest_path=os.path.join(
-        #     self.data_folder, name[0]))
-        #     if name[0].endswith('.zip'):
-        #         with ZipFile(
-        #                 os.path.join(self.data_folder, name[0]), 'r') as zipf:
-        #             print('Extracting OpenLORIS images...')
-        #             zipf.extractall(self.data_folder)
-        #             print('Done!')
-        raise NotImplementedError
-
 
 __all__ = [
-    'OPENLORIS_DATA'
+    'base_gdrive_url',
+    'filename'
 ]

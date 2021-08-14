@@ -1,9 +1,11 @@
 from os.path import expanduser
 
+import os
 import torch
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
+from torch.utils.data.dataloader import DataLoader
 
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor
@@ -60,8 +62,33 @@ def get_fast_scenario(use_task_labels=False, shuffle=True):
     return my_nc_benchmark
 
 
+def load_experience_train_eval(experience, batch_size=32, num_workers=0):
+    for x, y, t in DataLoader(experience.dataset.train(), batch_size=batch_size,
+                              num_workers=num_workers):
+        break
+
+    for x, y, t in DataLoader(experience.dataset.eval(), batch_size=batch_size,
+                              num_workers=num_workers):
+        break
+
+
+def get_device():
+    if "USE_GPU" in os.environ:
+        use_gpu = os.environ['USE_GPU'].lower() in ["true"]
+    else:
+        use_gpu = False
+    print("Test on GPU:", use_gpu)
+    if use_gpu:
+        device = "cuda"
+    else:
+        device = "cpu"
+    return device
+
+
 __all__ = [
     'common_setups',
     'load_scenario',
-    'get_fast_scenario'
+    'get_fast_scenario',
+    'load_experience_train_eval',
+    'get_device'
 ]

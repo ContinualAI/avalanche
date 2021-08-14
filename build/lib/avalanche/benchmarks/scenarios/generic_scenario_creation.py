@@ -92,7 +92,8 @@ def create_multi_dataset_generic_scenario(
     """
 
     warnings.warn('create_multi_dataset_generic_scenario is deprecated in favor'
-                  ' of create_multi_dataset_generic_benchmark.')
+                  ' of create_multi_dataset_generic_benchmark.',
+                  DeprecationWarning)
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
@@ -210,7 +211,8 @@ def create_generic_scenario_from_filelists(
     """
 
     warnings.warn('create_generic_scenario_from_filelists is deprecated in '
-                  'favor of create_generic_benchmark_from_filelists.')
+                  'favor of create_generic_benchmark_from_filelists.',
+                  DeprecationWarning)
 
     train_datasets, test_dataset = datasets_from_filelists(
         root, train_file_lists, test_file_lists,
@@ -306,7 +308,8 @@ def create_generic_scenario_from_paths(
     """
 
     warnings.warn('create_generic_scenario_from_paths is deprecated in favor'
-                  ' of create_generic_benchmark_from_paths.')
+                  ' of create_generic_benchmark_from_paths.',
+                  DeprecationWarning)
 
     train_datasets, test_dataset = datasets_from_paths(
         train_list_of_files, test_list_of_files,
@@ -397,7 +400,8 @@ def create_generic_scenario_from_tensor_lists(
     """
 
     warnings.warn('create_generic_scenario_from_tensor_lists is deprecated in '
-                  'favor of create_generic_benchmark_from_tensor_lists.')
+                  'favor of create_generic_benchmark_from_tensor_lists.',
+                  DeprecationWarning)
 
     train_datasets = [
         AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
@@ -493,7 +497,8 @@ def create_generic_scenario_from_tensors(
     """
 
     warnings.warn('create_generic_scenario_from_tensors is deprecated in favor '
-                  'of create_generic_benchmark_from_tensor_lists.')
+                  'of create_generic_benchmark_from_tensor_lists.',
+                  DeprecationWarning)
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError('train_data_x and train_data_y must contain'

@@ -9,12 +9,13 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-import torch
 from typing import Sequence, List, Optional, Dict, Any, Set
 
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+import torch
+
 from avalanche.benchmarks.scenarios.generic_cl_scenario import \
     GenericCLScenario, GenericScenarioStream, GenericExperience
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
@@ -149,9 +150,11 @@ class NCScenario(GenericCLScenario['NCExperience']):
         self._classes_in_exp: List[Set[int]] = []
 
         self.original_classes_in_exp: List[Set[int]] = []
-        """ A list that, for each experience (identified by its index/ID),
-            stores a list of the original IDs of classes assigned 
-            to that experience. """
+        """
+        A list that, for each experience (identified by its index/ID), stores a 
+        set of the original IDs of classes assigned to that experience. 
+        This field applies to both train and test streams.
+        """
 
         self.class_ids_from_zero_from_first_exp: bool = \
             class_ids_from_zero_from_first_exp
@@ -362,10 +365,23 @@ class NCScenario(GenericCLScenario['NCExperience']):
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)
 
+        # Good idea, but doesn't work
+        # transform_groups = train_eval_transforms(train_dataset, test_dataset)
+        #
+        # train_dataset = train_dataset\
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+        #
+        # test_dataset = test_dataset \
+        #     .replace_transforms(*transform_groups['train'], group='train') \
+        #     .replace_transforms(*transform_groups['eval'], group='eval')
+
         train_dataset = AvalancheSubset(
-            train_dataset, class_mapping=self.class_mapping)
+            train_dataset, class_mapping=self.class_mapping,
+            initial_transform_group='train')
         test_dataset = AvalancheSubset(
-            test_dataset, class_mapping=self.class_mapping)
+            test_dataset, class_mapping=self.class_mapping,
+            initial_transform_group='eval')
 
         self.train_exps_patterns_assignment = train_exps_patterns_assignment
         """ A list containing which training instances are assigned to each
@@ -410,10 +426,6 @@ class NCScenario(GenericCLScenario['NCExperience']):
             },
             experience_factory=NCExperience)
 
-    @property
-    def classes_in_experience(self) -> Sequence[Set[int]]:
-        return self._classes_in_exp
-
     def get_reproducibility_data(self):
         reproducibility_data = {
             'class_ids_from_zero_from_first_exp': bool(
@@ -445,12 +457,12 @@ class NCScenario(GenericCLScenario['NCExperience']):
         if exp_end is None:
             return [
                 item for sublist in
-                self.classes_in_experience[exp_start:]
+                self.classes_in_experience['train'][exp_start:]
                 for item in sublist]
 
         return [
             item for sublist in
-            self.classes_in_experience[exp_start:exp_end]
+            self.classes_in_experience['train'][exp_start:exp_end]
             for item in sublist]
 
 
