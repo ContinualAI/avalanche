@@ -26,4 +26,4 @@ dependencies:
 - pip:
     - pytorchcv
     - gdown
-    - ctrl-bench
+    - ctrl-benchmark
