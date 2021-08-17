@@ -17,7 +17,7 @@ from avalanche.models.pnn import PNN
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
-    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
+    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin, GSS_greedyPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
 
 class Naive(BaseStrategy):
