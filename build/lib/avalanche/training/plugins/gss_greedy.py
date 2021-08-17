@@ -1,13 +1,7 @@
-from torch.utils.data import random_split, ConcatDataset
 import torch
-import torch.nn.functional as F
-import random
-from torch.utils.data import TensorDataset,Subset
-from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset, AvalancheSubset
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheTensorDataset
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-import numpy as np
+from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
 class GSS_greedyPlugin(StrategyPlugin):
@@ -22,14 +16,14 @@ class GSS_greedyPlugin(StrategyPlugin):
     in the external memory.
     """
 
-    def __init__(self, mem_size=200,mem_strength =5, input_size=[]):
+    def __init__(self, mem_size=200, mem_strength=5, input_size=[]):
         super().__init__()
         self.mem_size = mem_size
-        self.mem_strength =mem_strength 
+        self.mem_strength = mem_strength 
 
-        self.ext_mem_list_x=torch.FloatTensor(mem_size, *input_size).fill_(0)
-        self.ext_mem_list_y=torch.LongTensor(mem_size).fill_(0)
-        self.ext_mem_list_current_index=0
+        self.ext_mem_list_x = torch.FloatTensor(mem_size, *input_size).fill_(0)
+        self.ext_mem_list_y = torch.LongTensor(mem_size).fill_(0)
+        self.ext_mem_list_current_index = 0
 
         self.buffer_score = torch.FloatTensor(self.mem_size).fill_(0)
 
@@ -38,7 +32,8 @@ class GSS_greedyPlugin(StrategyPlugin):
         w1 = x1.norm(p=2, dim=1, keepdim=True)
 
         w2 = w1 if x2 is x1 else x2.norm(p=2, dim=1, keepdim=True)
-        sim= torch.mm(x1, x2.t())/(w1 * w2.t()) #, w1  # .clamp(min=eps), 1/cosinesim
+        # , w1  # .clamp(min=eps), 1/cosinesim
+        sim = torch.mm(x1, x2.t())/(w1 * w2.t())
 
         return sim
 
@@ -70,11 +65,11 @@ class GSS_greedyPlugin(StrategyPlugin):
         strategy.model.zero_grad()
         loss = strategy._criterion(strategy.model.forward(batch_x), batch_y)
         loss.backward()
-        batch_grad = self.get_grad_vector(strategy.model.parameters, grad_dims).unsqueeze(0)
+        batch_grad = self.get_grad_vector(
+            strategy.model.parameters, grad_dims).unsqueeze(0)
         batch_sim = max(self.cosine_similarity(mem_grads, batch_grad))
         return batch_sim, mem_grads
 
-    
     def get_rand_mem_grads(self, strategy, grad_dims, gss_batch_size):
         """
         Args:
@@ -82,9 +77,12 @@ class GSS_greedyPlugin(StrategyPlugin):
             grad_dims: gradient dimensions
         Returns: gradient from memory subsets
         """
-        temp_gss_batch_size = min(gss_batch_size, self.ext_mem_list_current_index)
-        num_mem_subs = min(self.mem_strength, self.ext_mem_list_current_index // gss_batch_size)
-        mem_grads = torch.zeros(num_mem_subs, sum(grad_dims), dtype=torch.float32)
+        temp_gss_batch_size = min(
+            gss_batch_size, self.ext_mem_list_current_index)
+        num_mem_subs = min(self.mem_strength,
+                           self.ext_mem_list_current_index // gss_batch_size)
+        mem_grads = torch.zeros(num_mem_subs, sum(
+            grad_dims), dtype=torch.float32)
         shuffeled_inds = torch.randperm(self.ext_mem_list_current_index)
         for i in range(num_mem_subs):
             random_batch_inds = shuffeled_inds[
@@ -95,7 +93,8 @@ class GSS_greedyPlugin(StrategyPlugin):
 
             loss = strategy._criterion(strategy.model.forward(batch_x), batch_y)
             loss.backward()
-            mem_grads[i].data.copy_(self.get_grad_vector(strategy.model.parameters, grad_dims))
+            mem_grads[i].data.copy_(self.get_grad_vector(
+                strategy.model.parameters, grad_dims))
         return mem_grads
 
     def get_each_batch_sample_sim(self, strategy, grad_dims, mem_grads, batch_x, batch_y):
@@ -111,10 +110,12 @@ class GSS_greedyPlugin(StrategyPlugin):
         cosine_sim = torch.zeros(batch_x.size(0))
         for i, (x, y) in enumerate(zip(batch_x, batch_y)):
             strategy.model.zero_grad()
-            ptloss = strategy._criterion(strategy.model.forward(x.unsqueeze(0)), y.unsqueeze(0))
+            ptloss = strategy._criterion(
+                strategy.model.forward(x.unsqueeze(0)), y.unsqueeze(0))
             ptloss.backward()
             # add the new grad to the memory grads and add it is cosine similarity
-            this_grad = self.get_grad_vector(strategy.model.parameters, grad_dims).unsqueeze(0)
+            this_grad = self.get_grad_vector(
+                strategy.model.parameters, grad_dims).unsqueeze(0)
             cosine_sim[i] = max(self.cosine_similarity(mem_grads, this_grad))
         return cosine_sim
 
@@ -127,17 +128,16 @@ class GSS_greedyPlugin(StrategyPlugin):
         if self.ext_mem_list_current_index == 0:
             return
 
-
-        temp_x_tensors=[]
+        temp_x_tensors = []
         for elem in self.ext_mem_list_x:
             temp_x_tensors.append(torch.FloatTensor(elem))
-        
-        memory=list(zip(temp_x_tensors, self.ext_mem_list_y))
-        memory=AvalancheDataset(memory, targets=self.ext_mem_list_y)
+
+        memory = list(zip(temp_x_tensors, self.ext_mem_list_y))
+        memory = AvalancheDataset(memory, targets=self.ext_mem_list_y)
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset([memory]),
+            memory,
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
@@ -155,58 +155,70 @@ class GSS_greedyPlugin(StrategyPlugin):
         for param in strategy.model.parameters():
             grad_dims.append(param.data.numel())
 
-        place_left = self.ext_mem_list_x.size(0) -self.ext_mem_list_current_index
-        if(place_left<=0): #buffer full
+        place_left = self.ext_mem_list_x.size(
+            0) - self.ext_mem_list_current_index
+        if(place_left <= 0):  # buffer full
 
-            batch_sim, mem_grads = self.get_batch_sim(strategy, grad_dims, batch_x=strategy.mb_x, batch_y=strategy.mb_y)
+            batch_sim, mem_grads = self.get_batch_sim(
+                strategy, grad_dims, batch_x=strategy.mb_x, batch_y=strategy.mb_y)
 
             if batch_sim < 0:
-                buffer_score = self.buffer_score[:self.ext_mem_list_current_index].cpu()
-                buffer_sim = ((buffer_score - torch.min(buffer_score)) / \
-                             ((torch.max(buffer_score) - torch.min(buffer_score)) + 0.01))
-                
+                buffer_score = self.buffer_score[:self.ext_mem_list_current_index].cpu(
+                )
+                buffer_sim = ((buffer_score - torch.min(buffer_score)) /
+                              ((torch.max(buffer_score) - torch.min(buffer_score)) + 0.01))
+
                 # draw candidates for replacement from the buffer
-                index = torch.multinomial(buffer_sim, strategy.mb_x.size(0), replacement=False)
+                index = torch.multinomial(
+                    buffer_sim, strategy.mb_x.size(0), replacement=False)
 
                 # estimate the similarity of each sample in the received batch
                 # to the randomly drawn samples from the buffer.
-                batch_item_sim = self.get_each_batch_sample_sim(strategy, grad_dims, mem_grads, strategy.mb_x, strategy.mb_y)
+                batch_item_sim = self.get_each_batch_sample_sim(
+                    strategy, grad_dims, mem_grads, strategy.mb_x, strategy.mb_y)
 
                 # normalize to [0,1]
                 scaled_batch_item_sim = ((batch_item_sim + 1) / 2).unsqueeze(1)
-                buffer_repl_batch_sim = ((self.buffer_score[index] + 1) / 2).unsqueeze(1)
+                buffer_repl_batch_sim = (
+                    (self.buffer_score[index] + 1) / 2).unsqueeze(1)
                 # draw an event to decide on replacement decision
                 outcome = torch.multinomial(torch.cat((scaled_batch_item_sim, buffer_repl_batch_sim), dim=1), 1,
                                             replacement=False)
                 # replace samples with outcome =1
                 added_indx = torch.arange(end=batch_item_sim.size(0))
                 sub_index = outcome.squeeze(1).bool()
-                self.ext_mem_list_x[index[sub_index]] = strategy.mb_x[added_indx[sub_index]].clone()
-                self.ext_mem_list_y[index[sub_index]] = strategy.mb_y[added_indx[sub_index]].clone()
-                self.buffer_score[index[sub_index]] = batch_item_sim[added_indx[sub_index]].clone()
+                self.ext_mem_list_x[index[sub_index]
+                                    ] = strategy.mb_x[added_indx[sub_index]].clone()
+                self.ext_mem_list_y[index[sub_index]
+                                    ] = strategy.mb_y[added_indx[sub_index]].clone()
+                self.buffer_score[index[sub_index]
+                                  ] = batch_item_sim[added_indx[sub_index]].clone()
         else:
             offset = min(place_left, strategy.mb_x.size(0))
-            updated_mb_x=strategy.mb_x[:offset]
-            updated_mb_y=strategy.mb_y[:offset]
+            updated_mb_x = strategy.mb_x[:offset]
+            updated_mb_y = strategy.mb_y[:offset]
             #strategy.mb_x = strategy.mb_x[:offset]
             #strategy.mb_y = strategy.mb_y[:offset]
 
             # first buffer insertion
-            if self.ext_mem_list_current_index== 0:
-                batch_sample_memory_cos = torch.zeros(updated_mb_x.size(0)) + 0.1
+            if self.ext_mem_list_current_index == 0:
+                batch_sample_memory_cos = torch.zeros(
+                    updated_mb_x.size(0)) + 0.1
             else:
                 # draw random samples from buffer
-                mem_grads = self.get_rand_mem_grads(strategy=strategy, grad_dims=grad_dims,gss_batch_size=len(strategy.mb_x))
-                
+                mem_grads = self.get_rand_mem_grads(
+                    strategy=strategy, grad_dims=grad_dims, gss_batch_size=len(strategy.mb_x))
+
                 # estimate a score for each added sample
-                batch_sample_memory_cos = self.get_each_batch_sample_sim(strategy, grad_dims, mem_grads,  updated_mb_x,  updated_mb_y)
+                batch_sample_memory_cos = self.get_each_batch_sample_sim(
+                    strategy, grad_dims, mem_grads, updated_mb_x, updated_mb_y)
 
-            self.ext_mem_list_x[self.ext_mem_list_current_index:self.ext_mem_list_current_index + offset].data.copy_(updated_mb_x)
-            self.ext_mem_list_y[self.ext_mem_list_current_index:self.ext_mem_list_current_index + offset].data.copy_(updated_mb_y)
-            self.buffer_score[self.ext_mem_list_current_index:self.ext_mem_list_current_index + offset].data.copy_(batch_sample_memory_cos)
+            self.ext_mem_list_x[self.ext_mem_list_current_index:
+                                self.ext_mem_list_current_index + offset].data.copy_(updated_mb_x)
+            self.ext_mem_list_y[self.ext_mem_list_current_index:
+                                self.ext_mem_list_current_index + offset].data.copy_(updated_mb_y)
+            self.buffer_score[self.ext_mem_list_current_index:self.ext_mem_list_current_index +
+                              offset].data.copy_(batch_sample_memory_cos)
             self.ext_mem_list_current_index += offset
-        
-        strategy.model.train()
-        
-        
 
+        strategy.model.train()

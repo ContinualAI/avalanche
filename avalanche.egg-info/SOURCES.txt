@@ -140,7 +140,6 @@ examples/ewc_mnist.py
 examples/gem_agem_mnist.py
 examples/getting_started.py
 examples/getting_started_no_avalanche.py
-examples/gss_mnist.py
 examples/joint_training.py
 examples/lwf_mnist.py
 examples/multihead.py

@@ -137,7 +137,7 @@ class GSS_greedyPlugin(StrategyPlugin):
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset([memory]),
+            memory,
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
