@@ -19,8 +19,6 @@ from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
     EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
-from avalanche.training import default_logger
-from avalanche.training.plugins import GSS_greedyPlugin, StrategyPlugin, CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 
 class Naive(BaseStrategy):
     """
