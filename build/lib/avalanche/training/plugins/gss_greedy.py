@@ -2,8 +2,9 @@ from torch.utils.data import random_split, ConcatDataset
 import torch
 import torch.nn.functional as F
 import random
-from torch.utils.data import TensorDataset
-from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
+from torch.utils.data import TensorDataset,Subset
+from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset, AvalancheSubset
+from avalanche.benchmarks.utils.avalanche_dataset import AvalancheTensorDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 import numpy as np
@@ -123,23 +124,30 @@ class GSS_greedyPlugin(StrategyPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
-        if len(self.ext_mem_list_x) == 0:
+        if self.ext_mem_list_current_index == 0:
             return
+
+
+        temp_x_tensors=[]
+        for elem in self.ext_mem_list_x:
+            temp_x_tensors.append(torch.FloatTensor(elem))
         
-        memory = AvalancheDataset(self.ext_mem_list_x,targets=self.ext_mem_list_y)
+        memory=list(zip(temp_x_tensors, self.ext_mem_list_y))
+        memory=AvalancheDataset(memory, targets=self.ext_mem_list_y)
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset(memory),
+            AvalancheConcatDataset([memory]),
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
     def after_forward(self, strategy, num_workers=0, shuffle=True, **kwargs):
-        """
+        '''
         After every forward this function select sample to fill the memory buffer based on cosine similarity
-        """
+        '''
+
         strategy.model.eval()
 
         # Compute the gradient dimension
@@ -148,7 +156,6 @@ class GSS_greedyPlugin(StrategyPlugin):
             grad_dims.append(param.data.numel())
 
         place_left = self.ext_mem_list_x.size(0) -self.ext_mem_list_current_index
-
         if(place_left<=0): #buffer full
 
             batch_sim, mem_grads = self.get_batch_sim(strategy, grad_dims, batch_x=strategy.mb_x, batch_y=strategy.mb_y)
@@ -156,12 +163,12 @@ class GSS_greedyPlugin(StrategyPlugin):
             if batch_sim < 0:
                 buffer_score = self.buffer_score[:self.ext_mem_list_current_index].cpu()
                 buffer_sim = ((buffer_score - torch.min(buffer_score)) / \
-                             ((torch.max(buffer_score) - torch.min(buffer_score)) + 0.01))+0.01
+                             ((torch.max(buffer_score) - torch.min(buffer_score)) + 0.01))
                 
                 # draw candidates for replacement from the buffer
                 index = torch.multinomial(buffer_sim, strategy.mb_x.size(0), replacement=False)
 
-                # estimate the similarity of each sample in the recieved batch
+                # estimate the similarity of each sample in the received batch
                 # to the randomly drawn samples from the buffer.
                 batch_item_sim = self.get_each_batch_sample_sim(strategy, grad_dims, mem_grads, strategy.mb_x, strategy.mb_y)
 
@@ -198,6 +205,8 @@ class GSS_greedyPlugin(StrategyPlugin):
             self.ext_mem_list_y[self.ext_mem_list_current_index:self.ext_mem_list_current_index + offset].data.copy_(updated_mb_y)
             self.buffer_score[self.ext_mem_list_current_index:self.ext_mem_list_current_index + offset].data.copy_(batch_sample_memory_cos)
             self.ext_mem_list_current_index += offset
+        
         strategy.model.train()
+        
         
 
