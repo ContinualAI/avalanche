@@ -13,7 +13,7 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training import EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins import StrategyPlugin, ReplayPlugin, \
     ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
@@ -100,7 +100,7 @@ class PluginTests(unittest.TestCase):
         model = SimpleMLP(input_size=6, hidden_size=10)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        scenario = self.create_scenario()
+        benchmark = self.create_benchmark()
 
         plug = MockPlugin()
         strategy = Naive(model, optimizer, criterion,
@@ -108,11 +108,11 @@ class PluginTests(unittest.TestCase):
                          device='cpu', plugins=[plug]
                          )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        strategy.train(scenario.train_stream[0], num_workers=4)
-        strategy.eval([scenario.test_stream[0]], num_workers=4)
+        strategy.train(benchmark.train_stream[0], num_workers=4)
+        strategy.eval([benchmark.test_stream[0]], num_workers=4)
         assert all(plug.activated)
 
-    def create_scenario(self, task_labels=False):
+    def create_benchmark(self, task_labels=False):
         n_samples_per_class = 20
 
         dataset = make_classification(
@@ -188,7 +188,7 @@ class PluginTests(unittest.TestCase):
                 for group in strategy.optimizer.param_groups:
                     assert group['lr'] == expected_lr
 
-        scenario = self.create_scenario()
+        benchmark = self.create_benchmark()
         model = SimpleMLP(input_size=6, hidden_size=10)
 
         optim = SGD(model.parameters(), lr=base_lr)
@@ -200,8 +200,8 @@ class PluginTests(unittest.TestCase):
                             train_epochs=epochs, eval_mb_size=100,
                             plugins=[lrSchedulerPlugin, TestPlugin(expected)])
 
-        cl_strategy.train(scenario.train_stream[0])
-        cl_strategy.train(scenario.train_stream[1])
+        cl_strategy.train(benchmark.train_stream[0])
+        cl_strategy.train(benchmark.train_stream[1])
 
 
 if __name__ == '__main__':

@@ -11,7 +11,13 @@
 from typing import Optional, Sequence, List, Union
 
 from torch.nn import Module, CrossEntropyLoss
-from torch.optim import Optimizer
+from torch.optim import Optimizer, SGD
+
+from avalanche.models.pnn import PNN
+from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
+    ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
+    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
 from avalanche.training import default_logger
 from avalanche.training.plugins import GSS_greedyPlugin, StrategyPlugin, CWRStarPlugin, ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
@@ -54,6 +60,71 @@ class Naive(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
+class PNNStrategy(BaseStrategy):
+    """
+    The simplest (and least effective) Continual Learning strategy. Naive just
+    incrementally fine tunes a single model without employing any method
+    to contrast the catastrophic forgetting of previous knowledge.
+    This strategy does not use task identities.
+
+    Naive is easy to set up and its results are commonly used to show the worst
+    performing baseline.
+    """
+
+    def __init__(self, num_layers: int, in_features: int,
+                 hidden_features_per_column: int,
+                 lr: float, momentum=0, dampening=0,
+                 weight_decay=0, nesterov=False, adapter='mlp',
+                 criterion=CrossEntropyLoss(),
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """
+        Creates an instance of the Naive strategy.
+
+        :param num_layers: Number of layers for the PNN architecture.
+        :param in_features: Number of input features.
+        :param hidden_features_per_column: Number of hidden units for
+            each column of the PNN architecture.
+        :param lr: learning rate
+        :param momentum: momentum factor (default: 0)
+        :param weight_decay: weight decay (L2 penalty) (default: 0)
+        :param dampening: dampening for momentum (default: 0)
+        :param nesterov: enables Nesterov momentum (default: False)
+        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
+        :param criterion: The loss criterion to use.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+        model = PNN(
+            num_layers=num_layers,
+            in_features=in_features,
+            hidden_features_per_column=hidden_features_per_column,
+            adapter=adapter
+        )
+        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
+                        weight_decay=weight_decay, dampening=dampening,
+                        nesterov=nesterov)
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,

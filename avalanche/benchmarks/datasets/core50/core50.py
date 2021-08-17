@@ -23,7 +23,7 @@ from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets.core50 import core50_data
-from avalanche.benchmarks.datasets import get_default_dataset_location
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.downloadable_dataset import \
     DownloadableDataset
 
@@ -33,7 +33,7 @@ class CORe50Dataset(DownloadableDataset):
 
     def __init__(
             self,
-            root: Union[str, Path] = get_default_dataset_location('core50'),
+            root: Union[str, Path] = None,
             *,
             train=True, transform=None, target_transform=None,
             loader=default_loader, download=True, mini=False,
@@ -42,7 +42,8 @@ class CORe50Dataset(DownloadableDataset):
         """
         Creates an instance of the CORe50 dataset.
 
-        :param root: root for the datasets data.
+        :param root: root for the datasets data. Defaults to None, which means
+        that the default location for 'core50' will be used.
         :param train: train or test split.
         :param transform: eventual transformations to be applied.
         :param target_transform: eventual transformation to be applied to the
@@ -56,6 +57,9 @@ class CORe50Dataset(DownloadableDataset):
             category based: 50 or 10 way classification problem. Default to True
             (50-way object classification problem)
         """
+
+        if root is None:
+            root = default_dataset_location('core50')
 
         super(CORe50Dataset, self).__init__(
             root, download=download, verbose=True)

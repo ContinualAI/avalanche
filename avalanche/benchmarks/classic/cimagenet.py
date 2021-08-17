@@ -8,8 +8,11 @@
 # E-mail: contact@continualai.org                                              #
 # Website: continualai.org                                                     #
 ################################################################################
+from pathlib import Path
+from typing import Union, Optional, Any
 
-
+from avalanche.benchmarks.classic.classic_benchmarks_utils import \
+    check_vision_benchmark
 from avalanche.benchmarks.datasets import ImageNet
 from avalanche.benchmarks import nc_benchmark
 
@@ -33,21 +36,24 @@ _default_eval_transform = transforms.Compose([
 ])
 
 
-def SplitImageNet(root,
-                  n_experiences=10,
-                  per_exp_classes=None,
-                  return_task_id=False,
-                  seed=0,
-                  fixed_class_order=None,
-                  train_transform=_default_train_transform,
-                  eval_transform=_default_eval_transform):
+def SplitImageNet(
+        dataset_root: Union[str, Path],
+        *,
+        n_experiences=10,
+        per_exp_classes=None,
+        return_task_id=False,
+        seed=0,
+        fixed_class_order=None,
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_train_transform,
+        eval_transform: Optional[Any] = _default_eval_transform):
     """
-    Creates a CL scenario using the ImageNet dataset.
+    Creates a CL benchmark using the ImageNet dataset.
 
     If the dataset is not present in the computer, **this method will NOT be
     able automatically download** and store it.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -58,17 +64,17 @@ def SplitImageNet(root,
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Base path where Imagenet data is stored.
-    :param n_experiences: The number of experiences in the current scenario.
+    :param dataset_root: Base path where Imagenet data is stored.
+    :param n_experiences: The number of experiences in the current benchmark.
     :param per_exp_classes: Is not None, a dictionary whose keys are
         (0-indexed) experience IDs and their values are the number of classes
         to include in the respective experiences. The dictionary doesn't
@@ -88,6 +94,8 @@ def SplitImageNet(root,
         order. If None, value of ``seed`` will be used to define the class
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to false.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -104,7 +112,7 @@ def SplitImageNet(root,
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_imagenet_dataset(root)
+    train_set, test_set = _get_imagenet_dataset(dataset_root)
 
     if return_task_id:
         return nc_benchmark(
@@ -115,6 +123,7 @@ def SplitImageNet(root,
             per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
             eval_transform=eval_transform)
@@ -127,6 +136,7 @@ def SplitImageNet(root,
             per_exp_classes=per_exp_classes,
             seed=seed,
             fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
             train_transform=train_transform,
             eval_transform=eval_transform)
 
@@ -143,9 +153,14 @@ __all__ = [
     'SplitImageNet'
 ]
 
+
 if __name__ == "__main__":
-    scenario = SplitImageNet("/ssd2/datasets/imagenet/")
-    for exp in scenario.train_stream:
-        print("experience: ", exp.current_experience)
-        print("classes number: ", len(exp.classes_in_this_experience))
-        print("classes: ", exp.classes_in_this_experience)
+    import sys
+
+    benchmark_instance = SplitImageNet(
+        "/ssd2/datasets/imagenet/", train_transform=transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor()]))
+    check_vision_benchmark(benchmark_instance, show_without_transforms=False)
+    sys.exit(0)

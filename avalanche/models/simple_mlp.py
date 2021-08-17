@@ -17,12 +17,12 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
 
 class SimpleMLP(nn.Module):
     def __init__(self, num_classes=10, input_size=28 * 28,
-                 hidden_size=512, hidden_layers=1):
+                 hidden_size=512, hidden_layers=1, drop_rate=0.5):
         super().__init__()
 
         layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
                                  nn.ReLU(inplace=True),
-                                 nn.Dropout()))
+                                 nn.Dropout(p=drop_rate)))
         for layer_idx in range(hidden_layers - 1):
             layers.add_module(
                 f"fc{layer_idx + 1}", nn.Sequential(
@@ -42,7 +42,7 @@ class SimpleMLP(nn.Module):
         return x
 
 
-class MTSimpleMLP(nn.Module, MultiTaskModule):
+class MTSimpleMLP(MultiTaskModule):
     def __init__(self, input_size=28 * 28, hidden_size=512):
         """
             Multi-task MLP with multi-head classifier.

@@ -28,13 +28,13 @@ class MNISTBenchmarksTests(unittest.TestCase):
             cmnist._get_mnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
-    def test_SplitMNIST_scenario(self):
-        scenario = SplitMNIST(5)
-        self.assertEqual(5, len(scenario.train_stream))
-        self.assertEqual(5, len(scenario.test_stream))
+    def test_SplitMNIST_benchmark(self):
+        benchmark = SplitMNIST(5)
+        self.assertEqual(5, len(benchmark.train_stream))
+        self.assertEqual(5, len(benchmark.test_stream))
 
         train_sz = 0
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
 
@@ -44,7 +44,7 @@ class MNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(60000, train_sz)
 
         test_sz = 0
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
 
@@ -53,67 +53,67 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
         self.assertEqual(10000, test_sz)
 
-    def test_PermutedMNIST_scenario(self):
-        scenario = PermutedMNIST(3)
-        self.assertEqual(3, len(scenario.train_stream))
-        self.assertEqual(3, len(scenario.test_stream))
+    def test_PermutedMNIST_benchmark(self):
+        benchmark = PermutedMNIST(3)
+        self.assertEqual(3, len(benchmark.train_stream))
+        self.assertEqual(3, len(benchmark.test_stream))
 
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             self.assertEqual(60000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             self.assertEqual(10000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
-    def test_RotatedMNIST_scenario(self):
-        scenario = RotatedMNIST(3)
-        self.assertEqual(3, len(scenario.train_stream))
-        self.assertEqual(3, len(scenario.test_stream))
+    def test_RotatedMNIST_benchmark(self):
+        benchmark = RotatedMNIST(3)
+        self.assertEqual(3, len(benchmark.train_stream))
+        self.assertEqual(3, len(benchmark.test_stream))
 
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             self.assertEqual(60000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             self.assertEqual(10000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
-    def test_PermutedMNIST_scenario_download_once(self):
+    def test_PermutedMNIST_benchmark_download_once(self):
         global MNIST_DOWNLOADS
         MNIST_DOWNLOADS = 0
 
-        scenario = PermutedMNIST(3)
-        self.assertEqual(3, len(scenario.train_stream))
-        self.assertEqual(3, len(scenario.test_stream))
+        benchmark = PermutedMNIST(3)
+        self.assertEqual(3, len(benchmark.train_stream))
+        self.assertEqual(3, len(benchmark.test_stream))
 
         self.assertEqual(1, MNIST_DOWNLOADS)
 
-    def test_RotatedMNIST_scenario_download_once(self):
+    def test_RotatedMNIST_benchmark_download_once(self):
         global MNIST_DOWNLOADS
         MNIST_DOWNLOADS = 0
 
-        scenario = RotatedMNIST(3)
-        self.assertEqual(3, len(scenario.train_stream))
-        self.assertEqual(3, len(scenario.test_stream))
+        benchmark = RotatedMNIST(3)
+        self.assertEqual(3, len(benchmark.train_stream))
+        self.assertEqual(3, len(benchmark.test_stream))
 
         self.assertEqual(1, MNIST_DOWNLOADS)
 
-    # def test_PermutedMNIST_scenario_performance(self):
+    # def test_PermutedMNIST_benchmark_performance(self):
     #     import time
     #     from torch.utils.data.dataloader import DataLoader
     #     start_time = time.time()
-    #     scenario = PermutedMNIST(10)
+    #     benchmark = PermutedMNIST(10)
     #
-    #     for experience in scenario.train_stream:
+    #     for experience in benchmark.train_stream:
     #         self.assertIsInstance(experience, Experience)
     #         self.assertEqual(60000, len(experience.dataset))
     #         all_targets = sum(experience.dataset.targets)
@@ -124,7 +124,7 @@ class MNISTBenchmarksTests(unittest.TestCase):
     #         # for batch in loader:
     #         #     x, y, t = batch
     #
-    #     for experience in scenario.test_stream:
+    #     for experience in benchmark.test_stream:
     #         self.assertIsInstance(experience, Experience)
     #         self.assertEqual(10000, len(experience.dataset))
     #         all_targets = sum(experience.dataset.targets)

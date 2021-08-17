@@ -56,6 +56,8 @@ def main(args):
     # train and test loop
     results = []
     print("Starting training.")
+    # Differently from other avalanche strategies, you NEED to call train
+    # on the entire stream.
     joint_train.train(train_stream)
     results.append(joint_train.eval(test_stream))
 

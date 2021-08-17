@@ -14,3 +14,5 @@ from .mobilenetv1 import MobilenetV1
 from .dynamic_modules import *
 from .utils import *
 from .slda_resnet import SLDAResNetModel
+from .icarl_resnet import *
+from .ncm_classifier import NCMClassifier

@@ -8,7 +8,8 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-from os.path import expanduser
+from pathlib import Path
+from typing import Union
 
 from typing_extensions import Literal
 
@@ -56,16 +57,21 @@ def _adjust_bbox(img_shapes, bbox, ratio=1.1):
     return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
-def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
-               scenario: Literal[
-                   'iid', 'class_iid', 'instance',
-                   'class_instance'] = "class_instance",
-               seed=10, eval_num=None, bbox_crop=True, ratio: float = 1.10,
-               download=True,
-               train_transform=_default_stream51_transform,
-               eval_transform=_default_stream51_transform):
+def CLStream51(
+        *,
+        scenario: Literal[
+            'iid', 'class_iid', 'instance',
+            'class_instance'] = "class_instance",
+        seed=10,
+        eval_num=None,
+        bbox_crop=True,
+        ratio: float = 1.10,
+        download=True,
+        train_transform=_default_stream51_transform,
+        eval_transform=_default_stream51_transform,
+        dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario for Stream-51.
+    Creates a CL benchmark for Stream-51.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -73,7 +79,7 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
     This generator can be used to obtain the 'iid', 'class_iid', 'instance', and
     'class_instance' scenarios.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Avalanche will support the
     "out of distribution" stream in the near future!
@@ -81,13 +87,10 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
     Each Experience contains the `dataset` and the associated task label, which
     is always 0 for Stream51.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param root: Path indicating where to store the dataset and related
-        metadata. By default they will be stored in
-        "~/.avalanche/datasets/stream51/data/".
     :param scenario: A string defining which Stream-51 scenario to return.
         Can be chosen between 'iid', 'class_iid', 'instance', and
         'class_instance'. Defaults to 'class_instance'.
@@ -116,15 +119,19 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
         comprehensive list of possible transformations).
         If no transformation is passed, the default eval transformation
         will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'stream51' will be used.
 
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    # get train and test sets and order them by scenario
-    train_set = Stream51(root, train=True, download=download)
-    test_set = Stream51(root, train=False, download=download)
+    # get train and test sets and order them by benchmark
+    train_set = Stream51(root=dataset_root, train=True, download=download)
+    test_set = Stream51(root=dataset_root, train=False, download=download)
     samples = Stream51.make_dataset(train_set.samples, ordering=scenario,
                                     seed=seed)
+    dataset_root = train_set.root
 
     # set appropriate train parameters
     train_set.samples = samples
@@ -153,7 +160,7 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
             train_filelists_paths.append(
-                [(os.path.join(root, train_set.samples[j][-1]),
+                [(os.path.join(dataset_root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
                   _adjust_bbox(train_set.samples[j][-3],
                                train_set.samples[j][-2],
@@ -162,12 +169,12 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = [(os.path.join(root, test_set.samples[j][-1]),
-                                 test_set.samples[j][0],
-                                 _adjust_bbox(test_set.samples[j][-3],
-                                              test_set.samples[j][-2],
-                                              ratio)) for
-                                j in range(len(test_set))]
+        test_filelists_paths = \
+            [(os.path.join(dataset_root, test_set.samples[j][-1]),
+              test_set.samples[j][0],
+              _adjust_bbox(test_set.samples[j][-3],
+                           test_set.samples[j][-2],
+                           ratio)) for j in range(len(test_set))]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == 'class_instance':
         # break files into task lists based on classes
@@ -195,19 +202,19 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
                 else:
                     test_ood_files.append(ix)
             test_filelists_paths.append(
-                [(os.path.join(root, test_set.samples[j][-1]),
+                [(os.path.join(dataset_root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
                   _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
                                ratio)) for j in
                  test_files])
             test_ood_filelists_paths.append(
-                [(os.path.join(root, test_set.samples[j][-1]),
+                [(os.path.join(dataset_root, test_set.samples[j][-1]),
                   test_set.samples[j][0],
                   _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
                                ratio)) for j in
                  test_ood_files])
             train_filelists_paths.append(
-                [(os.path.join(root, train_set.samples[j][-1]),
+                [(os.path.join(dataset_root, train_set.samples[j][-1]),
                   train_set.samples[j][0],
                   _adjust_bbox(train_set.samples[j][-3],
                                train_set.samples[j][-2],
@@ -227,7 +234,7 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
             test_ood_filelists_paths = [[[j[0], j[1]] for j in i] for i in
                                         test_ood_filelists_paths]
 
-    scenario_obj = create_generic_benchmark_from_paths(
+    benchmark_obj = create_generic_benchmark_from_paths(
         train_lists_of_files=train_filelists_paths,
         test_lists_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
@@ -236,7 +243,7 @@ def CLStream51(root: str = expanduser("~") + "/.avalanche/data/stream51/",
         eval_transform=eval_transform,
         dataset_type=AvalancheDatasetType.CLASSIFICATION)
 
-    return scenario_obj
+    return benchmark_obj
 
 
 __all__ = [
@@ -244,17 +251,15 @@ __all__ = [
 ]
 
 if __name__ == "__main__":
-
-    # this code can be taken as a usage example or a simple test script
     from torch.utils.data.dataloader import DataLoader
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    scenario = CLStream51(scenario="class_instance", seed=10,
-                          bbox_crop=True)
+    benchmark = CLStream51(scenario="class_instance", seed=10,
+                           bbox_crop=True)
 
     train_imgs_count = 0
-    for i, batch in enumerate(scenario.train_stream):
+    for i, batch in enumerate(benchmark.train_stream):
         print(i, batch)
         dataset, _ = batch.dataset, batch.task_label
         train_imgs_count += len(dataset)

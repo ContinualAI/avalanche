@@ -1,0 +1,57 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 29-07-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+
+name: docker nightly release
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # everyday at midnight
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'docker/nightly/**'
+      - '.github/workflows/docker-nightly-release.yml'
+
+jobs:
+  docker-nightly-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'ContinualAI/avalanche' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Check date of last commit
+        run: |
+          let DIFF=(`date +%s -d "1 day ago"`-`git log -1 --pretty=format:%ct`)
+          echo "date_diff=$DIFF" >> $GITHUB_ENV
+      - name: Login to DockerHub
+        if: ${{ env.date_diff <= 0 }}  # last commit < 24h ago
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PSW }}
+      - name: Log in to the Container registry
+        if: ${{ env.date_diff <= 0 }}  # last commit < 24h ago
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        if: ${{ env.date_diff <= 0 }}  # last commit < 24h ago
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/nightly
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/avalanche-nightly:latest
+            ghcr.io/continualai/avalanche-nightly:latest
