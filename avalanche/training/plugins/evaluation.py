@@ -33,7 +33,8 @@ class EvaluationPlugin(StrategyPlugin):
                                 Sequence['StrategyLogger']] = None,
                  collect_all=True,
                  benchmark=None,
-                 strict_checks=False):
+                 strict_checks=False,
+                 suppress_warnings=False):
         """
         Creates an instance of the evaluation plugin.
 
@@ -50,11 +51,16 @@ class EvaluationPlugin(StrategyPlugin):
             In this case, only full evaluation streams are admitted when
             calling `eval`. An error will be raised otherwise. When False,
             `benchmark` can be `None` and only warnings will be raised.
+        :param suppress_warnings: if True, warnings and errors will never be
+            raised from the plugin.
+            If False, warnings and errors will be raised following
+            `benchmark` and `strict_checks` behavior.
         """
         super().__init__()
         self.collect_all = collect_all
         self.benchmark = benchmark
         self.strict_checks = strict_checks
+        self.suppress_warnings = suppress_warnings
         flat_metrics_list = []
         for metric in metrics:
             if isinstance(metric, Sequence):
@@ -69,13 +75,15 @@ class EvaluationPlugin(StrategyPlugin):
             loggers = [loggers]
 
         if benchmark is None:
-            if strict_checks:
-                raise ValueError("Benchmark cannot be None in strict mode.")
-            else:
-                warnings.warn(
-                    "No benchmark provided to the evaluation plugin. "
-                    "Metrics may be computed on inconsistent portion "
-                    "of streams, use at your own risk.")
+            if not suppress_warnings:
+                if strict_checks:
+                    raise ValueError("Benchmark cannot be None "
+                                     "in strict mode.")
+                else:
+                    warnings.warn(
+                        "No benchmark provided to the evaluation plugin. "
+                        "Metrics may be computed on inconsistent portion "
+                        "of streams, use at your own risk.")
         else:
             self.complete_test_stream = benchmark.test_stream
 
@@ -233,10 +241,11 @@ class EvaluationPlugin(StrategyPlugin):
                 try:
                     current_exp = strategy.current_eval_stream[i]
                     if exp.current_experience != current_exp.current_experience:
-                        if self.strict_checks:
-                            raise ValueError(msge)
-                        else:
-                            warnings.warn(msgw)
+                        if not self.suppress_warnings:
+                            if self.strict_checks:
+                                raise ValueError(msge)
+                            else:
+                                warnings.warn(msgw)
                 except IndexError:
                     if self.strict_checks:
                         raise ValueError(msge)
@@ -272,7 +281,11 @@ class EvaluationPlugin(StrategyPlugin):
         self._update_metrics(strategy, 'after_eval_iteration')
 
 
-default_logger = None
+default_logger = EvaluationPlugin(
+    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+    loggers=[InteractiveLogger()],
+    suppress_warnings=True)
 
 
 __all__ = [
