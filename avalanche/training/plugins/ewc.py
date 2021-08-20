@@ -109,7 +109,7 @@ class EWCPlugin(StrategyPlugin):
         Compute EWC importance matrix for each parameter
         """
 
-        model.train()
+        model.eval()
 
         # list of list
         importances = zerolike_params_dict(model)
