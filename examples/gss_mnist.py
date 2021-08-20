@@ -8,7 +8,9 @@ from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.benchmarks.generators.benchmark_generators import \
     data_incremental_benchmark
 from avalanche.benchmarks.utils import AvalancheSubset
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics import \
+    accuracy_metrics, \
+    loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import GSS_greedy
@@ -17,6 +19,7 @@ This example the strategy GSS_greedy on Split MNIST.
 The final accuracy is around 82.6% (std 2.9) 
 as stated in the original paper: https://arxiv.org/abs/1903.08671
 """
+
 
 class FlattenP(nn.Module):
     '''A nn-module to flatten a multi-dimensional tensor to 2-dim tensor.'''
@@ -74,7 +77,8 @@ def shrinking_experience_size_split_strategy(
 def setup_mnist():
 
     scenario = data_incremental_benchmark(SplitMNIST(
-        n_experiences=5, seed=1), experience_size=0, custom_split_strategy=shrinking_experience_size_split_strategy)
+        n_experiences=5, seed=1), experience_size=0, 
+        custom_split_strategy=shrinking_experience_size_split_strategy)
     n_inputs = 784
     nh = 100
     nl = 2
@@ -90,7 +94,6 @@ if __name__ == "__main__":
 
     device = torch.device(dev) 
 
-    #_______________________________________Model and scenario
     model, scenario = setup_mnist()
 
     eval_plugin = EvaluationPlugin(
@@ -100,8 +103,11 @@ if __name__ == "__main__":
     # _____________________________Strategy
 
     optimizer = SGD(model.parameters(), lr=0.05)
-    strategy = GSS_greedy(model, optimizer, criterion=CrossEntropyLoss(), train_mb_size=10, mem_strength=10, input_size=[
-                          1, 28, 28], train_epochs=3, eval_mb_size=10, mem_size=300, evaluator=eval_plugin)
+    strategy = GSS_greedy(model, optimizer, criterion=CrossEntropyLoss(), 
+                          train_mb_size=10, mem_strength=10, 
+                          input_size=[1, 28, 28], train_epochs=3, 
+                          eval_mb_size=10, mem_size=300, 
+                          evaluator=eval_plugin)
 
     # ___________________________________________train
     for experience in scenario.train_stream:

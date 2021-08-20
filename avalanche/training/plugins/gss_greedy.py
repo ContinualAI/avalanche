@@ -8,7 +8,8 @@ class GSS_greedyPlugin(StrategyPlugin):
     """
     GSSPlugin replay plugin.
 
-    Code adapted from the repository: https://github.com/RaptorMai/online-continual-learning
+    Code adapted from the repository: 
+    https://github.com/RaptorMai/online-continual-learning
     Handles an external memory fulled with samples selected 
     using the Greedy approach of GSS algorithm. 
     `before_forward` callback is used to process the current 
