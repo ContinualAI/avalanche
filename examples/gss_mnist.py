@@ -12,7 +12,11 @@ from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import GSS_greedy
-
+"""
+This example the strategy GSS_greedy on Split MNIST.
+The final accuracy is around 82.6% (std 2.9) 
+as stated in the original paper: https://arxiv.org/abs/1903.08671
+"""
 
 class FlattenP(nn.Module):
     '''A nn-module to flatten a multi-dimensional tensor to 2-dim tensor.'''
