@@ -69,8 +69,8 @@ if __name__ == '__main__':
                         default=[0.0001],
                         help='Penalty hyperparameter for LFL. It can be either'
                              'a list with multiple elements (one lambda_e per '
-                             'experience) or a list of one element (same lambda_e '
-                             'for all experiences).')
+                             'experience) or a list of one element (same '
+                             'lambda_e for all experiences).')
     parser.add_argument('--lr', type=float, default=1e-2, help='Learning rate.')
     parser.add_argument('--hs', type=int, default=256, help='MLP hidden size.')
     parser.add_argument('--epochs', type=int, default=3,

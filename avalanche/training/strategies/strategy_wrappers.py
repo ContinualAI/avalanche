@@ -634,8 +634,8 @@ class LFL(BaseStrategy):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
-        :param lambda_e: euclidean loss hyper parameter. It can be either a float
-                number or a list containing lambda_e for each experience.
+        :param lambda_e: euclidean loss hyper parameter. It can be either a
+                float number or a list containing lambda_e for each experience.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param eval_mb_size: The eval minibatch size. Defaults to 1.

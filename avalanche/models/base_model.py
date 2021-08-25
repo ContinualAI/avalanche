@@ -11,4 +11,3 @@ class BaseModel(ABC):
         """
         Get features from model given input
         """
-
