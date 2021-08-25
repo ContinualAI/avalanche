@@ -4,6 +4,7 @@ import torch
 
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.utils import get_last_fc_layer, freeze_everything
+from avalanche.models.base_model import BaseModel
 
 
 class LFLPlugin(StrategyPlugin):
@@ -41,16 +42,14 @@ class LFLPlugin(StrategyPlugin):
         model.eval()
         self.prev_model.eval()
 
-        x = x.contiguous()
-        x = x.view(x.size(0), 28*28)
-        features = model.features(x)
-        prev_features = self.prev_model.features(x)
+        features = model.get_features(x)
+        prev_features = self.prev_model.get_features(x)
 
         return features, prev_features
 
     def before_backward(self, strategy, **kwargs):
         """
-        Add euclidean loss between prev and current features
+        Add euclidean loss between prev and current features as penalty
         """
         lambda_e = self.lambda_e[strategy.training_exp_counter] \
             if isinstance(self.lambda_e, (list, tuple)) else self.lambda_e
@@ -72,3 +71,11 @@ class LFLPlugin(StrategyPlugin):
 
         for param in last_fc.parameters():
             param.requires_grad = False
+
+    def before_training(self, strategy: 'BaseStrategy', **kwargs):
+        """
+        Check if the model is an instance of base class to ensure get_features()
+        is implemented
+        """
+        if not isinstance(strategy.model, BaseModel):
+            raise NotImplementedError(BaseModel.__name__+'.get_features()')
