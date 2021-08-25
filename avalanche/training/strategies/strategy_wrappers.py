@@ -629,6 +629,7 @@ class LFL(BaseStrategy):
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
         """ Less Forgetful Learning strategy.
             See LFL plugin for details.
+            Refer Paper: https://arxiv.org/pdf/1607.00122.pdf
             This strategy does not use task identities.
 
         :param model: The model.

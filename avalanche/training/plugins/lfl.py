@@ -8,6 +8,17 @@ from avalanche.models.base_model import BaseModel
 
 
 class LFLPlugin(StrategyPlugin):
+    """
+    Less-Forgetful Learning (LFL) Plugin
+    LFL satisfies two properties to mitigate catastrophic forgetting.
+    1) To keep the decision boundaries unchanged
+    2) The feature space should not change much on target(new) data
+    LFL uses euclidean loss between features from current and previous version
+    of model as regularization to maintain the feature space and avoid
+    catastrophic forgetting.
+    Refer paper https://arxiv.org/pdf/1607.00122.pdf for more details
+    This plugin does not use task identities.
+    """
 
     def __init__(self, lambda_e):
         """
@@ -72,7 +83,7 @@ class LFLPlugin(StrategyPlugin):
         for param in last_fc.parameters():
             param.requires_grad = False
 
-    def before_training(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training(self, strategy, **kwargs):
         """
         Check if the model is an instance of base class to ensure get_features()
         is implemented
