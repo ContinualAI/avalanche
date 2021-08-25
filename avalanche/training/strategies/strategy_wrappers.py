@@ -17,7 +17,8 @@ from avalanche.models.pnn import PNN
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
-    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin, GSS_greedyPlugin
+    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin, \
+    GSS_greedyPlugin, LFLPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
 
 
@@ -618,6 +619,52 @@ class CoPE(BaseStrategy):
             evaluator=evaluator, eval_every=eval_every)
 
 
+class LFL(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 lambda_e: Union[float, Sequence[float]],
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """ Less Forgetful Learning strategy.
+            See LFL plugin for details.
+            This strategy does not use task identities.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param lambda_e: euclidean loss hyper parameter. It can be either a float
+                number or a list containing lambda_e for each experience.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+
+        lfl = LFLPlugin(lambda_e)
+        if plugins is None:
+            plugins = [lfl]
+        else:
+            plugins.append(lfl)
+
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
 __all__ = [
     'Naive',
     'CWRStar',
@@ -629,5 +676,6 @@ __all__ = [
     'EWC',
     'SynapticIntelligence',
     'GSS_greedy',
-    'CoPE'
+    'CoPE',
+    'LFL'
 ]
