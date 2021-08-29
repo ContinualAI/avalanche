@@ -36,7 +36,6 @@ class GSS_greedyPlugin(StrategyPlugin):
 
         w2 = w1 if x2 is x1 else x2.norm(p=2, dim=1, keepdim=True)
         sim = torch.mm(x1, x2.t())/(w1 * w2.t()).clamp(min=eps)
-
         return sim
 
     def get_grad_vector(self, pp, grad_dims):
