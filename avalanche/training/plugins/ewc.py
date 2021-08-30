@@ -74,10 +74,11 @@ class EWCPlugin(StrategyPlugin):
                         self.importances[experience]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
+            prev_exp = strategy.training_exp_counter - 1
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
                     strategy.model.named_parameters(),
-                    self.saved_params[strategy.training_exp_counter],
-                    self.importances[strategy.training_exp_counter]):
+                    self.saved_params[prev_exp],
+                    self.importances[prev_exp]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
@@ -98,7 +99,7 @@ class EWCPlugin(StrategyPlugin):
         self.update_importances(importances, strategy.training_exp_counter)
         self.saved_params[strategy.training_exp_counter] = \
             copy_params_dict(strategy.model)
-        # clear previuos parameter values
+        # clear previous parameter values
         if strategy.training_exp_counter > 0 and \
                 (not self.keep_importance_data):
             del self.saved_params[strategy.training_exp_counter - 1]
@@ -109,7 +110,7 @@ class EWCPlugin(StrategyPlugin):
         Compute EWC importance matrix for each parameter
         """
 
-        model.train()
+        model.eval()
 
         # list of list
         importances = zerolike_params_dict(model)
