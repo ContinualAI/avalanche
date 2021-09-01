@@ -13,9 +13,10 @@ import torch.nn as nn
 
 from avalanche.models.dynamic_modules import MultiTaskModule, \
     MultiHeadClassifier
+from avalanche.models.base_model import BaseModel
 
 
-class SimpleMLP(nn.Module):
+class SimpleMLP(nn.Module, BaseModel):
     def __init__(self, num_classes=10, input_size=28 * 28,
                  hidden_size=512, hidden_layers=1, drop_rate=0.5):
         super().__init__()
@@ -39,6 +40,12 @@ class SimpleMLP(nn.Module):
         x = x.view(x.size(0), self._input_size)
         x = self.features(x)
         x = self.classifier(x)
+        return x
+
+    def get_features(self, x):
+        x = x.contiguous()
+        x = x.view(x.size(0), self._input_size)
+        x = self.features(x)
         return x
 
 
