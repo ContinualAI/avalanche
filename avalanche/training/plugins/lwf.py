@@ -98,7 +98,7 @@ class LwFPlugin(StrategyPlugin):
             task_data = strategy.experience.dataset.task_set[task_id]
             pc = set(task_data.targets)
 
-            if not task_id in self.prev_classes:
+            if task_id not in self.prev_classes:
                 self.prev_classes[str(task_id)] = pc
             else:
                 self.prev_classes[str(task_id)] = self.prev_classes[task_id]\
