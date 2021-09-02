@@ -93,9 +93,15 @@ class MultiTaskModule(Module):
         """ compute the output given the input `x` and task labels.
 
         :param x:
-        :param task_labels: task labels for each sample.
+        :param task_labels: task labels for each sample. if None, the
+            computation will return all the possible outputs as a dictionary
+            with task IDs as keys and the output of the corresponding task as
+            output.
         :return:
         """
+        if task_labels is None:
+            return self.forward_all_tasks(x)
+
         if isinstance(task_labels, int):
             # fast path. mini-batch is single task.
             return self.forward_single_task(x, task_labels)
@@ -121,6 +127,16 @@ class MultiTaskModule(Module):
         :param x:
         :param task_label: a single task label.
         :return:
+        """
+        raise NotImplementedError()
+
+    def forward_all_tasks(self, x: torch.Tensor):
+        """ compute the output given the input `x` and task label.
+
+        :param x:
+        :return: all the possible outputs are returned as a dictionary
+            with task IDs as keys and the output of the corresponding
+            task as output.
         """
         raise NotImplementedError()
 
@@ -235,6 +251,12 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
         :return:
         """
         return self.classifiers[str(task_label)](x)
+
+    def forward_all_tasks(self, x: torch.Tensor):
+        res = {}
+        for task_id in self.classifiers:
+            res[task_id] = self.classifiers[task_id](x)
+        return res
 
 
 class TrainEvalModel(DynamicModule):
