@@ -22,7 +22,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin, \
     LwFPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, LwF, AGEM, GEM, EWC, \
+    GDumb, LwF, AGEM, GEM, EWC, LFL, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA, BaseStrategy
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.training.strategies.joint_training import AlreadyTrainedError
@@ -55,7 +55,7 @@ class BaseStrategyTest(unittest.TestCase):
         assert len(strategy.evaluator.get_all_metrics()) == 0
 
         ###################
-        # Case #2: Eval at the end only
+        # Case #2: Eval at the end only and before training
         ###################
         acc = StreamAccuracy()
         strategy = Naive(model, optimizer, criterion, train_epochs=2,
@@ -63,10 +63,10 @@ class BaseStrategyTest(unittest.TestCase):
         strategy.train(benchmark.train_stream[0])
         # eval is called once at the end of the training loop
         curve = strategy.evaluator.get_all_metrics()[curve_key][1]
-        assert len(curve) == 1
+        assert len(curve) == 2
 
         ###################
-        # Case #3: Eval after every epoch
+        # Case #3: Eval after every epoch and before training
         ###################
         acc = StreamAccuracy()
         strategy = Naive(model, optimizer, criterion, train_epochs=2,
@@ -74,7 +74,7 @@ class BaseStrategyTest(unittest.TestCase):
         strategy.train(benchmark.train_stream[0])
         # eval is called after every epoch + the end of the training loop
         curve = strategy.evaluator.get_all_metrics()[curve_key][1]
-        assert len(curve) == 3
+        assert len(curve) == 4
 
     def test_forward_hooks(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
@@ -429,6 +429,22 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2, eval_mb_size=50,
             device=self.device,)
 
+        self.run_strategy(benchmark, strategy)
+
+    def test_lfl(self):
+
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = LFL(model, optimizer, criterion, lambda_e=0.0001,
+                       train_mb_size=10, device=self.device,
+                       eval_mb_size=50, train_epochs=2)
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = LFL(model, optimizer, criterion, lambda_e=0.0001,
+                       train_mb_size=10, device=self.device,
+                       eval_mb_size=50, train_epochs=2)
+        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False):

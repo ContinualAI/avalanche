@@ -273,8 +273,48 @@ class StreamAccuracy(AccuracyPluginMetric):
         return "Top1_Acc_Stream"
 
 
-def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                     experience=False, stream=False) -> List[PluginMetric]:
+class TrainedExperienceAccuracy(AccuracyPluginMetric):
+    """
+    At the end of each experience, this plugin metric reports the average
+    accuracy for only the experiences that the model has been trained on so far.
+
+    This metric only works at eval time.
+    """
+
+    def __init__(self):
+        """
+        Creates an instance of TrainedExperienceAccuracy metric by first 
+        constructing AccuracyPluginMetric
+        """
+        super(TrainedExperienceAccuracy, self).__init__(
+            reset_at='stream', emit_at='stream', mode='eval')
+        self._current_experience = 0
+
+    def after_training_exp(self, strategy) -> None:
+        self._current_experience = strategy.experience.current_experience
+        # Reset average after learning from a new experience 
+        AccuracyPluginMetric.reset(self, strategy)
+        return AccuracyPluginMetric.after_training_exp(self, strategy)
+        
+    def update(self, strategy):
+        """
+        Only update the accuracy with results from experiences that have been 
+        trained on
+        """
+        if strategy.experience.current_experience <= self._current_experience:
+            AccuracyPluginMetric.update(self, strategy)
+
+    def __str__(self):
+        return "Accuracy_On_Trained_Experiences"
+
+
+def accuracy_metrics(*, 
+                     minibatch=False,
+                     epoch=False,
+                     epoch_running=False,
+                     experience=False,
+                     stream=False,
+                     trained_experience=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -289,6 +329,9 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
         the accuracy on each evaluation experience.
     :param stream: If True, will return a metric able to log
         the accuracy averaged over the entire evaluation stream of experiences.
+    :param trained_experience: If True, will return a metric able to log
+        the average evaluation accuracy only for experiences that the
+        model has been trained on         
 
     :return: A list of plugin metrics.
     """
@@ -309,6 +352,9 @@ def accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
     if stream:
         metrics.append(StreamAccuracy())
 
+    if trained_experience:
+        metrics.append(TrainedExperienceAccuracy())
+
     return metrics
 
 
@@ -319,5 +365,6 @@ __all__ = [
     'RunningEpochAccuracy',
     'ExperienceAccuracy',
     'StreamAccuracy',
+    'TrainedExperienceAccuracy',
     'accuracy_metrics'
 ]
