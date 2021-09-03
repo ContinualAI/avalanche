@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from avalanche.models.dynamic_modules import MultiTaskModule, \
-MultiHeadClassifier
+                                             MultiHeadClassifier
 
 
 class MultiTaskDecorator(MultiTaskModule):
@@ -34,15 +34,15 @@ class MultiTaskDecorator(MultiTaskModule):
         if isinstance(old_classifier, nn.Linear):
             in_size = old_classifier.in_features 
             out_size = old_classifier.out_features 
-            old_params = [torch.clone(p.data) for p in \
-            old_classifier.parameters()]
+            old_params = [torch.clone(p.data) for p in 
+                          old_classifier.parameters()]
             # Replace old classifier by empty block
             setattr(self.model, classifier_name, nn.Sequential())
         elif isinstance(old_classifier, nn.Sequential):
             in_size = old_classifier[-1].in_features 
             out_size = old_classifier[-1].out_features 
-            old_params = [torch.clone(p.data) for p in \
-            old_classifier[-1].parameters()]
+            old_params = [torch.clone(p.data) for p in 
+                          old_classifier[-1].parameters()]
             del old_classifier[-1]
         else:
             raise NotImplementedError(f"Cannot handle the following type \
@@ -52,7 +52,7 @@ class MultiTaskDecorator(MultiTaskModule):
         setattr(self, classifier_name, MultiHeadClassifier(in_size, out_size))
 
         for param, param_old in \
-        zip(getattr(self, classifier_name).parameters(), old_params):
+                zip(getattr(self, classifier_name).parameters(), old_params):
             param.data = param_old
 
         self._initialized = True
@@ -60,7 +60,7 @@ class MultiTaskDecorator(MultiTaskModule):
     def forward_single_task(self, x: torch.Tensor, task_label: int):  
         out = self.model(x)
         return getattr(self, self.classifier_name)(out.view(out.size(0), -1), 
-        task_labels=task_label)
+                                                   task_labels=task_label)
 
     def __getattr__(self, name):
         # Override pytorch impl from nn.Module

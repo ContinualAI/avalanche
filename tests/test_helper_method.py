@@ -6,7 +6,7 @@ import unittest
 import copy
 
 from avalanche.models.dynamic_modules import MultiTaskModule, \
-MultiHeadClassifier
+                                             MultiHeadClassifier
 from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
 from avalanche.training.strategies import Naive
 
@@ -20,13 +20,13 @@ class ConversionMethodTests(unittest.TestCase):
 
     def test_modules(self):
         modules = [(SimpleMLP(input_size=32*32*3), 'classifier'),
-        (SimpleCNN(), 'classifier')]
+                   (SimpleCNN(), 'classifier')]
         for m in modules: 
             self._test_modules(*m)
 
     def test_outputs(self):
         modules = [(SimpleMLP(input_size=32*32*3), 'classifier'),
-        (SimpleCNN(), 'classifier')]
+                   (SimpleCNN(), 'classifier')]
         for m in modules: 
             self._test_outputs(*m)
 
@@ -41,13 +41,13 @@ class ConversionMethodTests(unittest.TestCase):
         old_classifier_bias = torch.clone(module.classifier.bias)
         module = as_multitask(module, 'classifier')
         new_classifier_weight = \
-        torch.clone(module.classifier.classifiers['0'].classifier.weight)
+            torch.clone(module.classifier.classifiers['0'].classifier.weight)
         new_classifier_bias = \
-        torch.clone(module.classifier.classifiers['0'].classifier.bias)
+            torch.clone(module.classifier.classifiers['0'].classifier.bias)
         self.assertTrue(torch.equal(old_classifier_weight, 
-        new_classifier_weight))
+                        new_classifier_weight))
         self.assertTrue(torch.equal(old_classifier_bias, 
-        new_classifier_bias))
+                        new_classifier_bias))
 
     def _test_outputs(self, module, clf_name):
         test_input = torch.rand(10, 3, 32, 32)
@@ -61,7 +61,7 @@ class ConversionMethodTests(unittest.TestCase):
         out_single_task = module_singletask(test_input)
         out_multi_task = module_multitask(test_input, task_labels=0)
         self.assertTrue(torch.equal(out_single_task, 
-        out_multi_task))
+                        out_multi_task))
 
     def _test_modules(self, module, clf_name):
         old_param_total = sum([torch.numel(p) for p in module.parameters()])
@@ -103,13 +103,11 @@ class ConversionMethodTests(unittest.TestCase):
     def _test_integration(self, module, clf_name):
         module = as_multitask(module, clf_name)
         optimizer = SGD(module.parameters(), lr=0.05, 
-        momentum=0.9, weight_decay=0.0002)
+                        momentum=0.9, weight_decay=0.0002)
         
         strategy = Naive(module, optimizer, 
-        train_mb_size=32, eval_mb_size=32, device='cpu')
+                         train_mb_size=32, eval_mb_size=32, device='cpu')
 
         for t, experience in enumerate(self.benchmark.train_stream):
             strategy.train(experience)
             strategy.eval(self.benchmark.test_stream[:t+1])
-
-
