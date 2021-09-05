@@ -87,8 +87,8 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             strategy.model, self.ewc_data, self.syn_data,
             self.excluded_parameters)
 
-    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
-        super().after_backward(strategy, **kwargs)
+    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
+        super().before_backward(strategy, **kwargs)
         syn_loss = SynapticIntelligencePlugin.compute_ewc_loss(
             strategy.model, self.ewc_data, self.excluded_parameters,
             lambd=self.si_lambda, device=self.device(strategy))
