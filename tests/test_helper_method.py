@@ -10,13 +10,14 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
 from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
 from avalanche.training.strategies import Naive
 
-from tests.unit_tests_utils import common_setups, get_fast_benchmark
+from tests.unit_tests_utils import common_setups, get_fast_benchmark, get_device
 
 
 class ConversionMethodTests(unittest.TestCase):
     def setUp(self):
         common_setups()
         self.benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        self.device = get_device()
 
     def test_modules(self):
         modules = [(SimpleMLP(input_size=32*32*3), 'classifier'),
@@ -37,9 +38,11 @@ class ConversionMethodTests(unittest.TestCase):
 
     def test_initialisation(self):
         module = SimpleMLP()
+        module = module.to(self.device)
         old_classifier_weight = torch.clone(module.classifier.weight)
         old_classifier_bias = torch.clone(module.classifier.bias)
         module = as_multitask(module, 'classifier')
+        module = module.to(self.device)
         new_classifier_weight = \
             torch.clone(module.classifier.classifiers['0'].classifier.weight)
         new_classifier_bias = \
@@ -51,8 +54,11 @@ class ConversionMethodTests(unittest.TestCase):
 
     def _test_outputs(self, module, clf_name):
         test_input = torch.rand(10, 3, 32, 32)
+        test_input = test_input.to(self.device)
         module_singletask = copy.deepcopy(module)
         module_multitask = as_multitask(module, clf_name)
+        module_multitask = module_multitask.to(self.device)
+        module_singletask = module_singletask.to(self.device)
 
         # Put in eval mode to deactivate dropouts
         module_singletask.eval()
@@ -67,11 +73,15 @@ class ConversionMethodTests(unittest.TestCase):
         old_param_total = sum([torch.numel(p) for p in module.parameters()])
 
         module = as_multitask(module, clf_name)
+        module = module.to(self.device)
         self.assertIsInstance(module, MultiTaskModule)
         self.assertIsInstance(getattr(module, clf_name), MultiHeadClassifier)
     
         test_input = torch.ones(5, 3, 32, 32)
         task_labels = torch.zeros(5, dtype=torch.long)
+
+        test_input = test_input.to(self.device)
+        task_labels = task_labels.to(self.device)
     
         # One task label
         output = module(test_input, task_labels=0)
@@ -102,11 +112,13 @@ class ConversionMethodTests(unittest.TestCase):
 
     def _test_integration(self, module, clf_name):
         module = as_multitask(module, clf_name)
+        module = module.to(self.device)
         optimizer = SGD(module.parameters(), lr=0.05, 
                         momentum=0.9, weight_decay=0.0002)
         
         strategy = Naive(module, optimizer, 
-                         train_mb_size=32, eval_mb_size=32, device='cpu')
+                         train_mb_size=32, eval_mb_size=32, 
+                         device=self.device)
 
         for t, experience in enumerate(self.benchmark.train_stream):
             strategy.train(experience)
