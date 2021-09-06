@@ -107,8 +107,9 @@ class ConversionMethodTests(unittest.TestCase):
         module = module.eval()
         self.assertIsInstance(module, MultiTaskModule)
         self.assertFalse(module.training)
-        module = module.cuda()
-        self.assertIsInstance(module, MultiTaskModule)
+        if self.device == 'cuda':
+            module = module.cuda()
+            self.assertIsInstance(module, MultiTaskModule)
 
     def _test_integration(self, module, clf_name):
         module = as_multitask(module, clf_name)
