@@ -22,7 +22,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin, \
     LwFPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, LwF, AGEM, GEM, EWC, \
+    GDumb, LwF, AGEM, GEM, EWC, LFL, \
     SynapticIntelligence, JointTraining, CoPE, StreamingLDA, BaseStrategy
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.training.strategies.joint_training import AlreadyTrainedError
@@ -429,6 +429,22 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2, eval_mb_size=50,
             device=self.device,)
 
+        self.run_strategy(benchmark, strategy)
+
+    def test_lfl(self):
+
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = LFL(model, optimizer, criterion, lambda_e=0.0001,
+                       train_mb_size=10, device=self.device,
+                       eval_mb_size=50, train_epochs=2)
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = LFL(model, optimizer, criterion, lambda_e=0.0001,
+                       train_mb_size=10, device=self.device,
+                       eval_mb_size=50, train_epochs=2)
+        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False):

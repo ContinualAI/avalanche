@@ -11,3 +11,4 @@ from .strategy_plugin import StrategyPlugin
 from .synaptic_intelligence import SynapticIntelligencePlugin
 from .gss_greedy import GSS_greedyPlugin
 from .cope import CoPEPlugin, PPPloss
+from .lfl import LFLPlugin
