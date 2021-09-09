@@ -38,8 +38,10 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         decides how to show the metric value.
 
         :param name: str, metric name
-        :param value: the metric value, will be ignored if not supported by the logger
-        :param x_plot: an integer representing the x value associated to the metric value
+        :param value: the metric value, will be ignored if
+            not supported by the logger
+        :param x_plot: an integer representing the x value
+            associated to the metric value
         """
         pass
 
