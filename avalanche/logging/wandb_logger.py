@@ -106,11 +106,7 @@ class WandBLogger(StrategyLogger):
             self.wandb.init()
         self.wandb.run._label(repo="Avalanche")
 
-    def log_metric(self, metric_value: MetricValue, callback: str):
-        super().log_metric(metric_value, callback)
-        name = metric_value.name
-        value = metric_value.value
-
+    def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
@@ -120,19 +116,19 @@ class WandBLogger(StrategyLogger):
                                   self.wandb.viz.CustomChart)):
             # Unsupported type
             return
-        
+
         if isinstance(value, Image):
             self.wandb.log({name: self.wandb.Image(value)})
-        
+
         elif isinstance(value, Tensor):
             value = np.histogram(value.view(-1).numpy())
             self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
-        
+
         elif isinstance(value, (float, int, Figure,
                                 self.wandb.viz.CustomChart)):
             self.wandb.log({name: value})
 
-        elif isinstance(value, TensorImage):	
+        elif isinstance(value, TensorImage):
             self.wandb.log({name: self.wandb.Image(array(value))})
 
         elif name.startswith("WeightCheckpoint"):

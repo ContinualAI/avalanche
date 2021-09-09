@@ -59,11 +59,8 @@ class TextLogger(StrategyLogger):
         self.file = file
         self.metric_vals = {}
 
-    def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
-        name = metric_value.name
-        x = metric_value.x_plot
-        val = metric_value.value
-        self.metric_vals[name] = (name, x, val)
+    def log_single_metric(self, name, value, x_plot) -> None:
+        self.metric_vals[name] = (name, x_plot, value)
 
     def _val_to_str(self, m_val):
         if isinstance(m_val, torch.Tensor):
