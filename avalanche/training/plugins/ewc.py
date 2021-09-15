@@ -117,11 +117,12 @@ class EWCPlugin(StrategyPlugin):
         if device == 'cuda':
             for module in model.modules():
                 if isinstance(module, torch.nn.RNNBase):
-                    warnings.warn('RNN-like modules do not support ' \
-                    'backward calls while in `eval` mode on CUDA ' \
-                    'devices. Setting all `RNNBase` modules to ' \
-                    '`train` mode. May produce inconsistent ' \
-                    'output if such modules have `dropout` > 0.'
+                    warnings.warn(
+                        'RNN-like modules do not support '
+                        'backward calls while in `eval` mode on CUDA '
+                        'devices. Setting all `RNNBase` modules to '
+                        '`train` mode. May produce inconsistent '
+                        'output if such modules have `dropout` > 0.'
                     )
                     module.train()
 
