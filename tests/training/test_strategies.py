@@ -460,13 +460,13 @@ class StrategyTest(unittest.TestCase):
     def get_model(self, fast_test=False):
         if fast_test:
             model = SimpleMLP(input_size=6, hidden_size=10)
-            model.classifier = IncrementalClassifier(
-                model.classifier.in_features)
+            # model.classifier = IncrementalClassifier(
+            #     model.classifier.in_features)
             return model
         else:
             model = SimpleMLP()
-            model.classifier = IncrementalClassifier(
-                model.classifier.in_features)
+            # model.classifier = IncrementalClassifier(
+            #     model.classifier.in_features)
             return model
 
     def run_strategy(self, benchmark, cl_strategy):
