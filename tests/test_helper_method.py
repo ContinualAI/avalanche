@@ -9,6 +9,7 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
                                              MultiHeadClassifier
 from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
 from avalanche.training.strategies import Naive
+from avalanche.training.plugins import LwFPlugin, EWCPlugin
 
 from tests.unit_tests_utils import common_setups, get_fast_benchmark, get_device
 
@@ -33,8 +34,12 @@ class ConversionMethodTests(unittest.TestCase):
 
     def test_integration(self):
         modules = [(SimpleMLP(input_size=6), 'classifier')]
-        for m in modules: 
-            self._test_integration(*m)
+        for m, name in modules: 
+            self._test_integration(copy.deepcopy(m), name)
+            self._test_integration(copy.deepcopy(m), name, 
+                                   plugins=[LwFPlugin()])
+            self._test_integration(copy.deepcopy(m), name, 
+                                   plugins=[EWCPlugin(0.5)])
 
     def test_initialisation(self):
         module = SimpleMLP()
@@ -111,7 +116,7 @@ class ConversionMethodTests(unittest.TestCase):
             module = module.cuda()
             self.assertIsInstance(module, MultiTaskModule)
 
-    def _test_integration(self, module, clf_name):
+    def _test_integration(self, module, clf_name, plugins=[]):
         module = as_multitask(module, clf_name)
         module = module.to(self.device)
         optimizer = SGD(module.parameters(), lr=0.05, 
@@ -119,7 +124,8 @@ class ConversionMethodTests(unittest.TestCase):
         
         strategy = Naive(module, optimizer, 
                          train_mb_size=32, eval_mb_size=32, 
-                         device=self.device)
+                         device=self.device,
+                         plugins=plugins)
 
         for t, experience in enumerate(self.benchmark.train_stream):
             strategy.train(experience)
