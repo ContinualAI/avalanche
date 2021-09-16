@@ -18,7 +18,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss, Linear
 
 from avalanche.logging import TextLogger
-from avalanche.models import SimpleMLP
+from avalanche.models import SimpleMLP, IncrementalClassifier
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin, \
     LwFPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
@@ -37,6 +37,7 @@ from tests.unit_tests_utils import get_fast_benchmark, get_device
 class BaseStrategyTest(unittest.TestCase):
     def test_periodic_eval(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
+        model.classifier = IncrementalClassifier(model.classifier.in_features)
         benchmark = get_fast_benchmark()
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
@@ -458,9 +459,15 @@ class StrategyTest(unittest.TestCase):
 
     def get_model(self, fast_test=False):
         if fast_test:
-            return SimpleMLP(input_size=6, hidden_size=10)
+            model = SimpleMLP(input_size=6, hidden_size=10)
+            # model.classifier = IncrementalClassifier(
+            #     model.classifier.in_features)
+            return model
         else:
-            return SimpleMLP()
+            model = SimpleMLP()
+            # model.classifier = IncrementalClassifier(
+            #     model.classifier.in_features)
+            return model
 
     def run_strategy(self, benchmark, cl_strategy):
         print('Starting experiment...')
