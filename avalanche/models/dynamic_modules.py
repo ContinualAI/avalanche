@@ -77,7 +77,7 @@ class DynamicModule(Module):
         pass
 
 
-class MultiTaskModule(Module):
+class MultiTaskModule(DynamicModule):
     """
         Multi-task modules are `torch.nn.Modules`s for multi-task
         scenarios. The `forward` method accepts task labels, one for
@@ -86,7 +86,23 @@ class MultiTaskModule(Module):
         By default the `forward` method splits the mini-batch by task
         and calls `forward_single_task`. Subclasses must implement
         `forward_single_task` or override `forward.
+
+        if `task_labels == None`, the output is computed in parallel
+        for each task.
     """
+    def __init__(self):
+        super().__init__()
+        self.known_train_tasks_labels = set()
+        """ Set of task labels encountered up to now. """
+
+    def train_adaptation(self, dataset: AvalancheDataset = None):
+        """ Update known task labels. """
+        task_labels = dataset.targets_task_labels
+        if isinstance(task_labels, ConstantSequence):
+            # task label is unique. Don't check duplicates.
+            task_labels = [task_labels[0]]
+        self.known_train_tasks_labels = \
+            self.known_train_tasks_labels.union(set(task_labels))
 
     def forward(self, x: torch.Tensor, task_labels: torch.Tensor)\
             -> torch.Tensor:
@@ -132,13 +148,17 @@ class MultiTaskModule(Module):
 
     def forward_all_tasks(self, x: torch.Tensor):
         """ compute the output given the input `x` and task label.
+        By default, it considers only tasks seen at training time.
 
         :param x:
         :return: all the possible outputs are returned as a dictionary
             with task IDs as keys and the output of the corresponding
             task as output.
         """
-        raise NotImplementedError()
+        res = {}
+        for task_id in self.known_train_tasks_labels:
+            res[task_id] = self.forward_single_task(x, task_id)
+        return res
 
 
 class IncrementalClassifier(DynamicModule):
@@ -185,7 +205,7 @@ class IncrementalClassifier(DynamicModule):
         return self.classifier(x)
 
 
-class MultiHeadClassifier(MultiTaskModule, DynamicModule):
+class MultiHeadClassifier(MultiTaskModule):
     def __init__(self, in_features, initial_out_features=2):
         """ Multi-head classifier with separate heads for each task.
 
@@ -229,6 +249,7 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
         :param dataset: data from the current experience.
         :return:
         """
+        super().adaptation(dataset)
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -251,12 +272,6 @@ class MultiHeadClassifier(MultiTaskModule, DynamicModule):
         :return:
         """
         return self.classifiers[str(task_label)](x)
-
-    def forward_all_tasks(self, x: torch.Tensor):
-        res = {}
-        for task_id in self.classifiers:
-            res[task_id] = self.classifiers[task_id](x)
-        return res
 
 
 class TrainEvalModel(DynamicModule):

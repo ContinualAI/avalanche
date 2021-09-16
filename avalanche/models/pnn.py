@@ -107,7 +107,7 @@ class PNNColumn(nn.Module):
         return hs
 
 
-class PNNLayer(MultiTaskModule, DynamicModule):
+class PNNLayer(MultiTaskModule):
     def __init__(self, in_features, out_features_per_column, adapter='mlp'):
         """ Progressive Neural Network layer.
 
@@ -143,6 +143,7 @@ class PNNLayer(MultiTaskModule, DynamicModule):
         :param dataset:
         :return:
         """
+        super().train_adaptation(dataset)
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
