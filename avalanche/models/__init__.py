@@ -17,3 +17,4 @@ from .slda_resnet import SLDAResNetModel
 from .icarl_resnet import *
 from .ncm_classifier import NCMClassifier
 from .base_model import BaseModel
+from .helper_method import as_multitask
