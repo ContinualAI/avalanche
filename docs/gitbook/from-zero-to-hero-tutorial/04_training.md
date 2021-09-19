@@ -34,7 +34,7 @@ Most strategies require only 3 mandatory arguments:
 - **optimizer**: `torch.optim.Optimizer` already initialized on your `model`.
 - **loss**: a loss function such as those in `torch.nn.functional`.
 
-Additional arguments are optional and allow you to customize training (batch size, epochs, ...) or strategy-specific parameters (buffer size, regularization strenght, ...).
+Additional arguments are optional and allow you to customize training (batch size, epochs, ...) or strategy-specific parameters (buffer size, regularization strength, ...).
 
 
 ```python
