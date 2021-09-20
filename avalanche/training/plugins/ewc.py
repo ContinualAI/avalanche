@@ -40,7 +40,10 @@ class EWCPlugin(StrategyPlugin):
         """
 
         super().__init__()
-
+        assert (decay_factor is None) or (mode == 'online'), \
+            "You need to set `online` mode to use `decay_factor`."
+        assert (decay_factor is not None) or (mode != 'online'), \
+            "You need to set `decay_factor` to use the `online` mode."
         assert mode == 'separate' or mode == 'online', \
             'Mode must be separate or online.'
 
