@@ -8,13 +8,13 @@ description: All the People that Made Avalanche Great
 
 ## 🗂️ Maintainers
 
-The Project is maintained mostly by [ContinualAI Research](https://www.continualai.org/research) members, with the core mission of supporting the production, organization and dissemination of original research on CL with **technical research**, **open source projects** and **tools** that can make the life of a CL researcher easier.
+The Project is maintained mostly by [ContinualAI Lab](https://www.continualai.org/lab/) members, with the core mission of supporting the production, organization and dissemination of original research on CL with **technical research**, **open source projects** and **tools** that can make the life of a CL researcher easier.
 
-* [**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com/) \(Lead Maintainer\)
-* [**Lorenzo Pellegrini** ](https://www.unibo.it/sitoweb/l.pellegrini)\(Lead for the _Benchmarks_ module\)
-* [**Andrea Cossu**](https://andreacossu.github.io/) **\(**Lead for the _Evaluation_ module\)
-* [**Gabriele Graffieti**](https://www.unibo.it/sitoweb/gabriele.graffieti/en) \(Lead for _Automation & Tests_\)
-* [**Antonio Carta**](http://pages.di.unipi.it/carta/) \(Lead for the _Training_ module\)
+* [**Antonio Carta**](http://pages.di.unipi.it/carta/) \(Lead Mantainer\)
+* [**Lorenzo Pellegrini** ](https://www.unibo.it/sitoweb/l.pellegrini)\(Mantainer\)
+* [**Andrea Cossu**](https://andreacossu.github.io/) **\(**Mantainer\)
+* [**Gabriele Graffieti**](https://www.unibo.it/sitoweb/gabriele.graffieti/en) \(Mantainer\)
+* [**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com/) \(Project Manager\)
 
 ## 🔨 Contributors
 
