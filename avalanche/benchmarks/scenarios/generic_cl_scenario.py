@@ -644,14 +644,10 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
                ']'
 
     def _get_single_exp_classes(self, exp_id):
-        # defaultdict structure may produce unbounded iterator
-        # check if the experience is present in the stream, otherwise
-        # raise error to stop iterator
-        if exp_id not in self._benchmark.stream_definitions[self._stream].\
-                exps_data.targets_field_sequence:
+        b = self._benchmark.stream_definitions[self._stream]
+        if not b.is_lazy and exp_id not in b.exps_data.targets_field_sequence:
             raise IndexError
-        targets = self._benchmark.stream_definitions[
-            self._stream].exps_data.targets_field_sequence[exp_id]
+        targets = b.exps_data.targets_field_sequence[exp_id]
         if targets is None:
             return None
         return set(targets)
