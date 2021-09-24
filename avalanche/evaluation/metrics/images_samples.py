@@ -84,7 +84,7 @@ class ImagesSamplePlugin(PluginMetric):
                         list(self.images), normalize=False, nrow=self.n_cols
                     )
                 ),
-                x_plot=self.get_global_counter(),
+                x_plot=strategy.clock.train_iterations,
             )
         ]
 

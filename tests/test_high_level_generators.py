@@ -11,6 +11,7 @@ from torchvision.transforms import ToTensor
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
     tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
     benchmark_with_validation_stream
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_lazy_generic_benchmark, LazyStreamDefinition
 from avalanche.benchmarks.utils import AvalancheDataset, \
@@ -24,20 +25,17 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark(self):
         train_MNIST = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
-            train=True, download=True
-        )
+            root=default_dataset_location('mnist'),
+            train=True, download=True)
         test_MNIST = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
-            train=False, download=True
-        )
+            root=default_dataset_location('mnist'),
+            train=False, download=True)
 
         train_cifar10 = CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
-            train=True, download=True
-        )
+            root=default_dataset_location('cifar10'),
+            train=True, download=True)
         test_cifar10 = CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=False, download=True
         )
 
@@ -47,22 +45,22 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = AvalancheDataset(MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location('mnist'),
             train=True, download=True
         ), task_labels=0)
 
         test_MNIST = AvalancheDataset(MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location('mnist'),
             train=False, download=True
         ), task_labels=0)
 
         train_cifar10 = AvalancheDataset(CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=True, download=True
         ), task_labels=1)
 
         test_cifar10 = AvalancheDataset(CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=False, download=True
         ), task_labels=1)
 

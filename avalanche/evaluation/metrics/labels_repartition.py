@@ -150,7 +150,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 )
                 if self.image_creator is not None
                 else label2counts,
-                x_plot=self.get_global_counter(),
+                x_plot=strategy.clock.train_iterations,
             )
             for task, label2counts in self.task2label2counts.items()
         ]

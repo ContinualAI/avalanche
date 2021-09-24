@@ -34,6 +34,8 @@ from avalanche.training.plugins import EvaluationPlugin
 #    STANDALONE METRIC TEST     #
 #################################
 #################################
+from tests.unit_tests_utils import UPDATE_METRICS
+
 
 class GeneralMetricTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -280,13 +282,15 @@ class PluginMetricTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # # Uncomment me to regenerate the reference metrics. Make sure
-        # # the old tests were passing for all unchanged metrics
-        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-        #                        'target_metrics',
-        #                        'sit.pickle'), 'wb') as f:
-        #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=4)
+        # Set the environment variable UPDATE_METRICS to True to update
+        # the pickle file with target values.
+        # Make sure the old tests were passing for all unchanged metrics
+        if UPDATE_METRICS:
+            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                                   'target_metrics',
+                                   'sit.pickle'), 'wb') as f:
+                pickle.dump(dict(cls.all_metrics), f,
+                            protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'sit.pickle'), 'rb') as f:
@@ -299,7 +303,7 @@ class PluginMetricTests(unittest.TestCase):
             self.assertEqual(k, kref)
             init = -1
             for el in v[0]:
-                self.assertTrue(el > init)
+                self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
                 self.assertEqual(el, elref)
@@ -404,13 +408,15 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # # Uncomment me to regenerate the reference metrics. Make sure
-        # # the old tests were passing for all unchanged metrics
-        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-        #                        'target_metrics',
-        #                        'mt.pickle'), 'wb') as f:
-        #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=4)
+        # Set the environment variable UPDATE_METRICS to True to update
+        # the pickle file with target values.
+        # Make sure the old tests were passing for all unchanged metrics
+        if UPDATE_METRICS:
+            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                                   'target_metrics',
+                                   'mt.pickle'), 'wb') as f:
+                pickle.dump(dict(cls.all_metrics), f,
+                            protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'mt.pickle'), 'rb') as f:
@@ -422,8 +428,8 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
             self.assertEqual(k, kref)
             init = -1
-            for el in v[0]:
-                self.assertTrue(el > init)
+            for el in v[0]:  # x-values must always increase.
+                self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
                 self.assertEqual(el, elref)
@@ -538,13 +544,15 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
-        # # Uncomment me to regenerate the reference metrics. Make sure
-        # # the old tests were passing for all unchanged metrics
-        # with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-        #                        'target_metrics',
-        #                        'tpp.pickle'), 'wb') as f:
-        #     pickle.dump(dict(cls.all_metrics), f,
-        #                 protocol=4)
+        # Set the environment variable UPDATE_METRICS to True to update
+        # the pickle file with target values.
+        # Make sure the old tests were passing for all unchanged metrics
+        if UPDATE_METRICS:
+            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
+                                   'target_metrics',
+                                   'tpp.pickle'), 'wb') as f:
+                pickle.dump(dict(cls.all_metrics), f,
+                            protocol=4)
         with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
                                'target_metrics',
                                'tpp.pickle'), 'rb') as f:
@@ -557,7 +565,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             self.assertEqual(k, kref)
             init = -1
             for el in v[0]:
-                self.assertTrue(el > init)
+                self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
                 self.assertEqual(el, elref)
