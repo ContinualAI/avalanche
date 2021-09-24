@@ -86,7 +86,7 @@ class CSVLogger(StrategyLogger):
         print('eval_exp', 'training_exp', 'eval_accuracy', 'eval_loss',
               'forgetting', sep=',', file=self.eval_file, flush=True)
 
-    def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
+    def log_single_metric(self, name, value, x_plot) -> None:
         pass
 
     def _val_to_str(self, m_val):

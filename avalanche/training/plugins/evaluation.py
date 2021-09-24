@@ -107,7 +107,7 @@ class EvaluationPlugin(StrategyPlugin):
         self.last_metric_results = {}
 
         self._active = True
-        """If True, no metrics will be collected."""
+        """If False, no metrics will be collected."""
 
     @property
     def active(self):

@@ -64,34 +64,30 @@ class TensorboardLogger(StrategyLogger):
     def __del__(self):
         self.writer.close()
 
-    def log_metric(self, metric_value: MetricValue, callback: str):
-        super().log_metric(metric_value, callback)
-        name = metric_value.name
-        value = metric_value.value
-
+    def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int)
 
         if isinstance(value, Figure):
             self.writer.add_figure(name, value,
-                                   global_step=metric_value.x_plot)
+                                   global_step=x_plot)
 
         elif isinstance(value, Image):
             self.writer.add_image(name, to_tensor(value),
-                                  global_step=metric_value.x_plot)
+                                  global_step=x_plot)
 
         elif isinstance(value, Tensor):
             self.writer.add_histogram(name, value,
-                                      global_step=metric_value.x_plot)
+                                      global_step=x_plot)
 
         elif isinstance(value, (float, int)):
             self.writer.add_scalar(name, value,
-                                   global_step=metric_value.x_plot)
+                                   global_step=x_plot)
 
         elif isinstance(value, TensorImage):
             self.writer.add_image(name, value.image,
-                                  global_step=metric_value.x_plot)
+                                  global_step=x_plot)
 
 
 def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:

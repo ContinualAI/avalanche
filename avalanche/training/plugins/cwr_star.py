@@ -75,6 +75,7 @@ class CWRStarPlugin(StrategyPlugin):
                         self.model.saved_weights[c] = \
                             (self.model.saved_weights[c] * wpast_j + new_w) / \
                             (wpast_j + 1)
+                        self.model.past_j[c] += self.model.cur_j[c]
                     else:
                         self.model.saved_weights[c] = new_w
 
