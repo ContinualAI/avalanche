@@ -182,9 +182,9 @@ class PluginTests(unittest.TestCase):
                 self.expected_lrs = expected_lrs
 
             def after_training_epoch(self, strategy, **kwargs):
-                exp_id = strategy.training_exp_counter
-
-                expected_lr = self.expected_lrs[exp_id][strategy.epoch]
+                exp_id = strategy.clock.train_exp_counter
+                curr_epoch = strategy.clock.train_exp_epochs
+                expected_lr = self.expected_lrs[exp_id][curr_epoch]
                 for group in strategy.optimizer.param_groups:
                     assert group['lr'] == expected_lr
 

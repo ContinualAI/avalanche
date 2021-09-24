@@ -138,7 +138,7 @@ class AR1(BaseStrategy):
         self.model.end_features.train()
         self.model.output.train()
 
-        if self.training_exp_counter > 0:
+        if self.clock.train_exp_counter > 0:
             # In AR1 batch 0 is treated differently as the feature extractor is
             # left more free to learn.
             # This if is executed for batch > 0, in which we freeze layers
@@ -166,7 +166,7 @@ class AR1(BaseStrategy):
         super().before_training_exp(**kwargs)
 
         # Update cur_j of CWR* to consider latent patterns
-        if self.training_exp_counter > 0:
+        if self.clock.train_exp_counter > 0:
             for class_id, count in examples_per_class(self.rm[1]).items():
                 self.model.cur_j[class_id] += count
             self.cwr_plugin.cur_class = [
@@ -198,7 +198,7 @@ class AR1(BaseStrategy):
 
         current_batch_mb_size = self.train_mb_size
 
-        if self.training_exp_counter > 0:
+        if self.clock.train_exp_counter > 0:
             train_patterns = len(self.adapted_dataset)
             current_batch_mb_size = train_patterns // (
                     (train_patterns + self.rm_sz) // self.train_mb_size)
@@ -212,17 +212,17 @@ class AR1(BaseStrategy):
             batch_size=current_batch_mb_size, shuffle=shuffle)
 
     def training_epoch(self, **kwargs):
-        for self.mb_it, self.mbatch in \
+        for mb_it, self.mbatch in \
                 enumerate(self.dataloader):
             self.before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            if self.training_exp_counter > 0:
-                lat_mb_x = self.rm[0][self.mb_it * self.replay_mb_size:
-                                      (self.mb_it + 1) * self.replay_mb_size]
+            if self.clock.train_exp_counter > 0:
+                lat_mb_x = self.rm[0][mb_it * self.replay_mb_size:
+                                      (mb_it + 1) * self.replay_mb_size]
                 lat_mb_x = lat_mb_x.to(self.device)
-                lat_mb_y = self.rm[1][self.mb_it * self.replay_mb_size:
-                                      (self.mb_it + 1) * self.replay_mb_size]
+                lat_mb_y = self.rm[1][mb_it * self.replay_mb_size:
+                                      (mb_it + 1) * self.replay_mb_size]
                 lat_mb_y = lat_mb_y.to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
             else:
@@ -239,7 +239,7 @@ class AR1(BaseStrategy):
                 # On the first epoch only: store latent activations. Those
                 # activations will be used to update the replay buffer.
                 lat_acts = lat_acts.detach().clone().cpu()
-                if self.mb_it == 0:
+                if mb_it == 0:
                     self.cur_acts = lat_acts
                 else:
                     self.cur_acts = torch.cat((self.cur_acts, lat_acts), 0)
@@ -261,7 +261,7 @@ class AR1(BaseStrategy):
             self.after_training_iteration(**kwargs)
 
     def after_training_exp(self, **kwargs):
-        h = min(self.rm_sz // (self.training_exp_counter + 1),
+        h = min(self.rm_sz // (self.clock.train_exp_counter + 1),
                 self.cur_acts.size(0))
 
         curr_data = self.experience.dataset
@@ -272,7 +272,7 @@ class AR1(BaseStrategy):
         rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 
         # replace patterns in random memory
-        if self.training_exp_counter == 0:
+        if self.clock.train_exp_counter == 0:
             self.rm = rm_add
         else:
             idxs_2_replace = torch.randperm(self.rm[0].size(0))[:h]

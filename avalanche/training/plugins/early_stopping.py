@@ -44,7 +44,7 @@ class EarlyStoppingPlugin(StrategyPlugin):
 
     def before_training_epoch(self, strategy, **kwargs):
         self._update_best(strategy)
-        if strategy.epoch - self.best_epoch >= self.patience:
+        if strategy.clock.train_exp_epochs - self.best_epoch >= self.patience:
             strategy.model.load_state_dict(self.best_state)
             strategy.stop_training()
 
@@ -54,4 +54,4 @@ class EarlyStoppingPlugin(StrategyPlugin):
         if self.best_val is None or self.operator(val_acc, self.best_val):
             self.best_state = deepcopy(strategy.model.state_dict())
             self.best_val = val_acc
-            self.best_epoch = strategy.epoch
+            self.best_epoch = strategy.clock.train_exp_epochs

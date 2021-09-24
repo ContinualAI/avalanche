@@ -99,7 +99,7 @@ class StreamingLDA(BaseStrategy):
         :param kwargs:
         :return:
         """
-        for self.mb_it, self.mbatch in enumerate(self.dataloader):
+        for _, self.mbatch in enumerate(self.dataloader):
             self._unpack_minibatch()
             self.before_training_iteration(**kwargs)
 

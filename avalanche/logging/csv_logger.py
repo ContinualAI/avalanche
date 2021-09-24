@@ -121,7 +121,8 @@ class CSVLogger(StrategyLogger):
                 elif val.name.startswith('Loss_Epoch'):
                     train_loss = val.value
 
-        self.print_train_metrics(self.training_exp_id, strategy.epoch,
+        self.print_train_metrics(self.training_exp_id,
+                                 strategy.clock.train_exp_epochs,
                                  train_acc, self.val_acc, train_loss,
                                  self.val_loss)
 

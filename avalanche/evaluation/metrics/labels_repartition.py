@@ -117,7 +117,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         return super().reset()
 
     def update(self, strategy: "BaseStrategy"):
-        if strategy.epoch and self.emit_reset_at != "epoch":
+        if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
             strategy.mb_task_id.tolist(),

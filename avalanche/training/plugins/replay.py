@@ -146,7 +146,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
         self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
 
     def __call__(self, strategy: "BaseStrategy", **kwargs):
-        num_exps = strategy.training_exp_counter + 1
+        num_exps = strategy.clock.train_exp_counter + 1
         num_exps = num_exps if self.adaptive_size else self.num_experiences
         curr_data = strategy.experience.dataset
 
@@ -156,7 +156,7 @@ class ExperienceBalancedStoragePolicy(StoragePolicy):
 
         self.subsample_all_groups(group_size * (num_exps - 1))
         curr_data = self.subsample_single(curr_data, new_group_size)
-        self.ext_mem[strategy.training_exp_counter + 1] = curr_data
+        self.ext_mem[strategy.clock.train_exp_counter + 1] = curr_data
 
         # buffer size should always equal self.mem_size
         len_tot = sum(len(el) for el in self.ext_mem.values())

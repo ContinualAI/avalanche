@@ -80,7 +80,7 @@ class LwFPlugin(StrategyPlugin):
         """
         Add distillation loss
         """
-        alpha = self.alpha[strategy.training_exp_counter] \
+        alpha = self.alpha[strategy.clock.train_exp_counter] \
             if isinstance(self.alpha, (list, tuple)) else self.alpha
         penalty = self.penalty(strategy.mb_output, strategy.mb_x, alpha,
                                strategy.model)

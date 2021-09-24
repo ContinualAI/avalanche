@@ -156,9 +156,9 @@ Plugins provide a simple solution to define a new strategy by augmenting the beh
 
 Creating a plugin is straightforward. You create a class which inherits from `StrategyPlugin` and implements the callbacks that you need. The exact callback to use depend on your strategy. For example, the following replay plugin uses `after_training_exp` to update the buffer after each training experience, and the `adapt_training_dataset` to concatenate the buffer's data with the current experience:
 
-
 ```python
 from avalanche.training.plugins import StrategyPlugin
+
 
 class ReplayPlugin(StrategyPlugin):
     """
@@ -193,7 +193,7 @@ class ReplayPlugin(StrategyPlugin):
         self.rm_add = None
 
         # how many patterns to save for next iter
-        h = min(self.mem_size // (strategy.training_exp_counter + 1),
+        h = min(self.mem_size // (strategy.train_exp_counter + 1),
                 len(curr_data))
 
         # We recover it using the random_split method and getting rid of the
@@ -202,7 +202,7 @@ class ReplayPlugin(StrategyPlugin):
             curr_data, [h, len(curr_data) - h]
         )
 
-        if strategy.training_exp_counter > 0:
+        if strategy.train_exp_counter > 0:
             # We update the train_dataset concatenating the external memory.
             # We assume the user will shuffle the data when creating the data
             # loader.

@@ -39,10 +39,10 @@ class GEMPlugin(StrategyPlugin):
         experiences.
         """
 
-        if strategy.training_exp_counter > 0:
+        if strategy.clock.train_exp_counter > 0:
             G = []
             strategy.model.train()
-            for t in range(strategy.training_exp_counter):
+            for t in range(strategy.clock.train_exp_counter):
                 strategy.optimizer.zero_grad()
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
@@ -62,7 +62,7 @@ class GEMPlugin(StrategyPlugin):
         Project gradient based on reference gradients
         """
 
-        if strategy.training_exp_counter > 0:
+        if strategy.clock.train_exp_counter > 0:
             g = torch.cat([p.grad.flatten()
                            for p in strategy.model.parameters()
                            if p.grad is not None], dim=0)
@@ -94,7 +94,7 @@ class GEMPlugin(StrategyPlugin):
         """
 
         self.update_memory(strategy.experience.dataset,
-                           strategy.training_exp_counter,
+                           strategy.clock.train_exp_counter,
                            strategy.train_mb_size)
 
     @torch.no_grad()
