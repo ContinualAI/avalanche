@@ -6,7 +6,7 @@ class Clock(StrategyPlugin):
         """ Counter for strategy events. """
         super().__init__()
         # train
-        self.train_total_iterations = 0
+        self.train_iterations = 0
         """ Total number of training iterations. """
 
         self.train_exp_counter = 0
@@ -32,7 +32,7 @@ class Clock(StrategyPlugin):
 
     def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
         self.train_epoch_iterations += 1
-        self.train_total_iterations += 1
+        self.train_iterations += 1
         self.total_iterations += 1
 
     def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):

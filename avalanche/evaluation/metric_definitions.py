@@ -234,7 +234,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
         metric_value = self.result(strategy)
         add_exp = self._emit_at == 'experience'
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         if isinstance(metric_value, dict):
             metrics = []

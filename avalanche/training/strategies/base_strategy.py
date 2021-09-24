@@ -184,21 +184,21 @@ class BaseStrategy:
         self._warn_for_disabled_plugins_callbacks()
         self._warn_for_disabled_metrics_callbacks()
 
-    @deprecated("You should use self.clock.train_exp_counter.")
     @property
+    @deprecated("You should use self.clock.train_exp_counter.")
     def training_exp_counter(self):
         """ Counts the number of training steps. +1 at the end of each
         experience. """
         return self.clock.train_exp_counter
 
-    @deprecated("You should use self.clock.train_exp_epochs.")
     @property
+    @deprecated("You should use self.clock.train_exp_epochs.")
     def epoch(self):
         """ Epoch counter. """
         return self.clock.train_exp_epochs
 
-    @deprecated("You should use self.clock.train_epoch_iterations.")
     @property
+    @deprecated("You should use self.clock.train_epoch_iterations.")
     def mb_it(self):
         """ Iteration counter. Reset at the start of a new epoch. """
         return self.clock.train_epoch_iterations
@@ -463,7 +463,7 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for _, self.mbatch in enumerate(self.dataloader):
+        for self.mbatch in self.dataloader:
             if self._stop_training:
                 break
 
@@ -572,8 +572,7 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
-        for self.mb_it, self.mbatch in \
-                enumerate(self.dataloader):
+        for self.mbatch in self.dataloader:
             self._unpack_minibatch()
             self.before_eval_iteration(**kwargs)
 
