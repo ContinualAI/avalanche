@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 24/07/2021                                                             #
+# Author(s): Antonio Carta                                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
 from avalanche.training.plugins import StrategyPlugin
 
 
