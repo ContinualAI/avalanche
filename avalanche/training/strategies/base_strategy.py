@@ -329,10 +329,11 @@ class BaseStrategy:
             self.adapted_dataset,
             self.dataloader,
             self.is_training)
-
+        
+        curr_epoch = self.clock.train_exp_epochs
         if (self.eval_every == 0 and (do_final or do_initial)) or \
            (self.eval_every > 0 and do_initial) or \
-                (self.eval_every > 0 and self.clock.train_exp_epochs % self.eval_every == 0):
+                (self.eval_every > 0 and curr_epoch % self.eval_every == 0):
             # in the first case we are outside epoch loop
             # in the second case we are within epoch loop
             for exp in eval_streams:

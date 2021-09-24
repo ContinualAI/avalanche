@@ -19,6 +19,7 @@ if 'UPDATE_METRICS' in os.environ:
 
 print(f"UPDATE_METRICS: {UPDATE_METRICS}")
 
+
 def common_setups():
     # adapt_dataset_urls()
     pass
