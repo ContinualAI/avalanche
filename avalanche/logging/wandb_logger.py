@@ -27,7 +27,7 @@ from matplotlib.pyplot import Figure
 
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
-from avalanche.evaluation.metrics_utils import phase_and_task
+from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.logging import StrategyLogger
 
 
