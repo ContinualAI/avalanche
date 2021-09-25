@@ -82,6 +82,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
     def after_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
         model_params = copy.deepcopy(list(strategy.model.parameters()))
         self.update(model_params)
+        return self._package_result(strategy)
 
     def __str__(self):
         return "WeightCheckpoint"
