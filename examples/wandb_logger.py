@@ -17,6 +17,7 @@ WandB Logger
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from avalanche.evaluation.metrics.checkpoint import WeightCheckpoint
 
 from os.path import expanduser
 
@@ -35,7 +36,7 @@ from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, \
     timing_metrics, gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, \
-    MAC_metrics, confusion_matrix_metrics
+    MAC_metrics, confusion_matrix_metrics, WeightCheckpoint
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
@@ -103,6 +104,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
+        WeightCheckpoint(),
         loggers=[interactive_logger, wandb_logger]
     )
 
