@@ -110,9 +110,6 @@ class WandBLogger(StrategyLogger):
 
     def log_single_metric(self, name, value, x_plot):
 
-        print(f"name: {name}")
-        print(f"value: {type(value)}")
-
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
