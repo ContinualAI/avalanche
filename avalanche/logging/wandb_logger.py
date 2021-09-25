@@ -110,31 +110,7 @@ class WandBLogger(StrategyLogger):
 
     def log_single_metric(self, name, value, x_plot):
 
-        if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, Tensor, TensorImage,
-                                               Figure, float, int,
-                                               self.wandb.viz.CustomChart)
-
-        if not isinstance(value, (Image, Tensor, Figure, float, int,
-                                  self.wandb.viz.CustomChart)):
-            # Unsupported type
-            return
-
-        if isinstance(value, Image):
-            self.wandb.log({name: self.wandb.Image(value)})
-
-        elif isinstance(value, Tensor):
-            value = np.histogram(value.view(-1).numpy())
-            self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
-
-        elif isinstance(value, (float, int, Figure,
-                                self.wandb.viz.CustomChart)):
-            self.wandb.log({name: value})
-
-        elif isinstance(value, TensorImage):
-            self.wandb.log({name: self.wandb.Image(array(value))})
-
-        elif name.startswith("WeightCheckpoint"):
+        if name.startswith("WeightCheckpoint"):
             if self.log_artifacts:
                 cwd = os.getcwd()
                 ckpt = os.path.join(cwd, self.path)
@@ -143,24 +119,51 @@ class WandBLogger(StrategyLogger):
                 except OSError as e:
                     if e.errno != errno.EEXIST:
                         raise
-                suffix = '.pth'
-                dir_name = os.path.join(ckpt, name+suffix)
-                artifact_name = os.path.join('Models', name+suffix)
+                ckpt_name = "Model_{}.pth".format(phase_and_task(self.strategy)[1])
+                dir_name = os.path.join(ckpt, ckpt_name)
+                artifact_name = os.path.join('Models', ckpt_name)
+
                 if isinstance(value, Tensor):
                     torch.save(value, dir_name)
-                    name = os.path.splittext(self.checkpoint)
+                    model_name = os.path.splittext(self.checkpoint)
                     metadata = {'experience': 
                                 self.strategy.experience.current_experience,
                                 **({'task_id': 
                                     phase_and_task(self.strategy)[1]} 
                                     if phase_and_task(self.strategy)[1] 
                                     else {})}
-                    artifact = self.wandb.Artifact(name, type='model', 
+                    artifact = self.wandb.Artifact(model_name, type='model', 
                                                    metadata=metadata)
                     artifact.add_file(dir_name, name=artifact_name)
                     self.wandb.run.log_artifact(artifact)
                     if self.uri is not None:
                         artifact.add_reference(self.uri, name=artifact_name)
+
+        else:
+            if isinstance(value, AlternativeValues):
+                value = value.best_supported_value(Image, Tensor, TensorImage,
+                                                Figure, float, int,
+                                                self.wandb.viz.CustomChart)
+
+            if not isinstance(value, (Image, Tensor, Figure, float, int,
+                                    self.wandb.viz.CustomChart)):
+                # Unsupported type
+                return
+
+            if isinstance(value, Image):
+                self.wandb.log({name: self.wandb.Image(value)})
+
+            elif isinstance(value, Tensor):
+                value = np.histogram(value.view(-1).numpy())
+                self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
+
+            elif isinstance(value, (float, int, Figure,
+                                    self.wandb.viz.CustomChart)):
+                self.wandb.log({name: value})
+
+            elif isinstance(value, TensorImage):
+                self.wandb.log({name: self.wandb.Image(array(value))})
+            
 
 
 __all__ = [

@@ -136,7 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--artifacts', default=False, 
                         action="store_true",
                         help='Log Model Checkpoints as W&B Artifacts')
-    parser.add_argument('--path', type=str, default=None,
+    parser.add_argument('--path', type=str, default="Checkpoint",
                         help='Local path to save the model checkpoints')
     args = parser.parse_args()
     main(args)
