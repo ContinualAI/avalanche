@@ -4,7 +4,8 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.storage_policy import StoragePolicy, ExperienceBalancedStoragePolicy
+from avalanche.training.storage_policy import StoragePolicy, \
+    ExperienceBalancedStoragePolicy
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy
@@ -67,5 +68,3 @@ class ReplayPlugin(StrategyPlugin):
 
     def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
         self.storage_policy(strategy, **kwargs)
-
-

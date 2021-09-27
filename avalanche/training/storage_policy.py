@@ -1,6 +1,6 @@
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, TYPE_CHECKING
 
 import torch
 from numpy import inf
@@ -8,8 +8,12 @@ from torch import cat, Tensor
 from torch.nn import Module
 from torch.utils.data import random_split, DataLoader
 
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset, AvalancheConcatDataset
+from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset, \
+    AvalancheConcatDataset
 from avalanche.models import FeatureExtractorBackbone
+
+if TYPE_CHECKING:
+    from .strategies import BaseStrategy
 
 
 class StoragePolicy(ABC):

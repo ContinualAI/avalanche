@@ -11,7 +11,9 @@ from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType, \
     AvalancheTensorDataset
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.storage_policy import ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy, ClassExemplarsSelectionStrategy, \
+from avalanche.training.storage_policy import \
+    ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy, \
+    ClassExemplarsSelectionStrategy, \
     HerdingSelectionStrategy, ClosestToCenterSelectionStrategy
 from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_benchmark

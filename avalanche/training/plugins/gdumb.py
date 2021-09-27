@@ -50,7 +50,8 @@ class GDumbPlugin(StrategyPlugin):
         )
         self.init_model = None
 
-    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy', **kwargs):
+    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                        **kwargs):
         """ Reset model. """
         if self.init_model is None:
             self.init_model = copy.deepcopy(strategy.model)
