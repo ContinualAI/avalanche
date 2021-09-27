@@ -15,6 +15,7 @@ import json
 import os
 
 
+AVALANCHE_CONFIG_ROOT = os.path.expanduser('~/.avalanche')
 AVALANCHE_CONFIG_FILENAME = os.path.expanduser('~/.avalanche/config.json')
 
 
@@ -45,6 +46,7 @@ def maybe_init_config_file():
     """
     if os.path.exists(AVALANCHE_CONFIG_FILENAME):
         return
+    os.makedirs(AVALANCHE_CONFIG_ROOT, exist_ok=True)
     default_config = {
         'dataset_location': os.path.expanduser('~/.avalanche/data')
     }
