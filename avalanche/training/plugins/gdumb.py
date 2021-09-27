@@ -1,3 +1,4 @@
+import copy
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -40,6 +41,16 @@ class GDumbPlugin(StrategyPlugin):
         self.ext_mem: Dict[Any, Tuple[List[Tensor], List[Tensor]]] = {}
         # count occurrences for each class
         self.counter: Dict[Any, Dict[Any, int]] = {}
+
+        # model initialization
+        self.init_model = None
+
+    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+        """ Reset model. """
+        if self.init_model is None:
+            self.init_model = copy.deepcopy(strategy.model)
+        else:
+            strategy.model = self.init_model
 
     def after_train_dataset_adaptation(
         self, strategy: "BaseStrategy", **kwargs
