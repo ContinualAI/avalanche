@@ -34,24 +34,24 @@ class Clock(StrategyPlugin):
         self.total_iterations = 0
         """ Total number of iterations in training and eval mode. """
 
-    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_exp(self, strategy, **kwargs):
         self.train_exp_iterations = 0
         self.train_exp_epochs = 0
 
-    def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_epoch(self, strategy, **kwargs):
         self.train_epoch_iterations = 0
 
-    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_iteration(self, strategy, **kwargs):
         self.train_epoch_iterations += 1
         self.train_exp_iterations += 1
         self.train_iterations += 1
         self.total_iterations += 1
 
-    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_epoch(self, strategy, **kwargs):
         self.train_exp_epochs += 1
 
-    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         self.train_exp_counter += 1
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def after_eval_iteration(self, strategy, **kwargs):
         self.total_iterations += 1
