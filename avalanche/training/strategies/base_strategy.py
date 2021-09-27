@@ -9,11 +9,11 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 import logging
+import warnings
 
 import torch
 from torch.utils.data import DataLoader
 from typing import Optional, Sequence, Union, List
-from deprecated import deprecated
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -185,22 +185,29 @@ class BaseStrategy:
         self._warn_for_disabled_metrics_callbacks()
 
     @property
-    @deprecated("You should use self.clock.train_exp_counter.")
     def training_exp_counter(self):
         """ Counts the number of training steps. +1 at the end of each
         experience. """
+        warnings.warn(
+            "Deprecated attribute. You should use self.clock.train_exp_counter"
+            " instead.", DeprecationWarning)
         return self.clock.train_exp_counter
 
     @property
-    @deprecated("You should use self.clock.train_exp_epochs.")
     def epoch(self):
         """ Epoch counter. """
+        warnings.warn(
+            "Deprecated attribute. You should use self.clock.train_exp_epochs"
+            " instead.", DeprecationWarning)
         return self.clock.train_exp_epochs
 
     @property
-    @deprecated("You should use self.clock.train_epoch_iterations.")
     def mb_it(self):
         """ Iteration counter. Reset at the start of a new epoch. """
+        warnings.warn(
+            "Deprecated attribute. You should use "
+            "self.clock.train_epoch_iterations"
+            " instead.", DeprecationWarning)
         return self.clock.train_epoch_iterations
 
     @property
