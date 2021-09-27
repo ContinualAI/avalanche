@@ -244,12 +244,12 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
         self.update_new_classes(strategy)
 
     def after_training_iteration(self, strategy: "BaseStrategy") -> None:
-        if strategy.epoch == strategy.train_epochs - 1:
+        if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             self.update(strategy)
         super().after_training_iteration(strategy)
 
     def after_training_epoch(self, strategy: "BaseStrategy") -> "MetricResult":
-        if strategy.epoch == strategy.train_epochs - 1:
+        if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
 
 

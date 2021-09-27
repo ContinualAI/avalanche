@@ -13,6 +13,13 @@ from torchvision.transforms import Compose, ToTensor
 from avalanche.benchmarks import nc_benchmark
 
 
+UPDATE_METRICS = False
+if 'UPDATE_METRICS' in os.environ:
+    UPDATE_METRICS = os.environ['UPDATE_METRICS'].lower() == 'true'
+
+print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+
+
 def common_setups():
     # adapt_dataset_urls()
     pass

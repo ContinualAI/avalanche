@@ -9,6 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 import logging
+import warnings
 
 import torch
 from torch.utils.data import DataLoader
@@ -22,6 +23,7 @@ from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_forward
+from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_logger
 from typing import TYPE_CHECKING
 
@@ -134,19 +136,18 @@ class BaseStrategy:
         self.evaluator = evaluator
         """ EvaluationPlugin used for logging and metric computations. """
 
+        self.clock = Clock()
+        """ Incremental counters for strategy events. """
+        # WARNING: Clock needs to be the last plugin, otherwise
+        # counters will be wrong for plugins called after it.
+        self.plugins.append(self.clock)
+
         self.eval_every = eval_every
         """ Frequency of the evaluation during training. """
 
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
-        self.training_exp_counter = 0
-        """ Counts the number of training steps. +1 at the end of each 
-        experience. """
-
-        self.epoch: Optional[int] = None
-        """ Epoch counter. """
-
         self.experience = None
         """ Current experience. """
 
@@ -163,9 +164,6 @@ class BaseStrategy:
         self.dataloader = None
         """ Dataloader. """
 
-        self.mb_it = None
-        """ Iteration counter. Reset at the start of a new epoch. """
-
         self.mbatch = None
         """ Current mini-batch. """
 
@@ -179,12 +177,38 @@ class BaseStrategy:
         """ True if the strategy is in training mode. """
 
         self.current_eval_stream = None
-        """User-provided evaluation stream on `eval` call"""
+        """ User-provided evaluation stream on `eval` call. """
 
         self._stop_training = False
 
         self._warn_for_disabled_plugins_callbacks()
         self._warn_for_disabled_metrics_callbacks()
+
+    @property
+    def training_exp_counter(self):
+        """ Counts the number of training steps. +1 at the end of each
+        experience. """
+        warnings.warn(
+            "Deprecated attribute. You should use self.clock.train_exp_counter"
+            " instead.", DeprecationWarning)
+        return self.clock.train_exp_counter
+
+    @property
+    def epoch(self):
+        """ Epoch counter. """
+        warnings.warn(
+            "Deprecated attribute. You should use self.clock.train_exp_epochs"
+            " instead.", DeprecationWarning)
+        return self.clock.train_exp_epochs
+
+    @property
+    def mb_it(self):
+        """ Iteration counter. Reset at the start of a new epoch. """
+        warnings.warn(
+            "Deprecated attribute. You should use "
+            "self.clock.train_epoch_iterations"
+            " instead.", DeprecationWarning)
+        return self.clock.train_epoch_iterations
 
     @property
     def is_eval(self):
@@ -287,8 +311,7 @@ class BaseStrategy:
                 (self.train_epochs - 1) % self.eval_every == 0:
             do_final = False
 
-        self.epoch = 0
-        for self.epoch in range(self.train_epochs):
+        for _ in range(self.train_epochs):
             self.before_training_epoch(**kwargs)
 
             if self._stop_training:  # Early stopping
@@ -309,24 +332,24 @@ class BaseStrategy:
         # loop, we need to save the training state, and restore it after the
         # eval is done.
         _prev_state = (
-            self.epoch,
             self.experience,
             self.adapted_dataset,
             self.dataloader,
             self.is_training)
-
+        
+        curr_epoch = self.clock.train_exp_epochs
         if (self.eval_every == 0 and (do_final or do_initial)) or \
            (self.eval_every > 0 and do_initial) or \
-                (self.eval_every > 0 and self.epoch % self.eval_every == 0):
+                (self.eval_every > 0 and curr_epoch % self.eval_every == 0):
             # in the first case we are outside epoch loop
             # in the second case we are within epoch loop
             for exp in eval_streams:
                 self.eval(exp)
 
         # restore train-state variables and training mode.
-        self.epoch, self.experience, self.adapted_dataset = _prev_state[:3]
-        self.dataloader = _prev_state[3]
-        self.is_training = _prev_state[4]
+        self.experience, self.adapted_dataset = _prev_state[:2]
+        self.dataloader = _prev_state[2]
+        self.is_training = _prev_state[3]
         self.model.train()
 
     def stop_training(self):
@@ -448,7 +471,7 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
-        for self.mb_it, self.mbatch in enumerate(self.dataloader):
+        for self.mbatch in self.dataloader:
             if self._stop_training:
                 break
 
@@ -534,7 +557,6 @@ class BaseStrategy:
     def after_training_exp(self, **kwargs):
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
-        self.training_exp_counter += 1
 
     def before_eval(self, **kwargs):
         for p in self.plugins:
@@ -558,8 +580,7 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
-        for self.mb_it, self.mbatch in \
-                enumerate(self.dataloader):
+        for self.mbatch in self.dataloader:
             self._unpack_minibatch()
             self.before_eval_iteration(**kwargs)
 

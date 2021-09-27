@@ -10,9 +10,10 @@ from torch.optim import SGD
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType, \
     AvalancheTensorDataset
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import ExperienceBalancedStoragePolicy, \
-    ClassBalancedStoragePolicy, ReplayPlugin
-from avalanche.training.plugins.replay import ClassExemplarsSelectionStrategy, \
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.storage_policy import \
+    ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy, \
+    ClassExemplarsSelectionStrategy, \
     HerdingSelectionStrategy, ClosestToCenterSelectionStrategy
 from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_benchmark

@@ -100,7 +100,7 @@ class BaseStrategyTest(unittest.TestCase):
         class EarlyStopP(StrategyPlugin):
             def after_training_iteration(self, strategy: 'BaseStrategy',
                                          **kwargs):
-                if strategy.mb_it == 10:
+                if strategy.clock.train_epoch_iterations == 10:
                     strategy.stop_training()
 
         model = SimpleMLP(input_size=6, hidden_size=100)
@@ -115,7 +115,7 @@ class BaseStrategyTest(unittest.TestCase):
 
         for train_batch_info in benchmark.train_stream:
             strategy.train(train_batch_info)
-            assert strategy.mb_it == 11
+            assert strategy.clock.train_epoch_iterations == 11
 
 
 class StrategyTest(unittest.TestCase):

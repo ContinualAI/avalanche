@@ -77,7 +77,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         metric_name = get_metric_name(self, strategy, 
                                       add_experience=True, add_task=False)
         return [MetricValue(self, metric_name, weights, 
-                            self.get_global_counter())]
+                            strategy.clock.train_iterations)]
 
     def after_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
         model_params = copy.deepcopy(strategy.model.parameters())

@@ -62,7 +62,7 @@ class LFLPlugin(StrategyPlugin):
         """
         Add euclidean loss between prev and current features as penalty
         """
-        lambda_e = self.lambda_e[strategy.training_exp_counter] \
+        lambda_e = self.lambda_e[strategy.clock.train_exp_counter] \
             if isinstance(self.lambda_e, (list, tuple)) else self.lambda_e
 
         penalty = self.penalty(strategy.mb_x, strategy.model, lambda_e)

@@ -319,7 +319,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         if self._save_image:
             class_order = self._get_display_class_order(exp_cm, strategy)
@@ -405,7 +405,7 @@ class WandBStreamConfusionMatrix(PluginMetric):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         # compute predicted classes
         preds = torch.argmax(outputs, dim=1).cpu().numpy()

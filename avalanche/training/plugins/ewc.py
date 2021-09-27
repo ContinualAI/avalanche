@@ -63,21 +63,21 @@ class EWCPlugin(StrategyPlugin):
         """
         Compute EWC penalty and add it to the loss.
         """
-
-        if strategy.training_exp_counter == 0:
+        exp_counter = strategy.clock.train_exp_counter
+        if exp_counter == 0:
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
 
         if self.mode == 'separate':
-            for experience in range(strategy.training_exp_counter):
+            for experience in range(exp_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
                         strategy.model.named_parameters(),
                         self.saved_params[experience],
                         self.importances[experience]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
-            prev_exp = strategy.training_exp_counter - 1
+            prev_exp = exp_counter - 1
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
                     strategy.model.named_parameters(),
                     self.saved_params[prev_exp],
@@ -92,20 +92,20 @@ class EWCPlugin(StrategyPlugin):
         """
         Compute importances of parameters after each experience.
         """
-
+        exp_counter = strategy.clock.train_exp_counter
         importances = self.compute_importances(strategy.model,
                                                strategy._criterion,
                                                strategy.optimizer,
                                                strategy.experience.dataset,
                                                strategy.device,
                                                strategy.train_mb_size)
-        self.update_importances(importances, strategy.training_exp_counter)
-        self.saved_params[strategy.training_exp_counter] = \
+        self.update_importances(importances, exp_counter)
+        self.saved_params[exp_counter] = \
             copy_params_dict(strategy.model)
         # clear previous parameter values
-        if strategy.training_exp_counter > 0 and \
+        if exp_counter > 0 and \
                 (not self.keep_importance_data):
-            del self.saved_params[strategy.training_exp_counter - 1]
+            del self.saved_params[exp_counter - 1]
 
     def compute_importances(self, model, criterion, optimizer,
                             dataset, device, batch_size):

@@ -117,7 +117,7 @@ class _ICaRLPlugin(StrategyPlugin):
 
     def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
                                        **kwargs):
-        if strategy.training_exp_counter != 0:
+        if strategy.clock.train_exp_counter != 0:
             memory = AvalancheTensorDataset(
                 torch.cat(self.x_memory).cpu(),
                 list(itertools.chain.from_iterable(self.y_memory)),
@@ -127,7 +127,7 @@ class _ICaRLPlugin(StrategyPlugin):
                 AvalancheConcatDataset((strategy.adapted_dataset, memory))
 
     def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
-        tid = strategy.training_exp_counter
+        tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
 
@@ -185,8 +185,8 @@ class _ICaRLPlugin(StrategyPlugin):
 
             strategy.model.eval_classifier.class_means = self.class_means
 
-    def construct_exemplar_set(self, strategy):
-        tid = strategy.training_exp_counter
+    def construct_exemplar_set(self, strategy: BaseStrategy):
+        tid = strategy.clock.train_exp_counter
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 
         if self.fixed_memory:
@@ -237,8 +237,8 @@ class _ICaRLPlugin(StrategyPlugin):
                 [new_classes[iter_dico]] * len(torch.where(pick == 1)[0]))
             self.order.append(order[torch.where(pick == 1)[0]])
 
-    def reduce_exemplar_set(self, strategy):
-        tid = strategy.training_exp_counter
+    def reduce_exemplar_set(self, strategy: BaseStrategy):
+        tid = strategy.clock.train_exp_counter
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 
         if self.fixed_memory:

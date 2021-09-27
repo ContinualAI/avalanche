@@ -8,7 +8,7 @@ from torch.nn.modules import Module
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.plugins.replay import ClassBalancedStoragePolicy
+from avalanche.training.storage_policy import ClassBalancedStoragePolicy
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 

@@ -92,7 +92,8 @@ class TextLogger(StrategyLogger):
     def after_training_epoch(self, strategy: 'BaseStrategy',
                              metric_values: List['MetricValue'], **kwargs):
         super().after_training_epoch(strategy, metric_values, **kwargs)
-        print(f'Epoch {strategy.epoch} ended.', file=self.file, flush=True)
+        print(f'Epoch {strategy.clock.train_exp_epochs} ended.', 
+              file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 

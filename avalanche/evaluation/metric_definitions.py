@@ -89,11 +89,6 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         """
         super().__init__()
 
-        self.global_it_counter = 0
-        """
-        Counter that can be used by each metric to get increasing x values.
-        """
-
     @abstractmethod
     def result(self, **kwargs) -> Optional[TResult]:
         pass
@@ -101,12 +96,6 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
     @abstractmethod
     def reset(self, **kwargs) -> None:
         pass
-
-    def get_global_counter(self):
-        """
-        :return: the global counter incremented after each minibatch.
-        """
-        return self.global_it_counter
 
     def before_training(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
@@ -145,7 +134,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
 
     def after_training_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
-        self.global_it_counter += 1
+        pass
 
     def before_update(self, strategy: 'BaseStrategy') -> 'MetricResult':
         pass
@@ -198,7 +187,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
 
     def after_eval_iteration(self, strategy: 'BaseStrategy') \
             -> 'MetricResult':
-        self.global_it_counter += 1
+        pass
 
 
 class GenericPluginMetric(PluginMetric[TResult]):
@@ -234,7 +223,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def _package_result(self, strategy: 'BaseStrategy') -> 'MetricResult':
         metric_value = self.result(strategy)
         add_exp = self._emit_at == 'experience'
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         if isinstance(metric_value, dict):
             metrics = []

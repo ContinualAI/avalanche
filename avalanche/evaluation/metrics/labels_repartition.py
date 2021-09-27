@@ -117,7 +117,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         return super().reset()
 
     def update(self, strategy: "BaseStrategy"):
-        if strategy.epoch and self.emit_reset_at != "epoch":
+        if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
             strategy.mb_task_id.tolist(),
@@ -150,7 +150,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 )
                 if self.image_creator is not None
                 else label2counts,
-                x_plot=self.get_global_counter(),
+                x_plot=strategy.clock.train_iterations,
             )
             for task, label2counts in self.task2label2counts.items()
         ]

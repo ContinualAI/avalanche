@@ -205,7 +205,7 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
         result = self.result(k=self.eval_exp_id)
         if result is not None:
             metric_name = get_metric_name(self, strategy, add_experience=True)
-            plot_x_position = self.get_global_counter()
+            plot_x_position = strategy.clock.train_iterations
 
             metric_values = [MetricValue(
                 self, metric_name, result, plot_x_position)]
@@ -345,7 +345,7 @@ class GenericStreamForwardTransfer(GenericExperienceForwardTransfer):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
