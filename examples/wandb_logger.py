@@ -105,7 +105,7 @@ def main(args):
         MAC_metrics(
             minibatch=True, epoch=True, experience=True),
         WeightCheckpoint(),
-        loggers=[interactive_logger, wandb_logger]
+        loggers=[wandb_logger]
     )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
