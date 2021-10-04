@@ -524,7 +524,8 @@ class SynapticIntelligence(BaseStrategy):
     """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 si_lambda: float, train_mb_size: int = 1,
+                 si_lambda: float, eps: float = 0.0000001,
+                 train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
@@ -535,6 +536,7 @@ class SynapticIntelligence(BaseStrategy):
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
         :param si_lambda: Synaptic Intelligence lambda term.
+        :param eps: Synaptic Intelligence damping parameter.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
@@ -555,7 +557,7 @@ class SynapticIntelligence(BaseStrategy):
 
         # This implementation relies on the S.I. Plugin, which contains the
         # entire implementation of the strategy!
-        plugins.append(SynapticIntelligencePlugin(si_lambda))
+        plugins.append(SynapticIntelligencePlugin(si_lambda=si_lambda, eps=eps))
 
         super(SynapticIntelligence, self).__init__(
             model, optimizer, criterion, train_mb_size, train_epochs,
