@@ -195,7 +195,7 @@ class GroupBalancedInfiniteDataLoader:
                 sampler=infinite_sampler,
                 **kwargs)
             self.dataloaders.append(dl)
-        self.max_len = max([len(d) for d in self.dataloaders])
+        self.max_len = 10 ** 10
 
     def __iter__(self):
         iter_dataloaders = []

@@ -4,8 +4,8 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.storage_policy import StoragePolicy, \
-    ExperienceBalancedStoragePolicy
+from avalanche.training.storage_policy import ExemplarsBuffer, \
+    ExperienceBalancedBuffer
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy
@@ -33,21 +33,21 @@ class ReplayPlugin(StrategyPlugin):
     """
 
     def __init__(self, mem_size: int = 200,
-                 storage_policy: Optional["StoragePolicy"] = None):
+                 storage_policy: Optional["ExemplarsBuffer"] = None):
         super().__init__()
         self.mem_size = mem_size
 
         if storage_policy is not None:  # Use other storage policy
             self.storage_policy = storage_policy
-            self.ext_mem = storage_policy.ext_mem  # Keep ref
-            assert storage_policy.mem_size == self.mem_size
-
+            assert storage_policy.max_size == self.mem_size
         else:  # Default
-            self.ext_mem = {}  # a Dict<task_id, Dataset>
-            self.storage_policy = ExperienceBalancedStoragePolicy(
-                ext_mem=self.ext_mem,
-                mem_size=self.mem_size,
+            self.storage_policy = ExperienceBalancedBuffer(
+                max_size=self.mem_size,
                 adaptive_size=True)
+
+    @property
+    def ext_mem(self):
+        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_training_exp(self, strategy: "BaseStrategy",
                             num_workers: int = 0, shuffle: bool = True,
@@ -56,15 +56,17 @@ class ReplayPlugin(StrategyPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
-        if len(self.ext_mem) == 0:
+        if len(self.storage_policy.buffer) == 0:
+            # first experience. We don't use the buffer, no need to change
+            # the dataloader.
             return
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset(self.ext_mem.values()),
+            self.storage_policy.buffer,
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
     def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
-        self.storage_policy(strategy, **kwargs)
+        self.storage_policy.update(strategy, **kwargs)

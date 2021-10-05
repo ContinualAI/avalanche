@@ -13,10 +13,7 @@ from torch.utils.data import TensorDataset
 from avalanche.benchmarks import nc_benchmark
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins import StrategyPlugin, ReplayPlugin
-from avalanche.training.storage_policy import \
-    ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy
+from avalanche.training.plugins import StrategyPlugin
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
 

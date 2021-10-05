@@ -6,7 +6,7 @@ import torch
 from numpy import inf
 from torch import cat, Tensor
 from torch.nn import Module
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset, \
     AvalancheConcatDataset
@@ -16,123 +16,226 @@ if TYPE_CHECKING:
     from .strategies import BaseStrategy
 
 
-class StoragePolicy(ABC):
-    """
-    A policy to store exemplars in a replay memory.
+class ExemplarsBuffer(ABC):
+    """ A buffer that stores exemplars for rehearsal.
 
-    :param ext_mem: The replay memory dictionary to store samples.
-    :param mem_size: max number of total input samples in the replay memory.
+    `self.buffer` is an AvalancheDataset of samples collected from the previous
+    experiences. The buffer can be updated by calling `self.update(strategy)`.
+
+    :param max_size: max number of input samples in the replay memory.
     """
-    def __init__(self, ext_mem: Dict[int, AvalancheDataset], mem_size: int):
-        self.ext_mem = ext_mem
-        self.mem_size = mem_size
+
+    def __init__(self, max_size: int):
+        self.max_size = max_size
+        """ Maximum size of the buffer. """
+        self._buffer = AvalancheConcatDataset([])
+
+    @property
+    def buffer(self) -> AvalancheDataset:
+        """ Buffer of samples. """
+        return self._buffer
+
+    @buffer.setter
+    def buffer(self, new_buffer: AvalancheDataset):
+        self._buffer = new_buffer
 
     @abstractmethod
-    def __call__(self, data_source: AvalancheDataset, **kwargs):
-        """Store exemplars in the replay memory"""
+    def update(self, strategy: 'BaseStrategy', **kwargs):
+        """ Update `self.buffer` using the `strategy` state.
 
-
-class ExperienceBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
-                 num_experiences=-1):
+        :param strategy:
+        :param kwargs:
+        :return:
         """
-        Stores samples for replay, equally divided over experiences.
-        Because it is conditioned on the experience, it should be called in
-        the 'after_training_exp' phase.
+        ...
+
+    @abstractmethod
+    def resize(self, strategy: 'BaseStrategy', new_size: int):
+        """ Update the maximum size of the buffer.
+
+        :param strategy:
+        :param new_size:
+        :return:
+        """
+        ...
+
+
+class ReservoirSamplingBuffer(ExemplarsBuffer):
+    def __init__(self, max_size: int):
+        """ Buffer updated with reservoir sampling. """
+        # The algorithm follows
+        # https://en.wikipedia.org/wiki/Reservoir_sampling
+        # We sample a random uniform value in [0, 1] for each sample and
+        # choose the `size` samples with higher values.
+        # This is equivalent to a random selection of `size_samples`
+        # from the entire stream.
+        super().__init__(max_size)
+        # INVARIANT: _buffer_weights is always sorted.
+        self._buffer_weights = torch.zeros(0)
+
+    def update(self, strategy: 'BaseStrategy', **kwargs):
+        """ Update buffer. """
+        self.update_from_dataset(strategy.experience.dataset)
+
+    def update_from_dataset(self, new_data: AvalancheDataset):
+        new_weights = torch.rand(len(new_data))
+
+        cat_weights = torch.cat([new_weights, self._buffer_weights])
+        cat_data = AvalancheConcatDataset([new_data, self.buffer])
+        sorted_weights, sorted_idxs = cat_weights.sort(descending=True)
+
+        buffer_idxs = sorted_idxs[:self.max_size]
+        self.buffer = AvalancheSubset(cat_data, buffer_idxs)
+        self._buffer_weights = sorted_weights[:self.max_size]
+
+    def resize(self, strategy, new_size):
+        """ Update the maximum size of the buffer. """
+        self.max_size = new_size
+        self.buffer = AvalancheSubset(self.buffer, torch.arange(self.max_size))
+        self._buffer_weights = self._buffer_weights[:self.max_size]
+
+
+class BalancedExemplarsBuffer(ExemplarsBuffer):
+    def __init__(self, max_size: int, adaptive_size: bool = True,
+                 total_num_groups=None):
+        """ A buffer that stores exemplars for rehearsal in separate groups.
+
+        The grouping allows to balance the data (by task, experience,
+        classes..). In combination with balanced data loaders, it can be used
+        to sample balanced mini-batches during training.
+
+        `self.buffer_groups` is a dictionary that stores each group as a
+        separate buffer. The buffers are updated by calling
+        `self.update(strategy)`.
+
+        :param max_size: max number of input samples in the replay memory.
+        :param adaptive_size: True if max_size is divided equally over all
+                              observed experiences (keys in replay_mem).
+        :param total_num_groups: If adaptive size is False, the fixed number
+                                of groups to divide capacity over.
+        """
+        super().__init__(max_size)
+        self.adaptive_size = adaptive_size
+        self.total_num_groups = total_num_groups
+        if not self.adaptive_size:
+            assert self.total_num_groups > 0, \
+                "You need to specify `total_num_groups` if " \
+                "`adaptive_size=True`."
+        else:
+            assert self.total_num_groups is None, \
+                "`total_num_groups` is not compatible with " \
+                "`adaptive_size=False`."
+
+        self.buffer_groups: Dict[int, ExemplarsBuffer] = {}
+        """ Dictionary of buffers. """
+
+    @property
+    def buffer_datasets(self):
+        """ Return group buffers as a list of `AvalancheDataset`s. """
+        return [g.buffer for g in self.buffer_groups.values()]
+
+    def get_group_lengths(self, num_groups):
+        """ Compute groups lengths given the number of groups `num_groups`. """
+        if self.adaptive_size:
+            lengths = [self.max_size // num_groups for _ in range(num_groups)]
+            # distribute remaining size among experiences.
+            rem = self.max_size - sum(lengths)
+            for i in range(rem):
+                lengths[i] += 1
+        else:
+            lengths = [self.max_size // self.total_num_groups for _ in
+                       range(num_groups)]
+        return lengths
+
+    @property
+    def buffer(self):
+        return AvalancheConcatDataset(
+            [g.buffer for g in self.buffer_groups.values()])
+
+    @buffer.setter
+    def buffer(self, new_buffer):
+        assert NotImplementedError(
+            "Cannot set `self.buffer` for this class. "
+            "You should modify `self.buffer_groups instead.")
+
+    @abstractmethod
+    def update(self, strategy: 'BaseStrategy', **kwargs):
+        """ Update `self.buffer_groups` using the `strategy` state.
+
+        :param strategy:
+        :param kwargs:
+        :return:
+        """
+        ...
+
+    def resize(self, strategy, new_size):
+        """ Update the maximum size of the buffers. """
+        self.size = new_size
+        lens = self.get_group_lengths(len(self.buffer_groups))
+        for ll, buffer in zip(lens, self.buffer_groups.values()):
+            buffer.resize(strategy, ll)
+
+
+class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
+    def __init__(self, max_size: int, adaptive_size: bool = True,
+                 num_experiences=None):
+        """ Rehearsal buffer with samples balanced over experiences.
 
         The number of experiences can be fixed up front or adaptive, based on
         the 'adaptive_size' attribute. When adaptive, the memory is equally
         divided over all the unique observed experiences so far.
 
-        :param ext_mem: The replay memory dictionary to store samples.
-        :param mem_size: max number of total input samples in the replay memory.
+        :param max_size: max number of total input samples in the replay
+            memory.
         :param adaptive_size: True if mem_size is divided equally over all
                               observed experiences (keys in replay_mem).
         :param num_experiences: If adaptive size is False, the fixed number
                                 of experiences to divide capacity over.
         """
-        super().__init__(ext_mem, mem_size)
-        self.adaptive_size = adaptive_size
-        self.num_experiences = num_experiences
+        super().__init__(max_size, adaptive_size, num_experiences)
 
-        if not self.adaptive_size:
-            assert self.num_experiences > 0, \
-                """When fixed exp mem size, num_experiences should be > 0."""
-
-    def subsample_single(self, data: AvalancheDataset, new_size: int):
-        """ Subsample `data` to match length `new_size`. """
-        removed_els = len(data) - new_size
-        if removed_els > 0:
-            data, _ = random_split(data, [new_size, removed_els])
-        return data
-
-    def subsample_all_groups(self, new_size: int):
-        """ Subsample all groups equally to match total buffer size
-        `new_size`. """
-        groups = list(self.ext_mem.keys())
-        if len(groups) == 0:
-            return  # buffer is empty.
-
-        num_groups = len(groups) if self.adaptive_size else self.num_experiences
-        group_size = new_size // num_groups
-        last_group_size = group_size + (new_size % num_groups)
-
-        for g in groups[:-1]:
-            self.ext_mem[g] = self.subsample_single(self.ext_mem[g], group_size)
-        # last group may be bigger
-        last = self.ext_mem[groups[-1]]
-        self.ext_mem[groups[-1]] = self.subsample_single(last, last_group_size)
-
-    def __call__(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "BaseStrategy", **kwargs):
+        new_data = strategy.experience.dataset
         num_exps = strategy.clock.train_exp_counter + 1
-        num_exps = num_exps if self.adaptive_size else self.num_experiences
-        curr_data = strategy.experience.dataset
+        lens = self.get_group_lengths(num_exps)
 
-        # new group may be bigger because of the remainder.
-        group_size = self.mem_size // num_exps
-        new_group_size = group_size + (self.mem_size % num_exps)
+        new_buffer = ReservoirSamplingBuffer(lens[-1])
+        new_buffer.update_from_dataset(new_data)
+        self.buffer_groups[num_exps - 1] = new_buffer
 
-        self.subsample_all_groups(group_size * (num_exps - 1))
-        curr_data = self.subsample_single(curr_data, new_group_size)
-        self.ext_mem[strategy.clock.train_exp_counter + 1] = curr_data
-
-        # buffer size should always equal self.mem_size
-        len_tot = sum(len(el) for el in self.ext_mem.values())
-        assert len_tot == self.mem_size
+        for ll, b in zip(lens, self.buffer_groups.values()):
+            b.resize(strategy, ll)
 
 
-class ClassBalancedStoragePolicy(StoragePolicy):
-    def __init__(self, ext_mem: Dict, mem_size: int, adaptive_size: bool = True,
-                 total_num_classes: int = -1, selection_strategy:
-                 Optional["ClassExemplarsSelectionStrategy"] = None):
-        """
-        Stores samples for replay, equally divided over classes.
+class ClassBalancedBuffer(BalancedExemplarsBuffer):
+    def __init__(self, max_size: int, adaptive_size: bool = True,
+                 total_num_classes: int = None):
+        """ Stores samples for replay, equally divided over classes.
+
+        There is a separate buffer updated by reservoir sampling for each
+            class.
         It should be called in the 'after_training_exp' phase (see
         ExperienceBalancedStoragePolicy).
         The number of classes can be fixed up front or adaptive, based on
         the 'adaptive_size' attribute. When adaptive, the memory is equally
         divided over all the unique observed classes so far.
-        :param ext_mem: The replay memory dictionary to store samples in.
-        :param mem_size: The max capacity of the replay memory.
+        
+        :param max_size: The max capacity of the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
                             observed experiences (keys in replay_mem).
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
-        :param selection_strategy: The strategy used to select exemplars to 
-                                   keep in memory when cutting it off
         """
-        super().__init__(ext_mem, mem_size)
-        self.selection_strategy = selection_strategy or \
-            RandomExemplarsSelectionStrategy()
+        if not adaptive_size:
+            assert total_num_classes > 0, \
+                """When fixed exp mem size, total_num_classes should be > 0."""
+
+        super().__init__(max_size, adaptive_size, total_num_classes)
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
 
-        if not self.adaptive_size:
-            assert self.total_num_classes > 0, \
-                """When fixed exp mem size, total_num_classes should be > 0."""
-
-    def __call__(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "BaseStrategy", **kwargs):
         new_data = strategy.experience.dataset
 
         # Get sample idxs per class
@@ -150,67 +253,160 @@ class ClassBalancedStoragePolicy(StoragePolicy):
         # Update seen classes
         self.seen_classes.update(cl_datasets.keys())
 
-        # how many experiences to divide the memory over
-        div_cnt = len(self.seen_classes) if self.adaptive_size \
-            else self.total_num_classes
-        class_mem_size = self.mem_size // div_cnt
+        # associate lengths to classes
+        lens = self.get_group_lengths(len(self.seen_classes))
+        class_to_len = {}
+        for class_id, ll in zip(self.seen_classes, lens):
+            class_to_len[class_id] = ll
 
-        # Add current classes data to memory
-        for c, c_mem in cl_datasets.items():
-            if c in self.ext_mem:  # Merge data with previous seen data
-                c_mem = AvalancheConcatDataset((c_mem, self.ext_mem[c]))
-            sorted_indices = self.selection_strategy.make_sorted_indices(
-                strategy, c_mem)
-            self.ext_mem[c] = AvalancheSubset(c_mem, sorted_indices)
+        # update buffers with new data
+        for class_id, new_data_c in cl_datasets.items():
+            ll = class_to_len[class_id]
+            if class_id in self.buffer_groups:
+                old_buffer_c = self.buffer_groups[class_id]
+                old_buffer_c.update_from_dataset(new_data_c)
+                old_buffer_c.resize(strategy, ll)
+            else:
+                new_buffer = ReservoirSamplingBuffer(ll)
+                new_buffer.update_from_dataset(new_data_c)
+                self.buffer_groups[class_id] = new_buffer
 
-        # Distribute remaining samples using counts
-        cutoff_per_exp = self.divide_remaining_samples(class_mem_size, div_cnt)
-
-        # Use counts to remove samples from memory
-        self.cutoff_memory(cutoff_per_exp)
-
-    def divide_remaining_samples(self, exp_mem_size: int, div_cnt: int) -> \
-            Dict[int, int]:
-        # Find number of remaining samples
-        samples_per_exp = {exp: len(mem) for exp, mem in
-                           self.ext_mem.items()}
-        rem_from_exps = {exp: exp_mem_size - memsize for exp, memsize in
-                         samples_per_exp.items() if
-                         exp_mem_size - memsize > 0}
-        rem_from_div = self.mem_size % div_cnt
-        free_mem = sum(rem_from_exps.values()) + rem_from_div
-
-        # Divide the remaining samples randomly over the experiences
-        cutoff_per_exp = {exp: min(exp_mem_size, len(m))
-                          for exp, m in self.ext_mem.items()}
-
-        # Find remaining data samples to divide
-        rem_samples_exp = {exp: memsize - exp_mem_size for exp, memsize in
-                           samples_per_exp.items()
-                           if memsize - exp_mem_size > 0}
-
-        while len(rem_samples_exp) > 0 and free_mem > 0:
-            exp = random.choice(list(rem_samples_exp.keys()))
-            cutoff_per_exp[exp] += 1
-            free_mem -= 1
-            rem_samples_exp[exp] -= 1
-            if rem_samples_exp[exp] <= 0:
-                del rem_samples_exp[exp]
-
-        return cutoff_per_exp
-
-    def cutoff_memory(self, cutoff_per_exp: Dict[int, int]):
-        # No need to reselect at this point, we expect the first selection to
-        # have sorted the exemplars
-        for exp, cutoff in cutoff_per_exp.items():
-            self.ext_mem[exp] = AvalancheSubset(self.ext_mem[exp],
-                                                list(range(cutoff)))
+        # resize buffers
+        for class_id, class_buf in self.buffer_groups.items():
+            self.buffer_groups[class_id].resize(strategy,
+                                                class_to_len[class_id])
 
 
-class ClassExemplarsSelectionStrategy(ABC):
+class ParametricBuffer(BalancedExemplarsBuffer):
+    def __init__(self, max_size: int,
+                 groupby=None,
+                 selection_strategy: Optional[
+                     "ExemplarsSelectionStrategy"] = None):
+        """ Stores samples for replay using a custom selection strategy and
+        grouping.
+
+        :param max_size: The max capacity of the replay memory.
+        :param groupby: Grouping mechanism. One of {None, 'class', 'task',
+        'experience'}.
+        :param selection_strategy: The strategy used to select exemplars to
+                                   keep in memory when cutting it off.
+        """
+        super().__init__(max_size)
+        assert groupby in {None, 'task', 'class', 'experience'}, \
+            "Unknown grouping scheme. Must be one of {None, 'task', " \
+            "'class', 'experience'}"
+        self.groupby = groupby
+        ss = selection_strategy or RandomExemplarsSelectionStrategy()
+        self.selection_strategy = ss
+        self.seen_groups = set()
+        self._curr_strategy = None
+
+    def update(self, strategy: "BaseStrategy", **kwargs):
+        new_data = strategy.experience.dataset
+        new_groups = self.make_groups(strategy, new_data)
+        self.seen_groups.update(new_groups.keys())
+
+        # associate lengths to classes
+        lens = self.get_group_lengths(len(self.seen_groups))
+        group_to_len = {}
+        for group_id, ll in zip(self.seen_groups, lens):
+            group_to_len[group_id] = ll
+
+        # update buffers with new data
+        for group_id, new_data_g in new_groups.items():
+            ll = group_to_len[group_id]
+            if group_id in self.buffer_groups:
+                old_buffer_g = self.buffer_groups[group_id]
+                old_buffer_g.update_from_dataset(strategy, new_data_g)
+                old_buffer_g.resize(strategy, ll)
+            else:
+                new_buffer = _ParametricSingleBuffer(ll,
+                                                     self.selection_strategy)
+                new_buffer.update_from_dataset(strategy, new_data_g)
+                self.buffer_groups[group_id] = new_buffer
+
+        # resize buffers
+        for group_id, class_buf in self.buffer_groups.items():
+            self.buffer_groups[group_id].resize(strategy,
+                                                group_to_len[group_id])
+
+    def make_groups(self, strategy, data):
+        if self.groupby is None:
+            return {0: data}
+        elif self.groupby == 'task':
+            return self._split_by_task(data)
+        elif self.groupby == 'experience':
+            return self._split_by_experience(strategy, data)
+        elif self.groupby == 'class':
+            return self._split_by_class(data)
+        else:
+            assert False, "Invalid groupby key. Should never get here."
+
+    def _split_by_class(self, data):
+        # Get sample idxs per class
+        class_idxs = {}
+        for idx, target in enumerate(data.targets):
+            if target not in class_idxs:
+                class_idxs[target] = []
+            class_idxs[target].append(idx)
+
+        # Make AvalancheSubset per class
+        new_groups = {}
+        for c, c_idxs in class_idxs.items():
+            new_groups[c] = AvalancheSubset(data, indices=c_idxs)
+        return new_groups
+
+    def _split_by_experience(self, strategy, data):
+        exp_id = strategy.clock.train_exp_counter + 1
+        return {exp_id: data}
+
+    def _split_by_task(self, data):
+        new_groups = {}
+        for task_id in data.task_set:
+            new_groups[task_id] = data.task_set[task_id]
+        return new_groups
+
+
+class _ParametricSingleBuffer(ExemplarsBuffer):
+    def __init__(self, max_size: int,
+                 selection_strategy: Optional[
+                     "ExemplarsSelectionStrategy"] = None):
+        """ A buffer that stores samples for replay using a custom selection
+        strategy.
+
+        This is a private class. Use `ParametricBalancedBuffer` with
+        `groupby=None` to get the same behavior.
+
+        :param max_size: The max capacity of the replay memory.
+        :param selection_strategy: The strategy used to select exemplars to
+                                   keep in memory when cutting it off.
+        """
+        super().__init__(max_size)
+        ss = selection_strategy or RandomExemplarsSelectionStrategy()
+        self.selection_strategy = ss
+        self._curr_strategy = None
+
+    def update(self, strategy: "BaseStrategy", **kwargs):
+        new_data = strategy.experience.dataset
+        self.update_from_dataset(strategy, new_data)
+
+    def update_from_dataset(self, strategy, new_data):
+        self.buffer = AvalancheConcatDataset([self.buffer, new_data])
+        self.resize(strategy, self.max_size)
+
+    def resize(self, strategy, new_size: int):
+        self.max_size = new_size
+        idxs = self.selection_strategy.make_sorted_indices(
+            strategy=strategy,
+            data=self.buffer)
+        self.buffer = AvalancheSubset(self.buffer, idxs[:self.max_size])
+
+
+class ExemplarsSelectionStrategy(ABC):
     """
-    Base class to define how to select class exemplars from a dataset
+    Base class to define how to select a subset of exemplars from a dataset.
     """
+
     @abstractmethod
     def make_sorted_indices(self, strategy: "BaseStrategy",
                             data: AvalancheDataset) -> List[int]:
@@ -219,9 +415,10 @@ class ClassExemplarsSelectionStrategy(ABC):
 
         The last indices will be the first to be removed when cutoff memory.
         """
+        ...
 
 
-class RandomExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy):
+class RandomExemplarsSelectionStrategy(ExemplarsSelectionStrategy):
     """Select the exemplars at random in the dataset"""
 
     def make_sorted_indices(self, strategy: "BaseStrategy",
@@ -231,9 +428,10 @@ class RandomExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy):
         return indices
 
 
-class FeatureBasedExemplarsSelectionStrategy(ClassExemplarsSelectionStrategy,
+class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy,
                                              ABC):
     """Base class to select exemplars from their features"""
+
     def __init__(self, model: Module, layer_name: str):
         self.feature_extractor = FeatureExtractorBackbone(model, layer_name)
 
@@ -299,3 +497,18 @@ class ClosestToCenterSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
         center = features.mean(dim=0)
         distances = pow(features - center, 2).sum(dim=1)
         return distances.argsort()
+
+
+__all__ = [
+    'ExemplarsBuffer',
+    'ReservoirSamplingBuffer',
+    'BalancedExemplarsBuffer',
+    'ExperienceBalancedBuffer',
+    'ClassBalancedBuffer',
+    'ParametricBuffer',
+    'ExemplarsSelectionStrategy',
+    'RandomExemplarsSelectionStrategy',
+    'FeatureBasedExemplarsSelectionStrategy',
+    'HerdingSelectionStrategy',
+    'ClosestToCenterSelectionStrategy'
+]

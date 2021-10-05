@@ -12,9 +12,9 @@ from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType, \
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import \
-    ExperienceBalancedStoragePolicy, ClassBalancedStoragePolicy, \
-    ClassExemplarsSelectionStrategy, \
-    HerdingSelectionStrategy, ClosestToCenterSelectionStrategy
+    ExperienceBalancedBuffer, ClassBalancedBuffer, \
+    ExemplarsSelectionStrategy, \
+    HerdingSelectionStrategy, ClosestToCenterSelectionStrategy, ParametricBuffer
 from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_benchmark
 
@@ -22,9 +22,11 @@ from tests.unit_tests_utils import get_fast_benchmark
 class ReplayTest(unittest.TestCase):
     def test_replay_balanced_memory(self):
         mem_size = 25
-        policies = [None,
-                    ExperienceBalancedStoragePolicy({}, mem_size=mem_size),
-                    ClassBalancedStoragePolicy({}, mem_size=mem_size)]
+        policies = [
+            None,
+            ExperienceBalancedBuffer(max_size=mem_size),
+            ClassBalancedBuffer(max_size=mem_size)
+        ]
         for policy in policies:
             self._test_replay_balanced_memory(policy, mem_size)
 
@@ -45,21 +47,19 @@ class ReplayTest(unittest.TestCase):
             n_seen_data += len(step.dataset)
             mem_fill = min(mem_size, n_seen_data)
             cl_strategy.train(step)
-            ext_mem = replayPlugin.ext_mem
             lengths = []
-            for task_id in ext_mem.keys():
-                lengths.append(len(ext_mem[task_id]))
+            for d in replayPlugin.storage_policy.buffer_datasets:
+                lengths.append(len(d))
             self.assertEqual(sum(lengths), mem_fill)  # Always fully filled
 
     def test_balancing(self):
-        p1 = ExperienceBalancedStoragePolicy({}, 100, adaptive_size=True)
-        p2 = ClassBalancedStoragePolicy({}, 100, adaptive_size=True)
+        p1 = ExperienceBalancedBuffer(100, adaptive_size=True)
+        p2 = ClassBalancedBuffer(100, adaptive_size=True)
 
         for policy in [p1, p2]:
             self.assert_balancing(policy)
 
     def assert_balancing(self, policy):
-        ext_mem = policy.ext_mem
         benchmark = get_fast_benchmark(use_task_labels=True)
         replay = ReplayPlugin(mem_size=100, storage_policy=policy)
         model = SimpleMLP(num_classes=benchmark.n_classes)
@@ -73,70 +73,37 @@ class ReplayTest(unittest.TestCase):
 
         for exp in benchmark.train_stream:
             cl_strategy.train(exp)
-            print(list(ext_mem.keys()), [len(el) for el in ext_mem.values()])
+
+            ext_mem = policy.buffer_groups
+            ext_mem_data = policy.buffer_datasets
+            print(list(ext_mem.keys()), [len(el) for el in ext_mem_data])
 
             # buffer size should equal self.mem_size if data is large enough
-            len_tot = sum([len(el) for el in ext_mem.values()])
-            assert len_tot == policy.mem_size
+            len_tot = sum([len(el) for el in ext_mem_data])
+            assert len_tot == policy.max_size
 
 
-class ClassBalancePolicyTest(unittest.TestCase):
+class ParametricBufferTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.memory = {}
-        self.policy = ClassBalancedStoragePolicy(self.memory, mem_size=4)
+        self.benchmark = get_fast_benchmark(use_task_labels=True)
 
-    def test_store_alone_with_enough_memory(self):
-        order = [2, 0, 1, 3]
+    def test_groupings(self):
+        policies = [
+            ParametricBuffer(max_size=10, groupby=None),
+            ParametricBuffer(max_size=10, groupby='class'),
+            ParametricBuffer(max_size=10, groupby='task'),
+            ParametricBuffer(max_size=10, groupby='experience'),
+        ]
+        for p in policies:
+            self._test_policy(p)
 
-        self.observe_exemplars({0: list(range(4))}, selection_order=order)
-
-        self.assert_memory_equal({0: order})
-
-    def test_store_alone_without_enough_memory(self):
-        order = [6, 4, 2, 0, 1, 3, 5]
-
-        self.observe_exemplars({0: list(range(7))}, selection_order=order)
-
-        self.assert_memory_equal({0: order[:4]})
-
-    def test_store_multiple_with_enough_memory(self):
-        self.observe_exemplars({0: [0, 1], 1: [10, 11]}, selection_order=[1, 0])
-
-        self.assert_memory_equal({0: [1, 0], 1: [11, 10]})
-
-    def test_store_multiple_without_enough_memory(self):
-        self.observe_exemplars({0: [0, 1, 2], 1: [10, 11, 12]},
-                               selection_order=[2, 0, 1])
-
-        self.assert_memory_equal({0: [2, 0], 1: [12, 10]})
-
-    def test_sequence(self):
-        # 1st observation
-        self.observe_exemplars({0: [0, 1], 1: [10, 11]}, selection_order=[1, 0])
-        self.assert_memory_equal({0: [1, 0], 1: [11, 10]})
-
-        # 2nd observation
-        self.observe_exemplars({2: [20, 21, 22], 3: [30, 31, 32]},
-                               selection_order=[2, 1, 0])
-        self.assert_memory_equal({0: [1], 1: [11], 2: [22], 3: [32]})
-
-    def observe_exemplars(self, class2exemplars: Dict[int, List[int]],
-                          selection_order: List[int]):
-        self.policy.selection_strategy = FixedSelectionStrategy(selection_order)
-        x = tensor(
-            [i for exemplars in class2exemplars.values() for i in exemplars])
-        y = tensor(
-            [class_id for class_id, exemplars in class2exemplars.items() for _
-             in exemplars]).long()
-        dataset = AvalancheTensorDataset(
-            x, y, dataset_type=AvalancheDatasetType.CLASSIFICATION)
-
-        self.policy(MagicMock(experience=MagicMock(dataset=dataset)))
-
-    def assert_memory_equal(self, class2exemplars: Dict[int, List[int]]):
-        self.assertEqual(class2exemplars,
-                         {class_id: [x.tolist() for x, *_ in memory] for
-                          class_id, memory in self.memory.items()})
+    def _test_policy(self, policy):
+        for exp in self.benchmark.train_stream:
+            policy.update(MagicMock(experience=exp))
+            groups_lens = [(g_id, len(g_data.buffer)) for g_id, g_data in
+                           policy.buffer_groups.items()]
+            print(groups_lens)
+        print("DONE.")
 
 
 class SelectionStrategyTest(unittest.TestCase):
@@ -195,7 +162,7 @@ class AbsLayer(Module):
         return torch.abs(x).reshape((-1, 1))
 
 
-class FixedSelectionStrategy(ClassExemplarsSelectionStrategy):
+class FixedSelectionStrategy(ExemplarsSelectionStrategy):
     """This is a fake strategy used for testing the policy behavior"""
 
     def __init__(self, indices: List[int]):
