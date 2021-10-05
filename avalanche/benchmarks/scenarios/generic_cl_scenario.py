@@ -644,8 +644,10 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
                ']'
 
     def _get_single_exp_classes(self, exp_id):
-        targets = self._benchmark.stream_definitions[
-            self._stream].exps_data.targets_field_sequence[exp_id]
+        b = self._benchmark.stream_definitions[self._stream]
+        if not b.is_lazy and exp_id not in b.exps_data.targets_field_sequence:
+            raise IndexError
+        targets = b.exps_data.targets_field_sequence[exp_id]
         if targets is None:
             return None
         return set(targets)
