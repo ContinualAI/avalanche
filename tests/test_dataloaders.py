@@ -107,7 +107,7 @@ class DataLoaderTests(unittest.TestCase):
             adapted_dataset = step.dataset
             dataloader = ReplayDataLoader(
                     adapted_dataset,
-                    AvalancheConcatDataset(replayPlugin.ext_mem.values()),
+                    replayPlugin.storage_policy.buffer,
                     oversample_small_tasks=True,
                     num_workers=0,
                     batch_size=batch_size,

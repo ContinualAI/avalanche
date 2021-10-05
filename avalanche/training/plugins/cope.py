@@ -49,8 +49,7 @@ class CoPEPlugin(StrategyPlugin):
         self.replay_mem = {}
         self.mem_size = mem_size  # replay memory size
         self.storage_policy = ClassBalancedBuffer(
-            ext_mem=self.replay_mem,
-            mem_size=self.mem_size,
+            max_size=self.mem_size,
             adaptive_size=True)
 
         # Operational memory: Prototypical memory
@@ -167,7 +166,7 @@ class CoPEPlugin(StrategyPlugin):
         store observed samples for replay.
         """
         self._update_prototypes()  # Update prototypes
-        self.storage_policy(strategy)  # Update memory
+        self.storage_policy.update(strategy)  # Update memory
 
     @torch.no_grad()
     def _update_prototypes(self):
