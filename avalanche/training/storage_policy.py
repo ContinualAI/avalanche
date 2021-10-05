@@ -91,6 +91,8 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
     def resize(self, strategy, new_size):
         """ Update the maximum size of the buffer. """
         self.max_size = new_size
+        if len(self.buffer) <= self.max_size:
+            return
         self.buffer = AvalancheSubset(self.buffer, torch.arange(self.max_size))
         self._buffer_weights = self._buffer_weights[:self.max_size]
 
@@ -170,7 +172,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
 
     def resize(self, strategy, new_size):
         """ Update the maximum size of the buffers. """
-        self.size = new_size
+        self.max_size = new_size
         lens = self.get_group_lengths(len(self.buffer_groups))
         for ll, buffer in zip(lens, self.buffer_groups.values()):
             buffer.resize(strategy, ll)
