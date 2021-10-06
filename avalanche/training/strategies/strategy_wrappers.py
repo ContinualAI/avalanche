@@ -524,8 +524,8 @@ class SynapticIntelligence(BaseStrategy):
     """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 si_lambda: float, eps: float = 0.0000001,
-                 train_mb_size: int = 1,
+                 si_lambda: Union[float, Sequence[float]],
+                 eps: float = 0.0000001, train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
@@ -536,6 +536,9 @@ class SynapticIntelligence(BaseStrategy):
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
         :param si_lambda: Synaptic Intelligence lambda term.
+            If list, one lambda for each experience. If the list has less
+            elements than the number of experiences, last lambda will be
+            used for the remaining experiences.
         :param eps: Synaptic Intelligence damping parameter.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
