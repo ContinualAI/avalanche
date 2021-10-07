@@ -14,6 +14,7 @@ import warnings
 import torch
 from torch.utils.data import DataLoader
 from typing import Optional, Sequence, Union, List
+from copy import deepcopy
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -337,6 +338,11 @@ class BaseStrategy:
             self.dataloader,
             self.is_training)
         
+        # save each layer's training mode, to restore it later
+        _prev_model_training_modes = {}
+        for name, layer in self.model.named_modules():
+            _prev_model_training_modes[name] = deepcopy(layer.training)
+        
         curr_epoch = self.clock.train_exp_epochs
         if (self.eval_every == 0 and (do_final or do_initial)) or \
            (self.eval_every > 0 and do_initial) or \
@@ -350,7 +356,11 @@ class BaseStrategy:
         self.experience, self.adapted_dataset = _prev_state[:2]
         self.dataloader = _prev_state[2]
         self.is_training = _prev_state[3]
-        self.model.train()
+        
+        # restore each layer's training mode to original 
+        for name, layer in self.model.named_modules():
+            prev_mode = _prev_model_training_modes[name]
+            layer.train(mode=prev_mode)
 
     def stop_training(self):
         """ Signals to stop training at the next iteration. """
