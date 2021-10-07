@@ -14,7 +14,6 @@ import warnings
 import torch
 from torch.utils.data import DataLoader
 from typing import Optional, Sequence, Union, List
-from copy import deepcopy
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -341,7 +340,7 @@ class BaseStrategy:
         # save each layer's training mode, to restore it later
         _prev_model_training_modes = {}
         for name, layer in self.model.named_modules():
-            _prev_model_training_modes[name] = deepcopy(layer.training)
+            _prev_model_training_modes[name] = layer.training
         
         curr_epoch = self.clock.train_exp_epochs
         if (self.eval_every == 0 and (do_final or do_initial)) or \
