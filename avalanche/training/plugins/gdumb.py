@@ -18,7 +18,7 @@ from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.storage_policy import ClassBalancedStoragePolicy
+from avalanche.training.storage_policy import ClassBalancedBuffer
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy
@@ -43,9 +43,8 @@ class GDumbPlugin(StrategyPlugin):
 
         # model initialization
         self.buffer = {}
-        self.storage_policy = ClassBalancedStoragePolicy(
-            ext_mem=self.buffer,
-            mem_size=self.mem_size,
+        self.storage_policy = ClassBalancedBuffer(
+            max_size=self.mem_size,
             adaptive_size=True
         )
         self.init_model = None
@@ -60,6 +59,5 @@ class GDumbPlugin(StrategyPlugin):
 
     def after_train_dataset_adaptation(self, strategy: "BaseStrategy",
                                        **kwargs):
-        self.storage_policy(strategy, **kwargs)
-        cat_data = AvalancheConcatDataset(self.buffer.values())
-        strategy.adapted_dataset = cat_data
+        self.storage_policy.update(strategy, **kwargs)
+        strategy.adapted_dataset = self.storage_policy.buffer
