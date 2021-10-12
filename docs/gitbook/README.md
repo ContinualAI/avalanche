@@ -4,9 +4,9 @@ description: Powered by ContinualAI
 
 # Avalanche: an End-to-End Library for Continual Learning
 
-![](.gitbook/assets/avalanche_logo_with_clai.png)
+![](../../.gitbook/assets/avalanche_logo_with_clai.png)
 
-**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org/), born within [**ContinualAI**](https://www.continualai.org/) with the unique goal of providing a **shared** and **collaborative** open-source \(MIT licensed\) **codebase** for _fast prototyping_, _training_ and _reproducible_ _evaluation_ of continual learning algorithms.
+**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the unique goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
 
 Avalanche can help _Continual Learning_ researchers and practitioners in several ways:
 
@@ -18,13 +18,13 @@ Avalanche can help _Continual Learning_ researchers and practitioners in several
 
 The library is organized in five main modules:
 
-* **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
+* **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 * **`Evaluation`**: This modules provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system.
-* **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\).
-* **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [TensorBoard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
+* **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)).
+* **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [TensorBoard](https://www.tensorflow.org/tensorboard) support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
-_Avalanche_ the first experiment of a **End-to-end Library** for reproducible continual learning research & development where you can find _benchmarks_, _algorithms,_ _evaluation metrics_ and much more_,_ **in the same place**.
+_Avalanche_ the first experiment of a **End-to-end Library** for [reproducible continual learning](https://github.com/ContinualAI/reproducible-continual-learning) research & development where you can find _benchmarks_, _algorithms,_ _evaluation metrics_ and much more_,_ **in the same place**.
 
 Let's make it together 👫 a wonderful ride! 🎈
 
@@ -206,17 +206,27 @@ We know that learning a new tool _may be tough at first_. This is why we made _A
 
 For example, you may start with our _**5-minutes**_ **guide** that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
-{% page-ref page="getting-started/learn-avalanche-in-5-minutes.md" %}
+{% content-ref url="getting-started/learn-avalanche-in-5-minutes.md" %}
+[learn-avalanche-in-5-minutes.md](getting-started/learn-avalanche-in-5-minutes.md)
+{% endcontent-ref %}
 
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
 
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
+{% endcontent-ref %}
+
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
+
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
+{% endcontent-ref %}
 
 ## 📑 Cite Avalanche
 
 If you used _Avalanche_ in your research project, please remember to cite our reference paper [**"Avalanche: an End-to-End Library for Continual Learning"**](https://arxiv.org/abs/2104.00405). This will help us make _Avalanche_ better known in the machine learning community, ultimately making a better tool for everyone:
 
-```text
+```
 @InProceedings{lomonaco2021avalanche,
     title={Avalanche: an End-to-End Library for Continual Learning},
     author={Vincenzo Lomonaco and Lorenzo Pellegrini and Andrea Cossu and Antonio Carta and Gabriele Graffieti and Tyler L. Hayes and Matthias De Lange and Marc Masana and Jary Pomponi and Gido van de Ven and Martin Mundt and Qi She and Keiland Cooper and Jeremy Forest and Eden Belouadah and Simone Calderara and German I. Parisi and Fabio Cuzzolin and Andreas Tolias and Simone Scardapane and Luca Antiga and Subutai Amhad and Adrian Popescu and Christopher Kanan and Joost van de Weijer and Tinne Tuytelaars and Davide Bacciu and Davide Maltoni},
@@ -228,17 +238,16 @@ If you used _Avalanche_ in your research project, please remember to cite our re
 
 ## 🗂️ Maintained by ContinualAI Lab
 
-![](.gitbook/assets/continualai_lab_logo%20%281%29.png)
+![](<../../.gitbook/assets/continualai_lab_logo (1).png>)
 
 _Avalanche_ is the flagship open-source collaborative project of [**ContinualAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
 
-Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
+Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/\~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
-The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _and used extensively by the Units_ of the [_**ContinualAI Research \(CLAIR\)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world_._
+The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _and used extensively by the Units_ of the [_**ContinualAI Research (CLAIR)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world_._
 
 We are always looking for new _awesome members_ willing to join the _ContinualAI Lab_, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](contacts-and-links/the-team.md#contacts).
 
 Learn more about the [_**Avalanche team and all the people who made it great**_](contacts-and-links/the-team.md)_!_
 
 ![](https://contrib.rocks/image?repo=ContinualAI/avalanche)
-
