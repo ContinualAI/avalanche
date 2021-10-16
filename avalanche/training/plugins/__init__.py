@@ -11,3 +11,4 @@ from .synaptic_intelligence import SynapticIntelligencePlugin
 from .gss_greedy import GSS_greedyPlugin
 from .cope import CoPEPlugin, PPPloss
 from .lfl import LFLPlugin
+from .early_stopping import EarlyStoppingPlugin
