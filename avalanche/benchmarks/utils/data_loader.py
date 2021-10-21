@@ -359,5 +359,6 @@ class ReplayDataLoader:
 __all__ = [
     'TaskBalancedDataLoader',
     'GroupBalancedDataLoader',
-    'ReplayDataLoader'
+    'ReplayDataLoader',
+    'GroupBalancedInfiniteDataLoader'
 ]
