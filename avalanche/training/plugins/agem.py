@@ -54,9 +54,11 @@ class AGEMPlugin(StrategyPlugin):
             out = avalanche_forward(strategy.model, xref, tid)
             loss = strategy._criterion(out, yref)
             loss.backward()
+            # gradient can be None for some head on multi-headed models
             self.reference_gradients = [
                 p.grad.view(-1) for n, p
-                in strategy.model.named_parameters() if p.requires_grad]
+                in strategy.model.named_parameters()
+                if p.grad is not None]
             self.reference_gradients = torch.cat(self.reference_gradients)
             strategy.optimizer.zero_grad()
 
@@ -69,7 +71,7 @@ class AGEMPlugin(StrategyPlugin):
             current_gradients = [
                 p.grad.view(-1)
                 for n, p in strategy.model.named_parameters()
-                if p.requires_grad]
+                if p.grad is not None]
             current_gradients = torch.cat(current_gradients)
 
             assert current_gradients.shape == self.reference_gradients.shape, \
