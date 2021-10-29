@@ -86,7 +86,7 @@ class AGEMPlugin(StrategyPlugin):
                 
                 count = 0 
                 for n, p in strategy.model.named_parameters():
-                    if p.requires_grad:
+                    if p.grad is not None:
                         n_param = p.numel()      
                         p.grad.copy_(grad_proj[count:count+n_param].view_as(p))
                         count += n_param
