@@ -56,9 +56,9 @@ class AGEMPlugin(StrategyPlugin):
             loss.backward()
             # gradient can be None for some head on multi-headed models
             self.reference_gradients = [
-                p.grad.view(-1) for n, p
-                in strategy.model.named_parameters()
-                if p.grad is not None]
+                p.grad.view(-1) if p.grad is not None
+                else torch.zeros(p.numel(), device=strategy.device)
+                for n, p in strategy.model.named_parameters()]
             self.reference_gradients = torch.cat(self.reference_gradients)
             strategy.optimizer.zero_grad()
 
@@ -69,9 +69,9 @@ class AGEMPlugin(StrategyPlugin):
         """
         if len(self.buffers) > 0:
             current_gradients = [
-                p.grad.view(-1)
-                for n, p in strategy.model.named_parameters()
-                if p.grad is not None]
+                p.grad.view(-1) if p.grad is not None
+                else torch.zeros(p.numel(), device=strategy.device)
+                for n, p in strategy.model.named_parameters()]
             current_gradients = torch.cat(current_gradients)
 
             assert current_gradients.shape == self.reference_gradients.shape, \
@@ -86,10 +86,10 @@ class AGEMPlugin(StrategyPlugin):
                 
                 count = 0 
                 for n, p in strategy.model.named_parameters():
-                    if p.requires_grad:
-                        n_param = p.numel()      
+                    n_param = p.numel()
+                    if p.grad is not None:
                         p.grad.copy_(grad_proj[count:count+n_param].view_as(p))
-                        count += n_param
+                    count += n_param
 
     def after_training_exp(self, strategy, **kwargs):
         """ Update replay memory with patterns from current experience. """
