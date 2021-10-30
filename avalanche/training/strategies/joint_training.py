@@ -132,4 +132,3 @@ class JointTraining(BaseStrategy):
 
 
 __all__ = ['JointTraining']
-
