@@ -1,10 +1,7 @@
-import random
-
 import torch
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.benchmarks.utils.data_loader import GroupBalancedDataLoader, \
+from avalanche.benchmarks.utils.data_loader import \
     GroupBalancedInfiniteDataLoader
 from avalanche.models import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
