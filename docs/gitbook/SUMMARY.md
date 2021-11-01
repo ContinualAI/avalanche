@@ -29,6 +29,10 @@
 * [Extending Avalanche](from-zero-to-hero-tutorial/08_extending-avalanche.md)
 * [Contribute to Avalanche](from-zero-to-hero-tutorial/09_contribute-to-avalanche.md)
 
+## How-Tos
+
+* [Dataloaders, Buffers, and Replay](how-tos/dataloading_buffers_replay.md)
+
 ## 💻 Code Documentation
 
 * [Avalanche API](https://avalanche-api.continualai.org)
