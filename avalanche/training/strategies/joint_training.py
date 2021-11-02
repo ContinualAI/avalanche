@@ -19,6 +19,7 @@ from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.strategies import BaseStrategy
+from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
@@ -120,6 +121,14 @@ class JointTraining(BaseStrategy):
                                                exp.dataset])
             self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
+
+    def model_adaptation(self):
+        """ Adapts strategy's model for all experiences. """
+        for experience in self._experiences:
+            for module in self.model.modules():
+                if isinstance(module, DynamicModule):
+                    module.adaptation(experience.dataset)
+            self.model = self.model.to(self.device)
 
 
 __all__ = ['JointTraining']
