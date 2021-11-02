@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Dict, Tuple
+import warnings
 
 import torch
 from torch import Tensor
@@ -114,6 +115,19 @@ class EWCPlugin(StrategyPlugin):
         """
 
         model.eval()
+
+        # Set RNN-like modules on GPU to training mode to avoid CUDA error
+        if device == 'cuda':
+            for module in model.modules():
+                if isinstance(module, torch.nn.RNNBase):
+                    warnings.warn(
+                        'RNN-like modules do not support '
+                        'backward calls while in `eval` mode on CUDA '
+                        'devices. Setting all `RNNBase` modules to '
+                        '`train` mode. May produce inconsistent '
+                        'output if such modules have `dropout` > 0.'
+                    )
+                    module.train()
 
         # list of list
         importances = zerolike_params_dict(model)
