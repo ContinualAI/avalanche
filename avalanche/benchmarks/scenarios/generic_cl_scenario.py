@@ -6,6 +6,7 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
 
 import warnings
 from torch.utils.data.dataset import Dataset
+from gym import Env
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TExperience, ScenarioStream, TScenarioStream, Experience, TScenario
@@ -19,8 +20,9 @@ TGenericExperience = TypeVar('TGenericExperience', bound='GenericExperience')
 TGenericScenarioStream = TypeVar('TGenericScenarioStream',
                                  bound='GenericScenarioStream')
 
+RLStreamDataOrigin = Union[Env, Sequence[Env]]
 TStreamDataOrigin = Union[AvalancheDataset, Sequence[AvalancheDataset],
-                          Tuple[Iterable[AvalancheDataset], int]]
+                          Tuple[Iterable[AvalancheDataset], int], RLStreamDataOrigin]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
 
@@ -436,6 +438,8 @@ class GenericCLScenario(Generic[TExperience]):
             exp_data = [exp_data]
             is_lazy = False
             stream_length = 1
+        elif isinstance(exp_data, Env) or all([isinstance(e, Env) for e in exp_data]):
+            return StreamDef(exp_data, None, None, False)
         else:
             # Standard def
             stream_length = len(exp_data)
