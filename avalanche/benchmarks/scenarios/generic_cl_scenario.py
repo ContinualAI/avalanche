@@ -22,7 +22,8 @@ TGenericScenarioStream = TypeVar('TGenericScenarioStream',
 
 RLStreamDataOrigin = Union[Env, Sequence[Env]]
 TStreamDataOrigin = Union[AvalancheDataset, Sequence[AvalancheDataset],
-                          Tuple[Iterable[AvalancheDataset], int], RLStreamDataOrigin]
+                          Tuple[Iterable[AvalancheDataset], int], 
+                          RLStreamDataOrigin]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
 
@@ -438,7 +439,8 @@ class GenericCLScenario(Generic[TExperience]):
             exp_data = [exp_data]
             is_lazy = False
             stream_length = 1
-        elif isinstance(exp_data, Env) or all([isinstance(e, Env) for e in exp_data]):
+        elif isinstance(exp_data, Env) or \
+                all([isinstance(e, Env) for e in exp_data]):
             return StreamDef(exp_data, None, None, False)
         else:
             # Standard def
