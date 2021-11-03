@@ -93,7 +93,7 @@ class WandBLogger(StrategyLogger):
         self.init_kwargs = {"project": self.project_name, "name": self.run_name, 
                             "sync_tensorboard": self.sync_tfboard, 
                             "dir": self.dir, "save_code": self.save_code, 
-                            "config": vars(self.config)}
+                            "config": self.config}
         if self.params:
             self.init_kwargs.update(self.params)
 
