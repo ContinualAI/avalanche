@@ -6,7 +6,12 @@ from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
 
 import warnings
 from torch.utils.data.dataset import Dataset
-from gym import Env
+try:
+    from gym import Env
+except ImportError:
+    # empty class to make sure everything below works without changes
+    class Env:
+        pass
 
 from avalanche.benchmarks.scenarios.generic_definitions import \
     TExperience, ScenarioStream, TScenarioStream, Experience, TScenario
