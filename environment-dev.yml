@@ -31,3 +31,4 @@ dependencies:
 - pip:
     - pytorchcv
     - gdown
+    - gym
