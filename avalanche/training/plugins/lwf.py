@@ -2,7 +2,7 @@ import copy
 
 import torch
 
-from avalanche.models import avalanche_forward, DynamicModule, MultiTaskModule
+from avalanche.models import avalanche_forward, MultiTaskModule
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
@@ -12,6 +12,7 @@ class LwFPlugin(StrategyPlugin):
     LwF uses distillation to regularize the current loss with soft targets
     taken from a previous version of the model.
     This plugin does not use task identities.
+    When used with multi-headed models, all heads are distilled.
     """
 
     def __init__(self, alpha=1, temperature=2):
