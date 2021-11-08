@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class StrategyPlugin(StrategyCallbacks[Any]):
     """
     Base class for strategy plugins. Implements all the callbacks required
-    by the BaseStrategy with an empty function. Subclasses must override
+    by the BaseStrategy with an empty function. Subclasses should override
     the callbacks.
     """
 
