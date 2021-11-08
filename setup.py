@@ -27,7 +27,7 @@ setuptools.setup(
                 "Research",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/vlomonaco/avalanche",
+    url="https://github.com/ContinualAI/avalanche",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -47,6 +47,9 @@ setuptools.setup(
         'wandb',
         'tensorboard',
         'pycocotools',
-        'tqdm'
+        'tqdm',
+        'torch',
+        'torchvision',
+        'gdown',
     ]
 )
