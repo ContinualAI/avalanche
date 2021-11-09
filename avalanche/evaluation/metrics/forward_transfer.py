@@ -40,8 +40,6 @@ class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
         Creates an instance of the standalone Forward Transfer metric
         """
 
-        super().__init__()
-
         self.initial: Dict[int, float] = dict()
         """
         The initial value for each key. This is the accuracy at 

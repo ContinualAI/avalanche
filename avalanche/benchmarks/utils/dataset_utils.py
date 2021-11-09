@@ -246,8 +246,6 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
             means that the second sequence (usually containing the "y" values)
             will be used for the targets field.
         """
-        super().__init__()
-
         if len(sequences) < 1:
             raise ValueError('At least one sequence must be passed')
 

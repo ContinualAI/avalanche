@@ -45,7 +45,6 @@ class MeanScores(Metric):
     """
 
     def __init__(self):
-        super().__init__()
         self.label2mean: Dict[int, Mean] = defaultdict(Mean)
         self.reset()
 
