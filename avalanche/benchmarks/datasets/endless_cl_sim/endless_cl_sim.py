@@ -37,7 +37,7 @@ class ClassificationSubSequence(Dataset):
     def __init__(self, file_paths, targets, patch_size=64,
                  labelmap_path=None, transform=None, target_transform=None):
         """
-        Dataset that contains image-patches and targets for one subsequence of
+        Dataset containing image-patches and targets for one subsequence of
         an endless continual learning simulator's sequence, that has been
         converted for image-patch classification.
 
