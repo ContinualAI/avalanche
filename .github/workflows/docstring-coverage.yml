@@ -59,7 +59,6 @@ jobs:
           git pull
           git add .
           git commit -m "Update coverage badge" -a || true
-          git pull
       - name: Push changes
         if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         continue-on-error: true
