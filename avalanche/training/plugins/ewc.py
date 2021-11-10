@@ -132,7 +132,8 @@ class EWCPlugin(StrategyPlugin):
         # list of list
         importances = zerolike_params_dict(model)
         dataloader = DataLoader(dataset, batch_size=batch_size)
-        for i, (x, y, task_labels) in enumerate(dataloader):
+        for i, batch in enumerate(dataloader):
+            x, y, task_labels = batch[0], batch[1], batch[-1]
             x, y = x.to(device), y.to(device)
 
             optimizer.zero_grad()
