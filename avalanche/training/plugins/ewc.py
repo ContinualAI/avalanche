@@ -133,6 +133,7 @@ class EWCPlugin(StrategyPlugin):
         importances = zerolike_params_dict(model)
         dataloader = DataLoader(dataset, batch_size=batch_size)
         for i, batch in enumerate(dataloader):
+            # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]
             x, y = x.to(device), y.to(device)
 
