@@ -36,8 +36,8 @@ class CSVLogger(StrategyLogger):
     associated to the current training experience, set
     `eval_every=1` (or larger value) in the strategy constructor
     and pass the eval experience to the `train` method:
-    `for i, exp in enumerate(scenario.train_stream):`
-        `strategy.train(exp, eval_streams=[scenario.test_stream[i]])`
+    `for i, exp in enumerate(benchmark.train_stream):`
+        `strategy.train(exp, eval_streams=[benchmark.test_stream[i]])`
 
     When not provided, validation loss and validation accuracy
     will be logged as zero.
@@ -86,7 +86,7 @@ class CSVLogger(StrategyLogger):
         print('eval_exp', 'training_exp', 'eval_accuracy', 'eval_loss',
               'forgetting', sep=',', file=self.eval_file, flush=True)
 
-    def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
+    def log_single_metric(self, name, value, x_plot) -> None:
         pass
 
     def _val_to_str(self, m_val):
@@ -121,7 +121,8 @@ class CSVLogger(StrategyLogger):
                 elif val.name.startswith('Loss_Epoch'):
                     train_loss = val.value
 
-        self.print_train_metrics(self.training_exp_id, strategy.epoch,
+        self.print_train_metrics(self.training_exp_id,
+                                 strategy.clock.train_exp_epochs,
                                  train_acc, self.val_acc, train_loss,
                                  self.val_loss)
 

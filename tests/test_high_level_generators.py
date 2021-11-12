@@ -11,6 +11,7 @@ from torchvision.transforms import ToTensor
 from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
     tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
     benchmark_with_validation_stream
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_lazy_generic_benchmark, LazyStreamDefinition
 from avalanche.benchmarks.utils import AvalancheDataset, \
@@ -24,56 +25,53 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark(self):
         train_MNIST = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
-            train=True, download=True
-        )
+            root=default_dataset_location('mnist'),
+            train=True, download=True)
         test_MNIST = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
-            train=False, download=True
-        )
+            root=default_dataset_location('mnist'),
+            train=False, download=True)
 
         train_cifar10 = CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
-            train=True, download=True
-        )
+            root=default_dataset_location('cifar10'),
+            train=True, download=True)
         test_cifar10 = CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=False, download=True
         )
 
-        generic_scenario = dataset_benchmark(
+        generic_benchmark = dataset_benchmark(
             [train_MNIST, train_cifar10],
             [test_MNIST, test_cifar10])
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = AvalancheDataset(MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location('mnist'),
             train=True, download=True
         ), task_labels=0)
 
         test_MNIST = AvalancheDataset(MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location('mnist'),
             train=False, download=True
         ), task_labels=0)
 
         train_cifar10 = AvalancheDataset(CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=True, download=True
         ), task_labels=1)
 
         test_cifar10 = AvalancheDataset(CIFAR10(
-            root=expanduser("~") + "/.avalanche/data/cifar10/",
+            root=default_dataset_location('cifar10'),
             train=False, download=True
         ), task_labels=1)
 
-        generic_scenario = dataset_benchmark(
+        generic_benchmark = dataset_benchmark(
             [train_MNIST, train_cifar10],
             [test_MNIST, test_cifar10])
 
-        self.assertEqual(0, generic_scenario.train_stream[0].task_label)
-        self.assertEqual(1, generic_scenario.train_stream[1].task_label)
-        self.assertEqual(0, generic_scenario.test_stream[0].task_label)
-        self.assertEqual(1, generic_scenario.test_stream[1].task_label)
+        self.assertEqual(0, generic_benchmark.train_stream[0].task_label)
+        self.assertEqual(1, generic_benchmark.train_stream[1].task_label)
+        self.assertEqual(0, generic_benchmark.test_stream[0].task_label)
+        self.assertEqual(1, generic_benchmark.test_stream[1].task_label)
 
     def test_filelist_benchmark(self):
         download_url(
@@ -100,7 +98,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         "{} {}\n".format(os.path.join(dir, name), label)
                     )
 
-        generic_scenario = filelist_benchmark(
+        generic_benchmark = filelist_benchmark(
             dirpath,
             ["train_filelist_00.txt", "train_filelist_01.txt"],
             ["train_filelist_00.txt"],
@@ -110,8 +108,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
             eval_transform=ToTensor()
         )
 
-        self.assertEqual(2, len(generic_scenario.train_stream))
-        self.assertEqual(1, len(generic_scenario.test_stream))
+        self.assertEqual(2, len(generic_benchmark.train_stream))
+        self.assertEqual(1, len(generic_benchmark.test_stream))
 
     def test_paths_benchmark(self):
         download_url(
@@ -138,7 +136,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 experience_paths.append(instance_tuple)
             train_experiences.append(experience_paths)
 
-        generic_scenario = paths_benchmark(
+        generic_benchmark = paths_benchmark(
             train_experiences,
             [train_experiences[0]],  # Single test set
             task_labels=[0, 0],
@@ -147,8 +145,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
             eval_transform=ToTensor()
         )
 
-        self.assertEqual(2, len(generic_scenario.train_stream))
-        self.assertEqual(1, len(generic_scenario.test_stream))
+        self.assertEqual(2, len(generic_benchmark.train_stream))
+        self.assertEqual(1, len(generic_benchmark.test_stream))
 
     def test_tensors_benchmark(self):
         pattern_shape = (3, 32, 32)
@@ -166,7 +164,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
 
-        generic_scenario = tensors_benchmark(
+        generic_benchmark = tensors_benchmark(
             train_tensors=[(experience_1_x, experience_1_y),
                            (experience_2_x, experience_2_y)],
             test_tensors=[(test_x, test_y)],
@@ -174,8 +172,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
             complete_test_set_only=True
         )
 
-        self.assertEqual(2, len(generic_scenario.train_stream))
-        self.assertEqual(1, len(generic_scenario.test_stream))
+        self.assertEqual(2, len(generic_benchmark.train_stream))
+        self.assertEqual(1, len(generic_benchmark.test_stream))
 
     def test_data_incremental_benchmark(self):
         pattern_shape = (3, 32, 32)

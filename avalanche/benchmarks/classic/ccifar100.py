@@ -49,12 +49,12 @@ def SplitCIFAR100(
         eval_transform: Optional[Any] = _default_cifar100_eval_transform,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario using the CIFAR100 dataset.
+    Creates a CL benchmark using the CIFAR100 dataset.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -65,17 +65,17 @@ def SplitCIFAR100(
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of incremental experiences in the current
-        scenario. The value of this parameter should be a divisor of 100 if
+        benchmark. The value of this parameter should be a divisor of 100 if
         first_task_with_half_classes is False, a divisor of 50 otherwise.
     :param first_exp_with_half_classes: A boolean value that indicates if a
         first pretraining batch containing half of the classes should be used.
@@ -149,7 +149,7 @@ def SplitCIFAR110(
         dataset_root_cifar10: Union[str, Path] = None,
         dataset_root_cifar100: Union[str, Path] = None) -> NCScenario:
     """
-    Creates a CL scenario using both the CIFAR100 and CIFAR10 datasets.
+    Creates a CL benchmark using both the CIFAR100 and CIFAR10 datasets.
 
     If the datasets are not present in the computer, this method will
     automatically download and store them in the data folder.
@@ -157,7 +157,7 @@ def SplitCIFAR110(
     The CIFAR10 dataset is used to create the first experience, while the
     remaining `n_experiences-1` experiences will be created from CIFAR100.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -166,17 +166,17 @@ def SplitCIFAR110(
 
     This generator will apply a task label "0" to all experiences.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label (always "0" for this specific
     benchmark).
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
-    :param n_experiences: The number of experiences for the entire scenario.
+    :param n_experiences: The number of experiences for the entire benchmark.
         The first experience will contain the entire CIFAR10 dataset, while the
         other n-1 experiences will be obtained from CIFAR100.
     :param seed: A valid int used to initialize the random number generator.

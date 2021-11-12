@@ -13,18 +13,25 @@ from torchvision.transforms import Compose, ToTensor
 from avalanche.benchmarks import nc_benchmark
 
 
+UPDATE_METRICS = False
+if 'UPDATE_METRICS' in os.environ:
+    UPDATE_METRICS = os.environ['UPDATE_METRICS'].lower() == 'true'
+
+print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+
+
 def common_setups():
     # adapt_dataset_urls()
     pass
 
 
-def load_scenario(use_task_labels=False, fast_test=True):
+def load_benchmark(use_task_labels=False, fast_test=True):
     """
-    Returns a NC Scenario from a fake dataset of 10 classes, 5 experiences,
+    Returns a NC Benchmark from a fake dataset of 10 classes, 5 experiences,
     2 classes per experience.
     """
     if fast_test:
-        my_nc_benchmark = get_fast_scenario(use_task_labels)
+        my_nc_benchmark = get_fast_benchmark(use_task_labels)
     else:
         mnist_train = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/",
@@ -42,7 +49,7 @@ def load_scenario(use_task_labels=False, fast_test=True):
     return my_nc_benchmark
 
 
-def get_fast_scenario(use_task_labels=False, shuffle=True):
+def get_fast_benchmark(use_task_labels=False, shuffle=True):
     n_samples_per_class = 100
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
@@ -87,8 +94,8 @@ def get_device():
 
 __all__ = [
     'common_setups',
-    'load_scenario',
-    'get_fast_scenario',
+    'load_benchmark',
+    'get_fast_benchmark',
     'load_experience_train_eval',
     'get_device'
 ]

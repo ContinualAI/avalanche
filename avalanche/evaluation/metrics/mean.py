@@ -29,7 +29,6 @@ class Mean(Metric[float]):
         The metric can be updated by using the `update` method while the mean
         can be retrieved using the `result` method.
         """
-        super().__init__()
         self.summed: float = 0.0
         self.weight: float = 0.0
 
@@ -70,6 +69,17 @@ class Mean(Metric[float]):
         self.summed = 0.0
         self.weight = 0.0
 
+    def __add__(self, other: 'Mean') -> "Mean":
+        """
+        Return a metric representing the weighted mean of the 2 means.
+
+        :param other: the other mean
+        :return: The weighted mean"""
+        res = Mean()
+        res.summed = self.summed + other.summed
+        res.weight = self.weight + other.weight
+        return res
+
 
 class Sum(Metric[float]):
     """
@@ -90,7 +100,6 @@ class Sum(Metric[float]):
         The metric can be updated by using the `update` method while the sum
         can be retrieved using the `result` method.
         """
-        super().__init__()
         self.summed: float = 0.0
 
     def update(self, value: SupportsFloat) -> None:

@@ -113,10 +113,10 @@ class ConfusionMatrix(Metric[Tensor]):
         # SELECT VALID PORTION OF TARGET AND PREDICTIONS
         true_y = torch.as_tensor(true_y)
         if len(true_y.shape) == 2 and self._num_classes is not None:
-            true_y = true_y[:, :max_label]
+            true_y = true_y[:, :max_label+1]
         predicted_y = torch.as_tensor(predicted_y)
         if len(predicted_y.shape) == 2 and self._num_classes is not None:
-            predicted_y = predicted_y[:, :max_label]
+            predicted_y = predicted_y[:, :max_label+1]
 
         # COMPUTE MAX LABEL AND CONVERT TARGET AND PREDICTIONS IF NEEDED
         if len(predicted_y.shape) > 1:
@@ -319,7 +319,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         if self._save_image:
             class_order = self._get_display_class_order(exp_cm, strategy)
@@ -339,12 +339,12 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def _get_display_class_order(self, exp_cm: Tensor, strategy: 'BaseStrategy'
                                  ) -> ndarray:
-        scenario = strategy.experience.scenario
+        benchmark = strategy.experience.benchmark
 
-        if self.absolute_class_order or not isinstance(scenario, NCScenario):
+        if self.absolute_class_order or not isinstance(benchmark, NCScenario):
             return arange(len(exp_cm))
 
-        return scenario.classes_order
+        return benchmark.classes_order
 
     def __str__(self):
         return "ConfusionMatrix_Stream"
@@ -405,7 +405,7 @@ class WandBStreamConfusionMatrix(PluginMetric):
             .format(str(self),
                     phase_name,
                     stream)
-        plot_x_position = self.get_global_counter()
+        plot_x_position = strategy.clock.train_iterations
 
         # compute predicted classes
         preds = torch.argmax(outputs, dim=1).cpu().numpy()

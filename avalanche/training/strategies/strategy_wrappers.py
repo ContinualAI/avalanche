@@ -17,7 +17,8 @@ from avalanche.models.pnn import PNN
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, AGEMPlugin, GEMPlugin, EWCPlugin, \
-    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin
+    EvaluationPlugin, SynapticIntelligencePlugin, CoPEPlugin, \
+    GSS_greedyPlugin, LFLPlugin
 from avalanche.training.strategies.base_strategy import BaseStrategy
 
 
@@ -203,7 +204,54 @@ class Replay(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
+
         rp = ReplayPlugin(mem_size)
+        if plugins is None:
+            plugins = [rp]
+        else:
+            plugins.append(rp)
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, 
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, 
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
+class GSS_greedy(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 mem_size: int = 200, mem_strength=1, input_size=[],
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """ Experience replay strategy. See ReplayPlugin for more details.
+        This strategy does not use task identities.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param mem_size: replay buffer size.
+        :param n: memory random set size.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+        rp = GSS_greedyPlugin(mem_size=mem_size,
+                              mem_strength=mem_strength, input_size=input_size)
         if plugins is None:
             plugins = [rp]
         else:
@@ -445,7 +493,6 @@ class EWC(BaseStrategy):
                 if >0: calls `eval` every `eval_every` epochs and at the end
                     of all the epochs for a single experience.
         """
-
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
             plugins = [ewc]
@@ -477,7 +524,8 @@ class SynapticIntelligence(BaseStrategy):
     """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 si_lambda: float, train_mb_size: int = 1,
+                 si_lambda: Union[float, Sequence[float]],
+                 eps: float = 0.0000001, train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
@@ -488,6 +536,10 @@ class SynapticIntelligence(BaseStrategy):
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
         :param si_lambda: Synaptic Intelligence lambda term.
+            If list, one lambda for each experience. If the list has less
+            elements than the number of experiences, last lambda will be
+            used for the remaining experiences.
+        :param eps: Synaptic Intelligence damping parameter.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
@@ -508,7 +560,7 @@ class SynapticIntelligence(BaseStrategy):
 
         # This implementation relies on the S.I. Plugin, which contains the
         # entire implementation of the strategy!
-        plugins.append(SynapticIntelligencePlugin(si_lambda))
+        plugins.append(SynapticIntelligencePlugin(si_lambda=si_lambda, eps=eps))
 
         super(SynapticIntelligence, self).__init__(
             model, optimizer, criterion, train_mb_size, train_epochs,
@@ -571,6 +623,53 @@ class CoPE(BaseStrategy):
             evaluator=evaluator, eval_every=eval_every)
 
 
+class LFL(BaseStrategy):
+
+    def __init__(self, model: Module, optimizer: Optimizer, criterion,
+                 lambda_e: Union[float, Sequence[float]],
+                 train_mb_size: int = 1, train_epochs: int = 1,
+                 eval_mb_size: int = None, device=None,
+                 plugins: Optional[List[StrategyPlugin]] = None,
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+        """ Less Forgetful Learning strategy.
+            See LFL plugin for details.
+            Refer Paper: https://arxiv.org/pdf/1607.00122.pdf
+            This strategy does not use task identities.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param lambda_e: euclidean loss hyper parameter. It can be either a
+                float number or a list containing lambda_e for each experience.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop.
+                if -1: no evaluation during training.
+                if  0: calls `eval` after the final epoch of each training
+                    experience.
+                if >0: calls `eval` every `eval_every` epochs and at the end
+                    of all the epochs for a single experience.
+        """
+
+        lfl = LFLPlugin(lambda_e)
+        if plugins is None:
+            plugins = [lfl]
+        else:
+            plugins.append(lfl)
+
+        super().__init__(
+            model, optimizer, criterion,
+            train_mb_size=train_mb_size, train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every)
+
+
 __all__ = [
     'Naive',
     'CWRStar',
@@ -581,5 +680,7 @@ __all__ = [
     'GEM',
     'EWC',
     'SynapticIntelligence',
-    'CoPE'
+    'GSS_greedy',
+    'CoPE',
+    'LFL'
 ]

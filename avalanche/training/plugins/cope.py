@@ -8,7 +8,7 @@ from torch.nn.modules import Module
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.plugins.replay import ClassBalancedStoragePolicy
+from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import \
     ReplayDataLoader
 
@@ -27,7 +27,7 @@ class CoPEPlugin(StrategyPlugin):
     """
 
     def __init__(self, mem_size=200, n_classes=10, p_size=100, alpha=0.99,
-                 T=0.1):
+                 T=0.1, max_it_cnt=1):
         """
         :param mem_size: max number of input samples in the replay memory.
         :param n_classes: total number of classes that will be encountered. This
@@ -38,16 +38,18 @@ class CoPEPlugin(StrategyPlugin):
         :param alpha: The momentum for the exponentially moving average of the
         prototypes.
         :param T: The softmax temperature, used as a concentration parameter.
+        :param max_it_cnt: How many processing iterations per batch (experience)
         """
         super().__init__()
         self.n_classes = n_classes
+        self.it_cnt = 0
+        self.max_it_cnt = max_it_cnt
 
         # Operational memory: replay memory
         self.replay_mem = {}
         self.mem_size = mem_size  # replay memory size
-        self.storage_policy = ClassBalancedStoragePolicy(
-            ext_mem=self.replay_mem,
-            mem_size=self.mem_size,
+        self.storage_policy = ClassBalancedBuffer(
+            max_size=self.mem_size,
             adaptive_size=True)
 
         # Operational memory: Prototypical memory
@@ -61,17 +63,28 @@ class CoPEPlugin(StrategyPlugin):
         self.T = T
         self.ppp_loss = PPPloss(self.p_mem, T=self.T)
 
+        self.initialized = False
+
     def before_training(self, strategy, **kwargs):
         """ Enforce using the PPP-loss and add a NN-classifier."""
-        strategy._criterion = self.ppp_loss
-        print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
+        if not self.initialized:
+            strategy._criterion = self.ppp_loss
+            print("Using the Pseudo-Prototypical-Proxy loss for CoPE.")
 
-        # Normalize representation of last layer
-        swap_last_fc_layer(strategy.model,
-                           torch.nn.Sequential(
-                               get_last_fc_layer(strategy.model)[1],
-                               L2Normalization())
-                           )
+            # Normalize representation of last layer
+            swap_last_fc_layer(strategy.model,
+                               torch.nn.Sequential(
+                                   get_last_fc_layer(strategy.model)[1],
+                                   L2Normalization())
+                               )
+
+            # Static prototype init
+            # Create prototypes for all classes at once
+            if not self.p_init_adaptive and len(self.p_mem) == 0:
+                self._init_new_prototypes(
+                    torch.arange(0, self.n_classes).to(strategy.device))
+
+            self.initialized = True
 
     def before_training_exp(self, strategy, num_workers=0, shuffle=True,
                             **kwargs):
@@ -79,16 +92,32 @@ class CoPEPlugin(StrategyPlugin):
         Random retrieval from a class-balanced memory.
         Dataloader builds batches containing examples from both memories and
         the training dataset.
+        This implementation requires the use of early stopping, otherwise the
+        entire memory will be iterated.
         """
         if len(self.replay_mem) == 0:
             return
+        self.it_cnt = 0
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             AvalancheConcatDataset(self.replay_mem.values()),
-            oversample_small_tasks=True,
+            oversample_small_tasks=False,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size * 2,
+            force_data_batch_size=strategy.train_mb_size,
             shuffle=shuffle)
+
+    def after_training_iteration(self, strategy, **kwargs):
+        """
+        Implements early stopping, determining how many subsequent times a
+        batch can be used for updates. The dataloader contains only data for
+        the current experience (batch) and the entire memory.
+        Multiple iterations will hence result in the original batch with new
+        exemplars sampled from the memory for each iteration.
+        """
+        self.it_cnt += 1
+        if self.it_cnt == self.max_it_cnt:
+            strategy.stop_training()  # Stop processing the new-data batch
 
     def after_forward(self, strategy, **kwargs):
         """
@@ -101,9 +130,6 @@ class CoPEPlugin(StrategyPlugin):
 
         if self.p_init_adaptive:  # Init prototypes for unseen classes in batch
             self._init_new_prototypes(strategy.mb_y)
-        elif len(self.p_mem) == 0:  # Create prototypes for all classes at once
-            self._init_new_prototypes(
-                torch.arange(0, self.n_classes).to(strategy.device))
 
         # Update batch info (when multiple iterations on same batch)
         self._update_running_prototypes(strategy)
@@ -140,7 +166,7 @@ class CoPEPlugin(StrategyPlugin):
         store observed samples for replay.
         """
         self._update_prototypes()  # Update prototypes
-        self.storage_policy(strategy)  # Update memory
+        self.storage_policy.update(strategy)  # Update memory
 
     @torch.no_grad()
     def _update_prototypes(self):
@@ -247,7 +273,7 @@ class PPPloss(object):
 
             p_idx = torch.nonzero(p_y == c).squeeze(dim=1)  # Prototypes
             pc = p_x[p_idx]  # Class proto
-            pk = torch.cat([p_x[:p_idx], p_x[p_idx + 1:]])  # Other class proto
+            pk = torch.cat([p_x[:p_idx], p_x[p_idx + 1:]]).clone().detach()
 
             # Accumulate loss for instances of class c
             sum_logLc = self.attractor(pc, pk, Bc)
@@ -287,7 +313,7 @@ class PPPloss(object):
         :param Bk: Batch of instances of other-than-c classes (k).
         :return: Sum_{i, part of same class c} Sum_{x_j^k} log 1 - P(c|x_j^k)
         """
-        union_ck = torch.cat([Bc, pc, pk])
+        union_ck = torch.cat([Bc.clone(), pc, pk]).detach()
         pk_idx = union_ck.shape[0] - pk.shape[0]
 
         # Distance other-class-k to prototypes (pc/pk) and pseudo-prototype (xc)

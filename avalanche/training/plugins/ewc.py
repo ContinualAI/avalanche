@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Dict, Tuple
+import warnings
 
 import torch
 from torch import Tensor
@@ -40,7 +41,10 @@ class EWCPlugin(StrategyPlugin):
         """
 
         super().__init__()
-
+        assert (decay_factor is None) or (mode == 'online'), \
+            "You need to set `online` mode to use `decay_factor`."
+        assert (decay_factor is not None) or (mode != 'online'), \
+            "You need to set `decay_factor` to use the `online` mode."
         assert mode == 'separate' or mode == 'online', \
             'Mode must be separate or online.'
 
@@ -60,24 +64,25 @@ class EWCPlugin(StrategyPlugin):
         """
         Compute EWC penalty and add it to the loss.
         """
-
-        if strategy.training_exp_counter == 0:
+        exp_counter = strategy.clock.train_exp_counter
+        if exp_counter == 0:
             return
 
         penalty = torch.tensor(0).float().to(strategy.device)
 
         if self.mode == 'separate':
-            for experience in range(strategy.training_exp_counter):
+            for experience in range(exp_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
                         strategy.model.named_parameters(),
                         self.saved_params[experience],
                         self.importances[experience]):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == 'online':
+            prev_exp = exp_counter - 1
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
                     strategy.model.named_parameters(),
-                    self.saved_params[strategy.training_exp_counter],
-                    self.importances[strategy.training_exp_counter]):
+                    self.saved_params[prev_exp],
+                    self.importances[prev_exp]):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError('Wrong EWC mode.')
@@ -88,20 +93,20 @@ class EWCPlugin(StrategyPlugin):
         """
         Compute importances of parameters after each experience.
         """
-
+        exp_counter = strategy.clock.train_exp_counter
         importances = self.compute_importances(strategy.model,
                                                strategy._criterion,
                                                strategy.optimizer,
                                                strategy.experience.dataset,
                                                strategy.device,
                                                strategy.train_mb_size)
-        self.update_importances(importances, strategy.training_exp_counter)
-        self.saved_params[strategy.training_exp_counter] = \
+        self.update_importances(importances, exp_counter)
+        self.saved_params[exp_counter] = \
             copy_params_dict(strategy.model)
-        # clear previuos parameter values
-        if strategy.training_exp_counter > 0 and \
+        # clear previous parameter values
+        if exp_counter > 0 and \
                 (not self.keep_importance_data):
-            del self.saved_params[strategy.training_exp_counter - 1]
+            del self.saved_params[exp_counter - 1]
 
     def compute_importances(self, model, criterion, optimizer,
                             dataset, device, batch_size):
@@ -109,7 +114,20 @@ class EWCPlugin(StrategyPlugin):
         Compute EWC importance matrix for each parameter
         """
 
-        model.train()
+        model.eval()
+
+        # Set RNN-like modules on GPU to training mode to avoid CUDA error
+        if device == 'cuda':
+            for module in model.modules():
+                if isinstance(module, torch.nn.RNNBase):
+                    warnings.warn(
+                        'RNN-like modules do not support '
+                        'backward calls while in `eval` mode on CUDA '
+                        'devices. Setting all `RNNBase` modules to '
+                        '`train` mode. May produce inconsistent '
+                        'output if such modules have `dropout` > 0.'
+                    )
+                    module.train()
 
         # list of list
         importances = zerolike_params_dict(model)

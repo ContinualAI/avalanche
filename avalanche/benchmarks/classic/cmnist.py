@@ -75,12 +75,12 @@ def SplitMNIST(
         eval_transform: Optional[Any] = _default_mnist_eval_transform,
         dataset_root: Union[str, Path] = None):
     """
-    Creates a CL scenario using the MNIST dataset.
+    Creates a CL benchmark using the MNIST dataset.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
 
-    The returned scenario will return experiences containing all patterns of a
+    The returned benchmark will return experiences containing all patterns of a
     subset of classes, which means that each class is only seen "once".
     This is one of the most common scenarios in the Continual Learning
     literature. Common names used in literature to describe this kind of
@@ -91,17 +91,17 @@ def SplitMNIST(
     a choice that is left to the user (see the `return_task_id` parameter for
     more info on task labels).
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of incremental experiences in the current
-        scenario.
+        benchmark.
         The value of this parameter should be a divisor of 10.
     :param return_task_id: if True, a progressive task id is returned for every
         experience. If False, all experiences will have a task ID of 0.
@@ -166,7 +166,7 @@ def PermutedMNIST(
         eval_transform: Optional[Any] = _default_mnist_eval_transform,
         dataset_root: Union[str, Path] = None) -> NCScenario:
     """
-    Creates a Permuted MNIST scenario.
+    Creates a Permuted MNIST benchmark.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -176,19 +176,19 @@ def PermutedMNIST(
     composed of all the original 10 MNIST classes, but the pixel in the images
     are permuted in a different way.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
     A progressive task label, starting from "0", is applied to each experience.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of experiences (tasks) in the current
-        scenario. It indicates how many different permutations of the MNIST
+        benchmark. It indicates how many different permutations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
     :param seed: A valid int used to initialize the random number generator.
@@ -265,7 +265,7 @@ def RotatedMNIST(
         eval_transform: Optional[Any] = _default_mnist_eval_transform,
         dataset_root: Union[str, Path] = None) -> NCScenario:
     """
-    Creates a Rotated MNIST scenario.
+    Creates a Rotated MNIST benchmark.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -274,19 +274,19 @@ def RotatedMNIST(
     different manners. This means that each experience is composed of all the
     original 10 MNIST classes, but each image is rotated in a different way.
 
-    The scenario instance returned by this method will have two fields,
+    The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
     A progressive task label, starting from "0", is applied to each experience.
 
-    The scenario API is quite simple and is uniform across all scenario
+    The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
     :param n_experiences: The number of experiences (tasks) in the current
-        scenario. It indicates how many different rotations of the MNIST
+        benchmark. It indicates how many different rotations of the MNIST
         dataset have to be created.
         The value of this parameter should be a divisor of 10.
     :param seed: A valid int used to initialize the random number generator.

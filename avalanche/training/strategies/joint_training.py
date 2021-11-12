@@ -19,9 +19,14 @@ from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.strategies import BaseStrategy
+from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import StrategyPlugin
+
+
+class AlreadyTrainedError(Exception):
+    pass
 
 
 class JointTraining(BaseStrategy):
@@ -55,6 +60,8 @@ class JointTraining(BaseStrategy):
         """
         super().__init__(model, optimizer, criterion, train_mb_size,
                          train_epochs, eval_mb_size, device, plugins, evaluator)
+        # JointTraining can be trained only once.
+        self._is_fitted = False
 
     def train(self, experiences: Union[Experience, Sequence[Experience]],
               eval_streams: Optional[Sequence[Union[Experience,
@@ -78,6 +85,12 @@ class JointTraining(BaseStrategy):
         self.model.train()
         self.model.to(self.device)
 
+        if self._is_fitted:
+            raise AlreadyTrainedError(
+                "JointTraining can be trained only once. "
+                "Please call the train method once on the entire stream."
+            )
+
         # Normalize training and eval data.
         if isinstance(experiences, Experience):
             experiences = [experiences]
@@ -97,16 +110,25 @@ class JointTraining(BaseStrategy):
         self.after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
+        self._is_fitted = True
         return res
 
     def train_dataset_adaptation(self, **kwargs):
         """ Concatenates all the datastream. """
         self.adapted_dataset = self._experiences[0].dataset
-        for exp in self._experiences:
+        for exp in self._experiences[1:]:
             cat_data = AvalancheConcatDataset([self.adapted_dataset,
                                                exp.dataset])
             self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
+
+    def model_adaptation(self):
+        """ Adapts strategy's model for all experiences. """
+        for experience in self._experiences:
+            for module in self.model.modules():
+                if isinstance(module, DynamicModule):
+                    module.adaptation(experience.dataset)
+            self.model = self.model.to(self.device)
 
 
 __all__ = ['JointTraining']
