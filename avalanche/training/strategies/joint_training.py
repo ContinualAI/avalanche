@@ -34,7 +34,7 @@ class JointTraining(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger):
+                 evaluator=default_logger, eval_every=-1):
         """
         JointTraining performs joint training (also called offline training) on
         the entire stream of data. This means that it is not a continual
@@ -58,8 +58,17 @@ class JointTraining(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations. None to remove logging.
         """
-        super().__init__(model, optimizer, criterion, train_mb_size,
-                         train_epochs, eval_mb_size, device, plugins, evaluator)
+        super().__init__(model=model,
+                         optimizer=optimizer,
+                         criterion=criterion,
+                         train_mb_size=train_mb_size,
+                         train_epochs=train_epochs,
+                         eval_mb_size=eval_mb_size,
+                         device=device,
+                         plugins=plugins,
+                         evaluator=evaluator,
+                         eval_every=eval_every
+                         )
         # JointTraining can be trained only once.
         self._is_fitted = False
 
