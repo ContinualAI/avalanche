@@ -130,9 +130,11 @@ class _ICaRLPlugin(StrategyPlugin):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
+        previous_seen_classes = sum(benchmark.n_classes_per_exp[:tid])
 
         self.observed_classes.extend(
-            benchmark.classes_order[tid * nb_cl:(tid + 1) * nb_cl])
+            benchmark.classes_order[previous_seen_classes:
+                                    previous_seen_classes + nb_cl])
 
     def before_forward(self, strategy: 'BaseStrategy', **kwargs):
         if self.input_size is None:
@@ -187,19 +189,21 @@ class _ICaRLPlugin(StrategyPlugin):
 
     def construct_exemplar_set(self, strategy: BaseStrategy):
         tid = strategy.clock.train_exp_counter
-        nb_cl = strategy.experience.benchmark.n_classes_per_exp
+        benchmark = strategy.experience.benchmark
+        nb_cl = benchmark.n_classes_per_exp[tid]
+        previous_seen_classes = sum(benchmark.n_classes_per_exp[:tid])
 
         if self.fixed_memory:
             nb_protos_cl = int(ceil(
                 self.memory_size / len(self.observed_classes)))
         else:
             nb_protos_cl = self.memory_size
-        new_classes = self.observed_classes[tid * nb_cl[tid]:
-                                            (tid + 1) * nb_cl[tid]]
+        new_classes = self.observed_classes[previous_seen_classes:
+                                            previous_seen_classes + nb_cl]
 
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
-        for iter_dico in range(nb_cl[tid]):
+        for iter_dico in range(nb_cl):
             cd = AvalancheSubset(dataset,
                                  torch.where(targets == new_classes[iter_dico])
                                  [0])
