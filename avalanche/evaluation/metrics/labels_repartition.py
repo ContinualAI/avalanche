@@ -35,7 +35,6 @@ class LabelsRepartition(Metric):
     Metric used to monitor the labels repartition.
     """
     def __init__(self):
-        super().__init__()
         self.task2label2count: Dict[int, Dict[int, int]] = {}
         self.class_order = None
         self.reset()

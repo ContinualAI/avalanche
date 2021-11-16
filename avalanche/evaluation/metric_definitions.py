@@ -87,7 +87,7 @@ class PluginMetric(Metric[TResult], StrategyCallbacks['MetricResult'], ABC):
         Child classes can safely invoke this (super) constructor as the first
         experience.
         """
-        super().__init__()
+        pass
 
     @abstractmethod
     def result(self, **kwargs) -> Optional[TResult]:

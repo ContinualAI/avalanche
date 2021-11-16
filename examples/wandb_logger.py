@@ -74,7 +74,7 @@ def main(args):
 
     interactive_logger = InteractiveLogger()
     wandb_logger = WandBLogger(project_name=args.project, run_name=args.run, 
-                               config=args)
+                               config=vars(args))
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(

@@ -44,7 +44,6 @@ class Accuracy(Metric[float]):
         value of 0. The metric can be updated by using the `update` method
         while the running accuracy can be retrieved using the `result` method.
         """
-        super().__init__()
         self._mean_accuracy = defaultdict(Mean)
         """
         The mean utility that will be used to store the running accuracy
