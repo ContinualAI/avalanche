@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 import torch
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+
+if TYPE_CHECKING:
+    from .. import BaseStrategy
 
 
 class GSS_greedyPlugin(StrategyPlugin):
