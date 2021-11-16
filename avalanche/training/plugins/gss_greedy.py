@@ -5,30 +5,40 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
 class GSS_greedyPlugin(StrategyPlugin):
-    """
-    GSSPlugin replay plugin.
+    """ GSSPlugin replay plugin.
 
-    Code adapted from the repository: 
+    Code adapted from the repository:
     https://github.com/RaptorMai/online-continual-learning
-    Handles an external memory fulled with samples selected 
-    using the Greedy approach of GSS algorithm. 
-    `before_forward` callback is used to process the current 
-    sample and estimate a score.    
-
-    The :mem_size: attribute controls the total number of patterns to be stored 
-    in the external memory.
+    Handles an external memory fulled with samples selected
+    using the Greedy approach of GSS algorithm.
+    `before_forward` callback is used to process the current
+    sample and estimate a score.
     """
 
     def __init__(self, mem_size=200, mem_strength=5, input_size=[]):
+        """
+
+        :param mem_size: total number of patterns to be stored
+            in the external memory.
+        :param mem_strength:
+        :param input_size:
+        """
         super().__init__()
         self.mem_size = mem_size
         self.mem_strength = mem_strength 
+        self.device = 'cpu'
 
         self.ext_mem_list_x = torch.FloatTensor(mem_size, *input_size).fill_(0)
         self.ext_mem_list_y = torch.LongTensor(mem_size).fill_(0)
         self.ext_mem_list_current_index = 0
 
         self.buffer_score = torch.FloatTensor(self.mem_size).fill_(0)
+
+    def before_training(self, strategy: 'BaseStrategy', **kwargs):
+        self.device = strategy.device
+        self.ext_mem_list_x = self.ext_mem_list_x.to(strategy.device)
+        self.ext_mem_list_y = self.ext_mem_list_y.to(strategy.device)
+        self.buffer_score = self.buffer_score.to(strategy.device)
 
     def cosine_similarity(self, x1, x2=None, eps=1e-8):
         x2 = x1 if x2 is None else x2
@@ -42,7 +52,7 @@ class GSS_greedyPlugin(StrategyPlugin):
         """
         gather the gradients in one vector
         """
-        grads = torch.Tensor(sum(grad_dims))
+        grads = torch.zeros(sum(grad_dims), device=self.device)
         grads.fill_(0.0)
         cnt = 0
         for param in pp():
@@ -83,15 +93,16 @@ class GSS_greedyPlugin(StrategyPlugin):
         num_mem_subs = min(self.mem_strength,
                            self.ext_mem_list_current_index // gss_batch_size)
         mem_grads = torch.zeros(num_mem_subs, sum(
-            grad_dims), dtype=torch.float32)
-        shuffeled_inds = torch.randperm(self.ext_mem_list_current_index)
+            grad_dims), dtype=torch.float32, device=self.device)
+        shuffeled_inds = torch.randperm(self.ext_mem_list_current_index,
+                                        device=self.device)
         for i in range(num_mem_subs):
             random_batch_inds = shuffeled_inds[i *
                                                temp_gss_batch_size:i *
                                                temp_gss_batch_size +
                                                temp_gss_batch_size]
-            batch_x = self.ext_mem_list_x[random_batch_inds]
-            batch_y = self.ext_mem_list_y[random_batch_inds]
+            batch_x = self.ext_mem_list_x[random_batch_inds].to(strategy.device)
+            batch_y = self.ext_mem_list_y[random_batch_inds].to(strategy.device)
             strategy.model.zero_grad()
 
             loss = strategy._criterion(strategy.model.forward(batch_x), batch_y)
@@ -116,7 +127,7 @@ class GSS_greedyPlugin(StrategyPlugin):
             batch_y: batch labels
         Returns: score of each sample from current batch
         """
-        cosine_sim = torch.zeros(batch_x.size(0))
+        cosine_sim = torch.zeros(batch_x.size(0), device=strategy.device)
         for i, (x, y) in enumerate(zip(batch_x, batch_y)):
             strategy.model.zero_grad()
             ptloss = strategy._criterion(
@@ -140,10 +151,11 @@ class GSS_greedyPlugin(StrategyPlugin):
 
         temp_x_tensors = []
         for elem in self.ext_mem_list_x:
-            temp_x_tensors.append(torch.FloatTensor(elem))
+            temp_x_tensors.append(elem.to('cpu'))
+        temp_y_tensors = self.ext_mem_list_y.to('cpu')
 
-        memory = list(zip(temp_x_tensors, self.ext_mem_list_y))
-        memory = AvalancheDataset(memory, targets=self.ext_mem_list_y)
+        memory = list(zip(temp_x_tensors, temp_y_tensors))
+        memory = AvalancheDataset(memory, targets=temp_y_tensors)
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
@@ -154,10 +166,10 @@ class GSS_greedyPlugin(StrategyPlugin):
             shuffle=shuffle)
 
     def after_forward(self, strategy, num_workers=0, shuffle=True, **kwargs):
-        '''
-        After every forward this function select sample to fill 
+        """
+        After every forward this function select sample to fill
         the memory buffer based on cosine similarity
-        '''
+        """
 
         strategy.model.eval()
 
@@ -184,7 +196,8 @@ class GSS_greedyPlugin(StrategyPlugin):
 
                 # draw candidates for replacement from the buffer
                 index = torch.multinomial(
-                    buffer_sim, strategy.mb_x.size(0), replacement=False)
+                    buffer_sim, strategy.mb_x.size(0), replacement=False)\
+                    .to(strategy.device)
 
                 # estimate the similarity of each sample in the received batch
                 # to the randomly drawn samples from the buffer.
@@ -202,7 +215,8 @@ class GSS_greedyPlugin(StrategyPlugin):
                                                       dim=1),
                                             1, replacement=False)
                 # replace samples with outcome =1
-                added_indx = torch.arange(end=batch_item_sim.size(0))
+                added_indx = torch.arange(end=batch_item_sim.size(0),
+                                          device=strategy.device)
                 sub_index = outcome.squeeze(1).bool()
                 self.ext_mem_list_x[index[sub_index]] = strategy.mb_x[
                     added_indx[sub_index]].clone()
