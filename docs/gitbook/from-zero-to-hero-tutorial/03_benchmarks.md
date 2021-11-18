@@ -50,7 +50,7 @@ from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
 QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
 CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
 VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-CelebA, CORe50, TinyImagenet, CUB200, OpenLORIS
+CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS
 
 # As we would simply do with any Pytorch dataset we can create the train and 
 # test sets from it. We could use any of the above imported Datasets, but let's
@@ -380,7 +380,7 @@ for filelist, rel_dir, t_label in zip(
         ["cats", "dogs"],
         [0, 1]):
     # First, obtain the list of files
-    filenames_list = os.listdir(os.path.join(dirpath, dir))
+    filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
 
     # Create the text file containing the filelist
     # Filelists must be in Caffe-style, which means
@@ -425,7 +425,7 @@ for rel_dir, label in zip(
         ["cats", "dogs"],
         [0, 1]):
     # First, obtain the list of files
-    filenames_list = os.listdir(os.path.join(dirpath, dir))
+    filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
 
     # Don't create a file list: instead, we create a list of 
     # paths + class labels
@@ -521,4 +521,4 @@ This completes the "_Benchmark_" tutorial for the "_From Zero to Hero_" series. 
 
 ## 🤝 Run it on Google Colab
 
-You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/2.-benchmarks.ipynb)
+You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/03_benchmarks.ipynb)
