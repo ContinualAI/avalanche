@@ -629,7 +629,7 @@ class BaseStrategy:
             p.before_train_dataset_adaptation(self, **kwargs)
 
     def model_adaptation(self, model=None):
-        if model == None:
+        if model is None:
             model = self.model
 
         for module in model.modules():
