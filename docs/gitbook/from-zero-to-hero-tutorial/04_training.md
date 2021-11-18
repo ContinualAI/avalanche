@@ -116,10 +116,10 @@ If you arrived at this point you already know how to use Avalanche strategies an
 
 In _Avalanche_ you can customize a strategy in 2 ways:
 
-1. **Plugins**: Most modifications can be defined by _augmenting_ the basic training and evaluation loops. The easiest way to define a custom strategy such as a regularization or replay strategy, is to define it as a custom plugin. The advantage of this approach is that you can easily reuse your plugin with any other strategy. The disadvantage is that in order to do so you need to understand the `BaseStrategy` loop, which can be a bit complex at first.
-2. **Subclassing**: In _Avalanche_, continual learning strategies inherit from the `BaseStrategy`, which provides generic training and evaluation loops. Most methods can be safely overridden (with some caveats that we will see later).
+1. **Plugins**: Most strategies can be implemented as additional code that runs on top of the basic training and evaluation loops (`Naive` strategy, or `BaseStrategy`). Therefore, the easiest way to define a custom strategy such as a regularization or replay strategy, is to define it as a custom plugin. The advantage of plugins is that they can be combined together, as long as they are compatible, i.e. they do not modify the same part of the state. The disadvantage is that in order to do so you need to understand the `BaseStrategy` loop, which can be a bit complex at first.
+2. **Subclassing**: In _Avalanche_, continual learning strategies inherit from the `BaseStrategy`, which provides generic training and evaluation loops. Most `BaseStrategy` methods can be safely overridden (with some caveats that we will see later).
 
-Keep in mind that if you already have a continual learning strategy that does not use _Avalanche_, you can always most Avalanche components such as `benchmarks`, `evaluation`, and `models` components without using _Avalanche_'s strategies!
+Keep in mind that if you already have a working continual learning strategy that does not use _Avalanche_, you can use most Avalanche components such as `benchmarks`, `evaluation`, and `models` without using _Avalanche_'s strategies!
 
 ### Training and Evaluation Loops
 
@@ -181,6 +181,17 @@ Notice that before the start of each experience during training we have several 
 - *model adaptation*: Here, the dynamic models (see the `models` tutorial) are updated by calling their `adaptation` method.
 - *optimizer initialization*: After the model has been updated, the optimizer should also be updated to ensure that the new parameters are optimized.
 
+### Strategy State
+The strategy state is accessible via several attributes. Most of these can be modified by plugins and subclasses:
+- `self.clock`: keeps track of several event counters.
+- `self.experience`: the current experience.
+- `self.adapted_dataset`: the data modified by the dataset adaptation phase.
+- `self.dataloader`: the current dataloader.
+- `self.mbatch`: the current mini-batch. For classification problems, mini-batches have the form `<x, y, t>`, where `x` is the input, `y` is the label, and `t` is the target.
+- `self.mb_output`: the current model's output.
+- `self.loss`: the current loss.
+- `self.is_training`: `True` if the strategy is in training mode.
+
 ## How to Write a Plugin
 Plugins provide a simple solution to define a new strategy by augmenting the behavior of another strategy (typically a naive strategy). This approach reduces the overhead and code duplication, **improving code readability and prototyping speed**.
 
@@ -221,13 +232,14 @@ class ReplayP(StrategyPlugin):
         self.buffer.update(strategy, **kwargs)
 
 
+benchmark = SplitMNIST(n_experiences=5, seed=1)
 model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
 criterion = CrossEntropyLoss()
-#strategy = Naive(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128,
-#plugins=[ReplayP(mem_size=2000)])
-strategy = Replay(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128, mem_size=2000)
+strategy = Naive(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128,
+                 plugins=[ReplayP(mem_size=2000)])
 strategy.train(benchmark.train_stream)
+strategy.eval(benchmark.test_stream)
 ```
 
 Check `StrategyPlugin`'s documentation for a complete list of the available callbacks.
@@ -235,9 +247,9 @@ Check `StrategyPlugin`'s documentation for a complete list of the available call
 ## How to Write a Custom Strategy
 
 You can always define a custom strategy by overriding `BaseStrategy` methods.
-However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. If your strategy strategy does not call them, plugins may not work as expected. The easiest way to avoid mistakes is to start from the `BaseStrategy` method that you want to override and modify it to your own needs without removing the callbacks handling.
+However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers (the methods starting with `before/after`) at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. The easiest way to avoid mistakes is to start from the `BaseStrategy` method that you want to override and modify it to your own needs without removing the callbacks handling.
 
-There is only a single plugin that is always used by default, the `EvaluationPlugin` (see `evaluation` tutorial). This means that if you break callbacks you must log metrics by yourself. This is totally possible but requires some manual work to update, log, and reset each metric, which is done automatically for you by the `BaseStrategy`.
+Notice that even though you don't use plugins, `BaseStrategy` implements some internal components as plugins. Also, the `EvaluationPlugin` (see `evaluation` tutorial) uses the strategy callbacks.
 
 `BaseStrategy` provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. As an example, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
 
@@ -269,10 +281,10 @@ Easy, isn't it? :-\)
 
 In general, we recommend to _implement a Strategy via plugins_, if possible. This approach is the easiest to use and requires a minimal knowledge of the `BaseStrategy`. It also allows other people to use your plugin and facilitates interoperability among different strategies.
 
-For example, replay strategies can be implemented as a custom strategy of the `BaseStrategy` or as plugins. However, creating a plugin is better because it allows to use our replay strategy in conjunction with other strategies.
+For example, replay strategies can be implemented as a custom strategy of the `BaseStrategy` or as plugins. However, creating a plugin is allows to use the replay strategy in conjunction with other strategies.
 
 This completes the "_Training_" chapter for the "_From Zero to Hero_" series. We hope you enjoyed it!
 
 ## 🤝 Run it on Google Colab
 
-You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/3.-training.ipynb)
+You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/04_training.ipynb)
