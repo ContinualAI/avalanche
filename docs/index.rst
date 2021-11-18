@@ -16,4 +16,11 @@ Welcome to Avalanche's API documentation!
    :maxdepth: 1
    :caption: Avalanche API
 
+   Benchmarks module <benchmarks>
    Evaluation module <evaluation>
+   Logging module <logging>
+   Models module <models>
+   Training module <training>
+
+
+
