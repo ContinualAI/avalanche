@@ -30,23 +30,25 @@ class AlreadyTrainedError(Exception):
 
 
 class JointTraining(BaseStrategy):
+    """ Joint training on the entire stream.
+
+    JointTraining performs joint training (also called offline training) on
+    the entire stream of data. This means that it is not a continual
+    learning strategy but it can be used as an "offline" upper bound for
+    them.
+
+    .. warnings also::
+        Currently :py:class:`JointTraining` adapts its own dataset.
+        Please check that the plugins you are using do not implement
+        :py:meth:`adapt_trainin_dataset`. Otherwise, they are incompatible
+        with :py:class:`JointTraining`.
+    """
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
-        JointTraining performs joint training (also called offline training) on
-        the entire stream of data. This means that it is not a continual
-        learning strategy but it can be used as an "offline" upper bound for
-        them.
-
-        .. warnings also::
-            Currently :py:class:`JointTraining` adapts its own dataset.
-            Please check that the plugins you are using do not implement
-            :py:meth:`adapt_trainin_dataset`. Otherwise, they are incompatible
-            with :py:class:`JointTraining`.
-
+        """ 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.

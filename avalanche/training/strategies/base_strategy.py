@@ -38,6 +38,49 @@ logger = logging.getLogger(__name__)
 
 
 class BaseStrategy:
+    """ Base class for continual learning strategies.
+
+    BaseStrategy is the super class of all task-based continual learning
+    strategies. It implements a basic training loop and callback system
+    that allows to execute code at each experience of the training loop.
+    Plugins can be used to implement callbacks to augment the training
+    loop with additional behavior (e.g. a memory buffer for replay).
+
+    **Scenarios**
+    This strategy supports several continual learning scenarios:
+
+    * class-incremental scenarios (no task labels)
+    * multi-task scenarios, where task labels are provided)
+    * multi-incremental scenarios, where the same task may be revisited
+
+    The exact scenario depends on the data stream and whether it provides
+    the task labels.
+
+    **Training loop**
+    The training loop is organized as follows::
+        train
+            train_exp  # for each experience
+                adapt_train_dataset
+                train_dataset_adaptation
+                make_train_dataloader
+                train_epoch  # for each epoch
+                    # forward
+                    # backward
+                    # model update
+
+    **Evaluation loop**
+    The evaluation loop is organized as follows::
+        eval
+            eval_exp  # for each experience
+                adapt_eval_dataset
+                eval_dataset_adaptation
+                make_eval_dataloader
+                eval_epoch  # for each epoch
+                    # forward
+                    # backward
+                    # model update
+
+    """
     DISABLED_CALLBACKS: Sequence[str] = ()
 
     def __init__(self, model: Module, optimizer: Optimizer,
@@ -46,47 +89,7 @@ class BaseStrategy:
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
-        BaseStrategy is the super class of all task-based continual learning
-        strategies. It implements a basic training loop and callback system
-        that allows to execute code at each experience of the training loop.
-        Plugins can be used to implement callbacks to augment the training
-        loop with additional behavior (e.g. a memory buffer for replay).
-
-        **Scenarios**
-        This strategy supports several continual learning scenarios:
-
-        * class-incremental scenarios (no task labels)
-        * multi-task scenarios, where task labels are provided)
-        * multi-incremental scenarios, where the same task may be revisited
-
-        The exact scenario depends on the data stream and whether it provides
-        the task labels.
-
-        **Training loop**
-        The training loop is organized as follows::
-            train
-                train_exp  # for each experience
-                    adapt_train_dataset
-                    train_dataset_adaptation
-                    make_train_dataloader
-                    train_epoch  # for each epoch
-                        # forward
-                        # backward
-                        # model update
-
-        **Evaluation loop**
-        The evaluation loop is organized as follows::
-            eval
-                eval_exp  # for each experience
-                    adapt_eval_dataset
-                    eval_dataset_adaptation
-                    make_eval_dataloader
-                    eval_epoch  # for each epoch
-                        # forward
-                        # backward
-                        # model update
-
+        """ 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
