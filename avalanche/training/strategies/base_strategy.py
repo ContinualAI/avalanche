@@ -38,6 +38,49 @@ logger = logging.getLogger(__name__)
 
 
 class BaseStrategy:
+    """ Base class for continual learning strategies.
+
+    BaseStrategy is the super class of all task-based continual learning
+    strategies. It implements a basic training loop and callback system
+    that allows to execute code at each experience of the training loop.
+    Plugins can be used to implement callbacks to augment the training
+    loop with additional behavior (e.g. a memory buffer for replay).
+
+    **Scenarios**
+    This strategy supports several continual learning scenarios:
+
+    * class-incremental scenarios (no task labels)
+    * multi-task scenarios, where task labels are provided)
+    * multi-incremental scenarios, where the same task may be revisited
+
+    The exact scenario depends on the data stream and whether it provides
+    the task labels.
+
+    **Training loop**
+    The training loop is organized as follows::
+        train
+            train_exp  # for each experience
+                adapt_train_dataset
+                train_dataset_adaptation
+                make_train_dataloader
+                train_epoch  # for each epoch
+                    # forward
+                    # backward
+                    # model update
+
+    **Evaluation loop**
+    The evaluation loop is organized as follows::
+        eval
+            eval_exp  # for each experience
+                adapt_eval_dataset
+                eval_dataset_adaptation
+                make_eval_dataloader
+                eval_epoch  # for each epoch
+                    # forward
+                    # backward
+                    # model update
+
+    """
     DISABLED_CALLBACKS: Sequence[str] = ()
 
     def __init__(self, model: Module, optimizer: Optimizer,
@@ -46,47 +89,7 @@ class BaseStrategy:
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
-        BaseStrategy is the super class of all task-based continual learning
-        strategies. It implements a basic training loop and callback system
-        that allows to execute code at each experience of the training loop.
-        Plugins can be used to implement callbacks to augment the training
-        loop with additional behavior (e.g. a memory buffer for replay).
-
-        **Scenarios**
-        This strategy supports several continual learning scenarios:
-
-        * class-incremental scenarios (no task labels)
-        * multi-task scenarios, where task labels are provided)
-        * multi-incremental scenarios, where the same task may be revisited
-
-        The exact scenario depends on the data stream and whether it provides
-        the task labels.
-
-        **Training loop**
-        The training loop is organized as follows::
-            train
-                train_exp  # for each experience
-                    adapt_train_dataset
-                    train_dataset_adaptation
-                    make_train_dataloader
-                    train_epoch  # for each epoch
-                        # forward
-                        # backward
-                        # model update
-
-        **Evaluation loop**
-        The evaluation loop is organized as follows::
-            eval
-                eval_exp  # for each experience
-                    adapt_eval_dataset
-                    eval_dataset_adaptation
-                    make_eval_dataloader
-                    eval_epoch  # for each epoch
-                        # forward
-                        # backward
-                        # model update
-
+        """ 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
@@ -301,7 +304,7 @@ class BaseStrategy:
         self.make_train_dataloader(**kwargs)
 
         # Model Adaptation (e.g. freeze/add new units)
-        self.model_adaptation()
+        self.model = self.model_adaptation()
         self.make_optimizer()
 
         self.before_training_exp(**kwargs)
@@ -400,7 +403,7 @@ class BaseStrategy:
             self.make_eval_dataloader(**kwargs)
 
             # Model Adaptation (e.g. freeze/add new units)
-            self.model_adaptation()
+            self.model = self.model_adaptation()
 
             self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
@@ -628,11 +631,14 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_train_dataset_adaptation(self, **kwargs)
 
-    def model_adaptation(self):
-        for module in self.model.modules():
+    def model_adaptation(self, model=None):
+        if model is None:
+            model = self.model
+
+        for module in model.modules():
             if isinstance(module, DynamicModule):
                 module.adaptation(self.experience.dataset)
-        self.model = self.model.to(self.device)
+        return model.to(self.device)
 
     def forward(self):
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)

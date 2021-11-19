@@ -5,15 +5,17 @@ from avalanche.training.plugins import StrategyPlugin
 
 
 class EarlyStoppingPlugin(StrategyPlugin):
+    """ Early stopping plugin.
+
+    Simple plugin stopping the training when the accuracy on the
+    corresponding validation metric stopped progressing for a few epochs.
+    The state of the best model is saved after each improvement on the
+    given metric and is loaded back into the model before stopping the
+    training procedure.
+    """
     def __init__(self, patience: int, val_stream_name: str,
                  metric_name: str = 'Top1_Acc_Stream', mode: str = 'max'):
         """
-        Simple plugin stopping the training when the accuracy on the
-        corresponding validation metric stopped progressing for a few epochs.
-        The state of the best model is saved after each improvement on the
-        given metric and is loaded back into the model before stopping the
-        training procedure.
-
         :param patience: Number of epochs to wait before stopping the training.
         :param val_stream_name: Name of the validation stream to search in the
         metrics. The corresponding stream will be used to keep track of the

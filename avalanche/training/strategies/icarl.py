@@ -19,6 +19,11 @@ from avalanche.training.strategies import BaseStrategy
 
 
 class ICaRL(BaseStrategy):
+    """ iCaRL Strategy.
+
+    This strategy does not use task identities.
+    """
+
     def __init__(self, feature_extractor: Module, classifier: Module,
                  optimizer: Optimizer, memory_size, buffer_transform,
                  fixed_memory, criterion=ICaRLLossPlugin(),
@@ -26,8 +31,7 @@ class ICaRL(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ iCaRL Strategy.
-        This strategy does not use task identities.
+        """ 
 
         :param feature_extractor: The feature extractor.
         :param classifier: The differentiable classifier that takes as input

@@ -19,8 +19,7 @@ from avalanche.training.plugins.evaluation import default_logger
 
 
 class AR1(BaseStrategy):
-    """
-    The AR1 strategy with Latent Replay.
+    """ AR1 with Latent Replay.
 
     This implementations allows for the use of both Synaptic Intelligence and
     Latent Replay to protect the lower level of the model from forgetting.
