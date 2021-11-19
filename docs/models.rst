@@ -44,7 +44,7 @@ Models
     MobilenetV1
     NCMClassifier
     SLDAResNetModel
-    get_model
+    pytorchcv_wrapper.get_model
 
 
 Model Utilities
