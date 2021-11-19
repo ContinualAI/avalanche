@@ -174,6 +174,6 @@ def images_samples_metrics(
 
 
 __all__ = [
-    images_samples_metrics,
-    ImagesSamplePlugin,
+    'images_samples_metrics',
+    'ImagesSamplePlugin'
 ]
