@@ -30,12 +30,17 @@ class ReplayPlugin(StrategyPlugin):
     in the external memory.
     :param storage_policy: The policy that controls how to add new exemplars
                            in memory
+    :param force_data_batch_size: How many of the samples should be from the
+            current `data`. If None, it will equally divide each batch between
+            samples from all seen tasks in the current `data` and `memory`.
     """
 
     def __init__(self, mem_size: int = 200,
-                 storage_policy: Optional["ExemplarsBuffer"] = None):
+                 storage_policy: Optional["ExemplarsBuffer"] = None,
+                 force_data_batch_size: int = None):
         super().__init__()
         self.mem_size = mem_size
+        self.force_data_batch_size = force_data_batch_size
 
         if storage_policy is not None:  # Use other storage policy
             self.storage_policy = storage_policy
@@ -66,6 +71,7 @@ class ReplayPlugin(StrategyPlugin):
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
+            force_data_batch_size=self.force_data_batch_size,
             shuffle=shuffle)
 
     def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
