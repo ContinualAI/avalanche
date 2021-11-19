@@ -112,13 +112,13 @@ class JointTraining(BaseStrategy):
                 eval_streams[i] = [exp]
 
         self._experiences = experiences
-        self.before_training(**kwargs)
+        self._before_training(**kwargs)
         for exp in experiences:
             self.train_exp(exp, eval_streams, **kwargs)
             # Joint training only needs a single step because
             # it concatenates all the data at once.
             break
-        self.after_training(**kwargs)
+        self._after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
         self._is_fitted = True

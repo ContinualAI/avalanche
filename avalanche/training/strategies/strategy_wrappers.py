@@ -366,7 +366,8 @@ class AGEM(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -415,7 +416,8 @@ class GEM(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -466,7 +468,8 @@ class EWC(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -533,7 +536,8 @@ class SynapticIntelligence(BaseStrategy):
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
+        """ Init.
+
         Creates an instance of the Synaptic Intelligence strategy.
 
         :param model: PyTorch model.
@@ -588,7 +592,8 @@ class CoPE(BaseStrategy):
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger,
                  eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: Loss criterion to use. Standard overwritten by
@@ -643,7 +648,8 @@ class LFL(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.

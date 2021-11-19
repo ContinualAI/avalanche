@@ -267,13 +267,13 @@ class BaseStrategy:
         if eval_streams is None:
             eval_streams = [experiences]
 
-        self.before_training(**kwargs)
+        self._before_training(**kwargs)
 
         self._periodic_eval(eval_streams, do_final=False, do_initial=True)
 
         for self.experience in experiences:
             self.train_exp(self.experience, eval_streams, **kwargs)
-        self.after_training(**kwargs)
+        self._after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
         return res
@@ -298,16 +298,16 @@ class BaseStrategy:
                 eval_streams[i] = [exp]
 
         # Data Adaptation (e.g. add new samples/data augmentation)
-        self.before_train_dataset_adaptation(**kwargs)
+        self._before_train_dataset_adaptation(**kwargs)
         self.train_dataset_adaptation(**kwargs)
-        self.after_train_dataset_adaptation(**kwargs)
+        self._after_train_dataset_adaptation(**kwargs)
         self.make_train_dataloader(**kwargs)
 
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
         self.make_optimizer()
 
-        self.before_training_exp(**kwargs)
+        self._before_training_exp(**kwargs)
         
         do_final = True
         if self.eval_every > 0 and \
@@ -315,19 +315,19 @@ class BaseStrategy:
             do_final = False
 
         for _ in range(self.train_epochs):
-            self.before_training_epoch(**kwargs)
+            self._before_training_epoch(**kwargs)
 
             if self._stop_training:  # Early stopping
                 self._stop_training = False
                 break
 
             self.training_epoch(**kwargs)
-            self.after_training_epoch(**kwargs)
+            self._after_training_epoch(**kwargs)
             self._periodic_eval(eval_streams, do_final=False)
 
         # Final evaluation
         self._periodic_eval(eval_streams, do_final=do_final)
-        self.after_training_exp(**kwargs)
+        self._after_training_exp(**kwargs)
 
     def _periodic_eval(self, eval_streams, do_final, do_initial=False):
         """ Periodic eval controlled by `self.eval_every`. """
@@ -394,28 +394,28 @@ class BaseStrategy:
             exp_list = [exp_list]
         self.current_eval_stream = exp_list
 
-        self.before_eval(**kwargs)
+        self._before_eval(**kwargs)
         for self.experience in exp_list:
             # Data Adaptation
-            self.before_eval_dataset_adaptation(**kwargs)
+            self._before_eval_dataset_adaptation(**kwargs)
             self.eval_dataset_adaptation(**kwargs)
-            self.after_eval_dataset_adaptation(**kwargs)
+            self._after_eval_dataset_adaptation(**kwargs)
             self.make_eval_dataloader(**kwargs)
 
             # Model Adaptation (e.g. freeze/add new units)
             self.model = self.model_adaptation()
 
-            self.before_eval_exp(**kwargs)
+            self._before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
-            self.after_eval_exp(**kwargs)
+            self._after_eval_exp(**kwargs)
 
-        self.after_eval(**kwargs)
+        self._after_eval(**kwargs)
 
         res = self.evaluator.get_last_metrics()
 
         return res
 
-    def before_training_exp(self, **kwargs):
+    def _before_training_exp(self, **kwargs):
         """
         Called  after the dataset and data loader creation and
         before the training loop.
@@ -458,7 +458,7 @@ class BaseStrategy:
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory)
 
-    def after_train_dataset_adaptation(self, **kwargs):
+    def _after_train_dataset_adaptation(self, **kwargs):
         """
         Called after the dataset adaptation and before the
         dataloader initialization. Allows to customize the dataset.
@@ -468,7 +468,7 @@ class BaseStrategy:
         for p in self.plugins:
             p.after_train_dataset_adaptation(self, **kwargs)
 
-    def before_training_epoch(self, **kwargs):
+    def _before_training_epoch(self, **kwargs):
         """
         Called at the beginning of a new training epoch.
         :param kwargs:
@@ -488,29 +488,29 @@ class BaseStrategy:
                 break
 
             self._unpack_minibatch()
-            self.before_training_iteration(**kwargs)
+            self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             self.loss = 0
 
             # Forward
-            self.before_forward(**kwargs)
+            self._before_forward(**kwargs)
             self.mb_output = self.forward()
-            self.after_forward(**kwargs)
+            self._after_forward(**kwargs)
 
             # Loss & Backward
             self.loss += self.criterion()
 
-            self.before_backward(**kwargs)
+            self._before_backward(**kwargs)
             self.loss.backward()
-            self.after_backward(**kwargs)
+            self._after_backward(**kwargs)
 
             # Optimization step
-            self.before_update(**kwargs)
+            self._before_update(**kwargs)
             self.optimizer.step()
-            self.after_update(**kwargs)
+            self._after_update(**kwargs)
 
-            self.after_training_iteration(**kwargs)
+            self._after_training_iteration(**kwargs)
 
     def _unpack_minibatch(self):
         """ We assume mini-batches have the form <x, y, ..., t>.
@@ -522,59 +522,59 @@ class BaseStrategy:
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
 
-    def before_training(self, **kwargs):
+    def _before_training(self, **kwargs):
         for p in self.plugins:
             p.before_training(self, **kwargs)
 
-    def after_training(self, **kwargs):
+    def _after_training(self, **kwargs):
         for p in self.plugins:
             p.after_training(self, **kwargs)
 
-    def before_training_iteration(self, **kwargs):
+    def _before_training_iteration(self, **kwargs):
         for p in self.plugins:
             p.before_training_iteration(self, **kwargs)
 
-    def before_forward(self, **kwargs):
+    def _before_forward(self, **kwargs):
         for p in self.plugins:
             p.before_forward(self, **kwargs)
 
-    def after_forward(self, **kwargs):
+    def _after_forward(self, **kwargs):
         for p in self.plugins:
             p.after_forward(self, **kwargs)
 
-    def before_backward(self, **kwargs):
+    def _before_backward(self, **kwargs):
         for p in self.plugins:
             p.before_backward(self, **kwargs)
 
-    def after_backward(self, **kwargs):
+    def _after_backward(self, **kwargs):
         for p in self.plugins:
             p.after_backward(self, **kwargs)
 
-    def after_training_iteration(self, **kwargs):
+    def _after_training_iteration(self, **kwargs):
         for p in self.plugins:
             p.after_training_iteration(self, **kwargs)
 
-    def before_update(self, **kwargs):
+    def _before_update(self, **kwargs):
         for p in self.plugins:
             p.before_update(self, **kwargs)
 
-    def after_update(self, **kwargs):
+    def _after_update(self, **kwargs):
         for p in self.plugins:
             p.after_update(self, **kwargs)
 
-    def after_training_epoch(self, **kwargs):
+    def _after_training_epoch(self, **kwargs):
         for p in self.plugins:
             p.after_training_epoch(self, **kwargs)
 
-    def after_training_exp(self, **kwargs):
+    def _after_training_exp(self, **kwargs):
         for p in self.plugins:
             p.after_training_exp(self, **kwargs)
 
-    def before_eval(self, **kwargs):
+    def _before_eval(self, **kwargs):
         for p in self.plugins:
             p.before_eval(self, **kwargs)
 
-    def before_eval_exp(self, **kwargs):
+    def _before_eval_exp(self, **kwargs):
         for p in self.plugins:
             p.before_eval_exp(self, **kwargs)
 
@@ -583,51 +583,51 @@ class BaseStrategy:
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
 
-    def before_eval_dataset_adaptation(self, **kwargs):
+    def _before_eval_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
             p.before_eval_dataset_adaptation(self, **kwargs)
 
-    def after_eval_dataset_adaptation(self, **kwargs):
+    def _after_eval_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
         for self.mbatch in self.dataloader:
             self._unpack_minibatch()
-            self.before_eval_iteration(**kwargs)
+            self._before_eval_iteration(**kwargs)
 
-            self.before_eval_forward(**kwargs)
+            self._before_eval_forward(**kwargs)
             self.mb_output = self.forward()
-            self.after_eval_forward(**kwargs)
+            self._after_eval_forward(**kwargs)
             self.loss = self.criterion()
 
-            self.after_eval_iteration(**kwargs)
+            self._after_eval_iteration(**kwargs)
 
-    def after_eval_exp(self, **kwargs):
+    def _after_eval_exp(self, **kwargs):
         for p in self.plugins:
             p.after_eval_exp(self, **kwargs)
 
-    def after_eval(self, **kwargs):
+    def _after_eval(self, **kwargs):
         for p in self.plugins:
             p.after_eval(self, **kwargs)
 
-    def before_eval_iteration(self, **kwargs):
+    def _before_eval_iteration(self, **kwargs):
         for p in self.plugins:
             p.before_eval_iteration(self, **kwargs)
 
-    def before_eval_forward(self, **kwargs):
+    def _before_eval_forward(self, **kwargs):
         for p in self.plugins:
             p.before_eval_forward(self, **kwargs)
 
-    def after_eval_forward(self, **kwargs):
+    def _after_eval_forward(self, **kwargs):
         for p in self.plugins:
             p.after_eval_forward(self, **kwargs)
 
-    def after_eval_iteration(self, **kwargs):
+    def _after_eval_iteration(self, **kwargs):
         for p in self.plugins:
             p.after_eval_iteration(self, **kwargs)
 
-    def before_train_dataset_adaptation(self, **kwargs):
+    def _before_train_dataset_adaptation(self, **kwargs):
         for p in self.plugins:
             p.before_train_dataset_adaptation(self, **kwargs)
 
