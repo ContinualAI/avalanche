@@ -301,7 +301,7 @@ class BaseStrategy:
         self.make_train_dataloader(**kwargs)
 
         # Model Adaptation (e.g. freeze/add new units)
-        self.model_adaptation()
+        self.model = self.model_adaptation()
         self.make_optimizer()
 
         self.before_training_exp(**kwargs)
@@ -400,7 +400,7 @@ class BaseStrategy:
             self.make_eval_dataloader(**kwargs)
 
             # Model Adaptation (e.g. freeze/add new units)
-            self.model_adaptation()
+            self.model = self.model_adaptation()
 
             self.before_eval_exp(**kwargs)
             self.eval_epoch(**kwargs)
@@ -628,11 +628,14 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_train_dataset_adaptation(self, **kwargs)
 
-    def model_adaptation(self):
-        for module in self.model.modules():
+    def model_adaptation(self, model=None):
+        if model is None:
+            model = self.model
+
+        for module in model.modules():
             if isinstance(module, DynamicModule):
                 module.adaptation(self.experience.dataset)
-        self.model = self.model.to(self.device)
+        return model.to(self.device)
 
     def forward(self):
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
