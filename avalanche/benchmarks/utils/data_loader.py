@@ -261,8 +261,9 @@ class ReplayDataLoader:
             remaining_example_data = 0
 
             mem_keys = len(self.memory.task_set)
-            mem_batch_size = (batch_size - force_data_batch_size) // mem_keys
-            remaining_example_mem = (batch_size - force_data_batch_size) % mem_keys
+            mem_batch_size = batch_size - force_data_batch_size
+            mem_batch_size_k = mem_batch_size // mem_keys
+            remaining_example_mem = mem_batch_size % mem_keys
 
             assert mem_batch_size >= mem_keys, \
                 "Batch size must be greator or equal " \
@@ -272,7 +273,7 @@ class ReplayDataLoader:
                 data, force_data_batch_size,
                 remaining_example_data, **kwargs)
             self.loader_memory, _ = self._create_dataloaders(
-                memory, mem_batch_size,
+                memory, mem_batch_size_k,
                 remaining_example_mem, **kwargs)
         else:
             num_keys = len(self.data.task_set) + len(self.memory.task_set)
