@@ -15,7 +15,7 @@ evaluation.metrics
 .. currentmodule:: avalanche.evaluation.metrics
 
 Metrics helper functions
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 | High-level functions to get specific plugin metrics objects (to be passed to the :py:class:`EvaluationPlugin`).
 | **This is the recommended way to build metrics. Use these functions when available.**
@@ -60,7 +60,6 @@ Stream Metrics
     StreamCPUUsage
     StreamDiskUsage
     StreamTime
-    StreamMeanScores
     StreamMaxRAM
     StreamMaxGPU
     MeanScoresEvalPluginMetric
@@ -104,9 +103,9 @@ Epoch Metrics
     MeanScoresTrainPluginMetric
 
 RunningEpoch Metrics
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
-| RunningEpoch metrics work at train time only. RunningEpoch metrics return the average metric results over all the patterns encountered up to the current iteration in the training epoch.
+| Running Epoch metrics work at train time only. RunningEpoch metrics return the average metric results over all the patterns encountered up to the current iteration in the training epoch.
 
 .. autosummary:: RunningEpoch metrics
    :toctree: generated
@@ -135,7 +134,7 @@ Minibatch Metrics
 
 
 evaluation.metric_definitions
-----------------------------
+-------------------------------
 
 General interfaces on which metrics are built.
 
