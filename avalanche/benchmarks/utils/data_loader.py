@@ -240,7 +240,9 @@ class ReplayDataLoader:
             combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the batch. It must be greater than or
             equal to the number of tasks.
-        :param ratio_data_mem: How many of the samples should be from
+        :param force_data_batch_size: How many of the samples should be from the
+            current `data`. If None, it will equally divide each batch between
+            samples from all seen tasks in the current `data` and `memory`.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
@@ -256,19 +258,22 @@ class ReplayDataLoader:
             assert force_data_batch_size <= batch_size, \
                 "Forced batch size of data must be <= entire batch size"
 
-            mem_batch_size = batch_size - force_data_batch_size
-            remaining_example = 0
+            remaining_example_data = 0
+
             mem_keys = len(self.memory.task_set)
+            mem_batch_size = (batch_size - force_data_batch_size) // mem_keys
+            remaining_example_mem = (batch_size - force_data_batch_size) % mem_keys
+
             assert mem_batch_size >= mem_keys, \
                 "Batch size must be greator or equal " \
                 "to the number of tasks in the memory."
 
             self.loader_data, _ = self._create_dataloaders(
                 data, force_data_batch_size,
-                remaining_example, **kwargs)
+                remaining_example_data, **kwargs)
             self.loader_memory, _ = self._create_dataloaders(
                 memory, mem_batch_size,
-                remaining_example, **kwargs)
+                remaining_example_mem, **kwargs)
         else:
             num_keys = len(self.data.task_set) + len(self.memory.task_set)
             assert batch_size >= num_keys, \
