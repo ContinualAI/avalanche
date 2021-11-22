@@ -58,6 +58,7 @@ class BaseStrategy:
 
     **Training loop**
     The training loop is organized as follows::
+
         train
             train_exp  # for each experience
                 adapt_train_dataset
@@ -70,6 +71,7 @@ class BaseStrategy:
 
     **Evaluation loop**
     The evaluation loop is organized as follows::
+
         eval
             eval_exp  # for each experience
                 adapt_eval_dataset
@@ -89,7 +91,8 @@ class BaseStrategy:
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
@@ -101,20 +104,17 @@ class BaseStrategy:
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations. None to remove logging.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience and before training on the first experience.
-                if >0: calls `eval` every `eval_every` epochs, at the end
-                    of all the epochs for a single experience and before
-                    training on the first experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         self._criterion = criterion
 
         self.model: Module = model
         """ PyTorch model. """
 
-        self.optimizer = optimizer
+        self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
 
         self.train_epochs: int = train_epochs
@@ -158,7 +158,8 @@ class BaseStrategy:
         """ Data used to train. It may be modified by plugins. Plugins can 
         append data to it (e.g. for replay). 
          
-        .. note:: 
+        .. note::
+
             This dataset may contain samples from different experiences. If you 
             want the original data for the current experience  
             use :attr:`.BaseStrategy.experience`.
@@ -180,7 +181,7 @@ class BaseStrategy:
         """ True if the strategy is in training mode. """
 
         self.current_eval_stream = None
-        """ User-provided evaluation stream on `eval` call. """
+        """ Current evaluation stream. """
 
         self._stop_training = False
 
@@ -279,8 +280,7 @@ class BaseStrategy:
         return res
 
     def train_exp(self, experience: Experience, eval_streams=None, **kwargs):
-        """
-        Training loop over a single Experience object.
+        """ Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param eval_streams: list of streams for evaluation.
@@ -425,8 +425,11 @@ class BaseStrategy:
 
     def make_train_dataloader(self, num_workers=0, shuffle=True,
                               pin_memory=True, **kwargs):
-        """
-        Called after the dataset adaptation. Initializes the data loader.
+        """ Data loader initialization.
+
+        Called at the start of each learning experience after the dataset 
+        adaptation.
+
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
@@ -478,8 +481,8 @@ class BaseStrategy:
             p.before_training_epoch(self, **kwargs)
 
     def training_epoch(self, **kwargs):
-        """
-        Training epoch.
+        """ Training epoch.
+        
         :param kwargs:
         :return:
         """

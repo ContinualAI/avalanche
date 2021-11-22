@@ -59,7 +59,11 @@ class JointTraining(BaseStrategy):
         :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations. None to remove logging.
-        """
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.        """
         super().__init__(model=model,
                          optimizer=optimizer,
                          criterion=criterion,

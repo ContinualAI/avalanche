@@ -54,12 +54,10 @@ class Naive(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         super().__init__(
             model, optimizer, criterion,
@@ -101,12 +99,10 @@ class PNNStrategy(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         model = PNN(
             num_layers=num_layers,
@@ -146,12 +142,10 @@ class CWRStar(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
         if plugins is None:
@@ -190,12 +184,10 @@ class Replay(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         rp = ReplayPlugin(mem_size)
@@ -238,12 +230,10 @@ class GSS_greedy(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         rp = GSS_greedyPlugin(mem_size=mem_size,
                               mem_strength=mem_strength, input_size=input_size)
@@ -283,12 +273,10 @@ class GDumb(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         gdumb = GDumbPlugin(mem_size)
@@ -332,12 +320,10 @@ class LwF(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         lwf = LwFPlugin(alpha, temperature)
@@ -382,12 +368,10 @@ class AGEM(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         agem = AGEMPlugin(patterns_per_exp, sample_size)
@@ -432,12 +416,10 @@ class GEM(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         gem = GEMPlugin(patterns_per_exp, memory_strength)
@@ -494,12 +476,10 @@ class EWC(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
@@ -556,12 +536,10 @@ class SynapticIntelligence(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         if plugins is None:
             plugins = []
@@ -615,12 +593,10 @@ class CoPE(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
         if plugins is None:
@@ -663,12 +639,10 @@ class LFL(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         lfl = LFLPlugin(lambda_e)
