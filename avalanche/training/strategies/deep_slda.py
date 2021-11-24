@@ -101,27 +101,27 @@ class StreamingLDA(BaseStrategy):
         """
         for _, self.mbatch in enumerate(self.dataloader):
             self._unpack_minibatch()
-            self.before_training_iteration(**kwargs)
+            self._before_training_iteration(**kwargs)
 
             self.loss = 0
 
             # Forward
-            self.before_forward(**kwargs)
+            self._before_forward(**kwargs)
             # compute output on entire minibatch
             self.mb_output, feats = self.forward(return_features=True)
-            self.after_forward(**kwargs)
+            self._after_forward(**kwargs)
 
             # Loss & Backward
             self.loss += self.criterion()
 
             # Optimization step
-            self.before_update(**kwargs)
+            self._before_update(**kwargs)
             # process one element at a time
             for f, y in zip(feats, self.mb_y):
                 self.fit(f.unsqueeze(0), y.unsqueeze(0))
-            self.after_update(**kwargs)
+            self._after_update(**kwargs)
 
-            self.after_training_iteration(**kwargs)
+            self._after_training_iteration(**kwargs)
 
     def make_optimizer(self):
         pass

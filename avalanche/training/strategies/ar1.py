@@ -132,7 +132,7 @@ class AR1(BaseStrategy):
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every)
 
-    def before_training_exp(self, **kwargs):
+    def _before_training_exp(self, **kwargs):
         self.model.eval()
         self.model.end_features.train()
         self.model.output.train()
@@ -162,7 +162,7 @@ class AR1(BaseStrategy):
                 weight_decay=self.l2)
 
         # super()... will run S.I. and CWR* plugin callbacks
-        super().before_training_exp(**kwargs)
+        super()._before_training_exp(**kwargs)
 
         # Update cur_j of CWR* to consider latent patterns
         if self.clock.train_exp_counter > 0:
@@ -213,7 +213,7 @@ class AR1(BaseStrategy):
     def training_epoch(self, **kwargs):
         for mb_it, self.mbatch in \
                 enumerate(self.dataloader):
-            self.before_training_iteration(**kwargs)
+            self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             if self.clock.train_exp_counter > 0:
@@ -230,7 +230,7 @@ class AR1(BaseStrategy):
             # Forward pass. Here we are injecting latent patterns lat_mb_x.
             # lat_mb_x will be None for the very first batch (batch 0), which
             # means that lat_acts.shape[0] == self.mb_x[0].
-            self.before_forward(**kwargs)
+            self._before_forward(**kwargs)
             self.mb_output, lat_acts = self.model(
                 self.mb_x, latent_input=lat_mb_x, return_lat_acts=True)
 
@@ -242,24 +242,24 @@ class AR1(BaseStrategy):
                     self.cur_acts = lat_acts
                 else:
                     self.cur_acts = torch.cat((self.cur_acts, lat_acts), 0)
-            self.after_forward(**kwargs)
+            self._after_forward(**kwargs)
 
             # Loss & Backward
             # We don't need to handle latent replay, as self.mb_y already
             # contains both current and replay labels.
             self.loss = self._criterion(self.mb_output, self.mb_y)
-            self.before_backward(**kwargs)
+            self._before_backward(**kwargs)
             self.loss.backward()
-            self.after_backward(**kwargs)
+            self._after_backward(**kwargs)
 
             # Optimization step
-            self.before_update(**kwargs)
+            self._before_update(**kwargs)
             self.optimizer.step()
-            self.after_update(**kwargs)
+            self._after_update(**kwargs)
 
-            self.after_training_iteration(**kwargs)
+            self._after_training_iteration(**kwargs)
 
-    def after_training_exp(self, **kwargs):
+    def _after_training_exp(self, **kwargs):
         h = min(self.rm_sz // (self.clock.train_exp_counter + 1),
                 self.cur_acts.size(0))
 
@@ -283,7 +283,7 @@ class AR1(BaseStrategy):
         self.cur_acts = None
 
         # Runs S.I. and CWR* plugin callbacks
-        super().after_training_exp(**kwargs)
+        super()._after_training_exp(**kwargs)
 
     @staticmethod
     def filter_bn_and_brn(param_def: LayerAndParameter):
