@@ -137,13 +137,17 @@ class JointTraining(BaseStrategy):
             self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
-    def model_adaptation(self):
+    def model_adaptation(self, model=None):
         """ Adapts strategy's model for all experiences. """
+        if model is None:
+            model = self.model
+
         for experience in self._experiences:
-            for module in self.model.modules():
+            for module in model.modules():
                 if isinstance(module, DynamicModule):
                     module.adaptation(experience.dataset)
-            self.model = self.model.to(self.device)
+            model = model.to(self.device)
+        return model
 
 
 __all__ = ['JointTraining']
