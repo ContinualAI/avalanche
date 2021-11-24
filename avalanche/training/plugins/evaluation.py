@@ -14,7 +14,8 @@ if TYPE_CHECKING:
 
 
 class EvaluationPlugin(StrategyPlugin):
-    """
+    """ Manager for logging and metrics.
+
     An evaluation plugin that obtains relevant data from the
     training and eval loops of the strategy through callbacks.
     The plugin keeps a dictionary with the last recorded value for each metric.

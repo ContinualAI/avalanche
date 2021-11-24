@@ -26,8 +26,11 @@ class CSVLogger(StrategyLogger):
     The `CSVLogger` logs accuracy and loss metrics into a csv file.
     Metrics are logged separately for training and evaluation in files
     training_results.csv and eval_results.csv, respectively.
-    This Logger assumes that the user is evaluating on only one experience
-    during training (see below for an example of a `train` call).
+
+    .. note::
+        This Logger assumes that the user is evaluating
+        on only **one** experience
+        during training (see below for an example of a `train` call).
 
     Trough the `EvaluationPlugin`, the user should monitor at least
     EpochAccuracy/Loss and ExperienceAccuracy/Loss.
@@ -38,6 +41,8 @@ class CSVLogger(StrategyLogger):
     and pass the eval experience to the `train` method:
     `for i, exp in enumerate(benchmark.train_stream):`
         `strategy.train(exp, eval_streams=[benchmark.test_stream[i]])`
+    The `strategy.eval` method should be called on the entire test stream for
+    consistency, even if this is not strictly required.
 
     When not provided, validation loss and validation accuracy
     will be logged as zero.

@@ -8,8 +8,8 @@ from avalanche.models.base_model import BaseModel
 
 
 class LFLPlugin(StrategyPlugin):
-    """
-    Less-Forgetful Learning (LFL) Plugin
+    """ Less-Forgetful Learning (LFL) Plugin.
+
     LFL satisfies two properties to mitigate catastrophic forgetting.
     1) To keep the decision boundaries unchanged
     2) The feature space should not change much on target(new) data

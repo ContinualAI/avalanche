@@ -141,10 +141,21 @@ class IcarlNet(Module):
 
 
 def make_icarl_net(num_classes: int, n=5, c=3) -> IcarlNet:
+    """Create :py:class:`IcarlNet` network, the ResNet used in
+    ICarl.
+    :param num_classes: number of classes, network output size
+    :param n: depth of each residual blocks stack
+    :param c: number of input channels
+    """
     return IcarlNet(num_classes, n=n, c=c)
 
 
 def initialize_icarl_net(m: Module):
+    """Initialize the input network based on `kaiming_normal`
+    with `mode=fan_in` for `Conv2d` and `Linear` blocks.
+    Biases are initialized to zero.
+    :param m: input network (should be IcarlNet).
+    """
     if isinstance(m, Conv2d):
         kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='relu')
         if m.bias is not None:
