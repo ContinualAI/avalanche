@@ -17,15 +17,16 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
     from the :class:`EvaluationPlugin` carrying a reference to the strategy
     as well as the values emitted by the metrics.
 
-    Each child class should implement the `log_metric` method, which
+    Each child class should implement the `log_single_metric` method, which
     specifies how to report to the user the metrics gathered during
-    training and evaluation flows. The `log_metric` method is invoked
+    training and evaluation flows. The `log_single_metric` method is invoked
     by default on each callback.
     In addition, child classes may override the desired callbacks
     to customize the logger behavior.
 
-    Make sure, when overriding callbacks, to call
-    the proper `super` method.
+    .. note::
+        Make sure, when overriding callbacks, to call
+        the proper `super` method.
     """
 
     def __init__(self):

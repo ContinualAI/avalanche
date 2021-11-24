@@ -28,12 +28,14 @@ class ReplayPlugin(StrategyPlugin):
 
     The :mem_size: attribute controls the total number of patterns to be stored 
     in the external memory.
-    :param storage_policy: The policy that controls how to add new exemplars
-                           in memory
     """
 
     def __init__(self, mem_size: int = 200,
                  storage_policy: Optional["ExemplarsBuffer"] = None):
+        """
+        :param storage_policy: The policy that controls how to add new exemplars
+                        in memory
+        """
         super().__init__()
         self.mem_size = mem_size
 

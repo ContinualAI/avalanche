@@ -16,7 +16,9 @@ from avalanche.models.dynamic_modules import MultiTaskModule, \
 
 
 class SimpleCNN(nn.Module):
-
+    """
+    Convolutional Neural Network
+    """
     def __init__(self, num_classes=10):
         super(SimpleCNN, self).__init__()
 
@@ -50,11 +52,9 @@ class SimpleCNN(nn.Module):
 
 
 class MTSimpleCNN(SimpleCNN, MultiTaskModule):
-
+    """Convolutional Neural Network
+    with multi-head classifier"""
     def __init__(self):
-        """
-            Multi-task CNN with multi-head classifier.
-        """
         super().__init__()
         self.classifier = MultiHeadClassifier(64)
 

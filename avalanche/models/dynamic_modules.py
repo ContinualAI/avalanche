@@ -162,13 +162,15 @@ class MultiTaskModule(DynamicModule):
 
 
 class IncrementalClassifier(DynamicModule):
+    """
+    Output layer that incrementally adds units whenever new classes are
+    encountered.
+
+    Typically used in class-incremental benchmarks where the number of
+    classes grows over time.
+    """
     def __init__(self, in_features, initial_out_features=2):
-        """ Output layer that incrementally adds units whenever new classes are
-        encountered.
-
-        Typically used in class-incremental benchmarks where the number of
-        classes grows over time.
-
+        """
         :param in_features: number of input features.
         :param initial_out_features: initial number of classes (can be
             dynamically expanded).
@@ -206,28 +208,29 @@ class IncrementalClassifier(DynamicModule):
 
 
 class MultiHeadClassifier(MultiTaskModule):
+    """ Multi-head classifier with separate heads for each task.
+
+    Typically used in task-incremental benchmarks where task labels are
+    available and provided to the model.
+
+    .. note::
+        Each output head may have a different shape, and the number of
+        classes can be determined automatically.
+
+        However, since pytorch doest not support jagged tensors, when you
+        compute a minibatch's output you must ensure that each sample
+        has the same output size, otherwise the model will fail to
+        concatenate the samples together.
+
+        These can be easily ensured in two possible ways:
+        - each minibatch contains a single task, which is the case in most
+            common benchmarks in Avalanche. Some exceptions to this setting
+            are multi-task replay or cumulative strategies.
+        - each head has the same size, which can be enforced by setting a
+            large enough `initial_out_features`.
+    """
     def __init__(self, in_features, initial_out_features=2):
-        """ Multi-head classifier with separate heads for each task.
-
-        Typically used in task-incremental benchmarks where task labels are
-        available and provided to the model.
-
-        .. note::
-            Each output head may have a different shape, and the number of
-            classes can be determined automatically.
-
-            However, since pytorch doest not support jagged tensors, when you
-            compute a minibatch's output you must ensure that each sample
-            has the same output size, otherwise the model will fail to
-            concatenate the samples together.
-
-            These can be easily ensured in two possible ways:
-            - each minibatch contains a single task, which is the case in most
-                common benchmarks in Avalanche. Some exceptions to this setting
-                are multi-task replay or cumulative strategies.
-            - each head has the same size, which can be enforced by setting a
-                large enough `initial_out_features`.
-
+        """
         :param in_features: number of input features.
         :param initial_out_features: initial number of classes (can be
             dynamically expanded).

@@ -14,8 +14,8 @@ from avalanche.benchmarks.utils.data_loader import \
 
 
 class CoPEPlugin(StrategyPlugin):
-    """
-    Continual Prototype Evolution plugin.
+    """ Continual Prototype Evolution plugin.
+    
     Each class has a prototype for nearest-neighbor classification.
     The prototypes are updated continually with an exponentially moving average,
     using class-balanced replay to keep the prototypes up-to-date.

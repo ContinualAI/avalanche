@@ -2,8 +2,8 @@ from avalanche.training.plugins import StrategyPlugin
 
 
 class LRSchedulerPlugin(StrategyPlugin):
-    """
-    Learning Rate Scheduler Plugin
+    """ Learning Rate Scheduler Plugin.
+
     This plugin manages learning rate scheduling inside of a strategy using the
     PyTorch scheduler passed to the constructor. The step() method of the
     scheduler is called after each training epoch.
