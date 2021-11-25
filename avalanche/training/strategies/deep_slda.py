@@ -32,8 +32,8 @@ class StreamingLDA(BaseStrategy):
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
-        Init function for the SLDA model.
+        """Init function for the SLDA model.
+
         :param slda_model: a PyTorch model
         :param criterion: loss function
         :param output_layer_name: if not None, wrap model to retrieve
@@ -82,6 +82,7 @@ class StreamingLDA(BaseStrategy):
         self.prev_num_updates = -1
 
     def forward(self, return_features=False):
+        """Compute the model's output given the current mini-batch."""
         self.model.eval()
         if isinstance(self.model, MultiTaskModule):
             feat = self.model(self.mb_x, self.mb_task_id)
@@ -124,6 +125,8 @@ class StreamingLDA(BaseStrategy):
             self._after_training_iteration(**kwargs)
 
     def make_optimizer(self):
+        """Empty function.
+        Deep SLDA does not need a Pytorch optimizer."""
         pass
 
     @torch.no_grad()

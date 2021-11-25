@@ -24,7 +24,8 @@ class ExemplarsBuffer(ABC):
     """
 
     def __init__(self, max_size: int):
-        """
+        """Init.
+
         :param max_size: max number of input samples in the replay memory.
         """
         self.max_size = max_size
@@ -83,6 +84,11 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         self.update_from_dataset(strategy.experience.dataset)
 
     def update_from_dataset(self, new_data: AvalancheDataset):
+        """Update the buffer using the given dataset.
+
+        :param new_data:
+        :return:
+        """
         new_weights = torch.rand(len(new_data))
 
         cat_weights = torch.cat([new_weights, self._buffer_weights])
@@ -317,7 +323,7 @@ class ParametricBuffer(BalancedExemplarsBuffer):
 
     def update(self, strategy: "BaseStrategy", **kwargs):
         new_data = strategy.experience.dataset
-        new_groups = self.make_groups(strategy, new_data)
+        new_groups = self._make_groups(strategy, new_data)
         self.seen_groups.update(new_groups.keys())
 
         # associate lengths to classes
@@ -344,7 +350,8 @@ class ParametricBuffer(BalancedExemplarsBuffer):
             self.buffer_groups[group_id].resize(strategy,
                                                 group_to_len[group_id])
 
-    def make_groups(self, strategy, data):
+    def _make_groups(self, strategy, data):
+        """Split the data by group according to `self.groupby`."""
         if self.groupby is None:
             return {0: data}
         elif self.groupby == 'task':
