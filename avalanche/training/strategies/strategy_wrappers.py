@@ -171,7 +171,8 @@ class Replay(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """ Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -216,7 +217,8 @@ class GSS_greedy(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -260,7 +262,8 @@ class GDumb(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
@@ -305,7 +308,8 @@ class LwF(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """
+        """Init.
+
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.

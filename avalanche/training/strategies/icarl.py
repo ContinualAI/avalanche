@@ -31,7 +31,7 @@ class ICaRL(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ 
+        """Init.
 
         :param feature_extractor: The feature extractor.
         :param classifier: The differentiable classifier that takes as input
