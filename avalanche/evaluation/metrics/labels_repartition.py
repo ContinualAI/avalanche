@@ -206,7 +206,7 @@ def labels_repartition_metrics(
 
 
 __all__ = [
-    LabelsRepartitionPlugin,
-    LabelsRepartition,
-    labels_repartition_metrics,
+    'LabelsRepartitionPlugin',
+    'LabelsRepartition',
+    'labels_repartition_metrics'
 ]

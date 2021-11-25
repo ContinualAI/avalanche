@@ -23,7 +23,8 @@ from avalanche.training.strategies.base_strategy import BaseStrategy
 
 
 class Naive(BaseStrategy):
-    """
+    """ Naive finetuning.
+
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
     to contrast the catastrophic forgetting of previous knowledge.
@@ -53,12 +54,10 @@ class Naive(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         super().__init__(
             model, optimizer, criterion,
@@ -68,15 +67,7 @@ class Naive(BaseStrategy):
 
 
 class PNNStrategy(BaseStrategy):
-    """
-    The simplest (and least effective) Continual Learning strategy. Naive just
-    incrementally fine tunes a single model without employing any method
-    to contrast the catastrophic forgetting of previous knowledge.
-    This strategy does not use task identities.
-
-    Naive is easy to set up and its results are commonly used to show the worst
-    performing baseline.
-    """
+    """ Progressive Neural Network strategy. """
 
     def __init__(self, num_layers: int, in_features: int,
                  hidden_features_per_column: int,
@@ -87,8 +78,7 @@ class PNNStrategy(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """
-        Creates an instance of the Naive strategy.
+        """ Progressive Neural Network strategy.
 
         :param num_layers: Number of layers for the PNN architecture.
         :param in_features: Number of input features.
@@ -109,12 +99,10 @@ class PNNStrategy(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         model = PNN(
             num_layers=num_layers,
@@ -133,14 +121,13 @@ class PNNStrategy(BaseStrategy):
 
 
 class CWRStar(BaseStrategy):
-
+    """ CWR* Strategy. """
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  cwr_layer_name: str, train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ CWR* Strategy.
-        This strategy does not use task identities.
+        """ 
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -155,12 +142,10 @@ class CWRStar(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
         if plugins is None:
@@ -175,15 +160,18 @@ class CWRStar(BaseStrategy):
 
 
 class Replay(BaseStrategy):
+    """ Experience replay strategy.
 
+    See ReplayPlugin for more details.
+    This strategy does not use task identities.
+    """
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Experience replay strategy. See ReplayPlugin for more details.
-        This strategy does not use task identities.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -197,12 +185,10 @@ class Replay(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         rp = ReplayPlugin(mem_size)
@@ -220,15 +206,18 @@ class Replay(BaseStrategy):
 
 
 class GSS_greedy(BaseStrategy):
+    """ Experience replay strategy.
 
+    See ReplayPlugin for more details.
+    This strategy does not use task identities. 
+    """
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200, mem_strength=1, input_size=[],
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Experience replay strategy. See ReplayPlugin for more details.
-        This strategy does not use task identities.
+        """Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -243,12 +232,10 @@ class GSS_greedy(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         rp = GSS_greedyPlugin(mem_size=mem_size,
                               mem_strength=mem_strength, input_size=input_size)
@@ -264,15 +251,18 @@ class GSS_greedy(BaseStrategy):
 
 
 class GDumb(BaseStrategy):
+    """ GDumb strategy.
 
+    See GDumbPlugin for more details.
+    This strategy does not use task identities.
+    """
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ GDumb strategy. See GDumbPlugin for more details.
-        This strategy does not use task identities.
+        """Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -286,12 +276,10 @@ class GDumb(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         gdumb = GDumbPlugin(mem_size)
@@ -308,6 +296,11 @@ class GDumb(BaseStrategy):
 
 
 class LwF(BaseStrategy):
+    """ Learning without Forgetting (LwF) strategy.
+
+    See LwF plugin for details.
+    This strategy does not use task identities.
+    """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  alpha: Union[float, Sequence[float]], temperature: float,
@@ -315,9 +308,7 @@ class LwF(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Learning without Forgetting strategy.
-            See LwF plugin for details.
-            This strategy does not use task identities.
+        """Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -333,12 +324,10 @@ class LwF(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         lwf = LwFPlugin(alpha, temperature)
@@ -355,16 +344,19 @@ class LwF(BaseStrategy):
 
 
 class AGEM(BaseStrategy):
+    """ Average Gradient Episodic Memory (A-GEM) strategy.
 
+    See AGEM plugin for details.
+    This strategy does not use task identities.
+    """
+    
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  patterns_per_exp: int, sample_size: int = 64,
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Average Gradient Episodic Memory (A-GEM) strategy.
-            See AGEM plugin for details.
-            This strategy does not use task identities.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -380,12 +372,10 @@ class AGEM(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         agem = AGEMPlugin(patterns_per_exp, sample_size)
@@ -402,6 +392,11 @@ class AGEM(BaseStrategy):
 
 
 class GEM(BaseStrategy):
+    """ Gradient Episodic Memory (GEM) strategy.
+
+    See GEM plugin for details.
+    This strategy does not use task identities.
+    """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  patterns_per_exp: int, memory_strength: float = 0.5,
@@ -409,9 +404,7 @@ class GEM(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Gradient Episodic Memory (GEM) strategy.
-            See GEM plugin for details.
-            This strategy does not use task identities.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -427,12 +420,10 @@ class GEM(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         gem = GEMPlugin(patterns_per_exp, memory_strength)
@@ -449,6 +440,11 @@ class GEM(BaseStrategy):
 
 
 class EWC(BaseStrategy):
+    """ Elastic Weight Consolidation (EWC) strategy.
+
+    See EWC plugin for details.
+    This strategy does not use task identities.
+    """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  ewc_lambda: float, mode: str = 'separate',
@@ -458,9 +454,7 @@ class EWC(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Elastic Weight Consolidation (EWC) strategy.
-            See EWC plugin for details.
-            This strategy does not use task identities.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -486,12 +480,10 @@ class EWC(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
@@ -507,8 +499,7 @@ class EWC(BaseStrategy):
 
 
 class SynapticIntelligence(BaseStrategy):
-    """
-    The Synaptic Intelligence strategy.
+    """ Synaptic Intelligence strategy.
 
     This is the Synaptic Intelligence PyTorch implementation of the
     algorithm described in the paper
@@ -529,7 +520,8 @@ class SynapticIntelligence(BaseStrategy):
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
+        """ Init.
+
         Creates an instance of the Synaptic Intelligence strategy.
 
         :param model: PyTorch model.
@@ -548,12 +540,10 @@ class SynapticIntelligence(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         if plugins is None:
             plugins = []
@@ -570,6 +560,11 @@ class SynapticIntelligence(BaseStrategy):
 
 
 class CoPE(BaseStrategy):
+    """ Continual Prototype Evolution strategy.
+
+    See CoPEPlugin for more details.
+    This strategy does not use task identities during training.
+    """
 
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  mem_size: int = 200, n_classes: int = 10, p_size: int = 100,
@@ -579,9 +574,7 @@ class CoPE(BaseStrategy):
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger,
                  eval_every=-1):
-        """ Continual Prototype Evolution strategy.
-        See CoPEPlugin for more details.
-        This strategy does not use task identities during training.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -604,12 +597,10 @@ class CoPE(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
         copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
         if plugins is None:
@@ -624,17 +615,20 @@ class CoPE(BaseStrategy):
 
 
 class LFL(BaseStrategy):
+    """ Less Forgetful Learning strategy.
 
+    See LFL plugin for details.
+    Refer Paper: https://arxiv.org/pdf/1607.00122.pdf
+    This strategy does not use task identities.
+    """
+    
     def __init__(self, model: Module, optimizer: Optimizer, criterion,
                  lambda_e: Union[float, Sequence[float]],
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Less Forgetful Learning strategy.
-            See LFL plugin for details.
-            Refer Paper: https://arxiv.org/pdf/1607.00122.pdf
-            This strategy does not use task identities.
+        """ Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -649,12 +643,10 @@ class LFL(BaseStrategy):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that 
+            `eval` is called every `eval_every` epochs and at the end of the 
+            learning experience.
         """
 
         lfl = LFLPlugin(lambda_e)
@@ -672,6 +664,7 @@ class LFL(BaseStrategy):
 
 __all__ = [
     'Naive',
+    'PNNStrategy',
     'CWRStar',
     'Replay',
     'GDumb',

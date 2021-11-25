@@ -12,10 +12,8 @@ from avalanche.models import FeatureExtractorBackbone
 
 
 class StreamingLDA(BaseStrategy):
-    DISABLED_CALLBACKS = ("before_backward", "after_backward")
-
-    """
-    Deep Streaming Linear Discriminant Analysis.
+    """ Deep Streaming Linear Discriminant Analysis.
+    
     This strategy does not use backpropagation.
     Minibatches are first passed to the pretrained feature extractor.
     The result is processed one element at a time to fit the
@@ -25,6 +23,8 @@ class StreamingLDA(BaseStrategy):
     Discriminant Analysis, CVPR Workshop, 2020"
     https://openaccess.thecvf.com/content_CVPRW_2020/papers/w15/Hayes_Lifelong_Machine_Learning_With_Deep_Streaming_Linear_Discriminant_Analysis_CVPRW_2020_paper.pdf
     """
+    DISABLED_CALLBACKS = ("before_backward", "after_backward")
+
     def __init__(self, slda_model, criterion,
                  input_size, num_classes, output_layer_name=None,
                  shrinkage_param=1e-4, streaming_update_sigma=True,
@@ -32,8 +32,8 @@ class StreamingLDA(BaseStrategy):
                  eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
                  evaluator=default_logger, eval_every=-1):
-        """
-        Init function for the SLDA model.
+        """Init function for the SLDA model.
+
         :param slda_model: a PyTorch model
         :param criterion: loss function
         :param output_layer_name: if not None, wrap model to retrieve
@@ -82,6 +82,7 @@ class StreamingLDA(BaseStrategy):
         self.prev_num_updates = -1
 
     def forward(self, return_features=False):
+        """Compute the model's output given the current mini-batch."""
         self.model.eval()
         if isinstance(self.model, MultiTaskModule):
             feat = self.model(self.mb_x, self.mb_task_id)
@@ -101,29 +102,31 @@ class StreamingLDA(BaseStrategy):
         """
         for _, self.mbatch in enumerate(self.dataloader):
             self._unpack_minibatch()
-            self.before_training_iteration(**kwargs)
+            self._before_training_iteration(**kwargs)
 
             self.loss = 0
 
             # Forward
-            self.before_forward(**kwargs)
+            self._before_forward(**kwargs)
             # compute output on entire minibatch
             self.mb_output, feats = self.forward(return_features=True)
-            self.after_forward(**kwargs)
+            self._after_forward(**kwargs)
 
             # Loss & Backward
             self.loss += self.criterion()
 
             # Optimization step
-            self.before_update(**kwargs)
+            self._before_update(**kwargs)
             # process one element at a time
             for f, y in zip(feats, self.mb_y):
                 self.fit(f.unsqueeze(0), y.unsqueeze(0))
-            self.after_update(**kwargs)
+            self._after_update(**kwargs)
 
-            self.after_training_iteration(**kwargs)
+            self._after_training_iteration(**kwargs)
 
     def make_optimizer(self):
+        """Empty function.
+        Deep SLDA does not need a Pytorch optimizer."""
         pass
 
     @torch.no_grad()
