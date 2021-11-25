@@ -23,32 +23,34 @@ Each metric comes with a standalone class and a set of plugin classes aimed at e
 
 #### Standalone metric
 
-As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
+As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.  
+The `Accuracy` metric requires the `task_labels` parameter, which specifies which task is associated with the current patterns. The metric returns a dictionary mapping task labels to accuracy values.
 
 
 ```python
 import torch
 from avalanche.evaluation.metrics import Accuracy
 
+task_labels = 0  # we will work with a single task
 # create an instance of the standalone Accuracy metric
-# initial accuracy is 0
+# initial accuracy is 0 for each task
 acc_metric = Accuracy()
-print("Initial Accuracy: ", acc_metric.result()) #  output 0
+print("Initial Accuracy: ", acc_metric.result()) #  output {}
 
 # two consecutive metric updates
 real_y = torch.tensor([1, 2]).long()
 predicted_y = torch.tensor([1, 0]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.5
+print("Average Accuracy: ", acc) # output 0.5 on task 0
 predicted_y = torch.tensor([1,2]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.75
+print("Average Accuracy: ", acc) # output 0.75 on task 0
 
-# reset accuracy to 0
+# reset accuracy
 acc_metric.reset()
-print("After reset: ", acc_metric.result()) # output 0
+print("After reset: ", acc_metric.result()) # output {}
 ```
 
 #### Plugin metric
@@ -71,36 +73,14 @@ from avalanche.evaluation.metrics import accuracy_metrics, \
 metrics = accuracy_metrics(epoch=True, experience=True)
 ```
 
-The metrics currently available in the current _Avalanche_ release are:
-
-
-```python
-from avalanche.evaluation.metrics import Accuracy, \
-MinibatchAccuracy, EpochAccuracy, RunningEpochAccuracy, \
-ExperienceAccuracy, StreamAccuracy, \
-Loss, MinibatchLoss, EpochLoss, RunningEpochLoss, \
-ExperienceLoss, StreamLoss, \
-Forgetting, ExperienceForgetting, StreamForgetting, \
-BWT, ExperienceBWT, StreamBWT, \
-ConfusionMatrix, StreamConfusionMatrix, WandBStreamConfusionMatrix, \
-CPUUsage, MinibatchCPUUsage, EpochCPUUsage, RunningEpochCPUUsage, \
-ExperienceCPUUsage, StreamCPUUsage, \
-DiskUsage, MinibatchDiskUsage, EpochDiskUsage, \
-ExperienceDiskUsage, StreamDiskUsage, \
-MaxGPU, MinibatchMaxGPU, EpochMaxGPU, ExperienceMaxGPU, \
-StreamMaxGPU,\
-MAC, MinibatchMAC, EpochMAC, ExperienceMAC, \
-MaxRAM, MinibatchMaxRAM, EpochMaxRAM, ExperienceMaxRAM, \
-StreamMaxRAM, \
-ElapsedTime, MinibatchTime, EpochTime, RunningEpochTime, \
-ExperienceTime, StreamTime
-```
-
 ## 📐Evaluation Plugin
 
-The **Evaluation Plugin**, is the object in charge of configuring and controlling the evaluation procedure. This object can be passed to a Strategy as a "special" plugin through the evaluator attribute.
+The **Evaluation Plugin** is the object in charge of configuring and controlling the evaluation procedure. This object can be passed to a Strategy as a "special" plugin through the evaluator attribute.
 
 The Evaluation Plugin accepts as inputs the plugin metrics you want to track. In addition, you can add one or more loggers to print the metrics in different ways \(on file, on standard output, on Tensorboard...\).
+
+It is also recommended to pass to the Evaluation Plugin the benchmark instance used in the experiment. This allows the plugin to check for consistency during metrics computation. For example, the Evaluation Plugin checks that the `strategy.eval` calls are performed on the same stream or sub-stream. Otherwise, same metric could refer to different portions of the stream.  
+These checks can be configured to raise errors (stopping computation) or only warnings.
 
 
 ```python
@@ -111,13 +91,14 @@ from avalanche.evaluation.metrics import forgetting_metrics, \
 accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
 confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
+from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies import Naive
 
-scenario = SplitMNIST(n_experiences=5)
+benchmark = SplitMNIST(n_experiences=5)
 
 # MODEL CREATION
-model = SimpleMLP(num_classes=scenario.n_classes)
+model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN
 # The evaluation plugin manages the metrics computation.
@@ -130,8 +111,11 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
-    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True)
+    confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False, stream=True),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    loggers=[InteractiveLogger()],
+    benchmark=benchmark,
+    strict_checks=False
 )
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)
@@ -143,17 +127,14 @@ cl_strategy = Naive(
 # TRAINING LOOP
 print('Starting experiment...')
 results = []
-for experience in scenario.train_stream:
-    print("Start of experience: ", experience.current_experience)
-    print("Current Classes: ", experience.classes_in_this_experience)
-
+for experience in benchmark.train_stream:
     # train returns a dictionary which contains all the metric values
     res = cl_strategy.train(experience)
     print('Training completed')
 
     print('Computing accuracy on the whole test set')
     # test also returns a dictionary which contains all the metric values
-    results.append(cl_strategy.eval(scenario.test_stream))
+    results.append(cl_strategy.eval(benchmark.test_stream))
 ```
 
 ## Implement your own metric
@@ -196,12 +177,14 @@ class MyStandaloneMetric(Metric[float]):
         pass
 ```
 
- To implement a **plugin metric** you have to subclass `MetricPlugin` class
+ To implement a **plugin metric** you have to subclass `PluginMetric` class
 
 
 ```python
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metric_results import MetricValue
+from avalanche.evaluation.metric_utils import get_metric_name
 
 
 class MyPluginMetric(PluginMetric[float]):
@@ -217,8 +200,6 @@ class MyPluginMetric(PluginMetric[float]):
         super().__init__()
 
         self._accuracy_metric = Accuracy()
-        # current x values for the metric curve
-        self.x_coord = 0
 
     def reset(self) -> None:
         """
@@ -237,8 +218,16 @@ class MyPluginMetric(PluginMetric[float]):
         Update the accuracy metric with the current
         predictions and targets
         """
-        self._accuracy_metric.update(strategy.mb_y,
-                                     strategy.logits)
+        # task labels defined for each experience
+        task_labels = strategy.experience.task_labels
+        if len(task_labels) > 1:
+            # task labels defined for each pattern
+            task_labels = strategy.mb_task_id
+        else:
+            task_labels = task_labels[0]
+            
+        self._accuracy_metric.update(strategy.mb_output, strategy.mb_y, 
+                                     task_labels)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
         """
@@ -250,10 +239,29 @@ class MyPluginMetric(PluginMetric[float]):
         """
         Emit the result
         """
-        value = self._accuracy_metric.result()
-        self.x_coord += 1 # increment x value
-        return [MetricValue(self, 'metric_full_name', value,
-                            self.x_coord)]
+        return self._package_result(strategy)
+        
+        
+    def _package_result(self, strategy):
+        """Taken from `GenericPluginMetric`, check that class out!"""
+        metric_value = self.accuracy_metric.result()
+        add_exp = False
+        plot_x_position = strategy.clock.train_iterations
+
+        if isinstance(metric_value, dict):
+            metrics = []
+            for k, v in metric_value.items():
+                metric_name = get_metric_name(
+                    self, strategy, add_experience=add_exp, add_task=k)
+                metrics.append(MetricValue(self, metric_name, v,
+                                           plot_x_position))
+            return metrics
+        else:
+            metric_name = get_metric_name(self, strategy,
+                                          add_experience=add_exp,
+                                          add_task=True)
+            return [MetricValue(self, metric_name, metric_value,
+                                plot_x_position)]
 
     def __str__(self):
         """
@@ -270,22 +278,41 @@ The result is a dictionary with full metric names as keys and a tuple of two lis
 
 
 ```python
-eval_plugin = EvaluationPlugin(
+eval_plugin2 = EvaluationPlugin(
     accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     forgetting_metrics(experience=True, stream=True),
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
-    confusion_matrix_metrics(num_classes=scenario.n_classes, save_image=False, stream=True),
+    confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    collect_all=True # this is default value anyway
+    collect_all=True, # this is default value anyway
+    loggers=[InteractiveLogger()],
+    benchmark=benchmark
 )
 
 # since no training and evaluation has been performed, this will return an empty dict.
-metric_dict = eval_plugin.get_all_metrics()
+metric_dict = eval_plugin2.get_all_metrics()
+print(metric_dict)
+```
+
+
+```python
+d = eval_plugin.get_all_metrics()
+d['Top1_Acc_Epoch/train_phase/train_stream/Task000']
 ```
 
 Alternatively, the `train` and `eval` method of every `strategy` returns a dictionary storing, for each metric, the last value recorded for that metric. You can use these dictionaries to incrementally accumulate metrics. 
+
+
+```python
+print(res)
+```
+
+
+```python
+print(results[-1])
+```
 
 This completes the "_Evaluation_" tutorial for the "_From Zero to Hero_" series. We hope you enjoyed it!
 
