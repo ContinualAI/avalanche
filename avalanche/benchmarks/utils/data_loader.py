@@ -98,6 +98,7 @@ class GroupBalancedDataLoader:
     def __init__(self, datasets: Sequence[AvalancheDataset],
                  oversample_small_groups: bool = False,
                  collate_mbatches=_default_collate_mbatches_fn,
+                 batch_size: int = 32,
                  **kwargs):
         """ Data loader that balances data from multiple datasets.
 
@@ -115,6 +116,8 @@ class GroupBalancedDataLoader:
         :param collate_mbatches: function that given a sequence of mini-batches
             (one for each task) combines them into a single mini-batch. Used to
             combine the mini-batches obtained separately from each task.
+        :param batch_size: the size of the batch. It must be greater than or
+            equal to the number of groups.
         :param kwargs: data loader arguments used to instantiate the loader for
             each group separately. See pytorch :class:`DataLoader`.
         """
@@ -123,8 +126,19 @@ class GroupBalancedDataLoader:
         self.oversample_small_groups = oversample_small_groups
         self.collate_mbatches = collate_mbatches
 
+        # check if batch_size is larger than or equal to the number of datasets
+        assert batch_size >= len(datasets)
+
+        # divide the batch between all datasets in the group
+        ds_batch_size = batch_size // len(datasets)
+        remaining = batch_size % len(datasets)
+
         for data in self.datasets:
-            self.dataloaders.append(DataLoader(data, **kwargs))
+            bs = ds_batch_size
+            if remaining > 0:
+                bs += 1
+                remaining -= 1
+            self.dataloaders.append(DataLoader(data, batch_size=bs, **kwargs))
         self.max_len = max([len(d) for d in self.dataloaders])
 
     def __iter__(self):
