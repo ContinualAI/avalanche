@@ -12,12 +12,12 @@ from avalanche.training.utils import examples_per_class, get_last_fc_layer, \
 
 
 class CWRStarPlugin(StrategyPlugin):
+    """ CWR* Strategy.
 
+    This plugin does not use task identities.
+    """
     def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True):
         """
-        CWR* Strategy.
-        This plugin does not use task identities.
-
         :param model: the model.
         :param cwr_layer_name: name of the last fully connected layer. Defaults
             to None, which means that the plugin will attempt an automatic

@@ -8,8 +8,8 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 
 class AGEMPlugin(StrategyPlugin):
-    """
-    Average Gradient Episodic Memory Plugin.
+    """ Average Gradient Episodic Memory Plugin.
+    
     AGEM projects the gradient on the current minibatch by using an external
     episodic memory of patterns from previous experiences. If the dot product
     between the current gradient and the (average) gradient of a randomly

@@ -1,22 +1,7 @@
 import copy
-from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING
 
-import torch
-import tqdm
-from torch import Tensor
-from torch.utils.data import TensorDataset
-
-from avalanche.benchmarks.utils import AvalancheConcatDataset, AvalancheDataset
+from avalanche.models import DynamicModule
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 
@@ -56,6 +41,11 @@ class GDumbPlugin(StrategyPlugin):
             self.init_model = copy.deepcopy(strategy.model)
         else:
             strategy.model = copy.deepcopy(self.init_model)
+        strategy.model_adaptation(self.init_model)
+
+    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
+                                       **kwargs):
+        strategy.model_adaptation(self.init_model)
 
     def after_train_dataset_adaptation(self, strategy: "BaseStrategy",
                                        **kwargs):
