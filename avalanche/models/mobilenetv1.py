@@ -49,6 +49,8 @@ def remove_DwsConvBlock(cur_layers):
 
 
 class MobilenetV1(nn.Module):
+    """MobileNet v1 implementation. This model
+    can be instantiated from a pretrained network."""
     def __init__(self, pretrained=True, latent_layer_num=20):
         super().__init__()
 

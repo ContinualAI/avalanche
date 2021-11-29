@@ -6,3 +6,5 @@ CL strategies. These are provided either as standalone strategies in
 can be easily combined with your own strategy.
 """
 from .strategies import *
+from .storage_policy import *
+from .losses import *

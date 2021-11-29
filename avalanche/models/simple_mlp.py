@@ -17,8 +17,19 @@ from avalanche.models.base_model import BaseModel
 
 
 class SimpleMLP(nn.Module, BaseModel):
+    """
+    Multi-Layer Perceptron with custom parameters.
+    It can be configured to have multiple layers and dropout.
+    """
     def __init__(self, num_classes=10, input_size=28 * 28,
                  hidden_size=512, hidden_layers=1, drop_rate=0.5):
+        """
+        :param num_classes: output size
+        :param input_size: input size
+        :param hidden_size: hidden layer size
+        :param hidden_layers: number of hidden layers
+        :param drop_rate: dropout rate. 0 to disable
+        """
         super().__init__()
 
         layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
@@ -50,10 +61,8 @@ class SimpleMLP(nn.Module, BaseModel):
 
 
 class MTSimpleMLP(MultiTaskModule):
+    """Multi-layer perceptron with multi-head classifier"""
     def __init__(self, input_size=28 * 28, hidden_size=512):
-        """
-            Multi-task MLP with multi-head classifier.
-        """
         super().__init__()
 
         self.features = nn.Sequential(

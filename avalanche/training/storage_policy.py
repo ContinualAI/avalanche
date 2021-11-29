@@ -17,15 +17,16 @@ if TYPE_CHECKING:
 
 
 class ExemplarsBuffer(ABC):
-    """ A buffer that stores exemplars for rehearsal.
+    """ ABC for rehearsal buffers to store exemplars.
 
     `self.buffer` is an AvalancheDataset of samples collected from the previous
     experiences. The buffer can be updated by calling `self.update(strategy)`.
-
-    :param max_size: max number of input samples in the replay memory.
     """
 
     def __init__(self, max_size: int):
+        """
+        :param max_size: max number of input samples in the replay memory.
+        """
         self.max_size = max_size
         """ Maximum size of the buffer. """
         self._buffer = AvalancheConcatDataset([])
@@ -61,8 +62,12 @@ class ExemplarsBuffer(ABC):
 
 
 class ReservoirSamplingBuffer(ExemplarsBuffer):
+    """ Buffer updated with reservoir sampling. """
+
     def __init__(self, max_size: int):
-        """ Buffer updated with reservoir sampling. """
+        """
+        :param max_size:
+        """
         # The algorithm follows
         # https://en.wikipedia.org/wiki/Reservoir_sampling
         # We sample a random uniform value in [0, 1] for each sample and
@@ -98,18 +103,20 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
 
 
 class BalancedExemplarsBuffer(ExemplarsBuffer):
+    """ A buffer that stores exemplars for rehearsal in separate groups.
+
+    The grouping allows to balance the data (by task, experience,
+    classes..). In combination with balanced data loaders, it can be used
+    to sample balanced mini-batches during training.
+
+    `self.buffer_groups` is a dictionary that stores each group as a
+    separate buffer. The buffers are updated by calling
+    `self.update(strategy)`.
+    """
+
     def __init__(self, max_size: int, adaptive_size: bool = True,
                  total_num_groups=None):
-        """ A buffer that stores exemplars for rehearsal in separate groups.
-
-        The grouping allows to balance the data (by task, experience,
-        classes..). In combination with balanced data loaders, it can be used
-        to sample balanced mini-batches during training.
-
-        `self.buffer_groups` is a dictionary that stores each group as a
-        separate buffer. The buffers are updated by calling
-        `self.update(strategy)`.
-
+        """
         :param max_size: max number of input samples in the replay memory.
         :param adaptive_size: True if max_size is divided equally over all
                               observed experiences (keys in replay_mem).
@@ -179,14 +186,16 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
 
 
 class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
+    """ Rehearsal buffer with samples balanced over experiences.
+
+    The number of experiences can be fixed up front or adaptive, based on
+    the 'adaptive_size' attribute. When adaptive, the memory is equally
+    divided over all the unique observed experiences so far.
+    """
+
     def __init__(self, max_size: int, adaptive_size: bool = True,
                  num_experiences=None):
-        """ Rehearsal buffer with samples balanced over experiences.
-
-        The number of experiences can be fixed up front or adaptive, based on
-        the 'adaptive_size' attribute. When adaptive, the memory is equally
-        divided over all the unique observed experiences so far.
-
+        """
         :param max_size: max number of total input samples in the replay
             memory.
         :param adaptive_size: True if mem_size is divided equally over all
@@ -210,18 +219,20 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
 
 
 class ClassBalancedBuffer(BalancedExemplarsBuffer):
+    """ Stores samples for replay, equally divided over classes.
+
+    There is a separate buffer updated by reservoir sampling for each
+        class.
+    It should be called in the 'after_training_exp' phase (see
+    ExperienceBalancedStoragePolicy).
+    The number of classes can be fixed up front or adaptive, based on
+    the 'adaptive_size' attribute. When adaptive, the memory is equally
+    divided over all the unique observed classes so far.
+    """
+
     def __init__(self, max_size: int, adaptive_size: bool = True,
                  total_num_classes: int = None):
-        """ Stores samples for replay, equally divided over classes.
-
-        There is a separate buffer updated by reservoir sampling for each
-            class.
-        It should be called in the 'after_training_exp' phase (see
-        ExperienceBalancedStoragePolicy).
-        The number of classes can be fixed up front or adaptive, based on
-        the 'adaptive_size' attribute. When adaptive, the memory is equally
-        divided over all the unique observed classes so far.
-        
+        """
         :param max_size: The max capacity of the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
                             observed experiences (keys in replay_mem).
@@ -280,13 +291,14 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
 
 
 class ParametricBuffer(BalancedExemplarsBuffer):
+    """ Stores samples for replay using a custom selection strategy and
+        grouping. """
+
     def __init__(self, max_size: int,
                  groupby=None,
                  selection_strategy: Optional[
                      "ExemplarsSelectionStrategy"] = None):
-        """ Stores samples for replay using a custom selection strategy and
-        grouping.
-
+        """
         :param max_size: The max capacity of the replay memory.
         :param groupby: Grouping mechanism. One of {None, 'class', 'task',
         'experience'}.
@@ -370,15 +382,17 @@ class ParametricBuffer(BalancedExemplarsBuffer):
 
 
 class _ParametricSingleBuffer(ExemplarsBuffer):
+    """ A buffer that stores samples for replay using a custom selection
+    strategy.
+
+    This is a private class. Use `ParametricBalancedBuffer` with
+    `groupby=None` to get the same behavior.
+    """
+
     def __init__(self, max_size: int,
                  selection_strategy: Optional[
                      "ExemplarsSelectionStrategy"] = None):
-        """ A buffer that stores samples for replay using a custom selection
-        strategy.
-
-        This is a private class. Use `ParametricBalancedBuffer` with
-        `groupby=None` to get the same behavior.
-
+        """
         :param max_size: The max capacity of the replay memory.
         :param selection_strategy: The strategy used to select exemplars to
                                    keep in memory when cutting it off.
@@ -460,15 +474,15 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy,
 
 
 class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    """ The herding strategy as described in iCaRL.
+
+    It is a greedy algorithm, that select the remaining exemplar that get
+    the center of already selected exemplars as close as possible as the
+    center of all elements (in the feature space).
+    """
+
     def make_sorted_indices_from_features(self, features: Tensor
                                           ) -> List[int]:
-        """
-        The herding strategy as described in iCaRL
-
-        It is a greedy algorithm, that select the remaining exemplar that get
-        the center of already selected exemplars as close as possible as the
-        center of all elements (in the feature space).
-        """
         selected_indices = []
 
         center = features.mean(dim=0)
@@ -490,12 +504,12 @@ class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
 
 
 class ClosestToCenterSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
+    """ A greedy algorithm that selects the remaining exemplar that is the
+    closest to the center of all elements (in feature space).
+    """
+
     def make_sorted_indices_from_features(self, features: Tensor
                                           ) -> List[int]:
-        """
-        A greedy algorithm that select the remaining exemplar that is the
-        closest to the center of all elements (in feature space)
-        """
         center = features.mean(dim=0)
         distances = pow(features - center, 2).sum(dim=1)
         return distances.argsort()
