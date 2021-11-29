@@ -32,6 +32,7 @@
 ## How-Tos
 
 * [AvalancheDataset](how-tos/avalanchedataset/README.md)
+  * [Preamble: PyTorch Datasets](how-tos/avalanchedataset/preamble-pytorch-datasets.md)
   * [Creating AvalancheDatasets](how-tos/avalanchedataset/creating-avalanchedatasets.md)
   * [Advanced Transformations](how-tos/avalanchedataset/advanced-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
@@ -51,7 +52,7 @@
 * [Request a Feature](questions-and-issues/request-a-feature.md)
 * [Give Feedback](questions-and-issues/give-feedback.md)
 
-## 👪 About Us <a href="contacts-and-links" id="contacts-and-links"></a>
+## 👪 About Us <a href="#contacts-and-links" id="contacts-and-links"></a>
 
 * [The People](contacts-and-links/the-team.md)
 * [Join Us!](contacts-and-links/join-us.md)
