@@ -1,3 +1,6 @@
+---
+description: How to implement replay and data loading
+---
 # Dataloading, Memory Buffers, and Replay
 
 Avalanche provides several components that help you to balance data loading and implement rehearsal strategies.
@@ -7,6 +10,13 @@ Avalanche provides several components that help you to balance data loading and 
 **Buffers** are used to store data from the previous experiences. They are dynamic datasets with a fixed maximum size, and they can be updated with new data continuously.
 
 Finally, **Replay** strategies implement rehearsal by using Avalanche's plugin system. Most rehearsal strategies use a custom dataloader to balance the buffer with the current experience and a buffer that is updated for each experience.
+
+First, let's install Avalanche. You can skip this step if you have installed it already.
+
+
+```python
+!pip install git+https://github.com/ContinualAI/avalanche.git
+```
 
 ## Dataloaders
 Avalanche dataloaders are simple iterators, located under `avalanche.benchmarks.utils.data_loader`. Their interface is equivalent to pytorch's dataloaders. For example, `GroupBalancedDataLoader` takes a sequence of datasets and iterates over them by providing balanced mini-batches, where the number of samples is split equally among groups. Internally, it instantiate a `DataLoader` for each separate group. More specialized dataloaders exist such as `TaskBalancedDataLoader`.
