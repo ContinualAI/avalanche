@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 🐜 **To Reproduce**
-Steps / minimal snipped of code to reproduce the issue.
+A [minimal working example](https://en.wikipedia.org/wiki/Minimal_working_example) to reproduce the issue. The code should be executable without modifications.
 
 🐝 **Expected behavior**
 A clear and concise description of what you expected to happen.
