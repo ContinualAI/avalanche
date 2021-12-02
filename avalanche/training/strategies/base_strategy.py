@@ -335,8 +335,13 @@ class BaseStrategy:
         self.is_training = _prev_state[3]
         # restore each layer's training mode to original
         for name, layer in self.model.named_modules():
-            prev_mode = _prev_model_training_modes[name]
-            layer.train(mode=prev_mode)
+            try:
+                prev_mode = _prev_model_training_modes[name]
+                layer.train(mode=prev_mode)
+            except KeyError:
+                # Unknown parameter, probably added during the eval
+                # model's adaptation. We set it to train mode.
+                layer.train()
 
     def _save_train_state(self):
         """Save the training state which may be modified by the eval loop.
