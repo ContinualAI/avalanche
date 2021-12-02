@@ -39,7 +39,8 @@ class Naive(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """
         Creates an instance of the Naive strategy.
 
@@ -58,12 +59,14 @@ class Naive(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         super().__init__(
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class PNNStrategy(BaseStrategy):
@@ -77,7 +80,8 @@ class PNNStrategy(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Progressive Neural Network strategy.
 
         :param num_layers: Number of layers for the PNN architecture.
@@ -103,6 +107,8 @@ class PNNStrategy(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         model = PNN(
             num_layers=num_layers,
@@ -117,7 +123,7 @@ class PNNStrategy(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class CWRStar(BaseStrategy):
@@ -126,7 +132,8 @@ class CWRStar(BaseStrategy):
                  cwr_layer_name: str, train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ 
 
         :param model: The model.
@@ -146,6 +153,8 @@ class CWRStar(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
         if plugins is None:
@@ -156,7 +165,7 @@ class CWRStar(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class Replay(BaseStrategy):
@@ -170,7 +179,8 @@ class Replay(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -189,6 +199,8 @@ class Replay(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         rp = ReplayPlugin(mem_size)
@@ -202,7 +214,7 @@ class Replay(BaseStrategy):
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, 
             plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class GSS_greedy(BaseStrategy):
@@ -216,7 +228,8 @@ class GSS_greedy(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """Init.
 
         :param model: The model.
@@ -236,6 +249,8 @@ class GSS_greedy(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         rp = GSS_greedyPlugin(mem_size=mem_size,
                               mem_strength=mem_strength, input_size=input_size)
@@ -247,7 +262,7 @@ class GSS_greedy(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class GDumb(BaseStrategy):
@@ -261,7 +276,8 @@ class GDumb(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """Init.
 
         :param model: The model.
@@ -280,6 +296,8 @@ class GDumb(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         gdumb = GDumbPlugin(mem_size)
@@ -292,7 +310,7 @@ class GDumb(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class LwF(BaseStrategy):
@@ -307,7 +325,8 @@ class LwF(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """Init.
 
         :param model: The model.
@@ -328,6 +347,8 @@ class LwF(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         lwf = LwFPlugin(alpha, temperature)
@@ -340,7 +361,7 @@ class LwF(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class AGEM(BaseStrategy):
@@ -355,7 +376,8 @@ class AGEM(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -376,6 +398,8 @@ class AGEM(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         agem = AGEMPlugin(patterns_per_exp, sample_size)
@@ -388,7 +412,7 @@ class AGEM(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class GEM(BaseStrategy):
@@ -403,7 +427,8 @@ class GEM(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -424,6 +449,8 @@ class GEM(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         gem = GEMPlugin(patterns_per_exp, memory_strength)
@@ -436,7 +463,7 @@ class GEM(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class EWC(BaseStrategy):
@@ -453,7 +480,8 @@ class EWC(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -484,6 +512,8 @@ class EWC(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
@@ -495,7 +525,7 @@ class EWC(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class SynapticIntelligence(BaseStrategy):
@@ -519,7 +549,7 @@ class SynapticIntelligence(BaseStrategy):
                  eps: float = 0.0000001, train_mb_size: int = 1,
                  train_epochs: int = 1, eval_mb_size: int = 1, device='cpu',
                  plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger, eval_every=-1):
+                 evaluator=default_logger, eval_every=-1, **base_kwargs):
         """ Init.
 
         Creates an instance of the Synaptic Intelligence strategy.
@@ -544,6 +574,8 @@ class SynapticIntelligence(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         if plugins is None:
             plugins = []
@@ -555,7 +587,7 @@ class SynapticIntelligence(BaseStrategy):
         super(SynapticIntelligence, self).__init__(
             model, optimizer, criterion, train_mb_size, train_epochs,
             eval_mb_size, device=device, plugins=plugins, evaluator=evaluator,
-            eval_every=eval_every
+            eval_every=eval_every, **base_kwargs
         )
 
 
@@ -573,7 +605,7 @@ class CoPE(BaseStrategy):
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
                  evaluator: EvaluationPlugin = default_logger,
-                 eval_every=-1):
+                 eval_every=-1, **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -601,6 +633,8 @@ class CoPE(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
         copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
         if plugins is None:
@@ -611,7 +645,7 @@ class CoPE(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 class LFL(BaseStrategy):
@@ -627,7 +661,8 @@ class LFL(BaseStrategy):
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
+                 **base_kwargs):
         """ Init.
 
         :param model: The model.
@@ -647,6 +682,8 @@ class LFL(BaseStrategy):
             only at the end of the learning experience. Values >0 mean that 
             `eval` is called every `eval_every` epochs and at the end of the 
             learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
 
         lfl = LFLPlugin(lambda_e)
@@ -659,7 +696,7 @@ class LFL(BaseStrategy):
             model, optimizer, criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            evaluator=evaluator, eval_every=eval_every, **base_kwargs)
 
 
 __all__ = [
