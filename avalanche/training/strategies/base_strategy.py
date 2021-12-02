@@ -146,6 +146,7 @@ class BaseStrategy:
 
         # Configure periodic evaluation.
         assert peval_mode in {'epoch', 'iteration'}
+        self.eval_every = eval_every
         peval = PeriodicEval(eval_every, peval_mode)
         self.plugins.append(peval)
 
