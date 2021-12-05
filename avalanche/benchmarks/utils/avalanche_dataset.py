@@ -2004,20 +2004,34 @@ def concat_datasets_sequentially(
 
     new_class_ids_per_dataset = []
     for dataset_idx in range(len(train_dataset_list)):
+    
+        # Get the train and test sets of the dataset
+        train_set = train_dataset_list[dataset_idx]
+        test_set = test_dataset_list[dataset_idx]
+        
+        # Get the classes in the dataset
+        dataset_classes = set([el[1].item() for el in train_set])
+        
         # The class IDs for this dataset will be in range
         # [n_classes_in_previous_datasets,
         #       n_classes_in_previous_datasets + classes_in_this_dataset)
-        class_mapping = list(
+        new_classes = list(
             range(next_remapped_idx,
                   next_remapped_idx + classes_per_dataset[dataset_idx]))
-        new_class_ids_per_dataset.append(class_mapping)
-
-        train_set = train_dataset_list[dataset_idx]
-        test_set = test_dataset_list[dataset_idx]
-
+        new_class_ids_per_dataset.append(new_classes)
+        
         # AvalancheSubset is used to apply the class IDs transformation.
         # Remember, the class_mapping parameter must be a list in which:
         # new_class_id = class_mapping[original_class_id]
+        # Hence, a list of size equal to the maximum class index is created
+        # Only elements corresponding to the present classes are remapped
+        class_mapping = [-1] * (max(dataset_classes) + 1)
+        j = 0
+        for i in dataset_classes:
+            class_mapping[i] = new_classes[j]
+            j += 1        
+
+        # Create remapped datasets and append them to the final list
         remapped_train_datasets.append(
             AvalancheSubset(train_set, class_mapping=class_mapping))
         remapped_test_datasets.append(
