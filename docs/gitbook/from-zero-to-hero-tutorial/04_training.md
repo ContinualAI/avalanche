@@ -5,6 +5,8 @@ description: Continual Learning Algorithms Prototyping Made Easy
 
 Welcome to the "_Training_" tutorial of the "_From Zero to Hero_" series. In this part we will present the functionalities offered by the `training` module.
 
+First, let's install Avalanche. You can skip this step if you have installed it already.
+
 
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
@@ -187,7 +189,7 @@ The strategy state is accessible via several attributes. Most of these can be mo
 - `self.experience`: the current experience.
 - `self.adapted_dataset`: the data modified by the dataset adaptation phase.
 - `self.dataloader`: the current dataloader.
-- `self.mbatch`: the current mini-batch. For classification problems, mini-batches have the form `<x, y, t>`, where `x` is the input, `y` is the label, and `t` is the target.
+- `self.mbatch`: the current mini-batch. For classification problems, mini-batches have the form `<x, y, t>`, where `x` is the input, `y` is the target class, and `t` is the task label.
 - `self.mb_output`: the current model's output.
 - `self.loss`: the current loss.
 - `self.is_training`: `True` if the strategy is in training mode.

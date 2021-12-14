@@ -84,6 +84,8 @@ class BaseStrategy:
 
     """
     DISABLED_CALLBACKS: Sequence[str] = ()
+    """Internal class attribute used to disable some callbacks if a strategy
+    does not support them."""
 
     def __init__(self, model: Module, optimizer: Optimizer,
                  criterion=CrossEntropyLoss(),
@@ -231,6 +233,7 @@ class BaseStrategy:
 
     @property
     def mb_task_id(self):
+        """Current mini-batch task labels."""
         assert len(self.mbatch) >= 3
         return self.mbatch[-1]
 
@@ -595,6 +598,7 @@ class BaseStrategy:
             p.after_eval_dataset_adaptation(self, **kwargs)
 
     def eval_epoch(self, **kwargs):
+        """Evaluation loop over the current `self.dataloader`."""
         for self.mbatch in self.dataloader:
             self._unpack_minibatch()
             self._before_eval_iteration(**kwargs)
@@ -635,6 +639,10 @@ class BaseStrategy:
             p.before_train_dataset_adaptation(self, **kwargs)
 
     def model_adaptation(self, model=None):
+        """Adapts the model to the current data.
+
+        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+        """
         if model is None:
             model = self.model
 
@@ -644,9 +652,14 @@ class BaseStrategy:
         return model.to(self.device)
 
     def forward(self):
+        """Compute the model's output given the current mini-batch."""
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def make_optimizer(self):
+        """Optimizer initialization.
+
+        Called before each training experiene to configure the optimizer.
+        """
         # we reset the optimizer's state after each experience.
         # This allows to add new parameters (new heads) and
         # freezing old units during the model's adaptation phase.
