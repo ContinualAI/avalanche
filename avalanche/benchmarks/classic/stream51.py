@@ -247,7 +247,7 @@ def CLStream51(
 
 
 __all__ = [
-    'Stream51'
+    'CLStream51'
 ]
 
 if __name__ == "__main__":
