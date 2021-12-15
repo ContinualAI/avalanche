@@ -41,6 +41,8 @@ def _default_collate_mbatches_fn(mbatches):
 
 
 class TaskBalancedDataLoader:
+    """ Task-balanced data loader for Avalanche's datasets."""
+
     def __init__(self, data: AvalancheDataset,
                  oversample_small_tasks: bool = False,
                  collate_mbatches=_default_collate_mbatches_fn,
@@ -95,6 +97,8 @@ class TaskBalancedDataLoader:
 
 
 class GroupBalancedDataLoader:
+    """ Data loader that balances data from multiple datasets."""
+
     def __init__(self, datasets: Sequence[AvalancheDataset],
                  oversample_small_groups: bool = False,
                  collate_mbatches=_default_collate_mbatches_fn,
@@ -166,6 +170,9 @@ class GroupBalancedDataLoader:
 
 
 class GroupBalancedInfiniteDataLoader:
+    """ Data loader that balances data from multiple datasets emitting an
+        infinite stream."""
+
     def __init__(self, datasets: Sequence[AvalancheDataset],
                  collate_mbatches=_default_collate_mbatches_fn,
                  **kwargs):
@@ -214,6 +221,8 @@ class GroupBalancedInfiniteDataLoader:
 
 
 class ReplayDataLoader:
+    """ Custom data loader for rehearsal/replay strategies."""
+
     def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
                  oversample_small_tasks: bool = False,
                  collate_mbatches=_default_collate_mbatches_fn,
