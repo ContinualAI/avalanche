@@ -51,5 +51,6 @@ setuptools.setup(
         'torch',
         'torchvision',
         'gdown',
+        'setuptools<=59.5.0'
     ]
 )
