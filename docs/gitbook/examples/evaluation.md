@@ -4,7 +4,7 @@ description: Protocols and Metrics Code Examples
 
 # Evaluation
 
-{% code title="\"Evaluation Pluging\" Example" %}
+{% code title=""Evaluation Pluging" Example" %}
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -89,4 +89,3 @@ You can run _this chapter_ and play with it on Google Colaboratory:
 {% hint style="danger" %}
 Notebook currently unavailable.
 {% endhint %}
-
