@@ -83,10 +83,10 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in [**Beta (v0.1.0)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.1.0). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
-*Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
-*We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
+**You can install Avalanche by running `pip install avalanche-lib`.**  
+Look [here](https://avalanche.continualai.org/getting-started/how-to-install) for a more complete guide on the different ways available to install Avalanche.
 
 Getting Started
 ----------------
