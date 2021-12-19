@@ -1,133 +1,65 @@
 ---
-description: 'Supported Benchmarks, Strategies & Metrics'
+description: 'Avalnche Features: Benchmarks, Strategies & Metrics'
 ---
 
 # Current Release
 
-_Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we plan to **extend its features** and **improve its usability** based on the demands of our research community!  
-  
-A the moment, _Avalanche_ is in **Alpha \(v0.0.1\)**, but we already support a number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
+_Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org) community and its active members we plan to **extend its features** and **improve its usability** based on the demands of our research community!\
+\
+A the moment, _Avalanche_ is in **Beta (v0.1.0).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
+
+You can find the full list of available features on the [API documentation](https://avalanche-api.continualai.org).
 
 {% hint style="info" %}
-Check out below what we support in details, and please let us know if you think [we are missing out something important](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
+Do you think we are missing some important features? Please [let us know](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
 
-## 🖼️ Supported Datasets
+## Benchmarks and Datasets
 
-In the Table below, we list all the Pytorch datasets used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. Some of them were already available in [_Torchvision_](https://pytorch.org/docs/stable/torchvision/index.html), while other have been integrated by us.
+You find a complete list of the features on the [benchmarks API documentation](https://avalanche-api.continualai.org/en/latest/benchmarks.html).
 
-| Name | Dataset Support | From Torch Vision | Automatic Download | References |
-| :--- | :--- | :--- | :--- | :--- |
-| **CORe50** | ✔️ | ✔️ | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **MNIST** | ✔️ | ✔️ | ✔️ | n.a. |
-| **CIFAR-10** | ✔️ | ✔️ | ✔️ | n.a. |
-| **CIFAR-100** | ✔️ | ✔️ | ✔️ | n.a. |
-| **FashionMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
-| **TinyImagenet** | ✔️ | ✔️ | ✔️ | n.a. |
-| **MiniImagenet** | ✔️ | ❌ | ❌ | n.a. |
-| **Imagenet** | ✔️ | ✔️ | ❌ | n.a. |
-| **CUB200** | ✔️ | ❌ | ✔️ | n.a. |
-| **CRIB** | ❌ | ❌ | ❌ | n.a. |
-| **OpenLORIS** | ✔️ | ❌ | ✔️ | n.a. |
-| **Stream-51** | ✔️ | ❌ | ✔️ | n.a. |
-| **KMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
-| **EMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
-| **QMNIST** | ✔️ | ✔️ | ✔️ | n.a. |
-| **FakeData** | ✔️ | ✔️ | ✔️ | n.a. |
-| **CocoCaption** | ✔️ | ✔️ | ❌ | n.a. |
-| **CocoDetection** | ✔️ | ❌ | ❌ | n.a. |
-| **LSUN** | ✔️ | ❌ | ❌ | n.a. |
-| **STL10** | ✔️ | ❌ | ✔️ | n.a. |
-| **SVHN** | ✔️ | ❌ | ✔️ | n.a. |
-| **PhotoTour** | ✔️ | ❌ | ✔️ | n.a. |
-| **SBU** | ✔️ | ✔️ | ✔️ | n.a. |
-| **Flickr8k** | ✔️ | ✔️ | ❌ | n.a. |
-| **Flickr30k** | ✔️ | ✔️ | ❌ | n.a. |
-| **VOCDetection** | ✔️ | ✔️ | ✔️ | n.a. |
-| **VOCSegmentation** | ✔️ | ✔️ | ✔️ | n.a. |
-| **Cityscapes** | ✔️ | ✔️ | ❌ | n.a. |
-| **SBDataset** | ✔️ | ✔️ | ✔️ | n.a. |
-| **USPS** | ✔️ | ✔️ | ✔️ | n.a. |
-| **Kinetics400** | ✔️ | ✔️ | ❌ | n.a. |
-| **HMDB51** | ✔️ | ✔️ | ❌ | n.a. |
-| **UCF101** | ✔️ | ✔️ | ❌ | n.a. |
-| **CelebA** | ✔️ | ✔️ | ✔️ | n.a. |
-| **Caltech101** | ❌ | ❌ | ❌ | n.a. |
-| **Caltech256** | ❌ | ❌ | ❌ | n.a. |
+### 🖼️ Datasets
 
-## 📚 Supported Benchmarks
+Avalanche supports all the most popular computer vision datasets used in _Continual Learning_. Some of them are available in [_Torchvision_](https://pytorch.org/docs/stable/torchvision/index.html), while other have been integrated by us. Most datasets are automatically downloaded by Avalanche.
 
-In the Table below, we list all the major benchmarks used in _Continual Learning_ \(along with some references\) and indicating if we **support** them in _Avalanche_ or not. 
+* **Toy datasets**: MNIST, Fashion MNIST, KMNIST, EMNIST, QMNIST.
+* **CIFAR:** CIFAR10, CIFAR100.
+* **ImageNet**: TinyImagenet, MiniImagenet, Imagenet.
+* **Others**: EndlessCLDataset, CUB200, OpenLORIS, Stream-51, INATURALIST2018, Omniglot, ...
 
-_""Benchmark Support"_ is checked if the actual _continual learning benchmark_ \(with the actual stream of data\) is also provided.
+### 📚 Benchmarks
 
-| Name | Benchmark  Support | References |
-| :--- | :--- | :--- |
-| **CORe50** | ✔️ | [\[1\]](http://proceedings.mlr.press/v78/lomonaco17a.html) |
-| **RotatedMNIST** | ✔️ | n.a. |
-| **PermutedMNIST** | ✔️ | n.a. |
-| **SplitMNIST** | ✔️ | n.a. |
-| **FashionMNIST** | ✔️ | n.a. |
-| **CIFAR-10** | ✔️ | n.a. |
-| **CIFAR-100** | ✔️ | n.a. |
-| **CIFAR-110** | ✔️ | n.a. |
-| **TinyImagenet** | ✔️ | n.a. |
-| **CUB200** | ✔️ | n.a. |
-| **SplitImagenet** | ✔️ | n.a. |
-| **CRIB** | ❌ | n.a. |
-| **OpenLORIS** | ✔️ | n.a. |
-| **MiniImagenet** | ❌ | n.a. |
-| **Stream-51** | ✔️ | n.a. |
+All the major continual learning benchmarks are available and ready to use. Benchmarks split the datasets and create the train and test streams:
 
-## 📈 Supported Strategies
+* **MNIST**: SplitMNIST, RotatedMNIST, PermutedMNIST, SplitFashionMNIST.
+* **CIFAR10**: SplitCIFAR10, SplitCIFAR100, SplitCIFAR110.
+* **CORe50**: all the CORe50 scenarios are supported.
+* **Others**: SplitCUB200, CLStream51, OpenLORIS.
 
-In the Table below, we list all the _Continual Learning_ algorithms \(also known as _strategies_\) we currently support in _Avalanche_. 
+## 📈 Continual Learning Strategies
 
-_"Strategy Support"_ is checked if the algorithm is already available in _Avalanche_, whereas _"Plugin Support"_ is checked if the **corresponding plugin** of the strategy \(that can be used in conjunction with other strategies\) is is also provided.
+Avalanche provides _Continual Learning_ algorithms (_strategies_). We are continuously expanding the library with new algorithms.
 
-| Name | Strategy Support | Plugin Support | References |
-| :--- | :--- | :--- | :--- |
-| **Naive \(a.k.a. "Finetuning"\)** | ✔️ | ❌ | n.a. |
-| **Naive Multi-Head** | ✔️ | ✔️ | n.a. |
-| **Joint Training \(a.k.a. "Multi-Task"\)** | ✔️ | ❌ | n.a. |
-| **Cumulative** | ✔️ | ❌ | n.a. |
-| **GDumb** | ✔️ | ✔️ | n.a. |
-| **Experience Replay \(a.k.a. "Rehearsal"\)** | ✔️ | ✔️ | n.a. |
-| **EWC** | ✔️ | ✔️ | n.a. |
-| **LWF** | ✔️ | ✔️ | n.a. |
-| **GEM** | ✔️ | ✔️ | n.a. |
-| **AGEM** | ✔️ | ✔️ | n.a. |
-| **CWR** | ✔️ | ✔️ | n.a. |
-| **SI** | ✔️ | ✔️ | n.a. |
-| **iCaRL** | ❌ | ❌ | n.a. |
-| **AR1** | ✔️ | ❌ | n.a. |
+* **Baselines**: Naive, JointTraining, Cumulative.
+* **Rehearsal**: Replay with reservoir sampling and balanced buffers, GSS greedy, CoPE.
+* **Regularization**: EWC, LwF, GEM, AGEM, CWR\*, Synaptic Intelligence.
+* **Architectural**: Progressive Neural Networks, multi-head, incremental classifier.
+* **Others**: GDumb, iCaRL, AR1, Streaming LDA, LFL.
 
-## 📊 Supported Metrics
+## Models
 
-In the Table below, we list all the _Continual Learning_ **Metrics** we currently support in _Avalanche_. All the metrics by default can be **collected** during runtime, **logged on stdout** or on **log file**.
+Avalanche uses and extends pytorch `nn.Module`s to define continual learning models:
 
-With _"Tensorboard"_ is checked if the metrics can be also visualized in **Tensorboard** is already available in _Avalanche_, whereas _"Wandb"_ is checked if the metrics can be visualized in **Wandb**.
+* support for `nn.Module`s and `torchvision` models.
+* Dynamic output heads for class-incremental scenarios and multi heads for task-incremental scenarios.
+* support for architectural strategies and dynamically expanding models such as progressive neural networks.
 
-| Name | Support | Tensorboard | Wandb | References |
-| :--- | :--- | :--- | :--- | :--- |
-| **Accuracy** | ✔️ | ✔️ | ❌ | n.a. |
-| **Loss** | ✔️ | ✔️ | ❌ | n.a. |
-| **ACC** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
-| **BWT** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
-| **FWT** | ❌ | ❌ | ❌ | [\(Lopez-Paz, 2017\)](https://arxiv.org/pdf/1706.08840.pdf) |
-| **Catastrophic Forgetting** | ✔️ | ✔️ | ❌ | n.a. |
-| **Remembering** | ❌ | ❌ | ❌ | n.a. |
-| **A** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **MS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **SSS** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **CE** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **Confusion Matrix** | ✔️ | ✔️ | ❌ | n.a. |
-| **MAC** | ✔️ | ✔️ | ❌ | n.a. |
-| **CPU Usage** | ✔️ | ✔️ | ❌ | n.a. |
-| **Disk Usage** | ✔️ | ✔️ | ❌ | n.a. |
-| **GPU Usage** | ✔️ | ✔️ | ❌ | n.a. |
-| **RAM Usage** | ✔️ | ✔️ | ❌ | n.a. |
-| **Running Time** | ✔️ | ✔️ | ❌ | n.a. |
-| **CLScore** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
-| **CLStability** | ❌ | ❌ | ❌ | [\(Díaz-Rodríguez, 2018\)](https://arxiv.org/pdf/1810.13166.pdf) |
+## 📊 Metrics and Evaluation
 
+Avalanche provides continuous evaluation of CL strategies with a large set of **Metrics**. They are collected and logged automatically by the strategy during the training and evaluation loops.
+
+* accuracy, loss, confusion (averaged over streams or experiences).
+* **CL-Metrics**: backward/forward transfer, forgetting.
+* **Computational Resources**: CPU and RAM usage, MAC, execution times.
+
+and [many more](https://avalanche-api.continualai.org/en/latest/evaluation.html#).
