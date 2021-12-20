@@ -24,11 +24,15 @@ This module provides a uniform API for data handling: mostly generating a stream
 This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 
 * **BaseStrategy** provides the default training and eval loops.
-* **Plugins** extend the basic loops with additional functionality.&#x20;
+* **Plugins** extend the basic loops with additional functionality.
 
-#### **`Evaluation`**&#x20;
+#### **`Evaluation`**
 
-This module provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native [Tensorboard](https://www.tensorflow.org/tensorboard) support.
+This module provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system.
+
+* **EvaluationPlugin**: the plugin that connects metrics and the `BaseStrategy.`
+* **MetricPlugins**: plugins that provide a bridge between metrics and the evaluation plugin. They emit `MetricValue`s that will be collected by the `EvaluationPlugin` and serialized by the loggers.
+* **Metric**: basic logic to compute a metric. Provides the `update`, `result` and `reset` operations used to compute and retrieve the metric value.
 
 #### Models
 
