@@ -9,14 +9,6 @@
 * [How to Install](getting-started/how-to-install.md)
 * [Learn Avalanche in 5 Minutes](getting-started/learn-avalanche-in-5-minutes.md)
 
-## 📝 Examples
-
-* [Models](examples/models.md)
-* [Benchmarks](examples/benchmarks.md)
-* [Training](examples/training.md)
-* [Evaluation](examples/evaluation.md)
-* [Loggers](examples/loggers.md)
-
 ## 📙 From Zero to Hero Tutorial
 
 * [Introduction](from-zero-to-hero-tutorial/01\_introduction.md)
@@ -36,6 +28,14 @@
   * [Creating AvalancheDatasets](how-tos/avalanchedataset/creating-avalanchedatasets.md)
   * [Advanced Transformations](how-tos/avalanchedataset/advanced-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
+
+## 📝 Examples
+
+* [Models](examples/models.md)
+* [Benchmarks](examples/benchmarks.md)
+* [Training](examples/training.md)
+* [Evaluation](examples/evaluation.md)
+* [Loggers](examples/loggers.md)
 
 ## 💻 Code Documentation
 

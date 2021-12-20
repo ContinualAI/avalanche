@@ -4,7 +4,7 @@ description: Baselines and Strategies Code Examples
 
 # Training
 
-{% code title="\"LWF\" Example" %}
+{% code title=""LWF" Example" %}
 ```python
 model = SimpleMLP(hidden_size=args.hs)
 optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
@@ -58,4 +58,3 @@ You can run _this chapter_ and play with it on Google Colaboratory:
 {% hint style="danger" %}
 Notebook currently unavailable.
 {% endhint %}
-
