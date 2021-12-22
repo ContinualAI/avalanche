@@ -6,50 +6,19 @@ description: Installing Avalanche has Never Been so Simple
 
 _Avalanche_ has been designed for extreme **portability** and **usability**. Indeed, it can be run on every OS and native python environment. 💻🍎🐧
 
-In order to install _Avalanche_ we have three main options:
-
-1. [Installing it with Pip](how-to-install.md#installing-avalanche-with-pip)
-2. [Installing it with Anaconda](how-to-install.md#install-avalanche-with-anaconda)
-3. [Developer Mode Install](how-to-install.md#developer-mode-install) \(for contributing to _Avalanche_!\)
-
-## 🔂 Avalanche Dependencies
-
-The _Avalanche_ dependencies are the following:
-
-`python>=3.6,<=3.9.2`, `typing-extensions`, `psutil`, `torch`, `torchvision`, `tensorboard`, `scikit-learn`, `matplotlib`, `numpy`, `pytorchcv`, `quadprog`, `tqdm`, `gdown`, `pycocotools`.
-
-{% hint style="info" %}
-_Avalanche may work on lower Python versions as well but we don't officially support it, nor recommend it._
-{% endhint %}
-
-At the moment, we cannot provide a swift installation experience as some of the dependencies cannot be installed automatically. However, in the sections below we detail how you can install Avalanche **in a matter of minutes** on any platform!
-
 ## 📦 Installing Avalanche with Pip
 
-Within an Anaconda environment or not you can install _Avalanche_ also with Pip with the following steps:
-
-1. Install the package with pip.
-2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use pip\)
-
-Step 1. can be done with the following line of code:
+you can install Avalanche with pip:
 
 ```bash
-pip install git+https://github.com/ContinualAI/avalanche.git
+pip install avalanche-lib
 ```
 
-That's it. now we have _Avalanche_ up and running and we can start using it!
+That's it. Now you can start using Avalanche.
 
-## 🐍 Install Avalanche with Anaconda
+## Installing the Master Branch Using Anaconda
 
-This is the **safest option** since it allows you to build an isolated environment for your Avalanche experiments. This means that you'll be able to _pin particular versions_ of your dependencies that may differ from the ones you want to maintain in the rest of your system. This will in turn increase reproducibility of any experiment you may produce.
-
-Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
-
-1. Install the `avalanche-env` environment and activate it.
-2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\)
-3. Update the Conda Environment
-
-These steps can be accomplished with the following lines of code:
+We suggest you to use the pip package, but if you need some recent features you may want to install directly from the master branch. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. Reproducibility is also easier if you use the pip package.
 
 ```bash
 # choose your python version
@@ -76,12 +45,12 @@ You can test your installation by running the `examples/test_install.py` script.
 
 ## 💻 Developer Mode Install
 
-If you want to expand _Avalanche_ and help us improve it \(see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/03_benchmarks.md)" Tutorial\). In this case we suggest to create an environment in _**developer-mode**_ as follows \(just a couple of more dependencies will be installed\).
+If you want to expand _Avalanche_ and help us improve it (see the "[_From Zero to Hero_](../from-zero-to-hero-tutorial/03\_benchmarks.md)" Tutorial). In this case we suggest to create an environment in _**developer-mode**_ as follows (just a couple of more dependencies will be installed).
 
-Assuming you have **Anaconda \(or Miniconda\) installed** on your system, you can follow these simple steps:
+Assuming you have **Anaconda (or Miniconda) installed** on your system, you can follow these simple steps:
 
 1. Install the `avalanche-dev-env` environment and activate it.
-2. [Install Pytorch + TorchVision](https://pytorch.org/) \(follow the instructions on the website to use conda\).
+2. [Install Pytorch + TorchVision](https://pytorch.org) (follow the instructions on the website to use conda).
 3. Update the Conda Environment.
 
 These three steps can be accomplished with the following lines of code:
@@ -115,5 +84,6 @@ That's it. now we have _Avalanche_ up and running and we can start contribute to
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 
-{% embed url="https://colab.research.google.com/drive/1pSTUgftqqg2sFNlvM6ourNYLpt2lnCQf?usp=sharing" caption="Run the \"How to Install\" Chapter on Google Colab" %}
-
+{% embed url="https://colab.research.google.com/drive/1pSTUgftqqg2sFNlvM6ourNYLpt2lnCQf?usp=sharing" %}
+Run the "How to Install" Chapter on Google Colab
+{% endembed %}
