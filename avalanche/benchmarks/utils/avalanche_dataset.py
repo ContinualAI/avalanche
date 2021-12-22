@@ -2010,7 +2010,7 @@ def concat_datasets_sequentially(
         test_set = test_dataset_list[dataset_idx]
         
         # Get the classes in the dataset
-        dataset_classes = set([el[1].item() for el in train_set])
+        dataset_classes = set([el[1] for el in train_set])
         
         # The class IDs for this dataset will be in range
         # [n_classes_in_previous_datasets,
