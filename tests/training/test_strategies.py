@@ -73,9 +73,19 @@ class BaseStrategyTest(unittest.TestCase):
         strategy = Naive(model, optimizer, criterion, train_epochs=2,
                          eval_every=1, evaluator=EvaluationPlugin(acc))
         strategy.train(benchmark.train_stream[0])
-        # eval is called after every epoch + the end of the training loop
         curve = strategy.evaluator.get_all_metrics()[curve_key][1]
-        assert len(curve) == 4
+        assert len(curve) == 3
+
+        ###################
+        # Case #4: Eval in iteration mode
+        ###################
+        acc = StreamAccuracy()
+        strategy = Naive(model, optimizer, criterion, train_epochs=2,
+                         eval_every=100, evaluator=EvaluationPlugin(acc),
+                         peval_mode='iteration')
+        strategy.train(benchmark.train_stream[0])
+        curve = strategy.evaluator.get_all_metrics()[curve_key][1]
+        assert len(curve) == 5
 
     def test_forward_hooks(self):
         model = SimpleMLP(input_size=6, hidden_size=10)

@@ -306,9 +306,13 @@ class PluginMetricTests(unittest.TestCase):
                 self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
-                self.assertEqual(el, elref)
+                emsg = f"wrong timestep for {kref} (Expected={elref}, " \
+                       f"Actual={el})."
+                self.assertEqual(el, elref, msg=emsg)
             for el, elref in zip(v[1], vref[1]):
-                self.assertAlmostEqual(el, elref, delta=DELTA)
+                emsg = f"wrong value for {kref} (Expected={elref}, " \
+                       f"Actual={el})."
+                self.assertAlmostEqual(el, elref, delta=DELTA, msg=emsg)
 
     def test_accuracy(self):
         self.metric_check('Acc')
@@ -432,9 +436,13 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
                 self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
-                self.assertEqual(el, elref)
+                emsg = f"wrong value for {kref} (Expected={elref}," \
+                        " Actual={el})."
+                self.assertEqual(el, elref, msg=emsg)
             for el, elref in zip(v[1], vref[1]):
-                self.assertAlmostEqual(el, elref, delta=DELTA)
+                emsg = f"wrong value for {kref} (Expected={elref},"\
+                        " Actual={el})."
+                self.assertAlmostEqual(el, elref, delta=DELTA, msg=emsg)
 
     def test_accuracy(self):
         self.metric_check('Acc')
