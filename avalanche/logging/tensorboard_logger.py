@@ -21,8 +21,9 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib.pyplot import Figure
 from torchvision.transforms.functional import to_tensor
 from avalanche.evaluation.metric_results import AlternativeValues, \
-    MetricValue, TensorImage
+    TensorImage
 from avalanche.logging import StrategyLogger
+import weakref
 
 
 class TensorboardLogger(StrategyLogger):
@@ -61,8 +62,11 @@ class TensorboardLogger(StrategyLogger):
         self.writer = SummaryWriter(tb_log_dir,
                                     filename_suffix=filename_suffix)
 
-    def __del__(self):
-        self.writer.close()
+        # Shuts down the writer gracefully on process exit
+        # or when this logger gets GCed
+        # Fixes issue #864.
+        # See: https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+        weakref.finalize(self, SummaryWriter.close, self.writer)
 
     def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
