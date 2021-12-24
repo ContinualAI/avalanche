@@ -63,9 +63,9 @@ class TensorboardLogger(StrategyLogger):
                                     filename_suffix=filename_suffix)
 
         # Shuts down the writer gracefully on process exit
-        # or when this logger gets GCed
-        # Fixes issue #864.
-        # See: https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+        # or when this logger gets GCed. Fixes issue #864.
+        # For more info see:
+        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
         weakref.finalize(self, SummaryWriter.close, self.writer)
 
     def log_single_metric(self, name, value, x_plot):
