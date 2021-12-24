@@ -6,17 +6,6 @@ description: Installing Avalanche has Never Been so Simple
 
 _Avalanche_ has been designed for extreme **portability** and **usability**. Indeed, it can be run on every OS and native python environment. 💻🍎🐧
 
-In order to install _Avalanche_ we have three main options:
-
-1. [Installing it with Pip](how-to-install.md#installing-avalanche-with-pip)
-2. [Developer Mode Install](how-to-install.md#developer-mode-install) (for contributing to _Avalanche_!)
-
-{% hint style="info" %}
-_Avalanche may work on lower Python versions as well but we don't officially support it, nor recommend it._
-{% endhint %}
-
-At the moment, we cannot provide a swift installation experience as some of the dependencies cannot be installed automatically. However, in the sections below we detail how you can install Avalanche **in a matter of minutes** on any platform!
-
 ## 📦 Installing Avalanche with Pip
 
 you can install Avalanche with pip:
@@ -25,11 +14,11 @@ you can install Avalanche with pip:
 pip install avalanche-lib
 ```
 
-That's it. Now you can start using Avalanche!
+That's it. Now you can start using Avalanche.
 
-1.
+## Installing the Master Branch Using Anaconda
 
-## Using Anaconda
+We suggest you to use the pip package, but if you need some recent features you may want to install directly from the master branch. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. Reproducibility is also easier if you use the pip package.
 
 ```bash
 # choose your python version
