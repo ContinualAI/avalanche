@@ -176,8 +176,8 @@ for task_id, train_dataset in enumerate(list_train_dataset):
 acc_results = []
 for task_id, test_dataset in enumerate(list_test_dataset):
 
-    train_data_loader = DataLoader(
-        train_dataset, num_workers=num_workers, batch_size=train_mb_size)
+    test_data_loader = DataLoader(
+        test_dataset, num_workers=num_workers, batch_size=test_mb_size)
 
     correct = 0
     for iteration, (test_mb_x, test_mb_y) in enumerate(test_data_loader):
