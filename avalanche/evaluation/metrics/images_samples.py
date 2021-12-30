@@ -22,35 +22,40 @@ except ImportError:
 
 if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy
+    from avalanche.benchmarks.utils import AvalancheDataset
 
 
 class ImagesSamplePlugin(PluginMetric):
-    """
-    A metric used to sample images at random.
-    No data augmentation is shown.
+    """Metric used to sample random images.
+
     Only images in strategy.adapted dataset are used. Images added in the
     dataloader (like the replay plugins do) are missed.
+    By default data augmentation are removed.
 
     :param n_rows: The numbers of raws to use in the grid of images.
     :param n_cols: The numbers of columns to use in the grid of images.
     :param group: If True, images will be grouped by (task, label)
     :param mode: The plugin can be used at train or eval time.
+    :param disable_augmentations: determines whether to show the augmented
+        images or the raw images (default: True).
     :return: The corresponding plugins.
     """
 
     def __init__(
         self,
         *,
-        mode: Literal["train", "eval"],
+        mode: Literal["train", "eval", "both"],
         n_cols: int,
         n_rows: int,
         group: bool = True,
+        disable_augmentations: bool = True
     ):
         super().__init__()
         self.group = group
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.mode = mode
+        self.disable_augmentations = disable_augmentations
 
         self.images: List[Tensor] = []
         self.n_wanted_images = self.n_cols * self.n_rows
@@ -58,17 +63,26 @@ class ImagesSamplePlugin(PluginMetric):
     def after_train_dataset_adaptation(
         self, strategy: "BaseStrategy"
     ) -> "MetricResult":
-        if self.mode == "train":
-            return self.make_grid_sample(strategy)
+        if self.mode == "train" or self.mode == "both":
+            return self._make_grid_sample(strategy)
 
     def after_eval_dataset_adaptation(
         self, strategy: "BaseStrategy"
     ) -> "MetricResult":
-        if self.mode == "eval":
-            return self.make_grid_sample(strategy)
+        if self.mode == "eval" or self.mode == "both":
+            return self._make_grid_sample(strategy)
 
-    def make_grid_sample(self, strategy: "BaseStrategy") -> "MetricResult":
-        self.load_sorted_images(strategy)
+    def reset(self) -> None:
+        self.images = []
+
+    def result(self) -> List[Tensor]:
+        return self.images
+
+    def __str__(self):
+        return "images"
+
+    def _make_grid_sample(self, strategy: "BaseStrategy") -> "MetricResult":
+        self._load_sorted_images(strategy)
 
         return [
             MetricValue(
@@ -84,20 +98,21 @@ class ImagesSamplePlugin(PluginMetric):
                         list(self.images), normalize=False, nrow=self.n_cols
                     )
                 ),
-                x_plot=self.get_global_counter(),
+                x_plot=strategy.clock.train_iterations,
             )
         ]
 
-    def load_sorted_images(self, strategy: "BaseStrategy"):
+    def _load_sorted_images(self, strategy: "BaseStrategy"):
         self.reset()
-        self.images, labels, tasks = self.load_data(strategy)
+        self.images, labels, tasks = self._load_data(strategy)
         if self.group:
-            self.sort_images(labels, tasks)
+            self._sort_images(labels, tasks)
 
-    def load_data(
+    def _load_data(
         self, strategy: "BaseStrategy"
     ) -> Tuple[List[Tensor], List[int], List[int]]:
-        dataloader = self.make_dataloader(strategy)
+        dataloader = self._make_dataloader(strategy.adapted_dataset,
+                                           strategy.eval_mb_size)
 
         images, labels, tasks = [], [], []
 
@@ -109,7 +124,7 @@ class ImagesSamplePlugin(PluginMetric):
             if len(images) == self.n_wanted_images:
                 return images, labels, tasks
 
-    def sort_images(self, labels: List[int], tasks: List[int]):
+    def _sort_images(self, labels: List[int], tasks: List[int]):
         self.images = [
             image
             for task, label, image in sorted(
@@ -117,23 +132,35 @@ class ImagesSamplePlugin(PluginMetric):
             )
         ]
 
-    def make_dataloader(self, strategy: "BaseStrategy") -> DataLoader:
+    def _make_dataloader(self, data: "AvalancheDataset", mb_size: int)\
+            -> DataLoader:
+        if self.disable_augmentations:
+            data = data.replace_transforms(
+                transform=MaybeToTensor(), target_transform=None,
+            )
         return DataLoader(
-            dataset=strategy.adapted_dataset.replace_transforms(
-                transform=ToTensor(), target_transform=None,
-            ),
-            batch_size=min(strategy.eval_mb_size, self.n_wanted_images),
+            dataset=data,
+            batch_size=min(mb_size, self.n_wanted_images),
             shuffle=True,
         )
 
-    def reset(self) -> None:
-        self.images = []
 
-    def result(self) -> List[Tensor]:
-        return self.images
+class MaybeToTensor(ToTensor):
+    """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor. Pytorch tensors
+    are left as is.
+    """
 
-    def __str__(self):
-        return "images"
+    def __call__(self, pic):
+        """
+        Args:
+            pic (PIL Image or numpy.ndarray): Image to be converted to tensor.
+
+        Returns:
+            Tensor: Converted image.
+        """
+        if isinstance(pic, Tensor):
+            return pic
+        return super().__call__(pic)
 
 
 def images_samples_metrics(
@@ -174,6 +201,6 @@ def images_samples_metrics(
 
 
 __all__ = [
-    images_samples_metrics,
-    ImagesSamplePlugin,
+    'images_samples_metrics',
+    'ImagesSamplePlugin'
 ]

@@ -35,7 +35,6 @@ class LabelsRepartition(Metric):
     Metric used to monitor the labels repartition.
     """
     def __init__(self):
-        super().__init__()
         self.task2label2count: Dict[int, Dict[int, int]] = {}
         self.class_order = None
         self.reset()
@@ -117,13 +116,13 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         return super().reset()
 
     def update(self, strategy: "BaseStrategy"):
-        if strategy.epoch and self.emit_reset_at != "epoch":
+        if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
             strategy.mb_task_id.tolist(),
             strategy.mb_y.tolist(),
             class_order=getattr(
-                strategy.experience.scenario, "classes_order", None
+                strategy.experience.benchmark, "classes_order", None
             ),
         )
 
@@ -150,7 +149,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 )
                 if self.image_creator is not None
                 else label2counts,
-                x_plot=self.get_global_counter(),
+                x_plot=strategy.clock.train_iterations,
             )
             for task, label2counts in self.task2label2counts.items()
         ]
@@ -207,7 +206,7 @@ def labels_repartition_metrics(
 
 
 __all__ = [
-    LabelsRepartitionPlugin,
-    LabelsRepartition,
-    labels_repartition_metrics,
+    'LabelsRepartitionPlugin',
+    'LabelsRepartition',
+    'labels_repartition_metrics'
 ]

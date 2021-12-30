@@ -4,22 +4,30 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 25-11-2020                                                             #
-# Author(s): Vincenzo Lomonaco, Lorenzo Pellegrini                             #
+# Author(s): Diganta Misra, Andrea Cossu                                       #
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
-from PIL.Image import Image
+
+from typing import Union
+from pathlib import Path
+import os
+import errno
+
+import numpy as np
 from numpy import array
 from torch import Tensor
+import torch
+from torch import Tensor
+
+from PIL.Image import Image
 from matplotlib.pyplot import Figure
 
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
-import numpy as np
 
 
 class WandBLogger(StrategyLogger):
@@ -27,25 +35,49 @@ class WandBLogger(StrategyLogger):
     The `WandBLogger` provides an easy integration with
     Weights & Biases logging. Each monitored metric is automatically
     logged to a dedicated Weights & Biases project dashboard.
+
+    External storage for W&B Artifacts (for instance - AWS S3 and GCS
+    buckets) uri are supported.
+
+    The wandb log files are placed by default in "./wandb/" unless specified.
+
+    .. note::
+        TensorBoard can be synced on to the W&B dedicated dashboard.
     """
 
     def __init__(self, project_name: str = "Avalanche", 
-                 run_name: str = "Avalanche Test", params: dict = None):
+                 run_name: str = "Test", log_artifacts: bool = False,
+                 path: Union[str, Path] = "Checkpoints", 
+                 uri: str = None, sync_tfboard: bool = False, 
+                 save_code: bool = True, config: object = None, 
+                 dir: Union[str, Path] = None, params: dict = None):
         """
         Creates an instance of the `WandBLogger`.
-
-        :param project_name: Name of the W&B project.:
-        :param run_name: Name of the W&B run.:
+        :param project_name: Name of the W&B project.
+        :param run_name: Name of the W&B run.
+        :param log_artifacts: Option to log model weights as W&B Artifacts.
+        :param path: Path to locally save the model checkpoints.
+        :param uri: URI identifier for external storage buckets (GCS, S3).
+        :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.
+        :param save_code: Saves the main training script to W&B. 
+        :param config: Syncs hyper-parameters and config values used to W&B.
+        :param dir: Path to the local log directory for W&B logs to be saved at.
         :param params: All arguments for wandb.init() function call. 
          Visit https://docs.wandb.ai/ref/python/init to learn about all 
-         wand.init() parameters.:
+         wand.init() parameters.
         """
-
         super().__init__()
         self.import_wandb()
-        self.params = params
         self.project_name = project_name
         self.run_name = run_name
+        self.log_artifacts = log_artifacts
+        self.path = path
+        self.uri = uri
+        self.sync_tfboard = sync_tfboard
+        self.save_code = save_code
+        self.config = config
+        self.dir = dir
+        self.params = params
         self.args_parse()
         self.before_run()
 
@@ -58,7 +90,10 @@ class WandBLogger(StrategyLogger):
         self.wandb = wandb
 
     def args_parse(self):
-        self.init_kwargs = {"project": self.project_name, "name": self.run_name}
+        self.init_kwargs = {"project": self.project_name, "name": self.run_name, 
+                            "sync_tensorboard": self.sync_tfboard, 
+                            "dir": self.dir, "save_code": self.save_code, 
+                            "config": self.config}
         if self.params:
             self.init_kwargs.update(self.params)
 
@@ -69,12 +104,9 @@ class WandBLogger(StrategyLogger):
             self.wandb.init(**self.init_kwargs)
         else:
             self.wandb.init()
+        self.wandb.run._label(repo="Avalanche")
 
-    def log_metric(self, metric_value: MetricValue, callback: str):
-        super().log_metric(metric_value, callback)
-        name = metric_value.name
-        value = metric_value.value
-
+    def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
@@ -98,6 +130,27 @@ class WandBLogger(StrategyLogger):
 
         elif isinstance(value, TensorImage):
             self.wandb.log({name: self.wandb.Image(array(value))})
+
+        elif name.startswith("WeightCheckpoint"):
+            if self.log_artifacts:
+                cwd = os.getcwd()
+                ckpt = os.path.join(cwd, self.path)
+                try:
+                    os.makedirs(ckpt)
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+                suffix = '.pth'
+                dir_name = os.path.join(ckpt, name+suffix)
+                artifact_name = os.path.join('Models', name+suffix)
+                if isinstance(value, Tensor):
+                    torch.save(value, dir_name)
+                    name = os.path.splittext(self.checkpoint)
+                    artifact = self.wandb.Artifact(name, type='model')
+                    artifact.add_file(dir_name, name=artifact_name)
+                    self.wandb.run.log_artifact(artifact)
+                    if self.uri is not None:
+                        artifact.add_reference(self.uri, name=artifact_name)
 
 
 __all__ = [

@@ -43,13 +43,13 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
             ccifar100._get_cifar100_dataset = CIFAR100_DOWNLOAD_METHOD
             CIFAR100_DOWNLOAD_METHOD = None
 
-    def test_SplitCifar100_scenario(self):
-        scenario = SplitCIFAR100(5)
-        self.assertEqual(5, len(scenario.train_stream))
-        self.assertEqual(5, len(scenario.test_stream))
+    def test_SplitCifar100_benchmark(self):
+        benchmark = SplitCIFAR100(5)
+        self.assertEqual(5, len(benchmark.train_stream))
+        self.assertEqual(5, len(benchmark.test_stream))
 
         train_sz = 0
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
 
@@ -59,7 +59,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
         self.assertEqual(50000, train_sz)
 
         test_sz = 0
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
 
@@ -68,13 +68,13 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         self.assertEqual(10000, test_sz)
 
-    def test_SplitCifar110_scenario(self):
-        scenario = SplitCIFAR110(6)
-        self.assertEqual(6, len(scenario.train_stream))
-        self.assertEqual(6, len(scenario.test_stream))
+    def test_SplitCifar110_benchmark(self):
+        benchmark = SplitCIFAR110(6)
+        self.assertEqual(6, len(benchmark.train_stream))
+        self.assertEqual(6, len(benchmark.test_stream))
 
         train_sz = 0
-        for experience in scenario.train_stream:
+        for experience in benchmark.train_stream:
             self.assertIsInstance(experience, Experience)
             train_sz += len(experience.dataset)
 
@@ -83,7 +83,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
         self.assertEqual(50000 * 2, train_sz)
 
         test_sz = 0
-        for experience in scenario.test_stream:
+        for experience in benchmark.test_stream:
             self.assertIsInstance(experience, Experience)
             test_sz += len(experience.dataset)
 
@@ -91,26 +91,26 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         self.assertEqual(10000 * 2, test_sz)
 
-    def test_SplitCifar100_scenario_download_once(self):
+    def test_SplitCifar100_benchmark_download_once(self):
         global CIFAR100_DOWNLOADS, CIFAR10_DOWNLOADS
         CIFAR100_DOWNLOADS = 0
         CIFAR10_DOWNLOADS = 0
 
-        scenario = SplitCIFAR100(5)
-        self.assertEqual(5, len(scenario.train_stream))
-        self.assertEqual(5, len(scenario.test_stream))
+        benchmark = SplitCIFAR100(5)
+        self.assertEqual(5, len(benchmark.train_stream))
+        self.assertEqual(5, len(benchmark.test_stream))
 
         self.assertEqual(1, CIFAR100_DOWNLOADS)
         self.assertEqual(0, CIFAR10_DOWNLOADS)
 
-    def test_SplitCifar110_scenario_download_once(self):
+    def test_SplitCifar110_benchmark_download_once(self):
         global CIFAR100_DOWNLOADS, CIFAR10_DOWNLOADS
         CIFAR100_DOWNLOADS = 0
         CIFAR10_DOWNLOADS = 0
 
-        scenario = SplitCIFAR110(6)
-        self.assertEqual(6, len(scenario.train_stream))
-        self.assertEqual(6, len(scenario.test_stream))
+        benchmark = SplitCIFAR110(6)
+        self.assertEqual(6, len(benchmark.train_stream))
+        self.assertEqual(6, len(benchmark.test_stream))
 
         self.assertEqual(1, CIFAR100_DOWNLOADS)
         self.assertEqual(1, CIFAR10_DOWNLOADS)

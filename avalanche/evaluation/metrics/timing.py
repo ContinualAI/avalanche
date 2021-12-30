@@ -139,7 +139,7 @@ class EpochTime(TimePluginMetric):
         super(EpochTime, self).__init__(
             reset_at='epoch', emit_at='epoch', mode='train')
 
-    def before_training_epoch(self, strategy) -> MetricResult:
+    def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
         self._time.update()
 
@@ -166,7 +166,7 @@ class RunningEpochTime(TimePluginMetric):
         super(RunningEpochTime, self).__init__(
             reset_at='epoch', emit_at='iteration', mode='train')
 
-    def before_training_epoch(self, strategy) -> MetricResult:
+    def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
         self._time_mean.reset()
         self._time.update()
@@ -178,7 +178,7 @@ class RunningEpochTime(TimePluginMetric):
         self._time.reset()
         return self._package_result(strategy)
 
-    def result(self) -> float:
+    def result(self, strategy) -> float:
         return self._time_mean.result()
 
     def __str__(self):
@@ -201,7 +201,7 @@ class ExperienceTime(TimePluginMetric):
         super(ExperienceTime, self).__init__(
             reset_at='experience', emit_at='experience', mode='eval')
 
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> MetricResult:
+    def before_eval_exp(self, strategy: 'BaseStrategy'):
         super().before_eval_exp(strategy)
         self._time.update()
 
@@ -225,7 +225,7 @@ class StreamTime(TimePluginMetric):
         super(StreamTime, self).__init__(
             reset_at='stream', emit_at='stream', mode='eval')
 
-    def before_eval(self, strategy: 'BaseStrategy') -> MetricResult:
+    def before_eval(self, strategy: 'BaseStrategy'):
         super().before_eval(strategy)
         self._time.update()
 

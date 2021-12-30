@@ -12,12 +12,12 @@ from avalanche.training.utils import examples_per_class, get_last_fc_layer, \
 
 
 class CWRStarPlugin(StrategyPlugin):
+    """ CWR* Strategy.
 
+    This plugin does not use task identities.
+    """
     def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True):
         """
-        CWR* Strategy.
-        This plugin does not use task identities.
-
         :param model: the model.
         :param cwr_layer_name: name of the last fully connected layer. Defaults
             to None, which means that the plugin will attempt an automatic
@@ -45,7 +45,7 @@ class CWRStarPlugin(StrategyPlugin):
         self.set_consolidate_weights()
 
     def before_training_exp(self, strategy, **kwargs):
-        if self.freeze_remaining_model and strategy.training_exp_counter > 0:
+        if self.freeze_remaining_model and strategy.clock.train_exp_counter > 0:
             self.freeze_other_layers()
 
         # Count current classes and number of samples for each of them.
@@ -75,6 +75,7 @@ class CWRStarPlugin(StrategyPlugin):
                         self.model.saved_weights[c] = \
                             (self.model.saved_weights[c] * wpast_j + new_w) / \
                             (wpast_j + 1)
+                        self.model.past_j[c] += self.model.cur_j[c]
                     else:
                         self.model.saved_weights[c] = new_w
 

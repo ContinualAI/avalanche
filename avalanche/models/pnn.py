@@ -9,9 +9,11 @@ from avalanche.models import MultiHeadClassifier
 
 
 class LinearAdapter(nn.Module):
+    """
+    Linear adapter for Progressive Neural Networks.
+    """
     def __init__(self, in_features, out_features_per_column, num_prev_modules):
-        """ Linear adapter for Progressive Neural Networks.
-
+        """
         :param in_features: size of each input sample
         :param out_features_per_column: size of each output sample
         :param num_prev_modules: number of previous modules
@@ -33,10 +35,12 @@ class LinearAdapter(nn.Module):
 
 
 class MLPAdapter(nn.Module):
+    """
+     MLP adapter for Progressive Neural Networks.
+    """
     def __init__(self, in_features, out_features_per_column, num_prev_modules,
                  activation=F.relu):
-        """ MLP adapter for Progressive Neural Networks.
-
+        """
         :param in_features: size of each input sample
         :param out_features_per_column: size of each output sample
         :param num_prev_modules: number of previous modules
@@ -71,10 +75,12 @@ class MLPAdapter(nn.Module):
 
 
 class PNNColumn(nn.Module):
+    """
+    Progressive Neural Network column.
+    """
     def __init__(self, in_features, out_features_per_column, num_prev_modules,
                  adapter='mlp'):
-        """ Progressive Neural Network column.
-
+        """
         :param in_features: size of each input sample
         :param out_features_per_column:
             size of each output sample (single column)
@@ -107,14 +113,15 @@ class PNNColumn(nn.Module):
         return hs
 
 
-class PNNLayer(MultiTaskModule, DynamicModule):
-    def __init__(self, in_features, out_features_per_column, adapter='mlp'):
-        """ Progressive Neural Network layer.
+class PNNLayer(MultiTaskModule):
+    """ Progressive Neural Network layer.
 
         The adaptation phase assumes that each experience is a separate task.
         Multiple experiences with the same task label or multiple task labels
         within the same experience will result in a runtime error.
-
+        """
+    def __init__(self, in_features, out_features_per_column, adapter='mlp'):
+        """
         :param in_features: size of each input sample
         :param out_features_per_column:
             size of each output sample (single column)
@@ -143,6 +150,7 @@ class PNNLayer(MultiTaskModule, DynamicModule):
         :param dataset:
         :return:
         """
+        super().train_adaptation(dataset)
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -192,14 +200,16 @@ class PNNLayer(MultiTaskModule, DynamicModule):
 
 
 class PNN(MultiTaskModule):
+    """
+    Progressive Neural Network.
+
+    The model assumes that each experience is a separate task.
+    Multiple experiences with the same task label or multiple task labels
+    within the same experience will result in a runtime error.
+    """
     def __init__(self, num_layers=1, in_features=784,
                  hidden_features_per_column=100, adapter='mlp'):
-        """ Progressive Neural Network.
-
-        The model assumes that each experience is a separate task.
-        Multiple experiences with the same task label or multiple task labels
-        within the same experience will result in a runtime error.
-
+        """
         :param num_layers: number of layers (default=1)
         :param in_features: size of each input sample
         :param hidden_features_per_column:

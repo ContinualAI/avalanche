@@ -17,23 +17,37 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
     from the :class:`EvaluationPlugin` carrying a reference to the strategy
     as well as the values emitted by the metrics.
 
-    Each child class should implement the `log_metric` method, which
+    Each child class should implement the `log_single_metric` method, which
     specifies how to report to the user the metrics gathered during
-    training and evaluation flows. The `log_metric` method is invoked
+    training and evaluation flows. The `log_single_metric` method is invoked
     by default on each callback.
     In addition, child classes may override the desired callbacks
     to customize the logger behavior.
 
-    Make sure, when overriding callbacks, to call
-    the proper `super` method.
+    .. note::
+        Make sure, when overriding callbacks, to call
+        the proper `super` method.
     """
 
     def __init__(self):
         super().__init__()
 
+    def log_single_metric(self, name, value, x_plot):
+        """
+        This abstract method will have to be implemented by each subclass.
+        This method takes a metric name, a metric value and a x value and
+        decides how to show the metric value.
+
+        :param name: str, metric name
+        :param value: the metric value, will be ignored if
+            not supported by the logger
+        :param x_plot: an integer representing the x value
+            associated to the metric value
+        """
+        pass
+
     def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
         """
-        This abstract method will has to be implemented by child classes.
         This method will be invoked on each callback.
         The `callback` parameter describes the callback from which the metric
         value is coming from.
@@ -43,7 +57,16 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
             metric value was obtained.
         :return: None
         """
-        pass
+        name = metric_value.name
+        value = metric_value.value
+        x_plot = metric_value.x_plot
+
+        if isinstance(value, dict):
+            for k, v in value.items():
+                n = f"{name}/{k}"
+                self.log_single_metric(n, v, x_plot)
+        else:
+            self.log_single_metric(name, value, x_plot)
 
     def before_training(self, strategy: 'BaseStrategy',
                         metric_values: List['MetricValue'], **kwargs):

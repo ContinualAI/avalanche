@@ -4,7 +4,7 @@ description: Protocols and Metrics Code Examples
 
 # Evaluation
 
-{% code title="\"Evaluation Pluging\" Example" %}
+{% code title=""Evaluation Pluging" Example" %}
 ```python
 # --- CONFIG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -22,17 +22,17 @@ test_transform = transforms.Compose([
 ])
 # ---------
 
-# --- SCENARIO CREATION
+# --- BENCHMARK CREATION
 mnist_train = MNIST('./data/mnist', train=True,
                     download=True, transform=train_transform)
 mnist_test = MNIST('./data/mnist', train=False,
                    download=True, transform=test_transform)
-scenario = nc_scenario(
+benchmark = nc_benchmark(
     mnist_train, mnist_test, 5, task_labels=False, seed=1234)
 # ---------
 
 # MODEL CREATION
-model = SimpleMLP(num_classes=scenario.n_classes)
+model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN AND LOGGER
 # The evaluation plugin manages the metrics computation.
@@ -55,7 +55,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True, epoch_running=True),
     cpu_usage_metrics(experience=True),
     ExperienceForgetting(),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    StreamConfusionMatrix(num_classes=benchmark.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger])
 
@@ -68,7 +68,7 @@ cl_strategy = Naive(
 # TRAINING LOOP
 print('Starting experiment...')
 results = []
-for experience in scenario.train_stream:
+for experience in benchmark.train_stream:
     print("Start of experience: ", experience.current_experience)
     print("Current Classes: ", experience.classes_in_this_experience)
 
@@ -78,7 +78,7 @@ for experience in scenario.train_stream:
 
     print('Computing accuracy on the whole test set')
     # test also returns a dictionary which contains all the metric values
-    results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
+    results.append(cl_strategy.eval(benchmark.test_stream, num_workers=4))
 ```
 {% endcode %}
 
@@ -89,4 +89,3 @@ You can run _this chapter_ and play with it on Google Colaboratory:
 {% hint style="danger" %}
 Notebook currently unavailable.
 {% endhint %}
-

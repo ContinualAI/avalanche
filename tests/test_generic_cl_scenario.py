@@ -142,7 +142,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertGreaterEqual(other_0_classes_min, 400)
         self.assertLess(other_0_classes_max, 600)
 
-    def test_lazy_scenario(self):
+    def test_lazy_benchmark(self):
         train_exps, test_exps, other_stream_exps = self._make_tensor_datasets()
 
         def train_gen():
@@ -259,7 +259,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         with self.assertRaises(IndexError):
             other_exp_1: GenericExperience = benchmark_instance.other_stream[1]
 
-    def test_lazy_scenario_drop_old_ones(self):
+    def test_lazy_benchmark_drop_old_ones(self):
         train_exps, test_exps, other_stream_exps = self._make_tensor_datasets()
 
         train_dataset_exp_0_weak_ref = weakref.ref(train_exps[0])

@@ -227,7 +227,7 @@ class StreamMaxRAM(RAMPluginMetric):
         super(StreamMaxRAM, self).__init__(
             every, reset_at='stream', emit_at='stream', mode='eval')
 
-    def before_eval(self, strategy) -> MetricResult:
+    def before_eval(self, strategy):
         super().before_eval(strategy)
         self._ram.start_thread()
 

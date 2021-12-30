@@ -5,15 +5,17 @@ from avalanche.training.plugins import StrategyPlugin
 
 
 class EarlyStoppingPlugin(StrategyPlugin):
+    """ Early stopping plugin.
+
+    Simple plugin stopping the training when the accuracy on the
+    corresponding validation metric stopped progressing for a few epochs.
+    The state of the best model is saved after each improvement on the
+    given metric and is loaded back into the model before stopping the
+    training procedure.
+    """
     def __init__(self, patience: int, val_stream_name: str,
                  metric_name: str = 'Top1_Acc_Stream', mode: str = 'max'):
         """
-        Simple plugin stopping the training when the accuracy on the
-        corresponding validation metric stopped progressing for a few epochs.
-        The state of the best model is saved after each improvement on the
-        given metric and is loaded back into the model before stopping the
-        training procedure.
-
         :param patience: Number of epochs to wait before stopping the training.
         :param val_stream_name: Name of the validation stream to search in the
         metrics. The corresponding stream will be used to keep track of the
@@ -44,7 +46,7 @@ class EarlyStoppingPlugin(StrategyPlugin):
 
     def before_training_epoch(self, strategy, **kwargs):
         self._update_best(strategy)
-        if strategy.epoch - self.best_epoch >= self.patience:
+        if strategy.clock.train_exp_epochs - self.best_epoch >= self.patience:
             strategy.model.load_state_dict(self.best_state)
             strategy.stop_training()
 
@@ -54,4 +56,4 @@ class EarlyStoppingPlugin(StrategyPlugin):
         if self.best_val is None or self.operator(val_acc, self.best_val):
             self.best_state = deepcopy(strategy.model.state_dict())
             self.best_val = val_acc
-            self.best_epoch = strategy.epoch
+            self.best_epoch = strategy.clock.train_exp_epochs

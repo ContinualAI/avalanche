@@ -21,8 +21,9 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib.pyplot import Figure
 from torchvision.transforms.functional import to_tensor
 from avalanche.evaluation.metric_results import AlternativeValues, \
-    MetricValue, TensorImage
+    TensorImage
 from avalanche.logging import StrategyLogger
+import weakref
 
 
 class TensorboardLogger(StrategyLogger):
@@ -61,37 +62,36 @@ class TensorboardLogger(StrategyLogger):
         self.writer = SummaryWriter(tb_log_dir,
                                     filename_suffix=filename_suffix)
 
-    def __del__(self):
-        self.writer.close()
+        # Shuts down the writer gracefully on process exit
+        # or when this logger gets GCed. Fixes issue #864.
+        # For more info see:
+        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+        weakref.finalize(self, SummaryWriter.close, self.writer)
 
-    def log_metric(self, metric_value: MetricValue, callback: str):
-        super().log_metric(metric_value, callback)
-        name = metric_value.name
-        value = metric_value.value
-
+    def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int)
 
         if isinstance(value, Figure):
             self.writer.add_figure(name, value,
-                                   global_step=metric_value.x_plot)
+                                   global_step=x_plot)
 
         elif isinstance(value, Image):
             self.writer.add_image(name, to_tensor(value),
-                                  global_step=metric_value.x_plot)
+                                  global_step=x_plot)
 
         elif isinstance(value, Tensor):
             self.writer.add_histogram(name, value,
-                                      global_step=metric_value.x_plot)
+                                      global_step=x_plot)
 
         elif isinstance(value, (float, int)):
             self.writer.add_scalar(name, value,
-                                   global_step=metric_value.x_plot)
+                                   global_step=x_plot)
 
         elif isinstance(value, TensorImage):
             self.writer.add_image(name, value.image,
-                                  global_step=metric_value.x_plot)
+                                  global_step=x_plot)
 
 
 def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:

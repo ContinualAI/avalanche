@@ -31,8 +31,7 @@ The library is organized into four main modules:
 - [Benchmarks](avalanche/benchmarks): This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for torchvision).
 - [Training](avalanche/training): This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new continual learning strategies as well as a set of pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 - [Evaluation](avalanche/evaluation): This module provides all the utilities and metrics that can help evaluate a CL algorithm with respect to all the factors we believe to be important for a continually learning system. It also includes advanced logging and plotting features, including native Tensorboard support.
-- [Extras](avalanche/extras): In the extras module you'll be able to find several useful utilities and building blocks that will help you create your continual learning experiments with ease. This includes configuration files for quick reproducibility and model building functions for example.
-- [Models](avalanche/models): In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in torchvision.models).
+- [Models](avalanche/models): This module provides utilities to implement model expansion and task-aware models, along with a set of pre-trained models and popular architectures that can be used for your continual learning experiment (similar to what has been done in torchvision.models).
 - [Logging](avalanche/logging): It includes advanced logging and plotting features, including native stdout, file and TensorBoard support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
 _Avalanche_ the first experiment of an **End-to-end Library** for reproducible continual learning research & development where you can find benchmarks, algorithms, evaluation metrics and much more, in the same place.
@@ -84,10 +83,10 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Alpha v0.0.1**](https://avalanche.continualai.org/getting-started/alpha-version), but we already support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in [**Beta (v0.1.0)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.1.0). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
-*Please note that, at the moment, we **do not** support stable releases and packaged versions of the library.*
-*We do this intentionally as in this early phase we would like to stimulate contributions only from experienced CL researchers and coders.*
+**You can install Avalanche by running `pip install avalanche-lib`.**  
+Look [here](https://avalanche.continualai.org/getting-started/how-to-install) for a more complete guide on the different ways available to install Avalanche.
 
 Getting Started
 ----------------

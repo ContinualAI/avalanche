@@ -15,8 +15,13 @@ import torch.nn as nn
 
 
 class SimpleMLP_TinyImageNet(nn.Module):
+    """Multi-layer Perceptron for TinyImageNet benchmark."""
 
     def __init__(self, num_classes=200, num_channels=3):
+        """
+        :param num_classes: model output size
+        :param num_channels: number of input channels
+        """
         super(SimpleMLP_TinyImageNet, self).__init__()
 
         self.features = nn.Sequential(

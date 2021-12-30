@@ -31,7 +31,7 @@ from avalanche.benchmarks import nc_benchmark
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
     gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
-    bwt_metrics
+    bwt_metrics, forward_transfer_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -90,6 +90,7 @@ def main(args):
                      experience=True, stream=True),
         forgetting_metrics(experience=True, stream=True),
         bwt_metrics(experience=True, stream=True),
+        forward_transfer_metrics(experience=True, stream=True),
         cpu_usage_metrics(
             minibatch=True, epoch=True, epoch_running=True,
             experience=True, stream=True),
@@ -125,7 +126,7 @@ def main(args):
         # train returns a dictionary containing last recorded value
         # for each metric.
         res = cl_strategy.train(experience,
-                                eval_streams=[scenario.test_stream[i]])
+                                eval_streams=[scenario.test_stream])
         print('Training completed')
 
         print('Computing accuracy on the whole test set')

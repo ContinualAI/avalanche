@@ -1,6 +1,6 @@
 import warnings
 from fnmatch import fnmatch
-from typing import Sequence, Any, Set, List, Tuple, Dict, TYPE_CHECKING
+from typing import Sequence, Any, Set, List, Tuple, Dict, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -39,13 +39,18 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     achieve the S.I. regularization effect.
     """
 
-    def __init__(self, si_lambda: float,
+    def __init__(self, si_lambda: Union[float, Sequence[float]],
+                 eps: float = 0.0000001,
                  excluded_parameters: Sequence['str'] = None,
                  device: Any = 'as_strategy'):
         """
         Creates an instance of the Synaptic Intelligence plugin.
 
         :param si_lambda: Synaptic Intelligence lambda term.
+            If list, one lambda for each experience. If the list has less
+            elements than the number of experiences, last lambda will be
+            used for the remaining experiences.
+        :param eps: Synaptic Intelligence damping parameter.
         :param device: The device to use to run the S.I. experiences.
             Defaults to "as_strategy", which means that the `device` field of
             the strategy will be used. Using a different device may lead to a
@@ -60,7 +65,9 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
         if excluded_parameters is None:
             excluded_parameters = []
-        self.si_lambda: float = si_lambda
+        self.si_lambda = si_lambda if isinstance(si_lambda, (list, tuple)) \
+            else [si_lambda]
+        self.eps: float = eps
         self.excluded_parameters: Set[str] = set(excluded_parameters)
         self.ewc_data: EwcDataType = (dict(), dict())
         """
@@ -87,11 +94,18 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             strategy.model, self.ewc_data, self.syn_data,
             self.excluded_parameters)
 
-    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
-        super().after_backward(strategy, **kwargs)
+    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
+        super().before_backward(strategy, **kwargs)
+
+        exp_id = strategy.clock.train_exp_counter
+        try:
+            si_lamb = self.si_lambda[exp_id]
+        except IndexError:  # less than one lambda per experience, take last
+            si_lamb = self.si_lambda[-1]
+
         syn_loss = SynapticIntelligencePlugin.compute_ewc_loss(
             strategy.model, self.ewc_data, self.excluded_parameters,
-            lambd=self.si_lambda, device=self.device(strategy))
+            lambd=si_lamb, device=self.device(strategy))
 
         if syn_loss is not None:
             strategy.loss += syn_loss.to(strategy.device)
@@ -110,7 +124,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         super().after_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.update_ewc_data(
             strategy.model, self.ewc_data, self.syn_data, 0.001,
-            self.excluded_parameters, 1)
+            self.excluded_parameters, 1, eps=self.eps)
 
     def device(self, strategy: 'BaseStrategy'):
         if self._device == 'as_strategy':
@@ -228,10 +242,9 @@ class SynapticIntelligencePlugin(StrategyPlugin):
     @torch.no_grad()
     def update_ewc_data(net, ewc_data: EwcDataType, syn_data: SynDataType,
                         clip_to: float, excluded_parameters: Set[str],
-                        c=0.0015):
+                        c=0.0015, eps: float = 0.0000001):
         SynapticIntelligencePlugin.extract_weights(net, syn_data['new_theta'],
                                                    excluded_parameters)
-        eps = 0.0000001  # 0.001 in few task - 0.1 used in a more complex setup
 
         for param_name in syn_data['cum_trajectory']:
             syn_data['cum_trajectory'][param_name] += \

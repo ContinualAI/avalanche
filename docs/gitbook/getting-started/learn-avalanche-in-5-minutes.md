@@ -6,13 +6,17 @@ description: A Short Guide for Researchers on the Run
 
 _Avalanche_ is mostly about making the life of a continual learning researcher easier.
 
-> #### What are the **three pillars** of any respectful continual learning research project?
+![Avalanche modules.](<../.gitbook/assets/avalanche (1).png>)
+
+>
+>
+> **What are the three pillars of any respectful continual learning research project?**
 
 * **`Benchmarks`**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
 * **`Training`**: Efficient implementation and training of continual learning algorithms; comparisons with other baselines and state-of-the-art methods become fundamental to asses the quality of an original algorithmic proposal.
 * **`Evaluation`**: _Training_ utils and _Benchmarks_ are not enough alone to push continual learning research forward. Comprehensive and sound _evaluation protocols_ and _metrics_ need to be employed as well.
 
-> #### _With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent, well-maintained codebase._
+> _**With Avalanche, you can find all these three fundamental pieces together and much more, in a single and coherent, well-maintained codebase.**_
 
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for _researchers on the run_!
 
@@ -24,16 +28,16 @@ In this short guide we assume you have already installed _Avalanche_. If you hav
 
 _Avalanche_ is organized in **five main modules**:
 
-* **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks \(similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)\).
+* **`Benchmarks`**: This module maintains a uniform API for data handling: mostly generating a stream of data from one or more datasets. It contains all the major CL benchmarks (similar to what has been done for [torchvision](https://pytorch.org/docs/stable/torchvision/index.html)).
 * **`Training`**: This module provides all the necessary utilities concerning model training. This includes simple and efficient ways of implement new _continual learning_ strategies as well as a set pre-implemented CL baselines and state-of-the-art algorithms you will be able to use for comparison!
 * **`Evaluation`**: This modules provides all the utilities and metrics that can help in evaluating a CL algorithm with respect to all the factors we believe to be important for a continually learning system.
-* **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment \(similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)\). 
-* **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support \(How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?\)
+* **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)).
+* **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [Tensorboard](https://www.tensorflow.org/tensorboard) support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
 In the graphic below, you can see how _Avalanche_ sub-modules are available and organized as well:
 
 {% code title="Avalanche Main Modules and Sub-Modules" %}
-```text
+```
 Avalanche
 ├── Benchmarks
 │   ├── Classic
@@ -53,7 +57,7 @@ Avalanche
 ```
 {% endcode %}
 
-We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://continualai.github.io/avalanche) is your friend as well!
+We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://avalanche-api.continualai.org/en/latest/) is your friend as well!
 
 All right, let's start with the _benchmarks_ module right away 👇
 
@@ -61,8 +65,8 @@ All right, let's start with the _benchmarks_ module right away 👇
 
 The benchmark module offers three main features:
 
-1. **Datasets**: a comprehensive list of PyTorch Datasets ready to use \(It includes all the _Torchvision_ Datasets and more!\).
-2. **Classic Benchmarks**: a set of classic _Continual Learning_ Benchmarks ready to be used \(there can be multiple benchmarks based on a single dataset\).
+1. **Datasets**: a comprehensive list of PyTorch Datasets ready to use (It includes all the _Torchvision_ Datasets and more!).
+2. **Classic Benchmarks**: a set of classic _Continual Learning_ Benchmarks ready to be used (there can be multiple benchmarks based on a single dataset).
 3. **Generators**: a set of functions you can use to generate your own benchmark starting from any PyTorch Dataset!
 
 ### Datasets
@@ -81,11 +85,11 @@ Of course, you can use them as you would use any _PyTorch Dataset_.
 
 ### Benchmarks Basics
 
-The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that describe the benchmark. However, the most important ones are the `train` and `test streams`.
+The _Avalanche_ benchmarks (instances of the _Scenario_ class), contains several attributes that describe the benchmark. However, the most important ones are the `train` and `test streams`.
 
-In _Avalanche_ we often suppose to have access to these **two parallel stream of data** \(even though some benchmarks may not provide such feature, but contain just a unique test set\).
+In _Avalanche_ we often suppose to have access to these **two parallel stream of data** (even though some benchmarks may not provide such feature, but contain just a unique test set).
 
-Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **experiences**. Experiences are batch of data \(or "_tasks_"\) that can be provided with or without a specific _task label_.
+Each of these `streams` are _iterable_, _indexable_ and _sliceable_ objects that are composed of **experiences**. Experiences are batch of data (or "_tasks_") that can be provided with or without a specific _task label_.
 
 ### **Classic Benchmarks**
 
@@ -245,7 +249,7 @@ for experience in scenario.train_stream:
     cl_strategy.eval(scenario.test_stream[experience.current_experience])
 ```
 
-While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities \(based on _callbacks_\) that lets you write **more neat, modular** and **reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
+While this is the easiest possible way to add your own strategy, _Avalanche_ supports more sophisticated modalities (based on _callbacks_) that lets you write **more neat, modular** and **reusable** **code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
 Check out more details about what Avalanche can offer in this module following the "_Training_" chapter of the **"**_**From Zero to Hero**_**"** tutorial!
 
@@ -253,9 +257,9 @@ Check out more details about what Avalanche can offer in this module following t
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done through the **Metrics** and the **Loggers.** The **Metrics** provide a set of classes which implements the main continual learning metrics like A_ccuracy_, F_orgetting_, M_emory Usage_, R_unning Times_, etc.  
-Metrics should be created via the utility functions \(e.g. `accuracy_metrics`, `timing_metrics`and others\) specifying in the arguments when those metrics should be computed \(after each minibatch, epoch, experience etc...\).  
-The **Loggers** specify a way to report the metrics \(e.g. with Tensorboard, on console or others\). Loggers are created by instantiating the respective class.
+This is mostly done through the **Metrics** and the **Loggers.** The **Metrics** provide a set of classes which implements the main continual learning metrics like A\_ccuracy\_, F\_orgetting\_, M\_emory Usage\_, R\_unning Times\_, etc.\
+Metrics should be created via the utility functions (e.g. `accuracy_metrics`, `timing_metrics`and others) specifying in the arguments when those metrics should be computed (after each minibatch, epoch, experience etc...).\
+The **Loggers** specify a way to report the metrics (e.g. with Tensorboard, on console or others). Loggers are created by instantiating the respective class.
 
 Metrics and loggers interact via the **Evaluation Plugin:** this is the main object responsible of tracking the experiment progress. Metrics and loggers are directly passed to the `EvaluationPlugin` instance. You will see the output of the loggers automatically during training and evaluation! Let's see how to put this together in few lines of code:
 
@@ -285,9 +289,11 @@ eval_plugin = EvaluationPlugin(
 # THAT'S IT!!
 ```
 
-For more details about the evaluation module \(how to write new metrics/loggers, a deeper tutorial on metrics\) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
+For more details about the evaluation module (how to write new metrics/loggers, a deeper tutorial on metrics) check out the extended guide in the "_Evaluation_" chapter of the **"**_**From Zero to Hero**_**"** _Avalanche_ tutorial!
 
-{% page-ref page="../from-zero-to-hero-tutorial/05\_evaluation.md" %}
+{% content-ref url="../from-zero-to-hero-tutorial/05_evaluation.md" %}
+[05\_evaluation.md](../from-zero-to-hero-tutorial/05\_evaluation.md)
+{% endcontent-ref %}
 
 ## 🔗 Putting all Together
 
@@ -367,4 +373,3 @@ You can run _this chapter_ and play with it on _Google Colaboratory_:
 {% hint style="danger" %}
 Notebook currently unavailable.
 {% endhint %}
-

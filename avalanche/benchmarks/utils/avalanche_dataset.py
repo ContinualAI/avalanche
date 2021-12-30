@@ -59,7 +59,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     """
     The Dataset used as the base implementation for Avalanche.
 
-    Instances of this dataset are usually returned from scenarios, but it can
+    Instances of this dataset are usually returned from benchmarks, but it can
     also be used in a completely standalone manner. This dataset can be used
     to apply transformations before returning patterns/targets, it supports
     slicing and advanced indexing and it also contains useful fields as
@@ -157,8 +157,6 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             the value of the second element returned by `__getitem__`.
             The adapter is used to adapt the values of the targets field only.
         """
-        super().__init__()
-
         if transform_groups is not None and (
                 transform is not None or target_transform is not None):
             raise ValueError('transform_groups can\'t be used with transform'

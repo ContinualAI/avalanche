@@ -48,15 +48,17 @@ release = u'0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # 'sphinx.ext.autodoc',
-    'autoapi.extension',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.githubpages',
     'sphinx_rtd_theme',
 ]
+
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -89,18 +91,20 @@ pygments_style = None
 autoclass_content = "class"
 
 # autoapi options
-autoapi_dirs = ['../avalanche']
-autoapi_options = [
-    'members',
-    'undoc-members',
-    # 'private-members',
-    'show-inheritance',
-    # 'show-inheritance-diagram',
-    'show-module-summary',
-    'special-members',
-    'imported-members'
-]
-autoapi_python_class_content = 'both'
+# autoapi_dirs = ['../avalanche']
+# autoapi_options = [
+#     'members',
+#     'undoc-members',
+#     # 'private-members',
+#     'show-inheritance',
+#     # 'show-inheritance-diagram',
+#     'show-module-summary',
+#     'special-members',
+#     'imported-members'
+# ]
+#
+# autoapi_add_toctree_entry = False
+# autoapi_python_class_content = 'both'
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -116,7 +120,8 @@ html_logo = './_static/img/avalanche_logo.png'
 #
 html_theme_options = {
     'collapse_navigation': False,
-    'logo_only': True
+    'logo_only': True,
+    'display_version': True
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

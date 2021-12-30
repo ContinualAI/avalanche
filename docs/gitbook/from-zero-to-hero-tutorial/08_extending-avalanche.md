@@ -4,9 +4,11 @@ description: 'Make it Custom, Make it Yours'
 
 # Extending Avalanche
 
-```text
+
+```
 !pip install git+https://github.com/ContinualAI/avalanche.git
 ```
+
 
 Having learned how to use all the _Avalanche_ main features, you may end up willing to customize the framework a little to suit your eagerness of continually better functionalities \(as a true _continual learner_ would indeed do! ⚡\).
 
@@ -22,5 +24,4 @@ If you think your changes may be interesting for the rest of the _Continual Lear
 
 ## 🤝 Run it on Google Colab
 
-You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/colab/blob/master/notebooks/avalanche/5.-extending-avalanche.ipynb)
-
+You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/08_extending-avalanche.ipynb)
