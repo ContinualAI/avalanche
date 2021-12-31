@@ -23,7 +23,7 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_generic_benchmark_from_tensor_lists
 from avalanche.benchmarks.utils import AvalancheDataset, \
     AvalancheSubset, AvalancheConcatDataset, AvalancheDatasetType, \
-    AvalancheTensorDataset
+    AvalancheTensorDataset, concat_datasets_sequentially
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 from avalanche.training.utils import load_all_dataset
 import random
@@ -1325,6 +1325,33 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(tensor_t,
                                     leaf[d_sz*dataset_hierarchy_depth:][2]))
 
+
+    def test_avalanche_concat_datasets_sequentially(self):
+        # create list of training datasets
+        train = [AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(2, 4, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(4, 6, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,))))]
+
+        # create list of test datasets
+        test = [AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(2, 4, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(4, 6, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,))))]
+
+        # concatenate datasets
+        final_train, final_test, classes = concat_datasets_sequentially(train, test)
+
+        # merge all classes into a single list
+        classes_all = []
+        for class_list in classes:
+            classes_all.extend(class_list)
+
+        # get the target set of classes 
+        target_classes = list(set(map(int, final_train.targets)))
+
+        # test for correctness
+        self.assertEqual(classes_all, target_classes)
 
 class TransformationSubsetTests(unittest.TestCase):
     def test_avalanche_subset_transform(self):
