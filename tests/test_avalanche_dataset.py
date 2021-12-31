@@ -1325,22 +1325,29 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(tensor_t,
                                     leaf[d_sz*dataset_hierarchy_depth:][2]))
 
-
     def test_avalanche_concat_datasets_sequentially(self):
         # create list of training datasets
-        train = [AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(2, 4, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(4, 6, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,))))]
+        train = [AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(0, 2, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(2, 4, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(4, 6, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(0, 2, (20,))))]
 
         # create list of test datasets
-        test = [AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(2, 4, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(4, 6, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20,10), torch.randint(0, 2, (20,))))]
+        test = [AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(0, 2, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(2, 4, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(4, 6, (20,)))), 
+                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+                                                torch.randint(0, 2, (20,))))]
 
         # concatenate datasets
-        final_train, final_test, classes = concat_datasets_sequentially(train, test)
+        final_train, _, classes = concat_datasets_sequentially(train, test)
 
         # merge all classes into a single list
         classes_all = []
@@ -1352,6 +1359,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         # test for correctness
         self.assertEqual(classes_all, target_classes)
+
 
 class TransformationSubsetTests(unittest.TestCase):
     def test_avalanche_subset_transform(self):
