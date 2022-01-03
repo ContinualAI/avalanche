@@ -26,4 +26,5 @@ dependencies:
 - pip:
     - pytorchcv
     - gdown
+    - ctrl-benchmark
     - gym
