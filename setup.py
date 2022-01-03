@@ -51,6 +51,7 @@ setuptools.setup(
         'torch',
         'torchvision',
         'gdown',
+        'ctrl-benchmark',
         'setuptools<=59.5.0'
     ]
 )
