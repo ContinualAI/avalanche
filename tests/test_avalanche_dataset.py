@@ -1327,24 +1327,24 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_concat_datasets_sequentially(self):
         # create list of training datasets
-        train = [AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(0, 2, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(2, 4, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(4, 6, (20,)))), 
-                AvalancheDataset(TensorDataset(torch.randn(20, 10), 
+        train = [AvalancheDataset(TensorDataset(torch.randn(20, 10),
+                                                torch.randint(0, 2, (20,)))),
+                 AvalancheDataset(TensorDataset(torch.randn(20, 10),
+                                                torch.randint(2, 4, (20,)))),
+                 AvalancheDataset(TensorDataset(torch.randn(20, 10),
+                                                torch.randint(4, 6, (20,)))),
+                 AvalancheDataset(TensorDataset(torch.randn(20, 10),
                                                 torch.randint(0, 2, (20,))))]
 
         # create list of test datasets
         test = [AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(0, 2, (20,)))), 
+                                               torch.randint(0, 2, (20,)))),
                 AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(2, 4, (20,)))), 
+                                               torch.randint(2, 4, (20,)))),
                 AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(4, 6, (20,)))), 
+                                               torch.randint(4, 6, (20,)))),
                 AvalancheDataset(TensorDataset(torch.randn(20, 10), 
-                                                torch.randint(0, 2, (20,))))]
+                                               torch.randint(0, 2, (20,))))]
 
         # concatenate datasets
         final_train, _, classes = concat_datasets_sequentially(train, test)
