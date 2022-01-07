@@ -4,17 +4,18 @@ description: Creation and manipulation of AvalancheDatasets and its subclasses.
 
 # Creating AvalancheDatasets
 
-The _AvalancheDataset_ is an implementation of the PyTorch Dataset class which comes with many out-of-the-box functionalities. The _AvalancheDataset_ (an its few subclass) are extensively used through the whole Avalanche library as the reference way to manipulate datasets:
+The *AvalancheDataset* is an implementation of the PyTorch Dataset class which comes with many out-of-the-box functionalities. The *AvalancheDataset* (an its few subclass) are extensively used through the whole Avalanche library as the reference way to manipulate datasets:
 
-* The dataset carried by the `experience.dataset` field is always an _AvalancheDataset_.
-* Benchmark creation functions accept _AvalancheDataset_s to create benchmarks where a finer control over task labels is required.
-* Internally, benchmarks are created by manipulating _AvalancheDataset_s.
+- The dataset carried by the `experience.dataset` field is always an *AvalancheDataset*.
+- Benchmark creation functions accept *AvalancheDataset*s to create benchmarks where a finer control over task labels is required.
+- Internally, benchmarks are created by manipulating *AvalancheDataset*s.
 
-This first _Mini How-To_ will guide through the main ways you can use to **instantiate an **_**AvalancheDataset**_ while the **other Mini How-Tos (**[**complete list here**](https://avalanche.continualai.org/how-tos/avalanchedataset)**) will show how to use its functionalities**.
+This first *Mini How-To* will guide through the main ways you can use to **instantiate an _AvalancheDataset_** while the **other Mini How-Tos ([complete list here](https://avalanche.continualai.org/how-tos/avalanchedataset)) will show how to use its functionalities**.
 
 It is warmly recommended to **run this page as a notebook** using Colab (info at the bottom of this page).
 
 Let's start by installing avalanche:
+
 
 ```python
 !pip install git+https://github.com/ContinualAI/avalanche.git
@@ -26,26 +27,24 @@ Let's start by installing avalanche:
 ```
 
 ## AvalancheDataset vs PyTorch Dataset
-
-This mini How-To will guide you through the main ways used to instantiate an _AvalancheDataset_.
+This mini How-To will guide you through the main ways used to instantiate an *AvalancheDataset*.
 
 First thing: the base class `AvalancheDataset` is a **wrapper for existing datasets**. Only two things must be considered when wrapping an existing dataset:
 
-* Apart from the x and y values, the resulting AvalancheDataset will also return a third value: the task label (which defaults to 0).
-* The wrapped dataset must contain a valid **targets** field.
+- Apart from the x and y values, the resulting AvalancheDataset will also return a third value: the task label (which defaults to 0).
+- The wrapped dataset must contain a valid **targets** field.
 
-The **targets field** is available is nearly all _torchvision_ datasets. It must be a list containing the label for each data point (usually the y value). In this way, Avalanche can use that field when instantiating benchmarks like the "Class/Task-Incremental\* and _Domain-Incremental_ ones.
+The **targets field** is available is nearly all *torchvision* datasets. It must be a list containing the label for each data point (usually the y value). In this way, Avalanche can use that field when instantiating benchmarks like the "Class/Task-Incremental* and *Domain-Incremental* ones.
 
-Avalanche exposes 4 classes of _AvalancheDataset_s which map exactly the 4 _Dataset_ classes offered by PyTorch:
-
-* `AvalancheDataset`: the base class, which acts a wrapper to existing _Dataset_ instances.
-* `AvalancheTensorDataset`: equivalent to PyTorch `TesnsorDataset`.
-* `AvalancheSubset`: equivalent to PyTorch `Subset`.
-* `AvalancheConcatDataset`: equivalent to PyTorch `ConcatDataset`.
+Avalanche exposes 4 classes of *AvalancheDataset*s which map exactly the 4 *Dataset* classes offered by PyTorch:
+- `AvalancheDataset`: the base class, which acts a wrapper to existing *Dataset* instances.
+- `AvalancheTensorDataset`: equivalent to PyTorch `TesnsorDataset`.
+- `AvalancheSubset`: equivalent to PyTorch `Subset`.
+- `AvalancheConcatDataset`: equivalent to PyTorch `ConcatDataset`.
 
 ## 🛠️ Create an AvalancheDataset
+Given a dataset (like MNIST), an *AvalancheDataset* can be instantiated as follows:
 
-Given a dataset (like MNIST), an _AvalancheDataset_ can be instantiated as follows:
 
 ```python
 from avalanche.benchmarks.utils import AvalancheDataset
@@ -60,6 +59,7 @@ mnist_avalanche_dataset = AvalancheDataset(mnist_dataset)
 
 Just like any other Dataset, a data point can be obtained using the `x, y = dataset[idx]` syntax. **When obtaining a data point from an AvalancheDataset, an additional third value (the task label) will be returned**:
 
+
 ```python
 # Obtain the first instance from the original dataset
 x, y = mnist_dataset[0]
@@ -72,7 +72,8 @@ print(f'x={x}, y={y}, t={t}')
 # Output: "x=<PIL.Image.Image image mode=L size=28x28 at 0x7FBEEFD3A850>, y=5, t=0"
 ```
 
-**Useful tip:** if you are not sure if you are dealing with a PyTorch _Dataset_ or an _AvalancheDataset_, or if you want to ignore task labels, you can use this syntax:
+**Useful tip:** if you are not sure if you are dealing with a PyTorch *Dataset* or an *AvalancheDataset*, or if you want to ignore task labels, you can use this syntax:
+
 
 ```python
 # You can use "x, y, *_" to manage both kinds of Datasets
@@ -81,10 +82,10 @@ x, y, *_ = mnist_avalanche_dataset[0]  # OK
 ```
 
 ## The AvalancheTensorDataset
+The PyTorch *TensorDataset* is one of the most useful Dataset classes as it can be used to quickly prototype the data loading part of your code.
 
-The PyTorch _TensorDataset_ is one of the most useful Dataset classes as it can be used to quickly prototype the data loading part of your code.
+A *TensorDataset* can be wrapped in an AvalancheDataset just like any Dataset, but this is not much convenient, as shown below:
 
-A _TensorDataset_ can be wrapped in an AvalancheDataset just like any Dataset, but this is not much convenient, as shown below:
 
 ```python
 import torch
@@ -111,6 +112,7 @@ print(f'x={x}, y={y}, t={t}')
 
 **Instead, it is recommended to use the AvalancheTensorDataset** class to get the same result. In this way, you can just skip one intermediate step.
 
+
 ```python
 from avalanche.benchmarks.utils import AvalancheTensorDataset
 
@@ -123,9 +125,10 @@ print(f'x={x}, y={y}, t={t}')
 # Output: "x=tensor([0.6329, 0.8495, 0.1853, 0.7254, 0.7893, 0.8079, 0.1106]), y=4, t=0"
 ```
 
-In both cases, **AvalancheDataset will automatically populate its **_**targets**_** field by using the values from the second Tensor** (which usually contains the Y values). This behaviour can be customized by passing a custom `targets` constructor parameter (by either passing a list of targets or the index of the Tensor to use).
+In both cases, **AvalancheDataset will automatically populate its _targets_ field by using the values from the second Tensor** (which usually contains the Y values). This behaviour can be customized by passing a custom `targets` constructor parameter (by either passing a list of targets or the index of the Tensor to use).
 
-The cell below shows the content of the target field of the dataset created in the cell above. Notice that the _targets_ field has been filled with the content of the second Tensor (_y\_data_).
+The cell below shows the content of the target field of the dataset created in the cell above. Notice that the *targets* field has been filled with the content of the second Tensor (*y\_data*).
+
 
 ```python
 # Check the targets field
@@ -138,12 +141,12 @@ print('targets field=', avl_tensor_dataset.targets)
 ```
 
 ## The AvalancheSubset and AvalancheConcatDataset classes
+Avalanche offers the `AvalancheSubset` and `AvalancheConcatDataset` implementations that extend the functionalities of PyTorch *Subset* and *ConcatDataset*.
 
-Avalanche offers the `AvalancheSubset` and `AvalancheConcatDataset` implementations that extend the functionalities of PyTorch _Subset_ and _ConcatDataset_.
+Regarding the subsetting operation, `AvalancheSubset` behaves in the same way the PyTorch `Subset` class does: both implementations accept a dataset and a list of indices as parameters. The resulting Subset is not a copy of the dataset, it's just a view. This is similar to creating a view of a NumPy array by passing a list of indexes using the `numpy_array[list_of_indices]` syntax. This can be used to both *create a smaller dataset* and to *change the order of data points* in the dataset.
 
-Regarding the subsetting operation, `AvalancheSubset` behaves in the same way the PyTorch `Subset` class does: both implementations accept a dataset and a list of indices as parameters. The resulting Subset is not a copy of the dataset, it's just a view. This is similar to creating a view of a NumPy array by passing a list of indexes using the `numpy_array[list_of_indices]` syntax. This can be used to both _create a smaller dataset_ and to _change the order of data points_ in the dataset.
+Here we create a toy dataset in which each X and Y values are *int*s. We then obtain a subset of it by creating an **AvalancheSubset**:
 
-Here we create a toy dataset in which each X and Y values are _int_s. We then obtain a subset of it by creating an **AvalancheSubset**:
 
 ```python
 from avalanche.benchmarks.utils import AvalancheSubset
@@ -180,9 +183,10 @@ for x, y, t in avl_subset:
 # x=52, y=12, t=0
 ```
 
-Concatenation is even simpler. Just like with PyTorch _ConcatDataset_, one can easily concatentate datasets with **AvalancheConcatDataset**.
+Concatenation is even simpler. Just like with PyTorch *ConcatDataset*, one can easily concatentate datasets with **AvalancheConcatDataset**.
 
-Both _AvalancheConcatDataset_ and PyTorch _ConcatDataset_ accept a list of datasets to concatenate.
+Both *AvalancheConcatDataset* and PyTorch *ConcatDataset* accept a list of datasets to concatenate.
+
 
 ```python
 from avalanche.benchmarks.utils import AvalancheConcatDataset
@@ -218,10 +222,9 @@ for x, y, t in avl_concat:
 ```
 
 ## Dataset Creation wrap-up
+This *Mini How-To* showed you how to **create instances of AvalancheDataset (and its subclasses)**.
 
-This _Mini How-To_ showed you how to **create instances of AvalancheDataset (and its subclasses)**.
-
-Other _Mini How-To_s will guide you through the functionalities offered by AvalancheDataset. The list of _Mini How-To_s can be found [here](https://avalanche.continualai.org/how-tos/avalanchedataset).
+Other *Mini How-To*s will guide you through the functionalities offered by AvalancheDataset. The list of *Mini How-To*s can be found [here](https://avalanche.continualai.org/how-tos/avalanchedataset).
 
 ## 🤝 Run it on Google Colab
 
