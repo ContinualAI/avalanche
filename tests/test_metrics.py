@@ -542,7 +542,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             collect_all=True)  # collect all metrics (set to True by default)
         cl_strategy = BaseStrategy(
             model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=2, train_epochs=2,
+            CrossEntropyLoss(), train_mb_size=4, train_epochs=2,
             eval_mb_size=2, device=DEVICE,
             evaluator=eval_plugin, eval_every=1)
         for i, experience in enumerate(benchmark.train_stream):
