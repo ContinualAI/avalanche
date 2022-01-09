@@ -11,7 +11,7 @@
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
 
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
 from pathlib import Path
 import os
 import errno
@@ -28,6 +28,10 @@ from matplotlib.pyplot import Figure
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
+
+if TYPE_CHECKING:
+    from avalanche.evaluation.metric_results import MetricValue
+    from avalanche.training.strategies import BaseStrategy
 
 
 class WandBLogger(StrategyLogger):
