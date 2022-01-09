@@ -28,6 +28,7 @@ from matplotlib.pyplot import Figure
 from avalanche.evaluation.metric_results import AlternativeValues, \
     MetricValue, TensorImage
 from avalanche.logging import StrategyLogger
+from avalanche.training.strategies import BaseStrategy
 
 
 class WandBLogger(StrategyLogger):
