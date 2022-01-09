@@ -11,7 +11,7 @@
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
 
-from typing import Union
+from typing import Union, List
 from pathlib import Path
 import os
 import errno
@@ -80,6 +80,8 @@ class WandBLogger(StrategyLogger):
         self.params = params
         self.args_parse()
         self.before_run()
+        self.step = 0
+        self.exp_count = 0
 
     def import_wandb(self):
         try:
@@ -106,7 +108,18 @@ class WandBLogger(StrategyLogger):
             self.wandb.init()
         self.wandb.run._label(repo="Avalanche")
 
+    def after_training_exp(self, strategy: 'BaseStrategy',
+                           metric_values: List['MetricValue'], **kwargs):
+        for val in metric_values:
+            self.log_metric(val, 'after_training_exp')
+
+        self.wandb.log({"Experience": self.exp_count},
+                       step=self.step)
+        self.exp_count += 1
+
     def log_single_metric(self, name, value, x_plot):
+        self.step = x_plot
+
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(Image, Tensor, TensorImage,
                                                Figure, float, int,
@@ -118,18 +131,21 @@ class WandBLogger(StrategyLogger):
             return
 
         if isinstance(value, Image):
-            self.wandb.log({name: self.wandb.Image(value)})
+            self.wandb.log({name: self.wandb.Image(value)},
+                           step=self.step)
 
         elif isinstance(value, Tensor):
             value = np.histogram(value.view(-1).numpy())
-            self.wandb.log({name: self.wandb.Histogram(np_histogram=value)})
+            self.wandb.log({name: self.wandb.Histogram(np_histogram=value)},
+                           step=self.step)
 
         elif isinstance(value, (float, int, Figure,
                                 self.wandb.viz.CustomChart)):
-            self.wandb.log({name: value})
+            self.wandb.log({name: value}, step=self.step)
 
         elif isinstance(value, TensorImage):
-            self.wandb.log({name: self.wandb.Image(array(value))})
+            self.wandb.log({name: self.wandb.Image(array(value))},
+                           step=self.step)
 
         elif name.startswith("WeightCheckpoint"):
             if self.log_artifacts:
