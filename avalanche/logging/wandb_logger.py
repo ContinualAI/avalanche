@@ -117,7 +117,7 @@ class WandBLogger(StrategyLogger):
         for val in metric_values:
             self.log_metric(val, 'after_training_exp')
 
-        self.wandb.log({"Experience": self.exp_count},
+        self.wandb.log({"TrainingExperience": self.exp_count},
                        step=self.step)
         self.exp_count += 1
 
