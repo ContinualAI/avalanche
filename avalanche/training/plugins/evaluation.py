@@ -3,6 +3,7 @@ from copy import copy
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
 
+from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.logging import StrategyLogger, InteractiveLogger
@@ -110,6 +111,9 @@ class EvaluationPlugin(StrategyPlugin):
         self._active = True
         """If False, no metrics will be collected."""
 
+        self._metric_values = []
+        """List of metrics that have yet to be processed by loggers."""
+
     @property
     def active(self):
         return self._active
@@ -120,31 +124,35 @@ class EvaluationPlugin(StrategyPlugin):
             "Active must be set as either True or False"
         self._active = value
 
+    def publish_metric_value(self, mval: MetricValue):
+        """Publish a MetricValue to be processed by the loggers."""
+        self._metric_values.append(mval)
+
+        name = mval.name
+        x = mval.x_plot
+        val = mval.value
+        if self.collect_all:
+            self.all_metric_results[name][0].append(x)
+            self.all_metric_results[name][1].append(val)
+        self.last_metric_results[name] = val
+
     def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
+        """Call the metric plugins with the correct callback `callback` and
+        update the loggers with the new metric values."""
         if not self._active:
             return []
 
-        metric_values = []
         for metric in self.metrics:
             metric_result = getattr(metric, callback)(strategy)
             if isinstance(metric_result, Sequence):
-                metric_values += list(metric_result)
+                for mval in metric_result:
+                    self.publish_metric_value(mval)
             elif metric_result is not None:
-                metric_values.append(metric_result)
-
-        for metric_value in metric_values:
-            name = metric_value.name
-            x = metric_value.x_plot
-            val = metric_value.value
-            if self.collect_all:
-                self.all_metric_results[name][0].append(x)
-                self.all_metric_results[name][1].append(val)
-
-            self.last_metric_results[name] = val
+                self.publish_metric_value(metric_result)
 
         for logger in self.loggers:
-            getattr(logger, callback)(strategy, metric_values)
-        return metric_values
+            getattr(logger, callback)(strategy, self._metric_values)
+        self._metric_values = []
 
     def get_last_metrics(self):
         """

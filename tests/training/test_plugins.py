@@ -16,10 +16,11 @@ from torch.utils.data.dataloader import DataLoader
 from avalanche.benchmarks import nc_benchmark, GenericCLScenario, \
     benchmark_with_validation_stream
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
 from avalanche.models import BaseModel
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
 
@@ -540,6 +541,16 @@ class _PlainMLP(nn.Module, BaseModel):
         x = x.view(x.size(0), self._input_size)
         x = self.features(x)
         return x
+
+
+class EvaluationPluginTest(unittest.TestCase):
+    def test_publish_metric(self):
+        ep = EvaluationPlugin()
+        mval = MetricValue(self, 'metric', 1.0, 0)
+        ep.publish_metric_value(mval)
+
+        # check key exists
+        assert len(ep.get_all_metrics()['metric'][1]) == 1
 
 
 if __name__ == '__main__':
