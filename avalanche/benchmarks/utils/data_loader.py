@@ -240,7 +240,7 @@ class ReplayDataLoader:
     def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
                  oversample_small_tasks: bool = False,
                  collate_mbatches=_default_collate_mbatches_fn,
-                 batch_size: int = 32,
+                 batch_size_data: int = 32,
                  batch_size_mem: int = 32,
                  task_balanced_dataloader: bool = False,
                  **kwargs):
@@ -262,7 +262,7 @@ class ReplayDataLoader:
         :param collate_mbatches: function that given a sequence of mini-batches
             (one for each task) combines them into a single mini-batch. Used to
             combine the mini-batches obtained separately from each task.
-        :param batch_size: the size of the data batch. It must be greater
+        :param batch_size_data: the size of the data batch. It must be greater
             than or equal to the number of tasks.
         :param batch_size_mem: the size of the memory batch. If
             `task_balanced_dataloader` is set to True, it must be greater than
@@ -290,7 +290,7 @@ class ReplayDataLoader:
 
         # Create dataloader for data items
         self.loader_data, _ = self._create_dataloaders(
-            data, batch_size, 0, False, **kwargs)
+            data, batch_size_data, 0, False, **kwargs)
 
         # Create dataloader for memory items
         if task_balanced_dataloader:

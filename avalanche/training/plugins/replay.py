@@ -29,8 +29,6 @@ class ReplayPlugin(StrategyPlugin):
     The :mem_size: attribute controls the total number of patterns to be stored 
     in the external memory.
 
-    :param batch_size: the size of the data batch. If set to `None`, it
-        will be set equal to the strategy's batch size.
     :param batch_size_mem: the size of the memory batch. If
         `task_balanced_dataloader` is set to True, it must be greater than or
         equal to the number of tasks. If its value is set to `None`
@@ -43,13 +41,11 @@ class ReplayPlugin(StrategyPlugin):
                            in memory
     """
 
-    def __init__(self, mem_size: int = 200, batch_size: int = None,
-                 batch_size_mem: int = None,
+    def __init__(self, mem_size: int = 200, batch_size_mem: int = None,
                  task_balanced_dataloader: bool = False,
                  storage_policy: Optional["ExemplarsBuffer"] = None):
         super().__init__()
         self.mem_size = mem_size
-        self.batch_size = batch_size
         self.batch_size_mem = batch_size_mem
         self.task_balanced_dataloader = task_balanced_dataloader
 
@@ -77,10 +73,6 @@ class ReplayPlugin(StrategyPlugin):
             # the dataloader.
             return
 
-        batch_size = self.batch_size
-        if batch_size is None:
-            batch_size = strategy.train_mb_size
-
         batch_size_mem = self.batch_size_mem
         if batch_size_mem is None:
             batch_size_mem = strategy.train_mb_size
@@ -89,7 +81,7 @@ class ReplayPlugin(StrategyPlugin):
             strategy.adapted_dataset,
             self.storage_policy.buffer,
             oversample_small_tasks=True,
-            batch_size=batch_size,
+            batch_size_data=strategy.train_mb_size,
             batch_size_mem=batch_size_mem,
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
