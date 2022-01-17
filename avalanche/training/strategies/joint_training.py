@@ -84,11 +84,11 @@ class JointTraining(BaseStrategy):
                                                     Sequence[
                                                         Experience]]]] = None,
               **kwargs):
-        """ Training loop. if experiences is a single element trains on it.
-        If it is a sequence, trains the model on each experience in order.
-        This is different from joint training on the entire stream.
-        It returns a dictionary with last recorded value for each metric.
-
+        """Training loop.
+        
+        JointTraining concatenates all the experiences together and 
+        trains on all of them at the same time (a.k.a. offline training).
+        
         :param experiences: single Experience or sequence.
         :param eval_streams: list of streams for evaluation.
             If None: use training experiences for evaluation.
