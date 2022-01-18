@@ -15,10 +15,11 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.strategies.base_online_strategy import OnlineStrategy
+from avalanche.training.strategies.base_online_strategy import \
+    BaseOnlineStrategy
 
 
-class OnlineNaive(OnlineStrategy):
+class OnlineNaive(BaseOnlineStrategy):
     """ Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just

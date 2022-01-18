@@ -13,7 +13,7 @@ from avalanche.benchmarks.utils.avalanche_dataset import AvalancheSubset
 from avalanche.models import DynamicModule
 
 
-class OnlineStrategy(BaseStrategy):
+class BaseOnlineStrategy(BaseStrategy):
     def __init__(self, model: Module, optimizer: Optimizer,
                  criterion=CrossEntropyLoss(), num_passes: int = 1,
                  train_mb_size: int = 1,
