@@ -110,8 +110,8 @@ class OnlineStrategy(BaseStrategy):
         return res
 
     def train_sub_exp(self, experience: Experience, eval_streams=None,
-                  is_first_sub_exp=False, is_last_sub_exp=False,
-                  **kwargs):
+                      is_first_sub_exp=False, is_last_sub_exp=False,
+                      **kwargs):
         """ Training loop over a single Experience object.
 
         :param experience: CL experience information.

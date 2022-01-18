@@ -31,11 +31,12 @@ class OnlineNaive(OnlineStrategy):
     """
 
     def __init__(self, model: Module, optimizer: Optimizer,
-                 criterion=CrossEntropyLoss(), num_passes: int=1,
+                 criterion=CrossEntropyLoss(), num_passes: int = 1,
                  train_mb_size: int = 1,
                  eval_mb_size: int = None, device=None,
                  plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+                 evaluator: EvaluationPlugin = default_logger,
+                 eval_every=-1):
         """
         Creates an instance of the Naive strategy.
 

@@ -80,7 +80,8 @@ def main(args):
         loggers=[interactive_logger])
 
     # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
-    cl_strategy = OnlineNaive(model, torch.optim.Adam(model.parameters(), lr=0.001),
+    cl_strategy = OnlineNaive(model, torch.optim.Adam(model.parameters(),
+                                                      lr=0.001),
                               CrossEntropyLoss(), num_passes=1,
                               train_mb_size=1, eval_mb_size=32,
                               device=device,
