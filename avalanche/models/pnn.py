@@ -142,7 +142,7 @@ class PNNLayer(MultiTaskModule):
     def num_columns(self):
         return len(self.columns)
 
-    def train_adaptation(self, dataset: AvalancheDataset):
+    def adaptation(self, dataset: AvalancheDataset):
         """ Training adaptation for PNN layer.
 
         Adds an additional column to the layer.
@@ -162,10 +162,8 @@ class PNNLayer(MultiTaskModule):
             "compatible benchmark."
         # extract task label from set
         task_label = next(iter(task_labels))
-        assert task_label not in self.task_to_module_idx, \
-            "A new experience is using a previously seen task label. This is " \
-            "not compatible with PNN, which assumes different task labels for" \
-            " each training experience."
+        if task_label in self.task_to_module_idx:
+            return  # we already added the column for the current task.
 
         if len(self.task_to_module_idx) == 0:
             # we have already initialized the first column.

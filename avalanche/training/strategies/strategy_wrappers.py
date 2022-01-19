@@ -70,57 +70,41 @@ class Naive(BaseStrategy):
 
 
 class PNNStrategy(BaseStrategy):
-    """ Progressive Neural Network strategy. """
+    """ Progressive Neural Network strategy.
 
-    def __init__(self, num_layers: int, in_features: int,
-                 hidden_features_per_column: int,
-                 lr: float, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False, adapter='mlp',
+    To use this strategy you need to instantiate a PNN model.
+    """
+
+    def __init__(self, model: Module, optimizer: Optimizer,
                  criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1,
-                 **base_kwargs):
-        """ Progressive Neural Network strategy.
+                 eval_mb_size: int = 1, device='cpu',
+                 plugins: Optional[Sequence['StrategyPlugin']] = None,
+                 evaluator=default_logger, eval_every=-1, **base_kwargs):
+        """ Init.
 
-        :param num_layers: Number of layers for the PNN architecture.
-        :param in_features: Number of input features.
-        :param hidden_features_per_column: Number of hidden units for
-            each column of the PNN architecture.
-        :param lr: learning rate
-        :param momentum: momentum factor (default: 0)
-        :param weight_decay: weight decay (L2 penalty) (default: 0)
-        :param dampening: dampening for momentum (default: 0)
-        :param nesterov: enables Nesterov momentum (default: False)
-        :param adapter: adapter type. One of {'linear', 'mlp'} (default='mlp')
-        :param criterion: The loss criterion to use.
-        :param train_mb_size: The train minibatch size. Defaults to 1.
-        :param train_epochs: The number of training epochs. Defaults to 1.
-        :param eval_mb_size: The eval minibatch size. Defaults to 1.
-        :param device: The device to use. Defaults to None (cpu).
-        :param plugins: Plugins to be added. Defaults to None.
+        :param model: PyTorch model.
+        :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
+        :param train_mb_size: mini-batch size for training.
+        :param train_epochs: number of training epochs.
+        :param eval_mb_size: mini-batch size for eval.
+        :param device: PyTorch device where the model will be allocated.
+        :param plugins: (optional) list of StrategyPlugins.
         :param evaluator: (optional) instance of EvaluationPlugin for logging
-            and metric computations.
+            and metric computations. None to remove logging.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseStrategy` constructor arguments.
         """
-        model = PNN(
-            num_layers=num_layers,
-            in_features=in_features,
-            hidden_features_per_column=hidden_features_per_column,
-            adapter=adapter
-        )
-        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
-                        weight_decay=weight_decay, dampening=dampening,
-                        nesterov=nesterov)
+        # Check that the model has the correct architecture.
+        assert isinstance(model, PNN), "PNNStrategy requires a PNN model."
         super().__init__(
-            model, optimizer, criterion,
+            model=model, optimizer=optimizer, criterion=criterion,
             train_mb_size=train_mb_size, train_epochs=train_epochs,
             eval_mb_size=eval_mb_size, device=device, plugins=plugins,
             evaluator=evaluator, eval_every=eval_every, **base_kwargs)

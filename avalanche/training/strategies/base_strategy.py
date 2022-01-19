@@ -22,7 +22,7 @@ from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule
 from avalanche.models.dynamic_optimizers import reset_optimizer
-from avalanche.models.utils import avalanche_forward
+from avalanche.models.utils import avalanche_forward, avalanche_model_adaptation
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_logger
 from typing import TYPE_CHECKING
@@ -645,10 +645,7 @@ class BaseStrategy:
         """
         if model is None:
             model = self.model
-
-        for module in model.modules():
-            if isinstance(module, DynamicModule):
-                module.adaptation(self.experience.dataset)
+        avalanche_model_adaptation(model, self.experience.dataset)
         return model.to(self.device)
 
     def forward(self):

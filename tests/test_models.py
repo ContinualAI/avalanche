@@ -10,13 +10,14 @@ from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
 from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
-    MultiHeadClassifier, SimpleCNN, NCMClassifier, TrainEvalModel
+    MultiHeadClassifier, SimpleCNN, NCMClassifier, TrainEvalModel, PNN
 from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
     update_optimizer
+from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.strategies import Naive
 from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
     pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, get_fast_benchmark
+from tests.unit_tests_utils import common_setups, get_fast_benchmark, load_benchmark
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -310,3 +311,21 @@ class NCMClassifierTest(unittest.TestCase):
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
+
+
+class PNNTest(unittest.TestCase):
+
+    def test_pnn_on_multiple_tasks(self):
+        model = PNN(num_layers=2, in_features=6,
+                    hidden_features_per_column=10, adapter='mlp')
+        benchmark = load_benchmark(use_task_labels=True)
+        d0 = benchmark.train_stream[0].dataset
+        mb0 = iter(DataLoader(d0)).__next__()
+        d1 = benchmark.train_stream[1].dataset
+        mb1 = iter(DataLoader(d1)).__next__()
+
+        avalanche_model_adaptation(model, d0)
+        avalanche_model_adaptation(model, d1)
+        model(mb0[0], task_labels=mb0[-1])
+        model(mb1[0], task_labels=mb1[-1])
+
