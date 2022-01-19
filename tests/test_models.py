@@ -17,7 +17,8 @@ from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.strategies import Naive
 from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
     pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, get_fast_benchmark, load_benchmark
+from tests.unit_tests_utils import common_setups, get_fast_benchmark, \
+    load_benchmark
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -328,4 +329,3 @@ class PNNTest(unittest.TestCase):
         avalanche_model_adaptation(model, d1)
         model(mb0[0], task_labels=mb0[-1])
         model(mb1[0], task_labels=mb1[-1])
-
