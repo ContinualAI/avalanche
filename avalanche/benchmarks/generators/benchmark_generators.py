@@ -681,7 +681,7 @@ def _lazy_train_val_split(
 
 def benchmark_with_validation_stream(
         benchmark_instance: GenericCLScenario,
-        validation_size: Union[int, float],
+        validation_size: Union[int, float] = 0.5,
         shuffle: bool = False,
         input_stream: str = 'train',
         output_stream: str = 'valid',
