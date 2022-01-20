@@ -19,8 +19,9 @@ from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
-from avalanche.models import BaseModel
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.models import BaseModel, SimpleMLP
+from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, EarlyStoppingPlugin
+from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
 
@@ -551,6 +552,50 @@ class EvaluationPluginTest(unittest.TestCase):
 
         # check key exists
         assert len(ep.get_all_metrics()['metric'][1]) == 1
+
+
+class EarlyStoppingPluginTest(unittest.TestCase):
+    def test_early_stop_epochs(self):
+        class MockEvaluator:
+            def __init__(self, clock, metrics):
+                self.clock = clock
+                self.metrics = metrics
+
+            def get_last_metrics(self):
+                idx = self.clock.train_exp_iterations
+                return {'a/eval_phase/valid_stream': self.metrics[idx]}
+
+        class ESMockStrategy:
+            """An empty strategy to test early stopping."""
+            def __init__(self, p, metric_vals):
+                self.p = p
+                self.clock = Clock()
+                self.ev = MockEvaluator(self.clock, metric_vals)
+
+                self.model = SimpleMLP()
+
+            def after_training_iteration(self):
+                self.p.after_training_iteration(self)
+                self.clock.after_training_iteration(self)
+
+            def after_training_epoch(self):
+                self.p.after_training_epoch(self)
+                self.clock.after_training_epoch(self)
+
+            def stop_training(self):
+                raise StopIteration()
+
+        metric_vals = list(range(100))
+        p = EarlyStoppingPlugin(5, 'a')
+        strat = ESMockStrategy(p, metric_vals)
+
+        for t in range(100):
+            strat.after_training_iteration()
+            if t % 10 == 9:
+                strat.after_training_epoch()
+            print(t)
+        print(p.best_step)
+        print(p.best_val)
 
 
 if __name__ == '__main__':
