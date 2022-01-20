@@ -13,7 +13,8 @@ from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
     tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
     benchmark_with_validation_stream
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators.benchmark_generators import class_balanced_split_strategy
+from avalanche.benchmarks.generators.benchmark_generators import \
+    class_balanced_split_strategy
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
     create_lazy_generic_benchmark, LazyStreamDefinition
 from avalanche.benchmarks.utils import AvalancheDataset, \

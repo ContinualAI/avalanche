@@ -564,16 +564,24 @@ class EarlyStoppingPluginTest(unittest.TestCase):
 
             def get_last_metrics(self):
                 idx = self.clock.train_exp_iterations
-                return {'a/eval_phase/valid_stream': self.metrics[idx]}
+                return {'Top1_Acc_Stream/eval_phase/a': self.metrics[idx]}
 
         class ESMockStrategy:
             """An empty strategy to test early stopping."""
             def __init__(self, p, metric_vals):
                 self.p = p
                 self.clock = Clock()
-                self.ev = MockEvaluator(self.clock, metric_vals)
+                self.evaluator = MockEvaluator(self.clock, metric_vals)
 
                 self.model = SimpleMLP()
+
+            def before_training_iteration(self):
+                self.p.before_training_iteration(self)
+                self.clock.before_training_iteration(self)
+
+            def before_training_epoch(self):
+                self.p.before_training_epoch(self)
+                self.clock.before_training_epoch(self)
 
             def after_training_iteration(self):
                 self.p.after_training_iteration(self)
@@ -586,17 +594,44 @@ class EarlyStoppingPluginTest(unittest.TestCase):
             def stop_training(self):
                 raise StopIteration()
 
-        metric_vals = list(range(100))
-        p = EarlyStoppingPlugin(5, 'a')
-        strat = ESMockStrategy(p, metric_vals)
+        def run_es(mvals, p):
+            strat = ESMockStrategy(p, mvals)
+            for t in range(100):
+                try:
+                    if t % 10 == 0:
+                        strat.before_training_epoch()
+                    strat.before_training_iteration()
+                    strat.after_training_iteration()
+                    if t % 10 == 9:
+                        strat.after_training_epoch()
+                except StopIteration:
+                    break
+            return strat
 
-        for t in range(100):
-            strat.after_training_iteration()
-            if t % 10 == 9:
-                strat.after_training_epoch()
-            print(t)
-        print(p.best_step)
-        print(p.best_val)
+        # best on epoch
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 9
+        assert p.best_val == 90
+
+        # best on iteration
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name='a', peval_mode='iteration')
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 99
+        assert p.best_val == 99
+
+        # check patience
+        metric_vals = list([1 for _ in range(200)])
+        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        strat = run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 0
+        assert strat.clock.train_exp_epochs == p.patience
+        assert p.best_val == 1
 
 
 if __name__ == '__main__':
