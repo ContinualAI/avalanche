@@ -4,6 +4,7 @@ import copy
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+import warnings
 
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
@@ -27,6 +28,11 @@ class BaseOnlineStrategy(BaseStrategy):
             evaluator=evaluator, eval_every=eval_every)
 
         self.num_passes = num_passes
+
+        warnings.warn(
+            "This is an unstable experimental strategy."
+            "Some plugins may not work properly."
+        )
 
     def create_sub_experience_list(self, experience):
         """ Creates a list of sub-experiences from an experience.
@@ -85,13 +91,14 @@ class BaseOnlineStrategy(BaseStrategy):
             eval_streams = [experiences]
         self._eval_streams = eval_streams
 
+        self.num_sub_exps = len(experiences[0].dataset) // self.train_mb_size
         self._before_training(**kwargs)
 
-        # Keep the (full) experience in self.experience_
+        # Keep the (full) experience in self.full_experience
         # for model adaptation
-        for self.experience_ in experiences:
+        for self.full_experience in experiences:
             sub_experience_list = self.create_sub_experience_list(
-                self.experience_
+                self.full_experience
             )
 
             # Train for each sub-experience
@@ -99,19 +106,19 @@ class BaseOnlineStrategy(BaseStrategy):
                 self.experience = sub_experience
                 is_first_sub_exp = i == 0
                 is_last_sub_exp = i == len(sub_experience_list) - 1
-                self.train_sub_exp(self.experience, eval_streams,
-                                   is_first_sub_exp=is_first_sub_exp,
-                                   is_last_sub_exp=is_last_sub_exp,
-                                   **kwargs)
+                self.train_exp(self.experience, eval_streams,
+                               is_first_sub_exp=is_first_sub_exp,
+                               is_last_sub_exp=is_last_sub_exp,
+                               **kwargs)
 
         self._after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_sub_exp(self, experience: Experience, eval_streams=None,
-                      is_first_sub_exp=False, is_last_sub_exp=False,
-                      **kwargs):
+    def train_exp(self, experience: Experience, eval_streams=None,
+                  is_first_sub_exp=False, is_last_sub_exp=False,
+                  **kwargs):
         """ Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -144,19 +151,19 @@ class BaseOnlineStrategy(BaseStrategy):
         if is_first_sub_exp:
             self.model = self.model_adaptation()
             self.make_optimizer()
-            self._before_training_exp(**kwargs)
-            self._before_training_epoch(**kwargs)
+        self._before_training_exp(**kwargs)
+        self._before_training_epoch(**kwargs)
 
         # if self._stop_training:  # Early stopping
         #     self._stop_training = False
-            # break
+        # break
 
         for self.n_pass in range(self.num_passes):
             self.training_epoch(**kwargs)
 
-        if is_last_sub_exp:
-            self._after_training_epoch(**kwargs)
-            self._after_training_exp(**kwargs)
+        # if is_last_sub_exp:
+        self._after_training_epoch(**kwargs)
+        self._after_training_exp(**kwargs)
 
     def model_adaptation(self, model=None):
         """Adapts the model to the data from the current
@@ -169,5 +176,5 @@ class BaseOnlineStrategy(BaseStrategy):
 
         for module in model.modules():
             if isinstance(module, DynamicModule):
-                module.adaptation(self.experience_.dataset)
+                module.adaptation(self.full_experience.dataset)
         return model.to(self.device)
