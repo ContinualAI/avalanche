@@ -20,7 +20,8 @@ from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
 from avalanche.models import BaseModel, SimpleMLP
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, EarlyStoppingPlugin
+from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
+    EarlyStoppingPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive

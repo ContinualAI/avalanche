@@ -576,7 +576,7 @@ def random_validation_split_strategy(
         valid_n_instances = int(validation_size)
         if valid_n_instances > len(exp_dataset):
             raise ValueError(
-                f'Can\'t create the validation experience: nott enough '
+                f'Can\'t create the validation experience: not enough '
                 f'instances. Required {valid_n_instances}, got only'
                 f'{len(exp_dataset)}')
 
@@ -587,6 +587,57 @@ def random_validation_split_strategy(
     result_valid_dataset = AvalancheSubset(
         exp_dataset, indices=exp_indices[train_n_instances:])
 
+    return result_train_dataset, result_valid_dataset
+
+
+def class_balanced_split_strategy(
+        validation_size: Union[int, float],
+        experience: Experience):
+    """Class-balanced train/validation splits.
+
+    This splitting strategy splits `experience` into two experiences
+    (train and validation) of size `validation_size` using a class-balanced
+    split. Sample of each class are chosen randomly.
+
+    :param validation_size: The percentage of samples to allocate to the
+        validation experience as a float between 0 and 1.
+    :param experience: The experience to split.
+    :return: A tuple containing 2 elements: the new training and validation
+        datasets.
+    """
+    if not isinstance(validation_size, float):
+        raise ValueError("validation_size must be an integer")
+    if not 0.0 <= validation_size <= 1.0:
+        raise ValueError("validation_size must be a float in [0, 1].")
+
+    exp_dataset = experience.dataset
+    if validation_size > len(exp_dataset):
+        raise ValueError(
+            f'Can\'t create the validation experience: not enough '
+            f'instances. Required {validation_size}, got only'
+            f'{len(exp_dataset)}')
+
+    exp_indices = list(range(len(exp_dataset)))
+    exp_classes = experience.classes_in_this_experience
+
+    # shuffle exp_indices
+    exp_indices = torch.as_tensor(exp_indices)[
+        torch.randperm(len(exp_indices))]
+    # shuffle the targets as well
+    exp_targets = torch.as_tensor(experience.dataset.targets)[exp_indices]
+
+    train_exp_indices = []
+    valid_exp_indices = []
+    for cid in exp_classes:  # split indices for each class separately.
+        c_indices = exp_indices[exp_targets == cid]
+        valid_n_instances = int(validation_size * len(c_indices))
+        valid_exp_indices.extend(c_indices[:valid_n_instances])
+        train_exp_indices.extend(c_indices[valid_n_instances:])
+
+    result_train_dataset = AvalancheSubset(
+        exp_dataset, indices=train_exp_indices)
+    result_valid_dataset = AvalancheSubset(
+        exp_dataset, indices=valid_exp_indices)
     return result_train_dataset, result_valid_dataset
 
 
