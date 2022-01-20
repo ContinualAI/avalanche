@@ -15,7 +15,7 @@ from torch import nn
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
-from avalanche.models import MultiHeadClassifier
+from avalanche.models import MultiHeadClassifier, PNN
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies.cumulative import Cumulative
@@ -87,8 +87,11 @@ class StrategyTest(unittest.TestCase):
         main_metric = StreamAccuracy()
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
-        strategy = PNNStrategy(
-            1, 6, 50, 0.1, train_mb_size=32, device=get_device(),
+        model = PNN(num_layers=1, in_features=6,
+                    hidden_features_per_column=50)
+        optimizer = SGD(model.parameters(), lr=0.1)
+        strategy = PNNStrategy(model, optimizer,
+            train_mb_size=32, device=get_device(),
             eval_mb_size=512, train_epochs=1, evaluator=evalp)
         benchmark = get_fast_benchmark(use_task_labels=True)
 

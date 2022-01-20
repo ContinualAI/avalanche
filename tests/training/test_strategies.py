@@ -18,7 +18,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss, Linear
 
 from avalanche.logging import TextLogger
-from avalanche.models import SimpleMLP, IncrementalClassifier
+from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin, \
     LwFPlugin, ReplayPlugin
 from avalanche.training.strategies import Naive, Replay, CWRStar, \
@@ -419,9 +419,11 @@ class StrategyTest(unittest.TestCase):
     def test_pnn(self):
         # only multi-task scenarios.
         # eval on future tasks is not allowed.
-        strategy = PNNStrategy(
-            num_layers=3, in_features=6, hidden_features_per_column=10,
-            lr=0.1, train_mb_size=10, device=self.device, eval_mb_size=50,
+        model = PNN(num_layers=3, in_features=6,
+                    hidden_features_per_column=10)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = PNNStrategy(model, optimizer,
+            train_mb_size=10, device=self.device, eval_mb_size=50,
             train_epochs=2)
 
         # train and test loop
