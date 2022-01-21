@@ -19,8 +19,10 @@ from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
-from avalanche.models import BaseModel
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.models import BaseModel, SimpleMLP
+from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
+    EarlyStoppingPlugin
+from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
 
@@ -551,6 +553,85 @@ class EvaluationPluginTest(unittest.TestCase):
 
         # check key exists
         assert len(ep.get_all_metrics()['metric'][1]) == 1
+
+
+class EarlyStoppingPluginTest(unittest.TestCase):
+    def test_early_stop_epochs(self):
+        class MockEvaluator:
+            def __init__(self, clock, metrics):
+                self.clock = clock
+                self.metrics = metrics
+
+            def get_last_metrics(self):
+                idx = self.clock.train_exp_iterations
+                return {'Top1_Acc_Stream/eval_phase/a': self.metrics[idx]}
+
+        class ESMockStrategy:
+            """An empty strategy to test early stopping."""
+            def __init__(self, p, metric_vals):
+                self.p = p
+                self.clock = Clock()
+                self.evaluator = MockEvaluator(self.clock, metric_vals)
+
+                self.model = SimpleMLP()
+
+            def before_training_iteration(self):
+                self.p.before_training_iteration(self)
+                self.clock.before_training_iteration(self)
+
+            def before_training_epoch(self):
+                self.p.before_training_epoch(self)
+                self.clock.before_training_epoch(self)
+
+            def after_training_iteration(self):
+                self.p.after_training_iteration(self)
+                self.clock.after_training_iteration(self)
+
+            def after_training_epoch(self):
+                self.p.after_training_epoch(self)
+                self.clock.after_training_epoch(self)
+
+            def stop_training(self):
+                raise StopIteration()
+
+        def run_es(mvals, p):
+            strat = ESMockStrategy(p, mvals)
+            for t in range(100):
+                try:
+                    if t % 10 == 0:
+                        strat.before_training_epoch()
+                    strat.before_training_iteration()
+                    strat.after_training_iteration()
+                    if t % 10 == 9:
+                        strat.after_training_epoch()
+                except StopIteration:
+                    break
+            return strat
+
+        # best on epoch
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 9
+        assert p.best_val == 90
+
+        # best on iteration
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name='a', peval_mode='iteration')
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 99
+        assert p.best_val == 99
+
+        # check patience
+        metric_vals = list([1 for _ in range(200)])
+        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        strat = run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 0
+        assert strat.clock.train_exp_epochs == p.patience
+        assert p.best_val == 1
 
 
 if __name__ == '__main__':
