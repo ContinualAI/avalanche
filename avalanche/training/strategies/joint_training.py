@@ -89,16 +89,19 @@ class JointTraining(BaseStrategy):
         # JointTraining can be trained only once.
         self._is_fitted = False
 
-    def train(self, experiences: Union[Experience, Sequence[Experience]],
-              eval_streams: Optional[Sequence[Union[Experience,
-                                                    Sequence[
-                                                        Experience]]]] = None,
-              **kwargs):
+    def train(
+        self,
+        experiences: Union[Experience, Sequence[Experience]],
+        eval_streams: Optional[
+            Sequence[Union[Experience, Sequence[Experience]]]
+        ] = None,
+        **kwargs
+    ):
         """Training loop.
-        
-        JointTraining concatenates all the experiences together and 
+
+        JointTraining concatenates all the experiences together and
         trains on all of them at the same time (a.k.a. offline training).
-        
+
         :param experiences: single Experience or sequence.
         :param eval_streams: list of streams for evaluation.
             If None: use training experiences for evaluation.

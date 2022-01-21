@@ -15,12 +15,13 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.strategies.base_online_strategy import \
-    BaseOnlineStrategy
+from avalanche.training.strategies.base_online_strategy import (
+    BaseOnlineStrategy,
+)
 
 
 class OnlineNaive(BaseOnlineStrategy):
-    """ Naive finetuning.
+    """Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
@@ -31,13 +32,19 @@ class OnlineNaive(BaseOnlineStrategy):
     performing baseline.
     """
 
-    def __init__(self, model: Module, optimizer: Optimizer,
-                 criterion=CrossEntropyLoss(), num_passes: int = 1,
-                 train_mb_size: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger,
-                 eval_every=-1):
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        num_passes: int = 1,
+        train_mb_size: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[StrategyPlugin]] = None,
+        evaluator: EvaluationPlugin = default_logger,
+        eval_every=-1,
+    ):
         """
         Creates an instance of the Naive strategy.
 
@@ -54,17 +61,22 @@ class OnlineNaive(BaseOnlineStrategy):
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         """
         super().__init__(
-            model, optimizer, criterion, num_passes=num_passes,
+            model,
+            optimizer,
+            criterion,
+            num_passes=num_passes,
             train_mb_size=train_mb_size,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
 
-__all__ = [
-    'OnlineNaive'
-]
+__all__ = ["OnlineNaive"]

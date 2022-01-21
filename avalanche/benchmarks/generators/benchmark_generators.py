@@ -636,9 +636,10 @@ def random_validation_split_strategy(
         valid_n_instances = int(validation_size)
         if valid_n_instances > len(exp_dataset):
             raise ValueError(
-                f'Can\'t create the validation experience: not enough '
-                f'instances. Required {valid_n_instances}, got only'
-                f'{len(exp_dataset)}')
+                f"Can't create the validation experience: not enough "
+                f"instances. Required {valid_n_instances}, got only"
+                f"{len(exp_dataset)}"
+            )
 
     train_n_instances = len(exp_dataset) - valid_n_instances
 
@@ -653,8 +654,8 @@ def random_validation_split_strategy(
 
 
 def class_balanced_split_strategy(
-        validation_size: Union[int, float],
-        experience: Experience):
+    validation_size: Union[int, float], experience: Experience
+):
     """Class-balanced train/validation splits.
 
     This splitting strategy splits `experience` into two experiences
@@ -675,16 +676,16 @@ def class_balanced_split_strategy(
     exp_dataset = experience.dataset
     if validation_size > len(exp_dataset):
         raise ValueError(
-            f'Can\'t create the validation experience: not enough '
-            f'instances. Required {validation_size}, got only'
-            f'{len(exp_dataset)}')
+            f"Can't create the validation experience: not enough "
+            f"instances. Required {validation_size}, got only"
+            f"{len(exp_dataset)}"
+        )
 
     exp_indices = list(range(len(exp_dataset)))
     exp_classes = experience.classes_in_this_experience
 
     # shuffle exp_indices
-    exp_indices = torch.as_tensor(exp_indices)[
-        torch.randperm(len(exp_indices))]
+    exp_indices = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
     # shuffle the targets as well
     exp_targets = torch.as_tensor(experience.dataset.targets)[exp_indices]
 
@@ -697,16 +698,20 @@ def class_balanced_split_strategy(
         train_exp_indices.extend(c_indices[valid_n_instances:])
 
     result_train_dataset = AvalancheSubset(
-        exp_dataset, indices=train_exp_indices)
+        exp_dataset, indices=train_exp_indices
+    )
     result_valid_dataset = AvalancheSubset(
-        exp_dataset, indices=valid_exp_indices)
+        exp_dataset, indices=valid_exp_indices
+    )
     return result_train_dataset, result_valid_dataset
 
 
-def _gen_split(split_generator: Iterable[Tuple[AvalancheDataset,
-                                               AvalancheDataset]]) -> \
-    Tuple[Generator[AvalancheDataset, None, None],
-          Generator[AvalancheDataset, None, None]]:
+def _gen_split(
+    split_generator: Iterable[Tuple[AvalancheDataset, AvalancheDataset]]
+) -> Tuple[
+    Generator[AvalancheDataset, None, None],
+    Generator[AvalancheDataset, None, None],
+]:
     """
     Internal utility function to split the train-validation generator
     into two distinct generators (one for the train stream and another one
@@ -743,18 +748,20 @@ def _lazy_train_val_split(
 
 
 def benchmark_with_validation_stream(
-        benchmark_instance: GenericCLScenario,
-        validation_size: Union[int, float] = 0.5,
-        shuffle: bool = False,
-        input_stream: str = 'train',
-        output_stream: str = 'valid',
-        custom_split_strategy: Callable[[Experience],
-                                        Tuple[AvalancheDataset,
-                                              AvalancheDataset]] = None,
-        *,
-        experience_factory: Callable[[GenericScenarioStream, int],
-                                     Experience] = None,
-        lazy_splitting: bool = None):
+    benchmark_instance: GenericCLScenario,
+    validation_size: Union[int, float] = 0.5,
+    shuffle: bool = False,
+    input_stream: str = "train",
+    output_stream: str = "valid",
+    custom_split_strategy: Callable[
+        [Experience], Tuple[AvalancheDataset, AvalancheDataset]
+    ] = None,
+    *,
+    experience_factory: Callable[
+        [GenericScenarioStream, int], Experience
+    ] = None,
+    lazy_splitting: bool = None,
+):
     """
     Helper that can be used to obtain a benchmark with a validation stream.
 

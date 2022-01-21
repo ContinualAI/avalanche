@@ -23,8 +23,11 @@ from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
 from avalanche.models import BaseModel, SimpleMLP
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
-    EarlyStoppingPlugin
+from avalanche.training.plugins import (
+    StrategyPlugin,
+    EvaluationPlugin,
+    EarlyStoppingPlugin,
+)
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.strategies import Naive
@@ -651,10 +654,11 @@ class EarlyStoppingPluginTest(unittest.TestCase):
 
             def get_last_metrics(self):
                 idx = self.clock.train_exp_iterations
-                return {'Top1_Acc_Stream/eval_phase/a': self.metrics[idx]}
+                return {"Top1_Acc_Stream/eval_phase/a": self.metrics[idx]}
 
         class ESMockStrategy:
             """An empty strategy to test early stopping."""
+
             def __init__(self, p, metric_vals):
                 self.p = p
                 self.clock = Clock()
@@ -697,7 +701,7 @@ class EarlyStoppingPluginTest(unittest.TestCase):
 
         # best on epoch
         metric_vals = list(range(200))
-        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        p = EarlyStoppingPlugin(5, val_stream_name="a")
         run_es(metric_vals, p)
         print(f"best step={p.best_step}, val={p.best_val}")
         assert p.best_step == 9
@@ -705,7 +709,7 @@ class EarlyStoppingPluginTest(unittest.TestCase):
 
         # best on iteration
         metric_vals = list(range(200))
-        p = EarlyStoppingPlugin(5, val_stream_name='a', peval_mode='iteration')
+        p = EarlyStoppingPlugin(5, val_stream_name="a", peval_mode="iteration")
         run_es(metric_vals, p)
         print(f"best step={p.best_step}, val={p.best_val}")
         assert p.best_step == 99
@@ -713,7 +717,7 @@ class EarlyStoppingPluginTest(unittest.TestCase):
 
         # check patience
         metric_vals = list([1 for _ in range(200)])
-        p = EarlyStoppingPlugin(5, val_stream_name='a')
+        p = EarlyStoppingPlugin(5, val_stream_name="a")
         strat = run_es(metric_vals, p)
         print(f"best step={p.best_step}, val={p.best_val}")
         assert p.best_step == 0
@@ -721,5 +725,5 @@ class EarlyStoppingPluginTest(unittest.TestCase):
         assert p.best_val == 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

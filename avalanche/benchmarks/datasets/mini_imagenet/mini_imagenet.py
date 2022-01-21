@@ -297,7 +297,6 @@ class MiniImageNetDataset(Dataset):
 
 __all__ = ["MiniImageNetDataset"]
 
-
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 

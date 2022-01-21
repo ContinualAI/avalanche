@@ -18,12 +18,18 @@ from avalanche.benchmarks import (
     benchmark_with_validation_stream,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators.benchmark_generators import \
-    class_balanced_split_strategy
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
-    create_lazy_generic_benchmark, LazyStreamDefinition
-from avalanche.benchmarks.utils import AvalancheDataset, \
-    AvalancheTensorDataset, AvalancheDatasetType
+from avalanche.benchmarks.generators.benchmark_generators import (
+    class_balanced_split_strategy,
+)
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    create_lazy_generic_benchmark,
+    LazyStreamDefinition,
+)
+from avalanche.benchmarks.utils import (
+    AvalancheDataset,
+    AvalancheTensorDataset,
+    AvalancheDatasetType,
+)
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
 
@@ -763,8 +769,9 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
                 self.assertTrue(
                     torch.equal(
-                        test_y,
-                        valid_benchmark.test_stream[0].dataset[:][1]))
+                        test_y, valid_benchmark.test_stream[0].dataset[:][1]
+                    )
+                )
 
 
 class DataSplitStrategiesTests(unittest.TestCase):
