@@ -12,30 +12,58 @@ import bisect
 
 from torch.utils.data import Subset, ConcatDataset
 
-from .dataset_definitions import IDatasetWithTargets, \
-    ISupportedClassificationDataset
+from .dataset_definitions import (
+    IDatasetWithTargets,
+    ISupportedClassificationDataset,
+)
 
 try:
-    from typing import Protocol, Sequence, List, Any, Iterable, Union, \
-        Optional, SupportsInt, TypeVar, Tuple, Callable, Generic
+    from typing import (
+        Protocol,
+        Sequence,
+        List,
+        Any,
+        Iterable,
+        Union,
+        Optional,
+        SupportsInt,
+        TypeVar,
+        Tuple,
+        Callable,
+        Generic,
+    )
 except ImportError:
-    from typing import Sequence, List, Any, Iterable, Union, Optional, \
-         SupportsInt, TypeVar, Tuple, Callable, Generic
+    from typing import (
+        Sequence,
+        List,
+        Any,
+        Iterable,
+        Union,
+        Optional,
+        SupportsInt,
+        TypeVar,
+        Tuple,
+        Callable,
+        Generic,
+    )
     from typing_extensions import Protocol
 
-T_co = TypeVar('T_co', covariant=True)
-TTargetType = TypeVar('TTargetType')
+T_co = TypeVar("T_co", covariant=True)
+TTargetType = TypeVar("TTargetType")
 
 
 class SubSequence(Sequence[TTargetType]):
     """
     A utility class used to define a lazily evaluated sub-sequence.
     """
-    def __init__(self,
-                 targets: Sequence[TTargetType],
-                 *,
-                 indices: Union[Sequence[int], None] = None,
-                 converter: Optional[Callable[[Any], TTargetType]] = None):
+
+    def __init__(
+        self,
+        targets: Sequence[TTargetType],
+        *,
+        indices: Union[Sequence[int], None] = None,
+        converter: Optional[Callable[[Any], TTargetType]] = None
+    ):
         self._targets = targets
         self._indices = indices
         self.converter = converter
@@ -59,9 +87,9 @@ class SubSequence(Sequence[TTargetType]):
         return element
 
     def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
 
 
 class LazyClassMapping(SubSequence[int]):
@@ -74,10 +102,13 @@ class LazyClassMapping(SubSequence[int]):
 
     This class should be used only when mapping int targets (classification).
     """
-    def __init__(self,
-                 targets: Sequence[SupportsInt],
-                 indices: Union[Sequence[int], None],
-                 mapping: Optional[Sequence[int]] = None,):
+
+    def __init__(
+        self,
+        targets: Sequence[SupportsInt],
+        indices: Union[Sequence[int], None],
+        mapping: Optional[Sequence[int]] = None,
+    ):
         super().__init__(targets, indices=indices, converter=int)
         self._mapping = mapping
 
@@ -99,8 +130,12 @@ class LazyConcatTargets(Sequence[TTargetType]):
     This will allow for a more efficient memory usage as the concatenation is
     done on the fly instead of actually allocating a new targets list.
     """
-    def __init__(self, targets_list: Sequence[Sequence[TTargetType]],
-                 converter: Optional[Callable[[Any], TTargetType]] = None):
+
+    def __init__(
+        self,
+        targets_list: Sequence[Sequence[TTargetType]],
+        converter: Optional[Callable[[Any], TTargetType]] = None,
+    ):
         self._targets_list = targets_list
         self._targets_lengths = [len(targets) for targets in targets_list]
         self._overall_length = sum(self._targets_lengths)
@@ -112,8 +147,11 @@ class LazyConcatTargets(Sequence[TTargetType]):
 
     def __getitem__(self, item_idx) -> TTargetType:
         targets_idx, internal_idx = find_list_from_index(
-            item_idx, self._targets_lengths, self._overall_length,
-            self._targets_cumulative_lengths)
+            item_idx,
+            self._targets_lengths,
+            self._overall_length,
+            self._targets_cumulative_lengths,
+        )
 
         target = self._targets_list[targets_idx][internal_idx]
 
@@ -132,9 +170,9 @@ class LazyConcatTargets(Sequence[TTargetType]):
                     yield self.converter(y)
 
     def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
 
 
 class LazyConcatIntTargets(LazyConcatTargets[int]):
@@ -148,6 +186,7 @@ class LazyConcatIntTargets(LazyConcatTargets[int]):
 
     Elements returned by `__getitem__` will be int values.
     """
+
     def __init__(self, targets_list: Sequence[Sequence[SupportsInt]]):
         super().__init__(targets_list, converter=int)
 
@@ -156,6 +195,7 @@ class ConstantSequence(Sequence[int]):
     """
     Defines a constant sequence given an int value and the length.
     """
+
     def __init__(self, constant_value: int, size: int):
         self._constant_value = constant_value
         self._size = size
@@ -170,9 +210,9 @@ class ConstantSequence(Sequence[int]):
         return self._constant_value
 
     def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
 
 
 class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
@@ -180,14 +220,18 @@ class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     However, this dataset also supports the targets field.
     """
-    def __init__(self,
-                 dataset: IDatasetWithTargets[T_co, TTargetType],
-                 indices: Union[Sequence[int], None]):
+
+    def __init__(
+        self,
+        dataset: IDatasetWithTargets[T_co, TTargetType],
+        indices: Union[Sequence[int], None],
+    ):
         if indices is None:
             indices = range(len(dataset))
         super().__init__(dataset, indices)
-        self.targets: Sequence[TTargetType] =\
-            SubSequence(dataset.targets, indices=indices)
+        self.targets: Sequence[TTargetType] = SubSequence(
+            dataset.targets, indices=indices
+        )
 
     def __getitem__(self, idx):
         return self.dataset[self.indices[idx]]
@@ -203,22 +247,26 @@ class ClassificationSubset(SubsetWithTargets[T_co, int]):
 
     Targets will be converted to int.
     """
-    def __init__(self,
-                 dataset: ISupportedClassificationDataset[T_co],
-                 indices: Union[Sequence[int], None],
-                 class_mapping: Optional[Sequence[int]] = None):
+
+    def __init__(
+        self,
+        dataset: ISupportedClassificationDataset[T_co],
+        indices: Union[Sequence[int], None],
+        class_mapping: Optional[Sequence[int]] = None,
+    ):
         super().__init__(dataset, indices)
         self.class_mapping = class_mapping
-        self.targets = LazyClassMapping(dataset.targets, indices,
-                                        mapping=class_mapping)
+        self.targets = LazyClassMapping(
+            dataset.targets, indices, mapping=class_mapping
+        )
 
     def __getitem__(self, idx):
         result = super().__getitem__(idx)
 
         if self.class_mapping is not None:
             return make_tuple(
-                (result[0], self.class_mapping[result[1]], *result[2:]),
-                result)
+                (result[0], self.class_mapping[result[1]], *result[2:]), result
+            )
 
         return result
 
@@ -228,9 +276,12 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
     A Dataset that wraps existing ndarrays, Tensors, lists... to provide
     basic Dataset functionalities. Very similar to TensorDataset.
     """
-    def __init__(self,
-                 *sequences: Sequence,
-                 targets: Union[int, Sequence[TTargetType]] = 1):
+
+    def __init__(
+        self,
+        *sequences: Sequence,
+        targets: Union[int, Sequence[TTargetType]] = 1
+    ):
         """
         Creates a ``SequenceDataset`` instance.
 
@@ -247,13 +298,14 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
             will be used for the targets field.
         """
         if len(sequences) < 1:
-            raise ValueError('At least one sequence must be passed')
+            raise ValueError("At least one sequence must be passed")
 
         common_size = len(sequences[0])
         for seq in sequences:
             if len(seq) != common_size:
-                raise ValueError('Sequences must contain the same '
-                                 'amount of elements')
+                raise ValueError(
+                    "Sequences must contain the same " "amount of elements"
+                )
 
         self._sequences = sequences
         if isinstance(targets, int):
@@ -268,10 +320,12 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
         return len(self._sequences[0])
 
 
-def find_list_from_index(pattern_idx: int,
-                         list_sizes: Sequence[int],
-                         max_size: int,
-                         cumulative_sizes=None):
+def find_list_from_index(
+    pattern_idx: int,
+    list_sizes: Sequence[int],
+    max_size: int,
+    cumulative_sizes=None,
+):
     if pattern_idx >= max_size:
         raise IndexError()
 
@@ -287,12 +341,13 @@ def find_list_from_index(pattern_idx: int,
         pattern_idx = pattern_idx - cumulative_sizes[list_idx - 1]
 
     if pattern_idx >= list_sizes[list_idx]:
-        raise ValueError('Index out of bounds, wrong max_size parameter')
+        raise ValueError("Index out of bounds, wrong max_size parameter")
     return list_idx, pattern_idx
 
 
-def manage_advanced_indexing(idx, single_element_getter, max_length,
-                             collate_fn):
+def manage_advanced_indexing(
+    idx, single_element_getter, max_length, collate_fn
+):
     """
     Utility function used to manage the advanced indexing and slicing.
 
@@ -316,7 +371,7 @@ def manage_advanced_indexing(idx, single_element_getter, max_length,
         indexes_iterator = range(*idx.indices(max_length))
     elif isinstance(idx, int):
         indexes_iterator = [idx]
-    elif hasattr(idx, 'shape') and len(getattr(idx, 'shape')) == 0:
+    elif hasattr(idx, "shape") and len(getattr(idx, "shape")) == 0:
         # Manages 0-d ndarray / Tensor
         indexes_iterator = [int(idx)]
     else:
@@ -338,10 +393,8 @@ class LazySubsequence(Sequence[int]):
     LazySubsequence can be used to define a Sequence based on another sequence
     and a pair of start and end indices.
     """
-    def __init__(self,
-                 sequence: Sequence[int],
-                 start_idx: int,
-                 end_idx: int):
+
+    def __init__(self, sequence: Sequence[int], start_idx: int, end_idx: int):
         self._sequence = sequence
         self._start_idx = start_idx
         self._end_idx = end_idx
@@ -356,9 +409,9 @@ class LazySubsequence(Sequence[int]):
         return self._sequence[self._start_idx + item_idx]
 
     def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
 
 
 def optimize_sequence(sequence: Sequence[TTargetType]) -> Sequence[TTargetType]:
@@ -379,6 +432,7 @@ class TupleTLabel(tuple):
     Being a vanilla subclass of tuple, this class can be used to describe both a
     single instance and a batch.
     """
+
     def __new__(cls, *data, **kwargs):
         return super(TupleTLabel, cls).__new__(cls, *data, **kwargs)
 
@@ -391,16 +445,16 @@ def make_tuple(new_tuple: Iterable[T_co], prev_tuple: tuple):
 
 
 __all__ = [
-    'SubSequence',
-    'LazyClassMapping',
-    'LazyConcatTargets',
-    'LazyConcatIntTargets',
-    'ConstantSequence',
-    'SubsetWithTargets',
-    'ClassificationSubset',
-    'SequenceDataset',
-    'find_list_from_index',
-    'manage_advanced_indexing',
-    'optimize_sequence',
-    'TupleTLabel'
+    "SubSequence",
+    "LazyClassMapping",
+    "LazyConcatTargets",
+    "LazyConcatIntTargets",
+    "ConstantSequence",
+    "SubsetWithTargets",
+    "ClassificationSubset",
+    "SequenceDataset",
+    "find_list_from_index",
+    "manage_advanced_indexing",
+    "optimize_sequence",
+    "TupleTLabel",
 ]

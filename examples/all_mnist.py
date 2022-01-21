@@ -23,27 +23,29 @@ import argparse
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, \
-    SplitMNIST
+from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.strategies import Naive
 
 
 def main(args):
     # Device config
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}"
+        if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu"
+    )
 
     # model
     model = SimpleMLP(num_classes=10)
 
     # Here we show all the MNIST variation we offer in the "classic" benchmarks
-    if args.mnist_type == 'permuted':
+    if args.mnist_type == "permuted":
         scenario = PermutedMNIST(n_experiences=5, seed=1)
-    elif args.mnist_type == 'rotated':
+    elif args.mnist_type == "rotated":
         scenario = RotatedMNIST(
-            n_experiences=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
+            n_experiences=5, rotations_list=[30, 60, 90, 120, 150], seed=1
+        )
     else:
         scenario = SplitMNIST(n_experiences=5, seed=1)
 
@@ -57,8 +59,14 @@ def main(args):
 
     # Continual learning strategy with default logger
     cl_strategy = Naive(
-        model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-        eval_mb_size=32, device=device)
+        model,
+        optimizer,
+        criterion,
+        train_mb_size=32,
+        train_epochs=2,
+        eval_mb_size=32,
+        device=device,
+    )
 
     # train and test loop
     results = []
@@ -68,14 +76,21 @@ def main(args):
         results.append(cl_strategy.eval(test_stream))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mnist_type', type=str, default='split',
-                        choices=['rotated', 'permuted', 'split'],
-                        help='Choose between MNIST variations: '
-                             'rotated, permuted or split.')
-    parser.add_argument('--cuda', type=int, default=0,
-                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument(
+        "--mnist_type",
+        type=str,
+        default="split",
+        choices=["rotated", "permuted", "split"],
+        help="Choose between MNIST variations: " "rotated, permuted or split.",
+    )
+    parser.add_argument(
+        "--cuda",
+        type=int,
+        default=0,
+        help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
     args = parser.parse_args()
 
     main(args)

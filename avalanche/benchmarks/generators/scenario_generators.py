@@ -15,38 +15,47 @@ Please use the ones found in benchmark_generators.
 
 import warnings
 from pathlib import Path
-from typing import Sequence, Optional, Dict, SupportsInt, Union, Any, List, \
-    Tuple
+from typing import (
+    Sequence,
+    Optional,
+    Dict,
+    SupportsInt,
+    Union,
+    Any,
+    List,
+    Tuple,
+)
 
 import torch
 from torch import Tensor
 
 from avalanche.benchmarks.scenarios.generic_cl_scenario import GenericCLScenario
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import \
-    NCScenario
+from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
-from avalanche.benchmarks.utils.avalanche_dataset import SupportedDataset, \
-    as_classification_dataset, AvalancheDatasetType
+from avalanche.benchmarks.utils.avalanche_dataset import (
+    SupportedDataset,
+    as_classification_dataset,
+    AvalancheDatasetType,
+)
 
 
 def nc_scenario(
-        train_dataset: Union[
-            Sequence[SupportedDataset], SupportedDataset],
-        test_dataset: Union[
-            Sequence[SupportedDataset], SupportedDataset],
-        n_experiences: int,
-        task_labels: bool,
-        *,
-        shuffle: bool = True,
-        seed: Optional[int] = None,
-        fixed_class_order: Sequence[int] = None,
-        per_exp_classes: Dict[int, int] = None,
-        class_ids_from_zero_from_first_exp: bool = False,
-        class_ids_from_zero_in_each_exp: bool = False,
-        one_dataset_per_exp: bool = False,
-        reproducibility_data: Dict[str, Any] = None) -> NCScenario:
+    train_dataset: Union[Sequence[SupportedDataset], SupportedDataset],
+    test_dataset: Union[Sequence[SupportedDataset], SupportedDataset],
+    n_experiences: int,
+    task_labels: bool,
+    *,
+    shuffle: bool = True,
+    seed: Optional[int] = None,
+    fixed_class_order: Sequence[int] = None,
+    per_exp_classes: Dict[int, int] = None,
+    class_ids_from_zero_from_first_exp: bool = False,
+    class_ids_from_zero_in_each_exp: bool = False,
+    one_dataset_per_exp: bool = False,
+    reproducibility_data: Dict[str, Any] = None
+) -> NCScenario:
     """
     This helper function is DEPRECATED in favor of `nc_benchmark`.
 
@@ -114,7 +123,7 @@ def nc_scenario(
     :param one_dataset_per_exp: available only when multiple train-test
         datasets are provided. If True, each dataset will be treated as a
         experience. Mutually exclusive with the ``per_experience_classes`` and
-        ``fixed_class_order`` parameters. Overrides the ``n_experiences`` 
+        ``fixed_class_order`` parameters. Overrides the ``n_experiences``
         parameter. Defaults to False.
     :param reproducibility_data: If not None, overrides all the other
         scenario definition options. This is usually a dictionary containing
@@ -129,41 +138,54 @@ def nc_scenario(
     :return: A properly initialized :class:`NCScenario` instance.
     """
 
-    warnings.warn('nc_scenario is deprecated in favor of nc_benchmark.',
-                  DeprecationWarning)
+    warnings.warn(
+        "nc_scenario is deprecated in favor of nc_benchmark.",
+        DeprecationWarning,
+    )
 
     if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
-        raise ValueError('Invalid mutually exclusive options '
-                         'class_ids_from_zero_from_first_exp and '
-                         'classes_ids_from_zero_in_each_exp set at the '
-                         'same time')
+        raise ValueError(
+            "Invalid mutually exclusive options "
+            "class_ids_from_zero_from_first_exp and "
+            "classes_ids_from_zero_in_each_exp set at the "
+            "same time"
+        )
 
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
         # Multi-dataset setting
 
         if len(train_dataset) != len(test_dataset):
-            raise ValueError('Train/test dataset lists must contain the '
-                             'exact same number of datasets')
+            raise ValueError(
+                "Train/test dataset lists must contain the "
+                "exact same number of datasets"
+            )
 
         if per_exp_classes and one_dataset_per_exp:
             raise ValueError(
-                'Both per_experience_classes and one_dataset_per_exp are'
-                'used, but those options are mutually exclusive')
+                "Both per_experience_classes and one_dataset_per_exp are"
+                "used, but those options are mutually exclusive"
+            )
 
         if fixed_class_order and one_dataset_per_exp:
             raise ValueError(
-                'Both fixed_class_order and one_dataset_per_exp are'
-                'used, but those options are mutually exclusive')
+                "Both fixed_class_order and one_dataset_per_exp are"
+                "used, but those options are mutually exclusive"
+            )
 
-        seq_train_dataset, seq_test_dataset, mapping = \
-            concat_datasets_sequentially(train_dataset, test_dataset)
+        (
+            seq_train_dataset,
+            seq_test_dataset,
+            mapping,
+        ) = concat_datasets_sequentially(train_dataset, test_dataset)
 
         if one_dataset_per_exp:
             # If one_dataset_per_exp is True, each dataset will be treated as
             # a experience. In this scenario, shuffle refers to the experience
             # order, not to the class one.
-            fixed_class_order, per_exp_classes = \
-                _one_dataset_per_exp_class_order(mapping, shuffle, seed)
+            (
+                fixed_class_order,
+                per_exp_classes,
+            ) = _one_dataset_per_exp_class_order(mapping, shuffle, seed)
 
             # We pass a fixed_class_order to the NCGenericScenario
             # constructor, so we don't need shuffling.
@@ -178,28 +200,34 @@ def nc_scenario(
     train_dataset = as_classification_dataset(train_dataset).train()
     test_dataset = as_classification_dataset(test_dataset).eval()
 
-    return NCScenario(train_dataset, test_dataset, n_experiences, task_labels,
-                      shuffle, seed, fixed_class_order, per_exp_classes,
-                      class_ids_from_zero_from_first_exp,
-                      class_ids_from_zero_in_each_exp,
-                      reproducibility_data)
+    return NCScenario(
+        train_dataset,
+        test_dataset,
+        n_experiences,
+        task_labels,
+        shuffle,
+        seed,
+        fixed_class_order,
+        per_exp_classes,
+        class_ids_from_zero_from_first_exp,
+        class_ids_from_zero_in_each_exp,
+        reproducibility_data,
+    )
 
 
 def ni_scenario(
-        train_dataset: Union[
-            Sequence[SupportedDataset], SupportedDataset],
-        test_dataset: Union[
-            Sequence[SupportedDataset], SupportedDataset],
-        n_experiences: int,
-        *,
-        task_labels: bool = False,
-        shuffle: bool = True,
-        seed: Optional[int] = None,
-        balance_experiences: bool = False,
-        min_class_patterns_in_exp: int = 0,
-        fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
-        reproducibility_data: Optional[Dict[str, Any]] = None) \
-        -> NIScenario:
+    train_dataset: Union[Sequence[SupportedDataset], SupportedDataset],
+    test_dataset: Union[Sequence[SupportedDataset], SupportedDataset],
+    n_experiences: int,
+    *,
+    task_labels: bool = False,
+    shuffle: bool = True,
+    seed: Optional[int] = None,
+    balance_experiences: bool = False,
+    min_class_patterns_in_exp: int = 0,
+    fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
+    reproducibility_data: Optional[Dict[str, Any]] = None
+) -> NIScenario:
     """
     This helper function is DEPRECATED in favor of `ni_benchmark`.
 
@@ -255,41 +283,49 @@ def ni_scenario(
     :return: A properly initialized :class:`NIScenario` instance.
     """
 
-    warnings.warn('ni_scenario is deprecated in favor of ni_benchmark.',
-                  DeprecationWarning)
+    warnings.warn(
+        "ni_scenario is deprecated in favor of ni_benchmark.",
+        DeprecationWarning,
+    )
 
     seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
     if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
         if len(train_dataset) != len(test_dataset):
-            raise ValueError('Train/test dataset lists must contain the '
-                             'exact same number of datasets')
+            raise ValueError(
+                "Train/test dataset lists must contain the "
+                "exact same number of datasets"
+            )
 
-        seq_train_dataset, seq_test_dataset, _ = \
-            concat_datasets_sequentially(train_dataset, test_dataset)
+        seq_train_dataset, seq_test_dataset, _ = concat_datasets_sequentially(
+            train_dataset, test_dataset
+        )
 
     # Datasets should be instances of AvalancheDataset
     seq_train_dataset = as_classification_dataset(seq_train_dataset).train()
     seq_test_dataset = as_classification_dataset(seq_test_dataset).eval()
 
     return NIScenario(
-        seq_train_dataset, seq_test_dataset,
+        seq_train_dataset,
+        seq_test_dataset,
         n_experiences,
         task_labels,
-        shuffle=shuffle, seed=seed,
+        shuffle=shuffle,
+        seed=seed,
         balance_experiences=balance_experiences,
         min_class_patterns_in_exp=min_class_patterns_in_exp,
         fixed_exp_assignment=fixed_exp_assignment,
-        reproducibility_data=reproducibility_data)
+        reproducibility_data=reproducibility_data,
+    )
 
 
 def dataset_scenario(
-        train_dataset_list: Sequence[SupportedDataset],
-        test_dataset_list: Sequence[SupportedDataset],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_dataset_list: Sequence[SupportedDataset],
+    test_dataset_list: Sequence[SupportedDataset],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of `dataset_benchmark`.
 
@@ -333,26 +369,32 @@ def dataset_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('dataset_scenario is deprecated in favor of '
-                  'dataset_benchmark.', DeprecationWarning)
+    warnings.warn(
+        "dataset_scenario is deprecated in favor of " "dataset_benchmark.",
+        DeprecationWarning,
+    )
 
     return create_multi_dataset_generic_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
         task_labels=task_labels,
         complete_test_set_only=complete_test_set_only,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def filelist_scenario(
-        root: Union[str, Path],
-        train_file_lists: Sequence[Union[str, Path]],
-        test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
+    root: Union[str, Path],
+    train_file_lists: Sequence[Union[str, Path]],
+    test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of `filelist_benchmark`.
 
@@ -406,8 +448,10 @@ def filelist_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('filelist_scenario is deprecated in favor of '
-                  'filelist_benchmark.', DeprecationWarning)
+    warnings.warn(
+        "filelist_scenario is deprecated in favor of " "filelist_benchmark.",
+        DeprecationWarning,
+    )
 
     return create_generic_scenario_from_filelists(
         root=root,
@@ -418,23 +462,27 @@ def filelist_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform)
+        eval_target_transform=eval_target_transform,
+    )
 
 
 FileAndLabel = Tuple[Union[str, Path], int]
 
 
 def paths_scenario(
-        train_list_of_files: Sequence[Sequence[FileAndLabel]],
-        test_list_of_files: Union[Sequence[FileAndLabel],
-                                  Sequence[Sequence[FileAndLabel]]],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_list_of_files: Sequence[Sequence[FileAndLabel]],
+    test_list_of_files: Union[
+        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
+    ],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of `paths_benchmark`.
 
@@ -500,8 +548,10 @@ def paths_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('paths_scenario is deprecated in favor of paths_benchmark.',
-                  DeprecationWarning)
+    warnings.warn(
+        "paths_scenario is deprecated in favor of paths_benchmark.",
+        DeprecationWarning,
+    )
 
     return create_generic_scenario_from_paths(
         train_list_of_files=train_list_of_files,
@@ -512,19 +562,22 @@ def paths_scenario(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def tensors_scenario(
-        train_tensors: Sequence[Sequence[Any]],
-        test_tensors: Sequence[Sequence[Any]],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_tensors: Sequence[Sequence[Any]],
+    test_tensors: Sequence[Sequence[Any]],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of `tensors_benchmark`.
 
@@ -585,8 +638,10 @@ def tensors_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('tensors_scenario is deprecated in favor of '
-                  'tensors_benchmark.', DeprecationWarning)
+    warnings.warn(
+        "tensors_scenario is deprecated in favor of " "tensors_benchmark.",
+        DeprecationWarning,
+    )
 
     return create_generic_scenario_from_tensor_lists(
         train_tensors=train_tensors,
@@ -597,21 +652,24 @@ def tensors_scenario(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def tensor_scenario(
-        train_data_x: Sequence[Any],
-        train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Union[Any, Sequence[Any]],
-        test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_data_x: Sequence[Any],
+    train_data_y: Sequence[Sequence[SupportsInt]],
+    test_data_x: Union[Any, Sequence[Any]],
+    test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of `tensors_benchmark`.
 
@@ -676,23 +734,29 @@ def tensor_scenario(
     :returns: A properly initialized :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('tensor_scenario is deprecated in favor '
-                  'of tensors_benchmark. When switching'
-                  ' to the new function, please keep in mind that the format of'
-                  ' the parameters is completely different!',
-                  DeprecationWarning)
+    warnings.warn(
+        "tensor_scenario is deprecated in favor "
+        "of tensors_benchmark. When switching"
+        " to the new function, please keep in mind that the format of"
+        " the parameters is completely different!",
+        DeprecationWarning,
+    )
 
     if isinstance(test_data_x, Tensor):
         test_data_x = [test_data_x]
         test_data_y = [test_data_y]
     else:
         if len(test_data_x) != len(test_data_y):
-            raise ValueError('test_data_x and test_data_y must contain'
-                             ' the same amount of elements')
+            raise ValueError(
+                "test_data_x and test_data_y must contain"
+                " the same amount of elements"
+            )
 
     if len(train_data_x) != len(train_data_y):
-        raise ValueError('train_data_x and train_data_y must contain'
-                         ' the same amount of elements')
+        raise ValueError(
+            "train_data_x and train_data_y must contain"
+            " the same amount of elements"
+        )
 
     exp_train_first_structure = []
     exp_test_first_structure = []
@@ -717,12 +781,15 @@ def tensor_scenario(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def _one_dataset_per_exp_class_order(
-        class_list_per_exp: Sequence[Sequence[int]],
-        shuffle: bool, seed: Union[int, None]) -> (List[int], Dict[int, int]):
+    class_list_per_exp: Sequence[Sequence[int]],
+    shuffle: bool,
+    seed: Union[int, None],
+) -> (List[int], Dict[int, int]):
     """
     Utility function that shuffles the class order by keeping classes from the
     same experience together. Each experience is defined by a different entry in
@@ -743,22 +810,22 @@ def _one_dataset_per_exp_class_order(
         if seed is not None:
             torch.random.manual_seed(seed)
         dataset_order = torch.as_tensor(dataset_order)[
-            torch.randperm(len(dataset_order))].tolist()
+            torch.randperm(len(dataset_order))
+        ].tolist()
     fixed_class_order = []
     classes_per_exp = {}
     for dataset_position, dataset_idx in enumerate(dataset_order):
         fixed_class_order.extend(class_list_per_exp[dataset_idx])
-        classes_per_exp[dataset_position] = \
-            len(class_list_per_exp[dataset_idx])
+        classes_per_exp[dataset_position] = len(class_list_per_exp[dataset_idx])
     return fixed_class_order, classes_per_exp
 
 
 __all__ = [
-    'nc_scenario',
-    'ni_scenario',
-    'dataset_scenario',
-    'filelist_scenario',
-    'paths_scenario',
-    'tensors_scenario',
-    'tensor_scenario'
+    "nc_scenario",
+    "ni_scenario",
+    "dataset_scenario",
+    "filelist_scenario",
+    "paths_scenario",
+    "tensors_scenario",
+    "tensor_scenario",
 ]

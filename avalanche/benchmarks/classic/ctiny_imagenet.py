@@ -13,36 +13,44 @@ from typing import Union, Any, Optional
 
 from torchvision import transforms
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import TinyImagenet
 from avalanche.benchmarks.generators import nc_benchmark
 
 
-_default_train_transform = transforms.Compose([
+_default_train_transform = transforms.Compose(
+    [
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
-])
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
-_default_eval_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
-])
+_default_eval_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
 
 def SplitTinyImageNet(
-        n_experiences=10,
-        *,
-        return_task_id=False,
-        seed=0,
-        fixed_class_order=None,
-        shuffle: bool = True,
-        train_transform: Optional[Any] = _default_train_transform,
-        eval_transform: Optional[Any] = _default_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    n_experiences=10,
+    *,
+    return_task_id=False,
+    seed=0,
+    fixed_class_order=None,
+    shuffle: bool = True,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark using the Tiny ImageNet dataset.
 
@@ -112,7 +120,8 @@ def SplitTinyImageNet(
             shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -123,7 +132,8 @@ def SplitTinyImageNet(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def _get_tiny_imagenet_dataset(dataset_root):
@@ -141,6 +151,4 @@ if __name__ == "__main__":
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
 
-__all__ = [
-    'SplitTinyImageNet'
-]
+__all__ = ["SplitTinyImageNet"]

@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseStrategy:
-    """ Base class for continual learning strategies.
+    """Base class for continual learning strategies.
 
     BaseStrategy is the super class of all task-based continual learning
     strategies. It implements a basic training loop and callback system
@@ -83,17 +83,26 @@ class BaseStrategy:
                     # model update
 
     """
+
     DISABLED_CALLBACKS: Sequence[str] = ()
     """Internal class attribute used to disable some callbacks if a strategy
     does not support them."""
 
-    def __init__(self, model: Module, optimizer: Optimizer,
-                 criterion=CrossEntropyLoss(),
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger, eval_every=-1, peval_mode='epoch'):
-        """ Init.
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        evaluator=default_logger,
+        eval_every=-1,
+        peval_mode="epoch",
+    ):
+        """Init.
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
@@ -107,8 +116,8 @@ class BaseStrategy:
             and metric computations. None to remove logging.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
             periodic evaluation during training should execute every
@@ -128,8 +137,9 @@ class BaseStrategy:
         self.train_mb_size: int = train_mb_size
         """ Training mini-batch size. """
 
-        self.eval_mb_size: int = train_mb_size if eval_mb_size is None \
-            else eval_mb_size
+        self.eval_mb_size: int = (
+            train_mb_size if eval_mb_size is None else eval_mb_size
+        )
         """ Eval mini-batch size. """
 
         self.device = device
@@ -145,7 +155,7 @@ class BaseStrategy:
         """ EvaluationPlugin used for logging and metric computations. """
 
         # Configure periodic evaluation.
-        assert peval_mode in {'epoch', 'iteration'}
+        assert peval_mode in {"epoch", "iteration"}
         self.eval_every = eval_every
         peval = PeriodicEval(eval_every, peval_mode)
         self.plugins.append(peval)
@@ -198,43 +208,49 @@ class BaseStrategy:
 
     @property
     def training_exp_counter(self):
-        """ Counts the number of training steps. +1 at the end of each
-        experience. """
+        """Counts the number of training steps. +1 at the end of each
+        experience."""
         warnings.warn(
             "Deprecated attribute. You should use self.clock.train_exp_counter"
-            " instead.", DeprecationWarning)
+            " instead.",
+            DeprecationWarning,
+        )
         return self.clock.train_exp_counter
 
     @property
     def epoch(self):
-        """ Epoch counter. """
+        """Epoch counter."""
         warnings.warn(
             "Deprecated attribute. You should use self.clock.train_exp_epochs"
-            " instead.", DeprecationWarning)
+            " instead.",
+            DeprecationWarning,
+        )
         return self.clock.train_exp_epochs
 
     @property
     def mb_it(self):
-        """ Iteration counter. Reset at the start of a new epoch. """
+        """Iteration counter. Reset at the start of a new epoch."""
         warnings.warn(
             "Deprecated attribute. You should use "
             "self.clock.train_epoch_iterations"
-            " instead.", DeprecationWarning)
+            " instead.",
+            DeprecationWarning,
+        )
         return self.clock.train_epoch_iterations
 
     @property
     def is_eval(self):
-        """ True if the strategy is in evaluation mode. """
+        """True if the strategy is in evaluation mode."""
         return not self.is_training
 
     @property
     def mb_x(self):
-        """ Current mini-batch input. """
+        """Current mini-batch input."""
         return self.mbatch[0]
 
     @property
     def mb_y(self):
-        """ Current mini-batch target. """
+        """Current mini-batch target."""
         return self.mbatch[1]
 
     @property
@@ -244,15 +260,18 @@ class BaseStrategy:
         return self.mbatch[-1]
 
     def criterion(self):
-        """ Loss function. """
+        """Loss function."""
         return self._criterion(self.mb_output, self.mb_y)
 
-    def train(self, experiences: Union[Experience, Sequence[Experience]],
-              eval_streams: Optional[Sequence[Union[Experience,
-                                                    Sequence[
-                                                        Experience]]]] = None,
-              **kwargs):
-        """ Training loop. if experiences is a single element trains on it.
+    def train(
+        self,
+        experiences: Union[Experience, Sequence[Experience]],
+        eval_streams: Optional[
+            Sequence[Union[Experience, Sequence[Experience]]]
+        ] = None,
+        **kwargs,
+    ):
+        """Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
         It returns a dictionary with last recorded value for each metric.
@@ -288,7 +307,7 @@ class BaseStrategy:
         return res
 
     def train_exp(self, experience: Experience, eval_streams=None, **kwargs):
-        """ Training loop over a single Experience object.
+        """Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param eval_streams: list of streams for evaluation.
@@ -356,7 +375,8 @@ class BaseStrategy:
             self.experience,
             self.adapted_dataset,
             self.dataloader,
-            self.is_training)
+            self.is_training,
+        )
         # save each layer's training mode, to restore it later
         _prev_model_training_modes = {}
         for name, layer in self.model.named_modules():
@@ -364,18 +384,16 @@ class BaseStrategy:
         return _prev_model_training_modes, _prev_state
 
     def stop_training(self):
-        """ Signals to stop training at the next iteration. """
+        """Signals to stop training at the next iteration."""
         self._stop_training = True
 
     def train_dataset_adaptation(self, **kwargs):
-        """ Initialize `self.adapted_dataset`. """
+        """Initialize `self.adapted_dataset`."""
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
     @torch.no_grad()
-    def eval(self,
-             exp_list: Union[Experience, Sequence[Experience]],
-             **kwargs):
+    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -426,11 +444,12 @@ class BaseStrategy:
         for p in self.plugins:
             p.before_training_exp(self, **kwargs)
 
-    def make_train_dataloader(self, num_workers=0, shuffle=True,
-                              pin_memory=True, **kwargs):
-        """ Data loader initialization.
+    def make_train_dataloader(
+        self, num_workers=0, shuffle=True, pin_memory=True, **kwargs
+    ):
+        """Data loader initialization.
 
-        Called at the start of each learning experience after the dataset 
+        Called at the start of each learning experience after the dataset
         adaptation.
 
         :param num_workers: number of thread workers for the data loading.
@@ -444,10 +463,10 @@ class BaseStrategy:
             num_workers=num_workers,
             batch_size=self.train_mb_size,
             shuffle=shuffle,
-            pin_memory=pin_memory)
+            pin_memory=pin_memory,
+        )
 
-    def make_eval_dataloader(self, num_workers=0, pin_memory=True,
-                             **kwargs):
+    def make_eval_dataloader(self, num_workers=0, pin_memory=True, **kwargs):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
@@ -462,7 +481,8 @@ class BaseStrategy:
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
-            pin_memory=pin_memory)
+            pin_memory=pin_memory,
+        )
 
     def _after_train_dataset_adaptation(self, **kwargs):
         """
@@ -484,8 +504,8 @@ class BaseStrategy:
             p.before_training_epoch(self, **kwargs)
 
     def training_epoch(self, **kwargs):
-        """ Training epoch.
-        
+        """Training epoch.
+
         :param kwargs:
         :return:
         """
@@ -519,7 +539,7 @@ class BaseStrategy:
             self._after_training_iteration(**kwargs)
 
     def _unpack_minibatch(self):
-        """ We assume mini-batches have the form <x, y, ..., t>.
+        """We assume mini-batches have the form <x, y, ..., t>.
         This allows for arbitrary tensors between y and t.
         Keep in mind that in the most general case mb_task_id is a tensor
         which may contain different labels for each sample.
@@ -585,7 +605,7 @@ class BaseStrategy:
             p.before_eval_exp(self, **kwargs)
 
     def eval_dataset_adaptation(self, **kwargs):
-        """ Initialize `self.adapted_dataset`. """
+        """Initialize `self.adapted_dataset`."""
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
 
@@ -668,10 +688,7 @@ class BaseStrategy:
     def _warn_for_disabled_metrics_callbacks(self):
         self._warn_for_disabled_callbacks(self.evaluator.metrics)
 
-    def _warn_for_disabled_callbacks(
-            self,
-            plugins: List["StrategyCallbacks"]
-    ):
+    def _warn_for_disabled_callbacks(self, plugins: List["StrategyCallbacks"]):
         """
         Will log some warnings in case some plugins appear to be using callbacks
         that have been de-activated by the strategy class.
@@ -679,7 +696,7 @@ class BaseStrategy:
         for disabled_callback_name in self.DISABLED_CALLBACKS:
             for plugin in plugins:
                 callback = getattr(plugin, disabled_callback_name)
-                callback_class = callback.__qualname__.split('.')[0]
+                callback_class = callback.__qualname__.split(".")[0]
                 if callback_class not in (
                     "StrategyPlugin",
                     "PluginMetric",
@@ -699,7 +716,7 @@ class PeriodicEval(StrategyPlugin):
     This plugin is automatically configured and added by the BaseStrategy.
     """
 
-    def __init__(self, eval_every=-1, peval_mode='epoch', do_initial=True):
+    def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -715,7 +732,7 @@ class PeriodicEval(StrategyPlugin):
             accuracy before training.
         """
         super().__init__()
-        assert peval_mode in {'epoch', 'iteration'}
+        assert peval_mode in {"epoch", "iteration"}
         self.eval_every = eval_every
         self.peval_mode = peval_mode
         self.do_initial = do_initial and eval_every > -1
@@ -735,9 +752,11 @@ class PeriodicEval(StrategyPlugin):
         # We evaluate at the start of each experience because train_epochs
         # could change.
         self.do_final = True
-        if self.peval_mode == 'epoch':
-            if self.eval_every > 0 and \
-                    (strategy.train_epochs - 1) % self.eval_every == 0:
+        if self.peval_mode == "epoch":
+            if (
+                self.eval_every > 0
+                and (strategy.train_epochs - 1) % self.eval_every == 0
+            ):
                 self.do_final = False
         else:  # peval_mode == 'iteration'
             # we may need to fix this but we don't have a way to know
@@ -759,17 +778,17 @@ class PeriodicEval(StrategyPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy)
 
-    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_epoch(self, strategy: "BaseStrategy", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
-        if self.peval_mode == 'epoch':
+        if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_iteration(self, strategy: "BaseStrategy", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
-        if self.peval_mode == 'iteration':
+        if self.peval_mode == "iteration":
             self._maybe_peval(strategy, strategy.clock.train_exp_iterations)
 
 
-__all__ = ['BaseStrategy']
+__all__ = ["BaseStrategy"]

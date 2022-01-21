@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class EvaluationPlugin(StrategyPlugin):
-    """ Manager for logging and metrics.
+    """Manager for logging and metrics.
 
     An evaluation plugin that obtains relevant data from the
     training and eval loops of the strategy through callbacks.
@@ -29,14 +29,15 @@ class EvaluationPlugin(StrategyPlugin):
     This plugin also logs metrics using the provided loggers.
     """
 
-    def __init__(self,
-                 *metrics: Union['PluginMetric', Sequence['PluginMetric']],
-                 loggers: Union['StrategyLogger',
-                                Sequence['StrategyLogger']] = None,
-                 collect_all=True,
-                 benchmark=None,
-                 strict_checks=False,
-                 suppress_warnings=False):
+    def __init__(
+        self,
+        *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
+        loggers: Union["StrategyLogger", Sequence["StrategyLogger"]] = None,
+        collect_all=True,
+        benchmark=None,
+        strict_checks=False,
+        suppress_warnings=False
+    ):
         """
         Creates an instance of the evaluation plugin.
 
@@ -79,20 +80,22 @@ class EvaluationPlugin(StrategyPlugin):
         if benchmark is None:
             if not suppress_warnings:
                 if strict_checks:
-                    raise ValueError("Benchmark cannot be None "
-                                     "in strict mode.")
+                    raise ValueError(
+                        "Benchmark cannot be None " "in strict mode."
+                    )
                 else:
                     warnings.warn(
                         "No benchmark provided to the evaluation plugin. "
                         "Metrics may be computed on inconsistent portion "
-                        "of streams, use at your own risk.")
+                        "of streams, use at your own risk."
+                    )
         else:
             self.complete_test_stream = benchmark.test_stream
 
-        self.loggers: Sequence['StrategyLogger'] = loggers
+        self.loggers: Sequence["StrategyLogger"] = loggers
 
         if len(self.loggers) == 0:
-            warnings.warn('No loggers specified, metrics will not be logged')
+            warnings.warn("No loggers specified, metrics will not be logged")
 
         if self.collect_all:
             # for each curve collect all emitted values.
@@ -120,8 +123,9 @@ class EvaluationPlugin(StrategyPlugin):
 
     @active.setter
     def active(self, value):
-        assert value is True or value is False, \
-            "Active must be set as either True or False"
+        assert (
+            value is True or value is False
+        ), "Active must be set as either True or False"
         self._active = value
 
     def publish_metric_value(self, mval: MetricValue):
@@ -136,7 +140,7 @@ class EvaluationPlugin(StrategyPlugin):
             self.all_metric_results[name][1].append(val)
         self.last_metric_results[name] = val
 
-    def _update_metrics(self, strategy: 'BaseStrategy', callback: str):
+    def _update_metrics(self, strategy: "BaseStrategy", callback: str):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
         if not self._active:
@@ -189,62 +193,68 @@ class EvaluationPlugin(StrategyPlugin):
         """
         self.last_metric_results = {}
 
-    def before_training(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_training')
+    def before_training(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_training")
 
-    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_training_exp')
+    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_training_exp")
 
-    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                        **kwargs):
-        self._update_metrics(strategy, 'before_train_dataset_adaptation')
+    def before_train_dataset_adaptation(
+        self, strategy: "BaseStrategy", **kwargs
+    ):
+        self._update_metrics(strategy, "before_train_dataset_adaptation")
 
-    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       **kwargs):
-        self._update_metrics(strategy, 'after_train_dataset_adaptation')
+    def after_train_dataset_adaptation(
+        self, strategy: "BaseStrategy", **kwargs
+    ):
+        self._update_metrics(strategy, "after_train_dataset_adaptation")
 
-    def before_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_training_epoch')
+    def before_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_training_epoch")
 
-    def before_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_training_iteration')
+    def before_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_training_iteration")
 
-    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_forward')
+    def before_forward(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_forward")
 
-    def after_forward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_forward')
+    def after_forward(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_forward")
 
-    def before_backward(self, strategy: 'BaseStrategy', **kwargs):
-        self.update_metrics = self._update_metrics(strategy, 'before_backward')
+    def before_backward(self, strategy: "BaseStrategy", **kwargs):
+        self.update_metrics = self._update_metrics(strategy, "before_backward")
 
-    def after_backward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_backward')
+    def after_backward(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_backward")
 
-    def after_training_iteration(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_training_iteration')
+    def after_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_training_iteration")
 
-    def before_update(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_update')
+    def before_update(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_update")
 
-    def after_update(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_update')
+    def after_update(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_update")
 
-    def after_training_epoch(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_training_epoch')
+    def after_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_training_epoch")
 
-    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_training_exp')
+    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_training_exp")
 
-    def after_training(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_training')
+    def after_training(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_training")
 
-    def before_eval(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_eval')
-        msgw = "Evaluation stream is not equal to the complete test stream. " \
-               "This may result in inconsistent metrics. Use at your own risk."
-        msge = "Stream provided to `eval` must be the same of the entire " \
-               "evaluation stream."
+    def before_eval(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_eval")
+        msgw = (
+            "Evaluation stream is not equal to the complete test stream. "
+            "This may result in inconsistent metrics. Use at your own risk."
+        )
+        msge = (
+            "Stream provided to `eval` must be the same of the entire "
+            "evaluation stream."
+        )
         if self.benchmark is not None:
             for i, exp in enumerate(self.complete_test_stream):
                 try:
@@ -261,43 +271,42 @@ class EvaluationPlugin(StrategyPlugin):
                     else:
                         warnings.warn(msgw)
 
-    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       **kwargs):
-        self._update_metrics(strategy, 'before_eval_dataset_adaptation')
+    def before_eval_dataset_adaptation(
+        self, strategy: "BaseStrategy", **kwargs
+    ):
+        self._update_metrics(strategy, "before_eval_dataset_adaptation")
 
-    def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_eval_dataset_adaptation')
+    def after_eval_dataset_adaptation(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_eval_dataset_adaptation")
 
-    def before_eval_exp(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_eval_exp')
+    def before_eval_exp(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_eval_exp")
 
-    def after_eval_exp(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_eval_exp')
+    def after_eval_exp(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_eval_exp")
 
-    def after_eval(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_eval')
+    def after_eval(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_eval")
 
-    def before_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_eval_iteration')
+    def before_eval_iteration(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_eval_iteration")
 
-    def before_eval_forward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'before_eval_forward')
+    def before_eval_forward(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "before_eval_forward")
 
-    def after_eval_forward(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_eval_forward')
+    def after_eval_forward(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_eval_forward")
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy', **kwargs):
-        self._update_metrics(strategy, 'after_eval_iteration')
+    def after_eval_iteration(self, strategy: "BaseStrategy", **kwargs):
+        self._update_metrics(strategy, "after_eval_iteration")
 
 
 default_logger = EvaluationPlugin(
     accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     loggers=[InteractiveLogger()],
-    suppress_warnings=True)
+    suppress_warnings=True,
+)
 
 
-__all__ = [
-    'EvaluationPlugin',
-    'default_logger'
-]
+__all__ = ["EvaluationPlugin", "default_logger"]

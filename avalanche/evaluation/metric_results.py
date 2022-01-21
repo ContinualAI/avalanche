@@ -18,7 +18,7 @@ from torch import Tensor
 if TYPE_CHECKING:
     from .metric_definitions import Metric
 
-MetricResult = Optional[List['MetricValue']]
+MetricResult = Optional[List["MetricValue"]]
 
 
 @dataclass
@@ -36,11 +36,13 @@ class AlternativeValues:
     """
     A container for alternative representations of the same metric value.
     """
+
     def __init__(self, *alternatives: MetricType):
         self.alternatives: Tuple[MetricType] = alternatives
 
-    def best_supported_value(self, *supported_types: type) -> \
-            Optional[MetricType]:
+    def best_supported_value(
+        self, *supported_types: type
+    ) -> Optional[MetricType]:
         """
         Retrieves a supported representation for this metric value.
 
@@ -67,8 +69,14 @@ class MetricValue(object):
     an Image. It's up to the Logger, according to its capabilities, decide which
     representation to use.
     """
-    def __init__(self, origin: 'Metric', name: str,
-                 value: Union[MetricType, AlternativeValues], x_plot: int):
+
+    def __init__(
+        self,
+        origin: "Metric",
+        name: str,
+        value: Union[MetricType, AlternativeValues],
+        x_plot: int,
+    ):
         """
         Creates an instance of MetricValue.
 
@@ -88,16 +96,16 @@ class MetricValue(object):
             to the x-axis position of the value in a plot. When logging a
             singleton value, pass 0 as a value for this parameter.
         """
-        self.origin: 'Metric' = origin
+        self.origin: "Metric" = origin
         self.name: str = name
         self.value: Union[MetricType, AlternativeValues] = value
         self.x_plot: int = x_plot
 
 
 __all__ = [
-    'MetricType',
-    'MetricResult',
-    'AlternativeValues',
-    'MetricValue',
-    'TensorImage',
+    "MetricType",
+    "MetricResult",
+    "AlternativeValues",
+    "MetricValue",
+    "TensorImage",
 ]

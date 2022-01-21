@@ -27,14 +27,16 @@ EVAL = "eval"
 TRAIN = "train"
 
 
-def default_cm_image_creator(confusion_matrix_tensor: Tensor,
-                             display_labels: Sequence = None,
-                             include_values=False,
-                             xticks_rotation=0,
-                             yticks_rotation=0,
-                             values_format=None,
-                             cmap='viridis',
-                             image_title=''):
+def default_cm_image_creator(
+    confusion_matrix_tensor: Tensor,
+    display_labels: Sequence = None,
+    include_values=False,
+    xticks_rotation=0,
+    yticks_rotation=0,
+    values_format=None,
+    cmap="viridis",
+    image_title="",
+):
     """
     The default Confusion Matrix image creator.
     Code adapted from
@@ -65,7 +67,7 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
 
     cm = confusion_matrix_tensor.numpy()
     n_classes = cm.shape[0]
-    im_ = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    im_ = ax.imshow(cm, interpolation="nearest", cmap=cmap)
     cmap_min, cmap_max = im_.cmap(0), im_.cmap(256)
 
     if include_values:
@@ -79,32 +81,33 @@ def default_cm_image_creator(confusion_matrix_tensor: Tensor,
                 color = cmap_max if cm[i, j] < thresh else cmap_min
 
                 if values_format is None:
-                    text_cm = format(cm[i, j], '.2g')
-                    if cm.dtype.kind != 'f':
-                        text_d = format(cm[i, j], 'd')
+                    text_cm = format(cm[i, j], ".2g")
+                    if cm.dtype.kind != "f":
+                        text_d = format(cm[i, j], "d")
                         if len(text_d) < len(text_cm):
                             text_cm = text_d
                 else:
                     text_cm = format(cm[i, j], values_format)
 
                 text_[i, j] = ax.text(
-                    j, i, text_cm,
-                    ha="center", va="center",
-                    color=color)
+                    j, i, text_cm, ha="center", va="center", color=color
+                )
 
     if display_labels is None:
         display_labels = np.arange(n_classes)
 
     fig.colorbar(im_, ax=ax)
 
-    ax.set(xticks=np.arange(n_classes),
-           yticks=np.arange(n_classes),
-           xticklabels=display_labels,
-           yticklabels=display_labels,
-           ylabel="True label",
-           xlabel="Predicted label")
+    ax.set(
+        xticks=np.arange(n_classes),
+        yticks=np.arange(n_classes),
+        xticklabels=display_labels,
+        yticklabels=display_labels,
+        ylabel="True label",
+        xlabel="Predicted label",
+    )
 
-    if image_title != '':
+    if image_title != "":
         ax.set_title(image_title)
 
     ax.set_ylim((n_classes - 0.5, -0.5))
@@ -213,7 +216,7 @@ def default_history_repartition_image_creator(
         labels=label2counts.keys(),
         colors=colors,
     )
-    ax.legend(loc='upper left')
+    ax.legend(loc="upper left")
     ax.set_ylabel("Number of examples")
     ax.set_xlabel("step")
 
@@ -221,7 +224,7 @@ def default_history_repartition_image_creator(
     return fig
 
 
-def stream_type(experience: 'Experience') -> str:
+def stream_type(experience: "Experience") -> str:
     """
     Returns the stream name from which the experience belongs to.
     e.g. the experience can be part of train or test stream.
@@ -232,7 +235,7 @@ def stream_type(experience: 'Experience') -> str:
     return experience.origin_stream.name
 
 
-def phase_and_task(strategy: 'BaseStrategy') -> Tuple[str, int]:
+def phase_and_task(strategy: "BaseStrategy") -> Tuple[str, int]:
     """
     Returns the current phase name and the associated task label.
 
@@ -264,21 +267,23 @@ def bytes2human(n):
     # '9.8K'
     # >>> bytes2human(100001221)
     # '95.4M'
-    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    symbols = ("K", "M", "G", "T", "P", "E", "Z", "Y")
     prefix = {}
     for i, s in enumerate(symbols):
         prefix[s] = 1 << (i + 1) * 10
     for s in reversed(symbols):
         if n >= prefix[s]:
             value = float(n) / prefix[s]
-            return '%.1f%s' % (value, s)
+            return "%.1f%s" % (value, s)
     return "%sB" % n
 
 
-def get_metric_name(metric: 'PluginMetric',
-                    strategy: 'BaseStrategy',
-                    add_experience=False,
-                    add_task=True):
+def get_metric_name(
+    metric: "PluginMetric",
+    strategy: "BaseStrategy",
+    add_experience=False,
+    add_task=True,
+):
     """
     Return the complete metric name used to report its current value.
     The name is composed by:
@@ -300,17 +305,16 @@ def get_metric_name(metric: 'PluginMetric',
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
-    base_name = '{}/{}_phase/{}_stream'.format(str(metric),
-                                               phase_name, stream)
-    exp_name = '/Exp{:03}'.format(strategy.experience.current_experience)
+    base_name = "{}/{}_phase/{}_stream".format(str(metric), phase_name, stream)
+    exp_name = "/Exp{:03}".format(strategy.experience.current_experience)
 
     if task_label is None and isinstance(add_task, bool):
         add_task = False
     else:
         if isinstance(add_task, bool) and add_task:
-            task_name = '/Task{:03}'.format(task_label)
+            task_name = "/Task{:03}".format(task_label)
         elif isinstance(add_task, int):
-            task_name = '/Task{:03}'.format(add_task)
+            task_name = "/Task{:03}".format(add_task)
             add_task = True
 
     if add_experience and not add_task:

@@ -30,7 +30,7 @@ class AlreadyTrainedError(Exception):
 
 
 class JointTraining(BaseStrategy):
-    """ Joint training on the entire stream.
+    """Joint training on the entire stream.
 
     JointTraining performs joint training (also called offline training) on
     the entire stream of data. This means that it is not a continual
@@ -43,11 +43,20 @@ class JointTraining(BaseStrategy):
         :py:meth:`adapt_trainin_dataset`. Otherwise, they are incompatible
         with :py:class:`JointTraining`.
     """
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger, eval_every=-1):
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        evaluator=default_logger,
+        eval_every=-1,
+    ):
         """Init.
 
         :param model: PyTorch model.
@@ -62,29 +71,33 @@ class JointTraining(BaseStrategy):
             and metric computations. None to remove logging.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
-            learning experience.        """
-        super().__init__(model=model,
-                         optimizer=optimizer,
-                         criterion=criterion,
-                         train_mb_size=train_mb_size,
-                         train_epochs=train_epochs,
-                         eval_mb_size=eval_mb_size,
-                         device=device,
-                         plugins=plugins,
-                         evaluator=evaluator,
-                         eval_every=eval_every
-                         )
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience."""
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
         # JointTraining can be trained only once.
         self._is_fitted = False
 
-    def train(self, experiences: Union[Experience, Sequence[Experience]],
-              eval_streams: Optional[Sequence[Union[Experience,
-                                                    Sequence[
-                                                        Experience]]]] = None,
-              **kwargs):
-        """ Training loop. if experiences is a single element trains on it.
+    def train(
+        self,
+        experiences: Union[Experience, Sequence[Experience]],
+        eval_streams: Optional[
+            Sequence[Union[Experience, Sequence[Experience]]]
+        ] = None,
+        **kwargs
+    ):
+        """Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
         It returns a dictionary with last recorded value for each metric.
@@ -130,16 +143,17 @@ class JointTraining(BaseStrategy):
         return res
 
     def train_dataset_adaptation(self, **kwargs):
-        """ Concatenates all the datastream. """
+        """Concatenates all the datastream."""
         self.adapted_dataset = self._experiences[0].dataset
         for exp in self._experiences[1:]:
-            cat_data = AvalancheConcatDataset([self.adapted_dataset,
-                                               exp.dataset])
+            cat_data = AvalancheConcatDataset(
+                [self.adapted_dataset, exp.dataset]
+            )
             self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
     def model_adaptation(self, model=None):
-        """ Adapts strategy's model for all experiences. """
+        """Adapts strategy's model for all experiences."""
         if model is None:
             model = self.model
 
@@ -151,4 +165,4 @@ class JointTraining(BaseStrategy):
         return model
 
 
-__all__ = ['JointTraining']
+__all__ = ["JointTraining"]

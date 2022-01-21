@@ -20,8 +20,10 @@ in the Avalanche training and evaluation loops.
 # import a standalone metric
 import torch
 from avalanche.evaluation.metrics import Accuracy
+
 # all standalone metrics
 from avalanche.evaluation.metrics import Accuracy
+
 # , Loss, # Loss
 # Forgetting,  # Forgetting
 # ConfusionMatrix, # Confusion Matrix

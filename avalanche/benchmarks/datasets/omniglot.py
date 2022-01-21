@@ -20,17 +20,20 @@ class Omniglot(OmniglotTorch):
     """
 
     def __init__(
-            self,
-            root: str,
-            train: bool = True,
-            transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None,
-            download: bool = False,
+        self,
+        root: str,
+        train: bool = True,
+        transform: Optional[Callable] = None,
+        target_transform: Optional[Callable] = None,
+        download: bool = False,
     ) -> None:
-        super().__init__(join(root, self.folder), download=download,
-                         transform=transform,
-                         target_transform=target_transform,
-                         background=train)
+        super().__init__(
+            join(root, self.folder),
+            download=download,
+            transform=transform,
+            target_transform=target_transform,
+            background=train,
+        )
 
         self.targets = [x[1] for x in self._flat_character_images]
 
@@ -39,6 +42,4 @@ class Omniglot(OmniglotTorch):
         return [x for x, _ in self]
 
 
-__all__ = [
-    'Omniglot'
-]
+__all__ = ["Omniglot"]

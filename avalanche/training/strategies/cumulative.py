@@ -11,18 +11,26 @@ from avalanche.training.strategies import BaseStrategy
 
 
 class Cumulative(BaseStrategy):
-    """ Cumulative training strategy.
+    """Cumulative training strategy.
 
     At each experience, train model with data from all previous experiences
         and current experience.
-        """
+    """
 
-    def __init__(self, model: Module, optimizer: Optimizer, criterion,
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
-        """ Init.
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[StrategyPlugin]] = None,
+        evaluator: EvaluationPlugin = default_logger,
+        eval_every=-1,
+    ):
+        """Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -36,26 +44,34 @@ class Cumulative(BaseStrategy):
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         """
 
         super().__init__(
-            model, optimizer, criterion,
-            train_mb_size=train_mb_size, train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
         self.dataset = None  # cumulative dataset
 
     def train_dataset_adaptation(self, **kwargs):
         """
-            Concatenates all the previous experiences.
+        Concatenates all the previous experiences.
         """
         if self.dataset is None:
             self.dataset = self.experience.dataset
         else:
             self.dataset = AvalancheConcatDataset(
-                [self.dataset, self.experience.dataset])
+                [self.dataset, self.experience.dataset]
+            )
         self.adapted_dataset = self.dataset

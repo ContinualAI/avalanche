@@ -55,10 +55,8 @@ class FeatureExtractorBackbone(nn.Module):
         """
         name_to_module = self.get_name_to_module(model)
         name_to_module[self.output_layer_name].register_forward_hook(
-            self.get_activation())
+            self.get_activation()
+        )
 
 
-__all__ = [
-    'avalanche_forward',
-    'FeatureExtractorBackbone'
-]
+__all__ = ["avalanche_forward", "FeatureExtractorBackbone"]

@@ -46,7 +46,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         """
         pass
 
-    def log_metric(self, metric_value: 'MetricValue', callback: str) -> None:
+    def log_metric(self, metric_value: "MetricValue", callback: str) -> None:
         """
         This method will be invoked on each callback.
         The `callback` parameter describes the callback from which the metric
@@ -68,130 +68,221 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
         else:
             self.log_single_metric(name, value, x_plot)
 
-    def before_training(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_training(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_training')
+            self.log_metric(val, "before_training")
 
-    def before_training_exp(self, strategy: 'BaseStrategy',
-                            metric_values: List['MetricValue'], **kwargs):
+    def before_training_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_training_exp')
+            self.log_metric(val, "before_training_exp")
 
-    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       metric_values: List['MetricValue'],
-                                       **kwargs):
+    def after_train_dataset_adaptation(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'adapt_train_dataset')
+            self.log_metric(val, "adapt_train_dataset")
 
-    def before_training_epoch(self, strategy: 'BaseStrategy',
-                              metric_values: List['MetricValue'], **kwargs):
+    def before_training_epoch(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_training_epoch')
+            self.log_metric(val, "before_training_epoch")
 
-    def before_training_iteration(self, strategy: 'BaseStrategy',
-                                  metric_values: List['MetricValue'],
-                                  **kwargs):
+    def before_training_iteration(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_training_iteration')
+            self.log_metric(val, "before_training_iteration")
 
-    def before_forward(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def before_forward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_forward')
+            self.log_metric(val, "before_forward")
 
-    def after_forward(self, strategy: 'BaseStrategy',
-                      metric_values: List['MetricValue'], **kwargs):
+    def after_forward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_forward')
+            self.log_metric(val, "after_forward")
 
-    def before_backward(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_backward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_backward')
+            self.log_metric(val, "before_backward")
 
-    def after_backward(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def after_backward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_backward')
+            self.log_metric(val, "after_backward")
 
-    def after_training_iteration(self, strategy: 'BaseStrategy',
-                                 metric_values: List['MetricValue'], **kwargs):
+    def after_training_iteration(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_training_iteration')
+            self.log_metric(val, "after_training_iteration")
 
-    def before_update(self, strategy: 'BaseStrategy',
-                      metric_values: List['MetricValue'], **kwargs):
+    def before_update(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_update')
+            self.log_metric(val, "before_update")
 
-    def after_update(self, strategy: 'BaseStrategy',
-                     metric_values: List['MetricValue'], **kwargs):
+    def after_update(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_update')
+            self.log_metric(val, "after_update")
 
-    def after_training_epoch(self, strategy: 'BaseStrategy',
-                             metric_values: List['MetricValue'], **kwargs):
+    def after_training_epoch(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_training_epoch')
+            self.log_metric(val, "after_training_epoch")
 
-    def after_training_exp(self, strategy: 'BaseStrategy',
-                           metric_values: List['MetricValue'], **kwargs):
+    def after_training_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_training_exp')
+            self.log_metric(val, "after_training_exp")
 
-    def after_training(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def after_training(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_training')
+            self.log_metric(val, "after_training")
 
-    def before_eval(self, strategy: 'BaseStrategy',
-                    metric_values: List['MetricValue'], **kwargs):
+    def before_eval(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_eval')
+            self.log_metric(val, "before_eval")
 
-    def after_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                      metric_values: List['MetricValue'],
-                                      **kwargs):
+    def after_eval_dataset_adaptation(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'adapt_eval_dataset')
+            self.log_metric(val, "adapt_eval_dataset")
 
-    def before_eval_exp(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_eval_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_eval_exp')
+            self.log_metric(val, "before_eval_exp")
 
-    def after_eval_exp(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def after_eval_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_eval_exp')
+            self.log_metric(val, "after_eval_exp")
 
-    def after_eval(self, strategy: 'BaseStrategy',
-                   metric_values: List['MetricValue'], **kwargs):
+    def after_eval(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_eval')
+            self.log_metric(val, "after_eval")
 
-    def before_eval_iteration(self, strategy: 'BaseStrategy',
-                              metric_values: List['MetricValue'], **kwargs):
+    def before_eval_iteration(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_eval_iteration')
+            self.log_metric(val, "before_eval_iteration")
 
-    def before_eval_forward(self, strategy: 'BaseStrategy',
-                            metric_values: List['MetricValue'], **kwargs):
+    def before_eval_forward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'before_eval_forward')
+            self.log_metric(val, "before_eval_forward")
 
-    def after_eval_forward(self, strategy: 'BaseStrategy',
-                           metric_values: List['MetricValue'], **kwargs):
+    def after_eval_forward(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_eval_forward')
+            self.log_metric(val, "after_eval_forward")
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy',
-                             metric_values: List['MetricValue'], **kwargs):
+    def after_eval_iteration(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         for val in metric_values:
-            self.log_metric(val, 'after_eval_iteration')
+            self.log_metric(val, "after_eval_iteration")
 
 
-__all__ = [
-    'StrategyLogger'
-]
+__all__ = ["StrategyLogger"]

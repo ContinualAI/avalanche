@@ -11,42 +11,49 @@
 from pathlib import Path
 from typing import Union, Optional, Any
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import ImageNet
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+normalize = transforms.Normalize(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+)
 
-_default_train_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
-])
+_default_train_transform = transforms.Compose(
+    [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]
+)
 
-_default_eval_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
-])
+_default_eval_transform = transforms.Compose(
+    [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]
+)
 
 
 def SplitImageNet(
-        dataset_root: Union[str, Path],
-        *,
-        n_experiences=10,
-        per_exp_classes=None,
-        return_task_id=False,
-        seed=0,
-        fixed_class_order=None,
-        shuffle: bool = True,
-        train_transform: Optional[Any] = _default_train_transform,
-        eval_transform: Optional[Any] = _default_eval_transform):
+    dataset_root: Union[str, Path],
+    *,
+    n_experiences=10,
+    per_exp_classes=None,
+    return_task_id=False,
+    seed=0,
+    fixed_class_order=None,
+    shuffle: bool = True,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform
+):
     """
     Creates a CL benchmark using the ImageNet dataset.
 
@@ -126,7 +133,8 @@ def SplitImageNet(
             shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -138,7 +146,8 @@ def SplitImageNet(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def _get_imagenet_dataset(root):
@@ -149,18 +158,21 @@ def _get_imagenet_dataset(root):
     return train_set, test_set
 
 
-__all__ = [
-    'SplitImageNet'
-]
+__all__ = ["SplitImageNet"]
 
 
 if __name__ == "__main__":
     import sys
 
     benchmark_instance = SplitImageNet(
-        "/ssd2/datasets/imagenet/", train_transform=transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor()]))
+        "/ssd2/datasets/imagenet/",
+        train_transform=transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+            ]
+        ),
+    )
     check_vision_benchmark(benchmark_instance, show_without_transforms=False)
     sys.exit(0)

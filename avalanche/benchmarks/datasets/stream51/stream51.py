@@ -24,18 +24,26 @@ from zipfile import ZipFile
 
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets import DownloadableDataset, \
-    default_dataset_location
+from avalanche.benchmarks.datasets import (
+    DownloadableDataset,
+    default_dataset_location,
+)
 from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
 class Stream51(DownloadableDataset):
-    """ Stream-51 Pytorch Dataset """
+    """Stream-51 Pytorch Dataset"""
 
-    def __init__(self, root: Union[str, Path] = None,
-                 *,
-                 train=True, transform=None,
-                 target_transform=None, loader=default_loader, download=True):
+    def __init__(
+        self,
+        root: Union[str, Path] = None,
+        *,
+        train=True,
+        transform=None,
+        target_transform=None,
+        loader=default_loader,
+        download=True
+    ):
         """
         Creates an instance of the Stream-51 dataset.
 
@@ -51,7 +59,7 @@ class Stream51(DownloadableDataset):
         """
 
         if root is None:
-            root = default_dataset_location('stream51')
+            root = default_dataset_location("stream51")
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -67,15 +75,16 @@ class Stream51(DownloadableDataset):
         self._load_dataset()
 
     def _download_dataset(self) -> None:
-        self._download_file(stream51_data.name[1], stream51_data.name[0],
-                            stream51_data.name[2])
+        self._download_file(
+            stream51_data.name[1], stream51_data.name[0], stream51_data.name[2]
+        )
 
         if self.verbose:
-            print('[Stream-51] Extracting dataset...')
+            print("[Stream-51] Extracting dataset...")
 
-        if stream51_data.name[1].endswith('.zip'):
+        if stream51_data.name[1].endswith(".zip"):
             lfilename = self.root / stream51_data.name[0]
-            with ZipFile(str(lfilename), 'r') as zipf:
+            with ZipFile(str(lfilename), "r") as zipf:
                 for member in zipf.namelist():
                     filename = os.path.basename(member)
                     # skip directories
@@ -84,11 +93,12 @@ class Stream51(DownloadableDataset):
 
                     # copy file (taken from zipfile's extract)
                     source = zipf.open(member)
-                    if 'json' in filename:
+                    if "json" in filename:
                         target = open(str(self.root / filename), "wb")
                     else:
                         dest_folder = os.path.join(
-                            *(member.split(os.path.sep)[1:-1]))
+                            *(member.split(os.path.sep)[1:-1])
+                        )
                         dest_folder = self.root / dest_folder
                         dest_folder.mkdir(exist_ok=True, parents=True)
 
@@ -101,10 +111,12 @@ class Stream51(DownloadableDataset):
     def _load_metadata(self) -> bool:
         if self.train:
             data_list = json.load(
-                open(str(self.root / 'Stream-51_meta_train.json')))
+                open(str(self.root / "Stream-51_meta_train.json"))
+            )
         else:
             data_list = json.load(
-                open(str(self.root / 'Stream-51_meta_test.json')))
+                open(str(self.root / "Stream-51_meta_test.json"))
+            )
 
         self.samples = data_list
         self.targets = [s[0] for s in data_list]
@@ -115,9 +127,13 @@ class Stream51(DownloadableDataset):
         return True
 
     def _download_error_message(self) -> str:
-        return '[Stream-51] Error downloading the dataset. Consider ' \
-               'downloading it manually at: ' + stream51_data.name[1] + \
-               ' and placing it in: ' + str(self.root)
+        return (
+            "[Stream-51] Error downloading the dataset. Consider "
+            "downloading it manually at: "
+            + stream51_data.name[1]
+            + " and placing it in: "
+            + str(self.root)
+        )
 
     @staticmethod
     def _instance_ordering(data_list, seed):
@@ -150,14 +166,15 @@ class Stream51(DownloadableDataset):
         new_data_list = []
         for class_id in range(data_list[-1][0] + 1):
             class_data_list = [x for x in data_list if x[0] == class_id]
-            if class_type == 'class_iid':
+            if class_type == "class_iid":
                 # shuffle all class data
                 random.seed(seed)
                 random.shuffle(class_data_list)
             else:
                 # shuffle clips within class
                 class_data_list = Stream51._instance_ordering(
-                    class_data_list, seed)
+                    class_data_list, seed
+                )
             new_data_list.append(class_data_list)
         # shuffle classes
         random.seed(seed)
@@ -170,7 +187,7 @@ class Stream51(DownloadableDataset):
         return data_list
 
     @staticmethod
-    def make_dataset(data_list, ordering='class_instance', seed=666):
+    def make_dataset(data_list, ordering="class_instance", seed=666):
         """
         data_list
         for train: [class_id, clip_num, video_num, frame_num, bbox, file_loc]
@@ -178,18 +195,19 @@ class Stream51(DownloadableDataset):
         """
         if not ordering or len(data_list[0]) == 3:  # cannot order the test set
             return data_list
-        if ordering not in ['iid', 'class_iid', 'instance', 'class_instance']:
+        if ordering not in ["iid", "class_iid", "instance", "class_instance"]:
             raise ValueError(
                 'dataset ordering must be one of: "iid", "class_iid", '
-                '"instance", or "class_instance"')
-        if ordering == 'iid':
+                '"instance", or "class_instance"'
+            )
+        if ordering == "iid":
             # shuffle all data
             random.seed(seed)
             random.shuffle(data_list)
             return data_list
-        elif ordering == 'instance':
+        elif ordering == "instance":
             return Stream51._instance_ordering(data_list, seed)
-        elif 'class' in ordering:
+        elif "class" in ordering:
             return Stream51._class_ordering(data_list, ordering, seed)
 
     def __getitem__(self, index):
@@ -212,11 +230,9 @@ class Stream51(DownloadableDataset):
                 min([int(center[0] + (cw * self.ratio / 2)), sample.size[0]]),
                 max([int(center[0] - (cw * self.ratio / 2)), 0]),
                 min([int(center[1] + (ch * self.ratio / 2)), sample.size[1]]),
-                max([int(center[1] - (ch * self.ratio / 2)), 0])]
-            sample = sample.crop((bbox[1],
-                                  bbox[3],
-                                  bbox[0],
-                                  bbox[2]))
+                max([int(center[1] - (ch * self.ratio / 2)), 0]),
+            ]
+            sample = sample.crop((bbox[1], bbox[3], bbox[0], bbox[2]))
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -229,18 +245,21 @@ class Stream51(DownloadableDataset):
         return len(self.samples)
 
     def __repr__(self):
-        fmt_str = 'Dataset ' + self.__class__.__name__ + '\n'
-        fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
-        fmt_str += '    Root Location: {}\n'.format(self.root)
-        tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(
-            tmp, self.transform.__repr__().replace(
-                '\n', '\n' + ' ' * len(tmp)))
+        fmt_str = "Dataset " + self.__class__.__name__ + "\n"
+        fmt_str += "    Number of datapoints: {}\n".format(self.__len__())
+        fmt_str += "    Root Location: {}\n".format(self.root)
+        tmp = "    Transforms (if any): "
+        fmt_str += "{0}{1}\n".format(
+            tmp, self.transform.__repr__().replace("\n", "\n" + " " * len(tmp))
+        )
 
-        tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(
-            tmp, self.target_transform.__repr__().replace(
-                '\n', '\n' + ' ' * len(tmp)))
+        tmp = "    Target Transforms (if any): "
+        fmt_str += "{0}{1}".format(
+            tmp,
+            self.target_transform.__repr__().replace(
+                "\n", "\n" + " " * len(tmp)
+            ),
+        )
         return fmt_str
 
 
@@ -261,14 +280,10 @@ if __name__ == "__main__":
 
     for batch_data in dataloader:
         x, y = batch_data
-        plt.imshow(
-            transforms.ToPILImage()(torch.squeeze(x))
-        )
+        plt.imshow(transforms.ToPILImage()(torch.squeeze(x)))
         plt.show()
         print(x.size())
         print(len(y))
         break
 
-__all__ = [
-    'Stream51'
-]
+__all__ = ["Stream51"]

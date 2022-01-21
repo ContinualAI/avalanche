@@ -7,14 +7,21 @@ from torch import tensor, Tensor, zeros
 from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
 
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType, \
-    AvalancheTensorDataset
+from avalanche.benchmarks.utils import (
+    AvalancheDataset,
+    AvalancheDatasetType,
+    AvalancheTensorDataset,
+)
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.storage_policy import \
-    ExperienceBalancedBuffer, ClassBalancedBuffer, \
-    ExemplarsSelectionStrategy, \
-    HerdingSelectionStrategy, ClosestToCenterSelectionStrategy, ParametricBuffer
+from avalanche.training.storage_policy import (
+    ExperienceBalancedBuffer,
+    ClassBalancedBuffer,
+    ExemplarsSelectionStrategy,
+    HerdingSelectionStrategy,
+    ClosestToCenterSelectionStrategy,
+    ParametricBuffer,
+)
 from avalanche.training.strategies import Naive, BaseStrategy
 from tests.unit_tests_utils import get_fast_benchmark
 
@@ -25,7 +32,7 @@ class ReplayTest(unittest.TestCase):
         policies = [
             None,
             ExperienceBalancedBuffer(max_size=mem_size),
-            ClassBalancedBuffer(max_size=mem_size)
+            ClassBalancedBuffer(max_size=mem_size),
         ]
         for policy in policies:
             self._test_replay_balanced_memory(policy, mem_size)
@@ -33,13 +40,17 @@ class ReplayTest(unittest.TestCase):
     def _test_replay_balanced_memory(self, storage_policy, mem_size):
         benchmark = get_fast_benchmark(use_task_labels=True)
         model = SimpleMLP(input_size=6, hidden_size=10)
-        replayPlugin = ReplayPlugin(mem_size=mem_size,
-                                    storage_policy=storage_policy)
+        replayPlugin = ReplayPlugin(
+            mem_size=mem_size, storage_policy=storage_policy
+        )
         cl_strategy = Naive(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
-            CrossEntropyLoss(), train_mb_size=32, train_epochs=1,
-            eval_mb_size=100, plugins=[replayPlugin]
+            CrossEntropyLoss(),
+            train_mb_size=32,
+            train_epochs=1,
+            eval_mb_size=100,
+            plugins=[replayPlugin],
         )
 
         n_seen_data = 0
@@ -65,11 +76,16 @@ class ReplayTest(unittest.TestCase):
         model = SimpleMLP(num_classes=benchmark.n_classes)
 
         # CREATE THE STRATEGY INSTANCE (NAIVE)
-        cl_strategy = Naive(model,
-                            SGD(model.parameters(), lr=0.001),
-                            CrossEntropyLoss(), train_mb_size=100,
-                            train_epochs=0,
-                            eval_mb_size=100, plugins=[replay], evaluator=None)
+        cl_strategy = Naive(
+            model,
+            SGD(model.parameters(), lr=0.001),
+            CrossEntropyLoss(),
+            train_mb_size=100,
+            train_epochs=0,
+            eval_mb_size=100,
+            plugins=[replay],
+            evaluator=None,
+        )
 
         for exp in benchmark.train_stream:
             cl_strategy.train(exp)
@@ -90,9 +106,9 @@ class ParametricBufferTest(unittest.TestCase):
     def test_groupings(self):
         policies = [
             ParametricBuffer(max_size=10, groupby=None),
-            ParametricBuffer(max_size=10, groupby='class'),
-            ParametricBuffer(max_size=10, groupby='task'),
-            ParametricBuffer(max_size=10, groupby='experience'),
+            ParametricBuffer(max_size=10, groupby="class"),
+            ParametricBuffer(max_size=10, groupby="task"),
+            ParametricBuffer(max_size=10, groupby="experience"),
         ]
         for p in policies:
             self._test_policy(p)
@@ -100,8 +116,10 @@ class ParametricBufferTest(unittest.TestCase):
     def _test_policy(self, policy):
         for exp in self.benchmark.train_stream:
             policy.update(MagicMock(experience=exp))
-            groups_lens = [(g_id, len(g_data.buffer)) for g_id, g_data in
-                           policy.buffer_groups.items()]
+            groups_lens = [
+                (g_id, len(g_data.buffer))
+                for g_id, g_data in policy.buffer_groups.items()
+            ]
             print(groups_lens)
         print("DONE.")
 
@@ -117,8 +135,9 @@ class SelectionStrategyTest(unittest.TestCase):
         # Features are [[0], [4], [5]]
         # Center is [3]
         dataset = AvalancheTensorDataset(
-            tensor([0, -4, 5]).float(), zeros(3),
-            dataset_type=AvalancheDatasetType.CLASSIFICATION
+            tensor([0, -4, 5]).float(),
+            zeros(3),
+            dataset_type=AvalancheDatasetType.CLASSIFICATION,
         )
         strategy = MagicMock(device="cpu", eval_mb_size=8)
 
@@ -132,15 +151,16 @@ class SelectionStrategyTest(unittest.TestCase):
         #  because the center will be [2], closest to [3] than the center
         #  obtained if we were to select 5 ([4.5])
         # 3. Finally we select the last remaining exemplar
-        self.assertSequenceEqual([1, 0, 2],
-                                 herding.make_sorted_indices(strategy, dataset))
+        self.assertSequenceEqual(
+            [1, 0, 2], herding.make_sorted_indices(strategy, dataset)
+        )
         # Closest to center
 
         # -4 (index 1) is the closest to the center in feature space.
         # Then 5 (index 2) is closest than 0 (index 0)
-        self.assertSequenceEqual([1, 2, 0],
-                                 closest_to_center.make_sorted_indices(strategy,
-                                                                       dataset))
+        self.assertSequenceEqual(
+            [1, 2, 0], closest_to_center.make_sorted_indices(strategy, dataset)
+        )
 
 
 class AbsModel(Module):
@@ -168,6 +188,7 @@ class FixedSelectionStrategy(ExemplarsSelectionStrategy):
     def __init__(self, indices: List[int]):
         self.indices = indices
 
-    def make_sorted_indices(self, strategy: "BaseStrategy",
-                            data: AvalancheDataset) -> List[int]:
+    def make_sorted_indices(
+        self, strategy: "BaseStrategy", data: AvalancheDataset
+    ) -> List[int]:
         return self.indices

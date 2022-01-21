@@ -27,7 +27,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
     The WeightCheckpoint Metric. This is a standalone metric.
 
     Instances of this metric keeps the weight checkpoint tensor of the
-    model at each experience. 
+    model at each experience.
 
     Each time `result` is called, this metric emits the latest experience's
     weight checkpoint tensor since the last `reset`.
@@ -35,13 +35,14 @@ class WeightCheckpoint(PluginMetric[Tensor]):
     The reset method will bring the metric to its initial state. By default
     this metric in its initial state will return None.
     """
+
     def __init__(self):
         """
         Creates an instance of the WeightCheckpoint Metric.
 
         By default this metric in its initial state will return None.
         The metric can be updated by using the `update` method
-        while the current experience's weight checkpoint tensor can be 
+        while the current experience's weight checkpoint tensor can be
         retrieved using the `result` method.
         """
         super().__init__()
@@ -63,7 +64,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         :return: The weight checkpoint as a tensor.
         """
         return self.weights
-    
+
     def reset(self) -> None:
         """
         Resets the metric.
@@ -72,14 +73,18 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         """
         self.weights = None
 
-    def _package_result(self, strategy) -> 'MetricResult':
+    def _package_result(self, strategy) -> "MetricResult":
         weights = self.result()
-        metric_name = get_metric_name(self, strategy, 
-                                      add_experience=True, add_task=False)
-        return [MetricValue(self, metric_name, weights, 
-                            strategy.clock.train_iterations)]
+        metric_name = get_metric_name(
+            self, strategy, add_experience=True, add_task=False
+        )
+        return [
+            MetricValue(
+                self, metric_name, weights, strategy.clock.train_iterations
+            )
+        ]
 
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> 'MetricResult':
+    def after_eval_exp(self, strategy: "BaseStrategy") -> "MetricResult":
         model_params = copy.deepcopy(strategy.model.parameters())
         self.update(model_params)
 
@@ -87,4 +92,4 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         return "WeightCheckpoint"
 
 
-__all__ = ['WeightCheckpoint']
+__all__ = ["WeightCheckpoint"]

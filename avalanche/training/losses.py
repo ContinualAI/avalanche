@@ -33,8 +33,12 @@ class ICaRLLossPlugin(StrategyPlugin):
     def __call__(self, logits, targets):
         predictions = torch.sigmoid(logits)
 
-        one_hot = torch.zeros(targets.shape[0], logits.shape[1],
-                              dtype=torch.float, device=logits.device)
+        one_hot = torch.zeros(
+            targets.shape[0],
+            logits.shape[1],
+            dtype=torch.float,
+            device=logits.device,
+        )
         one_hot[range(len(targets)), targets.long()] = 1
 
         if self.old_logits is not None:
@@ -53,7 +57,8 @@ class ICaRLLossPlugin(StrategyPlugin):
         self.old_model.load_state_dict(strategy.model.state_dict())
 
         self.old_classes += np.unique(
-            strategy.experience.dataset.targets).tolist()
+            strategy.experience.dataset.targets
+        ).tolist()
 
 
 __all__ = ["ICaRLLossPlugin"]

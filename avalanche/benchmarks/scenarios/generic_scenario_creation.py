@@ -19,8 +19,12 @@ from typing import Sequence, Union, SupportsInt, Any, Tuple
 
 from torch import Tensor
 
-from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    SupportedDataset, datasets_from_paths, AvalancheDataset
+from avalanche.benchmarks.utils import (
+    AvalancheTensorDataset,
+    SupportedDataset,
+    datasets_from_paths,
+    AvalancheDataset,
+)
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .generic_cl_scenario import GenericCLScenario
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
@@ -28,14 +32,16 @@ from ..utils.avalanche_dataset import AvalancheDatasetType
 
 
 def create_multi_dataset_generic_scenario(
-        train_dataset_list: Sequence[SupportedDataset],
-        test_dataset_list: Sequence[SupportedDataset],
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = None) \
-        -> GenericCLScenario:
+    train_dataset_list: Sequence[SupportedDataset],
+    test_dataset_list: Sequence[SupportedDataset],
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = None,
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
     `create_multi_dataset_generic_benchmark`.
@@ -91,22 +97,29 @@ def create_multi_dataset_generic_scenario(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('create_multi_dataset_generic_scenario is deprecated in favor'
-                  ' of create_multi_dataset_generic_benchmark.',
-                  DeprecationWarning)
+    warnings.warn(
+        "create_multi_dataset_generic_scenario is deprecated in favor"
+        " of create_multi_dataset_generic_benchmark.",
+        DeprecationWarning,
+    )
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
-        eval=(eval_transform, eval_target_transform))
+        eval=(eval_transform, eval_target_transform),
+    )
 
     if complete_test_set_only:
         if len(test_dataset_list) != 1:
-            raise ValueError('Test must contain 1 element when'
-                             'complete_test_set_only is True')
+            raise ValueError(
+                "Test must contain 1 element when"
+                "complete_test_set_only is True"
+            )
     else:
         if len(test_dataset_list) != len(train_dataset_list):
-            raise ValueError('Train and test lists must define the same '
-                             ' amount of experiences')
+            raise ValueError(
+                "Train and test lists must define the same "
+                " amount of experiences"
+            )
 
     train_t_labels = []
     train_dataset_list = list(train_dataset_list)
@@ -115,11 +128,13 @@ def create_multi_dataset_generic_scenario(
         train_t_labels.append(task_labels[dataset_idx])
         train_dataset_list[dataset_idx] = AvalancheDataset(
             dataset,
-            task_labels=ConstantSequence(task_labels[dataset_idx],
-                                         len(dataset)),
+            task_labels=ConstantSequence(
+                task_labels[dataset_idx], len(dataset)
+            ),
             transform_groups=transform_groups,
-            initial_transform_group='train',
-            dataset_type=dataset_type)
+            initial_transform_group="train",
+            dataset_type=dataset_type,
+        )
 
     test_t_labels = []
     test_dataset_list = list(test_dataset_list)
@@ -134,28 +149,32 @@ def create_multi_dataset_generic_scenario(
 
         test_dataset_list[dataset_idx] = AvalancheDataset(
             dataset,
-            task_labels=ConstantSequence(test_t_label,
-                                         len(dataset)),
+            task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
-            initial_transform_group='eval',
-            dataset_type=dataset_type)
+            initial_transform_group="eval",
+            dataset_type=dataset_type,
+        )
 
     return GenericCLScenario(
         stream_definitions={
-            'train': (train_dataset_list, train_t_labels),
-            'test': (test_dataset_list, test_t_labels)
+            "train": (train_dataset_list, train_t_labels),
+            "test": (test_dataset_list, test_t_labels),
         },
-        complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only,
+    )
 
 
 def create_generic_scenario_from_filelists(
-        root: Union[str, Path],
-        train_file_lists: Sequence[Union[str, Path]],
-        test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None) -> GenericCLScenario:
+    root: Union[str, Path],
+    train_file_lists: Sequence[Union[str, Path]],
+    test_file_lists: Union[Union[str, Path], Sequence[Union[str, Path]]],
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
     `create_generic_benchmark_from_filelists`.
@@ -210,37 +229,48 @@ def create_generic_scenario_from_filelists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('create_generic_scenario_from_filelists is deprecated in '
-                  'favor of create_generic_benchmark_from_filelists.',
-                  DeprecationWarning)
+    warnings.warn(
+        "create_generic_scenario_from_filelists is deprecated in "
+        "favor of create_generic_benchmark_from_filelists.",
+        DeprecationWarning,
+    )
 
     train_datasets, test_dataset = datasets_from_filelists(
-        root, train_file_lists, test_file_lists,
-        complete_test_set_only=complete_test_set_only)
+        root,
+        train_file_lists,
+        test_file_lists,
+        complete_test_set_only=complete_test_set_only,
+    )
 
     return create_multi_dataset_generic_scenario(
-        train_datasets, test_dataset, task_labels,
+        train_datasets,
+        test_dataset,
+        task_labels,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+    )
 
 
 FileAndLabel = Tuple[Union[str, Path], int]
 
 
 def create_generic_scenario_from_paths(
-        train_list_of_files: Sequence[Sequence[FileAndLabel]],
-        test_list_of_files: Union[Sequence[FileAndLabel],
-                                  Sequence[Sequence[FileAndLabel]]],
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_list_of_files: Sequence[Sequence[FileAndLabel]],
+    test_list_of_files: Union[
+        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
+    ],
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
     `create_generic_benchmark_from_paths`.
@@ -307,33 +337,43 @@ def create_generic_scenario_from_paths(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('create_generic_scenario_from_paths is deprecated in favor'
-                  ' of create_generic_benchmark_from_paths.',
-                  DeprecationWarning)
+    warnings.warn(
+        "create_generic_scenario_from_paths is deprecated in favor"
+        " of create_generic_benchmark_from_paths.",
+        DeprecationWarning,
+    )
 
     train_datasets, test_dataset = datasets_from_paths(
-        train_list_of_files, test_list_of_files,
-        complete_test_set_only=complete_test_set_only)
+        train_list_of_files,
+        test_list_of_files,
+        complete_test_set_only=complete_test_set_only,
+    )
 
     return create_multi_dataset_generic_scenario(
-        train_datasets, test_dataset, task_labels,
+        train_datasets,
+        test_dataset,
+        task_labels,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def create_generic_scenario_from_tensor_lists(
-        train_tensors: Sequence[Sequence[Any]],
-        test_tensors: Sequence[Sequence[Any]],
-        task_labels: Sequence[int],
-        *,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = None) -> GenericCLScenario:
+    train_tensors: Sequence[Sequence[Any]],
+    test_tensors: Sequence[Sequence[Any]],
+    task_labels: Sequence[int],
+    *,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = None
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
     `create_generic_benchmark_from_tensor_lists`.
@@ -399,39 +439,48 @@ def create_generic_scenario_from_tensor_lists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('create_generic_scenario_from_tensor_lists is deprecated in '
-                  'favor of create_generic_benchmark_from_tensor_lists.',
-                  DeprecationWarning)
+    warnings.warn(
+        "create_generic_scenario_from_tensor_lists is deprecated in "
+        "favor of create_generic_benchmark_from_tensor_lists.",
+        DeprecationWarning,
+    )
 
     train_datasets = [
         AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
-        for exp_tensors in train_tensors]
+        for exp_tensors in train_tensors
+    ]
 
     test_datasets = [
         AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
-        for exp_tensors in test_tensors]
+        for exp_tensors in test_tensors
+    ]
 
     return create_multi_dataset_generic_scenario(
-        train_datasets, test_datasets, task_labels,
+        train_datasets,
+        test_datasets,
+        task_labels,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def create_generic_scenario_from_tensors(
-        train_data_x: Sequence[Any],
-        train_data_y: Sequence[Sequence[SupportsInt]],
-        test_data_x: Union[Any, Sequence[Any]],
-        test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_data_x: Sequence[Any],
+    train_data_y: Sequence[Sequence[SupportsInt]],
+    test_data_x: Union[Any, Sequence[Any]],
+    test_data_y: Union[Any, Sequence[Sequence[SupportsInt]]],
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
+) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
     `create_generic_benchmark_from_tensor_lists`.
@@ -496,25 +545,32 @@ def create_generic_scenario_from_tensors(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    warnings.warn('create_generic_scenario_from_tensors is deprecated in favor '
-                  'of create_generic_benchmark_from_tensor_lists.',
-                  DeprecationWarning)
+    warnings.warn(
+        "create_generic_scenario_from_tensors is deprecated in favor "
+        "of create_generic_benchmark_from_tensor_lists.",
+        DeprecationWarning,
+    )
 
     if len(train_data_x) != len(train_data_y):
-        raise ValueError('train_data_x and train_data_y must contain'
-                         ' the same amount of elements')
+        raise ValueError(
+            "train_data_x and train_data_y must contain"
+            " the same amount of elements"
+        )
 
     if type(test_data_x) != type(test_data_y):
-        raise ValueError('test_data_x and test_data_y must be of'
-                         ' the same type')
+        raise ValueError(
+            "test_data_x and test_data_y must be of" " the same type"
+        )
 
     if isinstance(test_data_x, Tensor):
         test_data_x = [test_data_x]
         test_data_y = [test_data_y]
     else:
         if len(test_data_x) != len(test_data_y):
-            raise ValueError('test_data_x and test_data_y must contain'
-                             ' the same amount of elements')
+            raise ValueError(
+                "test_data_x and test_data_y must contain"
+                " the same amount of elements"
+            )
 
     exp_train_first_structure = []
     exp_test_first_structure = []
@@ -539,13 +595,14 @@ def create_generic_scenario_from_tensors(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 __all__ = [
-    'create_multi_dataset_generic_scenario',
-    'create_generic_scenario_from_filelists',
-    'create_generic_scenario_from_paths',
-    'create_generic_scenario_from_tensor_lists',
-    'create_generic_scenario_from_tensors'
+    "create_multi_dataset_generic_scenario",
+    "create_generic_scenario_from_filelists",
+    "create_generic_scenario_from_paths",
+    "create_generic_scenario_from_tensor_lists",
+    "create_generic_scenario_from_tensors",
 ]

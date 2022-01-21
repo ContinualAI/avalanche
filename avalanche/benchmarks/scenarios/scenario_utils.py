@@ -26,27 +26,22 @@ def train_eval_transforms(dataset_train, dataset_test):
     """
 
     if isinstance(dataset_train, AvalancheDataset):
-        train_group = dataset_train.get_transforms('train')
+        train_group = dataset_train.get_transforms("train")
     else:
         train_group = (
-            getattr(dataset_train, 'transform', None),
-            getattr(dataset_train, 'target_transform', None)
+            getattr(dataset_train, "transform", None),
+            getattr(dataset_train, "target_transform", None),
         )
 
     if isinstance(dataset_test, AvalancheDataset):
-        eval_group = dataset_test.get_transforms('eval')
+        eval_group = dataset_test.get_transforms("eval")
     else:
         eval_group = (
-            getattr(dataset_test, 'transform', None),
-            getattr(dataset_test, 'target_transform', None)
+            getattr(dataset_test, "transform", None),
+            getattr(dataset_test, "target_transform", None),
         )
 
-    return dict(
-        train=train_group,
-        eval=eval_group
-    )
+    return dict(train=train_group, eval=eval_group)
 
 
-__all__ = [
-    'train_eval_transforms'
-]
+__all__ = ["train_eval_transforms"]

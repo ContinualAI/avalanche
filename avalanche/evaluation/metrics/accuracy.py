@@ -51,8 +51,12 @@ class Accuracy(Metric[float]):
         """
 
     @torch.no_grad()
-    def update(self, predicted_y: Tensor, true_y: Tensor,
-               task_labels: Union[float, Tensor]) -> None:
+    def update(
+        self,
+        predicted_y: Tensor,
+        true_y: Tensor,
+        task_labels: Union[float, Tensor],
+    ) -> None:
         """
         Update the running accuracy given the true and predicted labels.
         Parameter `task_labels` is used to decide how to update the inner
@@ -71,10 +75,10 @@ class Accuracy(Metric[float]):
         :return: None.
         """
         if len(true_y) != len(predicted_y):
-            raise ValueError('Size mismatch for true_y and predicted_y tensors')
+            raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
         if isinstance(task_labels, Tensor) and len(task_labels) != len(true_y):
-            raise ValueError('Size mismatch for true_y and task_labels tensors')
+            raise ValueError("Size mismatch for true_y and task_labels tensors")
 
         true_y = torch.as_tensor(true_y)
         predicted_y = torch.as_tensor(predicted_y)
@@ -92,15 +96,17 @@ class Accuracy(Metric[float]):
             true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
             total_patterns = len(true_y)
             self._mean_accuracy[task_labels].update(
-                true_positives / total_patterns, total_patterns)
+                true_positives / total_patterns, total_patterns
+            )
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
                 true_positives = (pred == true).float().item()
-                self._mean_accuracy[t.item()].update(
-                    true_positives, 1)
+                self._mean_accuracy[t.item()].update(true_positives, 1)
         else:
-            raise ValueError(f"Task label type: {type(task_labels)}, "
-                             f"expected int/float or Tensor")
+            raise ValueError(
+                f"Task label type: {type(task_labels)}, "
+                f"expected int/float or Tensor"
+            )
 
     def result(self, task_label=None) -> Dict[int, float]:
         """
@@ -114,7 +120,7 @@ class Accuracy(Metric[float]):
         :return: A dict of running accuracies for each task label,
             where each value is a float value between 0 and 1.
         """
-        assert(task_label is None or isinstance(task_label, int))
+        assert task_label is None or isinstance(task_label, int)
         if task_label is None:
             return {k: v.result() for k, v in self._mean_accuracy.items()}
         else:
@@ -128,7 +134,7 @@ class Accuracy(Metric[float]):
 
         :return: None.
         """
-        assert(task_label is None or isinstance(task_label, int))
+        assert task_label is None or isinstance(task_label, int)
         if task_label is None:
             self._mean_accuracy = defaultdict(Mean)
         else:
@@ -139,20 +145,21 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
     """
     Base class for all accuracies plugin metrics
     """
+
     def __init__(self, reset_at, emit_at, mode):
         self._accuracy = Accuracy()
         super(AccuracyPluginMetric, self).__init__(
-            self._accuracy, reset_at=reset_at, emit_at=emit_at,
-            mode=mode)
+            self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
 
     def reset(self, strategy=None) -> None:
-        if self._reset_at == 'stream' or strategy is None:
+        if self._reset_at == "stream" or strategy is None:
             self._metric.reset()
         else:
             self._metric.reset(phase_and_task(strategy)[1])
 
     def result(self, strategy=None) -> float:
-        if self._emit_at == 'stream' or strategy is None:
+        if self._emit_at == "stream" or strategy is None:
             return self._metric.result()
         else:
             return self._metric.result(phase_and_task(strategy)[1])
@@ -180,12 +187,14 @@ class MinibatchAccuracy(AccuracyPluginMetric):
     If a more coarse-grained logging is needed, consider using
     :class:`EpochAccuracy` instead.
     """
+
     def __init__(self):
         """
         Creates an instance of the MinibatchAccuracy metric.
         """
         super(MinibatchAccuracy, self).__init__(
-            reset_at='iteration', emit_at='iteration', mode='train')
+            reset_at="iteration", emit_at="iteration", mode="train"
+        )
 
     def __str__(self):
         return "Top1_Acc_MB"
@@ -207,7 +216,8 @@ class EpochAccuracy(AccuracyPluginMetric):
         """
 
         super(EpochAccuracy, self).__init__(
-            reset_at='epoch', emit_at='epoch', mode='train')
+            reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
     def __str__(self):
         return "Top1_Acc_Epoch"
@@ -230,7 +240,8 @@ class RunningEpochAccuracy(AccuracyPluginMetric):
         """
 
         super(RunningEpochAccuracy, self).__init__(
-            reset_at='epoch', emit_at='iteration', mode='train')
+            reset_at="epoch", emit_at="iteration", mode="train"
+        )
 
     def __str__(self):
         return "Top1_RunningAcc_Epoch"
@@ -248,7 +259,8 @@ class ExperienceAccuracy(AccuracyPluginMetric):
         Creates an instance of ExperienceAccuracy metric
         """
         super(ExperienceAccuracy, self).__init__(
-            reset_at='experience', emit_at='experience', mode='eval')
+            reset_at="experience", emit_at="experience", mode="eval"
+        )
 
     def __str__(self):
         return "Top1_Acc_Exp"
@@ -266,7 +278,8 @@ class StreamAccuracy(AccuracyPluginMetric):
         Creates an instance of StreamAccuracy metric
         """
         super(StreamAccuracy, self).__init__(
-            reset_at='stream', emit_at='stream', mode='eval')
+            reset_at="stream", emit_at="stream", mode="eval"
+        )
 
     def __str__(self):
         return "Top1_Acc_Stream"
@@ -282,22 +295,23 @@ class TrainedExperienceAccuracy(AccuracyPluginMetric):
 
     def __init__(self):
         """
-        Creates an instance of TrainedExperienceAccuracy metric by first 
+        Creates an instance of TrainedExperienceAccuracy metric by first
         constructing AccuracyPluginMetric
         """
         super(TrainedExperienceAccuracy, self).__init__(
-            reset_at='stream', emit_at='stream', mode='eval')
+            reset_at="stream", emit_at="stream", mode="eval"
+        )
         self._current_experience = 0
 
     def after_training_exp(self, strategy) -> None:
         self._current_experience = strategy.experience.current_experience
-        # Reset average after learning from a new experience 
+        # Reset average after learning from a new experience
         AccuracyPluginMetric.reset(self, strategy)
         return AccuracyPluginMetric.after_training_exp(self, strategy)
-        
+
     def update(self, strategy):
         """
-        Only update the accuracy with results from experiences that have been 
+        Only update the accuracy with results from experiences that have been
         trained on
         """
         if strategy.experience.current_experience <= self._current_experience:
@@ -307,13 +321,15 @@ class TrainedExperienceAccuracy(AccuracyPluginMetric):
         return "Accuracy_On_Trained_Experiences"
 
 
-def accuracy_metrics(*, 
-                     minibatch=False,
-                     epoch=False,
-                     epoch_running=False,
-                     experience=False,
-                     stream=False,
-                     trained_experience=False) -> List[PluginMetric]:
+def accuracy_metrics(
+    *,
+    minibatch=False,
+    epoch=False,
+    epoch_running=False,
+    experience=False,
+    stream=False,
+    trained_experience=False,
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -330,7 +346,7 @@ def accuracy_metrics(*,
         the accuracy averaged over the entire evaluation stream of experiences.
     :param trained_experience: If True, will return a metric able to log
         the average evaluation accuracy only for experiences that the
-        model has been trained on         
+        model has been trained on
 
     :return: A list of plugin metrics.
     """
@@ -358,12 +374,12 @@ def accuracy_metrics(*,
 
 
 __all__ = [
-    'Accuracy',
-    'MinibatchAccuracy',
-    'EpochAccuracy',
-    'RunningEpochAccuracy',
-    'ExperienceAccuracy',
-    'StreamAccuracy',
-    'TrainedExperienceAccuracy',
-    'accuracy_metrics'
+    "Accuracy",
+    "MinibatchAccuracy",
+    "EpochAccuracy",
+    "RunningEpochAccuracy",
+    "ExperienceAccuracy",
+    "StreamAccuracy",
+    "TrainedExperienceAccuracy",
+    "accuracy_metrics",
 ]

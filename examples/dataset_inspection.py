@@ -54,7 +54,10 @@ def main(cuda: int):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(stream=True, experience=True),
         images_samples_metrics(
-            on_train=True, on_eval=True, n_cols=10, n_rows=10,
+            on_train=True,
+            on_eval=True,
+            n_cols=10,
+            n_rows=10,
         ),
         labels_repartition_metrics(
             # image_creator=repartition_bar_chart_image_creator,

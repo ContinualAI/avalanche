@@ -22,6 +22,6 @@ def main():
     print("Everything looks fine here :-)")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     main()

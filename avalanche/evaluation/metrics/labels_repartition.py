@@ -34,6 +34,7 @@ class LabelsRepartition(Metric):
     """
     Metric used to monitor the labels repartition.
     """
+
     def __init__(self):
         self.task2label2count: Dict[int, Dict[int, int]] = {}
         self.class_order = None
@@ -145,7 +146,8 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 f"/{stream_type(strategy.experience)}_stream"
                 f"/Task_{task:03}",
                 value=AlternativeValues(
-                    self.image_creator(label2counts, self.steps), label2counts,
+                    self.image_creator(label2counts, self.steps),
+                    label2counts,
                 )
                 if self.image_creator is not None
                 else label2counts,
@@ -206,7 +208,7 @@ def labels_repartition_metrics(
 
 
 __all__ = [
-    'LabelsRepartitionPlugin',
-    'LabelsRepartition',
-    'labels_repartition_metrics'
+    "LabelsRepartitionPlugin",
+    "LabelsRepartition",
+    "labels_repartition_metrics",
 ]

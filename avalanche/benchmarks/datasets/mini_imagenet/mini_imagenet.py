@@ -77,9 +77,12 @@ from PIL import Image
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Resize
 
-from avalanche.benchmarks.datasets.mini_imagenet.mini_imagenet_data import \
-    MINI_IMAGENET_WNIDS, MINI_IMAGENET_WNID_TO_IDX, MINI_IMAGENET_CLASSES, \
-    MINI_IMAGENET_CLASS_TO_IDX
+from avalanche.benchmarks.datasets.mini_imagenet.mini_imagenet_data import (
+    MINI_IMAGENET_WNIDS,
+    MINI_IMAGENET_WNID_TO_IDX,
+    MINI_IMAGENET_CLASSES,
+    MINI_IMAGENET_CLASS_TO_IDX,
+)
 
 
 class MiniImageNetDataset(Dataset):
@@ -102,10 +105,14 @@ class MiniImageNetDataset(Dataset):
     All the fields found in the torchvision implementation of the ImageNet
     dataset (`wnids`, `wnid_to_idx`, `classes`, `class_to_idx`) are available.
     """
-    def __init__(self, imagenet_path: Union[str, Path],
-                 split: Literal['all', 'train', 'val', 'test'] = 'all',
-                 resize_to: Union[int, Tuple[int, int]] = 84,
-                 loader=default_loader):
+
+    def __init__(
+        self,
+        imagenet_path: Union[str, Path],
+        split: Literal["all", "train", "val", "test"] = "all",
+        resize_to: Union[int, Tuple[int, int]] = 84,
+        loader=default_loader,
+    ):
         """
         Creates an instance of the Mini ImageNet dataset.
 
@@ -135,7 +142,7 @@ class MiniImageNetDataset(Dataset):
         The path to the "train" folder of full imagenet 2012 directory.
         """
 
-        self.split: Literal['all', 'train', 'val', 'test'] = split
+        self.split: Literal["all", "train", "val", "test"] = split
         """
         The required split.
         """
@@ -149,8 +156,9 @@ class MiniImageNetDataset(Dataset):
         """
 
         # TODO: the original loader from yaoyao-liu uses cv2.INTER_AREA
-        self._transform = Resize(self.resize_to,
-                                 interpolation=PIL.Image.BILINEAR)
+        self._transform = Resize(
+            self.resize_to, interpolation=PIL.Image.BILINEAR
+        )
 
         # The following fields are filled by self.prepare_dataset()
         self.image_paths: List[str] = []
@@ -190,11 +198,12 @@ class MiniImageNetDataset(Dataset):
         self.loader = loader
 
         if not self.imagenet_path.exists():
-            raise ValueError('The provided directory does not exist.')
+            raise ValueError("The provided directory does not exist.")
 
-        if self.split not in ['all', 'train', 'val', 'test']:
-            raise ValueError('Invalid split. Valid values are: "train", "val", '
-                             '"test"')
+        if self.split not in ["all", "train", "val", "test"]:
+            raise ValueError(
+                'Invalid split. Valid values are: "train", "val", ' '"test"'
+            )
 
         self.prepare_dataset()
 
@@ -203,25 +212,25 @@ class MiniImageNetDataset(Dataset):
     @staticmethod
     def get_train_path(root_path: Union[str, Path]):
         root_path = Path(root_path)
-        if (root_path / 'train').exists():
-            return root_path / 'train'
+        if (root_path / "train").exists():
+            return root_path / "train"
         return root_path
 
     def prepare_dataset(self):
         # Read the CSV containing the file list for this split
         images = dict()
 
-        csv_dir = Path(__file__).resolve().parent / 'csv_files'
-        if self.split == 'all':
-            considered_csvs = ['train.csv', 'val.csv', 'test.csv']
+        csv_dir = Path(__file__).resolve().parent / "csv_files"
+        if self.split == "all":
+            considered_csvs = ["train.csv", "val.csv", "test.csv"]
         else:
-            considered_csvs = [self.split + '.csv']
+            considered_csvs = [self.split + ".csv"]
 
         for csv_name in considered_csvs:
             csv_path = str(csv_dir / csv_name)
 
             with open(csv_path) as csvfile:
-                csv_reader = csv.reader(csvfile, delimiter=',')
+                csv_reader = csv.reader(csvfile, delimiter=",")
                 next(csv_reader, None)  # Skip header
 
                 for row in csv_reader:
@@ -255,19 +264,24 @@ class MiniImageNetDataset(Dataset):
         for cls in images.keys():
             cls_numerical_label = self.wnid_to_idx[cls]
             lst_files = []
-            for file in glob.glob(str(self.imagenet_path / cls /
-                                      ("*" + cls + "*"))):
+            for file in glob.glob(
+                str(self.imagenet_path / cls / ("*" + cls + "*"))
+            ):
                 lst_files.append(file)
 
-            lst_index = [int(i[i.rfind('_') + 1:i.rfind('.')]) for i in
-                         lst_files]
-            index_sorted = sorted(range(len(lst_index)),
-                                  key=lst_index.__getitem__)
+            lst_index = [
+                int(i[i.rfind("_") + 1 : i.rfind(".")]) for i in lst_files
+            ]
+            index_sorted = sorted(
+                range(len(lst_index)), key=lst_index.__getitem__
+            )
 
-            index_selected = [int(i[i.index('.') - 4:i.index('.')]) for
-                              i in images[cls]]
+            index_selected = [
+                int(i[i.index(".") - 4 : i.index(".")]) for i in images[cls]
+            ]
             selected_images = np.array(index_sorted)[
-                np.array(index_selected) - 1]
+                np.array(index_selected) - 1
+            ]
             for i in np.arange(len(selected_images)):
                 self.image_paths.append(lst_files[selected_images[i]])
                 self.targets.append(cls_numerical_label)
@@ -281,46 +295,50 @@ class MiniImageNetDataset(Dataset):
         return img, self.targets[item]
 
 
-__all__ = [
-    'MiniImageNetDataset'
-]
+__all__ = ["MiniImageNetDataset"]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    print('Creating training dataset')
-    train_dataset = MiniImageNetDataset('/ssd2/datasets/imagenet',
-                                        split='train')
-    print('Creating validation dataset')
-    val_dataset = MiniImageNetDataset('/ssd2/datasets/imagenet',
-                                      split='val')
-    print('Creating test dataset')
-    test_dataset = MiniImageNetDataset('/ssd2/datasets/imagenet',
-                                       split='test')
+    print("Creating training dataset")
+    train_dataset = MiniImageNetDataset(
+        "/ssd2/datasets/imagenet", split="train"
+    )
+    print("Creating validation dataset")
+    val_dataset = MiniImageNetDataset("/ssd2/datasets/imagenet", split="val")
+    print("Creating test dataset")
+    test_dataset = MiniImageNetDataset("/ssd2/datasets/imagenet", split="test")
 
-    print('Training patterns:', len(train_dataset))
-    print('Validation patterns:', len(val_dataset))
-    print('Test patterns:', len(test_dataset))
+    print("Training patterns:", len(train_dataset))
+    print("Validation patterns:", len(val_dataset))
+    print("Test patterns:", len(test_dataset))
 
     for img_idx, (img, label) in enumerate(train_dataset):
-        plt.title("Class {}, {}\n{}".format(label,
-                                            train_dataset.classes[label],
-                                            train_dataset.image_paths[0]))
+        plt.title(
+            "Class {}, {}\n{}".format(
+                label,
+                train_dataset.classes[label],
+                train_dataset.image_paths[0],
+            )
+        )
         plt.imshow(img)
         plt.show()
         print(img)
         print(label)
         class_to_idx = train_dataset.class_to_idx[
-            train_dataset.classes[label][0]]
+            train_dataset.classes[label][0]
+        ]
         assert class_to_idx == label
         if img_idx == 2:
             break
 
     for img_idx, (img, label) in enumerate(val_dataset):
-        plt.title("Class {}, {}\n{}".format(label,
-                                            val_dataset.classes[label],
-                                            val_dataset.image_paths[0]))
+        plt.title(
+            "Class {}, {}\n{}".format(
+                label, val_dataset.classes[label], val_dataset.image_paths[0]
+            )
+        )
         plt.imshow(img)
         plt.show()
         print(img)
@@ -331,15 +349,18 @@ if __name__ == '__main__':
             break
 
     for img_idx, (img, label) in enumerate(test_dataset):
-        plt.title("Class {}, {}\n{}".format(label,
-                                            test_dataset.classes[label],
-                                            test_dataset.image_paths[0]))
+        plt.title(
+            "Class {}, {}\n{}".format(
+                label, test_dataset.classes[label], test_dataset.image_paths[0]
+            )
+        )
         plt.imshow(img)
         plt.show()
         print(img)
         print(label)
         class_to_idx = test_dataset.class_to_idx[
-            train_dataset.classes[label][0]]
+            train_dataset.classes[label][0]
+        ]
         assert class_to_idx == label
         if img_idx == 2:
             break

@@ -302,9 +302,9 @@ def mean_scores_metrics(
 
 
 __all__ = [
-    'mean_scores_metrics',
-    'MeanScoresTrainPluginMetric',
-    'MeanScoresEvalPluginMetric',
-    'MeanScores',
-    'MeanNewOldScores'
+    "mean_scores_metrics",
+    "MeanScoresTrainPluginMetric",
+    "MeanScoresEvalPluginMetric",
+    "MeanScores",
+    "MeanNewOldScores",
 ]

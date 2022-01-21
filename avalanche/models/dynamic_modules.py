@@ -22,17 +22,17 @@ from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 class DynamicModule(Module):
     """
-        Dynamic Modules are Avalanche modules that can be incrementally
-        expanded to allow architectural modifications (multi-head
-        classifiers, progressive networks, ...).
+    Dynamic Modules are Avalanche modules that can be incrementally
+    expanded to allow architectural modifications (multi-head
+    classifiers, progressive networks, ...).
 
-        Compared to pytoch Modules, they provide an additional method,
-        `model_adaptation`, which adapts the model given data from the
-        current experience.
+    Compared to pytoch Modules, they provide an additional method,
+    `model_adaptation`, which adapts the model given data from the
+    current experience.
     """
 
     def adaptation(self, dataset: AvalancheDataset = None):
-        """ Adapt the module (freeze units, add units...) using the current
+        """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
         Avalanche strategies call this method to adapt the architecture
@@ -54,7 +54,7 @@ class DynamicModule(Module):
             self.eval_adaptation(dataset)
 
     def train_adaptation(self, dataset: AvalancheDataset):
-        """ Module's adaptation at training time.
+        """Module's adaptation at training time.
 
         Avalanche strategies automatically call this method *before* training
         on each experience.
@@ -62,7 +62,7 @@ class DynamicModule(Module):
         pass
 
     def eval_adaptation(self, dataset: AvalancheDataset):
-        """ Module's adaptation at evaluation time.
+        """Module's adaptation at evaluation time.
 
         Avalanche strategies automatically call this method *before* evaluating
         on each experience.
@@ -79,34 +79,37 @@ class DynamicModule(Module):
 
 class MultiTaskModule(DynamicModule):
     """
-        Multi-task modules are `torch.nn.Modules`s for multi-task
-        scenarios. The `forward` method accepts task labels, one for
-        each sample in the mini-batch.
+    Multi-task modules are `torch.nn.Modules`s for multi-task
+    scenarios. The `forward` method accepts task labels, one for
+    each sample in the mini-batch.
 
-        By default the `forward` method splits the mini-batch by task
-        and calls `forward_single_task`. Subclasses must implement
-        `forward_single_task` or override `forward.
+    By default the `forward` method splits the mini-batch by task
+    and calls `forward_single_task`. Subclasses must implement
+    `forward_single_task` or override `forward.
 
-        if `task_labels == None`, the output is computed in parallel
-        for each task.
+    if `task_labels == None`, the output is computed in parallel
+    for each task.
     """
+
     def __init__(self):
         super().__init__()
         self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
     def train_adaptation(self, dataset: AvalancheDataset = None):
-        """ Update known task labels. """
+        """Update known task labels."""
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
             task_labels = [task_labels[0]]
-        self.known_train_tasks_labels = \
-            self.known_train_tasks_labels.union(set(task_labels))
+        self.known_train_tasks_labels = self.known_train_tasks_labels.union(
+            set(task_labels)
+        )
 
-    def forward(self, x: torch.Tensor, task_labels: torch.Tensor)\
-            -> torch.Tensor:
-        """ compute the output given the input `x` and task labels.
+    def forward(
+        self, x: torch.Tensor, task_labels: torch.Tensor
+    ) -> torch.Tensor:
+        """compute the output given the input `x` and task labels.
 
         :param x:
         :param task_labels: task labels for each sample. if None, the
@@ -131,14 +134,16 @@ class MultiTaskModule(DynamicModule):
             out_task = self.forward_single_task(x_task, task.item())
 
             if out is None:
-                out = torch.empty(x.shape[0], *out_task.shape[1:],
-                                  device=out_task.device)
+                out = torch.empty(
+                    x.shape[0], *out_task.shape[1:], device=out_task.device
+                )
             out[task_mask] = out_task
         return out
 
-    def forward_single_task(self, x: torch.Tensor, task_label: int)\
-            -> torch.Tensor:
-        """ compute the output given the input `x` and task label.
+    def forward_single_task(
+        self, x: torch.Tensor, task_label: int
+    ) -> torch.Tensor:
+        """compute the output given the input `x` and task label.
 
         :param x:
         :param task_label: a single task label.
@@ -147,7 +152,7 @@ class MultiTaskModule(DynamicModule):
         raise NotImplementedError()
 
     def forward_all_tasks(self, x: torch.Tensor):
-        """ compute the output given the input `x` and task label.
+        """compute the output given the input `x` and task label.
         By default, it considers only tasks seen at training time.
 
         :param x:
@@ -169,6 +174,7 @@ class IncrementalClassifier(DynamicModule):
     Typically used in class-incremental benchmarks where the number of
     classes grows over time.
     """
+
     def __init__(self, in_features, initial_out_features=2):
         """
         :param in_features: number of input features.
@@ -180,15 +186,16 @@ class IncrementalClassifier(DynamicModule):
 
     @torch.no_grad()
     def adaptation(self, dataset: AvalancheDataset):
-        """ If `dataset` contains unseen classes the classifier is expanded.
+        """If `dataset` contains unseen classes the classifier is expanded.
 
         :param dataset: data from the current experience.
         :return:
         """
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
-        new_nclasses = max(self.classifier.out_features,
-                           max(dataset.targets) + 1)
+        new_nclasses = max(
+            self.classifier.out_features, max(dataset.targets) + 1
+        )
 
         if old_nclasses == new_nclasses:
             return
@@ -198,7 +205,7 @@ class IncrementalClassifier(DynamicModule):
         self.classifier.bias[:old_nclasses] = old_b
 
     def forward(self, x, **kwargs):
-        """ compute the output given the input `x`. This module does not use
+        """compute the output given the input `x`. This module does not use
         the task label.
 
         :param x:
@@ -208,7 +215,7 @@ class IncrementalClassifier(DynamicModule):
 
 
 class MultiHeadClassifier(MultiTaskModule):
-    """ Multi-head classifier with separate heads for each task.
+    """Multi-head classifier with separate heads for each task.
 
     Typically used in task-incremental benchmarks where task labels are
     available and provided to the model.
@@ -229,6 +236,7 @@ class MultiHeadClassifier(MultiTaskModule):
         - each head has the same size, which can be enforced by setting a
             large enough `initial_out_features`.
     """
+
     def __init__(self, in_features, initial_out_features=2):
         """
         :param in_features: number of input features.
@@ -242,12 +250,13 @@ class MultiHeadClassifier(MultiTaskModule):
 
         # needs to create the first head because pytorch optimizers
         # fail when model.parameters() is empty.
-        first_head = IncrementalClassifier(self.in_features,
-                                           self.starting_out_features)
-        self.classifiers['0'] = first_head
+        first_head = IncrementalClassifier(
+            self.in_features, self.starting_out_features
+        )
+        self.classifiers["0"] = first_head
 
     def adaptation(self, dataset: AvalancheDataset):
-        """ If `dataset` contains new tasks, a new head is initialized.
+        """If `dataset` contains new tasks, a new head is initialized.
 
         :param dataset: data from the current experience.
         :return:
@@ -261,13 +270,14 @@ class MultiHeadClassifier(MultiTaskModule):
         for tid in set(task_labels):
             tid = str(tid)  # need str keys
             if tid not in self.classifiers:
-                new_head = IncrementalClassifier(self.in_features,
-                                                 self.starting_out_features)
+                new_head = IncrementalClassifier(
+                    self.in_features, self.starting_out_features
+                )
                 new_head.adaptation(dataset)
                 self.classifiers[tid] = new_head
 
     def forward_single_task(self, x, task_label):
-        """ compute the output given the input `x`. This module uses the task
+        """compute the output given the input `x`. This module uses the task
         label to activate the correct head.
 
         :param x:
@@ -279,12 +289,13 @@ class MultiHeadClassifier(MultiTaskModule):
 
 class TrainEvalModel(DynamicModule):
     """
-        TrainEvalModel.
-        This module allows to wrap together a common feature extractor and
-        two classifiers: one used during training time and another
-        used at test time. The classifier is switched when `self.adaptation()`
-        is called.
+    TrainEvalModel.
+    This module allows to wrap together a common feature extractor and
+    two classifiers: one used during training time and another
+    used at test time. The classifier is switched when `self.adaptation()`
+    is called.
     """
+
     def __init__(self, feature_extractor, train_classifier, eval_classifier):
         """
         :param feature_extractor: a differentiable feature extractor
@@ -312,9 +323,9 @@ class TrainEvalModel(DynamicModule):
 
 
 __all__ = [
-    'DynamicModule',
-    'MultiTaskModule',
-    'IncrementalClassifier',
-    'MultiHeadClassifier',
-    'TrainEvalModel'
+    "DynamicModule",
+    "MultiTaskModule",
+    "IncrementalClassifier",
+    "MultiHeadClassifier",
+    "TrainEvalModel",
 ]

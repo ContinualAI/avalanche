@@ -5,7 +5,7 @@ from avalanche.training.plugins import StrategyPlugin
 
 
 class EarlyStoppingPlugin(StrategyPlugin):
-    """ Early stopping plugin.
+    """Early stopping plugin.
 
     Simple plugin stopping the training when the accuracy on the
     corresponding validation metric stopped progressing for a few epochs.
@@ -13,8 +13,14 @@ class EarlyStoppingPlugin(StrategyPlugin):
     given metric and is loaded back into the model before stopping the
     training procedure.
     """
-    def __init__(self, patience: int, val_stream_name: str,
-                 metric_name: str = 'Top1_Acc_Stream', mode: str = 'max'):
+
+    def __init__(
+        self,
+        patience: int,
+        val_stream_name: str,
+        metric_name: str = "Top1_Acc_Stream",
+        mode: str = "max",
+    ):
         """
         :param patience: Number of epochs to wait before stopping the training.
         :param val_stream_name: Name of the validation stream to search in the
@@ -29,11 +35,12 @@ class EarlyStoppingPlugin(StrategyPlugin):
         self.val_stream_name = val_stream_name
         self.patience = patience
         self.metric_name = metric_name
-        self.metric_key = f'{self.metric_name}/eval_phase/' \
-                          f'{self.val_stream_name}'
-        if mode not in ('max', 'min'):
+        self.metric_key = (
+            f"{self.metric_name}/eval_phase/" f"{self.val_stream_name}"
+        )
+        if mode not in ("max", "min"):
             raise ValueError(f'Mode must be "max" or "min", got {mode}.')
-        self.operator = operator.gt if mode == 'max' else operator.lt
+        self.operator = operator.gt if mode == "max" else operator.lt
 
         self.best_state = None  # Contains the best parameters
         self.best_val = None

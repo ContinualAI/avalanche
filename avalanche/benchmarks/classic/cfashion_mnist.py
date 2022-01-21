@@ -17,32 +17,32 @@ from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import default_dataset_location
 
-_default_fmnist_train_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.2860,), (0.3530,))
-])
+_default_fmnist_train_transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))]
+)
 
-_default_fmnist_eval_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.2860,), (0.3530,))
-])
+_default_fmnist_eval_transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))]
+)
 
 
 def SplitFMNIST(
-        n_experiences: int,
-        *,
-        first_batch_with_half_classes: bool = False,
-        return_task_id=False,
-        seed: Optional[int] = None,
-        fixed_class_order: Optional[Sequence[int]] = None,
-        shuffle: bool = True,
-        train_transform: Optional[Any] = _default_fmnist_train_transform,
-        eval_transform: Optional[Any] = _default_fmnist_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    n_experiences: int,
+    *,
+    first_batch_with_half_classes: bool = False,
+    return_task_id=False,
+    seed: Optional[int] = None,
+    fixed_class_order: Optional[Sequence[int]] = None,
+    shuffle: bool = True,
+    train_transform: Optional[Any] = _default_fmnist_train_transform,
+    eval_transform: Optional[Any] = _default_fmnist_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark using the Fashion MNIST dataset.
 
@@ -122,7 +122,8 @@ def SplitFMNIST(
             shuffle=shuffle,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=fmnist_train,
@@ -134,23 +135,20 @@ def SplitFMNIST(
             shuffle=shuffle,
             per_exp_classes={0: 5} if first_batch_with_half_classes else None,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def _get_fmnist_dataset(dataset_root):
     if dataset_root is None:
-        dataset_root = default_dataset_location('fashionmnist')
+        dataset_root = default_dataset_location("fashionmnist")
 
-    train_set = FashionMNIST(dataset_root,
-                             train=True, download=True)
-    test_set = FashionMNIST(dataset_root,
-                            train=False, download=True)
+    train_set = FashionMNIST(dataset_root, train=True, download=True)
+    test_set = FashionMNIST(dataset_root, train=False, download=True)
     return train_set, test_set
 
 
-__all__ = [
-    'SplitFMNIST'
-]
+__all__ = ["SplitFMNIST"]
 
 if __name__ == "__main__":
     import sys

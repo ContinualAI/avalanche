@@ -27,16 +27,28 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
-from avalanche.training.strategies import Naive, Replay, CWRStar, \
-    GDumb, LwF, AGEM, GEM, EWC, \
-    SynapticIntelligence, JointTraining
+from avalanche.training.strategies import (
+    Naive,
+    Replay,
+    CWRStar,
+    GDumb,
+    LwF,
+    AGEM,
+    GEM,
+    EWC,
+    SynapticIntelligence,
+    JointTraining,
+)
 from avalanche.training.strategies.ar1 import AR1
 from avalanche.training.strategies.cumulative import Cumulative
 from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
-from avalanche.benchmarks.utils.data_loader import \
-    ReplayDataLoader, TaskBalancedDataLoader, GroupBalancedDataLoader
+from avalanche.benchmarks.utils.data_loader import (
+    ReplayDataLoader,
+    TaskBalancedDataLoader,
+    GroupBalancedDataLoader,
+)
 
 
 def get_fast_benchmark():
@@ -44,18 +56,23 @@ def get_fast_benchmark():
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
         n_classes=10,
-        n_features=6, n_informative=6, n_redundant=0)
+        n_features=6,
+        n_informative=6,
+        n_redundant=0,
+    )
 
     X = torch.from_numpy(dataset[0]).float()
     y = torch.from_numpy(dataset[1]).long()
 
     train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y)
+        X, y, train_size=0.6, shuffle=True, stratify=y
+    )
 
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
-    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5,
-                                   task_labels=True)
+    my_nc_benchmark = nc_benchmark(
+        train_dataset, test_dataset, 5, task_labels=True
+    )
     return my_nc_benchmark
 
 
@@ -84,9 +101,11 @@ class DataLoaderTests(unittest.TestCase):
         cl_strategy = Naive(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
-            CrossEntropyLoss(), train_mb_size=16, train_epochs=1,
+            CrossEntropyLoss(),
+            train_mb_size=16,
+            train_epochs=1,
             eval_mb_size=16,
-            plugins=[replayPlugin]
+            plugins=[replayPlugin],
         )
         for step in benchmark.train_stream[:2]:
             cl_strategy.train(step)
@@ -100,18 +119,22 @@ class DataLoaderTests(unittest.TestCase):
         cl_strategy = Naive(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
-            CrossEntropyLoss(), train_mb_size=batch_size, train_epochs=1,
-            eval_mb_size=100, plugins=[replayPlugin]
+            CrossEntropyLoss(),
+            train_mb_size=batch_size,
+            train_epochs=1,
+            eval_mb_size=100,
+            plugins=[replayPlugin],
         )
         for step in benchmark.train_stream:
             adapted_dataset = step.dataset
             dataloader = ReplayDataLoader(
-                    adapted_dataset,
-                    replayPlugin.storage_policy.buffer,
-                    oversample_small_tasks=True,
-                    num_workers=0,
-                    batch_size=batch_size,
-                    shuffle=True)
+                adapted_dataset,
+                replayPlugin.storage_policy.buffer,
+                oversample_small_tasks=True,
+                num_workers=0,
+                batch_size=batch_size,
+                shuffle=True,
+            )
 
             for mini_batch in dataloader:
                 mb_task_labels = mini_batch[-1]
@@ -126,5 +149,5 @@ class DataLoaderTests(unittest.TestCase):
             cl_strategy.train(step)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

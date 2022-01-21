@@ -15,12 +15,12 @@ import json
 import os
 
 
-AVALANCHE_CONFIG_ROOT = os.path.expanduser('~/.avalanche')
-AVALANCHE_CONFIG_FILENAME = os.path.expanduser('~/.avalanche/config.json')
+AVALANCHE_CONFIG_ROOT = os.path.expanduser("~/.avalanche")
+AVALANCHE_CONFIG_FILENAME = os.path.expanduser("~/.avalanche/config.json")
 
 
 def default_dataset_location(dataset_name: str) -> Path:
-    """ Returns the default download location for Avalanche datasets.
+    """Returns the default download location for Avalanche datasets.
 
     The default value is "~/.avalanche/data/<dataset_name>", but it may be
     changed via the `dataset_location` value in the configuration file
@@ -30,17 +30,17 @@ def default_dataset_location(dataset_name: str) -> Path:
         can be used to name a directory in most filesystems!
     :return: The default path for the dataset.
     """
-    base_dir = os.path.expanduser(AVALANCHE_CONFIG['dataset_location'])
+    base_dir = os.path.expanduser(AVALANCHE_CONFIG["dataset_location"])
     return Path(f"{base_dir}/{dataset_name}")
 
 
 def load_config_file():
-    with open(AVALANCHE_CONFIG_FILENAME, 'r') as f:
+    with open(AVALANCHE_CONFIG_FILENAME, "r") as f:
         return json.load(f)
 
 
 def maybe_init_config_file():
-    """ Initialize Avalanche user's config file, if it does not exists yet.
+    """Initialize Avalanche user's config file, if it does not exists yet.
 
     The file is located in `~/.avalanche/config.json`
     """
@@ -48,10 +48,10 @@ def maybe_init_config_file():
         return
     os.makedirs(AVALANCHE_CONFIG_ROOT, exist_ok=True)
     default_config = {
-        'dataset_location': os.path.expanduser('~/.avalanche/data')
+        "dataset_location": os.path.expanduser("~/.avalanche/data")
     }
 
-    with open(AVALANCHE_CONFIG_FILENAME, 'w') as f:
+    with open(AVALANCHE_CONFIG_FILENAME, "w") as f:
         json.dump(default_config, f, indent=4)
 
 
@@ -59,6 +59,4 @@ maybe_init_config_file()
 AVALANCHE_CONFIG = load_config_file()
 
 
-__all__ = [
-    'default_dataset_location'
-]
+__all__ = ["default_dataset_location"]

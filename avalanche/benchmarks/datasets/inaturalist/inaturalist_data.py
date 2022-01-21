@@ -86,26 +86,18 @@ else:
 base_url = "https://ml-inat-competition-datasets.s3.amazonaws.com/2018"
 train_data = [
     # 120G: Train+val data
-    ('train_val2018.tar.gz',
-     f"{base_url}/train_val2018.tar.gz"),
-
+    ("train_val2018.tar.gz", f"{base_url}/train_val2018.tar.gz"),
     # Training annotations
-    ('train2018.json.tar.gz',
-     f"{base_url}/train2018.json.tar.gz"),
-
+    ("train2018.json.tar.gz", f"{base_url}/train2018.json.tar.gz"),
     # Validation annotations
-    ('val2018.json.tar.gz',
-     f"{base_url}/val2018.json.tar.gz"),
+    ("val2018.json.tar.gz", f"{base_url}/val2018.json.tar.gz"),
 ]
 
 test_data = [
     # 40G: Test data
-    ('test2018.tar.gz',
-     f"{base_url}/test2018.tar.gz"),
-
+    ("test2018.tar.gz", f"{base_url}/test2018.tar.gz"),
     # Test annotations
-    ('test2018.json.tar.gz',
-     f"{base_url}/test2018.json.tar.gz"),
+    ("test2018.json.tar.gz", f"{base_url}/test2018.json.tar.gz"),
 ]
 
 
@@ -114,7 +106,7 @@ class INATURALIST_DATA(object):
     INATURALIST downloader.
     """
 
-    def __init__(self, data_folder='data/', trainval=True):
+    def __init__(self, data_folder="data/", trainval=True):
         """
         Args:
             data_folder (string): folder in which to download
@@ -127,8 +119,9 @@ class INATURALIST_DATA(object):
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
         else:
-            self.data_folder = os.path.join(os.path.dirname(__file__),
-                                            data_folder)
+            self.data_folder = os.path.join(
+                os.path.dirname(__file__), data_folder
+            )
 
         try:
             # Create target Directory for INATURALIST data
@@ -139,15 +132,16 @@ class INATURALIST_DATA(object):
 
         except OSError:
             import traceback
+
             traceback.print_exc()
             self.download = False
             self.log.error("Directory %s already exists", self.data_folder)
 
     def download_inaturalist(self):
-        """ Download and extract inaturalist data
+        """Download and extract inaturalist data
 
-            :param extra: download also additional INATURALIST data not strictly
-                required by the data loader.
+        :param extra: download also additional INATURALIST data not strictly
+            required by the data loader.
         """
 
         data2download = train_data if self.trainval else test_data
@@ -162,19 +156,18 @@ class INATURALIST_DATA(object):
 
             if name[0].endswith("tar.gz"):
                 untar_save_name = os.path.join(
-                    self.data_folder, '.'.join(name[0].split('.')[:-2]))
+                    self.data_folder, ".".join(name[0].split(".")[:-2])
+                )
                 if not os.path.exists(untar_save_name):
                     with tarfile.open(
-                            os.path.join(self.data_folder, name[0]),
-                            "r:gz") as tar:
-                        self.log.info('Extracting INATURALIST images...')
+                        os.path.join(self.data_folder, name[0]), "r:gz"
+                    ) as tar:
+                        self.log.info("Extracting INATURALIST images...")
                         tar.extractall(self.data_folder)
-                        self.log.info('Done!')
+                        self.log.info("Done!")
                 else:
                     self.log.info("Skipping untarring, exists: ", save_name)
         self.log.info("Download complete.")
 
 
-__all__ = [
-    'INATURALIST_DATA'
-]
+__all__ = ["INATURALIST_DATA"]

@@ -13,19 +13,14 @@ from avalanche.evaluation.metrics import ImagesSamplePlugin
 class ImageSamplesTests(unittest.TestCase):
     def test_image_samples(args):
         p_metric = ImagesSamplePlugin(
-            n_cols=5,
-            n_rows=5,
-            group=True,
-            mode="train"
+            n_cols=5, n_rows=5, group=True, mode="train"
         )
 
         scenario = SplitMNIST(5)
         curr_exp = scenario.train_stream[0]
         curr_dataset = curr_exp.dataset
         strategy_mock = MagicMock(
-            eval_mb_size=32,
-            experience=curr_exp,
-            adapted_dataset=curr_dataset
+            eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
         )
 
         mval = p_metric.after_train_dataset_adaptation(strategy_mock)
@@ -35,10 +30,7 @@ class ImageSamplesTests(unittest.TestCase):
 
     def test_tensor_samples(args):
         p_metric = ImagesSamplePlugin(
-            n_cols=5,
-            n_rows=5,
-            group=True,
-            mode="train"
+            n_cols=5, n_rows=5, group=True, mode="train"
         )
 
         scenario = SplitMNIST(5)
@@ -48,9 +40,7 @@ class ImageSamplesTests(unittest.TestCase):
         curr_dataset = AvalancheTensorDataset(*mb[:2], targets=mb[1])
 
         strategy_mock = MagicMock(
-            eval_mb_size=32,
-            experience=curr_exp,
-            adapted_dataset=curr_dataset
+            eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
         )
 
         mval = p_metric.after_train_dataset_adaptation(strategy_mock)
@@ -76,13 +66,11 @@ class ImageSamplesTests(unittest.TestCase):
             n_rows=5,
             group=True,
             mode="train",
-            disable_augmentations=False
+            disable_augmentations=False,
         )
 
         strategy_mock = MagicMock(
-            eval_mb_size=32,
-            experience=curr_exp,
-            adapted_dataset=curr_dataset
+            eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
         )
 
         mval = p_metric.after_train_dataset_adaptation(strategy_mock)
@@ -98,13 +86,11 @@ class ImageSamplesTests(unittest.TestCase):
             n_rows=5,
             group=True,
             mode="train",
-            disable_augmentations=True
+            disable_augmentations=True,
         )
 
         strategy_mock = MagicMock(
-            eval_mb_size=32,
-            experience=curr_exp,
-            adapted_dataset=curr_dataset
+            eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
         )
 
         mval = p_metric.after_train_dataset_adaptation(strategy_mock)

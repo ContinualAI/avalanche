@@ -1,8 +1,17 @@
 from typing import Union, Sequence, Callable
 
 import torch
-from torch.nn import Module, Sequential, BatchNorm2d, Conv2d, ReLU,\
-    ConstantPad3d, Identity, AdaptiveAvgPool2d, Linear
+from torch.nn import (
+    Module,
+    Sequential,
+    BatchNorm2d,
+    Conv2d,
+    ReLU,
+    ConstantPad3d,
+    Identity,
+    AdaptiveAvgPool2d,
+    Linear,
+)
 from torch import Tensor
 from torch.nn.init import zeros_, kaiming_normal_
 from torch.nn.modules.flatten import Flatten
@@ -18,10 +27,17 @@ class IdentityShortcut(Module):
         return self.transform_function(x)
 
 
-def conv3x3(in_planes: int, out_planes: int,
-            stride: Union[int, Sequence[int]] = 1):
-    return Conv2d(in_planes, out_planes,
-                  kernel_size=3, stride=stride, padding=1, bias=False)
+def conv3x3(
+    in_planes: int, out_planes: int, stride: Union[int, Sequence[int]] = 1
+):
+    return Conv2d(
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False,
+    )
 
 
 def batch_norm(num_channels: int) -> BatchNorm2d:
@@ -29,11 +45,13 @@ def batch_norm(num_channels: int) -> BatchNorm2d:
 
 
 class ResidualBlock(Module):
-
-    def __init__(self, input_num_filters: int,
-                 increase_dim: bool = False,
-                 projection: bool = False,
-                 last: bool = False):
+    def __init__(
+        self,
+        input_num_filters: int,
+        increase_dim: bool = False,
+        projection: bool = False,
+        last: bool = False,
+    ):
         super().__init__()
         self.last: bool = last
 
@@ -59,17 +77,30 @@ class ResidualBlock(Module):
             if projection:
                 # projection shortcut, as option B in paper
                 self.shortcut = Sequential(
-                    Conv2d(input_num_filters, out_num_filters,
-                           kernel_size=(1, 1), stride=(2, 2), bias=False),
-                    batch_norm(out_num_filters)
+                    Conv2d(
+                        input_num_filters,
+                        out_num_filters,
+                        kernel_size=(1, 1),
+                        stride=(2, 2),
+                        bias=False,
+                    ),
+                    batch_norm(out_num_filters),
                 )
             else:
                 # identity shortcut, as option A in paper
                 self.shortcut = Sequential(
                     IdentityShortcut(lambda x: x[:, :, ::2, ::2]),
-                    ConstantPad3d((0, 0, 0, 0,
-                                   out_num_filters // 4,
-                                   out_num_filters // 4), 0.0)
+                    ConstantPad3d(
+                        (
+                            0,
+                            0,
+                            0,
+                            0,
+                            out_num_filters // 4,
+                            out_num_filters // 4,
+                        ),
+                        0.0,
+                    ),
                 )
         else:
             self.shortcut = Identity()
@@ -92,7 +123,7 @@ class IcarlNet(Module):
         first_conv = Sequential(
             conv3x3(input_dims, output_dims, stride=(1, 1)),
             batch_norm(16),
-            ReLU(True)
+            ReLU(True),
         )
 
         input_dims = output_dims
@@ -118,16 +149,20 @@ class IcarlNet(Module):
 
         # third stack of residual blocks, output is 64 x 8 x 8
         layers_list = [ResidualBlock(input_dims, increase_dim=True)]
-        for _ in range(1, n-1):
+        for _ in range(1, n - 1):
             layers_list.append(ResidualBlock(output_dims))
         layers_list.append(ResidualBlock(output_dims, last=True))
         third_block = Sequential(*layers_list)
         final_pool = AdaptiveAvgPool2d(output_size=(1, 1))
 
         self.feature_extractor = Sequential(
-            first_conv, first_block,
-            second_block, third_block,
-            final_pool, Flatten())
+            first_conv,
+            first_block,
+            second_block,
+            third_block,
+            final_pool,
+            Flatten(),
+        )
 
         input_dims = output_dims
         output_dims = num_classes
@@ -157,18 +192,14 @@ def initialize_icarl_net(m: Module):
     :param m: input network (should be IcarlNet).
     """
     if isinstance(m, Conv2d):
-        kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='relu')
+        kaiming_normal_(m.weight.data, mode="fan_in", nonlinearity="relu")
         if m.bias is not None:
             zeros_(m.bias.data)
 
     elif isinstance(m, Linear):
-        kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='sigmoid')
+        kaiming_normal_(m.weight.data, mode="fan_in", nonlinearity="sigmoid")
         if m.bias is not None:
             zeros_(m.bias.data)
 
 
-__all__ = [
-    'initialize_icarl_net',
-    'make_icarl_net',
-    'IcarlNet'
-]
+__all__ = ["initialize_icarl_net", "make_icarl_net", "IcarlNet"]

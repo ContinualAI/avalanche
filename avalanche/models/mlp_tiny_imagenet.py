@@ -25,7 +25,7 @@ class SimpleMLP_TinyImageNet(nn.Module):
         super(SimpleMLP_TinyImageNet, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Linear(num_channels*64*64, 1024),
+            nn.Linear(num_channels * 64 * 64, 1024),
             nn.ReLU(inplace=True),
             nn.Dropout(),
         )

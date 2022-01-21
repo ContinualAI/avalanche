@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from avalanche.training.strategies import BaseStrategy
 
 
-UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage, )
+UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
 
 
 class TextLogger(StrategyLogger):
@@ -48,6 +48,7 @@ class TextLogger(StrategyLogger):
         to your `EvaluationPlugin` to better support
         different formats.
     """
+
     def __init__(self, file=sys.stdout):
         """
         Creates an instance of `TextLogger` class.
@@ -64,90 +65,136 @@ class TextLogger(StrategyLogger):
 
     def _val_to_str(self, m_val):
         if isinstance(m_val, torch.Tensor):
-            return '\n' + str(m_val)
+            return "\n" + str(m_val)
         elif isinstance(m_val, float):
-            return f'{m_val:.4f}'
+            return f"{m_val:.4f}"
         else:
             return str(m_val)
 
     def print_current_metrics(self):
-        sorted_vals = sorted(self.metric_vals.values(),
-                             key=lambda x: x[0])
+        sorted_vals = sorted(self.metric_vals.values(), key=lambda x: x[0])
         for name, x, val in sorted_vals:
             if isinstance(val, UNSUPPORTED_TYPES):
                 continue
             val = self._val_to_str(val)
-            print(f'\t{name} = {val}', file=self.file, flush=True)
+            print(f"\t{name} = {val}", file=self.file, flush=True)
 
-    def before_training_exp(self, strategy: 'BaseStrategy',
-                            metric_values: List['MetricValue'], **kwargs):
+    def before_training_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().before_training_exp(strategy, metric_values, **kwargs)
         self._on_exp_start(strategy)
 
-    def before_eval_exp(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_eval_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().before_eval_exp(strategy, metric_values, **kwargs)
         self._on_exp_start(strategy)
 
-    def after_training_epoch(self, strategy: 'BaseStrategy',
-                             metric_values: List['MetricValue'], **kwargs):
+    def after_training_epoch(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().after_training_epoch(strategy, metric_values, **kwargs)
-        print(f'Epoch {strategy.clock.train_exp_epochs} ended.', 
-              file=self.file, flush=True)
+        print(
+            f"Epoch {strategy.clock.train_exp_epochs} ended.",
+            file=self.file,
+            flush=True,
+        )
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def after_eval_exp(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def after_eval_exp(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().after_eval_exp(strategy, metric_values, **kwargs)
         exp_id = strategy.experience.current_experience
         task_id = phase_and_task(strategy)[1]
         if task_id is None:
-            print(f'> Eval on experience {exp_id} '
-                  f'from {stream_type(strategy.experience)} stream ended.',
-                  file=self.file, flush=True)
+            print(
+                f"> Eval on experience {exp_id} "
+                f"from {stream_type(strategy.experience)} stream ended.",
+                file=self.file,
+                flush=True,
+            )
         else:
-            print(f'> Eval on experience {exp_id} (Task '
-                  f'{task_id}) '
-                  f'from {stream_type(strategy.experience)} stream ended.',
-                  file=self.file, flush=True)
+            print(
+                f"> Eval on experience {exp_id} (Task "
+                f"{task_id}) "
+                f"from {stream_type(strategy.experience)} stream ended.",
+                file=self.file,
+                flush=True,
+            )
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def before_training(self, strategy: 'BaseStrategy',
-                        metric_values: List['MetricValue'], **kwargs):
+    def before_training(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().before_training(strategy, metric_values, **kwargs)
-        print('-- >> Start of training phase << --', file=self.file, flush=True)
+        print("-- >> Start of training phase << --", file=self.file, flush=True)
 
-    def before_eval(self, strategy: 'BaseStrategy',
-                    metric_values: List['MetricValue'], **kwargs):
+    def before_eval(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().before_eval(strategy, metric_values, **kwargs)
-        print('-- >> Start of eval phase << --', file=self.file, flush=True)
+        print("-- >> Start of eval phase << --", file=self.file, flush=True)
 
-    def after_training(self, strategy: 'BaseStrategy',
-                       metric_values: List['MetricValue'], **kwargs):
+    def after_training(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().after_training(strategy, metric_values, **kwargs)
-        print('-- >> End of training phase << --', file=self.file, flush=True)
+        print("-- >> End of training phase << --", file=self.file, flush=True)
 
-    def after_eval(self, strategy: 'BaseStrategy',
-                   metric_values: List['MetricValue'], **kwargs):
+    def after_eval(
+        self,
+        strategy: "BaseStrategy",
+        metric_values: List["MetricValue"],
+        **kwargs,
+    ):
         super().after_eval(strategy, metric_values, **kwargs)
-        print('-- >> End of eval phase << --', file=self.file, flush=True)
+        print("-- >> End of eval phase << --", file=self.file, flush=True)
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def _on_exp_start(self, strategy: 'BaseStrategy'):
-        action_name = 'training' if strategy.is_training else 'eval'
+    def _on_exp_start(self, strategy: "BaseStrategy"):
+        action_name = "training" if strategy.is_training else "eval"
         exp_id = strategy.experience.current_experience
         task_id = phase_and_task(strategy)[1]
         stream = stream_type(strategy.experience)
         if task_id is None:
-            print('-- Starting {} on experience {} from {} stream --'
-                  .format(action_name, exp_id, stream),
-                  file=self.file,
-                  flush=True)
+            print(
+                "-- Starting {} on experience {} from {} stream --".format(
+                    action_name, exp_id, stream
+                ),
+                file=self.file,
+                flush=True,
+            )
         else:
-            print('-- Starting {} on experience {} (Task {}) from {} stream --'
-                  .format(action_name, exp_id, task_id, stream),
-                  file=self.file,
-                  flush=True)
+            print(
+                "-- Starting {} on experience {} (Task {}) from {} stream --".format(
+                    action_name, exp_id, task_id, stream
+                ),
+                file=self.file,
+                flush=True,
+            )

@@ -11,41 +11,50 @@
 from pathlib import Path
 from typing import Union, Any, Optional
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
-from avalanche.benchmarks.datasets import INATURALIST2018, \
-    default_dataset_location
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
+from avalanche.benchmarks.datasets import (
+    INATURALIST2018,
+    default_dataset_location,
+)
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
+normalize = transforms.Normalize(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+)
 
-_default_train_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
-])
+_default_train_transform = transforms.Compose(
+    [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]
+)
 
-_default_eval_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    normalize
-])
+_default_eval_transform = transforms.Compose(
+    [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]
+)
 
 
 def SplitInaturalist(
-        *,
-        super_categories=None,
-        return_task_id=False,
-        download=False,
-        seed=0,
-        train_transform: Optional[Any] = _default_train_transform,
-        eval_transform: Optional[Any] = _default_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    *,
+    super_categories=None,
+    return_task_id=False,
+    download=False,
+    seed=0,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark using the iNaturalist2018 dataset.
     A selection of supercategories (by default 10) define the experiences.
@@ -119,11 +128,21 @@ def SplitInaturalist(
     # Categories with > 100 datapoints
     if super_categories is None:
         super_categories = [
-            'Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Fungi',
-            'Insecta', 'Mammalia', 'Mollusca', 'Plantae', 'Reptilia']
+            "Amphibia",
+            "Animalia",
+            "Arachnida",
+            "Aves",
+            "Fungi",
+            "Insecta",
+            "Mammalia",
+            "Mollusca",
+            "Plantae",
+            "Reptilia",
+        ]
 
     train_set, test_set = _get_inaturalist_dataset(
-        dataset_root, super_categories, download=download)
+        dataset_root, super_categories, download=download
+    )
     per_exp_classes, fixed_class_order = _get_split(super_categories, train_set)
 
     if return_task_id:
@@ -155,20 +174,20 @@ def SplitInaturalist(
 
 def _get_inaturalist_dataset(dataset_root, super_categories, download):
     if dataset_root is None:
-        dataset_root = default_dataset_location('inatuarlist2018')
+        dataset_root = default_dataset_location("inatuarlist2018")
 
     train_set = INATURALIST2018(
-        dataset_root, split="train", supcats=super_categories,
-        download=download)
+        dataset_root, split="train", supcats=super_categories, download=download
+    )
     test_set = INATURALIST2018(
-        dataset_root, split="val", supcats=super_categories,
-        download=download)
+        dataset_root, split="val", supcats=super_categories, download=download
+    )
 
     return train_set, test_set
 
 
 def _get_split(super_categories, train_set):
-    """ Get number of classes per experience, and
+    """Get number of classes per experience, and
     the total order of the classes."""
     per_exp_classes, fixed_class_order = {}, []
     for idx, supcat in enumerate(super_categories):
@@ -178,9 +197,7 @@ def _get_split(super_categories, train_set):
     return per_exp_classes, fixed_class_order
 
 
-__all__ = [
-    'SplitInaturalist'
-]
+__all__ = ["SplitInaturalist"]
 
 
 if __name__ == "__main__":

@@ -22,8 +22,9 @@ from tests.training.test_strategies import StrategyTest
 class AR1Test(unittest.TestCase):
     def test_ar1(self):
         my_nc_benchmark = self.load_ar1_benchmark()
-        strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10,
-                       rm_sz=200)
+        strategy = AR1(
+            train_epochs=1, train_mb_size=10, eval_mb_size=10, rm_sz=200
+        )
         StrategyTest.run_strategy(self, my_nc_benchmark, strategy)
 
     def load_ar1_benchmark(self):
@@ -35,13 +36,17 @@ class AR1Test(unittest.TestCase):
         dataset = make_classification(
             n_samples=10 * n_samples_per_class,
             n_classes=10,
-            n_features=224 * 224 * 3, n_informative=6, n_redundant=0)
+            n_features=224 * 224 * 3,
+            n_informative=6,
+            n_redundant=0,
+        )
 
         X = torch.from_numpy(dataset[0]).reshape(-1, 3, 224, 224).float()
         y = torch.from_numpy(dataset[1]).long()
 
         train_X, test_X, train_y, test_y = train_test_split(
-            X, y, train_size=0.6, shuffle=True, stratify=y)
+            X, y, train_size=0.6, shuffle=True, stratify=y
+        )
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)

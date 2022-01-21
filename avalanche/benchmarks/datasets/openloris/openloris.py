@@ -18,18 +18,26 @@ from typing import Union
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks.datasets import DownloadableDataset, \
-    default_dataset_location
+from avalanche.benchmarks.datasets import (
+    DownloadableDataset,
+    default_dataset_location,
+)
 from avalanche.benchmarks.datasets.openloris import openloris_data
 
 
 class OpenLORIS(DownloadableDataset):
-    """ OpenLORIS Pytorch Dataset """
+    """OpenLORIS Pytorch Dataset"""
 
-    def __init__(self, root: Union[str, Path] = None,
-                 *,
-                 train=True, transform=None, target_transform=None,
-                 loader=default_loader, download=True):
+    def __init__(
+        self,
+        root: Union[str, Path] = None,
+        *,
+        train=True,
+        transform=None,
+        target_transform=None,
+        loader=default_loader,
+        download=True,
+    ):
         """
         Creates an instance of the OpenLORIS dataset.
 
@@ -45,7 +53,7 @@ class OpenLORIS(DownloadableDataset):
         """
 
         if root is None:
-            root = default_dataset_location('openloris')
+            root = default_dataset_location("openloris")
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -62,12 +70,12 @@ class OpenLORIS(DownloadableDataset):
             if self.verbose:
                 print("Downloading " + name[1] + "...")
             file = self._download_file(name[1], name[0], name[2])
-            if name[1].endswith('.zip'):
+            if name[1].endswith(".zip"):
                 if self.verbose:
-                    print(f'Extracting {name[0]}...')
+                    print(f"Extracting {name[0]}...")
                 self._extract_archive(file)
                 if self.verbose:
-                    print('Extraction completed!')
+                    print("Extraction completed!")
 
     def _load_metadata(self) -> bool:
         if not self._check_integrity():
@@ -75,23 +83,23 @@ class OpenLORIS(DownloadableDataset):
 
         # any scenario and factor is good here since we want just to load the
         # train images and targets with no particular order
-        scen = 'domain'
+        scen = "domain"
         factor = 0
         ntask = 9
 
         print("Loading paths...")
-        with open(str(self.root / 'Paths.pkl'), 'rb') as f:
+        with open(str(self.root / "Paths.pkl"), "rb") as f:
             self.train_test_paths = pkl.load(f)
 
         print("Loading labels...")
-        with open(str(self.root / 'Labels.pkl'), 'rb') as f:
+        with open(str(self.root / "Labels.pkl"), "rb") as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(ntask + 1):
                 self.train_test_targets += self.all_targets[scen][factor][i]
 
         print("Loading LUP...")
-        with open(str(self.root / 'LUP.pkl'), 'rb') as f:
+        with open(str(self.root / "LUP.pkl"), "rb") as f:
             self.LUP = pkl.load(f)
 
         self.idx_list = []
@@ -116,27 +124,30 @@ class OpenLORIS(DownloadableDataset):
             base_url + name_url[1] for name_url in openloris_data.avl_vps_data
         ]
 
-        base_msg = \
-            '[OpenLoris] Direct download may no longer be supported!\n' \
-            'You should download data manually using the following links:\n'
+        base_msg = (
+            "[OpenLoris] Direct download may no longer be supported!\n"
+            "You should download data manually using the following links:\n"
+        )
 
         for url in all_urls:
             base_msg += url
-            base_msg += '\n'
+            base_msg += "\n"
 
-        base_msg += 'and place these files in ' + str(self.root)
+        base_msg += "and place these files in " + str(self.root)
 
         return base_msg
 
     def _check_integrity(self):
-        """ Checks if the data is already available and intact """
+        """Checks if the data is already available and intact"""
 
         for name, url, md5 in openloris_data.avl_vps_data:
             filepath = self.root / name
             if not filepath.is_file():
                 if self.verbose:
-                    print('[OpenLORIS] Error checking integrity of:',
-                          str(filepath))
+                    print(
+                        "[OpenLORIS] Error checking integrity of:",
+                        str(filepath),
+                    )
                 return False
         return True
 
@@ -172,14 +183,10 @@ if __name__ == "__main__":
 
     for batch_data in dataloader:
         x, y = batch_data
-        plt.imshow(
-            transforms.ToPILImage()(torch.squeeze(x))
-        )
+        plt.imshow(transforms.ToPILImage()(torch.squeeze(x)))
         plt.show()
         print(x.size())
         print(len(y))
         break
 
-__all__ = [
-    'OpenLORIS'
-]
+__all__ = ["OpenLORIS"]
