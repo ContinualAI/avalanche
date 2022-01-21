@@ -4,6 +4,7 @@ import os
 from os.path import expanduser
 
 import torch
+from numpy.testing import assert_almost_equal, assert_allclose
 from torchvision.datasets import CIFAR10, MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
@@ -17,16 +18,13 @@ from avalanche.benchmarks import (
     benchmark_with_validation_stream,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_lazy_generic_benchmark,
-    LazyStreamDefinition,
-)
-from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
-)
-from tests.unit_tests_utils import common_setups
+from avalanche.benchmarks.generators.benchmark_generators import \
+    class_balanced_split_strategy
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_lazy_generic_benchmark, LazyStreamDefinition
+from avalanche.benchmarks.utils import AvalancheDataset, \
+    AvalancheTensorDataset, AvalancheDatasetType
+from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
 
 class HighLevelGeneratorTests(unittest.TestCase):
@@ -765,6 +763,28 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
                 self.assertTrue(
                     torch.equal(
-                        test_y, valid_benchmark.test_stream[0].dataset[:][1]
-                    )
-                )
+                        test_y,
+                        valid_benchmark.test_stream[0].dataset[:][1]))
+
+
+class DataSplitStrategiesTests(unittest.TestCase):
+    def test_dataset_benchmark(self):
+        benchmark = get_fast_benchmark(n_samples_per_class=1000)
+        exp = benchmark.train_stream[0]
+        num_classes = len(exp.classes_in_this_experience)
+
+        train_d, valid_d = class_balanced_split_strategy(0.5, exp)
+        assert abs(len(train_d) - len(valid_d)) <= num_classes
+        for cid in exp.classes_in_this_experience:
+            train_cnt = (torch.as_tensor(train_d.targets) == cid).sum()
+            valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
+            assert abs(train_cnt - valid_cnt) <= 1
+
+        ratio = 0.123
+        len_data = len(exp.dataset)
+        train_d, valid_d = class_balanced_split_strategy(ratio, exp)
+        assert_almost_equal(len(valid_d) / len_data, ratio, decimal=2)
+        for cid in exp.classes_in_this_experience:
+            data_cnt = (torch.as_tensor(exp.dataset.targets) == cid).sum()
+            valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
+            assert_almost_equal(valid_cnt / data_cnt, ratio, decimal=2)
