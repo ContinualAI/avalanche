@@ -274,17 +274,17 @@ class GSS_greedyPlugin(StrategyPlugin):
                     strategy, grad_dims, mem_grads, updated_mb_x, updated_mb_y
                 )
 
+            curr_idx = self.ext_mem_list_current_index
             self.ext_mem_list_x[
-                self.ext_mem_list_current_index : self.ext_mem_list_current_index
+                curr_idx : curr_idx
                 + offset
             ].data.copy_(updated_mb_x)
             self.ext_mem_list_y[
-                self.ext_mem_list_current_index : self.ext_mem_list_current_index
+                curr_idx : curr_idx
                 + offset
             ].data.copy_(updated_mb_y)
             self.buffer_score[
-                self.ext_mem_list_current_index : self.ext_mem_list_current_index
-                + offset
+                curr_idx : curr_idx + offset
             ].data.copy_(batch_sample_memory_cos)
             self.ext_mem_list_current_index += offset
 
