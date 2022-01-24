@@ -192,7 +192,8 @@ class TextLogger(StrategyLogger):
             )
         else:
             print(
-                "-- Starting {} on experience {} (Task {}) from {} stream --".format(
+                "-- Starting {} on experience {} (Task {}) from {}"
+                " stream --".format(
                     action_name, exp_id, task_id, stream
                 ),
                 file=self.file,
