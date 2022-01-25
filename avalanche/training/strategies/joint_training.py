@@ -128,6 +128,7 @@ class JointTraining(BaseStrategy):
         for i, exp in enumerate(eval_streams):
             if isinstance(exp, Experience):
                 eval_streams[i] = [exp]
+        self._eval_streams = eval_streams
 
         self._experiences = experiences
         self._before_training(**kwargs)
