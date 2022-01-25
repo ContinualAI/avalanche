@@ -7,10 +7,14 @@ from torchvision.datasets import MNIST
 
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheTensorDataset
-from avalanche.benchmarks.scenarios.new_classes.nc_utils import \
-    make_nc_transformation_subset
-from avalanche.benchmarks import nc_benchmark, GenericScenarioStream, \
-    GenericCLScenario
+from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
+    make_nc_transformation_subset,
+)
+from avalanche.benchmarks import (
+    nc_benchmark,
+    GenericScenarioStream,
+    GenericCLScenario,
+)
 
 
 class CustomStreamsTests(unittest.TestCase):
@@ -24,34 +28,38 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_x = torch.rand(200, 3, 28, 28)
             tensor_y = torch.randint(0, 100, (200,))
             tensor_t = torch.randint(0, 5, (200,))
-            train_exps.append(AvalancheTensorDataset(tensor_x, tensor_y,
-                                                     task_labels=tensor_t))
+            train_exps.append(
+                AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            )
 
         for _ in range(3):
             tensor_x = torch.rand(150, 3, 28, 28)
             tensor_y = torch.randint(0, 100, (150,))
             tensor_t = torch.randint(0, 3, (150,))
-            test_exps.append(AvalancheTensorDataset(tensor_x, tensor_y,
-                                                    task_labels=tensor_t))
+            test_exps.append(
+                AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            )
 
         for _ in range(4):
             tensor_x = torch.rand(220, 3, 28, 28)
             tensor_y = torch.randint(0, 100, (220,))
             tensor_t = torch.randint(0, 5, (220,))
-            valid_exps.append(AvalancheTensorDataset(tensor_x, tensor_y,
-                                                     task_labels=tensor_t))
+            valid_exps.append(
+                AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            )
 
         valid_origin_dataset = AvalancheTensorDataset(
-            torch.ones(10, 3, 32, 32), torch.zeros(10))
+            torch.ones(10, 3, 32, 32), torch.zeros(10)
+        )
 
         valid_t_labels = [{9}, {4, 5}, {7, 8}, {0}, {3}]
 
         with self.assertRaises(Exception):
             benchmark_instance = GenericCLScenario(
                 stream_definitions={
-                    'train': (train_exps,),
-                    'test': (test_exps,),
-                    'valid': (valid_exps, valid_t_labels, valid_origin_dataset)
+                    "train": (train_exps,),
+                    "test": (test_exps,),
+                    "valid": (valid_exps, valid_t_labels, valid_origin_dataset),
                 }
             )
 
@@ -59,9 +67,9 @@ class CustomStreamsTests(unittest.TestCase):
 
         benchmark_instance = GenericCLScenario(
             stream_definitions={
-                'train': (train_exps,),
-                'test': (test_exps,),
-                'valid': (valid_exps, valid_t_labels, valid_origin_dataset)
+                "train": (train_exps,),
+                "test": (test_exps,),
+                "valid": (valid_exps, valid_t_labels, valid_origin_dataset),
             }
         )
 
@@ -71,8 +79,9 @@ class CustomStreamsTests(unittest.TestCase):
 
         self.assertEqual(None, benchmark_instance.original_train_dataset)
         self.assertEqual(None, benchmark_instance.original_test_dataset)
-        self.assertEqual(valid_origin_dataset,
-                         benchmark_instance.original_valid_dataset)
+        self.assertEqual(
+            valid_origin_dataset, benchmark_instance.original_valid_dataset
+        )
 
         for i, exp in enumerate(benchmark_instance.train_stream):
             expect_x, expect_y, expect_t = train_exps[i][0]
@@ -118,36 +127,38 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_x = torch.rand(200, 3, 28, 28)
             tensor_y = torch.randint(0, 100, (200,))
             tensor_t = torch.randint(0, 5, (200,))
-            train_exps.append(AvalancheTensorDataset(tensor_x, tensor_y,
-                                                     task_labels=tensor_t))
+            train_exps.append(
+                AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            )
 
         for _ in range(3):
             tensor_x = torch.rand(150, 3, 28, 28)
             tensor_y = torch.randint(0, 100, (150,))
             tensor_t = torch.randint(0, 5, (150,))
-            test_exps.append(AvalancheTensorDataset(tensor_x, tensor_y,
-                                                    task_labels=tensor_t))
+            test_exps.append(
+                AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            )
 
         with self.assertRaises(Exception):
             benchmark_instance = GenericCLScenario(
                 stream_definitions={
-                    'train': (train_exps,),
-                    'test': (test_exps,),
+                    "train": (train_exps,),
+                    "test": (test_exps,),
                 },
-                complete_test_set_only=True
+                complete_test_set_only=True,
             )
 
         benchmark_instance = GenericCLScenario(
             stream_definitions={
-                'train': (train_exps,),
-                'test': (test_exps[0],),
+                "train": (train_exps,),
+                "test": (test_exps[0],),
             },
-            complete_test_set_only=True
+            complete_test_set_only=True,
         )
 
         self.assertEqual(5, len(benchmark_instance.train_stream))
         self.assertEqual(1, len(benchmark_instance.test_stream))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

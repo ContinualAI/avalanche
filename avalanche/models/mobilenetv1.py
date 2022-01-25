@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch
 
 from pytorchcv.models.mobilenet import mobilenet_w1
+
 try:
     from pytorchcv.models.mobilenet import DwsConvBlock
 except Exception:
@@ -51,6 +52,7 @@ def remove_DwsConvBlock(cur_layers):
 class MobilenetV1(nn.Module):
     """MobileNet v1 implementation. This model
     can be instantiated from a pretrained network."""
+
     def __init__(self, pretrained=True, latent_layer_num=20):
         super().__init__()
 
@@ -75,8 +77,7 @@ class MobilenetV1(nn.Module):
 
         self.output = nn.Linear(1024, 50, bias=False)
 
-    def forward(self, x, latent_input=None,
-                return_lat_acts=False):
+    def forward(self, x, latent_input=None, return_lat_acts=False):
 
         if latent_input is not None:
             with torch.no_grad():

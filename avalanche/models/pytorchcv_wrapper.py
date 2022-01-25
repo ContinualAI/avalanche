@@ -40,8 +40,10 @@ def vgg(depth: int, batch_normalization=False, pretrained=False) -> Module:
     """
     available_depths = [11, 13, 16, 19]
     if depth not in available_depths:
-        raise ValueError(f"Depth {depth} not available, "
-                         f"availble depths are {available_depths}")
+        raise ValueError(
+            f"Depth {depth} not available, "
+            f"availble depths are {available_depths}"
+        )
 
     name = f"vgg{depth}"
     if batch_normalization:
@@ -72,8 +74,10 @@ def resnet(dataset: str, depth: int, pretrained=False) -> Module:
         raise ValueError(f"Unrecognized dataset {dataset}")
 
     if depth not in available_depths:
-        raise ValueError(f"Depth {depth} not available for dataset {dataset}, "
-                         f"availble depths are {available_depths}")
+        raise ValueError(
+            f"Depth {depth} not available for dataset {dataset}, "
+            f"availble depths are {available_depths}"
+        )
 
     model = ptcv_get_model(model_name, pretrained=pretrained)
     return model
@@ -101,8 +105,10 @@ def densenet(dataset: str, depth: int, pretrained=False) -> Module:
         raise ValueError(f"Unrecognized dataset {dataset}")
 
     if depth not in available_depths:
-        raise ValueError(f"Depth {depth} not available for dataset {dataset}, "
-                         f"availble depths are {available_depths}")
+        raise ValueError(
+            f"Depth {depth} not available for dataset {dataset}, "
+            f"availble depths are {available_depths}"
+        )
 
     model = ptcv_get_model(model_name, pretrained=pretrained)
     return model
@@ -133,8 +139,10 @@ def pyramidnet(dataset: str, depth: int, pretrained=False) -> Module:
         raise ValueError(f"Unrecognized dataset {dataset}")
 
     if depth not in available_depths:
-        raise ValueError(f"Depth {depth} not available for dataset {dataset}, "
-                         f"availble depths are {available_depths}")
+        raise ValueError(
+            f"Depth {depth} not available for dataset {dataset}, "
+            f"availble depths are {available_depths}"
+        )
 
     model = ptcv_get_model(model_name, pretrained=pretrained)
     return model
@@ -148,10 +156,4 @@ def get_model(name: str, pretrained=False):
     return ptcv_get_model(name, pretrained=pretrained)
 
 
-__all__ = [
-    'get_model',
-    'resnet',
-    'densenet',
-    'vgg',
-    'pyramidnet'
-]
+__all__ = ["get_model", "resnet", "densenet", "vgg", "pyramidnet"]

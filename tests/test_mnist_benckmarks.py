@@ -1,7 +1,11 @@
 import unittest
 
-from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
-    SplitMNIST
+from avalanche.benchmarks import (
+    PermutedMNIST,
+    Experience,
+    RotatedMNIST,
+    SplitMNIST,
+)
 from tests.unit_tests_utils import load_experience_train_eval
 
 MNIST_DOWNLOADS = 0
@@ -11,6 +15,7 @@ MNIST_DOWNLOAD_METHOD = None
 class MNISTBenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.cmnist as cmnist
+
         global MNIST_DOWNLOAD_METHOD
         MNIST_DOWNLOAD_METHOD = cmnist._get_mnist_dataset
 
@@ -25,6 +30,7 @@ class MNISTBenchmarksTests(unittest.TestCase):
         global MNIST_DOWNLOAD_METHOD
         if MNIST_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.cmnist as cmnist
+
             cmnist._get_mnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
@@ -139,5 +145,5 @@ class MNISTBenchmarksTests(unittest.TestCase):
     #     print('Elapsed:', elapsed_time)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

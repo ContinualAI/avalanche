@@ -14,16 +14,16 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.benchmarks.utils import AvalancheSubset, \
-    SupportedDataset
+from avalanche.benchmarks.utils import AvalancheSubset, SupportedDataset
 from avalanche.benchmarks.utils import tensor_as_list
 
 
-def _indexes_grouped_by_classes(sequence: Sequence[SupportsInt],
-                                search_elements: Union[None, Sequence[int]],
-                                sort_indexes: bool = True,
-                                sort_classes: bool = True) \
-        -> Union[List[int], None]:
+def _indexes_grouped_by_classes(
+    sequence: Sequence[SupportsInt],
+    search_elements: Union[None, Sequence[int]],
+    sort_indexes: bool = True,
+    sort_classes: bool = True,
+) -> Union[List[int], None]:
     result_per_class: Dict[int, List[int]] = OrderedDict()
     result: List[int] = []
 
@@ -75,10 +75,11 @@ def _indexes_grouped_by_classes(sequence: Sequence[SupportsInt],
     return result
 
 
-def _indexes_without_grouping(sequence: Sequence[SupportsInt],
-                              search_elements: Union[None, Sequence[int]],
-                              sort_indexes: bool = False) \
-        -> Union[List[int], None]:
+def _indexes_without_grouping(
+    sequence: Sequence[SupportsInt],
+    search_elements: Union[None, Sequence[int]],
+    sort_indexes: bool = False,
+) -> Union[List[int], None]:
     sequence = tensor_as_list(sequence)
 
     if search_elements is None and not sort_indexes:
@@ -109,11 +110,13 @@ def _indexes_without_grouping(sequence: Sequence[SupportsInt],
     return result
 
 
-def _indexes_from_set(sequence: Sequence[SupportsInt],
-                      search_elements: Union[Sequence[int], None],
-                      bucket_classes: bool = True,
-                      sort_classes: bool = False, sort_indexes: bool = False) \
-        -> Union[List[int], None]:
+def _indexes_from_set(
+    sequence: Sequence[SupportsInt],
+    search_elements: Union[Sequence[int], None],
+    bucket_classes: bool = True,
+    sort_classes: bool = False,
+    sort_indexes: bool = False,
+) -> Union[List[int], None]:
     """
     Given the target list of a dataset, returns the indexes of patterns
     belonging to classes listed in the search_elements parameter.
@@ -136,21 +139,27 @@ def _indexes_from_set(sequence: Sequence[SupportsInt],
         sequence already satisfies all the constraints.
     """
     if bucket_classes:
-        return _indexes_grouped_by_classes(sequence, search_elements,
-                                           sort_indexes=sort_indexes,
-                                           sort_classes=sort_classes)
+        return _indexes_grouped_by_classes(
+            sequence,
+            search_elements,
+            sort_indexes=sort_indexes,
+            sort_classes=sort_classes,
+        )
 
-    return _indexes_without_grouping(sequence, search_elements,
-                                     sort_indexes=sort_indexes)
+    return _indexes_without_grouping(
+        sequence, search_elements, sort_indexes=sort_indexes
+    )
 
 
-def make_nc_transformation_subset(dataset: SupportedDataset,
-                                  transform: Any, target_transform: Any,
-                                  classes: Union[None, Sequence[int]],
-                                  bucket_classes: bool = False,
-                                  sort_classes: bool = False,
-                                  sort_indexes: bool = False) \
-        -> AvalancheSubset:
+def make_nc_transformation_subset(
+    dataset: SupportedDataset,
+    transform: Any,
+    target_transform: Any,
+    classes: Union[None, Sequence[int]],
+    bucket_classes: bool = False,
+    sort_classes: bool = False,
+    sort_indexes: bool = False,
+) -> AvalancheSubset:
     """
     Creates a subset given the list of classes the patterns should belong to.
 
@@ -176,14 +185,16 @@ def make_nc_transformation_subset(dataset: SupportedDataset,
     """
     return AvalancheSubset(
         dataset,
-        indices=_indexes_from_set(dataset.targets, classes,
-                                  bucket_classes=bucket_classes,
-                                  sort_classes=sort_classes,
-                                  sort_indexes=sort_indexes),
+        indices=_indexes_from_set(
+            dataset.targets,
+            classes,
+            bucket_classes=bucket_classes,
+            sort_classes=sort_classes,
+            sort_indexes=sort_indexes,
+        ),
         transform=transform,
-        target_transform=target_transform)
+        target_transform=target_transform,
+    )
 
 
-__all__ = [
-    'make_nc_transformation_subset'
-]
+__all__ = ["make_nc_transformation_subset"]

@@ -6,7 +6,7 @@ from avalanche.training.plugins import StrategyPlugin
 
 
 class EarlyStoppingPlugin(StrategyPlugin):
-    """ Early stopping and model checkpoint plugin.
+    """Early stopping and model checkpoint plugin.
 
     The plugin checks a metric and stops the training loop when the accuracy
     on the metric stopped progressing for `patience` epochs.
@@ -24,10 +24,15 @@ class EarlyStoppingPlugin(StrategyPlugin):
 
     """
 
-    def __init__(self, patience: int, val_stream_name: str,
-                 metric_name: str = 'Top1_Acc_Stream', mode: str = 'max',
-                 peval_mode: str = 'epoch'):
-        """ Init.
+    def __init__(
+        self,
+        patience: int,
+        val_stream_name: str,
+        metric_name: str = "Top1_Acc_Stream",
+        mode: str = "max",
+        peval_mode: str = "epoch",
+    ):
+        """Init.
 
         :param patience: Number of epochs to wait before stopping the training.
         :param val_stream_name: Name of the validation stream to search in the
@@ -45,16 +50,17 @@ class EarlyStoppingPlugin(StrategyPlugin):
         self.val_stream_name = val_stream_name
         self.patience = patience
 
-        assert peval_mode in {'epoch', 'iteration'}
+        assert peval_mode in {"epoch", "iteration"}
         self.peval_mode = peval_mode
 
         self.metric_name = metric_name
-        self.metric_key = f'{self.metric_name}/eval_phase/' \
-                          f'{self.val_stream_name}'
+        self.metric_key = (
+            f"{self.metric_name}/eval_phase/" f"{self.val_stream_name}"
+        )
         print(self.metric_key)
-        if mode not in ('max', 'min'):
+        if mode not in ("max", "min"):
             raise ValueError(f'Mode must be "max" or "min", got {mode}.')
-        self.operator = operator.gt if mode == 'max' else operator.lt
+        self.operator = operator.gt if mode == "max" else operator.lt
 
         self.best_state = None  # Contains the best parameters
         self.best_val = None
@@ -66,7 +72,7 @@ class EarlyStoppingPlugin(StrategyPlugin):
         self.best_step = None
 
     def before_training_iteration(self, strategy, **kwargs):
-        if self.peval_mode == 'iteration':
+        if self.peval_mode == "iteration":
             self._update_best(strategy)
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
@@ -74,7 +80,7 @@ class EarlyStoppingPlugin(StrategyPlugin):
                 strategy.stop_training()
 
     def before_training_epoch(self, strategy, **kwargs):
-        if self.peval_mode == 'epoch':
+        if self.peval_mode == "epoch":
             self._update_best(strategy)
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
@@ -87,16 +93,17 @@ class EarlyStoppingPlugin(StrategyPlugin):
         if self.best_val is None:
             warnings.warn(
                 f"Metric {self.metric_name} used by the EarlyStopping plugin "
-                f"is not computed yet. EarlyStopping will not be triggered.")
+                f"is not computed yet. EarlyStopping will not be triggered."
+            )
         if self.best_val is None or self.operator(val_acc, self.best_val):
             self.best_state = deepcopy(strategy.model.state_dict())
             self.best_val = val_acc
             self.best_step = self._get_strategy_counter(strategy)
 
     def _get_strategy_counter(self, strategy):
-        if self.peval_mode == 'epoch':
+        if self.peval_mode == "epoch":
             return strategy.clock.train_exp_epochs
-        elif self.peval_mode == 'iteration':
+        elif self.peval_mode == "iteration":
             return strategy.clock.train_exp_iterations
         else:
             raise ValueError("Invalid `peval_mode`:", self.peval_mode)

@@ -32,5 +32,5 @@ class TinyImagenetTest(unittest.TestCase):
             self.assertIsInstance(task_info, Experience)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

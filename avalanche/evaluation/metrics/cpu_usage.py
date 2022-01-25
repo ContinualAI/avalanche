@@ -74,19 +74,21 @@ class CPUUsage(Metric[float]):
         if self._first_update:
             self._process_handle = Process(os.getpid())
 
-        last_time = getattr(
-            self._process_handle, '_last_sys_cpu_times', None)
+        last_time = getattr(self._process_handle, "_last_sys_cpu_times", None)
         utilization = self._process_handle.cpu_percent()
         current_time = getattr(
-            self._process_handle, '_last_sys_cpu_times', None)
+            self._process_handle, "_last_sys_cpu_times", None
+        )
 
         if self._first_update:
             self._first_update = False
         else:
             if current_time is None or last_time is None:
-                warnings.warn('CPUUsage can\'t detect the elapsed time. It is '
-                              'recommended to update avalanche to the latest '
-                              'version.')
+                warnings.warn(
+                    "CPUUsage can't detect the elapsed time. It is "
+                    "recommended to update avalanche to the latest "
+                    "version."
+                )
                 # Fallback, shouldn't happen
                 current_time = 1.0
                 last_time = 0.0
@@ -118,8 +120,8 @@ class CPUPluginMetric(GenericPluginMetric[float]):
         self._cpu = CPUUsage()
 
         super(CPUPluginMetric, self).__init__(
-            self._cpu, reset_at=reset_at, emit_at=emit_at,
-            mode=mode)
+            self._cpu, reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
 
     def update(self, strategy):
         self._cpu.update()
@@ -141,7 +143,8 @@ class MinibatchCPUUsage(CPUPluginMetric):
         Creates an instance of the minibatch CPU usage metric.
         """
         super(MinibatchCPUUsage, self).__init__(
-            reset_at='iteration', emit_at='iteration', mode='train')
+            reset_at="iteration", emit_at="iteration", mode="train"
+        )
 
     def before_training_iteration(self, strategy):
         super().before_training_iteration(strategy)
@@ -164,7 +167,8 @@ class EpochCPUUsage(CPUPluginMetric):
         Creates an instance of the epoch CPU usage metric.
         """
         super(EpochCPUUsage, self).__init__(
-            reset_at='epoch', emit_at='epoch', mode='train')
+            reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
     def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
@@ -189,7 +193,8 @@ class RunningEpochCPUUsage(CPUPluginMetric):
         """
         self._mean = Mean()
         super(RunningEpochCPUUsage, self).__init__(
-            reset_at='epoch', emit_at='iteration', mode='train')
+            reset_at="epoch", emit_at="iteration", mode="train"
+        )
 
     def result(self, strategy) -> float:
         return self._mean.result()
@@ -227,7 +232,8 @@ class ExperienceCPUUsage(CPUPluginMetric):
         Creates an instance of the experience CPU usage metric.
         """
         super(ExperienceCPUUsage, self).__init__(
-            reset_at='experience', emit_at='experience', mode='eval')
+            reset_at="experience", emit_at="experience", mode="eval"
+        )
 
     def before_eval_exp(self, strategy):
         super().before_eval_exp(strategy)
@@ -251,7 +257,8 @@ class StreamCPUUsage(CPUPluginMetric):
         Creates an instance of the stream CPU usage metric.
         """
         super(StreamCPUUsage, self).__init__(
-            reset_at='stream', emit_at='stream', mode='eval')
+            reset_at="stream", emit_at="stream", mode="eval"
+        )
 
     def before_eval(self, strategy):
         super().before_eval(strategy)
@@ -261,8 +268,14 @@ class StreamCPUUsage(CPUPluginMetric):
         return "CPUUsage_Stream"
 
 
-def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                      experience=False, stream=False) -> List[PluginMetric]:
+def cpu_usage_metrics(
+    *,
+    minibatch=False,
+    epoch=False,
+    epoch_running=False,
+    experience=False,
+    stream=False
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -301,11 +314,11 @@ def cpu_usage_metrics(*, minibatch=False, epoch=False, epoch_running=False,
 
 
 __all__ = [
-    'CPUUsage',
-    'MinibatchCPUUsage',
-    'EpochCPUUsage',
-    'RunningEpochCPUUsage',
-    'ExperienceCPUUsage',
-    'StreamCPUUsage',
-    'cpu_usage_metrics'
+    "CPUUsage",
+    "MinibatchCPUUsage",
+    "EpochCPUUsage",
+    "RunningEpochCPUUsage",
+    "ExperienceCPUUsage",
+    "StreamCPUUsage",
+    "cpu_usage_metrics",
 ]

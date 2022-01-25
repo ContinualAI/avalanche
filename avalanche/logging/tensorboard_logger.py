@@ -20,8 +20,7 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib.pyplot import Figure
 from torchvision.transforms.functional import to_tensor
-from avalanche.evaluation.metric_results import AlternativeValues, \
-    TensorImage
+from avalanche.evaluation.metric_results import AlternativeValues, TensorImage
 from avalanche.logging import StrategyLogger
 import weakref
 
@@ -46,8 +45,11 @@ class TensorboardLogger(StrategyLogger):
         feature set. This should not impact on the logger performance.
     """
 
-    def __init__(self, tb_log_dir: Union[str, Path] = "./tb_data",
-                 filename_suffix: str = ''):
+    def __init__(
+        self,
+        tb_log_dir: Union[str, Path] = "./tb_data",
+        filename_suffix: str = "",
+    ):
         """
         Creates an instance of the `TensorboardLogger`.
 
@@ -59,8 +61,7 @@ class TensorboardLogger(StrategyLogger):
 
         super().__init__()
         tb_log_dir = _make_path_if_local(tb_log_dir)
-        self.writer = SummaryWriter(tb_log_dir,
-                                    filename_suffix=filename_suffix)
+        self.writer = SummaryWriter(tb_log_dir, filename_suffix=filename_suffix)
 
         # Shuts down the writer gracefully on process exit
         # or when this logger gets GCed. Fixes issue #864.
@@ -70,28 +71,24 @@ class TensorboardLogger(StrategyLogger):
 
     def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
-            value = value.best_supported_value(Image, Tensor, TensorImage,
-                                               Figure, float, int)
+            value = value.best_supported_value(
+                Image, Tensor, TensorImage, Figure, float, int
+            )
 
         if isinstance(value, Figure):
-            self.writer.add_figure(name, value,
-                                   global_step=x_plot)
+            self.writer.add_figure(name, value, global_step=x_plot)
 
         elif isinstance(value, Image):
-            self.writer.add_image(name, to_tensor(value),
-                                  global_step=x_plot)
+            self.writer.add_image(name, to_tensor(value), global_step=x_plot)
 
         elif isinstance(value, Tensor):
-            self.writer.add_histogram(name, value,
-                                      global_step=x_plot)
+            self.writer.add_histogram(name, value, global_step=x_plot)
 
         elif isinstance(value, (float, int)):
-            self.writer.add_scalar(name, value,
-                                   global_step=x_plot)
+            self.writer.add_scalar(name, value, global_step=x_plot)
 
         elif isinstance(value, TensorImage):
-            self.writer.add_image(name, value.image,
-                                  global_step=x_plot)
+            self.writer.add_image(name, value.image, global_step=x_plot)
 
 
 def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:
@@ -107,6 +104,4 @@ def _is_aws_or_gcloud_path(tb_log_dir: str) -> bool:
     return tb_log_dir.startswith("gs://") or tb_log_dir.startswith("s3://")
 
 
-__all__ = [
-    'TensorboardLogger'
-]
+__all__ = ["TensorboardLogger"]

@@ -37,6 +37,7 @@ class Loss(Metric[float]):
     The reset method will bring the metric to its initial state. By default
     this metric in its initial state will return a loss value of 0.
     """
+
     def __init__(self):
         """
         Creates an instance of the loss metric.
@@ -73,7 +74,7 @@ class Loss(Metric[float]):
             If an int, return value only for that task label
         :return: The running loss, as a float.
         """
-        assert(task_label is None or isinstance(task_label, int))
+        assert task_label is None or isinstance(task_label, int)
         if task_label is None:
             return {k: v.result() for k, v in self._mean_loss.items()}
         else:
@@ -87,7 +88,7 @@ class Loss(Metric[float]):
             reset metric value corresponding to that task label.
         :return: None.
         """
-        assert(task_label is None or isinstance(task_label, int))
+        assert task_label is None or isinstance(task_label, int)
         if task_label is None:
             self._mean_loss = defaultdict(Mean)
         else:
@@ -98,16 +99,17 @@ class LossPluginMetric(GenericPluginMetric[float]):
     def __init__(self, reset_at, emit_at, mode):
         self._loss = Loss()
         super(LossPluginMetric, self).__init__(
-            self._loss, reset_at, emit_at, mode)
+            self._loss, reset_at, emit_at, mode
+        )
 
     def reset(self, strategy=None) -> None:
-        if self._reset_at == 'stream' or strategy is None:
+        if self._reset_at == "stream" or strategy is None:
             self._metric.reset()
         else:
             self._metric.reset(phase_and_task(strategy)[1])
 
     def result(self, strategy=None) -> float:
-        if self._emit_at == 'stream' or strategy is None:
+        if self._emit_at == "stream" or strategy is None:
             return self._metric.result()
         else:
             return self._metric.result(phase_and_task(strategy)[1])
@@ -121,8 +123,9 @@ class LossPluginMetric(GenericPluginMetric[float]):
             task_label = 0
         else:
             task_label = task_labels[0]
-        self._loss.update(strategy.loss,
-                          patterns=len(strategy.mb_y), task_label=task_label)
+        self._loss.update(
+            strategy.loss, patterns=len(strategy.mb_y), task_label=task_label
+        )
 
 
 class MinibatchLoss(LossPluginMetric):
@@ -143,7 +146,8 @@ class MinibatchLoss(LossPluginMetric):
         Creates an instance of the MinibatchLoss metric.
         """
         super(MinibatchLoss, self).__init__(
-            reset_at='iteration', emit_at='iteration', mode='train')
+            reset_at="iteration", emit_at="iteration", mode="train"
+        )
 
     def __str__(self):
         return "Loss_MB"
@@ -165,7 +169,8 @@ class EpochLoss(LossPluginMetric):
         """
 
         super(EpochLoss, self).__init__(
-            reset_at='epoch', emit_at='epoch', mode='train')
+            reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
     def __str__(self):
         return "Loss_Epoch"
@@ -188,7 +193,8 @@ class RunningEpochLoss(LossPluginMetric):
         """
 
         super(RunningEpochLoss, self).__init__(
-            reset_at='epoch', emit_at='iteration', mode='train')
+            reset_at="epoch", emit_at="iteration", mode="train"
+        )
 
     def __str__(self):
         return "RunningLoss_Epoch"
@@ -206,7 +212,8 @@ class ExperienceLoss(LossPluginMetric):
         Creates an instance of ExperienceLoss metric
         """
         super(ExperienceLoss, self).__init__(
-            reset_at='experience', emit_at='experience', mode='eval')
+            reset_at="experience", emit_at="experience", mode="eval"
+        )
 
     def __str__(self):
         return "Loss_Exp"
@@ -224,14 +231,21 @@ class StreamLoss(LossPluginMetric):
         Creates an instance of StreamLoss metric
         """
         super(StreamLoss, self).__init__(
-            reset_at='stream', emit_at='stream', mode='eval')
+            reset_at="stream", emit_at="stream", mode="eval"
+        )
 
     def __str__(self):
         return "Loss_Stream"
 
 
-def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                 experience=False, stream=False) -> List[PluginMetric]:
+def loss_metrics(
+    *,
+    minibatch=False,
+    epoch=False,
+    epoch_running=False,
+    experience=False,
+    stream=False
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -270,11 +284,11 @@ def loss_metrics(*, minibatch=False, epoch=False, epoch_running=False,
 
 
 __all__ = [
-    'Loss',
-    'MinibatchLoss',
-    'EpochLoss',
-    'RunningEpochLoss',
-    'ExperienceLoss',
-    'StreamLoss',
-    'loss_metrics'
+    "Loss",
+    "MinibatchLoss",
+    "EpochLoss",
+    "RunningEpochLoss",
+    "ExperienceLoss",
+    "StreamLoss",
+    "loss_metrics",
 ]

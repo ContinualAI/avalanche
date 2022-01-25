@@ -9,16 +9,27 @@ from torchvision.datasets import CIFAR10, MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks import dataset_benchmark, filelist_benchmark, \
-    tensors_benchmark, paths_benchmark, data_incremental_benchmark, \
-    benchmark_with_validation_stream
+from avalanche.benchmarks import (
+    dataset_benchmark,
+    filelist_benchmark,
+    tensors_benchmark,
+    paths_benchmark,
+    data_incremental_benchmark,
+    benchmark_with_validation_stream,
+)
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators.benchmark_generators import \
-    class_balanced_split_strategy
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
-    create_lazy_generic_benchmark, LazyStreamDefinition
-from avalanche.benchmarks.utils import AvalancheDataset, \
-    AvalancheTensorDataset, AvalancheDatasetType
+from avalanche.benchmarks.generators.benchmark_generators import (
+    class_balanced_split_strategy,
+)
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    create_lazy_generic_benchmark,
+    LazyStreamDefinition,
+)
+from avalanche.benchmarks.utils import (
+    AvalancheDataset,
+    AvalancheTensorDataset,
+    AvalancheDatasetType,
+)
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
 
@@ -28,48 +39,63 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_dataset_benchmark(self):
         train_MNIST = MNIST(
-            root=default_dataset_location('mnist'),
-            train=True, download=True)
+            root=default_dataset_location("mnist"), train=True, download=True
+        )
         test_MNIST = MNIST(
-            root=default_dataset_location('mnist'),
-            train=False, download=True)
+            root=default_dataset_location("mnist"), train=False, download=True
+        )
 
         train_cifar10 = CIFAR10(
-            root=default_dataset_location('cifar10'),
-            train=True, download=True)
+            root=default_dataset_location("cifar10"), train=True, download=True
+        )
         test_cifar10 = CIFAR10(
-            root=default_dataset_location('cifar10'),
-            train=False, download=True
+            root=default_dataset_location("cifar10"), train=False, download=True
         )
 
         generic_benchmark = dataset_benchmark(
-            [train_MNIST, train_cifar10],
-            [test_MNIST, test_cifar10])
+            [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
+        )
 
     def test_dataset_benchmark_avalanche_dataset(self):
-        train_MNIST = AvalancheDataset(MNIST(
-            root=default_dataset_location('mnist'),
-            train=True, download=True
-        ), task_labels=0)
+        train_MNIST = AvalancheDataset(
+            MNIST(
+                root=default_dataset_location("mnist"),
+                train=True,
+                download=True,
+            ),
+            task_labels=0,
+        )
 
-        test_MNIST = AvalancheDataset(MNIST(
-            root=default_dataset_location('mnist'),
-            train=False, download=True
-        ), task_labels=0)
+        test_MNIST = AvalancheDataset(
+            MNIST(
+                root=default_dataset_location("mnist"),
+                train=False,
+                download=True,
+            ),
+            task_labels=0,
+        )
 
-        train_cifar10 = AvalancheDataset(CIFAR10(
-            root=default_dataset_location('cifar10'),
-            train=True, download=True
-        ), task_labels=1)
+        train_cifar10 = AvalancheDataset(
+            CIFAR10(
+                root=default_dataset_location("cifar10"),
+                train=True,
+                download=True,
+            ),
+            task_labels=1,
+        )
 
-        test_cifar10 = AvalancheDataset(CIFAR10(
-            root=default_dataset_location('cifar10'),
-            train=False, download=True
-        ), task_labels=1)
+        test_cifar10 = AvalancheDataset(
+            CIFAR10(
+                root=default_dataset_location("cifar10"),
+                train=False,
+                download=True,
+            ),
+            task_labels=1,
+        )
 
         generic_benchmark = dataset_benchmark(
-            [train_MNIST, train_cifar10],
-            [test_MNIST, test_cifar10])
+            [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
+        )
 
         self.assertEqual(0, generic_benchmark.train_stream[0].task_label)
         self.assertEqual(1, generic_benchmark.train_stream[1].task_label)
@@ -78,28 +104,32 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_filelist_benchmark(self):
         download_url(
-            'https://storage.googleapis.com/mledu-datasets/'
-            'cats_and_dogs_filtered.zip', expanduser("~") + "/.avalanche/data",
-            'cats_and_dogs_filtered.zip')
+            "https://storage.googleapis.com/mledu-datasets/"
+            "cats_and_dogs_filtered.zip",
+            expanduser("~") + "/.avalanche/data",
+            "cats_and_dogs_filtered.zip",
+        )
         archive_name = os.path.join(
-            expanduser("~") + "/.avalanche/data", 'cats_and_dogs_filtered.zip')
-        extract_archive(archive_name,
-                        to_path=expanduser("~") + "/.avalanche/data/")
+            expanduser("~") + "/.avalanche/data", "cats_and_dogs_filtered.zip"
+        )
+        extract_archive(
+            archive_name, to_path=expanduser("~") + "/.avalanche/data/"
+        )
 
-        dirpath = expanduser("~") + \
-            "/.avalanche/data/cats_and_dogs_filtered/train"
+        dirpath = (
+            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
+        )
 
         for filelist, dir, label in zip(
-                ["train_filelist_00.txt", "train_filelist_01.txt"],
-                ["cats", "dogs"],
-                [0, 1]):
+            ["train_filelist_00.txt", "train_filelist_01.txt"],
+            ["cats", "dogs"],
+            [0, 1],
+        ):
             # First, obtain the list of files
             filenames_list = os.listdir(os.path.join(dirpath, dir))
             with open(filelist, "w") as wf:
                 for name in filenames_list:
-                    wf.write(
-                        "{} {}\n".format(os.path.join(dir, name), label)
-                    )
+                    wf.write("{} {}\n".format(os.path.join(dir, name), label))
 
         generic_benchmark = filelist_benchmark(
             dirpath,
@@ -108,7 +138,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=[0, 0],
             complete_test_set_only=True,
             train_transform=ToTensor(),
-            eval_transform=ToTensor()
+            eval_transform=ToTensor(),
         )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
@@ -116,21 +146,24 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
     def test_paths_benchmark(self):
         download_url(
-            'https://storage.googleapis.com/mledu-datasets/'
-            'cats_and_dogs_filtered.zip', expanduser("~") + "/.avalanche/data",
-            'cats_and_dogs_filtered.zip')
+            "https://storage.googleapis.com/mledu-datasets/"
+            "cats_and_dogs_filtered.zip",
+            expanduser("~") + "/.avalanche/data",
+            "cats_and_dogs_filtered.zip",
+        )
         archive_name = os.path.join(
-            expanduser("~") + "/.avalanche/data", 'cats_and_dogs_filtered.zip')
-        extract_archive(archive_name,
-                        to_path=expanduser("~") + "/.avalanche/data/")
+            expanduser("~") + "/.avalanche/data", "cats_and_dogs_filtered.zip"
+        )
+        extract_archive(
+            archive_name, to_path=expanduser("~") + "/.avalanche/data/"
+        )
 
-        dirpath = expanduser("~") + \
-            "/.avalanche/data/cats_and_dogs_filtered/train"
+        dirpath = (
+            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
+        )
 
         train_experiences = []
-        for rel_dir, label in zip(
-                ["cats", "dogs"],
-                [0, 1]):
+        for rel_dir, label in zip(["cats", "dogs"], [0, 1]):
             filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
 
             experience_paths = []
@@ -145,7 +178,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=[0, 0],
             complete_test_set_only=True,
             train_transform=ToTensor(),
-            eval_transform=ToTensor()
+            eval_transform=ToTensor(),
         )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
@@ -168,11 +201,13 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_y = torch.zeros(50, dtype=torch.long)
 
         generic_benchmark = tensors_benchmark(
-            train_tensors=[(experience_1_x, experience_1_y),
-                           (experience_2_x, experience_2_y)],
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
             test_tensors=[(test_x, test_y)],
             task_labels=[0, 0],  # Task label of each train exp
-            complete_test_set_only=True
+            complete_test_set_only=True,
         )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
@@ -195,14 +230,18 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_y = torch.zeros(50, dtype=torch.long)
 
         initial_benchmark_instance = tensors_benchmark(
-            train_tensors=[(experience_1_x, experience_1_y),
-                           (experience_2_x, experience_2_y)],
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
             test_tensors=[(test_x, test_y)],
             task_labels=[0, 0],  # Task label of each train exp
-            complete_test_set_only=True)
+            complete_test_set_only=True,
+        )
 
         data_incremental_instance = data_incremental_benchmark(
-            initial_benchmark_instance, 12, shuffle=False, drop_last=False)
+            initial_benchmark_instance, 12, shuffle=False, drop_last=False
+        )
 
         self.assertEqual(16, len(data_incremental_instance.train_stream))
         self.assertEqual(1, len(data_incremental_instance.test_stream))
@@ -249,19 +288,20 @@ class HighLevelGeneratorTests(unittest.TestCase):
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
         experience_1_dataset = AvalancheTensorDataset(
-            experience_1_x, experience_1_y)
+            experience_1_x, experience_1_y
+        )
 
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
         experience_2_dataset = AvalancheTensorDataset(
-            experience_2_x, experience_2_y)
+            experience_2_x, experience_2_y
+        )
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
-        experience_test = AvalancheTensorDataset(
-            test_x, test_y)
+        experience_test = AvalancheTensorDataset(test_x, test_y)
 
         def train_gen():
             # Lazy generator of the training stream
@@ -277,10 +317,12 @@ class HighLevelGeneratorTests(unittest.TestCase):
             train_generator=LazyStreamDefinition(train_gen(), 2, [0, 0]),
             test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
             complete_test_set_only=True,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION)
+            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        )
 
         data_incremental_instance = data_incremental_benchmark(
-            initial_benchmark_instance, 12, shuffle=False, drop_last=False)
+            initial_benchmark_instance, 12, shuffle=False, drop_last=False
+        )
 
         self.assertEqual(16, len(data_incremental_instance.train_stream))
         self.assertEqual(1, len(data_incremental_instance.test_stream))
@@ -336,14 +378,18 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_y = torch.zeros(50, dtype=torch.long)
 
         initial_benchmark_instance = tensors_benchmark(
-            train_tensors=[(experience_1_x, experience_1_y),
-                           (experience_2_x, experience_2_y)],
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
             test_tensors=[(test_x, test_y)],
             task_labels=[0, 0],  # Task label of each train exp
-            complete_test_set_only=True)
+            complete_test_set_only=True,
+        )
 
         valid_benchmark = benchmark_with_validation_stream(
-            initial_benchmark_instance, 20, shuffle=False)
+            initial_benchmark_instance, 20, shuffle=False
+        )
 
         self.assertEqual(2, len(valid_benchmark.train_stream))
         self.assertEqual(2, len(valid_benchmark.valid_stream))
@@ -358,52 +404,66 @@ class HighLevelGeneratorTests(unittest.TestCase):
         self.assertTrue(
             torch.equal(
                 experience_1_x[:80],
-                valid_benchmark.train_stream[0].dataset[:][0]))
+                valid_benchmark.train_stream[0].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_x[:60],
-                valid_benchmark.train_stream[1].dataset[:][0]))
+                valid_benchmark.train_stream[1].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_y[:80],
-                valid_benchmark.train_stream[0].dataset[:][1]))
+                valid_benchmark.train_stream[0].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_y[:60],
-                valid_benchmark.train_stream[1].dataset[:][1]))
+                valid_benchmark.train_stream[1].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_x[80:],
-                valid_benchmark.valid_stream[0].dataset[:][0]))
+                valid_benchmark.valid_stream[0].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_x[60:],
-                valid_benchmark.valid_stream[1].dataset[:][0]))
+                valid_benchmark.valid_stream[1].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_y[80:],
-                valid_benchmark.valid_stream[0].dataset[:][1]))
+                valid_benchmark.valid_stream[0].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_y[60:],
-                valid_benchmark.valid_stream[1].dataset[:][1]))
+                valid_benchmark.valid_stream[1].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
-            torch.equal(
-                test_x,
-                valid_benchmark.test_stream[0].dataset[:][0]))
+            torch.equal(test_x, valid_benchmark.test_stream[0].dataset[:][0])
+        )
 
         self.assertTrue(
-            torch.equal(
-                test_y,
-                valid_benchmark.test_stream[0].dataset[:][1]))
+            torch.equal(test_y, valid_benchmark.test_stream[0].dataset[:][1])
+        )
 
     def test_benchmark_with_validation_stream_rel_size(self):
         pattern_shape = (3, 32, 32)
@@ -422,14 +482,18 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_y = torch.zeros(50, dtype=torch.long)
 
         initial_benchmark_instance = tensors_benchmark(
-            train_tensors=[(experience_1_x, experience_1_y),
-                           (experience_2_x, experience_2_y)],
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
             test_tensors=[(test_x, test_y)],
             task_labels=[0, 0],  # Task label of each train exp
-            complete_test_set_only=True)
+            complete_test_set_only=True,
+        )
 
         valid_benchmark = benchmark_with_validation_stream(
-            initial_benchmark_instance, 0.2, shuffle=False)
+            initial_benchmark_instance, 0.2, shuffle=False
+        )
         expected_rel_1_valid = int(100 * 0.2)
         expected_rel_1_train = 100 - expected_rel_1_valid
         expected_rel_2_valid = int(80 * 0.2)
@@ -441,63 +505,81 @@ class HighLevelGeneratorTests(unittest.TestCase):
         self.assertTrue(valid_benchmark.complete_test_set_only)
 
         self.assertEqual(
-            expected_rel_1_train, len(valid_benchmark.train_stream[0].dataset))
+            expected_rel_1_train, len(valid_benchmark.train_stream[0].dataset)
+        )
         self.assertEqual(
-            expected_rel_2_train, len(valid_benchmark.train_stream[1].dataset))
+            expected_rel_2_train, len(valid_benchmark.train_stream[1].dataset)
+        )
         self.assertEqual(
-            expected_rel_1_valid, len(valid_benchmark.valid_stream[0].dataset))
+            expected_rel_1_valid, len(valid_benchmark.valid_stream[0].dataset)
+        )
         self.assertEqual(
-            expected_rel_2_valid, len(valid_benchmark.valid_stream[1].dataset))
+            expected_rel_2_valid, len(valid_benchmark.valid_stream[1].dataset)
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_x[:expected_rel_1_train],
-                valid_benchmark.train_stream[0].dataset[:][0]))
+                valid_benchmark.train_stream[0].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_x[:expected_rel_2_train],
-                valid_benchmark.train_stream[1].dataset[:][0]))
+                valid_benchmark.train_stream[1].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_y[:expected_rel_1_train],
-                valid_benchmark.train_stream[0].dataset[:][1]))
+                valid_benchmark.train_stream[0].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_y[:expected_rel_2_train],
-                valid_benchmark.train_stream[1].dataset[:][1]))
+                valid_benchmark.train_stream[1].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_x[expected_rel_1_train:],
-                valid_benchmark.valid_stream[0].dataset[:][0]))
+                valid_benchmark.valid_stream[0].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_x[expected_rel_2_train:],
-                valid_benchmark.valid_stream[1].dataset[:][0]))
+                valid_benchmark.valid_stream[1].dataset[:][0],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_1_y[expected_rel_1_train:],
-                valid_benchmark.valid_stream[0].dataset[:][1]))
+                valid_benchmark.valid_stream[0].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
             torch.equal(
                 experience_2_y[expected_rel_2_train:],
-                valid_benchmark.valid_stream[1].dataset[:][1]))
+                valid_benchmark.valid_stream[1].dataset[:][1],
+            )
+        )
 
         self.assertTrue(
-            torch.equal(
-                test_x,
-                valid_benchmark.test_stream[0].dataset[:][0]))
+            torch.equal(test_x, valid_benchmark.test_stream[0].dataset[:][0])
+        )
 
         self.assertTrue(
-            torch.equal(
-                test_y,
-                valid_benchmark.test_stream[0].dataset[:][1]))
+            torch.equal(test_y, valid_benchmark.test_stream[0].dataset[:][1])
+        )
 
     def test_lazy_benchmark_with_validation_stream_fixed_size(self):
         lazy_options = [None, True, False]
@@ -510,19 +592,20 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 experience_1_x = torch.zeros(100, *pattern_shape)
                 experience_1_y = torch.zeros(100, dtype=torch.long)
                 experience_1_dataset = AvalancheTensorDataset(
-                    experience_1_x, experience_1_y)
+                    experience_1_x, experience_1_y
+                )
 
                 # Experience 2
                 experience_2_x = torch.zeros(80, *pattern_shape)
                 experience_2_y = torch.ones(80, dtype=torch.long)
                 experience_2_dataset = AvalancheTensorDataset(
-                    experience_2_x, experience_2_y)
+                    experience_2_x, experience_2_y
+                )
 
                 # Test experience
                 test_x = torch.zeros(50, *pattern_shape)
                 test_y = torch.zeros(50, dtype=torch.long)
-                experience_test = AvalancheTensorDataset(
-                    test_x, test_y)
+                experience_test = AvalancheTensorDataset(test_x, test_y)
 
                 def train_gen():
                     # Lazy generator of the training stream
@@ -536,15 +619,19 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
                 initial_benchmark_instance = create_lazy_generic_benchmark(
                     train_generator=LazyStreamDefinition(
-                        train_gen(), 2, [0, 0]),
-                    test_generator=LazyStreamDefinition(
-                        test_gen(), 1, [0]),
+                        train_gen(), 2, [0, 0]
+                    ),
+                    test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
                     complete_test_set_only=True,
-                    dataset_type=AvalancheDatasetType.CLASSIFICATION)
+                    dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                )
 
                 valid_benchmark = benchmark_with_validation_stream(
-                    initial_benchmark_instance, 20, shuffle=False,
-                    lazy_splitting=lazy_option)
+                    initial_benchmark_instance,
+                    20,
+                    shuffle=False,
+                    lazy_splitting=lazy_option,
+                )
 
                 if lazy_option is None or lazy_option:
                     expect_laziness = True
@@ -553,7 +640,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
                 self.assertEqual(
                     expect_laziness,
-                    valid_benchmark.stream_definitions['train'].is_lazy)
+                    valid_benchmark.stream_definitions["train"].is_lazy,
+                )
 
                 self.assertEqual(2, len(valid_benchmark.train_stream))
                 self.assertEqual(2, len(valid_benchmark.valid_stream))
@@ -561,95 +649,129 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 self.assertTrue(valid_benchmark.complete_test_set_only)
 
                 maybe_exp = valid_benchmark.stream_definitions[
-                    'train'].exps_data.get_experience_if_loaded(0)
+                    "train"
+                ].exps_data.get_experience_if_loaded(0)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
                 self.assertEqual(
-                    80, len(valid_benchmark.train_stream[0].dataset))
+                    80, len(valid_benchmark.train_stream[0].dataset)
+                )
 
                 maybe_exp = valid_benchmark.stream_definitions[
-                    'train'].exps_data.get_experience_if_loaded(1)
+                    "train"
+                ].exps_data.get_experience_if_loaded(1)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
                 self.assertEqual(
-                    60, len(valid_benchmark.train_stream[1].dataset))
+                    60, len(valid_benchmark.train_stream[1].dataset)
+                )
 
                 maybe_exp = valid_benchmark.stream_definitions[
-                    'valid'].exps_data.get_experience_if_loaded(0)
+                    "valid"
+                ].exps_data.get_experience_if_loaded(0)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
                 self.assertEqual(
-                    20, len(valid_benchmark.valid_stream[0].dataset))
+                    20, len(valid_benchmark.valid_stream[0].dataset)
+                )
 
                 maybe_exp = valid_benchmark.stream_definitions[
-                    'valid'].exps_data.get_experience_if_loaded(1)
+                    "valid"
+                ].exps_data.get_experience_if_loaded(1)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
                 self.assertEqual(
-                    20, len(valid_benchmark.valid_stream[1].dataset))
+                    20, len(valid_benchmark.valid_stream[1].dataset)
+                )
 
                 self.assertIsNotNone(
                     valid_benchmark.stream_definitions[
-                        'train'].exps_data.get_experience_if_loaded(0))
+                        "train"
+                    ].exps_data.get_experience_if_loaded(0)
+                )
                 self.assertIsNotNone(
                     valid_benchmark.stream_definitions[
-                        'valid'].exps_data.get_experience_if_loaded(0))
+                        "valid"
+                    ].exps_data.get_experience_if_loaded(0)
+                )
                 self.assertIsNotNone(
                     valid_benchmark.stream_definitions[
-                        'train'].exps_data.get_experience_if_loaded(1))
+                        "train"
+                    ].exps_data.get_experience_if_loaded(1)
+                )
                 self.assertIsNotNone(
                     valid_benchmark.stream_definitions[
-                        'valid'].exps_data.get_experience_if_loaded(1))
+                        "valid"
+                    ].exps_data.get_experience_if_loaded(1)
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_1_x[:80],
-                        valid_benchmark.train_stream[0].dataset[:][0]))
+                        valid_benchmark.train_stream[0].dataset[:][0],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_2_x[:60],
-                        valid_benchmark.train_stream[1].dataset[:][0]))
+                        valid_benchmark.train_stream[1].dataset[:][0],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_1_y[:80],
-                        valid_benchmark.train_stream[0].dataset[:][1]))
+                        valid_benchmark.train_stream[0].dataset[:][1],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_2_y[:60],
-                        valid_benchmark.train_stream[1].dataset[:][1]))
+                        valid_benchmark.train_stream[1].dataset[:][1],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_1_x[80:],
-                        valid_benchmark.valid_stream[0].dataset[:][0]))
+                        valid_benchmark.valid_stream[0].dataset[:][0],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_2_x[60:],
-                        valid_benchmark.valid_stream[1].dataset[:][0]))
+                        valid_benchmark.valid_stream[1].dataset[:][0],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_1_y[80:],
-                        valid_benchmark.valid_stream[0].dataset[:][1]))
+                        valid_benchmark.valid_stream[0].dataset[:][1],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
                         experience_2_y[60:],
-                        valid_benchmark.valid_stream[1].dataset[:][1]))
+                        valid_benchmark.valid_stream[1].dataset[:][1],
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
-                        test_x,
-                        valid_benchmark.test_stream[0].dataset[:][0]))
+                        test_x, valid_benchmark.test_stream[0].dataset[:][0]
+                    )
+                )
 
                 self.assertTrue(
                     torch.equal(
-                        test_y,
-                        valid_benchmark.test_stream[0].dataset[:][1]))
+                        test_y, valid_benchmark.test_stream[0].dataset[:][1]
+                    )
+                )
 
 
 class DataSplitStrategiesTests(unittest.TestCase):

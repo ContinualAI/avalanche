@@ -25,13 +25,22 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.generators.benchmark_generators import \
-    create_multi_dataset_generic_benchmark
+from avalanche.benchmarks.generators.benchmark_generators import (
+    create_multi_dataset_generic_benchmark,
+)
 from avalanche.benchmarks.utils import AvalancheTensorDataset
-from avalanche.evaluation.metrics import forgetting_metrics, \
-    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
-    gpu_usage_metrics, ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
-    bwt_metrics
+from avalanche.evaluation.metrics import (
+    forgetting_metrics,
+    accuracy_metrics,
+    loss_metrics,
+    cpu_usage_metrics,
+    timing_metrics,
+    gpu_usage_metrics,
+    ram_usage_metrics,
+    disk_usage_metrics,
+    MAC_metrics,
+    bwt_metrics,
+)
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -40,18 +49,32 @@ from avalanche.training.strategies import Naive
 
 def main(args):
     # --- CONFIG
-    device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}"
+        if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu"
+    )
     # ---------
 
-    tr_ds = [AvalancheTensorDataset(
-        torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
-        task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
-    ts_ds = [AvalancheTensorDataset(
-        torch.randn(10, 3), torch.randint(0, 3, (10,)).tolist(),
-        task_labels=torch.randint(0, 5, (10,)).tolist()) for _ in range(3)]
+    tr_ds = [
+        AvalancheTensorDataset(
+            torch.randn(10, 3),
+            torch.randint(0, 3, (10,)).tolist(),
+            task_labels=torch.randint(0, 5, (10,)).tolist(),
+        )
+        for _ in range(3)
+    ]
+    ts_ds = [
+        AvalancheTensorDataset(
+            torch.randn(10, 3),
+            torch.randint(0, 3, (10,)).tolist(),
+            task_labels=torch.randint(0, 5, (10,)).tolist(),
+        )
+        for _ in range(3)
+    ]
     scenario = create_multi_dataset_generic_benchmark(
-        train_datasets=tr_ds, test_datasets=ts_ds)
+        train_datasets=tr_ds, test_datasets=ts_ds
+    )
     # ---------
 
     # MODEL CREATION
@@ -64,7 +87,7 @@ def main(args):
     # and save them in persistent memory or print them in the standard output.
 
     # log to text file
-    text_logger = TextLogger(open('log.txt', 'a'))
+    text_logger = TextLogger(open("log.txt", "a"))
 
     # print to stdout
     interactive_logger = InteractiveLogger()
@@ -73,39 +96,69 @@ def main(args):
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, epoch_running=True, experience=True,
-            stream=True),
-        loss_metrics(minibatch=True, epoch=True, epoch_running=True,
-                     experience=True, stream=True),
+            minibatch=True,
+            epoch=True,
+            epoch_running=True,
+            experience=True,
+            stream=True,
+        ),
+        loss_metrics(
+            minibatch=True,
+            epoch=True,
+            epoch_running=True,
+            experience=True,
+            stream=True,
+        ),
         forgetting_metrics(experience=True, stream=True),
         bwt_metrics(experience=True, stream=True),
         cpu_usage_metrics(
-            minibatch=True, epoch=True, epoch_running=True,
-            experience=True, stream=True),
+            minibatch=True,
+            epoch=True,
+            epoch_running=True,
+            experience=True,
+            stream=True,
+        ),
         timing_metrics(
-            minibatch=True, epoch=True, epoch_running=True,
-            experience=True, stream=True),
+            minibatch=True,
+            epoch=True,
+            epoch_running=True,
+            experience=True,
+            stream=True,
+        ),
         ram_usage_metrics(
-            every=0.5, minibatch=True, epoch=True,
-            experience=True, stream=True),
+            every=0.5, minibatch=True, epoch=True, experience=True, stream=True
+        ),
         gpu_usage_metrics(
-            args.cuda, every=0.5, minibatch=True, epoch=True,
-            experience=True, stream=True),
+            args.cuda,
+            every=0.5,
+            minibatch=True,
+            epoch=True,
+            experience=True,
+            stream=True,
+        ),
         disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True),
-        MAC_metrics(
-            minibatch=True, epoch=True, experience=True),
+            minibatch=True, epoch=True, experience=True, stream=True
+        ),
+        MAC_metrics(minibatch=True, epoch=True, experience=True),
         loggers=[interactive_logger, text_logger, csv_logger],
-        collect_all=True)  # collect all metrics (set to True by default)
+        collect_all=True,
+    )  # collect all metrics (set to True by default)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
     cl_strategy = Naive(
-        model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-        CrossEntropyLoss(), train_mb_size=500, train_epochs=1, eval_mb_size=100,
-        device=device, evaluator=eval_plugin, eval_every=1)
+        model,
+        SGD(model.parameters(), lr=0.001, momentum=0.9),
+        CrossEntropyLoss(),
+        train_mb_size=500,
+        train_epochs=1,
+        eval_mb_size=100,
+        device=device,
+        evaluator=eval_plugin,
+        eval_every=1,
+    )
 
     # TRAINING LOOP
-    print('Starting experiment...')
+    print("Starting experiment...")
     results = []
     for i, experience in enumerate(scenario.train_stream):
         print("Start of experience: ", experience.current_experience)
@@ -113,11 +166,10 @@ def main(args):
 
         # train returns a dictionary containing last recorded value
         # for each metric.
-        res = cl_strategy.train(experience,
-                                eval_streams=[scenario.test_stream])
-        print('Training completed')
+        res = cl_strategy.train(experience, eval_streams=[scenario.test_stream])
+        print("Training completed")
 
-        print('Computing accuracy on the whole test set')
+        print("Computing accuracy on the whole test set")
         # test returns a dictionary with the last metric collected during
         # evaluation on that stream
         results.append(cl_strategy.eval(scenario.test_stream))
@@ -133,9 +185,13 @@ def main(args):
     print(f"Stored metrics: {list(all_metrics.keys())}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuda', type=int, default=0,
-                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument(
+        "--cuda",
+        type=int,
+        default=0,
+        help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
     args = parser.parse_args()
     main(args)

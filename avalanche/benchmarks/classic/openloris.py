@@ -17,38 +17,43 @@ from pathlib import Path
 from typing import Union, Any, Optional
 from typing_extensions import Literal
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
-from avalanche.benchmarks.datasets.openloris import OpenLORIS as \
-    OpenLORISDataset
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
-    create_generic_benchmark_from_filelists
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
+from avalanche.benchmarks.datasets.openloris import (
+    OpenLORIS as OpenLORISDataset,
+)
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    create_generic_benchmark_from_filelists,
+)
 
 
 nbatch = {
-    'clutter': 9,
-    'illumination': 9,
-    'occlusion': 9,
-    'pixel': 9,
-    'mixture-iros': 12
+    "clutter": 9,
+    "illumination": 9,
+    "occlusion": 9,
+    "pixel": 9,
+    "mixture-iros": 12,
 }
 
 fac2dirs = {
-    'clutter': "batches_filelists/domain/clutter",
-    'illumination': "batches_filelists/domain/illumination",
-    'occlusion': "batches_filelists/domain/occlusion",
-    'pixel': "batches_filelists/domain/pixel",
-    'mixture-iros': "batches_filelists/domain/iros"
+    "clutter": "batches_filelists/domain/clutter",
+    "illumination": "batches_filelists/domain/illumination",
+    "occlusion": "batches_filelists/domain/occlusion",
+    "pixel": "batches_filelists/domain/pixel",
+    "mixture-iros": "batches_filelists/domain/iros",
 }
 
 
 def OpenLORIS(
-        *,
-        factor: Literal['clutter', 'illumination',
-                        'occlusion', 'pixel', 'mixture-iros'] = "clutter",
-        train_transform: Optional[Any] = None,
-        eval_transform: Optional[Any] = None,
-        dataset_root: Union[str, Path] = None):
+    *,
+    factor: Literal[
+        "clutter", "illumination", "occlusion", "pixel", "mixture-iros"
+    ] = "clutter",
+    train_transform: Optional[Any] = None,
+    eval_transform: Optional[Any] = None,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark for OpenLORIS.
 
@@ -90,10 +95,12 @@ def OpenLORIS(
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
 
-    assert (factor in nbatch.keys()), "The selected factor is note " \
-                                      "recognized: it should be 'clutter'," \
-                                      "'illumination', 'occlusion', " \
-                                      "'pixel', or 'mixture-iros'."
+    assert factor in nbatch.keys(), (
+        "The selected factor is note "
+        "recognized: it should be 'clutter',"
+        "'illumination', 'occlusion', "
+        "'pixel', or 'mixture-iros'."
+    )
 
     # Dataset created just to download it
     dataset = OpenLORISDataset(dataset_root, download=True)
@@ -102,23 +109,25 @@ def OpenLORIS(
     train_failists_paths = []
     for i in range(nbatch[factor]):
         train_failists_paths.append(
-            dataset_root / filelists_bp / ("train_batch_" +
-                                           str(i).zfill(2) + ".txt"))
+            dataset_root
+            / filelists_bp
+            / ("train_batch_" + str(i).zfill(2) + ".txt")
+        )
 
     factor_obj = create_generic_benchmark_from_filelists(
-        dataset_root, train_failists_paths,
+        dataset_root,
+        train_failists_paths,
         [dataset_root / filelists_bp / "test.txt"],
         task_labels=[0 for _ in range(nbatch[factor])],
         complete_test_set_only=True,
         train_transform=train_transform,
-        eval_transform=eval_transform)
+        eval_transform=eval_transform,
+    )
 
     return factor_obj
 
 
-__all__ = [
-    'OpenLORIS'
-]
+__all__ = ["OpenLORIS"]
 
 if __name__ == "__main__":
     import sys

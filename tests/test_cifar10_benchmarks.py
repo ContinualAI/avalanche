@@ -10,6 +10,7 @@ CIFAR10_DOWNLOAD_METHOD = None
 class CIFAR10BenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.ccifar10 as ccifar10
+
         global CIFAR10_DOWNLOAD_METHOD
         CIFAR10_DOWNLOAD_METHOD = ccifar10._get_cifar10_dataset
 
@@ -24,6 +25,7 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
         global CIFAR10_DOWNLOAD_METHOD
         if CIFAR10_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.ccifar10 as ccifar10
+
             ccifar10._get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD
             CIFAR10_DOWNLOAD_METHOD = None
 
@@ -63,5 +65,5 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
         self.assertEqual(1, CIFAR10_DOWNLOADS)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

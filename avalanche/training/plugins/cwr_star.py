@@ -7,15 +7,21 @@ import torch
 from torch.nn import Linear
 
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.training.utils import examples_per_class, get_last_fc_layer, \
-    get_layer_by_name, freeze_everything, unfreeze_everything
+from avalanche.training.utils import (
+    examples_per_class,
+    get_last_fc_layer,
+    get_layer_by_name,
+    freeze_everything,
+    unfreeze_everything,
+)
 
 
 class CWRStarPlugin(StrategyPlugin):
-    """ CWR* Strategy.
+    """CWR* Strategy.
 
     This plugin does not use task identities.
     """
+
     def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True):
         """
         :param model: the model.
@@ -51,36 +57,41 @@ class CWRStarPlugin(StrategyPlugin):
         # Count current classes and number of samples for each of them.
         data = strategy.experience.dataset
         self.model.cur_j = examples_per_class(data.targets)
-        self.cur_class = [cls for cls in set(self.model.cur_j.keys()) if
-                          self.model.cur_j[cls] > 0]
+        self.cur_class = [
+            cls
+            for cls in set(self.model.cur_j.keys())
+            if self.model.cur_j[cls] > 0
+        ]
 
         self.reset_weights(self.cur_class)
 
     def consolidate_weights(self):
-        """ Mean-shift for the target layer weights"""
+        """Mean-shift for the target layer weights"""
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
-            globavg = np.average(cwr_layer.weight.detach()
-                                 .cpu().numpy()[self.cur_class])
+            globavg = np.average(
+                cwr_layer.weight.detach().cpu().numpy()[self.cur_class]
+            )
             for c in self.cur_class:
                 w = cwr_layer.weight.detach().cpu().numpy()[c]
 
                 if c in self.cur_class:
                     new_w = w - globavg
                     if c in self.model.saved_weights.keys():
-                        wpast_j = np.sqrt(self.model.past_j[c] /
-                                          self.model.cur_j[c])
+                        wpast_j = np.sqrt(
+                            self.model.past_j[c] / self.model.cur_j[c]
+                        )
                         # wpast_j = model.past_j[c] / model.cur_j[c]
-                        self.model.saved_weights[c] = \
-                            (self.model.saved_weights[c] * wpast_j + new_w) / \
-                            (wpast_j + 1)
+                        self.model.saved_weights[c] = (
+                            self.model.saved_weights[c] * wpast_j + new_w
+                        ) / (wpast_j + 1)
                         self.model.past_j[c] += self.model.cur_j[c]
                     else:
                         self.model.saved_weights[c] = new_w
 
     def set_consolidate_weights(self):
-        """ set trained weights """
+        """set trained weights"""
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
@@ -90,7 +101,7 @@ class CWRStarPlugin(StrategyPlugin):
                 )
 
     def reset_weights(self, cur_clas):
-        """ reset weights"""
+        """reset weights"""
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
             cwr_layer.weight.fill_(0.0)
@@ -114,6 +125,6 @@ class CWRStarPlugin(StrategyPlugin):
     def freeze_other_layers(self):
         cwr_layer = self.get_cwr_layer()
         if cwr_layer is None:
-            raise RuntimeError('Can\'t find a the Linear layer')
+            raise RuntimeError("Can't find a the Linear layer")
         freeze_everything(self.model)
         unfreeze_everything(cwr_layer)

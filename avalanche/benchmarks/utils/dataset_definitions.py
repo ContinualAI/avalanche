@@ -3,8 +3,8 @@ from typing import TypeVar, SupportsInt, Sequence
 from torch.utils.data.dataset import Dataset
 from typing_extensions import Protocol
 
-T_co = TypeVar('T_co', covariant=True)
-TTargetType = TypeVar('TTargetType')
+T_co = TypeVar("T_co", covariant=True)
+TTargetType = TypeVar("TTargetType")
 
 
 # General rule: consume ISupportedClassificationDataset,
@@ -45,8 +45,9 @@ class IDatasetWithTargets(IDataset[T_co], Protocol[T_co, TTargetType]):
     """
 
 
-class ISupportedClassificationDataset(IDatasetWithTargets[
-                                          T_co, SupportsInt], Protocol):
+class ISupportedClassificationDataset(
+    IDatasetWithTargets[T_co, SupportsInt], Protocol
+):
     """
     Protocol definition of a Dataset that has a valid targets field (like the
     Datasets in the torchvision package) for classification.
@@ -111,6 +112,7 @@ class ClassificationDataset(IClassificationDataset[T_co], Dataset):
 
     The actual value of the targets field should be set by the child class.
     """
+
     def __init__(self):
         self.targets = []
         """
@@ -120,10 +122,10 @@ class ClassificationDataset(IClassificationDataset[T_co], Dataset):
 
 
 __all__ = [
-    'IDataset',
-    'IDatasetWithTargets',
-    'ISupportedClassificationDataset',
-    'ITensorDataset',
-    'IClassificationDataset',
-    'ClassificationDataset'
+    "IDataset",
+    "IDatasetWithTargets",
+    "ISupportedClassificationDataset",
+    "ITensorDataset",
+    "IClassificationDataset",
+    "ClassificationDataset",
 ]

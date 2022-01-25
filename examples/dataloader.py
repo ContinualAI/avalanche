@@ -13,11 +13,11 @@ class MyCumulativeStrategy(Cumulative):
         # strategy's dataloader
         # remember to iterate over self.adapted_dataset
         self.dataloader = TaskBalancedDataLoader(
-            self.adapted_dataset,
-            batch_size=self.train_mb_size)
+            self.adapted_dataset, batch_size=self.train_mb_size
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     benchmark = SplitMNIST(n_experiences=5)
 
     model = SimpleMLP(input_size=784, hidden_size=10)
@@ -25,8 +25,13 @@ if __name__ == '__main__':
 
     # we use our custom strategy to change the dataloading policy.
     cl_strategy = MyCumulativeStrategy(
-        model, opt, CrossEntropyLoss(), train_epochs=1,
-        train_mb_size=512, eval_mb_size=512)
+        model,
+        opt,
+        CrossEntropyLoss(),
+        train_epochs=1,
+        train_mb_size=512,
+        eval_mb_size=512,
+    )
 
     for step in benchmark.train_stream:
         cl_strategy.train(step)

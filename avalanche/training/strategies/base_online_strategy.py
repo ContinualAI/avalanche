@@ -15,17 +15,31 @@ from avalanche.models import DynamicModule
 
 
 class BaseOnlineStrategy(BaseStrategy):
-    def __init__(self, model: Module, optimizer: Optimizer,
-                 criterion=CrossEntropyLoss(), num_passes: int = 1,
-                 train_mb_size: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        num_passes: int = 1,
+        train_mb_size: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[StrategyPlugin]] = None,
+        evaluator: EvaluationPlugin = default_logger,
+        eval_every=-1,
+    ):
         super().__init__(
-            model, optimizer, criterion,
-            train_mb_size=train_mb_size, train_epochs=1,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=1,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
         self.num_passes = num_passes
 
@@ -35,13 +49,13 @@ class BaseOnlineStrategy(BaseStrategy):
         )
 
     def create_sub_experience_list(self, experience):
-        """ Creates a list of sub-experiences from an experience.
-            It returns a list of experiences, where each experience is
-            a subset of the original experience.
+        """Creates a list of sub-experiences from an experience.
+        It returns a list of experiences, where each experience is
+        a subset of the original experience.
 
-            :param experience: single Experience.
+        :param experience: single Experience.
 
-            :return: list of Experience.
+        :return: list of Experience.
         """
 
         # Shuffle the indices
@@ -50,22 +64,29 @@ class BaseOnlineStrategy(BaseStrategy):
 
         sub_experience_list = []
         for subexp_id in range(num_sub_exps):
-            subexp_indices = indices[subexp_id * self.train_mb_size:
-                                     (subexp_id + 1) * self.train_mb_size]
+            subexp_indices = indices[
+                subexp_id
+                * self.train_mb_size : (subexp_id + 1)
+                * self.train_mb_size
+            ]
             sub_experience = copy.copy(experience)
-            subexp_ds = AvalancheSubset(sub_experience.dataset,
-                                        indices=subexp_indices)
+            subexp_ds = AvalancheSubset(
+                sub_experience.dataset, indices=subexp_indices
+            )
             sub_experience.dataset = subexp_ds
             sub_experience_list.append(sub_experience)
 
         return sub_experience_list
 
-    def train(self, experiences: Union[Experience, Sequence[Experience]],
-              eval_streams: Optional[Sequence[Union[Experience,
-                                                    Sequence[
-                                                        Experience]]]] = None,
-              **kwargs):
-        """ Training loop. if experiences is a single element trains on it.
+    def train(
+        self,
+        experiences: Union[Experience, Sequence[Experience]],
+        eval_streams: Optional[
+            Sequence[Union[Experience, Sequence[Experience]]]
+        ] = None,
+        **kwargs
+    ):
+        """Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
         It returns a dictionary with last recorded value for each metric.
@@ -106,20 +127,28 @@ class BaseOnlineStrategy(BaseStrategy):
                 self.experience = sub_experience
                 is_first_sub_exp = i == 0
                 is_last_sub_exp = i == len(sub_experience_list) - 1
-                self.train_exp(self.experience, eval_streams,
-                               is_first_sub_exp=is_first_sub_exp,
-                               is_last_sub_exp=is_last_sub_exp,
-                               **kwargs)
+                self.train_exp(
+                    self.experience,
+                    eval_streams,
+                    is_first_sub_exp=is_first_sub_exp,
+                    is_last_sub_exp=is_last_sub_exp,
+                    **kwargs
+                )
 
         self._after_training(**kwargs)
 
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(self, experience: Experience, eval_streams=None,
-                  is_first_sub_exp=False, is_last_sub_exp=False,
-                  **kwargs):
-        """ Training loop over a single Experience object.
+    def train_exp(
+        self,
+        experience: Experience,
+        eval_streams=None,
+        is_first_sub_exp=False,
+        is_last_sub_exp=False,
+        **kwargs
+    ):
+        """Training loop over a single Experience object.
 
         :param experience: CL experience information.
         :param eval_streams: list of streams for evaluation.

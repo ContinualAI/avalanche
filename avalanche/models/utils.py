@@ -1,4 +1,5 @@
-from avalanche.models.dynamic_modules import MultiTaskModule
+from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
 import torch.nn as nn
 
 
@@ -7,6 +8,12 @@ def avalanche_forward(model, x, task_labels):
         return model(x, task_labels)
     else:  # no task labels
         return model(x)
+
+
+def avalanche_model_adaptation(model: nn.Module, dataset: AvalancheDataset):
+    for module in model.modules():
+        if isinstance(module, DynamicModule):
+            module.adaptation(dataset)
 
 
 class FeatureExtractorBackbone(nn.Module):
@@ -48,10 +55,8 @@ class FeatureExtractorBackbone(nn.Module):
         """
         name_to_module = self.get_name_to_module(model)
         name_to_module[self.output_layer_name].register_forward_hook(
-            self.get_activation())
+            self.get_activation()
+        )
 
 
-__all__ = [
-    'avalanche_forward',
-    'FeatureExtractorBackbone'
-]
+__all__ = ["avalanche_forward", "FeatureExtractorBackbone"]

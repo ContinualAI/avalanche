@@ -48,7 +48,7 @@ class ImagesSamplePlugin(PluginMetric):
         n_cols: int,
         n_rows: int,
         group: bool = True,
-        disable_augmentations: bool = True
+        disable_augmentations: bool = True,
     ):
         super().__init__()
         self.group = group
@@ -111,8 +111,9 @@ class ImagesSamplePlugin(PluginMetric):
     def _load_data(
         self, strategy: "BaseStrategy"
     ) -> Tuple[List[Tensor], List[int], List[int]]:
-        dataloader = self._make_dataloader(strategy.adapted_dataset,
-                                           strategy.eval_mb_size)
+        dataloader = self._make_dataloader(
+            strategy.adapted_dataset, strategy.eval_mb_size
+        )
 
         images, labels, tasks = [], [], []
 
@@ -128,15 +129,18 @@ class ImagesSamplePlugin(PluginMetric):
         self.images = [
             image
             for task, label, image in sorted(
-                zip(tasks, labels, self.images), key=lambda t: (t[0], t[1]),
+                zip(tasks, labels, self.images),
+                key=lambda t: (t[0], t[1]),
             )
         ]
 
-    def _make_dataloader(self, data: "AvalancheDataset", mb_size: int)\
-            -> DataLoader:
+    def _make_dataloader(
+        self, data: "AvalancheDataset", mb_size: int
+    ) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_transforms(
-                transform=MaybeToTensor(), target_transform=None,
+                transform=MaybeToTensor(),
+                target_transform=None,
             )
         return DataLoader(
             dataset=data,
@@ -200,7 +204,4 @@ def images_samples_metrics(
     return plugins
 
 
-__all__ = [
-    'images_samples_metrics',
-    'ImagesSamplePlugin'
-]
+__all__ = ["images_samples_metrics", "ImagesSamplePlugin"]

@@ -22,8 +22,13 @@ class EWCPlugin(StrategyPlugin):
     training set. This plugin does not use task identities.
     """
 
-    def __init__(self, ewc_lambda, mode='separate', decay_factor=None,
-                 keep_importance_data=False):
+    def __init__(
+        self,
+        ewc_lambda,
+        mode="separate",
+        decay_factor=None,
+        keep_importance_data=False,
+    ):
         """
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
@@ -41,18 +46,21 @@ class EWCPlugin(StrategyPlugin):
         """
 
         super().__init__()
-        assert (decay_factor is None) or (mode == 'online'), \
-            "You need to set `online` mode to use `decay_factor`."
-        assert (decay_factor is not None) or (mode != 'online'), \
-            "You need to set `decay_factor` to use the `online` mode."
-        assert mode == 'separate' or mode == 'online', \
-            'Mode must be separate or online.'
+        assert (decay_factor is None) or (
+            mode == "online"
+        ), "You need to set `online` mode to use `decay_factor`."
+        assert (decay_factor is not None) or (
+            mode != "online"
+        ), "You need to set `decay_factor` to use the `online` mode."
+        assert (
+            mode == "separate" or mode == "online"
+        ), "Mode must be separate or online."
 
         self.ewc_lambda = ewc_lambda
         self.mode = mode
         self.decay_factor = decay_factor
 
-        if self.mode == 'separate':
+        if self.mode == "separate":
             self.keep_importance_data = True
         else:
             self.keep_importance_data = keep_importance_data
@@ -70,22 +78,24 @@ class EWCPlugin(StrategyPlugin):
 
         penalty = torch.tensor(0).float().to(strategy.device)
 
-        if self.mode == 'separate':
+        if self.mode == "separate":
             for experience in range(exp_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                        strategy.model.named_parameters(),
-                        self.saved_params[experience],
-                        self.importances[experience]):
+                    strategy.model.named_parameters(),
+                    self.saved_params[experience],
+                    self.importances[experience],
+                ):
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
-        elif self.mode == 'online':
+        elif self.mode == "online":
             prev_exp = exp_counter - 1
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                    strategy.model.named_parameters(),
-                    self.saved_params[prev_exp],
-                    self.importances[prev_exp]):
+                strategy.model.named_parameters(),
+                self.saved_params[prev_exp],
+                self.importances[prev_exp],
+            ):
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
-            raise ValueError('Wrong EWC mode.')
+            raise ValueError("Wrong EWC mode.")
 
         strategy.loss += self.ewc_lambda * penalty
 
@@ -94,22 +104,23 @@ class EWCPlugin(StrategyPlugin):
         Compute importances of parameters after each experience.
         """
         exp_counter = strategy.clock.train_exp_counter
-        importances = self.compute_importances(strategy.model,
-                                               strategy._criterion,
-                                               strategy.optimizer,
-                                               strategy.experience.dataset,
-                                               strategy.device,
-                                               strategy.train_mb_size)
+        importances = self.compute_importances(
+            strategy.model,
+            strategy._criterion,
+            strategy.optimizer,
+            strategy.experience.dataset,
+            strategy.device,
+            strategy.train_mb_size,
+        )
         self.update_importances(importances, exp_counter)
-        self.saved_params[exp_counter] = \
-            copy_params_dict(strategy.model)
+        self.saved_params[exp_counter] = copy_params_dict(strategy.model)
         # clear previous parameter values
-        if exp_counter > 0 and \
-                (not self.keep_importance_data):
+        if exp_counter > 0 and (not self.keep_importance_data):
             del self.saved_params[exp_counter - 1]
 
-    def compute_importances(self, model, criterion, optimizer,
-                            dataset, device, batch_size):
+    def compute_importances(
+        self, model, criterion, optimizer, dataset, device, batch_size
+    ):
         """
         Compute EWC importance matrix for each parameter
         """
@@ -117,15 +128,15 @@ class EWCPlugin(StrategyPlugin):
         model.eval()
 
         # Set RNN-like modules on GPU to training mode to avoid CUDA error
-        if device == 'cuda':
+        if device == "cuda":
             for module in model.modules():
                 if isinstance(module, torch.nn.RNNBase):
                     warnings.warn(
-                        'RNN-like modules do not support '
-                        'backward calls while in `eval` mode on CUDA '
-                        'devices. Setting all `RNNBase` modules to '
-                        '`train` mode. May produce inconsistent '
-                        'output if such modules have `dropout` > 0.'
+                        "RNN-like modules do not support "
+                        "backward calls while in `eval` mode on CUDA "
+                        "devices. Setting all `RNNBase` modules to "
+                        "`train` mode. May produce inconsistent "
+                        "output if such modules have `dropout` > 0."
                     )
                     module.train()
 
@@ -142,9 +153,10 @@ class EWCPlugin(StrategyPlugin):
             loss = criterion(out, y)
             loss.backward()
 
-            for (k1, p), (k2, imp) in zip(model.named_parameters(),
-                                          importances):
-                assert (k1 == k2)
+            for (k1, p), (k2, imp) in zip(
+                model.named_parameters(), importances
+            ):
+                assert k1 == k2
                 if p.grad is not None:
                     imp += p.grad.data.clone().pow(2)
 
@@ -161,14 +173,16 @@ class EWCPlugin(StrategyPlugin):
         importances.
         """
 
-        if self.mode == 'separate' or t == 0:
+        if self.mode == "separate" or t == 0:
             self.importances[t] = importances
-        elif self.mode == 'online':
-            for (k1, old_imp), (k2, curr_imp) in \
-                    zip(self.importances[t - 1], importances):
-                assert k1 == k2, 'Error in importance computation.'
+        elif self.mode == "online":
+            for (k1, old_imp), (k2, curr_imp) in zip(
+                self.importances[t - 1], importances
+            ):
+                assert k1 == k2, "Error in importance computation."
                 self.importances[t].append(
-                    (k1, (self.decay_factor * old_imp + curr_imp)))
+                    (k1, (self.decay_factor * old_imp + curr_imp))
+                )
 
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):

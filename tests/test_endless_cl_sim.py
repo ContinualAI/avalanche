@@ -26,33 +26,33 @@ class EndlessCLSimTest(unittest.TestCase):
         else:
             # "Classes"
             scenario = EndlessCLSim(
-                scenario="Classes", 
+                scenario="Classes",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Illumination
             scenario = EndlessCLSim(
-                scenario="Illumination", 
+                scenario="Illumination",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Weather
             scenario = EndlessCLSim(
-                scenario="Weather", 
+                scenario="Weather",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
@@ -64,38 +64,38 @@ class EndlessCLSimTest(unittest.TestCase):
         else:
             # "Classes"
             scenario = EndlessCLSim(
-                scenario="Classes",  
+                scenario="Classes",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root="/data/avalanche"
+                dataset_root="/data/avalanche",
             )
             for experience in scenario.train_stream:
                 pass
 
             # Illumination
             scenario = EndlessCLSim(
-                scenario="Illumination", 
+                scenario="Illumination",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Weather
             scenario = EndlessCLSim(
-                scenario="Weather",  
+                scenario="Weather",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
         return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

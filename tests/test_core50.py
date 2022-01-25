@@ -32,15 +32,14 @@ class CORe50Test(unittest.TestCase):
         if "FAST_TEST" in os.environ:
             pass
         else:
-            benchmark_instance = CORe50(scenario='nc')
+            benchmark_instance = CORe50(scenario="nc")
             self.assertEqual(1, len(benchmark_instance.test_stream))
 
-            classes_in_test = benchmark_instance.\
-                classes_in_experience['test'][0]
-            self.assertSetEqual(
-                set(range(50)),
-                set(classes_in_test))
+            classes_in_test = benchmark_instance.classes_in_experience["test"][
+                0
+            ]
+            self.assertSetEqual(set(range(50)), set(classes_in_test))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
