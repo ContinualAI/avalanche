@@ -18,7 +18,7 @@ from torch.utils.data import ConcatDataset
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:

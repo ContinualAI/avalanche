@@ -21,7 +21,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
     from avalanche.benchmarks.utils import AvalancheDataset
 
 

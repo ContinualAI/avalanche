@@ -44,7 +44,7 @@ from avalanche.evaluation.metrics import (
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 def main(args):

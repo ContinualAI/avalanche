@@ -6,7 +6,7 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class GDumbPlugin(StrategyPlugin):

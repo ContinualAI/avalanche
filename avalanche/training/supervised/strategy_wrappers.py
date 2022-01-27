@@ -30,7 +30,7 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
 )
-from avalanche.training.strategies.base_strategy import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class Naive(BaseStrategy):

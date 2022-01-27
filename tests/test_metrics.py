@@ -25,7 +25,7 @@ from avalanche.evaluation.metrics import (
     Forgetting,
     ForwardTransfer,
 )
-from avalanche.training.strategies.base_strategy import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD

@@ -30,7 +30,7 @@ from avalanche.training.plugins import (
 )
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 class MockPlugin(StrategyPlugin):

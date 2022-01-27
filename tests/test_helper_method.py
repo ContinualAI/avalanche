@@ -10,7 +10,7 @@ from avalanche.models.dynamic_modules import (
     MultiHeadClassifier,
 )
 from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import LwFPlugin, EWCPlugin
 
 from tests.unit_tests_utils import common_setups, get_fast_benchmark, get_device

@@ -41,7 +41,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class ConfusionMatrix(Metric[Tensor]):

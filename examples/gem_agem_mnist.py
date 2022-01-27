@@ -1,7 +1,7 @@
 import torch
 import argparse
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
-from avalanche.training.strategies import GEM, AGEM
+from avalanche.training.supervised import GEM, AGEM
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,

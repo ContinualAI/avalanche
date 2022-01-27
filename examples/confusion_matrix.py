@@ -30,7 +30,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
 from avalanche.evaluation.metrics import (
     confusion_matrix_metrics,

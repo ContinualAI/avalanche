@@ -14,7 +14,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.evaluation.metrics import accuracy_metrics
 from tests.unit_tests_utils import get_fast_benchmark
 

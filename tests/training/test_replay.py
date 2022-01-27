@@ -22,7 +22,8 @@ from avalanche.training.storage_policy import (
     ClosestToCenterSelectionStrategy,
     ParametricBuffer,
 )
-from avalanche.training.strategies import Naive, BaseStrategy
+from avalanche.training.supervised import Naive
+from avalanche.training.skeletons.supervised import BaseStrategy
 from tests.unit_tests_utils import get_fast_benchmark
 
 

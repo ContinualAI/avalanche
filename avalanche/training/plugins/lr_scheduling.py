@@ -6,7 +6,7 @@ from avalanche.training.plugins import StrategyPlugin
 import inspect
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class LRSchedulerPlugin(StrategyPlugin):

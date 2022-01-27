@@ -4,7 +4,7 @@ import argparse
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 from avalanche.benchmarks import PermutedMNIST, nc_benchmark
-from avalanche.training.strategies import EWC
+from avalanche.training.supervised import EWC
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,

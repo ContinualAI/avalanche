@@ -3,7 +3,7 @@ from typing import Any, TYPE_CHECKING
 from avalanche.core import StrategyCallbacks
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class StrategyPlugin(StrategyCallbacks[Any]):

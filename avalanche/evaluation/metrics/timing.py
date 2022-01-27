@@ -18,7 +18,7 @@ from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class ElapsedTime(Metric[float]):

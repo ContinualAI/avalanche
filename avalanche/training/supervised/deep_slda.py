@@ -5,7 +5,7 @@ import os
 import torch
 
 from avalanche.training.plugins import StrategyPlugin
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone

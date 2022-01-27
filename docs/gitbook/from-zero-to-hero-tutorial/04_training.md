@@ -38,18 +38,19 @@ Most strategies require only 3 mandatory arguments:
 
 Additional arguments are optional and allow you to customize training (batch size, epochs, ...) or strategy-specific parameters (buffer size, regularization strength, ...).
 
-
 ```python
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, Cumulative, LwF, GEM, AGEM, EWC
+from avalanche.training.supervised import Naive, CWRStar, Replay, GDumb,
+
+Cumulative, LwF, GEM, AGEM, EWC
 
 model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
 cl_strategy = Naive(
-    model, optimizer, criterion, 
+    model, optimizer, criterion,
     train_mb_size=100, train_epochs=4, eval_mb_size=100
 )
 ```
@@ -98,9 +99,9 @@ strategy = Naive(
 
 In Avalanche, most continual learning strategies are implemented using plugins, which makes it easy to combine them together. For example, it is extremely easy to create a hybrid strategy that combines replay and EWC together by passing the appropriate `plugins` list to the `BaseStrategy`:
 
-
 ```python
-from avalanche.training.strategies import BaseStrategy
+
+from avalanche.training.skeletons.supervised import BaseStrategy
 from avalanche.training.plugins import ReplayPlugin, EWCPlugin
 
 replay = ReplayPlugin(mem_size=100)
@@ -255,10 +256,9 @@ Notice that even though you don't use plugins, `BaseStrategy` implements some in
 
 `BaseStrategy` provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. As an example, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
 
-
 ```python
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class Cumulative(BaseStrategy):
@@ -275,7 +275,9 @@ class Cumulative(BaseStrategy):
             self.dataset = AvalancheConcatDataset([self.dataset, curr_data])
         self.adapted_dataset = self.dataset.train()
 
-strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128)
+
+strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion,
+                      train_mb_size=128)
 strategy.train(benchmark.train_stream)
 ```
 

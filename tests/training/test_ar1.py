@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
 
 from avalanche.benchmarks import nc_benchmark
-from avalanche.training.strategies import AR1
+from avalanche.training.supervised import AR1
 from tests.training.test_strategies import StrategyTest
 
 

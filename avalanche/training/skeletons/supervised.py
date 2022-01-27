@@ -1,40 +1,20 @@
-################################################################################
-# Copyright (c) 2021 ContinualAI.                                              #
-# Copyrights licensed under the MIT License.                                   #
-# See the accompanying LICENSE file for terms.                                 #
-#                                                                              #
-# Date: 01-12-2020                                                             #
-# Author(s): Antonio Carta                                                     #
-# E-mail: contact@continualai.org                                              #
-# Website: avalanche.continualai.org                                           #
-################################################################################
 import logging
 import warnings
+from typing import Sequence, Optional, Union, List
 
 import torch
-from torch.utils.data import DataLoader
-from typing import Optional, Sequence, Union, List
-
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.scenarios import Experience
+from avalanche.benchmarks import Experience
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
-from avalanche.models import DynamicModule
+from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
-from avalanche.models.utils import avalanche_forward, avalanche_model_adaptation
+from avalanche.models.utils import avalanche_model_adaptation
+from avalanche.training.plugins import EvaluationPlugin, StrategyPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_logger
-from typing import TYPE_CHECKING
-
-from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins import StrategyPlugin
-
-if TYPE_CHECKING:
-    from avalanche.core import StrategyCallbacks
-
-
-logger = logging.getLogger(__name__)
 
 
 class BaseStrategy:
@@ -791,4 +771,4 @@ class PeriodicEval(StrategyPlugin):
             self._maybe_peval(strategy, strategy.clock.train_exp_iterations)
 
 
-__all__ = ["BaseStrategy"]
+logger = logging.getLogger(__name__)

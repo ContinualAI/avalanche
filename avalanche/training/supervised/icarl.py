@@ -18,7 +18,7 @@ from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class ICaRL(BaseStrategy):

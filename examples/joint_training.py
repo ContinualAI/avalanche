@@ -27,7 +27,7 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import JointTraining
+from avalanche.training.supervised import JointTraining
 
 
 def main(args):

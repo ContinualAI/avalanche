@@ -18,9 +18,9 @@ from torch.nn import CrossEntropyLoss
 from avalanche.models import MultiHeadClassifier, PNN
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
-from avalanche.training.strategies.strategy_wrappers import PNNStrategy
+from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 

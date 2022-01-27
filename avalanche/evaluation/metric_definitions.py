@@ -18,7 +18,7 @@ from ..core import StrategyCallbacks
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from ..training.strategies import BaseStrategy
+    from ..training.skeletons.supervised import BaseStrategy
 
 TResult = TypeVar("TResult")
 TAggregated = TypeVar("TAggregated", bound="PluginMetric")

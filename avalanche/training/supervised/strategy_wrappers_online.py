@@ -15,9 +15,7 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.strategies.base_online_strategy import (
-    BaseOnlineStrategy,
-)
+from avalanche.training.skeletons.online_supervised import BaseOnlineStrategy
 
 
 class OnlineNaive(BaseOnlineStrategy):

@@ -13,7 +13,7 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.utils import get_layers_and_params
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from ..skeletons.supervised import BaseStrategy
 
 SynDataType = Dict[str, Dict[str, Tensor]]
 

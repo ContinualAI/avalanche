@@ -17,7 +17,7 @@ from avalanche.logging import TextLogger
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class InteractiveLogger(TextLogger):

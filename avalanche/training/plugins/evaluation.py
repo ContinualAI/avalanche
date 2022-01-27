@@ -11,7 +11,7 @@ from avalanche.logging import StrategyLogger, InteractiveLogger
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import StrategyLogger
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class EvaluationPlugin(StrategyPlugin):

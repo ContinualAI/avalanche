@@ -6,7 +6,7 @@ from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 if TYPE_CHECKING:
-    from .. import BaseStrategy
+    from ..skeletons.supervised import BaseStrategy
 
 
 class GSS_greedyPlugin(StrategyPlugin):

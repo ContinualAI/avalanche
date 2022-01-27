@@ -34,7 +34,7 @@ from avalanche.logging import StrategyLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class WandBLogger(StrategyLogger):

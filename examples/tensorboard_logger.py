@@ -44,7 +44,7 @@ from avalanche.evaluation.metrics import (
     MAC_metrics,
 )
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 def main(args):

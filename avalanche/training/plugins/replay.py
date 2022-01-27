@@ -9,7 +9,7 @@ from avalanche.training.storage_policy import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 
 class ReplayPlugin(StrategyPlugin):

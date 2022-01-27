@@ -16,7 +16,7 @@ from avalanche.benchmarks.utils import (
 from avalanche.models import FeatureExtractorBackbone
 
 if TYPE_CHECKING:
-    from .strategies import BaseStrategy
+    from .skeletons.supervised import BaseStrategy
 
 
 class ExemplarsBuffer(ABC):

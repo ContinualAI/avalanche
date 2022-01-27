@@ -32,7 +32,7 @@ except ImportError:
     from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.skeletons.supervised import BaseStrategy
     from avalanche.evaluation.metric_results import MetricResult
 
 

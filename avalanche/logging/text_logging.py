@@ -18,8 +18,7 @@ from avalanche.logging import StrategyLogger
 from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
-
+    from avalanche.training.skeletons.supervised import BaseStrategy
 
 UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
 

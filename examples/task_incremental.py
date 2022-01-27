@@ -25,7 +25,7 @@ from torch.optim import Adam
 
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 def main(args):

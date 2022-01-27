@@ -25,7 +25,7 @@ from avalanche.training.plugins import (
     LwFPlugin,
     ReplayPlugin,
 )
-from avalanche.training.strategies import (
+from avalanche.training.supervised import (
     Naive,
     Replay,
     CWRStar,
@@ -39,12 +39,12 @@ from avalanche.training.strategies import (
     JointTraining,
     CoPE,
     StreamingLDA,
-    BaseStrategy,
 )
-from avalanche.training.strategies.cumulative import Cumulative
-from avalanche.training.strategies.joint_training import AlreadyTrainedError
-from avalanche.training.strategies.strategy_wrappers import PNNStrategy
-from avalanche.training.strategies.icarl import ICaRL
+from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.supervised.cumulative import Cumulative
+from avalanche.training.supervised.joint_training import AlreadyTrainedError
+from avalanche.training.supervised.strategy_wrappers import PNNStrategy
+from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
