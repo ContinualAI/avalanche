@@ -7,10 +7,10 @@ from torch.utils.data import ConcatDataset
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class Cumulative(BaseStrategy):
+class Cumulative(SupervisedStrategy):
     """Cumulative training strategy.
 
     At each experience, train model with data from all previous experiences

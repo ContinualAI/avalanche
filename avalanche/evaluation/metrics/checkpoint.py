@@ -19,7 +19,7 @@ from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class WeightCheckpoint(PluginMetric[Tensor]):
@@ -84,7 +84,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
             )
         ]
 
-    def after_eval_exp(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval_exp(self, strategy: "SupervisedStrategy") -> "MetricResult":
         model_params = copy.deepcopy(strategy.model.parameters())
         self.update(model_params)
 

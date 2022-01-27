@@ -101,12 +101,12 @@ In Avalanche, most continual learning strategies are implemented using plugins, 
 
 ```python
 
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 from avalanche.training.plugins import ReplayPlugin, EWCPlugin
 
 replay = ReplayPlugin(mem_size=100)
 ewc = EWCPlugin(ewc_lambda=0.001)
-strategy = BaseStrategy(
+strategy = SupervisedStrategy(
     model, optimizer, criterion,
     plugins=[replay, ewc])
 ```
@@ -258,10 +258,10 @@ Notice that even though you don't use plugins, `BaseStrategy` implements some in
 
 ```python
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class Cumulative(BaseStrategy):
+class Cumulative(SupervisedStrategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dataset = None  # cumulative dataset

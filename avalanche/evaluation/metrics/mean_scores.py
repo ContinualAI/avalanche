@@ -32,7 +32,7 @@ except ImportError:
     from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
     from avalanche.evaluation.metric_results import MetricResult
 
 
@@ -171,12 +171,12 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
     def reset(self) -> None:
         self.mean_scores.reset()
 
-    def update_new_classes(self, strategy: "BaseStrategy"):
+    def update_new_classes(self, strategy: "SupervisedStrategy"):
         self.mean_scores.update_new_classes(
             strategy.experience.classes_in_this_experience
         )
 
-    def update(self, strategy: "BaseStrategy"):
+    def update(self, strategy: "SupervisedStrategy"):
         self.mean_scores.update(
             predicted_y=strategy.mb_output, true_y=strategy.mb_y
         )
@@ -184,7 +184,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
     def result(self) -> Dict[LabelCat, float]:
         return self.mean_scores.result()
 
-    def _package_result(self, strategy: "BaseStrategy") -> "MetricResult":
+    def _package_result(self, strategy: "SupervisedStrategy") -> "MetricResult":
         label_cat2mean_score: Dict[LabelCat, float] = self.result()
 
         for label_cat, m in label_cat2mean_score.items():
@@ -238,16 +238,16 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
         epochs of each experience, averaged  by new and old classes.
     """
 
-    def before_training_epoch(self, strategy: "BaseStrategy") -> None:
+    def before_training_epoch(self, strategy: "SupervisedStrategy") -> None:
         self.reset()
         self.update_new_classes(strategy)
 
-    def after_training_iteration(self, strategy: "BaseStrategy") -> None:
+    def after_training_iteration(self, strategy: "SupervisedStrategy") -> None:
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             self.update(strategy)
         super().after_training_iteration(strategy)
 
-    def after_training_epoch(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_training_epoch(self, strategy: "SupervisedStrategy") -> "MetricResult":
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
 
@@ -258,17 +258,17 @@ class MeanScoresEvalPluginMetric(MeanScoresPluginMetricABC):
         new and old classes.
     """
 
-    def before_training(self, strategy: "BaseStrategy") -> None:
+    def before_training(self, strategy: "SupervisedStrategy") -> None:
         self.reset()
 
-    def before_training_exp(self, strategy: "BaseStrategy") -> None:
+    def before_training_exp(self, strategy: "SupervisedStrategy") -> None:
         self.update_new_classes(strategy)
 
-    def after_eval_iteration(self, strategy: "BaseStrategy") -> None:
+    def after_eval_iteration(self, strategy: "SupervisedStrategy") -> None:
         self.update(strategy)
         super().after_eval_iteration(strategy)
 
-    def after_eval(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval(self, strategy: "SupervisedStrategy") -> "MetricResult":
         return self._package_result(strategy)
 
 

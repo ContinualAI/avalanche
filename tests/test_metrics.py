@@ -25,7 +25,7 @@ from avalanche.evaluation.metrics import (
     Forgetting,
     ForwardTransfer,
 )
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
@@ -327,7 +327,7 @@ class PluginMetricTests(unittest.TestCase):
             loggers=[text_logger],
             collect_all=True,
         )  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
+        cl_strategy = SupervisedStrategy(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(),
@@ -510,7 +510,7 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
             loggers=[text_logger],
             collect_all=True,
         )  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
+        cl_strategy = SupervisedStrategy(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(),
@@ -706,7 +706,7 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             loggers=[text_logger],
             collect_all=True,
         )  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
+        cl_strategy = SupervisedStrategy(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9),
             CrossEntropyLoss(),

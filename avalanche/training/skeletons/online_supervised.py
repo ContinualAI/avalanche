@@ -11,10 +11,10 @@ from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class BaseOnlineStrategy(BaseStrategy):
+class SupervisedOnlineStrategy(SupervisedStrategy):
     def __init__(
         self,
         model: Module,

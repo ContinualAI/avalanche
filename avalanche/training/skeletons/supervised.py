@@ -17,7 +17,7 @@ from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_logger
 
 
-class BaseStrategy:
+class SupervisedStrategy:
     """Base class for continual learning strategies.
 
     BaseStrategy is the super class of all task-based continual learning
@@ -758,13 +758,13 @@ class PeriodicEval(StrategyPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy)
 
-    def after_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":

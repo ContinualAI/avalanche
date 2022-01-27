@@ -6,7 +6,7 @@ from avalanche.training.plugins import StrategyPlugin
 import inspect
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class LRSchedulerPlugin(StrategyPlugin):
@@ -80,7 +80,7 @@ class LRSchedulerPlugin(StrategyPlugin):
 
         LRSchedulerPlugin._patch_lr_on_plateau(self.scheduler)
 
-    def after_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
         if self.metric == "train_loss":
             self.scheduler.step(metrics=self.rolling_metric.result())
             self.rolling_metric.reset()
@@ -88,7 +88,7 @@ class LRSchedulerPlugin(StrategyPlugin):
             self.scheduler.step()
             self.rolling_metric.reset()
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
         param_groups = strategy.optimizer.param_groups
         base_lrs = self.scheduler.base_lrs
 
@@ -111,13 +111,13 @@ class LRSchedulerPlugin(StrategyPlugin):
                 reset_method()
 
     # Methods used to manage ReduceLROnPlateau (keep track of the periodic eval)
-    def before_training(self, strategy: "BaseStrategy", **kwargs):
+    def before_training(self, strategy: "SupervisedStrategy", **kwargs):
         self._was_training = True
 
-    def after_training(self, strategy: "BaseStrategy", **kwargs):
+    def after_training(self, strategy: "SupervisedStrategy", **kwargs):
         self._was_training = False
 
-    def after_eval(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval(self, strategy: "SupervisedStrategy", **kwargs):
 
         if self.metric == "val_loss" and self._was_training:
 
@@ -146,12 +146,12 @@ class LRSchedulerPlugin(StrategyPlugin):
             self.rolling_metric.reset()
         self._eval_train_epoch = strategy.clock.train_exp_epochs
 
-    def after_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         if self.metric != "train_loss":
             return
         self.rolling_metric.update(strategy.loss, weight=len(strategy.mb_x))
 
-    def after_eval_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         if self.metric != "val_loss":
             return
 

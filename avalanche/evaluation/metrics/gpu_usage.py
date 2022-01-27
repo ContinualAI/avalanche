@@ -20,7 +20,7 @@ from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricResult
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class MaxGPU(Metric[float]):
@@ -166,11 +166,11 @@ class MinibatchMaxGPU(GPUPluginMetric):
             mode="train",
         )
 
-    def before_training(self, strategy: "BaseStrategy") -> None:
+    def before_training(self, strategy: "SupervisedStrategy") -> None:
         super().before_training(strategy)
         self._gpu.start_thread()
 
-    def after_training(self, strategy: "BaseStrategy") -> None:
+    def after_training(self, strategy: "SupervisedStrategy") -> None:
         super().before_training(strategy)
         self._gpu.stop_thread()
 
@@ -196,11 +196,11 @@ class EpochMaxGPU(GPUPluginMetric):
             gpu_id, every, reset_at="epoch", emit_at="epoch", mode="train"
         )
 
-    def before_training(self, strategy: "BaseStrategy"):
+    def before_training(self, strategy: "SupervisedStrategy"):
         super().before_training(strategy)
         self._gpu.start_thread()
 
-    def after_training(self, strategy: "BaseStrategy") -> None:
+    def after_training(self, strategy: "SupervisedStrategy") -> None:
         self._gpu.stop_thread()
 
     def __str__(self):
@@ -229,11 +229,11 @@ class ExperienceMaxGPU(GPUPluginMetric):
             mode="eval",
         )
 
-    def before_eval(self, strategy: "BaseStrategy"):
+    def before_eval(self, strategy: "SupervisedStrategy"):
         super().before_eval(strategy)
         self._gpu.start_thread()
 
-    def after_eval(self, strategy: "BaseStrategy"):
+    def after_eval(self, strategy: "SupervisedStrategy"):
         super().after_eval(strategy)
         self._gpu.stop_thread()
 
@@ -263,7 +263,7 @@ class StreamMaxGPU(GPUPluginMetric):
         super().before_eval(strategy)
         self._gpu.start_thread()
 
-    def after_eval(self, strategy: "BaseStrategy") -> MetricResult:
+    def after_eval(self, strategy: "SupervisedStrategy") -> MetricResult:
         packed = super().after_eval(strategy)
         self._gpu.stop_thread()
         return packed

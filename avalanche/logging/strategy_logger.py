@@ -6,7 +6,7 @@ from avalanche.core import StrategyCallbacks
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class StrategyLogger(StrategyCallbacks[None], ABC):
@@ -70,7 +70,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -79,7 +79,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -88,7 +88,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_train_dataset_adaptation(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -97,7 +97,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -106,7 +106,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_training_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -115,7 +115,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_forward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -124,7 +124,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_forward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -133,7 +133,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_backward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -142,7 +142,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_backward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -151,7 +151,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_training_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -160,7 +160,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_update(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -169,7 +169,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_update(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -178,7 +178,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -187,7 +187,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -196,7 +196,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -205,7 +205,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_eval(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -214,7 +214,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_eval_dataset_adaptation(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -223,7 +223,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -232,7 +232,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -241,7 +241,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_eval(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -250,7 +250,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_eval_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -259,7 +259,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def before_eval_forward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -268,7 +268,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_eval_forward(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -277,7 +277,7 @@ class StrategyLogger(StrategyCallbacks[None], ABC):
 
     def after_eval_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs,
     ):

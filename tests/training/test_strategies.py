@@ -40,7 +40,7 @@ from avalanche.training.supervised import (
     CoPE,
     StreamingLDA,
 )
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
@@ -151,7 +151,7 @@ class BaseStrategyTest(unittest.TestCase):
     def test_early_stop(self):
         class EarlyStopP(StrategyPlugin):
             def after_training_iteration(
-                self, strategy: "BaseStrategy", **kwargs
+                self, strategy: "SupervisedStrategy", **kwargs
             ):
                 if strategy.clock.train_epoch_iterations == 10:
                     strategy.stop_training()
@@ -237,7 +237,7 @@ class StrategyTest(unittest.TestCase):
                 self.benchmark = benchmark
 
             def after_train_dataset_adaptation(
-                self, strategy: "BaseStrategy", **kwargs
+                self, strategy: "SupervisedStrategy", **kwargs
             ):
                 """
                 Check that the dataset used for training contains the

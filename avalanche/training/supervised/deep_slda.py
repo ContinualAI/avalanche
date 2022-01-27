@@ -5,13 +5,13 @@ import os
 import torch
 
 from avalanche.training.plugins import StrategyPlugin
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 from avalanche.training.plugins.evaluation import default_logger
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 
 
-class StreamingLDA(BaseStrategy):
+class StreamingLDA(SupervisedStrategy):
     """Deep Streaming Linear Discriminant Analysis.
 
     This strategy does not use backpropagation.

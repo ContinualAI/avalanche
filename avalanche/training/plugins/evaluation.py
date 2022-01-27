@@ -11,7 +11,7 @@ from avalanche.logging import StrategyLogger, InteractiveLogger
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import StrategyLogger
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class EvaluationPlugin(StrategyPlugin):
@@ -140,7 +140,7 @@ class EvaluationPlugin(StrategyPlugin):
             self.all_metric_results[name][1].append(val)
         self.last_metric_results[name] = val
 
-    def _update_metrics(self, strategy: "BaseStrategy", callback: str):
+    def _update_metrics(self, strategy: "SupervisedStrategy", callback: str):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
         if not self._active:
@@ -193,59 +193,59 @@ class EvaluationPlugin(StrategyPlugin):
         """
         self.last_metric_results = {}
 
-    def before_training(self, strategy: "BaseStrategy", **kwargs):
+    def before_training(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_training")
 
-    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def before_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_training_exp")
 
     def before_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedStrategy", **kwargs
     ):
         self._update_metrics(strategy, "before_train_dataset_adaptation")
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedStrategy", **kwargs
     ):
         self._update_metrics(strategy, "after_train_dataset_adaptation")
 
-    def before_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+    def before_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_training_epoch")
 
-    def before_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def before_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_training_iteration")
 
-    def before_forward(self, strategy: "BaseStrategy", **kwargs):
+    def before_forward(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_forward")
 
-    def after_forward(self, strategy: "BaseStrategy", **kwargs):
+    def after_forward(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_forward")
 
-    def before_backward(self, strategy: "BaseStrategy", **kwargs):
+    def before_backward(self, strategy: "SupervisedStrategy", **kwargs):
         self.update_metrics = self._update_metrics(strategy, "before_backward")
 
-    def after_backward(self, strategy: "BaseStrategy", **kwargs):
+    def after_backward(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_backward")
 
-    def after_training_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_training_iteration")
 
-    def before_update(self, strategy: "BaseStrategy", **kwargs):
+    def before_update(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_update")
 
-    def after_update(self, strategy: "BaseStrategy", **kwargs):
+    def after_update(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_update")
 
-    def after_training_epoch(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_training_epoch")
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_training_exp")
 
-    def after_training(self, strategy: "BaseStrategy", **kwargs):
+    def after_training(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_training")
 
-    def before_eval(self, strategy: "BaseStrategy", **kwargs):
+    def before_eval(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_eval")
         msgw = (
             "Evaluation stream is not equal to the complete test stream. "
@@ -272,32 +272,32 @@ class EvaluationPlugin(StrategyPlugin):
                         warnings.warn(msgw)
 
     def before_eval_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedStrategy", **kwargs
     ):
         self._update_metrics(strategy, "before_eval_dataset_adaptation")
 
-    def after_eval_dataset_adaptation(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval_dataset_adaptation(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_eval_dataset_adaptation")
 
-    def before_eval_exp(self, strategy: "BaseStrategy", **kwargs):
+    def before_eval_exp(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_eval_exp")
 
-    def after_eval_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval_exp(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_eval_exp")
 
-    def after_eval(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_eval")
 
-    def before_eval_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def before_eval_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_eval_iteration")
 
-    def before_eval_forward(self, strategy: "BaseStrategy", **kwargs):
+    def before_eval_forward(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "before_eval_forward")
 
-    def after_eval_forward(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval_forward(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_eval_forward")
 
-    def after_eval_iteration(self, strategy: "BaseStrategy", **kwargs):
+    def after_eval_iteration(self, strategy: "SupervisedStrategy", **kwargs):
         self._update_metrics(strategy, "after_eval_iteration")
 
 

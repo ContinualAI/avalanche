@@ -34,7 +34,7 @@ from avalanche.logging import StrategyLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
-    from avalanche.training.skeletons.supervised import BaseStrategy
+    from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
 class WandBLogger(StrategyLogger):
@@ -127,7 +127,7 @@ class WandBLogger(StrategyLogger):
 
     def after_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedStrategy",
         metric_values: List["MetricValue"],
         **kwargs
     ):

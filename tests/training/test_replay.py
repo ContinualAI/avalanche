@@ -23,7 +23,7 @@ from avalanche.training.storage_policy import (
     ParametricBuffer,
 )
 from avalanche.training.supervised import Naive
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 from tests.unit_tests_utils import get_fast_benchmark
 
 
@@ -190,6 +190,6 @@ class FixedSelectionStrategy(ExemplarsSelectionStrategy):
         self.indices = indices
 
     def make_sorted_indices(
-        self, strategy: "BaseStrategy", data: AvalancheDataset
+        self, strategy: "SupervisedStrategy", data: AvalancheDataset
     ) -> List[int]:
         return self.indices

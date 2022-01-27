@@ -30,10 +30,10 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
 )
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class Naive(BaseStrategy):
+class Naive(SupervisedStrategy):
     """Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
@@ -95,7 +95,7 @@ class Naive(BaseStrategy):
         )
 
 
-class PNNStrategy(BaseStrategy):
+class PNNStrategy(SupervisedStrategy):
     """Progressive Neural Network strategy.
 
     To use this strategy you need to instantiate a PNN model.
@@ -152,7 +152,7 @@ class PNNStrategy(BaseStrategy):
         )
 
 
-class CWRStar(BaseStrategy):
+class CWRStar(SupervisedStrategy):
     """CWR* Strategy."""
 
     def __init__(
@@ -212,7 +212,7 @@ class CWRStar(BaseStrategy):
         )
 
 
-class Replay(BaseStrategy):
+class Replay(SupervisedStrategy):
     """Experience replay strategy.
 
     See ReplayPlugin for more details.
@@ -276,7 +276,7 @@ class Replay(BaseStrategy):
         )
 
 
-class GSS_greedy(BaseStrategy):
+class GSS_greedy(SupervisedStrategy):
     """Experience replay strategy.
 
     See ReplayPlugin for more details.
@@ -344,7 +344,7 @@ class GSS_greedy(BaseStrategy):
         )
 
 
-class GDumb(BaseStrategy):
+class GDumb(SupervisedStrategy):
     """GDumb strategy.
 
     See GDumbPlugin for more details.
@@ -409,7 +409,7 @@ class GDumb(BaseStrategy):
         )
 
 
-class LwF(BaseStrategy):
+class LwF(SupervisedStrategy):
     """Learning without Forgetting (LwF) strategy.
 
     See LwF plugin for details.
@@ -477,7 +477,7 @@ class LwF(BaseStrategy):
         )
 
 
-class AGEM(BaseStrategy):
+class AGEM(SupervisedStrategy):
     """Average Gradient Episodic Memory (A-GEM) strategy.
 
     See AGEM plugin for details.
@@ -545,7 +545,7 @@ class AGEM(BaseStrategy):
         )
 
 
-class GEM(BaseStrategy):
+class GEM(SupervisedStrategy):
     """Gradient Episodic Memory (GEM) strategy.
 
     See GEM plugin for details.
@@ -613,7 +613,7 @@ class GEM(BaseStrategy):
         )
 
 
-class EWC(BaseStrategy):
+class EWC(SupervisedStrategy):
     """Elastic Weight Consolidation (EWC) strategy.
 
     See EWC plugin for details.
@@ -692,7 +692,7 @@ class EWC(BaseStrategy):
         )
 
 
-class SynapticIntelligence(BaseStrategy):
+class SynapticIntelligence(SupervisedStrategy):
     """Synaptic Intelligence strategy.
 
     This is the Synaptic Intelligence PyTorch implementation of the
@@ -773,7 +773,7 @@ class SynapticIntelligence(BaseStrategy):
         )
 
 
-class CoPE(BaseStrategy):
+class CoPE(SupervisedStrategy):
     """Continual Prototype Evolution strategy.
 
     See CoPEPlugin for more details.
@@ -849,7 +849,7 @@ class CoPE(BaseStrategy):
         )
 
 
-class LFL(BaseStrategy):
+class LFL(SupervisedStrategy):
     """Less Forgetful Learning strategy.
 
     See LFL plugin for details.

@@ -18,10 +18,10 @@ from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
-from avalanche.training.skeletons.supervised import BaseStrategy
+from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class ICaRL(BaseStrategy):
+class ICaRL(SupervisedStrategy):
     """iCaRL Strategy.
 
     This strategy does not use task identities.
@@ -140,7 +140,7 @@ class _ICaRLPlugin(StrategyPlugin):
         self.input_size = None
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedStrategy", **kwargs
     ):
         if strategy.clock.train_exp_counter != 0:
             memory = AvalancheTensorDataset(
@@ -154,7 +154,7 @@ class _ICaRLPlugin(StrategyPlugin):
                 (strategy.adapted_dataset, memory)
             )
 
-    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def before_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -166,7 +166,7 @@ class _ICaRLPlugin(StrategyPlugin):
             ]
         )
 
-    def before_forward(self, strategy: "BaseStrategy", **kwargs):
+    def before_forward(self, strategy: "SupervisedStrategy", **kwargs):
         if self.input_size is None:
             with torch.no_grad():
                 self.input_size = strategy.mb_x.shape[1:]
@@ -175,7 +175,7 @@ class _ICaRLPlugin(StrategyPlugin):
                     strategy.mb_x
                 ).shape[1]
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
         strategy.model.eval()
 
         self.construct_exemplar_set(strategy)
@@ -221,7 +221,7 @@ class _ICaRLPlugin(StrategyPlugin):
 
             strategy.model.eval_classifier.class_means = self.class_means
 
-    def construct_exemplar_set(self, strategy: BaseStrategy):
+    def construct_exemplar_set(self, strategy: SupervisedStrategy):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -280,7 +280,7 @@ class _ICaRLPlugin(StrategyPlugin):
             )
             self.order.append(order[torch.where(pick == 1)[0]])
 
-    def reduce_exemplar_set(self, strategy: BaseStrategy):
+    def reduce_exemplar_set(self, strategy: SupervisedStrategy):
         tid = strategy.clock.train_exp_counter
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 
