@@ -115,7 +115,7 @@ def run_base_online(
     # Create OnlineNaive strategy
     cl_strategy = OnlineNaive(
         model,
-        torch.optim.Adam(model.parameters(), lr=0.01),
+        torch.optim.SGD(model.parameters(), lr=0.01),
         CrossEntropyLoss(),
         num_passes=1,
         train_mb_size=1,
@@ -190,7 +190,7 @@ def run_base(
     # Create OnlineNaive strategy
     cl_strategy = Naive(
         model,
-        torch.optim.Adam(model.parameters(), lr=0.01),
+        torch.optim.SGD(model.parameters(), lr=0.01),
         CrossEntropyLoss(),
         train_mb_size=1,
         device=device,
