@@ -13,20 +13,19 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING
 from typing_extensions import Protocol
 from .metric_results import MetricValue
-from .metric_utils import get_metric_name, phase_and_task
-from ..core import StrategyCallbacks
+from .metric_utils import get_metric_name
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
     from ..training.skeletons.supervised import SupervisedStrategy
+    from ..core import SupervisedStrategyCallbacks
 
 TResult = TypeVar("TResult")
 TAggregated = TypeVar("TAggregated", bound="PluginMetric")
 
 
 class Metric(Protocol[TResult]):
-    """
-    Definition of a standalone metric.
+    """Standalone metric.
 
     A standalone metric exposes methods to reset its internal state and
     to emit a result. Emitting a result does not automatically cause
@@ -63,9 +62,8 @@ class Metric(Protocol[TResult]):
         pass
 
 
-class PluginMetric(Metric[TResult], StrategyCallbacks["MetricResult"], ABC):
-    """
-    A metric that can be used together with :class:`EvaluationPlugin`.
+class PluginMetric(Metric[TResult], ABC):
+    """A metric that can be used together with :class:`EvaluationPlugin`.
 
     This class leaves the implementation of the `result` and `reset` methods
     to child classes while providing an empty implementation of the callbacks

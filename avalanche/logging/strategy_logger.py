@@ -2,14 +2,14 @@ from abc import ABC
 
 from typing import List, TYPE_CHECKING
 
-from avalanche.core import StrategyCallbacks
+from avalanche.core import SupervisedStrategyCallbacks
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
     from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class StrategyLogger(StrategyCallbacks[None], ABC):
+class StrategyLogger(SupervisedStrategyCallbacks, ABC):
     """
     The base class for the strategy loggers.
 

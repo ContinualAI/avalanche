@@ -1,29 +1,14 @@
-################################################################################
-# Copyright (c) 2021. ContinualAI. All rights reserved.                        #
-# Copyrights licensed under the MIT License.                                   #
-# See the accompanying LICENSE file for terms.                                 #
-#                                                                              #
-# Date: 5-5-2021                                                               #
-# Author: Antonio Carta, Vincenzo Lomonaco                                     #
-# E-mail: contact@continualai.org                                              #
-# Website: continualai.org                                                     #
-################################################################################
-
-"""
-The core module offers fundamental utilities (classes and data structures) that
-can be used by inner Avalanche modules. As for now, it contains only the
-Strategy Callbacks definition that can be used by the :py:mod:`training`
-module for defining new continual learning strategies and by the
-:py:mod:`evaluation` module for defining new evaluation plugin metrics.
-"""
-
 from abc import ABC
 from typing import Generic, TypeVar
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from avalanche.training.skeletons.base import BaseStrategy
 
 CallbackResult = TypeVar("CallbackResult")
 
 
-class StrategyCallbacks(Generic[CallbackResult], ABC):
+class SupervisedStrategyCallbacks(Generic[CallbackResult], ABC):
     """
     Strategy callbacks provide access before/after each phase of the training
     and evaluation loops. Subclasses can override the desired callbacks to
@@ -173,4 +158,38 @@ class StrategyCallbacks(Generic[CallbackResult], ABC):
     def after_eval_iteration(self, *args, **kwargs) -> CallbackResult:
         """Called after the end of an iteration by the
         `BaseStrategy`."""
+        pass
+
+
+class BaseCallbacks(ABC):
+    """BaseStrategy callbacks.
+
+    Callbacks provide access before/after each phase of the training
+    and evaluation loops. Subclasses can override the desired callbacks to
+    customize the loops. In Avalanche, callbacks are used by
+    :class:`StrategyPlugin` to implement continual strategies, and
+    :class:`StrategyLogger` for automatic logging.
+
+    For each method of the training and evaluation loops, `StrategyCallbacks`
+    provide two functions `before_{method}` and `after_{method}`, called
+    before and after the method, respectively.
+    """
+
+    def __init__(self):
+        pass
+
+    def before_training(self, strategy: "BaseStrategy", **kwargs):
+        """Called before `train` by the `BaseStrategy`."""
+        pass
+
+    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
+        """Called before `train_exp` by the `BaseStrategy`."""
+        pass
+
+    def after_training_exp(self, *args, **kwargs):
+        """Called after `train_exp` by the `BaseStrategy`."""
+        pass
+
+    def after_training(self, *args, **kwargs):
+        """Called after `train` by the `BaseStrategy`."""
         pass

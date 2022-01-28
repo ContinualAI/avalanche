@@ -296,7 +296,7 @@ class AR1(SupervisedStrategy):
                 self.mb_x, latent_input=lat_mb_x, return_lat_acts=True
             )
 
-            if self.epoch == 0:
+            if self.clock.train_exp_epochs == 0:
                 # On the first epoch only: store latent activations. Those
                 # activations will be used to update the replay buffer.
                 lat_acts = lat_acts.detach().clone().cpu()

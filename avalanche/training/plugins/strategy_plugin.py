@@ -1,12 +1,11 @@
+from avalanche.core import SupervisedStrategyCallbacks
 from typing import Any, TYPE_CHECKING
-
-from avalanche.core import StrategyCallbacks
 
 if TYPE_CHECKING:
     from avalanche.training.skeletons.supervised import SupervisedStrategy
 
 
-class StrategyPlugin(StrategyCallbacks[Any]):
+class StrategyPlugin(SupervisedStrategyCallbacks[Any]):
     """
     Base class for strategy plugins. Implements all the callbacks required
     by the BaseStrategy with an empty function. Subclasses should override

@@ -127,7 +127,7 @@ class SupervisedOnlineStrategy(SupervisedStrategy):
                 self.experience = sub_experience
                 is_first_sub_exp = i == 0
                 is_last_sub_exp = i == len(sub_experience_list) - 1
-                self.train_exp(
+                self._train_exp(
                     self.experience,
                     eval_streams,
                     is_first_sub_exp=is_first_sub_exp,
@@ -140,7 +140,7 @@ class SupervisedOnlineStrategy(SupervisedStrategy):
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(
+    def _train_exp(
         self,
         experience: Experience,
         eval_streams=None,

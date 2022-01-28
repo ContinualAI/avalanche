@@ -132,8 +132,10 @@ class JointTraining(SupervisedStrategy):
 
         self._experiences = experiences
         self._before_training(**kwargs)
-        for exp in experiences:
-            self.train_exp(exp, eval_streams, **kwargs)
+        for self.experience in experiences:
+            self._before_training_exp(**kwargs)
+            self._train_exp(self.experience, eval_streams, **kwargs)
+            self._after_training_exp(**kwargs)
             # Joint training only needs a single step because
             # it concatenates all the data at once.
             break

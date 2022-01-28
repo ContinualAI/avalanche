@@ -25,13 +25,15 @@ from torch.utils.data import Dataset, DataLoader
 from avalanche.models.batch_renorm import BatchRenorm2D
 
 
-def trigger_skeleton_event(skeleton, event):
+def trigger_plugins(strategy, event, **kwargs):
     """Call plugins on a specific callback
 
     :return:
     """
-    for p in skeleton.plugins:
-        getattr(p, event)(skeleton)
+    for p in strategy.plugins:
+        if hasattr(p, event):
+            getattr(p, event)(strategy, **kwargs)
+
 
 def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     """
