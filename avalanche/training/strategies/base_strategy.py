@@ -509,10 +509,13 @@ class BaseStrategy:
         :param kwargs:
         :return:
         """
+        i=1
         for self.mbatch in self.dataloader:
             if self._stop_training:
                 break
-
+            if i==1:
+                i+=1
+                print("targets", self.mb_y())
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
