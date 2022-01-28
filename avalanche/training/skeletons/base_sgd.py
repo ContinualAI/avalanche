@@ -174,11 +174,23 @@ class BaseSGDStrategy(BaseStrategy):
             self.training_epoch(**kwargs)
             self._after_training_epoch(**kwargs)
 
+    def _eval_exp(self, **kwargs):
+        self.make_eval_dataloader(**kwargs)
+        # Model Adaptation (e.g. freeze/add new units)
+        self.model = self.model_adaptation()
+        self._before_eval_exp(**kwargs)
+        self.eval_epoch(**kwargs)
+
     def make_train_dataloader(self, **kwargs):
         """Assign dataloader to self.dataloader."""
         raise NotImplementedError()
 
+    def make_eval_dataloader(self, **kwargs):
+        """Assign dataloader to self.dataloader."""
+        raise NotImplementedError()
+
     def make_optimizer(self, **kwargs):
+        """Optimizer initialization."""
         raise NotImplementedError()
 
     def criterion(self):
@@ -232,13 +244,26 @@ class BaseSGDStrategy(BaseStrategy):
 
             self._after_training_iteration(**kwargs)
 
+    def eval_epoch(self, **kwargs):
+        """Evaluation loop over the current `self.dataloader`."""
+        for self.mbatch in self.dataloader:
+            self._unpack_minibatch()
+            self._before_eval_iteration(**kwargs)
+
+            self._before_eval_forward(**kwargs)
+            self.mb_output = self.forward()
+            self._after_eval_forward(**kwargs)
+            self.loss = self.criterion()
+
+            self._after_eval_iteration(**kwargs)
+
     def _unpack_minibatch(self):
         """Move to device"""
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
 
     #########################################################
-    # Plugin Callbacks                                      #
+    # Plugin Triggers                                       #
     #########################################################
 
     def _before_training_epoch(self, **kwargs):
@@ -270,6 +295,18 @@ class BaseSGDStrategy(BaseStrategy):
 
     def _after_update(self, **kwargs):
         trigger_plugins(self, 'after_update', **kwargs)
+
+    def _before_eval_iteration(self, **kwargs):
+        trigger_plugins(self, 'before_eval_iteration', **kwargs)
+
+    def _before_eval_forward(self, **kwargs):
+        trigger_plugins(self, 'before_eval_forward', **kwargs)
+
+    def _after_eval_forward(self, **kwargs):
+        trigger_plugins(self, 'after_eval_forward', **kwargs)
+
+    def _after_eval_iteration(self, **kwargs):
+        trigger_plugins(self, 'after_eval_iteration', **kwargs)
 
 
 class PeriodicEval(StrategyPlugin):

@@ -4,7 +4,6 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks import Experience
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
@@ -160,6 +159,7 @@ class SupervisedStrategy(BaseSGDStrategy):
         super()._before_training_exp(**kwargs)
 
     def _load_train_state(self, prev_state):
+        super()._load_train_state(prev_state)
         self.adapted_dataset = prev_state['adapted_dataset']
         self.dataloader = prev_state['dataloader']
 
@@ -183,17 +183,12 @@ class SupervisedStrategy(BaseSGDStrategy):
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
-    def _eval_exp(self, **kwargs):
+    def _before_eval_exp(self, **kwargs):
         # Data Adaptation
         self._before_eval_dataset_adaptation(**kwargs)
         self.eval_dataset_adaptation(**kwargs)
         self._after_eval_dataset_adaptation(**kwargs)
-        self.make_eval_dataloader(**kwargs)
-        # Model Adaptation (e.g. freeze/add new units)
-        self.model = self.model_adaptation()
-        self._before_eval_exp(**kwargs)
-        self.eval_epoch(**kwargs)
-        self._after_eval_exp(**kwargs)
+        super()._before_eval_exp(**kwargs)
 
     def make_train_dataloader(
         self, num_workers=0, shuffle=True, pin_memory=True, **kwargs
@@ -249,16 +244,6 @@ class SupervisedStrategy(BaseSGDStrategy):
         avalanche_model_adaptation(model, self.experience.dataset)
         return model.to(self.device)
 
-    def _after_train_dataset_adaptation(self, **kwargs):
-        """
-        Called after the dataset adaptation and before the
-        dataloader initialization. Allows to customize the dataset.
-        :param kwargs:
-        :return:
-        """
-        for p in self.plugins:
-            p.after_train_dataset_adaptation(self, **kwargs)
-
     def _unpack_minibatch(self):
         """We assume mini-batches have the form <x, y, ..., t>.
         This allows for arbitrary tensors between y and t.
@@ -273,23 +258,6 @@ class SupervisedStrategy(BaseSGDStrategy):
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
 
-    def _after_eval_dataset_adaptation(self, **kwargs):
-        for p in self.plugins:
-            p.after_eval_dataset_adaptation(self, **kwargs)
-
-    def eval_epoch(self, **kwargs):
-        """Evaluation loop over the current `self.dataloader`."""
-        for self.mbatch in self.dataloader:
-            self._unpack_minibatch()
-            self._before_eval_iteration(**kwargs)
-
-            self._before_eval_forward(**kwargs)
-            self.mb_output = self.forward()
-            self._after_eval_forward(**kwargs)
-            self.loss = self.criterion()
-
-            self._after_eval_iteration(**kwargs)
-
     def make_optimizer(self):
         """Optimizer initialization.
 
@@ -301,28 +269,17 @@ class SupervisedStrategy(BaseSGDStrategy):
         reset_optimizer(self.optimizer, self.model)
 
     #########################################################
-    # Plugin Callbacks                                      #
+    # Plugin Triggers                                       #
     #########################################################
+
+    def _before_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, 'before_train_dataset_adaptation', **kwargs)
+
+    def _after_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, 'after_train_dataset_adaptation', **kwargs)
 
     def _before_eval_dataset_adaptation(self, **kwargs):
         trigger_plugins(self, 'before_eval_dataset_adaptation', **kwargs)
 
-    def _before_eval_iteration(self, **kwargs):
-        for p in self.plugins:
-            p.before_eval_iteration(self, **kwargs)
-
-    def _before_eval_forward(self, **kwargs):
-        for p in self.plugins:
-            p.before_eval_forward(self, **kwargs)
-
-    def _after_eval_forward(self, **kwargs):
-        for p in self.plugins:
-            p.after_eval_forward(self, **kwargs)
-
-    def _after_eval_iteration(self, **kwargs):
-        for p in self.plugins:
-            p.after_eval_iteration(self, **kwargs)
-
-    def _before_train_dataset_adaptation(self, **kwargs):
-        for p in self.plugins:
-            p.before_train_dataset_adaptation(self, **kwargs)
+    def _after_eval_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, 'after_eval_dataset_adaptation', **kwargs)

@@ -167,7 +167,7 @@ class BaseStrategy:
                 layer.train()
 
     #########################################################
-    # Plugin Callbacks                                      #
+    # Plugin Triggers                                       #
     #########################################################
 
     def _before_training_exp(self, **kwargs):
