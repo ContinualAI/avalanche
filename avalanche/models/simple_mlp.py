@@ -55,7 +55,7 @@ class SimpleMLP(nn.Module, BaseModel):
                     *(
                         nn.Linear(hidden_size, hidden_size),
                         nn.ReLU(inplace=True),
-                        nn.Dropout(),
+                        nn.Dropout(p=drop_rate),
                     )
                 ),
             )
