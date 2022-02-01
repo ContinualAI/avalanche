@@ -15,7 +15,7 @@ from torch import nn
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 
-from avalanche.models import MultiHeadClassifier
+from avalanche.models import MultiHeadClassifier, PNN
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.strategies.cumulative import Cumulative
@@ -33,7 +33,8 @@ class TestMLP(nn.Module):
             nn.Linear(input_size, hidden_size),
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
-            nn.Tanh())
+            nn.Tanh(),
+        )
         self.classifier = nn.Linear(hidden_size, num_classes)
 
         self._hidden_size = hidden_size
@@ -70,16 +71,26 @@ class StrategyTest(unittest.TestCase):
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
         strategy = Cumulative(
-            model, optimizer, criterion, train_mb_size=32, device=get_device(),
-            eval_mb_size=512, train_epochs=1, evaluator=evalp)
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=32,
+            device=get_device(),
+            eval_mb_size=512,
+            train_epochs=1,
+            evaluator=evalp,
+        )
         benchmark = get_fast_benchmark(use_task_labels=True)
 
         for train_batch_info in benchmark.train_stream:
             strategy.train(train_batch_info)
         strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
-        assert sum(main_metric.result().values()) / \
-            float(len(main_metric.result().keys())) > 0.7
+        assert (
+            sum(main_metric.result().values())
+            / float(len(main_metric.result().keys()))
+            > 0.7
+        )
 
     def test_pnn(self):
         # check that pnn reaches high enough accuracy.
@@ -87,9 +98,17 @@ class StrategyTest(unittest.TestCase):
         main_metric = StreamAccuracy()
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
+        model = PNN(num_layers=1, in_features=6, hidden_features_per_column=50)
+        optimizer = SGD(model.parameters(), lr=0.1)
         strategy = PNNStrategy(
-            1, 6, 50, 0.1, train_mb_size=32, device=get_device(),
-            eval_mb_size=512, train_epochs=1, evaluator=evalp)
+            model,
+            optimizer,
+            train_mb_size=32,
+            device=get_device(),
+            eval_mb_size=512,
+            train_epochs=1,
+            evaluator=evalp,
+        )
         benchmark = get_fast_benchmark(use_task_labels=True)
 
         for train_batch_info in benchmark.train_stream:
@@ -97,9 +116,12 @@ class StrategyTest(unittest.TestCase):
 
         strategy.eval(benchmark.train_stream[:])
         print("TRAIN STREAM ACC: ", main_metric.result())
-        assert sum(main_metric.result().values()) / \
-            float(len(main_metric.result().keys())) > 0.5
+        assert (
+            sum(main_metric.result().values())
+            / float(len(main_metric.result().keys()))
+            > 0.5
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

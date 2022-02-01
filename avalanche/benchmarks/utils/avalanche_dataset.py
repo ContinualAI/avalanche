@@ -26,26 +26,50 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 from torchvision.transforms import Compose
 
-from .dataset_utils import manage_advanced_indexing, \
-    SequenceDataset, ClassificationSubset, \
-    LazyConcatIntTargets, find_list_from_index, ConstantSequence, \
-    LazyClassMapping, optimize_sequence, SubSequence, LazyConcatTargets, \
-    TupleTLabel
-from .dataset_definitions import ITensorDataset, ClassificationDataset, \
-    IDatasetWithTargets, ISupportedClassificationDataset
+from .dataset_utils import (
+    manage_advanced_indexing,
+    SequenceDataset,
+    ClassificationSubset,
+    LazyConcatIntTargets,
+    find_list_from_index,
+    ConstantSequence,
+    LazyClassMapping,
+    optimize_sequence,
+    SubSequence,
+    LazyConcatTargets,
+    TupleTLabel,
+)
+from .dataset_definitions import (
+    ITensorDataset,
+    ClassificationDataset,
+    IDatasetWithTargets,
+    ISupportedClassificationDataset,
+)
 
-from typing import List, Any, Sequence, Union, Optional, TypeVar, SupportsInt, \
-    Callable, Dict, Tuple, Collection
+from typing import (
+    List,
+    Any,
+    Sequence,
+    Union,
+    Optional,
+    TypeVar,
+    SupportsInt,
+    Callable,
+    Dict,
+    Tuple,
+    Collection,
+)
 
-T_co = TypeVar('T_co', covariant=True)
-TTargetType = TypeVar('TTargetType')
+T_co = TypeVar("T_co", covariant=True)
+TTargetType = TypeVar("TTargetType")
 
-TAvalancheDataset = TypeVar('TAvalancheDataset', bound='AvalancheDataset')
+TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 XTransform = Optional[Callable[[Any], Any]]
 YTransform = Optional[Callable[[Any], TTargetType]]
 
-SupportedDataset = Union[IDatasetWithTargets, ITensorDataset, Subset,
-                         ConcatDataset]
+SupportedDataset = Union[
+    IDatasetWithTargets, ITensorDataset, Subset, ConcatDataset
+]
 
 
 class AvalancheDatasetType(Enum):
@@ -91,19 +115,21 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     parameter, each pattern will be assigned a default task label "0".
     See the constructor for more details.
     """
-    def __init__(self,
-                 dataset: SupportedDataset,
-                 *,
-                 transform: XTransform = None,
-                 target_transform: YTransform = None,
-                 transform_groups: Dict[str, Tuple[XTransform,
-                                                   YTransform]] = None,
-                 initial_transform_group: str = None,
-                 task_labels: Union[int, Sequence[int]] = None,
-                 targets: Sequence[TTargetType] = None,
-                 dataset_type: AvalancheDatasetType = None,
-                 collate_fn: Callable[[List], Any] = None,
-                 targets_adapter: Callable[[Any], TTargetType] = None):
+
+    def __init__(
+        self,
+        dataset: SupportedDataset,
+        *,
+        transform: XTransform = None,
+        target_transform: YTransform = None,
+        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+        initial_transform_group: str = None,
+        task_labels: Union[int, Sequence[int]] = None,
+        targets: Sequence[TTargetType] = None,
+        dataset_type: AvalancheDatasetType = None,
+        collate_fn: Callable[[List], Any] = None,
+        targets_adapter: Callable[[Any], TTargetType] = None
+    ):
         """
         Creates a ``AvalancheDataset`` instance.
 
@@ -158,9 +184,12 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             The adapter is used to adapt the values of the targets field only.
         """
         if transform_groups is not None and (
-                transform is not None or target_transform is not None):
-            raise ValueError('transform_groups can\'t be used with transform'
-                             'and target_transform values')
+            transform is not None or target_transform is not None
+        ):
+            raise ValueError(
+                "transform_groups can't be used with transform"
+                "and target_transform values"
+            )
 
         detected_type = False
         if dataset_type is None:
@@ -170,29 +199,33 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             else:
                 dataset_type = AvalancheDatasetType.UNDEFINED
 
-        if dataset_type != AvalancheDatasetType.UNDEFINED and \
-                (collate_fn is not None or targets_adapter is not None):
+        if dataset_type != AvalancheDatasetType.UNDEFINED and (
+            collate_fn is not None or targets_adapter is not None
+        ):
             if detected_type:
                 raise ValueError(
-                    'dataset_type {} was inferred from the input dataset. '
-                    'This dataset type can\'t be used '
-                    'with custom collate_fn or targets_adapter '
-                    'parameters. Only the UNDEFINED type supports '
-                    'custom collate_fn or targets_adapter '
-                    'parameters'.format(dataset_type))
+                    "dataset_type {} was inferred from the input dataset. "
+                    "This dataset type can't be used "
+                    "with custom collate_fn or targets_adapter "
+                    "parameters. Only the UNDEFINED type supports "
+                    "custom collate_fn or targets_adapter "
+                    "parameters".format(dataset_type)
+                )
             else:
                 raise ValueError(
-                    'dataset_type {} can\'t be used with custom collate_fn '
-                    'or targets_adapter. Only the UNDEFINED type supports '
-                    'custom collate_fn or targets_adapter '
-                    'parameters.'.format(dataset_type))
+                    "dataset_type {} can't be used with custom collate_fn "
+                    "or targets_adapter. Only the UNDEFINED type supports "
+                    "custom collate_fn or targets_adapter "
+                    "parameters.".format(dataset_type)
+                )
 
         if transform_groups is not None:
             AvalancheDataset._check_groups_dict_format(transform_groups)
 
         if not isinstance(dataset_type, AvalancheDatasetType):
-            raise ValueError('dataset_type must be a value of type '
-                             'AvalancheDatasetType')
+            raise ValueError(
+                "dataset_type must be a value of type " "AvalancheDatasetType"
+            )
 
         self._dataset: SupportedDataset = dataset
         """
@@ -205,21 +238,24 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         """
 
         self.targets: Sequence[TTargetType] = self._initialize_targets_sequence(
-            dataset, targets, dataset_type, targets_adapter)
+            dataset, targets, dataset_type, targets_adapter
+        )
         """
         A sequence of values describing the label of each pattern contained in
         the dataset.
         """
 
-        self.targets_task_labels: Sequence[int] = \
-            self._initialize_task_labels_sequence(dataset, task_labels)
+        self.targets_task_labels: Sequence[
+            int
+        ] = self._initialize_task_labels_sequence(dataset, task_labels)
         """
         A sequence of ints describing the task label of each pattern contained 
         in the dataset.
         """
 
-        self.tasks_pattern_indices: Dict[int, Sequence[int]] = \
-            self._initialize_tasks_dict(dataset, self.targets_task_labels)
+        self.tasks_pattern_indices: Dict[
+            int, Sequence[int]
+        ] = self._initialize_tasks_dict(dataset, self.targets_task_labels)
         """
         A dictionary mapping task labels to the indices of the patterns with 
         that task label. If you need to obtain the subset of patterns labeled
@@ -227,7 +263,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         """
 
         self.collate_fn = self._initialize_collate_fn(
-            dataset, dataset_type, collate_fn)
+            dataset, dataset_type, collate_fn
+        )
         """
         The collate function to use when creating mini-batches from this
         dataset.
@@ -250,16 +287,18 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             if isinstance(dataset, AvalancheDataset):
                 initial_transform_group = dataset.current_transform_group
             else:
-                initial_transform_group = 'train'
+                initial_transform_group = "train"
 
         self.current_transform_group = initial_transform_group
         """
         The name of the transform group currently in use.
         """
 
-        self.transform_groups: Dict[str, Tuple[XTransform, YTransform]] = \
-            self._initialize_groups_dict(transform_groups, dataset,
-                                         transform, target_transform)
+        self.transform_groups: Dict[
+            str, Tuple[XTransform, YTransform]
+        ] = self._initialize_groups_dict(
+            transform_groups, dataset, transform, target_transform
+        )
         """
         A dictionary containing the transform groups. Transform groups are
         used to quickly switch between training and test (eval) transformations.
@@ -276,8 +315,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         """
 
         if self.current_transform_group not in self.transform_groups:
-            raise ValueError('Invalid transformations group ' +
-                             str(self.current_transform_group))
+            raise ValueError(
+                "Invalid transformations group "
+                + str(self.current_transform_group)
+            )
         t_group = self.transform_groups[self.current_transform_group]
 
         self.transform: XTransform = t_group[0]
@@ -291,8 +332,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         A function/transform that takes in the target and transforms it.
         """
 
-        self._frozen_transforms: \
-            Dict[str, Tuple[XTransform, YTransform]] = dict()
+        self._frozen_transforms: Dict[
+            str, Tuple[XTransform, YTransform]
+        ] = dict()
         """
         A dictionary containing frozen transformations.
         """
@@ -304,15 +346,18 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         self._flatten_dataset()
 
-    def __add__(self, other: Dataset) -> 'AvalancheDataset':
+    def __add__(self, other: Dataset) -> "AvalancheDataset":
         return AvalancheConcatDataset([self, other])
 
-    def __radd__(self, other: Dataset) -> 'AvalancheDataset':
+    def __radd__(self, other: Dataset) -> "AvalancheDataset":
         return AvalancheConcatDataset([other, self])
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        return TupleTLabel(manage_advanced_indexing(
-            idx, self._get_single_item, len(self), self.collate_fn))
+        return TupleTLabel(
+            manage_advanced_indexing(
+                idx, self._get_single_item, len(self), self.collate_fn
+            )
+        )
 
     def __len__(self):
         return len(self._dataset)
@@ -326,7 +371,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         :return: A new dataset with the training transformations loaded.
         """
-        return self.with_transforms('train')
+        return self.with_transforms("train")
 
     def eval(self):
         """
@@ -341,10 +386,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         :return: A new dataset with the eval transformations loaded.
         """
-        return self.with_transforms('eval')
+        return self.with_transforms("eval")
 
-    def freeze_transforms(self: TAvalancheDataset) -> \
-            TAvalancheDataset:
+    def freeze_transforms(self: TAvalancheDataset) -> TAvalancheDataset:
         """
         Returns a new dataset where the current transformations are frozen.
 
@@ -366,13 +410,13 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy = self._fork_dataset()
 
         for group_name in dataset_copy.transform_groups.keys():
-            AvalancheDataset._freeze_dataset_group(dataset_copy,
-                                                   group_name)
+            AvalancheDataset._freeze_dataset_group(dataset_copy, group_name)
 
         return dataset_copy
 
-    def freeze_group_transforms(self: TAvalancheDataset,
-                                group_name: str) -> TAvalancheDataset:
+    def freeze_group_transforms(
+        self: TAvalancheDataset, group_name: str
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset where the transformations for a specific group
         are frozen.
@@ -398,8 +442,8 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return dataset_copy
 
     def get_transforms(
-            self: TAvalancheDataset,
-            transforms_group: str = None) -> Tuple[Any, Any]:
+        self: TAvalancheDataset, transforms_group: str = None
+    ) -> Tuple[Any, Any]:
         """
         Returns the transformations given a group.
 
@@ -421,10 +465,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return self.transform_groups[transforms_group]
 
     def add_transforms(
-            self: TAvalancheDataset,
-            transform: Callable[[Any], Any] = None,
-            target_transform: Callable[[int], int] = None) -> \
-            TAvalancheDataset:
+        self: TAvalancheDataset,
+        transform: Callable[[Any], Any] = None,
+        target_transform: Callable[[int], int] = None,
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset with the given transformations added to
         the existing ones.
@@ -449,26 +493,28 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         if transform is not None:
             if dataset_copy.transform is not None:
-                dataset_copy.transform = Compose([
-                    dataset_copy.transform, transform])
+                dataset_copy.transform = Compose(
+                    [dataset_copy.transform, transform]
+                )
             else:
                 dataset_copy.transform = transform
 
         if target_transform is not None:
             if dataset_copy.target_transform is not None:
-                dataset_copy.target_transform = Compose([
-                    dataset_copy.target_transform, target_transform])
+                dataset_copy.target_transform = Compose(
+                    [dataset_copy.target_transform, target_transform]
+                )
             else:
                 dataset_copy.target_transform = transform
 
         return dataset_copy
 
     def add_transforms_to_group(
-            self: TAvalancheDataset,
-            group_name: str,
-            transform: Callable[[Any], Any] = None,
-            target_transform: Callable[[int], int] = None) -> \
-            TAvalancheDataset:
+        self: TAvalancheDataset,
+        group_name: str,
+        transform: Callable[[Any], Any] = None,
+        target_transform: Callable[[int], int] = None,
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset with the given transformations added to
         the existing ones for a certain group.
@@ -495,12 +541,13 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             return self.add_transforms(transform, target_transform)
 
         if group_name not in self.transform_groups:
-            raise ValueError('Invalid group name ' + str(group_name))
+            raise ValueError("Invalid group name " + str(group_name))
 
         dataset_copy = self._fork_dataset()
 
-        t_group: List[XTransform, YTransform] = \
-            list(dataset_copy.transform_groups[group_name])
+        t_group: List[XTransform, YTransform] = list(
+            dataset_copy.transform_groups[group_name]
+        )
         if transform is not None:
             if t_group[0] is not None:
                 t_group[0] = Compose([t_group[0], transform])
@@ -515,16 +562,18 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         # tuple(t_group) works too, but it triggers a type warning
         tuple_t_group: Tuple[XTransform, YTransform] = tuple(
-            (t_group[0], t_group[1]))
+            (t_group[0], t_group[1])
+        )
         dataset_copy.transform_groups[group_name] = tuple_t_group
 
         return dataset_copy
 
     def replace_transforms(
-            self: TAvalancheDataset,
-            transform: XTransform,
-            target_transform: YTransform,
-            group: str = None) -> TAvalancheDataset:
+        self: TAvalancheDataset,
+        transform: XTransform,
+        target_transform: YTransform,
+        group: str = None,
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset with the existing transformations replaced with
         the given ones.
@@ -562,8 +611,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return dataset_copy.with_transforms(self.current_transform_group)
 
-    def with_transforms(self: TAvalancheDataset, group_name: str) -> \
-            TAvalancheDataset:
+    def with_transforms(
+        self: TAvalancheDataset, group_name: str
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset with the transformations of a different group
         loaded.
@@ -576,11 +626,13 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy = self._fork_dataset()
 
         if group_name not in dataset_copy.transform_groups:
-            raise ValueError('Invalid group name ' + str(group_name))
+            raise ValueError("Invalid group name " + str(group_name))
 
         # Store current group (loaded in transform and target_transform fields)
-        dataset_copy.transform_groups[dataset_copy.current_transform_group] = \
-            (dataset_copy.transform, dataset_copy.target_transform)
+        dataset_copy.transform_groups[dataset_copy.current_transform_group] = (
+            dataset_copy.transform,
+            dataset_copy.target_transform,
+        )
 
         # Load new group in transform and target_transform fields
         switch_group = dataset_copy.transform_groups[group_name]
@@ -593,11 +645,12 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return dataset_copy
 
-    def add_transforms_group(self: TAvalancheDataset,
-                             group_name: str,
-                             transform: XTransform,
-                             target_transform: YTransform) -> \
-            TAvalancheDataset:
+    def add_transforms_group(
+        self: TAvalancheDataset,
+        group_name: str,
+        transform: XTransform,
+        target_transform: YTransform,
+    ) -> TAvalancheDataset:
         """
         Returns a new dataset with a new transformations group.
 
@@ -616,13 +669,16 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy = self._fork_dataset()
 
         if group_name in dataset_copy.transform_groups:
-            raise ValueError('A group with the same name already exists')
+            raise ValueError("A group with the same name already exists")
 
-        dataset_copy.transform_groups[group_name] = \
-            (transform, target_transform)
+        dataset_copy.transform_groups[group_name] = (
+            transform,
+            target_transform,
+        )
 
         AvalancheDataset._check_groups_dict_format(
-            dataset_copy.transform_groups)
+            dataset_copy.transform_groups
+        )
 
         dataset_copy._frozen_transforms[group_name] = (None, None)
 
@@ -639,8 +695,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return dataset_copy
 
     @staticmethod
-    def _freeze_dataset_group(dataset_copy: TAvalancheDataset,
-                              group_name: str):
+    def _freeze_dataset_group(dataset_copy: TAvalancheDataset, group_name: str):
         # Freeze the current transformations. Frozen transformations are saved
         # in a separate dict.
 
@@ -666,8 +721,10 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             # the ones stored in dataset_copy.transform_groups may be not
             # up-to-date).
 
-            to_be_glued = (dataset_copy.transform,
-                           dataset_copy.target_transform)
+            to_be_glued = (
+                dataset_copy.transform,
+                dataset_copy.target_transform,
+            )
 
             # And of course, once frozen, set transformations to None
             dataset_copy.transform = None
@@ -677,19 +734,23 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             if frozen_group[0] is None:
                 final_frozen_transform = to_be_glued[0]
             else:
-                final_frozen_transform = Compose([
-                    frozen_group[0], to_be_glued[0]])
+                final_frozen_transform = Compose(
+                    [frozen_group[0], to_be_glued[0]]
+                )
 
         if to_be_glued[1] is not None:
             if frozen_group[1] is None:
                 final_frozen_target_transform = to_be_glued[1]
             else:
-                final_frozen_target_transform = Compose([
-                    frozen_group[1], to_be_glued[1]])
+                final_frozen_target_transform = Compose(
+                    [frozen_group[1], to_be_glued[1]]
+                )
 
         # Set the frozen transformations
         dataset_copy._frozen_transforms[group_name] = (
-            final_frozen_transform, final_frozen_target_transform)
+            final_frozen_transform,
+            final_frozen_target_transform,
+        )
 
         # Finally, apply the freeze procedure to the original dataset
         dataset_copy._freeze_original_dataset(group_name)
@@ -707,8 +768,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         pattern, label = self._apply_transforms(pattern, label)
 
-        return TupleTLabel((pattern, label, *element[2:],
-                            self.targets_task_labels[idx]))
+        return TupleTLabel(
+            (pattern, label, *element[2:], self.targets_task_labels[idx])
+        )
 
     def _apply_transforms(self, pattern: Any, label: int):
         frozen_group = self._frozen_transforms[self.current_transform_group]
@@ -734,34 +796,40 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         # Check if the format of the groups is correct
         for map_key in groups_dict:
             if not isinstance(map_key, str):
-                raise ValueError('Every group must be identified by a string.'
-                                 'Wrong key was: "' + str(map_key) + '"')
+                raise ValueError(
+                    "Every group must be identified by a string."
+                    'Wrong key was: "' + str(map_key) + '"'
+                )
 
             map_value = groups_dict[map_key]
             if not isinstance(map_value, tuple):
-                raise ValueError('Transformations for group "' + str(map_key) +
-                                 '" must be contained in a tuple')
+                raise ValueError(
+                    'Transformations for group "'
+                    + str(map_key)
+                    + '" must be contained in a tuple'
+                )
 
             if not len(map_value) == 2:
                 raise ValueError(
                     'Transformations for group "' + str(map_key) + '" must be '
-                    'a tuple containing 2 elements: a transformation for the X '
-                    'values and a transformation for the Y values')
+                    "a tuple containing 2 elements: a transformation for the X "
+                    "values and a transformation for the Y values"
+                )
 
-        if 'test' in groups_dict:
+        if "test" in groups_dict:
             warnings.warn(
                 'A transformation group named "test" has been found. Beware '
-                'that by default AvalancheDataset supports test transformations'
-                ' through the "eval" group. Consider using that one!')
+                "that by default AvalancheDataset supports test transformations"
+                ' through the "eval" group. Consider using that one!'
+            )
 
     def _initialize_groups_dict(
-            self,
-            transform_groups: Optional[Dict[str, Tuple[XTransform,
-                                                       YTransform]]],
-            dataset: Any,
-            transform: XTransform,
-            target_transform: YTransform) -> Dict[str, Tuple[XTransform,
-                                                             YTransform]]:
+        self,
+        transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]],
+        dataset: Any,
+        transform: XTransform,
+        target_transform: YTransform,
+    ) -> Dict[str, Tuple[XTransform, YTransform]]:
         """
         A simple helper method that tries to fill the 'train' and 'eval'
         groups as those two groups must always exist.
@@ -781,37 +849,38 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         """
         if transform_groups is None:
             transform_groups = {
-                'train': (transform, target_transform),
-                'eval': (transform, target_transform)
+                "train": (transform, target_transform),
+                "eval": (transform, target_transform),
             }
         else:
             transform_groups = dict(transform_groups)
 
-        if 'train' in transform_groups:
-            if 'eval' not in transform_groups:
-                transform_groups['eval'] = transform_groups['train']
+        if "train" in transform_groups:
+            if "eval" not in transform_groups:
+                transform_groups["eval"] = transform_groups["train"]
 
-        if 'train' not in transform_groups:
-            transform_groups['train'] = (None, None)
+        if "train" not in transform_groups:
+            transform_groups["train"] = (None, None)
 
-        if 'eval' not in transform_groups:
-            transform_groups['eval'] = (None, None)
+        if "eval" not in transform_groups:
+            transform_groups["eval"] = (None, None)
 
         self._add_groups_from_original_dataset(dataset, transform_groups)
 
         return transform_groups
 
-    def _initialize_targets_sequence(self, dataset, targets,
-                                     dataset_type, targets_adapter) \
-            -> Sequence[TTargetType]:
+    def _initialize_targets_sequence(
+        self, dataset, targets, dataset_type, targets_adapter
+    ) -> Sequence[TTargetType]:
         if targets is not None:
             # User defined targets always take precedence
             # Note: no adapter is applied!
             if len(targets) != len(dataset):
                 raise ValueError(
-                    'Invalid amount of target labels. It must be equal to the '
-                    'number of patterns in the dataset. Got {}, expected '
-                    '{}!'.format(len(targets), len(dataset)))
+                    "Invalid amount of target labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(targets), len(dataset))
+                )
             return targets
 
         if targets_adapter is None:
@@ -822,17 +891,18 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return _make_target_from_supported_dataset(dataset, targets_adapter)
 
     def _initialize_task_labels_sequence(
-            self, dataset, task_labels: Optional[Sequence[int]]) \
-            -> Sequence[int]:
+        self, dataset, task_labels: Optional[Sequence[int]]
+    ) -> Sequence[int]:
         if task_labels is not None:
             # task_labels has priority over the dataset fields
             if isinstance(task_labels, int):
                 task_labels = ConstantSequence(task_labels, len(dataset))
             elif len(task_labels) != len(dataset):
                 raise ValueError(
-                    'Invalid amount of task labels. It must be equal to the '
-                    'number of patterns in the dataset. Got {}, expected '
-                    '{}!'.format(len(task_labels), len(dataset)))
+                    "Invalid amount of task labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(task_labels), len(dataset))
+                )
 
             return SubSequence(task_labels, converter=int)
 
@@ -843,13 +913,14 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             return collate_fn
 
         if dataset_type == AvalancheDatasetType.UNDEFINED:
-            if hasattr(dataset, 'collate_fn'):
-                return getattr(dataset, 'collate_fn')
+            if hasattr(dataset, "collate_fn"):
+                return getattr(dataset, "collate_fn")
 
         return default_collate
 
-    def _initialize_tasks_dict(self, dataset, task_labels: Sequence[int]) \
-            -> Dict[int, Sequence[int]]:
+    def _initialize_tasks_dict(
+        self, dataset, task_labels: Sequence[int]
+    ) -> Dict[int, Sequence[int]]:
         if isinstance(task_labels, ConstantSequence) and len(task_labels) > 0:
             # Shortcut :)
             return {task_labels[0]: range(len(task_labels))}
@@ -865,8 +936,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         return result
 
-    def _set_original_dataset_transform_group(
-            self, group_name: str) -> None:
+    def _set_original_dataset_transform_group(self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
             if self._dataset.current_transform_group == group_name:
                 # Prevents a huge slowdown in some corner cases
@@ -875,25 +945,27 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
             self._dataset = self._dataset.with_transforms(group_name)
 
-    def _freeze_original_dataset(
-            self, group_name: str) -> None:
+    def _freeze_original_dataset(self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.freeze_group_transforms(group_name)
 
     def _replace_original_dataset_group(
-            self, transform: XTransform, target_transform: YTransform) -> None:
+        self, transform: XTransform, target_transform: YTransform
+    ) -> None:
         if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.replace_transforms(
-                transform, target_transform)
+                transform, target_transform
+            )
 
-    def _add_original_dataset_group(
-            self, group_name: str) -> None:
+    def _add_original_dataset_group(self, group_name: str) -> None:
         if isinstance(self._dataset, AvalancheDataset):
             self._dataset = self._dataset.add_transforms_group(
-                group_name, None, None)
+                group_name, None, None
+            )
 
     def _add_groups_from_original_dataset(
-            self, dataset, transform_groups) -> None:
+        self, dataset, transform_groups
+    ) -> None:
         if isinstance(dataset, AvalancheDataset):
             for original_dataset_group in dataset.transform_groups.keys():
                 if original_dataset_group not in transform_groups:
@@ -923,8 +995,9 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         return False
 
     @staticmethod
-    def _borrow_transformations(dataset, transform_groups,
-                                frozen_transform_groups):
+    def _borrow_transformations(
+        dataset, transform_groups, frozen_transform_groups
+    ):
         if not isinstance(dataset, AvalancheDataset):
             return
 
@@ -938,38 +1011,48 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         # Standard transforms
         for original_dataset_group in dataset.transform_groups.keys():
-            other_dataset_transforms = \
-                dataset.transform_groups[original_dataset_group]
+            other_dataset_transforms = dataset.transform_groups[
+                original_dataset_group
+            ]
             if dataset.current_transform_group == original_dataset_group:
-                other_dataset_transforms = (dataset.transform,
-                                            dataset.target_transform)
+                other_dataset_transforms = (
+                    dataset.transform,
+                    dataset.target_transform,
+                )
 
-            transform_groups[original_dataset_group] = \
-                AvalancheDataset._prepend_transforms(
-                    transform_groups[original_dataset_group],
-                    other_dataset_transforms)
+            transform_groups[
+                original_dataset_group
+            ] = AvalancheDataset._prepend_transforms(
+                transform_groups[original_dataset_group],
+                other_dataset_transforms,
+            )
 
         # Frozen transforms
         for original_dataset_group in dataset._frozen_transforms.keys():
-            other_dataset_transforms = \
-                dataset._frozen_transforms[original_dataset_group]
+            other_dataset_transforms = dataset._frozen_transforms[
+                original_dataset_group
+            ]
 
-            frozen_transform_groups[original_dataset_group] = \
-                AvalancheDataset._prepend_transforms(
-                    frozen_transform_groups[original_dataset_group],
-                    other_dataset_transforms)
+            frozen_transform_groups[
+                original_dataset_group
+            ] = AvalancheDataset._prepend_transforms(
+                frozen_transform_groups[original_dataset_group],
+                other_dataset_transforms,
+            )
 
     @staticmethod
     def _prepend_transforms(transforms, to_be_prepended):
         if len(transforms) != 2:
             raise ValueError(
-                'Transformation groups must contain exactly 2 transformations')
+                "Transformation groups must contain exactly 2 transformations"
+            )
 
         if len(transforms) != len(to_be_prepended):
             raise ValueError(
-                'Transformation group size mismatch: {} vs {}'.format(
+                "Transformation group size mismatch: {} vs {}".format(
                     len(transforms), len(to_be_prepended)
-                ))
+                )
+            )
 
         result = []
 
@@ -980,8 +1063,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             elif transforms[i] is None:
                 result.append(to_be_prepended[i])
             else:
-                result.append(Compose([
-                    to_be_prepended[i], transforms[i]]))
+                result.append(Compose([to_be_prepended[i], transforms[i]]))
 
         return tuple(result)  # Transform to tuple
 
@@ -994,14 +1076,14 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def _optimize_task_dict(self):
         for task_label in self.tasks_pattern_indices:
             self.tasks_pattern_indices[task_label] = optimize_sequence(
-                self.tasks_pattern_indices[task_label])
+                self.tasks_pattern_indices[task_label]
+            )
 
     def _flatten_dataset(self):
         pass
 
 
 class _TaskSubsetDict(OrderedDict):
-
     def __init__(self, avalanche_dataset: AvalancheDataset):
         self._full_dataset = avalanche_dataset
         task_ids = self._full_dataset.tasks_pattern_indices.keys()
@@ -1013,7 +1095,7 @@ class _TaskSubsetDict(OrderedDict):
 
     def __getitem__(self, task_id: int):
         if task_id not in self._full_dataset.tasks_pattern_indices:
-            raise KeyError('No pattern with ' + str(task_id) + ' found')
+            raise KeyError("No pattern with " + str(task_id) + " found")
         pattern_indices = self._full_dataset.tasks_pattern_indices[task_id]
         return self._make_subset(pattern_indices)
 
@@ -1034,21 +1116,23 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
     the targets field, class mapping and all the other goodies listed in
     :class:`AvalancheDataset`.
     """
-    def __init__(self,
-                 dataset: SupportedDataset,
-                 indices: Sequence[int] = None,
-                 *,
-                 class_mapping: Sequence[int] = None,
-                 transform: Callable[[Any], Any] = None,
-                 target_transform: Callable[[int], int] = None,
-                 transform_groups: Dict[str, Tuple[XTransform,
-                                                   YTransform]] = None,
-                 initial_transform_group: str = None,
-                 task_labels: Union[int, Sequence[int]] = None,
-                 targets: Sequence[TTargetType] = None,
-                 dataset_type: AvalancheDatasetType = None,
-                 collate_fn: Callable[[List], Any] = None,
-                 targets_adapter: Callable[[Any], TTargetType] = None):
+
+    def __init__(
+        self,
+        dataset: SupportedDataset,
+        indices: Sequence[int] = None,
+        *,
+        class_mapping: Sequence[int] = None,
+        transform: Callable[[Any], Any] = None,
+        target_transform: Callable[[int], int] = None,
+        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+        initial_transform_group: str = None,
+        task_labels: Union[int, Sequence[int]] = None,
+        targets: Sequence[TTargetType] = None,
+        dataset_type: AvalancheDatasetType = None,
+        collate_fn: Callable[[List], Any] = None,
+        targets_adapter: Callable[[Any], TTargetType] = None
+    ):
         """
         Creates an ``AvalancheSubset`` instance.
 
@@ -1133,32 +1217,40 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             else:
                 dataset_type = AvalancheDatasetType.UNDEFINED
 
-        if dataset_type != AvalancheDatasetType.UNDEFINED and \
-                (collate_fn is not None or targets_adapter is not None):
+        if dataset_type != AvalancheDatasetType.UNDEFINED and (
+            collate_fn is not None or targets_adapter is not None
+        ):
             if detected_type:
                 raise ValueError(
-                    'dataset_type {} was inferred from the input dataset. '
-                    'This dataset type can\'t be used '
-                    'with custom collate_fn or targets_adapter '
-                    'parameters. Only the UNDEFINED type supports '
-                    'custom collate_fn or targets_adapter '
-                    'parameters'.format(dataset_type))
+                    "dataset_type {} was inferred from the input dataset. "
+                    "This dataset type can't be used "
+                    "with custom collate_fn or targets_adapter "
+                    "parameters. Only the UNDEFINED type supports "
+                    "custom collate_fn or targets_adapter "
+                    "parameters".format(dataset_type)
+                )
             else:
                 raise ValueError(
-                    'dataset_type {} can\'t be used with custom collate_fn '
-                    'or targets_adapter. Only the UNDEFINED type supports '
-                    'custom collate_fn or targets_adapter '
-                    'parameters.'.format(dataset_type))
+                    "dataset_type {} can't be used with custom collate_fn "
+                    "or targets_adapter. Only the UNDEFINED type supports "
+                    "custom collate_fn or targets_adapter "
+                    "parameters.".format(dataset_type)
+                )
 
         if class_mapping is not None:
-            if dataset_type not in [AvalancheDatasetType.CLASSIFICATION,
-                                    AvalancheDatasetType.UNDEFINED]:
-                raise ValueError('class_mapping is defined but the dataset type'
-                                 ' is neither CLASSIFICATION or UNDEFINED.')
+            if dataset_type not in [
+                AvalancheDatasetType.CLASSIFICATION,
+                AvalancheDatasetType.UNDEFINED,
+            ]:
+                raise ValueError(
+                    "class_mapping is defined but the dataset type"
+                    " is neither CLASSIFICATION or UNDEFINED."
+                )
 
         if class_mapping is not None:
-            subset = ClassificationSubset(dataset, indices=indices,
-                                          class_mapping=class_mapping)
+            subset = ClassificationSubset(
+                dataset, indices=indices, class_mapping=class_mapping
+            )
         elif indices is not None:
             subset = Subset(dataset, indices=indices)
         else:
@@ -1174,44 +1266,48 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             if isinstance(dataset, AvalancheDataset):
                 initial_transform_group = dataset.current_transform_group
             else:
-                initial_transform_group = 'train'
+                initial_transform_group = "train"
 
-        super().__init__(subset,
-                         transform=transform,
-                         target_transform=target_transform,
-                         transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         task_labels=task_labels,
-                         targets=targets,
-                         dataset_type=dataset_type,
-                         collate_fn=collate_fn,
-                         targets_adapter=targets_adapter)
+        super().__init__(
+            subset,
+            transform=transform,
+            target_transform=target_transform,
+            transform_groups=transform_groups,
+            initial_transform_group=initial_transform_group,
+            task_labels=task_labels,
+            targets=targets,
+            dataset_type=dataset_type,
+            collate_fn=collate_fn,
+            targets_adapter=targets_adapter,
+        )
 
     def _initialize_targets_sequence(
-            self, dataset, targets, dataset_type, targets_adapter) \
-            -> Sequence[TTargetType]:
+        self, dataset, targets, dataset_type, targets_adapter
+    ) -> Sequence[TTargetType]:
         if targets is not None:
             # For the reasoning behind this, have a look at
             # _initialize_task_labels_sequence (it's basically the same).
 
-            if len(targets) == len(self._original_dataset) and \
-                    not len(targets) == len(dataset):
+            if len(targets) == len(self._original_dataset) and not len(
+                targets
+            ) == len(dataset):
                 return SubSequence(targets, indices=self._indices)
             elif len(targets) == len(dataset):
                 return targets
             else:
                 raise ValueError(
-                    'Invalid amount of targets. It must be equal to the '
-                    'number of patterns in the subset. '
-                    'Got {}, expected {}!'.format(
-                        len(targets), len(dataset)))
+                    "Invalid amount of targets. It must be equal to the "
+                    "number of patterns in the subset. "
+                    "Got {}, expected {}!".format(len(targets), len(dataset))
+                )
 
         return super()._initialize_targets_sequence(
-            dataset, None, dataset_type, targets_adapter)
+            dataset, None, dataset_type, targets_adapter
+        )
 
     def _initialize_task_labels_sequence(
-            self, dataset,
-            task_labels: Optional[Sequence[int]]) -> Sequence[int]:
+        self, dataset, task_labels: Optional[Sequence[int]]
+    ) -> Sequence[int]:
 
         if task_labels is not None:
             # The task_labels parameter is kind of ambiguous...
@@ -1225,20 +1321,24 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             if isinstance(task_labels, int):
                 # Simplest case: constant task label
                 return ConstantSequence(task_labels, len(dataset))
-            elif len(task_labels) == len(self._original_dataset) and \
-                    not len(task_labels) == len(dataset):
+            elif len(task_labels) == len(self._original_dataset) and not len(
+                task_labels
+            ) == len(dataset):
                 # task_labels refers to the original dataset ...
-                return SubSequence(task_labels, indices=self._indices,
-                                   converter=int)
+                return SubSequence(
+                    task_labels, indices=self._indices, converter=int
+                )
             elif len(task_labels) == len(dataset):
                 # One label for each instance
                 return SubSequence(task_labels, converter=int)
             else:
                 raise ValueError(
-                    'Invalid amount of task labels. It must be equal to the '
-                    'number of patterns in the subset. '
-                    'Got {}, expected {}!'.format(
-                        len(task_labels), len(dataset)))
+                    "Invalid amount of task labels. It must be equal to the "
+                    "number of patterns in the subset. "
+                    "Got {}, expected {}!".format(
+                        len(task_labels), len(dataset)
+                    )
+                )
 
         return super()._initialize_task_labels_sequence(dataset, None)
 
@@ -1249,40 +1349,47 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
                 # (apart from being actually more performant)
                 return
 
-            self._original_dataset = \
-                self._original_dataset.with_transforms(group_name)
+            self._original_dataset = self._original_dataset.with_transforms(
+                group_name
+            )
 
             self._replace_original_dataset_reference()
 
     def _freeze_original_dataset(self, group_name: str) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
-            self._original_dataset = \
+            self._original_dataset = (
                 self._original_dataset.freeze_group_transforms(group_name)
+            )
 
             self._replace_original_dataset_reference()
 
     def _replace_original_dataset_group(
-            self, transform: XTransform, target_transform: YTransform) -> None:
+        self, transform: XTransform, target_transform: YTransform
+    ) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
-            self._original_dataset = \
-                self._original_dataset.replace_transforms(
-                    transform, target_transform)
+            self._original_dataset = self._original_dataset.replace_transforms(
+                transform, target_transform
+            )
 
             self._replace_original_dataset_reference()
 
     def _add_original_dataset_group(self, group_name: str) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
-            self._original_dataset = \
+            self._original_dataset = (
                 self._original_dataset.add_transforms_group(
-                    group_name, None, None)
+                    group_name, None, None
+                )
+            )
 
             self._replace_original_dataset_reference()
 
     def _add_groups_from_original_dataset(
-            self, dataset, transform_groups) -> None:
+        self, dataset, transform_groups
+    ) -> None:
         if isinstance(self._original_dataset, AvalancheDataset):
-            for original_dataset_group in \
-                    self._original_dataset.transform_groups.keys():
+            for (
+                original_dataset_group
+            ) in self._original_dataset.transform_groups.keys():
                 if original_dataset_group not in transform_groups:
                     transform_groups[original_dataset_group] = (None, None)
 
@@ -1294,13 +1401,16 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             # In order to flatten the subset, we have to integrate the
             # transformations (also frozen ones!)
             AvalancheDataset._borrow_transformations(
-                self._original_dataset, self.transform_groups,
-                self._frozen_transforms)
+                self._original_dataset,
+                self.transform_groups,
+                self._frozen_transforms,
+            )
 
             # We need to reload transformations after borrowing from the subset
             # This assumes that _flatten_dataset is called by __init__!
-            self.transform, self.target_transform = \
-                self.transform_groups[self.current_transform_group]
+            self.transform, self.target_transform = self.transform_groups[
+                self.current_transform_group
+            ]
 
             forward_dataset = self._original_dataset._original_dataset
             forward_indices = self._original_dataset._indices
@@ -1339,13 +1449,14 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
             self._class_mapping = new_class_mapping
             if new_class_mapping is None:
                 # Subset
-                self._dataset = Subset(forward_dataset,
-                                       indices=new_indices)
+                self._dataset = Subset(forward_dataset, indices=new_indices)
             else:
                 # ClassificationSubset
                 self._dataset = ClassificationSubset(
-                    forward_dataset, indices=new_indices,
-                    class_mapping=new_class_mapping)
+                    forward_dataset,
+                    indices=new_indices,
+                    class_mapping=new_class_mapping,
+                )
 
         # --------
         # Flattening PyTorch Subset has been temporarily
@@ -1380,11 +1491,14 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
     def _replace_original_dataset_reference(self):
         if isinstance(self._dataset, ClassificationSubset):
             self._dataset = ClassificationSubset(
-                self._original_dataset, indices=self._indices,
-                class_mapping=self._class_mapping)
+                self._original_dataset,
+                indices=self._indices,
+                class_mapping=self._class_mapping,
+            )
         elif isinstance(self._dataset, Subset):
-            self._dataset = Subset(self._original_dataset,
-                                   indices=self._indices)
+            self._dataset = Subset(
+                self._original_dataset, indices=self._indices
+            )
         else:
             self._dataset = self._original_dataset
 
@@ -1397,19 +1511,20 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
     the targets field and all the other goodies listed in
     :class:`AvalancheDataset`.
     """
-    def __init__(self,
-                 *dataset_tensors: Sequence,
-                 transform: Callable[[Any], Any] = None,
-                 target_transform: Callable[[int], int] = None,
-                 transform_groups: Dict[str, Tuple[XTransform,
-                                                   YTransform]] = None,
-                 initial_transform_group: str = 'train',
-                 task_labels: Union[int, Sequence[int]] = None,
-                 targets: Union[Sequence[TTargetType], int] = None,
-                 dataset_type: AvalancheDatasetType =
-                 AvalancheDatasetType.UNDEFINED,
-                 collate_fn: Callable[[List], Any] = None,
-                 targets_adapter: Callable[[Any], TTargetType] = None):
+
+    def __init__(
+        self,
+        *dataset_tensors: Sequence,
+        transform: Callable[[Any], Any] = None,
+        target_transform: Callable[[int], int] = None,
+        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+        initial_transform_group: str = "train",
+        task_labels: Union[int, Sequence[int]] = None,
+        targets: Union[Sequence[TTargetType], int] = None,
+        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
+        collate_fn: Callable[[List], Any] = None,
+        targets_adapter: Callable[[Any], TTargetType] = None
+    ):
         """
         Creates a ``AvalancheTensorDataset`` instance.
 
@@ -1459,16 +1574,18 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
             The adapter is used to adapt the values of the targets field only.
         """
 
-        if dataset_type != AvalancheDatasetType.UNDEFINED and \
-                (collate_fn is not None or targets_adapter is not None):
+        if dataset_type != AvalancheDatasetType.UNDEFINED and (
+            collate_fn is not None or targets_adapter is not None
+        ):
             raise ValueError(
-                'dataset_type {} can\'t be used with custom collate_fn '
-                'or targets_adapter. Only the UNDEFINED type supports '
-                'custom collate_fn or targets_adapter '
-                'parameters.'.format(dataset_type))
+                "dataset_type {} can't be used with custom collate_fn "
+                "or targets_adapter. Only the UNDEFINED type supports "
+                "custom collate_fn or targets_adapter "
+                "parameters.".format(dataset_type)
+            )
 
         if len(dataset_tensors) < 1:
-            raise ValueError('At least one sequence must be passed')
+            raise ValueError("At least one sequence must be passed")
 
         if targets is None:
             targets = min(1, len(dataset_tensors))
@@ -1477,19 +1594,22 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
             base_dataset = SequenceDataset(*dataset_tensors, targets=targets)
             targets = None
         else:
-            base_dataset = SequenceDataset(*dataset_tensors,
-                                           targets=min(1, len(dataset_tensors)))
+            base_dataset = SequenceDataset(
+                *dataset_tensors, targets=min(1, len(dataset_tensors))
+            )
 
-        super().__init__(base_dataset,
-                         transform=transform,
-                         target_transform=target_transform,
-                         transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         task_labels=task_labels,
-                         targets=targets,
-                         dataset_type=dataset_type,
-                         collate_fn=collate_fn,
-                         targets_adapter=targets_adapter)
+        super().__init__(
+            base_dataset,
+            transform=transform,
+            target_transform=target_transform,
+            transform_groups=transform_groups,
+            initial_transform_group=initial_transform_group,
+            task_labels=task_labels,
+            targets=targets,
+            dataset_type=dataset_type,
+            collate_fn=collate_fn,
+            targets_adapter=targets_adapter,
+        )
 
 
 class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
@@ -1503,21 +1623,23 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
     and transformations groups are consistent across the concatenated dataset
     (if they are subclasses of :class:`AvalancheDataset`).
     """
-    def __init__(self,
-                 datasets: Collection[SupportedDataset],
-                 *,
-                 transform: Callable[[Any], Any] = None,
-                 target_transform: Callable[[int], int] = None,
-                 transform_groups: Dict[str, Tuple[XTransform,
-                                                   YTransform]] = None,
-                 initial_transform_group: str = None,
-                 task_labels: Union[int, Sequence[int],
-                                    Sequence[Sequence[int]]] = None,
-                 targets: Union[Sequence[TTargetType],
-                                Sequence[Sequence[TTargetType]]] = None,
-                 dataset_type: AvalancheDatasetType = None,
-                 collate_fn: Callable[[List], Any] = None,
-                 targets_adapter: Callable[[Any], TTargetType] = None):
+
+    def __init__(
+        self,
+        datasets: Collection[SupportedDataset],
+        *,
+        transform: Callable[[Any], Any] = None,
+        target_transform: Callable[[int], int] = None,
+        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+        initial_transform_group: str = None,
+        task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]] = None,
+        targets: Union[
+            Sequence[TTargetType], Sequence[Sequence[TTargetType]]
+        ] = None,
+        dataset_type: AvalancheDatasetType = None,
+        collate_fn: Callable[[List], Any] = None,
+        targets_adapter: Callable[[Any], TTargetType] = None
+    ):
         """
         Creates a ``AvalancheConcatDataset`` instance.
 
@@ -1585,9 +1707,13 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         """
         dataset_list = list(datasets)
 
-        dataset_type, collate_fn, targets_adapter = \
-            self._get_dataset_type_collate_and_adapter(
-                dataset_list, dataset_type, collate_fn, targets_adapter)
+        (
+            dataset_type,
+            collate_fn,
+            targets_adapter,
+        ) = self._get_dataset_type_collate_and_adapter(
+            dataset_list, dataset_type, collate_fn, targets_adapter
+        )
 
         self._dataset_list = dataset_list
         self._datasets_lengths = [len(dataset) for dataset in dataset_list]
@@ -1606,7 +1732,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                             break
 
             if uniform_group is None:
-                initial_transform_group = 'train'
+                initial_transform_group = "train"
             else:
                 initial_transform_group = uniform_group
 
@@ -1618,19 +1744,22 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         self._adapt_concat_datasets()
 
-        super().__init__(ClassificationDataset(),  # not used
-                         transform=transform,
-                         target_transform=target_transform,
-                         transform_groups=transform_groups,
-                         initial_transform_group=initial_transform_group,
-                         task_labels=task_labels,
-                         targets=targets,
-                         dataset_type=dataset_type,
-                         collate_fn=collate_fn,
-                         targets_adapter=targets_adapter)
+        super().__init__(
+            ClassificationDataset(),  # not used
+            transform=transform,
+            target_transform=target_transform,
+            transform_groups=transform_groups,
+            initial_transform_group=initial_transform_group,
+            task_labels=task_labels,
+            targets=targets,
+            dataset_type=dataset_type,
+            collate_fn=collate_fn,
+            targets_adapter=targets_adapter,
+        )
 
     def _get_dataset_type_collate_and_adapter(
-            self, datasets, dataset_type, collate_fn, targets_adapter):
+        self, datasets, dataset_type, collate_fn, targets_adapter
+    ):
 
         if dataset_type is not None:
             return dataset_type, collate_fn, targets_adapter
@@ -1644,31 +1773,36 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                     identified_types.add(dataset.dataset_type)
 
             if first_collate_fn is None:
-                first_collate_fn = getattr(dataset, 'collate_fn', None)
+                first_collate_fn = getattr(dataset, "collate_fn", None)
 
         if len(identified_types) > 1:
             raise ValueError(
-                'Error trying to infer a common dataset type while '
-                'concatenating different datasets. '
-                'Incompatible types: {}'.format(list(identified_types)))
+                "Error trying to infer a common dataset type while "
+                "concatenating different datasets. "
+                "Incompatible types: {}".format(list(identified_types))
+            )
         elif len(identified_types) == 0:
             dataset_type = AvalancheDatasetType.UNDEFINED
         else:
             # len(identified_types) == 1
             dataset_type = next(iter(identified_types))
 
-        if dataset_type != AvalancheDatasetType.UNDEFINED and \
-                (collate_fn is not None or targets_adapter is not None):
+        if dataset_type != AvalancheDatasetType.UNDEFINED and (
+            collate_fn is not None or targets_adapter is not None
+        ):
             raise ValueError(
-                'dataset_type {} was inferred from the list of '
-                'concatenated dataset. This dataset type can\'t be used '
-                'with custom collate_fn or targets_adapter '
-                'parameters. Only the UNDEFINED type supports '
-                'custom collate_fn or targets_adapter '
-                'parameters.'.format(dataset_type))
+                "dataset_type {} was inferred from the list of "
+                "concatenated dataset. This dataset type can't be used "
+                "with custom collate_fn or targets_adapter "
+                "parameters. Only the UNDEFINED type supports "
+                "custom collate_fn or targets_adapter "
+                "parameters.".format(dataset_type)
+            )
 
-        if collate_fn is None and \
-                dataset_type == AvalancheDatasetType.UNDEFINED:
+        if (
+            collate_fn is None
+            and dataset_type == AvalancheDatasetType.UNDEFINED
+        ):
             collate_fn = first_collate_fn
 
         return dataset_type, collate_fn, targets_adapter
@@ -1678,8 +1812,11 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
     def _get_single_item(self, idx: int):
         dataset_idx, internal_idx = find_list_from_index(
-            idx, self._datasets_lengths, self._overall_length,
-            cumulative_sizes=self._datasets_cumulative_lengths)
+            idx,
+            self._datasets_lengths,
+            self._overall_length,
+            cumulative_sizes=self._datasets_cumulative_lengths,
+        )
 
         single_element = self._dataset_list[dataset_idx][internal_idx]
 
@@ -1694,14 +1831,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         return dataset_copy
 
     def _initialize_targets_sequence(
-            self, dataset, targets, dataset_type, targets_adapter) -> \
-            Sequence[TTargetType]:
+        self, dataset, targets, dataset_type, targets_adapter
+    ) -> Sequence[TTargetType]:
         if targets is not None:
             if len(targets) != self._overall_length:
                 raise ValueError(
-                    'Invalid amount of target labels. It must be equal to the '
-                    'number of patterns in the dataset. Got {}, expected '
-                    '{}!'.format(len(targets), self._overall_length))
+                    "Invalid amount of target labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(targets), self._overall_length)
+                )
 
             return targets
 
@@ -1710,15 +1848,17 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         # This however, allows the user to better check which was the
         # problematic dataset by using a debugger.
         for dataset_idx, single_dataset in enumerate(self._dataset_list):
-            targets_list.append(super()._initialize_targets_sequence(
-                single_dataset, None, dataset_type, targets_adapter
-            ))
+            targets_list.append(
+                super()._initialize_targets_sequence(
+                    single_dataset, None, dataset_type, targets_adapter
+                )
+            )
 
         return LazyConcatTargets(targets_list)
 
     def _initialize_task_labels_sequence(
-            self, dataset, task_labels: Optional[Sequence[int]]) \
-            -> Sequence[int]:
+        self, dataset, task_labels: Optional[Sequence[int]]
+    ) -> Sequence[int]:
         if task_labels is not None:
             # task_labels has priority over the dataset fields
 
@@ -1726,15 +1866,17 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                 return ConstantSequence(task_labels, self._overall_length)
             elif len(task_labels) != self._overall_length:
                 raise ValueError(
-                    'Invalid amount of task labels. It must be equal to the '
-                    'number of patterns in the dataset. Got {}, expected '
-                    '{}!'.format(len(task_labels), self._overall_length))
+                    "Invalid amount of task labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(task_labels), self._overall_length)
+                )
             return SubSequence(task_labels, converter=int)
 
         concat_t_labels = []
         for dataset_idx, single_dataset in enumerate(self._dataset_list):
-            concat_t_labels.append(super()._initialize_task_labels_sequence(
-                single_dataset, None))
+            concat_t_labels.append(
+                super()._initialize_task_labels_sequence(single_dataset, None)
+            )
 
         return LazyConcatTargets(concat_t_labels)
 
@@ -1742,13 +1884,13 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         if collate_fn is not None:
             return collate_fn
 
-        if len(self._dataset_list) > 0 and \
-                hasattr(self._dataset_list[0], 'collate_fn'):
-            return getattr(self._dataset_list[0], 'collate_fn')
+        if len(self._dataset_list) > 0 and hasattr(
+            self._dataset_list[0], "collate_fn"
+        ):
+            return getattr(self._dataset_list[0], "collate_fn")
         return default_collate
 
-    def _set_original_dataset_transform_group(
-            self, group_name: str) -> None:
+    def _set_original_dataset_transform_group(self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
                 if dataset.current_transform_group == group_name:
@@ -1756,32 +1898,36 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
                     # (apart from being actually more performant)
                     continue
 
-                self._dataset_list[dataset_idx] = \
-                    dataset.with_transforms(group_name)
+                self._dataset_list[dataset_idx] = dataset.with_transforms(
+                    group_name
+                )
 
-    def _freeze_original_dataset(
-            self, group_name: str) -> None:
+    def _freeze_original_dataset(self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
-                self._dataset_list[dataset_idx] = \
-                    dataset.freeze_group_transforms(group_name)
+                self._dataset_list[
+                    dataset_idx
+                ] = dataset.freeze_group_transforms(group_name)
 
     def _replace_original_dataset_group(
-            self, transform: XTransform, target_transform: YTransform) -> None:
+        self, transform: XTransform, target_transform: YTransform
+    ) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
-                self._dataset_list[dataset_idx] = \
-                    dataset.replace_transforms(transform, target_transform)
+                self._dataset_list[dataset_idx] = dataset.replace_transforms(
+                    transform, target_transform
+                )
 
-    def _add_original_dataset_group(
-            self, group_name: str) -> None:
+    def _add_original_dataset_group(self, group_name: str) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
-                self._dataset_list[dataset_idx] = \
-                    dataset.add_transforms_group(group_name, None, None)
+                self._dataset_list[dataset_idx] = dataset.add_transforms_group(
+                    group_name, None, None
+                )
 
     def _add_groups_from_original_dataset(
-            self, dataset, transform_groups) -> None:
+        self, dataset, transform_groups
+    ) -> None:
         for dataset_idx, dataset in enumerate(self._dataset_list):
             if isinstance(dataset, AvalancheDataset):
                 for original_dataset_group in dataset.transform_groups.keys():
@@ -1799,12 +1945,14 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             if isinstance(dataset, AvalancheDataset):
                 for group_name in all_groups:
                     if group_name not in dataset.transform_groups:
-                        self._dataset_list[dataset_idx] = \
-                            dataset.add_transforms_group(group_name, None, None)
+                        self._dataset_list[
+                            dataset_idx
+                        ] = dataset.add_transforms_group(group_name, None, None)
 
     @staticmethod
-    def _concat_task_labels(task_labels: Union[int, Sequence[int],
-                                               Sequence[Sequence[int]]]):
+    def _concat_task_labels(
+        task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]]
+    ):
         if isinstance(task_labels, int):
             # A single value has been passed -> use it for all instances
             # The value is returned as is because it's already managed when in
@@ -1819,8 +1967,9 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             return LazyConcatIntTargets(task_labels)
 
     @staticmethod
-    def _concat_targets(targets: Union[Sequence[TTargetType],
-                                       Sequence[Sequence[TTargetType]]]):
+    def _concat_targets(
+        targets: Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
+    ):
         if isinstance(targets[0], Sequence):
             return LazyConcatTargets(targets)
         else:
@@ -1860,8 +2009,9 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         self._datasets_cumulative_lengths = ConcatDataset.cumsum(flattened_list)
         self._overall_length = sum(self._datasets_lengths)
 
-    def _flatten_subset_concat_branch(self, dataset: AvalancheSubset) \
-            -> List[Dataset]:
+    def _flatten_subset_concat_branch(
+        self, dataset: AvalancheSubset
+    ) -> List[Dataset]:
         """
         Optimizes the dataset hierarchy in the corner case:
 
@@ -1887,17 +2037,25 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         last_c_tasks = []
         for subset_idx, idx in enumerate(dataset._indices):
             dataset_idx, internal_idx = find_list_from_index(
-                idx, concat_dataset._datasets_lengths,
+                idx,
+                concat_dataset._datasets_lengths,
                 concat_dataset._overall_length,
-                cumulative_sizes=concat_dataset._datasets_cumulative_lengths)
+                cumulative_sizes=concat_dataset._datasets_cumulative_lengths,
+            )
 
             if last_c_dataset is None:
                 last_c_dataset = dataset_idx
             elif last_c_dataset != dataset_idx:
                 # Consolidate current subset
-                result.append(AvalancheConcatDataset._make_similar_subset(
-                    dataset, concat_dataset._dataset_list[last_c_dataset],
-                    last_c_idxs, last_c_targets, last_c_tasks))
+                result.append(
+                    AvalancheConcatDataset._make_similar_subset(
+                        dataset,
+                        concat_dataset._dataset_list[last_c_dataset],
+                        last_c_idxs,
+                        last_c_targets,
+                        last_c_tasks,
+                    )
+                )
 
                 # Switch to next dataset
                 last_c_dataset = dataset_idx
@@ -1910,9 +2068,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
             last_c_tasks.append(dataset.targets_task_labels[subset_idx])
 
         if last_c_dataset is not None:
-            result.append(AvalancheConcatDataset._make_similar_subset(
-                dataset, concat_dataset._dataset_list[last_c_dataset],
-                last_c_idxs, last_c_targets, last_c_tasks))
+            result.append(
+                AvalancheConcatDataset._make_similar_subset(
+                    dataset,
+                    concat_dataset._dataset_list[last_c_dataset],
+                    last_c_idxs,
+                    last_c_targets,
+                    last_c_tasks,
+                )
+            )
 
         return result
 
@@ -1920,8 +2084,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
     def _make_similar_subset(subset, ref_dataset, indices, targets, tasks):
         t_groups = dict()
         f_groups = dict()
-        AvalancheDataset._borrow_transformations(
-            subset, t_groups, f_groups)
+        AvalancheDataset._borrow_transformations(subset, t_groups, f_groups)
 
         collate_fn = None
         if subset.dataset_type == AvalancheDatasetType.UNDEFINED:
@@ -1944,11 +2107,9 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
 
 def concat_datasets_sequentially(
-        train_dataset_list: Sequence[ISupportedClassificationDataset],
-        test_dataset_list: Sequence[ISupportedClassificationDataset]) -> \
-        Tuple[AvalancheConcatDataset,
-              AvalancheConcatDataset,
-              List[list]]:
+    train_dataset_list: Sequence[ISupportedClassificationDataset],
+    test_dataset_list: Sequence[ISupportedClassificationDataset],
+) -> Tuple[AvalancheConcatDataset, AvalancheConcatDataset, List[list]]:
     """
     Concatenates a list of datasets. This is completely different from
     :class:`ConcatDataset`, in which datasets are merged together without
@@ -1998,28 +2159,34 @@ def concat_datasets_sequentially(
 
     # Obtain the number of classes of each dataset
     classes_per_dataset = [
-        _count_unique(train_dataset_list[dataset_idx].targets,
-                      test_dataset_list[dataset_idx].targets)
-        for dataset_idx in range(len(train_dataset_list))]
+        _count_unique(
+            train_dataset_list[dataset_idx].targets,
+            test_dataset_list[dataset_idx].targets,
+        )
+        for dataset_idx in range(len(train_dataset_list))
+    ]
 
     new_class_ids_per_dataset = []
     for dataset_idx in range(len(train_dataset_list)):
-    
+
         # Get the train and test sets of the dataset
         train_set = train_dataset_list[dataset_idx]
         test_set = test_dataset_list[dataset_idx]
-        
+
         # Get the classes in the dataset
         dataset_classes = set(map(int, train_set.targets))
-        
+
         # The class IDs for this dataset will be in range
         # [n_classes_in_previous_datasets,
         #       n_classes_in_previous_datasets + classes_in_this_dataset)
         new_classes = list(
-            range(next_remapped_idx,
-                  next_remapped_idx + classes_per_dataset[dataset_idx]))
+            range(
+                next_remapped_idx,
+                next_remapped_idx + classes_per_dataset[dataset_idx],
+            )
+        )
         new_class_ids_per_dataset.append(new_classes)
-        
+
         # AvalancheSubset is used to apply the class IDs transformation.
         # Remember, the class_mapping parameter must be a list in which:
         # new_class_id = class_mapping[original_class_id]
@@ -2029,91 +2196,113 @@ def concat_datasets_sequentially(
         j = 0
         for i in dataset_classes:
             class_mapping[i] = new_classes[j]
-            j += 1        
+            j += 1
 
         # Create remapped datasets and append them to the final list
         remapped_train_datasets.append(
-            AvalancheSubset(train_set, class_mapping=class_mapping))
+            AvalancheSubset(train_set, class_mapping=class_mapping)
+        )
         remapped_test_datasets.append(
-            AvalancheSubset(test_set, class_mapping=class_mapping))
+            AvalancheSubset(test_set, class_mapping=class_mapping)
+        )
         next_remapped_idx += classes_per_dataset[dataset_idx]
 
-    return (AvalancheConcatDataset(remapped_train_datasets),
-            AvalancheConcatDataset(remapped_test_datasets),
-            new_class_ids_per_dataset)
+    return (
+        AvalancheConcatDataset(remapped_train_datasets),
+        AvalancheConcatDataset(remapped_test_datasets),
+        new_class_ids_per_dataset,
+    )
 
 
 def as_avalanche_dataset(
-        dataset: ISupportedClassificationDataset[T_co],
-        dataset_type: AvalancheDatasetType = None) \
-        -> AvalancheDataset[T_co, TTargetType]:
+    dataset: ISupportedClassificationDataset[T_co],
+    dataset_type: AvalancheDatasetType = None,
+) -> AvalancheDataset[T_co, TTargetType]:
     if isinstance(dataset, AvalancheDataset) and dataset_type is None:
         # There is no need to show the warning
         return dataset
 
     if dataset_type is None:
-        warnings.warn('"as_avalanche_dataset" was called without setting '
-                      '"dataset_type": this behaviour is deprecated. Consider '
-                      'setting this value or calling the specific functions '
-                      '"as_classification_dataset", "as_regression_dataset", '
-                      '"as_segmentation_dataset" or "as_undefined_dataset"')
+        warnings.warn(
+            '"as_avalanche_dataset" was called without setting '
+            '"dataset_type": this behaviour is deprecated. Consider '
+            "setting this value or calling the specific functions "
+            '"as_classification_dataset", "as_regression_dataset", '
+            '"as_segmentation_dataset" or "as_undefined_dataset"'
+        )
         dataset_type = AvalancheDatasetType.UNDEFINED
 
-    if isinstance(dataset, AvalancheDataset) and \
-            dataset.dataset_type == dataset_type:
+    if (
+        isinstance(dataset, AvalancheDataset)
+        and dataset.dataset_type == dataset_type
+    ):
         return dataset
 
     return AvalancheDataset(dataset, dataset_type=dataset_type)
 
 
-def as_classification_dataset(dataset: ISupportedClassificationDataset[T_co]) \
-        -> AvalancheDataset[T_co, int]:
+def as_classification_dataset(
+    dataset: ISupportedClassificationDataset[T_co],
+) -> AvalancheDataset[T_co, int]:
     return as_avalanche_dataset(
-        dataset, dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset, dataset_type=AvalancheDatasetType.CLASSIFICATION
+    )
 
 
-def as_regression_dataset(dataset: ISupportedClassificationDataset[T_co]) \
-        -> AvalancheDataset[T_co, Any]:
+def as_regression_dataset(
+    dataset: ISupportedClassificationDataset[T_co],
+) -> AvalancheDataset[T_co, Any]:
     return as_avalanche_dataset(
-        dataset, dataset_type=AvalancheDatasetType.REGRESSION)
+        dataset, dataset_type=AvalancheDatasetType.REGRESSION
+    )
 
 
-def as_segmentation_dataset(dataset: ISupportedClassificationDataset[T_co]) \
-        -> AvalancheDataset[T_co, Any]:
+def as_segmentation_dataset(
+    dataset: ISupportedClassificationDataset[T_co],
+) -> AvalancheDataset[T_co, Any]:
     return as_avalanche_dataset(
-        dataset, dataset_type=AvalancheDatasetType.SEGMENTATION)
+        dataset, dataset_type=AvalancheDatasetType.SEGMENTATION
+    )
 
 
-def as_undefined_dataset(dataset: ISupportedClassificationDataset[T_co]) \
-        -> AvalancheDataset[T_co, Any]:
+def as_undefined_dataset(
+    dataset: ISupportedClassificationDataset[T_co],
+) -> AvalancheDataset[T_co, Any]:
     return as_avalanche_dataset(
-        dataset, dataset_type=AvalancheDatasetType.UNDEFINED)
+        dataset, dataset_type=AvalancheDatasetType.UNDEFINED
+    )
 
 
 def train_eval_avalanche_datasets(
-        train_dataset: ISupportedClassificationDataset,
-        test_dataset: ISupportedClassificationDataset,
-        train_transformation, eval_transformation,
-        dataset_type=None):
+    train_dataset: ISupportedClassificationDataset,
+    test_dataset: ISupportedClassificationDataset,
+    train_transformation,
+    eval_transformation,
+    dataset_type=None,
+):
     train = AvalancheDataset(
         train_dataset,
-        transform_groups=dict(train=(train_transformation, None),
-                              eval=(eval_transformation, None)),
-        initial_transform_group='train',
-        dataset_type=dataset_type)
+        transform_groups=dict(
+            train=(train_transformation, None), eval=(eval_transformation, None)
+        ),
+        initial_transform_group="train",
+        dataset_type=dataset_type,
+    )
 
     test = AvalancheDataset(
         test_dataset,
-        transform_groups=dict(train=(train_transformation, None),
-                              eval=(eval_transformation, None)),
-        initial_transform_group='eval',
-        dataset_type=dataset_type)
+        transform_groups=dict(
+            train=(train_transformation, None), eval=(eval_transformation, None)
+        ),
+        initial_transform_group="eval",
+        dataset_type=dataset_type,
+    )
     return train, test
 
 
 def _traverse_supported_dataset(
-        dataset, values_selector: Callable[[Dataset, List[int]], List],
-        indices=None) -> List:
+    dataset, values_selector: Callable[[Dataset, List[int]], List], indices=None
+) -> List:
     initial_error = None
     try:
         result = values_selector(dataset, indices)
@@ -2126,15 +2315,21 @@ def _traverse_supported_dataset(
         if indices is None:
             indices = range(len(dataset))
         indices = [dataset.indices[x] for x in indices]
-        return list(_traverse_supported_dataset(
-            dataset.dataset, values_selector, indices))
+        return list(
+            _traverse_supported_dataset(
+                dataset.dataset, values_selector, indices
+            )
+        )
 
     if isinstance(dataset, ConcatDataset):
         result = []
         if indices is None:
             for c_dataset in dataset.datasets:
-                result += list(_traverse_supported_dataset(
-                    c_dataset, values_selector, indices))
+                result += list(
+                    _traverse_supported_dataset(
+                        c_dataset, values_selector, indices
+                    )
+                )
             return result
 
         datasets_to_indexes = defaultdict(list)
@@ -2149,14 +2344,22 @@ def _traverse_supported_dataset(
             all_size += len_dataset
 
         for subset_idx in indices:
-            dataset_idx, pattern_idx = \
-                find_list_from_index(subset_idx, datasets_len, all_size)
+            dataset_idx, pattern_idx = find_list_from_index(
+                subset_idx, datasets_len, all_size
+            )
             datasets_to_indexes[dataset_idx].append(pattern_idx)
             indexes_to_dataset.append(dataset_idx)
 
         for dataset_idx, c_dataset in enumerate(dataset.datasets):
-            recursion_result.append(deque(_traverse_supported_dataset(
-                c_dataset, values_selector, datasets_to_indexes[dataset_idx])))
+            recursion_result.append(
+                deque(
+                    _traverse_supported_dataset(
+                        c_dataset,
+                        values_selector,
+                        datasets_to_indexes[dataset_idx],
+                    )
+                )
+            )
 
         result = []
         for idx in range(len(indices)):
@@ -2168,7 +2371,7 @@ def _traverse_supported_dataset(
     if initial_error is not None:
         raise initial_error
 
-    raise ValueError('Error: can\'t find the needed data in the given dataset')
+    raise ValueError("Error: can't find the needed data in the given dataset")
 
 
 def _count_unique(*sequences: Sequence[SupportsInt]):
@@ -2182,20 +2385,23 @@ def _count_unique(*sequences: Sequence[SupportsInt]):
 
 
 def _select_targets(dataset, indices):
-    if hasattr(dataset, 'targets'):
+    if hasattr(dataset, "targets"):
         # Standard supported dataset
         found_targets = dataset.targets
-    elif hasattr(dataset, 'tensors'):
+    elif hasattr(dataset, "tensors"):
         # Support for PyTorch TensorDataset
         if len(dataset.tensors) < 2:
-            raise ValueError('Tensor dataset has not enough tensors: '
-                             'at least 2 are required.')
+            raise ValueError(
+                "Tensor dataset has not enough tensors: "
+                "at least 2 are required."
+            )
         found_targets = dataset.tensors[1]
     else:
         raise ValueError(
-            'Unsupported dataset: must have a valid targets field '
-            'or has to be a Tensor Dataset with at least 2 '
-            'Tensors')
+            "Unsupported dataset: must have a valid targets field "
+            "or has to be a Tensor Dataset with at least 2 "
+            "Tensors"
+        )
 
     if indices is not None:
         found_targets = SubSequence(found_targets, indices=indices)
@@ -2205,7 +2411,7 @@ def _select_targets(dataset, indices):
 
 def _select_task_labels(dataset, indices):
     found_task_labels = None
-    if hasattr(dataset, 'targets_task_labels'):
+    if hasattr(dataset, "targets_task_labels"):
         found_task_labels = dataset.targets_task_labels
 
     if found_task_labels is None:
@@ -2224,15 +2430,15 @@ def _select_task_labels(dataset, indices):
 
 
 def _make_target_from_supported_dataset(
-        dataset: SupportedDataset,
-        converter: Callable[[Any], TTargetType] = None) -> \
-        Sequence[TTargetType]:
+    dataset: SupportedDataset, converter: Callable[[Any], TTargetType] = None
+) -> Sequence[TTargetType]:
     if isinstance(dataset, AvalancheDataset):
         if converter is None:
             return dataset.targets
-        elif isinstance(dataset.targets,
-                        (SubSequence, LazyConcatTargets)) and \
-                dataset.targets.converter == converter:
+        elif (
+            isinstance(dataset.targets, (SubSequence, LazyConcatTargets))
+            and dataset.targets.converter == converter
+        ):
             return dataset.targets
         elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
             # LazyClassMapping already outputs int targets
@@ -2243,8 +2449,9 @@ def _make_target_from_supported_dataset(
     return SubSequence(targets, converter=converter)
 
 
-def _make_task_labels_from_supported_dataset(dataset: SupportedDataset) -> \
-        Sequence[int]:
+def _make_task_labels_from_supported_dataset(
+    dataset: SupportedDataset,
+) -> Sequence[int]:
     if isinstance(dataset, AvalancheDataset):
         return dataset.targets_task_labels
 
@@ -2254,17 +2461,17 @@ def _make_task_labels_from_supported_dataset(dataset: SupportedDataset) -> \
 
 
 __all__ = [
-    'SupportedDataset',
-    'AvalancheDatasetType',
-    'AvalancheDataset',
-    'AvalancheSubset',
-    'AvalancheTensorDataset',
-    'AvalancheConcatDataset',
-    'concat_datasets_sequentially',
-    'as_avalanche_dataset',
-    'as_classification_dataset',
-    'as_regression_dataset',
-    'as_segmentation_dataset',
-    'as_undefined_dataset',
-    'train_eval_avalanche_datasets'
+    "SupportedDataset",
+    "AvalancheDatasetType",
+    "AvalancheDataset",
+    "AvalancheSubset",
+    "AvalancheTensorDataset",
+    "AvalancheConcatDataset",
+    "concat_datasets_sequentially",
+    "as_avalanche_dataset",
+    "as_classification_dataset",
+    "as_regression_dataset",
+    "as_segmentation_dataset",
+    "as_undefined_dataset",
+    "train_eval_avalanche_datasets",
 ]

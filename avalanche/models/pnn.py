@@ -12,6 +12,7 @@ class LinearAdapter(nn.Module):
     """
     Linear adapter for Progressive Neural Networks.
     """
+
     def __init__(self, in_features, out_features_per_column, num_prev_modules):
         """
         :param in_features: size of each input sample
@@ -36,10 +37,16 @@ class LinearAdapter(nn.Module):
 
 class MLPAdapter(nn.Module):
     """
-     MLP adapter for Progressive Neural Networks.
+    MLP adapter for Progressive Neural Networks.
     """
-    def __init__(self, in_features, out_features_per_column, num_prev_modules,
-                 activation=F.relu):
+
+    def __init__(
+        self,
+        in_features,
+        out_features_per_column,
+        num_prev_modules,
+        activation=F.relu,
+    ):
         """
         :param in_features: size of each input sample
         :param out_features_per_column: size of each output sample
@@ -54,8 +61,9 @@ class MLPAdapter(nn.Module):
             return  # first adapter is empty
 
         # Eq. 2 - MLP adapter. Not needed for the first task.
-        self.V = nn.Linear(in_features * num_prev_modules,
-                           out_features_per_column)
+        self.V = nn.Linear(
+            in_features * num_prev_modules, out_features_per_column
+        )
         self.alphas = nn.Parameter(torch.randn(num_prev_modules))
         self.U = nn.Linear(out_features_per_column, out_features_per_column)
 
@@ -64,9 +72,10 @@ class MLPAdapter(nn.Module):
             return 0  # first adapter is empty
 
         assert len(x) == self.num_prev_modules
-        assert len(x[0].shape) == 2, \
-            "Inputs to MLPAdapter should have two dimensions: " \
+        assert len(x[0].shape) == 2, (
+            "Inputs to MLPAdapter should have two dimensions: "
             "<batch_size, num_features>."
+        )
         for i, el in enumerate(x):
             x[i] = self.alphas[i] * el
         x = torch.cat(x, dim=1)
@@ -78,8 +87,14 @@ class PNNColumn(nn.Module):
     """
     Progressive Neural Network column.
     """
-    def __init__(self, in_features, out_features_per_column, num_prev_modules,
-                 adapter='mlp'):
+
+    def __init__(
+        self,
+        in_features,
+        out_features_per_column,
+        num_prev_modules,
+        adapter="mlp",
+    ):
         """
         :param in_features: size of each input sample
         :param out_features_per_column:
@@ -93,12 +108,14 @@ class PNNColumn(nn.Module):
         self.num_prev_modules = num_prev_modules
 
         self.itoh = nn.Linear(in_features, out_features_per_column)
-        if adapter == 'linear':
-            self.adapter = LinearAdapter(in_features, out_features_per_column,
-                                         num_prev_modules)
-        elif adapter == 'mlp':
-            self.adapter = MLPAdapter(in_features, out_features_per_column,
-                                      num_prev_modules)
+        if adapter == "linear":
+            self.adapter = LinearAdapter(
+                in_features, out_features_per_column, num_prev_modules
+            )
+        elif adapter == "mlp":
+            self.adapter = MLPAdapter(
+                in_features, out_features_per_column, num_prev_modules
+            )
         else:
             raise ValueError("`adapter` must be one of: {'mlp', `linear'}.")
 
@@ -114,13 +131,14 @@ class PNNColumn(nn.Module):
 
 
 class PNNLayer(MultiTaskModule):
-    """ Progressive Neural Network layer.
+    """Progressive Neural Network layer.
 
-        The adaptation phase assumes that each experience is a separate task.
-        Multiple experiences with the same task label or multiple task labels
-        within the same experience will result in a runtime error.
-        """
-    def __init__(self, in_features, out_features_per_column, adapter='mlp'):
+    The adaptation phase assumes that each experience is a separate task.
+    Multiple experiences with the same task label or multiple task labels
+    within the same experience will result in a runtime error.
+    """
+
+    def __init__(self, in_features, out_features_per_column, adapter="mlp"):
         """
         :param in_features: size of each input sample
         :param out_features_per_column:
@@ -134,16 +152,17 @@ class PNNLayer(MultiTaskModule):
 
         # convert from task label to module list order
         self.task_to_module_idx = {}
-        first_col = PNNColumn(in_features, out_features_per_column,
-                              0, adapter=adapter)
+        first_col = PNNColumn(
+            in_features, out_features_per_column, 0, adapter=adapter
+        )
         self.columns = nn.ModuleList([first_col])
 
     @property
     def num_columns(self):
         return len(self.columns)
 
-    def train_adaptation(self, dataset: AvalancheDataset):
-        """ Training adaptation for PNN layer.
+    def adaptation(self, dataset: AvalancheDataset):
+        """Training adaptation for PNN layer.
 
         Adds an additional column to the layer.
 
@@ -157,15 +176,14 @@ class PNNLayer(MultiTaskModule):
             task_labels = [task_labels[0]]
         else:
             task_labels = set(task_labels)
-        assert len(task_labels) == 1, \
-            "PNN assumes a single task for each experience. Please use a " \
+        assert len(task_labels) == 1, (
+            "PNN assumes a single task for each experience. Please use a "
             "compatible benchmark."
+        )
         # extract task label from set
         task_label = next(iter(task_labels))
-        assert task_label not in self.task_to_module_idx, \
-            "A new experience is using a previously seen task label. This is " \
-            "not compatible with PNN, which assumes different task labels for" \
-            " each training experience."
+        if task_label in self.task_to_module_idx:
+            return  # we already added the column for the current task.
 
         if len(self.task_to_module_idx) == 0:
             # we have already initialized the first column.
@@ -176,17 +194,21 @@ class PNNLayer(MultiTaskModule):
             self._add_column()
 
     def _add_column(self):
-        """ Add a new column. """
+        """Add a new column."""
         # Freeze old parameters
         for param in self.parameters():
             param.requires_grad = False
-        self.columns.append(PNNColumn(self.in_features,
-                                      self.out_features_per_column,
-                                      self.num_columns,
-                                      adapter=self.adapter))
+        self.columns.append(
+            PNNColumn(
+                self.in_features,
+                self.out_features_per_column,
+                self.num_columns,
+                adapter=self.adapter,
+            )
+        )
 
     def forward_single_task(self, x, task_label):
-        """ Forward.
+        """Forward.
 
         :param x: list of inputs.
         :param task_label:
@@ -195,7 +217,7 @@ class PNNLayer(MultiTaskModule):
         col_idx = self.task_to_module_idx[task_label]
         hs = []
         for ii in range(col_idx + 1):
-            hs.append(self.columns[ii](x[:ii+1]))
+            hs.append(self.columns[ii](x[: ii + 1]))
         return hs
 
 
@@ -207,8 +229,14 @@ class PNN(MultiTaskModule):
     Multiple experiences with the same task label or multiple task labels
     within the same experience will result in a runtime error.
     """
-    def __init__(self, num_layers=1, in_features=784,
-                 hidden_features_per_column=100, adapter='mlp'):
+
+    def __init__(
+        self,
+        num_layers=1,
+        in_features=784,
+        hidden_features_per_column=100,
+        adapter="mlp",
+    ):
         """
         :param num_layers: number of layers (default=1)
         :param in_features: size of each input sample
@@ -225,14 +253,16 @@ class PNN(MultiTaskModule):
         self.layers = nn.ModuleList()
         self.layers.append(PNNLayer(in_features, hidden_features_per_column))
         for _ in range(num_layers - 1):
-            lay = PNNLayer(hidden_features_per_column,
-                           hidden_features_per_column,
-                           adapter=adapter)
+            lay = PNNLayer(
+                hidden_features_per_column,
+                hidden_features_per_column,
+                adapter=adapter,
+            )
             self.layers.append(lay)
         self.classifier = MultiHeadClassifier(hidden_features_per_column)
 
     def forward_single_task(self, x, task_label):
-        """ Forward.
+        """Forward.
 
         :param x:
         :param task_label:

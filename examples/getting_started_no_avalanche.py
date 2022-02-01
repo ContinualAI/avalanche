@@ -35,13 +35,14 @@ import numpy as np
 def main(args):
 
     # Config
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}"
+        if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu"
+    )
 
     # model
     class SimpleMLP(nn.Module):
-
         def __init__(self, num_classes=10, input_size=28 * 28):
             super(SimpleMLP, self).__init__()
 
@@ -67,43 +68,50 @@ def main(args):
     list_train_dataset = []
     list_test_dataset = []
     rng_permute = np.random.RandomState(0)
-    train_transform = transforms.Compose([
-        ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    test_transform = transforms.Compose([
-        ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
+    train_transform = transforms.Compose(
+        [ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    test_transform = transforms.Compose(
+        [ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
 
     # for every incremental experience
     idx_permutations = []
     for i in range(2):
-        idx_permutations.append(torch.from_numpy(
-            rng_permute.permutation(784)).type(torch.int64))
+        idx_permutations.append(
+            torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)
+        )
 
         # add the permutation to the default dataset transformation
         train_transform_list = train_transform.transforms.copy()
         train_transform_list.append(
             transforms.Lambda(
-                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28))
+                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28)
+            )
         )
         new_train_transform = transforms.Compose(train_transform_list)
 
         test_transform_list = test_transform.transforms.copy()
         test_transform_list.append(
             transforms.Lambda(
-                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28))
+                lambda x, i=i: x.view(-1)[idx_permutations[i]].view(1, 28, 28)
+            )
         )
         new_test_transform = transforms.Compose(test_transform_list)
 
         # get the datasets with the constructed transformation
-        permuted_train = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                               train=True,
-                               download=True, transform=new_train_transform)
-        permuted_test = MNIST(root=expanduser("~") + "/.avalanche/data/mnist/",
-                              train=False,
-                              download=True, transform=new_test_transform)
+        permuted_train = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+            transform=new_train_transform,
+        )
+        permuted_test = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False,
+            download=True,
+            transform=new_test_transform,
+        )
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -117,12 +125,14 @@ def main(args):
     for task_id, train_dataset in enumerate(list_train_dataset):
         print("Starting task:", task_id)
         train_data_loader = DataLoader(
-            train_dataset, batch_size=32, shuffle=False)
+            train_dataset, batch_size=32, shuffle=False
+        )
 
         for ep in range(1):
             print("Epoch: ", ep)
             for iteration, (train_mb_x, train_mb_y) in enumerate(
-                    train_data_loader):
+                train_data_loader
+            ):
                 optimizer.zero_grad()
                 train_mb_x = train_mb_x.to(device)
                 train_mb_y = train_mb_y.to(device)
@@ -143,12 +153,12 @@ def main(args):
         print("Starting testing...")
         for task_id, test_dataset in enumerate(list_test_dataset):
 
-            test_data_loader = DataLoader(
-                test_dataset, batch_size=32)
+            test_data_loader = DataLoader(test_dataset, batch_size=32)
 
             correct = 0
             for iteration, (test_mb_x, test_mb_y) in enumerate(
-                    test_data_loader):
+                test_data_loader
+            ):
 
                 # Move mini-batch data to device
                 test_mb_x = test_mb_x.to(device)
@@ -167,9 +177,13 @@ def main(args):
             acc_results.append(acc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuda', type=int, default=0,
-                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument(
+        "--cuda",
+        type=int,
+        default=0,
+        help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
     args = parser.parse_args()
     main(args)

@@ -4,11 +4,12 @@ from torch import nn
 
 class NCMClassifier(nn.Module):
     """
-        NCM Classifier.
-        NCMClassifier performs nearest class mean classification
-        measuring the distance between the input tensor and the
-        ones stored in 'self.class_means'.
+    NCM Classifier.
+    NCMClassifier performs nearest class mean classification
+    measuring the distance between the input tensor and the
+    ones stored in 'self.class_means'.
     """
+
     def __init__(self, class_mean=None):
         """
         :param class_mean: tensor of dimension (num_classes x feature_size)
@@ -23,4 +24,4 @@ class NCMClassifier(nn.Module):
         return (-sqd).T
 
 
-__all__ = ['NCMClassifier']
+__all__ = ["NCMClassifier"]

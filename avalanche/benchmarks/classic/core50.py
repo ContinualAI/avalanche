@@ -15,59 +15,60 @@ number of configuration parameters."""
 from pathlib import Path
 from typing import Union, Optional, Any
 
-from torchvision.transforms import ToTensor, Normalize, Compose, \
-    RandomHorizontalFlip
+from torchvision.transforms import (
+    ToTensor,
+    Normalize,
+    Compose,
+    RandomHorizontalFlip,
+)
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
-    create_generic_benchmark_from_filelists
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    create_generic_benchmark_from_filelists,
+)
 from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset
 
 nbatch = {
-    'ni': 8,
-    'nc': 9,
-    'nic': 79,
-    'nicv2_79': 79,
-    'nicv2_196': 196,
-    'nicv2_391': 391
+    "ni": 8,
+    "nc": 9,
+    "nic": 79,
+    "nicv2_79": 79,
+    "nicv2_196": 196,
+    "nicv2_391": 391,
 }
 
 scen2dirs = {
-    'ni': "batches_filelists/NI_inc/",
-    'nc': "batches_filelists/NC_inc/",
-    'nic': "batches_filelists/NIC_inc/",
-    'nicv2_79': "NIC_v2_79/",
-    'nicv2_196': "NIC_v2_196/",
-    'nicv2_391': "NIC_v2_391/"
+    "ni": "batches_filelists/NI_inc/",
+    "nc": "batches_filelists/NC_inc/",
+    "nic": "batches_filelists/NIC_inc/",
+    "nicv2_79": "NIC_v2_79/",
+    "nicv2_196": "NIC_v2_196/",
+    "nicv2_391": "NIC_v2_391/",
 }
 
 
-normalize = Normalize(mean=[0.485, 0.456, 0.406],
-                      std=[0.229, 0.224, 0.225])
+normalize = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-_default_train_transform = Compose([
-    ToTensor(),
-    RandomHorizontalFlip(),
-    normalize
-])
+_default_train_transform = Compose(
+    [ToTensor(), RandomHorizontalFlip(), normalize]
+)
 
-_default_eval_transform = Compose([
-    ToTensor(),
-    normalize
-])
+_default_eval_transform = Compose([ToTensor(), normalize])
 
 
 def CORe50(
-        *,
-        scenario: str = "nicv2_391",
-        run: int = 0,
-        object_lvl: bool = True,
-        mini: bool = False,
-        train_transform: Optional[Any] = _default_train_transform,
-        eval_transform: Optional[Any] = _default_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    *,
+    scenario: str = "nicv2_391",
+    run: int = 0,
+    object_lvl: bool = True,
+    mini: bool = False,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark for CORe50.
 
@@ -111,15 +112,19 @@ def CORe50(
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
 
-    assert (0 <= run <= 9), "Pre-defined run of CORe50 are only 10. Indicate " \
-                            "a number between 0 and 9."
-    assert (scenario in nbatch.keys()), "The selected scenario is note " \
-                                        "recognized: it should be 'ni', 'nc'," \
-                                        "'nic', 'nicv2_79', 'nicv2_196' or " \
-                                        "'nicv2_391'."
+    assert 0 <= run <= 9, (
+        "Pre-defined run of CORe50 are only 10. Indicate "
+        "a number between 0 and 9."
+    )
+    assert scenario in nbatch.keys(), (
+        "The selected scenario is note "
+        "recognized: it should be 'ni', 'nc',"
+        "'nic', 'nicv2_79', 'nicv2_196' or "
+        "'nicv2_391'."
+    )
 
     if dataset_root is None:
-        dataset_root = default_dataset_location('core50')
+        dataset_root = default_dataset_location("core50")
 
     # Download the dataset and initialize filelists
     core_data = CORe50Dataset(root=dataset_root, mini=mini)
@@ -139,23 +144,25 @@ def CORe50(
     train_failists_paths = []
     for batch_id in range(nbatch[scenario]):
         train_failists_paths.append(
-            root / filelists_bp / ("train_batch_" +
-                                   str(batch_id).zfill(2) + "_filelist.txt"))
+            root
+            / filelists_bp
+            / ("train_batch_" + str(batch_id).zfill(2) + "_filelist.txt")
+        )
 
     benchmark_obj = create_generic_benchmark_from_filelists(
-        root_img, train_failists_paths,
+        root_img,
+        train_failists_paths,
         [root / filelists_bp / "test_filelist.txt"],
         task_labels=[0 for _ in range(nbatch[scenario])],
         complete_test_set_only=True,
         train_transform=train_transform,
-        eval_transform=eval_transform)
+        eval_transform=eval_transform,
+    )
 
     return benchmark_obj
 
 
-__all__ = [
-    'CORe50'
-]
+__all__ = ["CORe50"]
 
 if __name__ == "__main__":
     import sys

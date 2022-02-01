@@ -13,39 +13,47 @@ from typing import Union, Optional, Any
 
 from torchvision.transforms import Compose, ToTensor, Resize
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import CUB200
 from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
 
-_default_train_transform = transforms.Compose([
+_default_train_transform = transforms.Compose(
+    [
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010))
-])
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
-_default_eval_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
-])
+_default_eval_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
 
 def SplitCUB200(
-        n_experiences=11,
-        *,
-        classes_first_batch=100,
-        return_task_id=False,
-        seed=0,
-        fixed_class_order=None,
-        shuffle=False,
-        train_transform: Optional[Any] = _default_train_transform,
-        eval_transform: Optional[Any] = _default_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    n_experiences=11,
+    *,
+    classes_first_batch=100,
+    return_task_id=False,
+    seed=0,
+    fixed_class_order=None,
+    shuffle=False,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark using the Cub-200 dataset.
 
@@ -124,7 +132,8 @@ def SplitCUB200(
             shuffle=shuffle,
             one_dataset_per_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=train_set,
@@ -136,7 +145,8 @@ def SplitCUB200(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def _get_cub200_dataset(root):
@@ -146,17 +156,13 @@ def _get_cub200_dataset(root):
     return train_set, test_set
 
 
-__all__ = [
-    'SplitCUB200'
-]
+__all__ = ["SplitCUB200"]
 
 if __name__ == "__main__":
     import sys
 
     benchmark_instance = SplitCUB200(
-        5,
-        train_transform=Compose([
-            ToTensor(), Resize((128, 128))
-        ]))
+        5, train_transform=Compose([ToTensor(), Resize((128, 128))])
+    )
     check_vision_benchmark(benchmark_instance, show_without_transforms=False)
     sys.exit(0)

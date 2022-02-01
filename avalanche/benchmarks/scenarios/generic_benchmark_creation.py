@@ -15,26 +15,42 @@ them fit your needs, then the helper functions here listed may help.
 """
 
 from pathlib import Path
-from typing import Sequence, Union, Any, Tuple, Dict, Optional, Iterable, \
-    NamedTuple
+from typing import (
+    Sequence,
+    Union,
+    Any,
+    Tuple,
+    Dict,
+    Optional,
+    Iterable,
+    NamedTuple,
+)
 
-from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    SupportedDataset, AvalancheDataset, FilelistDataset, \
-    PathsDataset, common_paths_root
+from avalanche.benchmarks.utils import (
+    AvalancheTensorDataset,
+    SupportedDataset,
+    AvalancheDataset,
+    FilelistDataset,
+    PathsDataset,
+    common_paths_root,
+)
 from .generic_cl_scenario import GenericCLScenario
 from ..utils.avalanche_dataset import AvalancheDatasetType
 
 
 def create_multi_dataset_generic_benchmark(
-        train_datasets: Sequence[SupportedDataset],
-        test_datasets: Sequence[SupportedDataset],
-        *,
-        other_streams_datasets: Dict[str, Sequence[SupportedDataset]] = None,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-        dataset_type: AvalancheDatasetType = None) -> GenericCLScenario:
+    train_datasets: Sequence[SupportedDataset],
+    test_datasets: Sequence[SupportedDataset],
+    *,
+    other_streams_datasets: Dict[str, Sequence[SupportedDataset]] = None,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
+    dataset_type: AvalancheDatasetType = None
+) -> GenericCLScenario:
     """
     Creates a benchmark instance given a list of datasets. Each dataset will be
     considered as a separate experience.
@@ -94,7 +110,8 @@ def create_multi_dataset_generic_benchmark(
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
-        eval=(eval_transform, eval_target_transform))
+        eval=(eval_transform, eval_target_transform),
+    )
 
     if other_streams_transforms is not None:
         for stream_name, stream_transforms in other_streams_transforms.items():
@@ -108,42 +125,47 @@ def create_multi_dataset_generic_benchmark(
 
             transform_groups[stream_name] = stream_transforms
 
-    input_streams = dict(
-        train=train_datasets,
-        test=test_datasets)
+    input_streams = dict(train=train_datasets, test=test_datasets)
 
     if other_streams_datasets is not None:
         input_streams = {**input_streams, **other_streams_datasets}
 
     if complete_test_set_only:
-        if len(input_streams['test']) != 1:
-            raise ValueError('Test stream must contain one experience when'
-                             'complete_test_set_only is True')
+        if len(input_streams["test"]) != 1:
+            raise ValueError(
+                "Test stream must contain one experience when"
+                "complete_test_set_only is True"
+            )
 
     stream_definitions = dict()
 
     for stream_name, dataset_list in input_streams.items():
-        initial_transform_group = 'train'
+        initial_transform_group = "train"
         if stream_name in transform_groups:
             initial_transform_group = stream_name
 
         stream_datasets = []
         for dataset_idx in range(len(dataset_list)):
             dataset = dataset_list[dataset_idx]
-            stream_datasets.append(AvalancheDataset(
-                dataset,
-                transform_groups=transform_groups,
-                initial_transform_group=initial_transform_group,
-                dataset_type=dataset_type))
+            stream_datasets.append(
+                AvalancheDataset(
+                    dataset,
+                    transform_groups=transform_groups,
+                    initial_transform_group=initial_transform_group,
+                    dataset_type=dataset_type,
+                )
+            )
         stream_definitions[stream_name] = (stream_datasets,)
 
     return GenericCLScenario(
         stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only,
+    )
 
 
 def _adapt_lazy_stream(
-        generator, transform_groups, initial_transform_group, dataset_type):
+    generator, transform_groups, initial_transform_group, dataset_type
+):
     """
     A simple internal utility to apply transforms and dataset type to all lazily
     generated datasets. Used in the :func:`create_lazy_generic_benchmark`
@@ -155,9 +177,11 @@ def _adapt_lazy_stream(
 
     for dataset in generator:
         dataset = AvalancheDataset(
-            dataset, transform_groups=transform_groups,
+            dataset,
+            transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
-            dataset_type=dataset_type)
+            dataset_type=dataset_type,
+        )
         yield dataset
 
 
@@ -203,16 +227,18 @@ class LazyStreamDefinition(NamedTuple):
 
 
 def create_lazy_generic_benchmark(
-        train_generator: LazyStreamDefinition,
-        test_generator: LazyStreamDefinition,
-        *,
-        other_streams_generators: Dict[str, LazyStreamDefinition] = None,
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-        dataset_type: AvalancheDatasetType = None) \
-        -> GenericCLScenario:
+    train_generator: LazyStreamDefinition,
+    test_generator: LazyStreamDefinition,
+    *,
+    other_streams_generators: Dict[str, LazyStreamDefinition] = None,
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
+    dataset_type: AvalancheDatasetType = None
+) -> GenericCLScenario:
     """
     Creates a lazily-defined benchmark instance given a dataset generator for
     each stream.
@@ -281,7 +307,8 @@ def create_lazy_generic_benchmark(
 
     transform_groups = dict(
         train=(train_transform, train_target_transform),
-        eval=(eval_transform, eval_target_transform))
+        eval=(eval_transform, eval_target_transform),
+    )
 
     if other_streams_transforms is not None:
         for stream_name, stream_transforms in other_streams_transforms.items():
@@ -295,52 +322,61 @@ def create_lazy_generic_benchmark(
 
             transform_groups[stream_name] = stream_transforms
 
-    input_streams = dict(
-        train=train_generator,
-        test=test_generator)
+    input_streams = dict(train=train_generator, test=test_generator)
 
     if other_streams_generators is not None:
         input_streams = {**input_streams, **other_streams_generators}
 
     if complete_test_set_only:
-        if input_streams['test'][1] != 1:
-            raise ValueError('Test stream must contain one experience when'
-                             'complete_test_set_only is True')
+        if input_streams["test"][1] != 1:
+            raise ValueError(
+                "Test stream must contain one experience when"
+                "complete_test_set_only is True"
+            )
 
     stream_definitions = dict()
 
-    for stream_name, (generator, stream_length, task_labels) in \
-            input_streams.items():
-        initial_transform_group = 'train'
+    for stream_name, (
+        generator,
+        stream_length,
+        task_labels,
+    ) in input_streams.items():
+        initial_transform_group = "train"
         if stream_name in transform_groups:
             initial_transform_group = stream_name
 
         adapted_stream_generator = _adapt_lazy_stream(
-            generator, transform_groups,
+            generator,
+            transform_groups,
             initial_transform_group=initial_transform_group,
-            dataset_type=dataset_type)
+            dataset_type=dataset_type,
+        )
 
         stream_definitions[stream_name] = (
-            (adapted_stream_generator, stream_length), task_labels
+            (adapted_stream_generator, stream_length),
+            task_labels,
         )
 
     return GenericCLScenario(
         stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only)
+        complete_test_set_only=complete_test_set_only,
+    )
 
 
 def create_generic_benchmark_from_filelists(
-        root: Optional[Union[str, Path]],
-        train_file_lists: Sequence[Union[str, Path]],
-        test_file_lists: Sequence[Union[str, Path]],
-        *,
-        other_streams_file_lists: Dict[str, Sequence[Union[str, Path]]] = None,
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None) \
-        -> GenericCLScenario:
+    root: Optional[Union[str, Path]],
+    train_file_lists: Sequence[Union[str, Path]],
+    test_file_lists: Sequence[Union[str, Path]],
+    *,
+    other_streams_file_lists: Dict[str, Sequence[Union[str, Path]]] = None,
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None
+) -> GenericCLScenario:
     """
     Creates a benchmark instance given a list of filelists and the respective
     task labels. A separate dataset will be created for each filelist and each
@@ -417,9 +453,7 @@ def create_generic_benchmark_from_filelists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    input_streams = dict(
-        train=train_file_lists,
-        test=test_file_lists)
+    input_streams = dict(train=train_file_lists, test=test_file_lists)
 
     if other_streams_file_lists is not None:
         input_streams = {**input_streams, **other_streams_file_lists}
@@ -431,14 +465,17 @@ def create_generic_benchmark_from_filelists(
         for exp_id, f_list in enumerate(file_lists):
 
             f_list_dataset = FilelistDataset(root, f_list)
-            stream_datasets.append(AvalancheDataset(
-                f_list_dataset,
-                task_labels=task_labels[exp_id]))
+            stream_datasets.append(
+                AvalancheDataset(
+                    f_list_dataset, task_labels=task_labels[exp_id]
+                )
+            )
 
         stream_definitions[stream_name] = stream_datasets
 
     return create_multi_dataset_generic_benchmark(
-        [], [],
+        [],
+        [],
         other_streams_datasets=stream_definitions,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
@@ -446,27 +483,33 @@ def create_generic_benchmark_from_filelists(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+    )
 
 
-FileAndLabel = Union[Tuple[Union[str, Path], int],
-                     Tuple[Union[str, Path], int, Sequence]]
+FileAndLabel = Union[
+    Tuple[Union[str, Path], int], Tuple[Union[str, Path], int, Sequence]
+]
 
 
 def create_generic_benchmark_from_paths(
-        train_lists_of_files: Sequence[Sequence[FileAndLabel]],
-        test_lists_of_files: Union[Sequence[FileAndLabel],
-                                   Sequence[Sequence[FileAndLabel]]],
-        *,
-        other_streams_lists_of_files: Dict[str, Sequence[
-            Sequence[FileAndLabel]]] = None,
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-        dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED) \
-        -> GenericCLScenario:
+    train_lists_of_files: Sequence[Sequence[FileAndLabel]],
+    test_lists_of_files: Union[
+        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
+    ],
+    *,
+    other_streams_lists_of_files: Dict[
+        str, Sequence[Sequence[FileAndLabel]]
+    ] = None,
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
+    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+) -> GenericCLScenario:
     """
     Creates a benchmark instance given a sequence of lists of files. A separate
     dataset will be created for each list. Each of those datasets
@@ -542,9 +585,7 @@ def create_generic_benchmark_from_paths(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    input_streams = dict(
-        train=train_lists_of_files,
-        test=test_lists_of_files)
+    input_streams = dict(train=train_lists_of_files, test=test_lists_of_files)
 
     if other_streams_lists_of_files is not None:
         input_streams = {**input_streams, **other_streams_lists_of_files}
@@ -556,14 +597,15 @@ def create_generic_benchmark_from_paths(
         for exp_id, list_of_files in enumerate(lists_of_files):
             common_root, exp_paths_list = common_paths_root(list_of_files)
             paths_dataset = PathsDataset(common_root, exp_paths_list)
-            stream_datasets.append(AvalancheDataset(
-                paths_dataset,
-                task_labels=task_labels[exp_id]))
+            stream_datasets.append(
+                AvalancheDataset(paths_dataset, task_labels=task_labels[exp_id])
+            )
 
         stream_definitions[stream_name] = stream_datasets
 
     return create_multi_dataset_generic_benchmark(
-        [], [],
+        [],
+        [],
         other_streams_datasets=stream_definitions,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
@@ -571,20 +613,24 @@ def create_generic_benchmark_from_paths(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 def create_generic_benchmark_from_tensor_lists(
-        train_tensors: Sequence[Sequence[Any]],
-        test_tensors: Sequence[Sequence[Any]],
-        *,
-        other_streams_tensors: Dict[str, Sequence[Sequence[Any]]] = None,
-        task_labels: Sequence[int],
-        complete_test_set_only: bool = False,
-        train_transform=None, train_target_transform=None,
-        eval_transform=None, eval_target_transform=None,
-        other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-        dataset_type: AvalancheDatasetType = None) -> GenericCLScenario:
+    train_tensors: Sequence[Sequence[Any]],
+    test_tensors: Sequence[Sequence[Any]],
+    *,
+    other_streams_tensors: Dict[str, Sequence[Sequence[Any]]] = None,
+    task_labels: Sequence[int],
+    complete_test_set_only: bool = False,
+    train_transform=None,
+    train_target_transform=None,
+    eval_transform=None,
+    eval_target_transform=None,
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
+    dataset_type: AvalancheDatasetType = None
+) -> GenericCLScenario:
     """
     Creates a benchmark instance given lists of Tensors. A separate dataset will
     be created from each Tensor tuple (x, y, z, ...) and each of those training
@@ -661,9 +707,7 @@ def create_generic_benchmark_from_tensor_lists(
     :returns: A :class:`GenericCLScenario` instance.
     """
 
-    input_streams = dict(
-        train=train_tensors,
-        test=test_tensors)
+    input_streams = dict(train=train_tensors, test=test_tensors)
 
     if other_streams_tensors is not None:
         input_streams = {**input_streams, **other_streams_tensors}
@@ -673,14 +717,19 @@ def create_generic_benchmark_from_tensor_lists(
     for stream_name, list_of_exps_tensors in input_streams.items():
         stream_datasets = []
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
-            stream_datasets.append(AvalancheTensorDataset(
-                *exp_tensors, dataset_type=dataset_type,
-                task_labels=task_labels[exp_id]))
+            stream_datasets.append(
+                AvalancheTensorDataset(
+                    *exp_tensors,
+                    dataset_type=dataset_type,
+                    task_labels=task_labels[exp_id]
+                )
+            )
 
         stream_definitions[stream_name] = stream_datasets
 
     return create_multi_dataset_generic_benchmark(
-        [], [],
+        [],
+        [],
         other_streams_datasets=stream_definitions,
         train_transform=train_transform,
         train_target_transform=train_target_transform,
@@ -688,14 +737,15 @@ def create_generic_benchmark_from_tensor_lists(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
-        dataset_type=dataset_type)
+        dataset_type=dataset_type,
+    )
 
 
 __all__ = [
-    'create_multi_dataset_generic_benchmark',
-    'LazyStreamDefinition',
-    'create_lazy_generic_benchmark',
-    'create_generic_benchmark_from_filelists',
-    'create_generic_benchmark_from_paths',
-    'create_generic_benchmark_from_tensor_lists',
+    "create_multi_dataset_generic_benchmark",
+    "LazyStreamDefinition",
+    "create_lazy_generic_benchmark",
+    "create_generic_benchmark_from_filelists",
+    "create_generic_benchmark_from_paths",
+    "create_generic_benchmark_from_tensor_lists",
 ]

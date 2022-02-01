@@ -20,13 +20,21 @@ from tqdm import tqdm
 import ctrl
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    common_paths_root, AvalancheDataset, PathsDataset
+from avalanche.benchmarks.utils import (
+    AvalancheTensorDataset,
+    common_paths_root,
+    AvalancheDataset,
+    PathsDataset,
+)
 
 
-def CTrL(stream_name: str, save_to_disk: bool = False,
-         path: Path = default_dataset_location(''), seed: int = None,
-         n_tasks: int = None):
+def CTrL(
+    stream_name: str,
+    save_to_disk: bool = False,
+    path: Path = default_dataset_location(""),
+    seed: int = None,
+    n_tasks: int = None,
+):
     """
     Gives access to the Continual Transfer Learning benchmark streams
     introduced in https://arxiv.org/abs/2012.12631.
@@ -46,31 +54,34 @@ def CTrL(stream_name: str, save_to_disk: bool = False,
     :return: A scenario containing 3 streams: train, val and test.
     """
     seed = seed or random.randint(0, sys.maxsize)
-    if stream_name != 's_long' and n_tasks is not None:
-        raise ValueError('The n_tasks parameter can only be used with the '
-                         f'"s_long" stream, asked {n_tasks} for {stream_name}')
-    elif stream_name == 's_long' and n_tasks is None:
+    if stream_name != "s_long" and n_tasks is not None:
+        raise ValueError(
+            "The n_tasks parameter can only be used with the "
+            f'"s_long" stream, asked {n_tasks} for {stream_name}'
+        )
+    elif stream_name == "s_long" and n_tasks is None:
         n_tasks = 100
 
     stream = ctrl.get_stream(stream_name, seed)
 
     if save_to_disk:
-        folder = path / 'ctrl' / stream_name / f'seed_{seed}'
+        folder = path / "ctrl" / stream_name / f"seed_{seed}"
 
     # Train, val and test experiences
     exps = [[], [], []]
-    for t_id, t in enumerate(tqdm(stream, desc=f'Loading {stream_name}'), ):
-        trans = transforms.Normalize(t.statistics['mean'],
-                                     t.statistics['std'])
+    for t_id, t in enumerate(
+        tqdm(stream, desc=f"Loading {stream_name}"),
+    ):
+        trans = transforms.Normalize(t.statistics["mean"], t.statistics["std"])
         for split, split_name, exp in zip(t.datasets, t.split_names, exps):
             samples, labels = split.tensors
             task_labels = [t.id] * samples.size(0)
             if save_to_disk:
-                exp_folder = folder / f'exp_{t_id}' / split_name
+                exp_folder = folder / f"exp_{t_id}" / split_name
                 exp_folder.mkdir(parents=True, exist_ok=True)
                 files = []
                 for i, (sample, label) in enumerate(zip(samples, labels)):
-                    sample_path = exp_folder / f'sample_{i}.png'
+                    sample_path = exp_folder / f"sample_{i}.png"
                     if not sample_path.exists():
                         F.to_pil_image(sample).save(sample_path)
                     files.append((sample_path, label.item()))
@@ -80,17 +91,19 @@ def CTrL(stream_name: str, save_to_disk: bool = False,
                 dataset = AvalancheDataset(
                     paths_dataset,
                     task_labels=task_labels,
-                    transform=transforms.Compose([
-                        transforms.ToTensor(),
-                        trans
-                    ])
+                    transform=transforms.Compose(
+                        [transforms.ToTensor(), trans]
+                    ),
                 )
             else:
-                dataset = AvalancheTensorDataset(samples, labels.squeeze(1),
-                                                 task_labels=task_labels,
-                                                 transform=trans)
+                dataset = AvalancheTensorDataset(
+                    samples,
+                    labels.squeeze(1),
+                    task_labels=task_labels,
+                    transform=trans,
+                )
             exp.append(dataset)
-        if stream_name == 's_long' and t_id == n_tasks - 1:
+        if stream_name == "s_long" and t_id == n_tasks - 1:
             break
 
     return dataset_benchmark(
@@ -100,6 +113,4 @@ def CTrL(stream_name: str, save_to_disk: bool = False,
     )
 
 
-__all__ = [
-    'CTrL'
-]
+__all__ = ["CTrL"]

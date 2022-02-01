@@ -4,10 +4,15 @@ import gc
 
 import torch
 
-from avalanche.benchmarks import dataset_benchmark, \
-    GenericExperience, GenericCLScenario
-from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    AvalancheDatasetType
+from avalanche.benchmarks import (
+    dataset_benchmark,
+    GenericExperience,
+    GenericCLScenario,
+)
+from avalanche.benchmarks.utils import (
+    AvalancheTensorDataset,
+    AvalancheDatasetType,
+)
 
 
 class GenericCLScenarioTests(unittest.TestCase):
@@ -17,36 +22,41 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t))
+        train_exps.append(
+            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+        )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t))
+        train_exps.append(
+            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+        )
 
         test_exps = []
         test_x = torch.rand(200, 3, 28, 28)
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
-        test_exps.append(AvalancheTensorDataset(
-            test_x, test_y, task_labels=test_t))
+        test_exps.append(
+            AvalancheTensorDataset(test_x, test_y, task_labels=test_t)
+        )
 
         other_stream_exps = []
         other_x = torch.rand(200, 3, 28, 28)
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
-        other_stream_exps.append(AvalancheTensorDataset(
-            other_x, other_y, task_labels=other_t))
+        other_stream_exps.append(
+            AvalancheTensorDataset(other_x, other_y, task_labels=other_t)
+        )
 
         benchmark_instance = dataset_benchmark(
             train_datasets=train_exps,
             test_datasets=test_exps,
-            other_streams_datasets={'other': other_stream_exps})
+            other_streams_datasets={"other": other_stream_exps},
+        )
 
-        train_0_classes = benchmark_instance.classes_in_experience['train'][0]
-        train_1_classes = benchmark_instance.classes_in_experience['train'][1]
+        train_0_classes = benchmark_instance.classes_in_experience["train"][0]
+        train_1_classes = benchmark_instance.classes_in_experience["train"][1]
         train_0_classes_min = min(train_0_classes)
         train_1_classes_min = min(train_1_classes)
         train_0_classes_max = max(train_0_classes)
@@ -69,13 +79,13 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(train_1_classes_max, 100)
         # End test deprecated behavior
 
-        test_0_classes = benchmark_instance.classes_in_experience['test'][0]
+        test_0_classes = benchmark_instance.classes_in_experience["test"][0]
         test_0_classes_min = min(test_0_classes)
         test_0_classes_max = max(test_0_classes)
         self.assertGreaterEqual(test_0_classes_min, 100)
         self.assertLess(test_0_classes_max, 200)
 
-        other_0_classes = benchmark_instance.classes_in_experience['other'][0]
+        other_0_classes = benchmark_instance.classes_in_experience["other"][0]
         other_0_classes_min = min(other_0_classes)
         other_0_classes_max = max(other_0_classes)
         self.assertGreaterEqual(other_0_classes_min, 400)
@@ -87,33 +97,38 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t))
+        train_exps.append(
+            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+        )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t))
+        train_exps.append(
+            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+        )
 
         test_exps = []
         test_x = torch.rand(200, 3, 28, 28)
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
-        test_exps.append(AvalancheTensorDataset(
-            test_x, test_y, task_labels=test_t))
+        test_exps.append(
+            AvalancheTensorDataset(test_x, test_y, task_labels=test_t)
+        )
 
         other_stream_exps = []
         other_x = torch.rand(200, 3, 28, 28)
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
-        other_stream_exps.append(AvalancheTensorDataset(
-            other_x, other_y, task_labels=other_t))
+        other_stream_exps.append(
+            AvalancheTensorDataset(other_x, other_y, task_labels=other_t)
+        )
 
         benchmark_instance = dataset_benchmark(
             train_datasets=train_exps,
             test_datasets=test_exps,
-            other_streams_datasets={'other': other_stream_exps})
+            other_streams_datasets={"other": other_stream_exps},
+        )
 
         train_exp_0: GenericExperience = benchmark_instance.train_stream[0]
         train_exp_1: GenericExperience = benchmark_instance.train_stream[1]
@@ -162,20 +177,31 @@ class GenericCLScenarioTests(unittest.TestCase):
 
         benchmark_instance = GenericCLScenario(
             stream_definitions=dict(
-                train=((train_gen(), len(train_exps)), [
-                    train_exps[0].targets_task_labels,
-                    train_exps[1].targets_task_labels
-                ]),
-                test=((test_gen(), len(test_exps)), [
-                    test_exps[0].targets_task_labels
-                ]),
-                other=((other_gen(), len(other_stream_exps)), [
-                    other_stream_exps[0].targets_task_labels
-                ])))
+                train=(
+                    (train_gen(), len(train_exps)),
+                    [
+                        train_exps[0].targets_task_labels,
+                        train_exps[1].targets_task_labels,
+                    ],
+                ),
+                test=(
+                    (test_gen(), len(test_exps)),
+                    [test_exps[0].targets_task_labels],
+                ),
+                other=(
+                    (other_gen(), len(other_stream_exps)),
+                    [other_stream_exps[0].targets_task_labels],
+                ),
+            )
+        )
 
         # --- START: Test classes timeline before first experience ---
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
         self.assertIsNone(current_classes)
         self.assertSetEqual(set(), set(prev_classes))
         self.assertIsNone(cumulative_classes)
@@ -184,16 +210,24 @@ class GenericCLScenarioTests(unittest.TestCase):
 
         train_exp_0: GenericExperience = benchmark_instance.train_stream[0]
         # --- START: Test classes timeline at first experience ---
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
 
         self.assertSetEqual(set(train_exps[0].targets), set(current_classes))
         self.assertSetEqual(set(), set(prev_classes))
         self.assertSetEqual(set(train_exps[0].targets), set(cumulative_classes))
         self.assertIsNone(future_classes)
 
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(1)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(1)
 
         self.assertIsNone(current_classes)
         self.assertSetEqual(set(train_exps[0].targets), set(prev_classes))
@@ -205,8 +239,12 @@ class GenericCLScenarioTests(unittest.TestCase):
         train_exp_1: GenericExperience = benchmark_instance.train_stream[1]
         # --- START: Test classes timeline at second experience ---
         # Check if get_classes_timeline(0) is consistent
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
 
         self.assertSetEqual(set(train_exps[0].targets), set(current_classes))
         self.assertSetEqual(set(), set(prev_classes))
@@ -214,14 +252,19 @@ class GenericCLScenarioTests(unittest.TestCase):
         # We now have access to future classes!
         self.assertSetEqual(set(train_exps[1].targets), set(future_classes))
 
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(1)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(1)
 
         self.assertSetEqual(set(train_exps[1].targets), set(current_classes))
         self.assertSetEqual(set(train_exps[0].targets), set(prev_classes))
         self.assertSetEqual(
             set(train_exps[0].targets).union(set(train_exps[1].targets)),
-            set(cumulative_classes))
+            set(cumulative_classes),
+        )
         self.assertSetEqual(set(), set(future_classes))
         # --- END: Test classes timeline at second experience ---
 
@@ -271,20 +314,31 @@ class GenericCLScenarioTests(unittest.TestCase):
 
         benchmark_instance = GenericCLScenario(
             stream_definitions=dict(
-                train=((train_gen, len(train_exps)), [
-                    train_exps[0].targets_task_labels,
-                    train_exps[1].targets_task_labels
-                ]),
-                test=((test_gen, len(test_exps)), [
-                    test_exps[0].targets_task_labels
-                ]),
-                other=((other_gen, len(other_stream_exps)), [
-                    other_stream_exps[0].targets_task_labels
-                ])))
+                train=(
+                    (train_gen, len(train_exps)),
+                    [
+                        train_exps[0].targets_task_labels,
+                        train_exps[1].targets_task_labels,
+                    ],
+                ),
+                test=(
+                    (test_gen, len(test_exps)),
+                    [test_exps[0].targets_task_labels],
+                ),
+                other=(
+                    (other_gen, len(other_stream_exps)),
+                    [other_stream_exps[0].targets_task_labels],
+                ),
+            )
+        )
 
         # --- START: Test classes timeline before first experience ---
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
         self.assertIsNone(current_classes)
         self.assertSetEqual(set(), set(prev_classes))
         self.assertIsNone(cumulative_classes)
@@ -293,16 +347,24 @@ class GenericCLScenarioTests(unittest.TestCase):
 
         train_exp_0: GenericExperience = benchmark_instance.train_stream[0]
         # --- START: Test classes timeline at first experience ---
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
 
         self.assertSetEqual(set(train_exps[0].targets), set(current_classes))
         self.assertSetEqual(set(), set(prev_classes))
         self.assertSetEqual(set(train_exps[0].targets), set(cumulative_classes))
         self.assertIsNone(future_classes)
 
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(1)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(1)
 
         self.assertIsNone(current_classes)
         self.assertSetEqual(set(train_exps[0].targets), set(prev_classes))
@@ -316,8 +378,12 @@ class GenericCLScenarioTests(unittest.TestCase):
         train_exp_1: GenericExperience = benchmark_instance.train_stream[1]
         # --- START: Test classes timeline at second experience ---
         # Check if get_classes_timeline(0) is consistent
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(0)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(0)
 
         self.assertSetEqual(set(train_exps[0].targets), set(current_classes))
         self.assertSetEqual(set(), set(prev_classes))
@@ -325,14 +391,19 @@ class GenericCLScenarioTests(unittest.TestCase):
         # We now have access to future classes!
         self.assertSetEqual(set(train_exps[1].targets), set(future_classes))
 
-        current_classes, prev_classes, cumulative_classes, future_classes = \
-            benchmark_instance.get_classes_timeline(1)
+        (
+            current_classes,
+            prev_classes,
+            cumulative_classes,
+            future_classes,
+        ) = benchmark_instance.get_classes_timeline(1)
 
         self.assertSetEqual(set(train_exps[1].targets), set(current_classes))
         self.assertSetEqual(set(train_exps[0].targets), set(prev_classes))
         self.assertSetEqual(
             set(train_exps[0].targets).union(set(train_exps[1].targets)),
-            set(cumulative_classes))
+            set(cumulative_classes),
+        )
         self.assertSetEqual(set(), set(future_classes))
         # --- END: Test classes timeline at second experience ---
 
@@ -404,32 +475,52 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION))
+        train_exps.append(
+            AvalancheTensorDataset(
+                tensor_x,
+                tensor_y,
+                task_labels=tensor_t,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            )
+        )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
-        train_exps.append(AvalancheTensorDataset(
-            tensor_x, tensor_y, task_labels=tensor_t,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION))
+        train_exps.append(
+            AvalancheTensorDataset(
+                tensor_x,
+                tensor_y,
+                task_labels=tensor_t,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            )
+        )
 
         test_exps = []
         test_x = torch.rand(200, 3, 28, 28)
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
-        test_exps.append(AvalancheTensorDataset(
-            test_x, test_y, task_labels=test_t,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION))
+        test_exps.append(
+            AvalancheTensorDataset(
+                test_x,
+                test_y,
+                task_labels=test_t,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            )
+        )
 
         other_stream_exps = []
         other_x = torch.rand(200, 3, 28, 28)
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
-        other_stream_exps.append(AvalancheTensorDataset(
-            other_x, other_y, task_labels=other_t,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION))
+        other_stream_exps.append(
+            AvalancheTensorDataset(
+                other_x,
+                other_y,
+                task_labels=other_t,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            )
+        )
 
         return train_exps, test_exps, other_stream_exps
 
@@ -440,5 +531,5 @@ class GenericCLScenarioTests(unittest.TestCase):
             yield dataset
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

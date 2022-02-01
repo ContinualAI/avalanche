@@ -3,15 +3,14 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 24-05-2020                                                             #
-# Author(s): Andrea Cossu                                                      #
+# Date: 12-10-2020                                                             #
+# Author(s): Vincenzo Lomonaco, Hamed Hemati                                   #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """
-This is a simple example that shows how to use the
-Tensorboard Logger
+This is a simple example on how to use the Replay strategy.
 """
 
 from __future__ import absolute_import
@@ -23,28 +22,22 @@ from os.path import expanduser
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
 from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
-
+import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
-from avalanche.logging import InteractiveLogger, TensorboardLogger
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.models import SimpleMLP
+from avalanche.training.strategies.strategy_wrappers_online import OnlineNaive
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
-    confusion_matrix_metrics,
     accuracy_metrics,
     loss_metrics,
-    cpu_usage_metrics,
-    timing_metrics,
-    gpu_usage_metrics,
-    ram_usage_metrics,
-    disk_usage_metrics,
-    MAC_metrics,
 )
-from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
@@ -54,6 +47,7 @@ def main(args):
         if torch.cuda.is_available() and args.cuda >= 0
         else "cpu"
     )
+    n_batches = 5
     # ---------
 
     # --- TRANSFORMATIONS
@@ -83,65 +77,33 @@ def main(args):
         transform=test_transform,
     )
     scenario = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234
+        mnist_train, mnist_test, n_batches, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
     model = SimpleMLP(num_classes=scenario.n_classes)
 
+    # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
-    tensorboard_logger = TensorboardLogger()
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True,
-            epoch=True,
-            epoch_running=True,
-            experience=True,
-            stream=True,
-        ),
-        loss_metrics(
-            minibatch=True,
-            epoch=True,
-            epoch_running=True,
-            experience=True,
-            stream=True,
-        ),
-        forgetting_metrics(experience=True, stream=True),
-        confusion_matrix_metrics(stream=True),
-        cpu_usage_metrics(
             minibatch=True, epoch=True, experience=True, stream=True
         ),
-        timing_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        ram_usage_metrics(
-            every=0.5, minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        gpu_usage_metrics(
-            args.cuda,
-            every=0.5,
-            minibatch=True,
-            epoch=True,
-            experience=True,
-            stream=True,
-        ),
-        disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        MAC_metrics(minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, tensorboard_logger],
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        forgetting_metrics(experience=True),
+        loggers=[interactive_logger],
     )
 
-    # CREATE THE STRATEGY INSTANCE (NAIVE)
-    cl_strategy = Naive(
+    # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
+    cl_strategy = OnlineNaive(
         model,
-        SGD(model.parameters(), lr=0.001, momentum=0.9),
+        torch.optim.Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
-        train_mb_size=100,
-        train_epochs=4,
-        eval_mb_size=100,
+        num_passes=1,
+        train_mb_size=1,
+        eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
     )
@@ -150,9 +112,7 @@ def main(args):
     print("Starting experiment...")
     results = []
     for experience in scenario.train_stream:
-        print("Start of experience: ", experience.current_experience)
-        print("Current Classes: ", experience.classes_in_this_experience)
-
+        print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 

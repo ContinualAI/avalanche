@@ -13,13 +13,16 @@ from typing import Sequence, List, Optional, Dict, Any, Set
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_cl_scenario import \
-    GenericCLScenario, GenericScenarioStream, GenericExperience
+from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+    GenericCLScenario,
+    GenericScenarioStream,
+    GenericExperience,
+)
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
-class NCScenario(GenericCLScenario['NCExperience']):
+class NCScenario(GenericCLScenario["NCExperience"]):
     """
     This class defines a "New Classes" scenario. Once created, an instance
     of this class can be iterated in order to obtain the experience sequence
@@ -29,17 +32,20 @@ class NCScenario(GenericCLScenario['NCExperience']):
     :func:`avalanche.benchmarks.generators.nc_benchmark`.
     """
 
-    def __init__(self, train_dataset: AvalancheDataset,
-                 test_dataset: AvalancheDataset,
-                 n_experiences: int,
-                 task_labels: bool,
-                 shuffle: bool = True,
-                 seed: Optional[int] = None,
-                 fixed_class_order: Optional[Sequence[int]] = None,
-                 per_experience_classes: Optional[Dict[int, int]] = None,
-                 class_ids_from_zero_from_first_exp: bool = False,
-                 class_ids_from_zero_in_each_exp: bool = False,
-                 reproducibility_data: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        train_dataset: AvalancheDataset,
+        test_dataset: AvalancheDataset,
+        n_experiences: int,
+        task_labels: bool,
+        shuffle: bool = True,
+        seed: Optional[int] = None,
+        fixed_class_order: Optional[Sequence[int]] = None,
+        per_experience_classes: Optional[Dict[int, int]] = None,
+        class_ids_from_zero_from_first_exp: bool = False,
+        class_ids_from_zero_in_each_exp: bool = False,
+        reproducibility_data: Optional[Dict[str, Any]] = None,
+    ):
         """
         Creates a ``NCGenericScenario`` instance given the training and test
         Datasets and the number of experiences.
@@ -109,25 +115,31 @@ class NCScenario(GenericCLScenario['NCExperience']):
             Beware that, in order to reproduce an experiment, the same train and
             test datasets must be used. Defaults to None.
         """
-        if class_ids_from_zero_from_first_exp and \
-                class_ids_from_zero_in_each_exp:
-            raise ValueError('Invalid mutually exclusive options '
-                             'class_ids_from_zero_from_first_exp and '
-                             'class_ids_from_zero_in_each_exp set at the '
-                             'same time')
+        if (
+            class_ids_from_zero_from_first_exp
+            and class_ids_from_zero_in_each_exp
+        ):
+            raise ValueError(
+                "Invalid mutually exclusive options "
+                "class_ids_from_zero_from_first_exp and "
+                "class_ids_from_zero_in_each_exp set at the "
+                "same time"
+            )
         if reproducibility_data:
-            n_experiences = reproducibility_data['n_experiences']
+            n_experiences = reproducibility_data["n_experiences"]
 
         if n_experiences < 1:
-            raise ValueError('Invalid number of experiences (n_experiences '
-                             'parameter): must be greater than 0')
+            raise ValueError(
+                "Invalid number of experiences (n_experiences "
+                "parameter): must be greater than 0"
+            )
 
         self.classes_order: List[int] = []
         """ Stores the class order (remapped class IDs). """
 
         self.classes_order_original_ids: List[int] = torch.unique(
-            torch.as_tensor(train_dataset.targets),
-            sorted=True).tolist()
+            torch.as_tensor(train_dataset.targets), sorted=True
+        ).tolist()
         """ Stores the class order (original class IDs) """
 
         n_original_classes = max(self.classes_order_original_ids) + 1
@@ -156,12 +168,14 @@ class NCScenario(GenericCLScenario['NCExperience']):
         This field applies to both train and test streams.
         """
 
-        self.class_ids_from_zero_from_first_exp: bool = \
+        self.class_ids_from_zero_from_first_exp: bool = (
             class_ids_from_zero_from_first_exp
+        )
         """ If True the class IDs have been remapped to start from zero. """
 
-        self.class_ids_from_zero_in_each_exp: bool = \
+        self.class_ids_from_zero_in_each_exp: bool = (
             class_ids_from_zero_in_each_exp
+        )
         """ If True the class IDs have been remapped to start from zero in 
         each experience """
 
@@ -169,18 +183,23 @@ class NCScenario(GenericCLScenario['NCExperience']):
         # the class order will be the one encountered
         # By looking at the train_dataset targets field
         if reproducibility_data:
-            self.classes_order_original_ids = \
-                reproducibility_data['classes_order_original_ids']
-            self.class_ids_from_zero_from_first_exp = \
-                reproducibility_data['class_ids_from_zero_from_first_exp']
-            self.class_ids_from_zero_in_each_exp = \
-                reproducibility_data['class_ids_from_zero_in_each_exp']
+            self.classes_order_original_ids = reproducibility_data[
+                "classes_order_original_ids"
+            ]
+            self.class_ids_from_zero_from_first_exp = reproducibility_data[
+                "class_ids_from_zero_from_first_exp"
+            ]
+            self.class_ids_from_zero_in_each_exp = reproducibility_data[
+                "class_ids_from_zero_in_each_exp"
+            ]
         elif fixed_class_order is not None:
             # User defined class order -> just use it
-            if len(set(self.classes_order_original_ids).union(
-                    set(fixed_class_order))) != \
-                    len(self.classes_order_original_ids):
-                raise ValueError('Invalid classes defined in fixed_class_order')
+            if len(
+                set(self.classes_order_original_ids).union(
+                    set(fixed_class_order)
+                )
+            ) != len(self.classes_order_original_ids):
+                raise ValueError("Invalid classes defined in fixed_class_order")
 
             self.classes_order_original_ids = list(fixed_class_order)
         elif shuffle:
@@ -192,17 +211,15 @@ class NCScenario(GenericCLScenario['NCExperience']):
             # order
             if seed is not None:
                 torch.random.manual_seed(seed)
-            self.classes_order_original_ids = \
-                torch.as_tensor(self.classes_order_original_ids)[
-                    torch.randperm(len(self.classes_order_original_ids))
-                ].tolist()
+            self.classes_order_original_ids = torch.as_tensor(
+                self.classes_order_original_ids
+            )[torch.randperm(len(self.classes_order_original_ids))].tolist()
 
         self.n_classes: int = len(self.classes_order_original_ids)
         """ The number of classes """
 
         if reproducibility_data:
-            self.n_classes_per_exp = \
-                reproducibility_data['n_classes_per_exp']
+            self.n_classes_per_exp = reproducibility_data["n_classes_per_exp"]
         elif per_experience_classes is not None:
             # per_experience_classes is a user-defined dictionary that defines
             # the number of classes to include in some (or all) experiences.
@@ -213,40 +230,54 @@ class NCScenario(GenericCLScenario['NCExperience']):
             #   - key = experience id
             #   - value = number of classes for this experience
 
-            if max(per_experience_classes.keys()) >= n_experiences or min(
-                    per_experience_classes.keys()) < 0:
+            if (
+                max(per_experience_classes.keys()) >= n_experiences
+                or min(per_experience_classes.keys()) < 0
+            ):
                 # The dictionary contains a key (that is, a experience id) >=
                 # the number of requested experiences... or < 0
                 raise ValueError(
-                    'Invalid experience id in per_experience_classes parameter:'
-                    ' experience ids must be in range [0, n_experiences)')
+                    "Invalid experience id in per_experience_classes parameter:"
+                    " experience ids must be in range [0, n_experiences)"
+                )
             if min(per_experience_classes.values()) < 0:
                 # One or more values (number of classes for each experience) < 0
-                raise ValueError('Wrong number of classes defined for one or '
-                                 'more experiences: must be a non-negative '
-                                 'value')
+                raise ValueError(
+                    "Wrong number of classes defined for one or "
+                    "more experiences: must be a non-negative "
+                    "value"
+                )
 
             if sum(per_experience_classes.values()) > self.n_classes:
                 # The sum of dictionary values (n. of classes for each
                 # experience) >= the number of classes
-                raise ValueError('Insufficient number of classes: '
-                                 'per_experience_classes parameter can\'t '
-                                 'be satisfied')
+                raise ValueError(
+                    "Insufficient number of classes: "
+                    "per_experience_classes parameter can't "
+                    "be satisfied"
+                )
 
             # Remaining classes are equally distributed across remaining
             # experiences. This amount of classes must be be divisible without
             # remainder by the number of remaining experiences
             remaining_exps = n_experiences - len(per_experience_classes)
-            if remaining_exps > 0 and (self.n_classes - sum(
-                    per_experience_classes.values())) % remaining_exps > 0:
-                raise ValueError('Invalid number of experiences: remaining '
-                                 'classes cannot be divided by n_experiences')
+            if (
+                remaining_exps > 0
+                and (self.n_classes - sum(per_experience_classes.values()))
+                % remaining_exps
+                > 0
+            ):
+                raise ValueError(
+                    "Invalid number of experiences: remaining "
+                    "classes cannot be divided by n_experiences"
+                )
 
             # default_per_exp_classes is the default amount of classes
             # for the remaining experiences
             if remaining_exps > 0:
-                default_per_exp_classes = (self.n_classes - sum(
-                    per_experience_classes.values())) // remaining_exps
+                default_per_exp_classes = (
+                    self.n_classes - sum(per_experience_classes.values())
+                ) // remaining_exps
             else:
                 default_per_exp_classes = 0
 
@@ -255,29 +286,29 @@ class NCScenario(GenericCLScenario['NCExperience']):
             # amount of classes per experience. Then, loop through the
             # per_experience_classes dictionary to set the customized,
             # user defined, classes for the required experiences.
-            self.n_classes_per_exp = \
-                [default_per_exp_classes] * n_experiences
+            self.n_classes_per_exp = [default_per_exp_classes] * n_experiences
             for exp_id in per_experience_classes:
-                self.n_classes_per_exp[exp_id] = per_experience_classes[
-                    exp_id]
+                self.n_classes_per_exp[exp_id] = per_experience_classes[exp_id]
         else:
             # Classes will be equally distributed across the experiences
             # The amount of classes must be be divisible without remainder
             # by the number of experiences
             if self.n_classes % n_experiences > 0:
                 raise ValueError(
-                    f'Invalid number of experiences: classes contained in '
-                    f'dataset ({self.n_classes}) cannot be divided by '
-                    f'n_experiences ({n_experiences})')
-            self.n_classes_per_exp = \
-                [self.n_classes // n_experiences] * n_experiences
+                    f"Invalid number of experiences: classes contained in "
+                    f"dataset ({self.n_classes}) cannot be divided by "
+                    f"n_experiences ({n_experiences})"
+                )
+            self.n_classes_per_exp = [
+                self.n_classes // n_experiences
+            ] * n_experiences
 
         # Before populating the classes_in_experience list,
         # define the remapped class IDs.
         if reproducibility_data:
             # Method 0: use reproducibility data
-            self.classes_order = reproducibility_data['classes_order']
-            self.class_mapping = reproducibility_data['class_mapping']
+            self.classes_order = reproducibility_data["classes_order"]
+            self.class_mapping = reproducibility_data["class_mapping"]
         elif self.class_ids_from_zero_from_first_exp:
             # Method 1: remap class IDs so that they appear in ascending order
             # over all experiences
@@ -288,8 +319,9 @@ class NCScenario(GenericCLScenario['NCExperience']):
                 # used, the user may have defined an amount of classes less than
                 # the overall amount of classes in the dataset.
                 if class_id in self.classes_order_original_ids:
-                    self.class_mapping[class_id] = \
-                        self.classes_order_original_ids.index(class_id)
+                    self.class_mapping[
+                        class_id
+                    ] = self.classes_order_original_ids.index(class_id)
         elif self.class_ids_from_zero_in_each_exp:
             # Method 2: remap class IDs so that they appear in range [0, N] in
             # each experience
@@ -301,7 +333,8 @@ class NCScenario(GenericCLScenario['NCExperience']):
                 for exp_class_idx in range(exp_n_classes):
                     original_class_position = next_class_idx + exp_class_idx
                     original_class_id = self.classes_order_original_ids[
-                        original_class_position]
+                        original_class_position
+                    ]
                     self.class_mapping[original_class_id] = exp_class_idx
                 next_class_idx += exp_n_classes
         else:
@@ -320,14 +353,18 @@ class NCScenario(GenericCLScenario['NCExperience']):
         # assigned to experience "exp_id"
         for exp_id in range(n_experiences):
             classes_start_idx = sum(self.n_classes_per_exp[:exp_id])
-            classes_end_idx = classes_start_idx + self.n_classes_per_exp[
-                exp_id]
+            classes_end_idx = classes_start_idx + self.n_classes_per_exp[exp_id]
 
             self._classes_in_exp.append(
-                set(self.classes_order[classes_start_idx:classes_end_idx]))
+                set(self.classes_order[classes_start_idx:classes_end_idx])
+            )
             self.original_classes_in_exp.append(
-                set(self.classes_order_original_ids[classes_start_idx:
-                                                    classes_end_idx]))
+                set(
+                    self.classes_order_original_ids[
+                        classes_start_idx:classes_end_idx
+                    ]
+                )
+            )
 
         # Finally, create the experience -> patterns assignment.
         # In order to do this, we don't load all the patterns
@@ -338,7 +375,8 @@ class NCScenario(GenericCLScenario['NCExperience']):
         self._has_task_labels = task_labels
         if reproducibility_data is not None:
             self._has_task_labels = bool(
-                reproducibility_data['has_task_labels'])
+                reproducibility_data["has_task_labels"]
+            )
 
         if self._has_task_labels:
             pattern_train_task_labels = [-1] * len(train_dataset)
@@ -378,11 +416,15 @@ class NCScenario(GenericCLScenario['NCExperience']):
         #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         train_dataset = AvalancheSubset(
-            train_dataset, class_mapping=self.class_mapping,
-            initial_transform_group='train')
+            train_dataset,
+            class_mapping=self.class_mapping,
+            initial_transform_group="train",
+        )
         test_dataset = AvalancheSubset(
-            test_dataset, class_mapping=self.class_mapping,
-            initial_transform_group='eval')
+            test_dataset,
+            class_mapping=self.class_mapping,
+            initial_transform_group="eval",
+        )
 
         self.train_exps_patterns_assignment = train_exps_patterns_assignment
         """ A list containing which training instances are assigned to each
@@ -401,11 +443,14 @@ class NCScenario(GenericCLScenario['NCExperience']):
                 train_task_labels.append(t_id)
             else:
                 train_task_labels.append(0)
-            task_labels = ConstantSequence(train_task_labels[-1],
-                                           len(train_dataset))
+            task_labels = ConstantSequence(
+                train_task_labels[-1], len(train_dataset)
+            )
             train_experiences.append(
-                AvalancheSubset(train_dataset, indices=exp_def,
-                                task_labels=task_labels))
+                AvalancheSubset(
+                    train_dataset, indices=exp_def, task_labels=task_labels
+                )
+            )
 
         test_experiences = []
         test_task_labels = []
@@ -414,35 +459,43 @@ class NCScenario(GenericCLScenario['NCExperience']):
                 test_task_labels.append(t_id)
             else:
                 test_task_labels.append(0)
-            task_labels = ConstantSequence(test_task_labels[-1],
-                                           len(test_dataset))
+            task_labels = ConstantSequence(
+                test_task_labels[-1], len(test_dataset)
+            )
             test_experiences.append(
-                AvalancheSubset(test_dataset, indices=exp_def,
-                                task_labels=task_labels))
+                AvalancheSubset(
+                    test_dataset, indices=exp_def, task_labels=task_labels
+                )
+            )
 
         super(NCScenario, self).__init__(
             stream_definitions={
-                'train': (train_experiences, train_task_labels, train_dataset),
-                'test': (test_experiences, test_task_labels, test_dataset)
+                "train": (train_experiences, train_task_labels, train_dataset),
+                "test": (test_experiences, test_task_labels, test_dataset),
             },
-            experience_factory=NCExperience)
+            experience_factory=NCExperience,
+        )
 
     def get_reproducibility_data(self):
         reproducibility_data = {
-            'class_ids_from_zero_from_first_exp': bool(
-                self.class_ids_from_zero_from_first_exp),
-            'class_ids_from_zero_in_each_exp': bool(
-                self.class_ids_from_zero_in_each_exp),
-            'class_mapping': self.class_mapping,
-            'classes_order': self.classes_order,
-            'classes_order_original_ids': self.classes_order_original_ids,
-            'n_classes_per_exp': self.n_classes_per_exp,
-            'n_experiences': int(self.n_experiences),
-            'has_task_labels': self._has_task_labels}
+            "class_ids_from_zero_from_first_exp": bool(
+                self.class_ids_from_zero_from_first_exp
+            ),
+            "class_ids_from_zero_in_each_exp": bool(
+                self.class_ids_from_zero_in_each_exp
+            ),
+            "class_mapping": self.class_mapping,
+            "classes_order": self.classes_order,
+            "classes_order_original_ids": self.classes_order_original_ids,
+            "n_classes_per_exp": self.n_classes_per_exp,
+            "n_experiences": int(self.n_experiences),
+            "has_task_labels": self._has_task_labels,
+        }
         return reproducibility_data
 
-    def classes_in_exp_range(self, exp_start: int,
-                             exp_end: Optional[int] = None) -> List[int]:
+    def classes_in_exp_range(
+        self, exp_start: int, exp_end: Optional[int] = None
+    ) -> List[int]:
         """
         Gets a list of classes contained in the given experiences. The
         experiences are defined by range. This means that only the classes in
@@ -457,28 +510,36 @@ class NCScenario(GenericCLScenario['NCExperience']):
         # Ref: https://stackoverflow.com/a/952952
         if exp_end is None:
             return [
-                item for sublist in
-                self.classes_in_experience['train'][exp_start:]
-                for item in sublist]
+                item
+                for sublist in self.classes_in_experience["train"][exp_start:]
+                for item in sublist
+            ]
 
         return [
-            item for sublist in
-            self.classes_in_experience['train'][exp_start:exp_end]
-            for item in sublist]
+            item
+            for sublist in self.classes_in_experience["train"][
+                exp_start:exp_end
+            ]
+            for item in sublist
+        ]
 
 
-class NCExperience(GenericExperience[NCScenario,
-                                     GenericScenarioStream['NCExperience',
-                                                           NCScenario]]):
+class NCExperience(
+    GenericExperience[
+        NCScenario, GenericScenarioStream["NCExperience", NCScenario]
+    ]
+):
     """
     Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
     stream from which this experience was taken.
     """
-    def __init__(self,
-                 origin_stream: GenericScenarioStream[
-                     'NCExperience', NCScenario],
-                 current_experience: int):
+
+    def __init__(
+        self,
+        origin_stream: GenericScenarioStream["NCExperience", NCScenario],
+        current_experience: int,
+    ):
         """
         Creates a ``NCExperience`` instance given the stream from this
         experience was taken and and the current experience ID.
@@ -490,7 +551,4 @@ class NCExperience(GenericExperience[NCScenario,
         super(NCExperience, self).__init__(origin_stream, current_experience)
 
 
-__all__ = [
-    'NCScenario',
-    'NCExperience'
-]
+__all__ = ["NCScenario", "NCExperience"]

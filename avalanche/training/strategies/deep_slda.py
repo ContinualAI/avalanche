@@ -12,8 +12,8 @@ from avalanche.models import FeatureExtractorBackbone
 
 
 class StreamingLDA(BaseStrategy):
-    """ Deep Streaming Linear Discriminant Analysis.
-    
+    """Deep Streaming Linear Discriminant Analysis.
+
     This strategy does not use backpropagation.
     Minibatches are first passed to the pretrained feature extractor.
     The result is processed one element at a time to fit the
@@ -23,15 +23,26 @@ class StreamingLDA(BaseStrategy):
     Discriminant Analysis, CVPR Workshop, 2020"
     https://openaccess.thecvf.com/content_CVPRW_2020/papers/w15/Hayes_Lifelong_Machine_Learning_With_Deep_Streaming_Linear_Discriminant_Analysis_CVPRW_2020_paper.pdf
     """
+
     DISABLED_CALLBACKS = ("before_backward", "after_backward")
 
-    def __init__(self, slda_model, criterion,
-                 input_size, num_classes, output_layer_name=None,
-                 shrinkage_param=1e-4, streaming_update_sigma=True,
-                 train_epochs: int = 1, train_mb_size: int = 1,
-                 eval_mb_size: int = 1, device='cpu',
-                 plugins: Optional[Sequence['StrategyPlugin']] = None,
-                 evaluator=default_logger, eval_every=-1):
+    def __init__(
+        self,
+        slda_model,
+        criterion,
+        input_size,
+        num_classes,
+        output_layer_name=None,
+        shrinkage_param=1e-4,
+        streaming_update_sigma=True,
+        train_epochs: int = 1,
+        train_mb_size: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        evaluator=default_logger,
+        eval_every=-1,
+    ):
         """Init function for the SLDA model.
 
         :param slda_model: a PyTorch model
@@ -60,13 +71,22 @@ class StreamingLDA(BaseStrategy):
 
         slda_model = slda_model.eval()
         if output_layer_name is not None:
-            slda_model = FeatureExtractorBackbone(slda_model.to(device),
-                                                  output_layer_name).eval()
+            slda_model = FeatureExtractorBackbone(
+                slda_model.to(device), output_layer_name
+            ).eval()
 
         super(StreamingLDA, self).__init__(
-            slda_model, None, criterion, train_mb_size, train_epochs,
-            eval_mb_size, device=device, plugins=plugins, evaluator=evaluator,
-            eval_every=eval_every)
+            slda_model,
+            None,
+            criterion,
+            train_mb_size,
+            train_epochs,
+            eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
         # SLDA parameters
         self.input_size = input_size
@@ -140,11 +160,12 @@ class StreamingLDA(BaseStrategy):
 
         # covariance updates
         if self.streaming_update_sigma:
-            x_minus_mu = (x - self.muK[y])
+            x_minus_mu = x - self.muK[y]
             mult = torch.matmul(x_minus_mu.transpose(1, 0), x_minus_mu)
             delta = mult * self.num_updates / (self.num_updates + 1)
             self.Sigma = (self.num_updates * self.Sigma + delta) / (
-                    self.num_updates + 1)
+                self.num_updates + 1
+            )
 
         # update class means
         self.muK[y, :] += (x - self.muK[y, :]) / (self.cK[y] + 1).unsqueeze(1)
@@ -165,10 +186,10 @@ class StreamingLDA(BaseStrategy):
         if self.prev_num_updates != self.num_updates:
             # there have been updates to the model, compute Lambda
             self.Lambda = torch.pinverse(
-                (
-                        1 - self.shrinkage_param) * self.Sigma +
-                self.shrinkage_param * torch.eye(
-                    self.input_size, device=self.device))
+                (1 - self.shrinkage_param) * self.Sigma
+                + self.shrinkage_param
+                * torch.eye(self.input_size, device=self.device)
+            )
             self.prev_num_updates = self.num_updates
 
         # parameters for predictions
@@ -188,7 +209,7 @@ class StreamingLDA(BaseStrategy):
         :param y: an Nx1-dimensional torch tensor of the associated labels for X
         :return: None
         """
-        print('\nFitting Base...')
+        print("\nFitting Base...")
 
         # update class means
         for k in torch.unique(y):
@@ -196,12 +217,14 @@ class StreamingLDA(BaseStrategy):
             self.cK[k] = X[y == k].shape[0]
         self.num_updates = X.shape[0]
 
-        print('\nEstimating initial covariance matrix...')
+        print("\nEstimating initial covariance matrix...")
         from sklearn.covariance import OAS
+
         cov_estimator = OAS(assume_centered=True)
         cov_estimator.fit((X - self.muK[y]).cpu().numpy())
-        self.Sigma = torch.from_numpy(cov_estimator.covariance_).float().to(
-            self.device)
+        self.Sigma = (
+            torch.from_numpy(cov_estimator.covariance_).float().to(self.device)
+        )
 
     def save_model(self, save_path, save_name):
         """
@@ -212,13 +235,13 @@ class StreamingLDA(BaseStrategy):
         """
         # grab parameters for saving
         d = dict()
-        d['muK'] = self.muK.cpu()
-        d['cK'] = self.cK.cpu()
-        d['Sigma'] = self.Sigma.cpu()
-        d['num_updates'] = self.num_updates
+        d["muK"] = self.muK.cpu()
+        d["cK"] = self.cK.cpu()
+        d["Sigma"] = self.Sigma.cpu()
+        d["num_updates"] = self.num_updates
 
         # save model out
-        torch.save(d, os.path.join(save_path, save_name + '.pth'))
+        torch.save(d, os.path.join(save_path, save_name + ".pth"))
 
     def load_model(self, save_path, save_name):
         """
@@ -228,13 +251,11 @@ class StreamingLDA(BaseStrategy):
         :return:
         """
         # load parameters
-        d = torch.load(os.path.join(save_path, save_name + '.pth'))
-        self.muK = d['muK'].to(self.device)
-        self.cK = d['cK'].to(self.device)
-        self.Sigma = d['Sigma'].to(self.device)
-        self.num_updates = d['num_updates']
+        d = torch.load(os.path.join(save_path, save_name + ".pth"))
+        self.muK = d["muK"].to(self.device)
+        self.cK = d["cK"].to(self.device)
+        self.Sigma = d["Sigma"].to(self.device)
+        self.num_updates = d["num_updates"]
 
 
-__all__ = [
-    'StreamingLDA'
-]
+__all__ = ["StreamingLDA"]

@@ -44,8 +44,9 @@ class CTrLTests(unittest.TestCase):
     def test_length_long(self):
         for n_tasks in self.long_stream_lengths:
             with self.subTest(n_tasks=n_tasks), TemporaryDirectory() as tmp:
-                bench = CTrL('s_long', save_to_disk=True, path=Path(tmp),
-                             n_tasks=n_tasks)
+                bench = CTrL(
+                    "s_long", save_to_disk=True, path=Path(tmp), n_tasks=n_tasks
+                )
                 self.assertEqual(n_tasks, bench.n_experiences)
 
     def test_n_tasks_param(self):
@@ -54,8 +55,8 @@ class CTrLTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     CTrL(stream, n_tasks=3)
 
-        with self.subTest(stream='s_long'):
-            CTrL('s_long', n_tasks=3)
+        with self.subTest(stream="s_long"):
+            CTrL("s_long", n_tasks=3)
 
     def test_determinism(self):
         for stream in self.stream_lengths.keys():
@@ -63,7 +64,8 @@ class CTrLTests(unittest.TestCase):
                 bench_1 = CTrL(stream, seed=1)
                 bench_2 = CTrL(stream, seed=1)
 
-                for exp1, exp2 in zip(bench_1.train_stream,
-                                      bench_2.train_stream):
+                for exp1, exp2 in zip(
+                    bench_1.train_stream, bench_2.train_stream
+                ):
                     for sample1, sample2 in zip(exp1.dataset, exp2.dataset):
                         self.assertTrue(custom_equals(sample1, sample2))

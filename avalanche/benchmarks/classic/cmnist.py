@@ -14,25 +14,29 @@ import torch
 from PIL.Image import Image
 from torch import Tensor
 from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor, ToPILImage, Compose, Normalize, \
-    RandomRotation
+from torchvision.transforms import (
+    ToTensor,
+    ToPILImage,
+    Compose,
+    Normalize,
+    RandomRotation,
+)
 import numpy as np
 
 from avalanche.benchmarks import NCScenario, nc_benchmark
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.utils import AvalancheDataset
 
-_default_mnist_train_transform = Compose([
-    ToTensor(),
-    Normalize((0.1307,), (0.3081,))
-])
+_default_mnist_train_transform = Compose(
+    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+)
 
-_default_mnist_eval_transform = Compose([
-    ToTensor(),
-    Normalize((0.1307,), (0.3081,))
-])
+_default_mnist_eval_transform = Compose(
+    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+)
 
 
 class PixelsPermutation(object):
@@ -51,7 +55,7 @@ class PixelsPermutation(object):
     def __call__(self, img: Union[Image, Tensor]):
         is_image = isinstance(img, Image)
         if (not is_image) and (not isinstance(img, Tensor)):
-            raise ValueError('Invalid input: must be a PIL image or a Tensor')
+            raise ValueError("Invalid input: must be a PIL image or a Tensor")
 
         if is_image:
             img = self._to_tensor(img)
@@ -65,15 +69,16 @@ class PixelsPermutation(object):
 
 
 def SplitMNIST(
-        n_experiences: int,
-        *,
-        return_task_id=False,
-        seed: Optional[int] = None,
-        fixed_class_order: Optional[Sequence[int]] = None,
-        shuffle: bool = True,
-        train_transform: Optional[Any] = _default_mnist_train_transform,
-        eval_transform: Optional[Any] = _default_mnist_eval_transform,
-        dataset_root: Union[str, Path] = None):
+    n_experiences: int,
+    *,
+    return_task_id=False,
+    seed: Optional[int] = None,
+    fixed_class_order: Optional[Sequence[int]] = None,
+    shuffle: bool = True,
+    train_transform: Optional[Any] = _default_mnist_train_transform,
+    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark using the MNIST dataset.
 
@@ -144,7 +149,8 @@ def SplitMNIST(
             shuffle=shuffle,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=mnist_train,
@@ -155,16 +161,18 @@ def SplitMNIST(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def PermutedMNIST(
-        n_experiences: int,
-        *,
-        seed: Optional[int] = None,
-        train_transform: Optional[Any] = _default_mnist_train_transform,
-        eval_transform: Optional[Any] = _default_mnist_eval_transform,
-        dataset_root: Union[str, Path] = None) -> NCScenario:
+    n_experiences: int,
+    *,
+    seed: Optional[int] = None,
+    train_transform: Optional[Any] = _default_mnist_train_transform,
+    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    dataset_root: Union[str, Path] = None
+) -> NCScenario:
     """
     Creates a Permuted MNIST benchmark.
 
@@ -221,25 +229,27 @@ def PermutedMNIST(
     for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
         idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
-            torch.int64)
+            torch.int64
+        )
 
         permutation = PixelsPermutation(idx_permute)
 
         permutation_transforms = dict(
-            train=(permutation, None),
-            eval=(permutation, None)
+            train=(permutation, None), eval=(permutation, None)
         )
 
         # Freeze the permutation
         permuted_train = AvalancheDataset(
             mnist_train,
             transform_groups=permutation_transforms,
-            initial_transform_group='train').freeze_transforms()
+            initial_transform_group="train",
+        ).freeze_transforms()
 
         permuted_test = AvalancheDataset(
             mnist_test,
             transform_groups=permutation_transforms,
-            initial_transform_group='eval').freeze_transforms()
+            initial_transform_group="eval",
+        ).freeze_transforms()
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -253,17 +263,19 @@ def PermutedMNIST(
         class_ids_from_zero_in_each_exp=True,
         one_dataset_per_exp=True,
         train_transform=train_transform,
-        eval_transform=eval_transform)
+        eval_transform=eval_transform,
+    )
 
 
 def RotatedMNIST(
-        n_experiences: int,
-        *,
-        seed: Optional[int] = None,
-        rotations_list: Optional[Sequence[int]] = None,
-        train_transform: Optional[Any] = _default_mnist_train_transform,
-        eval_transform: Optional[Any] = _default_mnist_eval_transform,
-        dataset_root: Union[str, Path] = None) -> NCScenario:
+    n_experiences: int,
+    *,
+    seed: Optional[int] = None,
+    rotations_list: Optional[Sequence[int]] = None,
+    train_transform: Optional[Any] = _default_mnist_train_transform,
+    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    dataset_root: Union[str, Path] = None
+) -> NCScenario:
     """
     Creates a Rotated MNIST benchmark.
 
@@ -317,13 +329,17 @@ def RotatedMNIST(
     """
 
     if rotations_list is not None and len(rotations_list) != n_experiences:
-        raise ValueError("The number of rotations should match the number"
-                         " of incremental experiences.")
+        raise ValueError(
+            "The number of rotations should match the number"
+            " of incremental experiences."
+        )
 
-    if rotations_list is not None and any(180 < rotations_list[i] < -180
-                                          for i in range(len(rotations_list))):
-        raise ValueError("The value of a rotation should be between -180"
-                         " and 180 degrees.")
+    if rotations_list is not None and any(
+        180 < rotations_list[i] < -180 for i in range(len(rotations_list))
+    ):
+        raise ValueError(
+            "The value of a rotation should be between -180" " and 180 degrees."
+        )
 
     list_train_dataset = []
     list_test_dataset = []
@@ -342,20 +358,21 @@ def RotatedMNIST(
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
         rotation_transforms = dict(
-            train=(rotation, None),
-            eval=(rotation, None)
+            train=(rotation, None), eval=(rotation, None)
         )
 
         # Freeze the rotation
         rotated_train = AvalancheDataset(
             mnist_train,
             transform_groups=rotation_transforms,
-            initial_transform_group='train').freeze_transforms()
+            initial_transform_group="train",
+        ).freeze_transforms()
 
         rotated_test = AvalancheDataset(
             mnist_test,
             transform_groups=rotation_transforms,
-            initial_transform_group='eval').freeze_transforms()
+            initial_transform_group="eval",
+        ).freeze_transforms()
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
@@ -369,45 +386,43 @@ def RotatedMNIST(
         class_ids_from_zero_in_each_exp=True,
         one_dataset_per_exp=True,
         train_transform=train_transform,
-        eval_transform=eval_transform)
+        eval_transform=eval_transform,
+    )
 
 
 def _get_mnist_dataset(dataset_root):
     if dataset_root is None:
-        dataset_root = default_dataset_location('mnist')
+        dataset_root = default_dataset_location("mnist")
 
-    train_set = MNIST(root=dataset_root,
-                      train=True, download=True)
+    train_set = MNIST(root=dataset_root, train=True, download=True)
 
-    test_set = MNIST(root=dataset_root,
-                     train=False, download=True)
+    test_set = MNIST(root=dataset_root, train=False, download=True)
 
     return train_set, test_set
 
 
-__all__ = [
-    'SplitMNIST',
-    'PermutedMNIST',
-    'RotatedMNIST'
-]
+__all__ = ["SplitMNIST", "PermutedMNIST", "RotatedMNIST"]
 
 
 if __name__ == "__main__":
     import sys
 
-    print('Split MNIST')
+    print("Split MNIST")
     benchmark_instance = SplitMNIST(
-        5, train_transform=None, eval_transform=None)
+        5, train_transform=None, eval_transform=None
+    )
     check_vision_benchmark(benchmark_instance)
 
-    print('Permuted MNIST')
+    print("Permuted MNIST")
     benchmark_instance = PermutedMNIST(
-        5, train_transform=None, eval_transform=None)
+        5, train_transform=None, eval_transform=None
+    )
     check_vision_benchmark(benchmark_instance)
 
-    print('Rotated MNIST')
+    print("Rotated MNIST")
     benchmark_instance = RotatedMNIST(
-        5, train_transform=None, eval_transform=None)
+        5, train_transform=None, eval_transform=None
+    )
     check_vision_benchmark(benchmark_instance)
 
     sys.exit(0)

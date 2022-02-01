@@ -28,7 +28,7 @@ class LwFPlugin(StrategyPlugin):
         self.temperature = temperature
         self.prev_model = None
 
-        self.prev_classes = {'0': set()}
+        self.prev_classes = {"0": set()}
         """ In Avalanche, targets of different experiences are not ordered. 
         As a result, some units may be allocated even though their 
         corresponding class has never been seen by the model.
@@ -44,7 +44,7 @@ class LwFPlugin(StrategyPlugin):
         au = list(active_units)
         log_p = torch.log_softmax(out / self.temperature, dim=1)[:, au]
         q = torch.softmax(prev_out / self.temperature, dim=1)[:, au]
-        res = torch.nn.functional.kl_div(log_p, q, reduction='batchmean')
+        res = torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
         return res
 
     def penalty(self, out, x, alpha, curr_model):
@@ -64,8 +64,8 @@ class LwFPlugin(StrategyPlugin):
                     # TODO: can we avoid this?
                     y_curr = avalanche_forward(curr_model, x, None)
                 else:  # no task labels
-                    y_prev = {'0': self.prev_model(x)}
-                    y_curr = {'0': out}
+                    y_prev = {"0": self.prev_model(x)}
+                    y_curr = {"0": out}
 
             dist_loss = 0
             for task_id in y_prev.keys():
@@ -81,10 +81,14 @@ class LwFPlugin(StrategyPlugin):
         """
         Add distillation loss
         """
-        alpha = self.alpha[strategy.clock.train_exp_counter] \
-            if isinstance(self.alpha, (list, tuple)) else self.alpha
-        penalty = self.penalty(strategy.mb_output, strategy.mb_x, alpha,
-                               strategy.model)
+        alpha = (
+            self.alpha[strategy.clock.train_exp_counter]
+            if isinstance(self.alpha, (list, tuple))
+            else self.alpha
+        )
+        penalty = self.penalty(
+            strategy.mb_output, strategy.mb_x, alpha, strategy.model
+        )
         strategy.loss += penalty
 
     def after_training_exp(self, strategy, **kwargs):
@@ -101,5 +105,6 @@ class LwFPlugin(StrategyPlugin):
             if task_id not in self.prev_classes:
                 self.prev_classes[str(task_id)] = pc
             else:
-                self.prev_classes[str(task_id)] = self.prev_classes[task_id]\
-                    .union(pc)
+                self.prev_classes[str(task_id)] = self.prev_classes[
+                    task_id
+                ].union(pc)

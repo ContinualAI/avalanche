@@ -4,8 +4,11 @@ from typing import TYPE_CHECKING, Optional, List
 import torch
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset, \
-    AvalancheTensorDataset, AvalancheSubset
+from avalanche.benchmarks.utils import (
+    AvalancheConcatDataset,
+    AvalancheTensorDataset,
+    AvalancheSubset,
+)
 from math import ceil
 
 from avalanche.models import TrainEvalModel, NCMClassifier
@@ -19,18 +22,28 @@ from avalanche.training.strategies import BaseStrategy
 
 
 class ICaRL(BaseStrategy):
-    """ iCaRL Strategy.
+    """iCaRL Strategy.
 
     This strategy does not use task identities.
     """
 
-    def __init__(self, feature_extractor: Module, classifier: Module,
-                 optimizer: Optimizer, memory_size, buffer_transform,
-                 fixed_memory, criterion=ICaRLLossPlugin(),
-                 train_mb_size: int = 1, train_epochs: int = 1,
-                 eval_mb_size: int = None, device=None,
-                 plugins: Optional[List[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+    def __init__(
+        self,
+        feature_extractor: Module,
+        classifier: Module,
+        optimizer: Optimizer,
+        memory_size,
+        buffer_transform,
+        fixed_memory,
+        criterion=ICaRLLossPlugin(),
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[StrategyPlugin]] = None,
+        evaluator: EvaluationPlugin = default_logger,
+        eval_every=-1,
+    ):
         """Init.
 
         :param feature_extractor: The feature extractor.
@@ -54,13 +67,15 @@ class ICaRL(BaseStrategy):
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
             training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that 
-            `eval` is called every `eval_every` epochs and at the end of the 
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         """
-        model = TrainEvalModel(feature_extractor,
-                               train_classifier=classifier,
-                               eval_classifier=NCMClassifier())
+        model = TrainEvalModel(
+            feature_extractor,
+            train_classifier=classifier,
+            eval_classifier=NCMClassifier(),
+        )
 
         icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
 
@@ -73,21 +88,28 @@ class ICaRL(BaseStrategy):
             plugins += [criterion]
 
         super().__init__(
-            model, optimizer, criterion=criterion,
-            train_mb_size=train_mb_size, train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            model,
+            optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
 
 class _ICaRLPlugin(StrategyPlugin):
     """
-        iCaRL Plugin.
-        iCaRL uses nearest class exemplar classification to prevent
-        forgetting to occur at the classification layer. The feature extractor
-        is continually learned using replay and distillation. The exemplars
-        used for replay and classification are selected through herding.
-        This plugin does not use task identities.
-        """
+    iCaRL Plugin.
+    iCaRL uses nearest class exemplar classification to prevent
+    forgetting to occur at the classification layer. The feature extractor
+    is continually learned using replay and distillation. The exemplars
+    used for replay and classification are selected through herding.
+    This plugin does not use task identities.
+    """
 
     def __init__(self, memory_size, buffer_transform=None, fixed_memory=True):
         """
@@ -117,36 +139,43 @@ class _ICaRLPlugin(StrategyPlugin):
         self.output_size = None
         self.input_size = None
 
-    def after_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       **kwargs):
+    def after_train_dataset_adaptation(
+        self, strategy: "BaseStrategy", **kwargs
+    ):
         if strategy.clock.train_exp_counter != 0:
             memory = AvalancheTensorDataset(
                 torch.cat(self.x_memory).cpu(),
                 list(itertools.chain.from_iterable(self.y_memory)),
-                transform=self.buffer_transform, target_transform=None)
+                transform=self.buffer_transform,
+                target_transform=None,
+            )
 
-            strategy.adapted_dataset = \
-                AvalancheConcatDataset((strategy.adapted_dataset, memory))
+            strategy.adapted_dataset = AvalancheConcatDataset(
+                (strategy.adapted_dataset, memory)
+            )
 
-    def before_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
         previous_seen_classes = sum(benchmark.n_classes_per_exp[:tid])
 
         self.observed_classes.extend(
-            benchmark.classes_order[previous_seen_classes:
-                                    previous_seen_classes + nb_cl])
+            benchmark.classes_order[
+                previous_seen_classes : previous_seen_classes + nb_cl
+            ]
+        )
 
-    def before_forward(self, strategy: 'BaseStrategy', **kwargs):
+    def before_forward(self, strategy: "BaseStrategy", **kwargs):
         if self.input_size is None:
             with torch.no_grad():
                 self.input_size = strategy.mb_x.shape[1:]
                 self.output_size = strategy.model(strategy.mb_x).shape[1]
                 self.embedding_size = strategy.model.feature_extractor(
-                    strategy.mb_x).shape[1]
+                    strategy.mb_x
+                ).shape[1]
 
-    def after_training_exp(self, strategy: 'BaseStrategy', **kwargs):
+    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
         strategy.model.eval()
 
         self.construct_exemplar_set(strategy)
@@ -156,8 +185,9 @@ class _ICaRLPlugin(StrategyPlugin):
     def compute_class_means(self, strategy):
         if self.class_means is None:
             n_classes = sum(strategy.experience.benchmark.n_classes_per_exp)
-            self.class_means = torch.zeros(
-                (self.embedding_size, n_classes)).to(strategy.device)
+            self.class_means = torch.zeros((self.embedding_size, n_classes)).to(
+                strategy.device
+            )
 
         for i, class_samples in enumerate(self.x_memory):
             label = self.y_memory[i][0]
@@ -165,7 +195,8 @@ class _ICaRLPlugin(StrategyPlugin):
 
             with torch.no_grad():
                 mapped_prototypes = strategy.model.feature_extractor(
-                    class_samples).detach()
+                    class_samples
+                ).detach()
             D = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
 
@@ -174,7 +205,8 @@ class _ICaRLPlugin(StrategyPlugin):
 
             with torch.no_grad():
                 mapped_prototypes2 = strategy.model.feature_extractor(
-                    class_samples).detach()
+                    class_samples
+                ).detach()
 
             D2 = mapped_prototypes2.T
             D2 = D2 / torch.norm(D2, dim=0)
@@ -196,27 +228,31 @@ class _ICaRLPlugin(StrategyPlugin):
         previous_seen_classes = sum(benchmark.n_classes_per_exp[:tid])
 
         if self.fixed_memory:
-            nb_protos_cl = int(ceil(
-                self.memory_size / len(self.observed_classes)))
+            nb_protos_cl = int(
+                ceil(self.memory_size / len(self.observed_classes))
+            )
         else:
             nb_protos_cl = self.memory_size
-        new_classes = self.observed_classes[previous_seen_classes:
-                                            previous_seen_classes + nb_cl]
+        new_classes = self.observed_classes[
+            previous_seen_classes : previous_seen_classes + nb_cl
+        ]
 
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
         for iter_dico in range(nb_cl):
-            cd = AvalancheSubset(dataset,
-                                 torch.where(targets == new_classes[iter_dico])
-                                 [0])
+            cd = AvalancheSubset(
+                dataset, torch.where(targets == new_classes[iter_dico])[0]
+            )
 
-            class_patterns, _, _ = next(iter(
-                DataLoader(cd.eval(), batch_size=len(cd))))
+            class_patterns, _, _ = next(
+                iter(DataLoader(cd.eval(), batch_size=len(cd)))
+            )
             class_patterns = class_patterns.to(strategy.device)
 
             with torch.no_grad():
                 mapped_prototypes = strategy.model.feature_extractor(
-                    class_patterns).detach()
+                    class_patterns
+                ).detach()
             D = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
 
@@ -237,10 +273,11 @@ class _ICaRLPlugin(StrategyPlugin):
                 w_t = w_t + mu - D[:, ind_max]
                 i += 1
 
-            pick = (order > 0) * (order < nb_protos_cl + 1) * 1.
+            pick = (order > 0) * (order < nb_protos_cl + 1) * 1.0
             self.x_memory.append(class_patterns[torch.where(pick == 1)[0]])
             self.y_memory.append(
-                [new_classes[iter_dico]] * len(torch.where(pick == 1)[0]))
+                [new_classes[iter_dico]] * len(torch.where(pick == 1)[0])
+            )
             self.order.append(order[torch.where(pick == 1)[0]])
 
     def reduce_exemplar_set(self, strategy: BaseStrategy):
@@ -248,13 +285,16 @@ class _ICaRLPlugin(StrategyPlugin):
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 
         if self.fixed_memory:
-            nb_protos_cl = int(ceil(
-                self.memory_size / len(self.observed_classes)))
+            nb_protos_cl = int(
+                ceil(self.memory_size / len(self.observed_classes))
+            )
         else:
             nb_protos_cl = self.memory_size
 
         for i in range(len(self.x_memory) - nb_cl[tid]):
-            pick = (self.order[i] < nb_protos_cl + 1) * 1.
+            pick = (self.order[i] < nb_protos_cl + 1) * 1.0
             self.x_memory[i] = self.x_memory[i][torch.where(pick == 1)[0]]
-            self.y_memory[i] = self.y_memory[i][:len(torch.where(pick == 1)[0])]
+            self.y_memory[i] = self.y_memory[i][
+                : len(torch.where(pick == 1)[0])
+            ]
             self.order[i] = self.order[i][torch.where(pick == 1)[0]]

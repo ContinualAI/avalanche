@@ -13,7 +13,7 @@ from avalanche.training.plugins import StrategyPlugin
 
 class Clock(StrategyPlugin):
     def __init__(self):
-        """ Counter for strategy events. """
+        """Counter for strategy events."""
         super().__init__()
         # train
         self.train_iterations = 0

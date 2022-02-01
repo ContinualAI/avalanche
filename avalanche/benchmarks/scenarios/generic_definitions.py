@@ -13,19 +13,37 @@ from abc import abstractmethod
 import warnings
 
 try:
-    from typing import TypeVar, Tuple, List, Protocol, runtime_checkable, \
-        Sequence, Any, Union, Iterable, Generic
+    from typing import (
+        TypeVar,
+        Tuple,
+        List,
+        Protocol,
+        runtime_checkable,
+        Sequence,
+        Any,
+        Union,
+        Iterable,
+        Generic,
+    )
 except ImportError:
-    from typing import TypeVar, Tuple, List, Sequence, Any, Union, Iterable, \
-        Generic
+    from typing import (
+        TypeVar,
+        Tuple,
+        List,
+        Sequence,
+        Any,
+        Union,
+        Iterable,
+        Generic,
+    )
     from typing_extensions import Protocol, runtime_checkable
 
 from avalanche.benchmarks.utils import AvalancheDataset
 
 
-TScenario = TypeVar('TScenario')
-TExperience = TypeVar('TExperience', bound='Experience')
-TScenarioStream = TypeVar('TScenarioStream', bound='ScenarioStream')
+TScenario = TypeVar("TScenario")
+TExperience = TypeVar("TExperience", bound="Experience")
+TScenarioStream = TypeVar("TScenarioStream", bound="ScenarioStream")
 
 
 @runtime_checkable
@@ -99,10 +117,12 @@ class Experience(Protocol[TScenario, TScenarioStream]):
 
     @property
     def scenario(self) -> TScenario:
-        """ This property is DEPRECATED, use self.benchmark instead."""
+        """This property is DEPRECATED, use self.benchmark instead."""
         warnings.warn(
-            'Using self.scenario is deprecated in Experience. '
-            'Consider using self.benchmark instead.', stacklevel=2)
+            "Using self.scenario is deprecated in Experience. "
+            "Consider using self.benchmark instead.",
+            stacklevel=2,
+        )
         return self.benchmark
 
 
@@ -129,15 +149,17 @@ class ScenarioStream(Protocol[TScenario, TExperience]):
 
     @property
     def scenario(self) -> TScenario:
-        """ This property is DEPRECATED, use self.benchmark instead."""
+        """This property is DEPRECATED, use self.benchmark instead."""
         warnings.warn(
-            'Using self.scenario is deprecated ScenarioStream. '
-            'Consider using self.benchmark instead.', stacklevel=2)
+            "Using self.scenario is deprecated ScenarioStream. "
+            "Consider using self.benchmark instead.",
+            stacklevel=2,
+        )
         return self.benchmark
 
-    def __getitem__(self: TScenarioStream,
-                    experience_idx: Union[int, slice, Iterable[int]]) \
-            -> Union[TExperience, TScenarioStream]:
+    def __getitem__(
+        self: TScenarioStream, experience_idx: Union[int, slice, Iterable[int]]
+    ) -> Union[TExperience, TScenarioStream]:
         """
         Gets an experience given its experience index (or a stream slice given
         the experience order).
@@ -159,9 +181,9 @@ class ScenarioStream(Protocol[TScenario, TExperience]):
 
 
 __all__ = [
-    'Experience',
-    'TExperience',
-    'TScenario',
-    'ScenarioStream',
-    'TScenarioStream'
+    "Experience",
+    "TExperience",
+    "TScenario",
+    "ScenarioStream",
+    "TScenarioStream",
 ]

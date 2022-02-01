@@ -14,36 +14,44 @@ from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
-from avalanche.benchmarks.classic.classic_benchmarks_utils import \
-    check_vision_benchmark
+from avalanche.benchmarks.classic.classic_benchmarks_utils import (
+    check_vision_benchmark,
+)
 from avalanche.benchmarks.datasets import default_dataset_location
 
-_default_cifar10_train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
-])
+_default_cifar10_train_transform = transforms.Compose(
+    [
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
-_default_cifar10_eval_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465),
-                         (0.2023, 0.1994, 0.2010))
-])
+_default_cifar10_eval_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+        ),
+    ]
+)
 
 
 def SplitCIFAR10(
-        n_experiences: int,
-        *,
-        first_exp_with_half_classes: bool = False,
-        return_task_id=False,
-        seed: Optional[int] = None,
-        fixed_class_order: Optional[Sequence[int]] = None,
-        shuffle: bool = True,
-        train_transform: Optional[Any] = _default_cifar10_train_transform,
-        eval_transform: Optional[Any] = _default_cifar10_eval_transform,
-        dataset_root: Union[str, Path] = None) -> NCScenario:
+    n_experiences: int,
+    *,
+    first_exp_with_half_classes: bool = False,
+    return_task_id=False,
+    seed: Optional[int] = None,
+    fixed_class_order: Optional[Sequence[int]] = None,
+    shuffle: bool = True,
+    train_transform: Optional[Any] = _default_cifar10_train_transform,
+    eval_transform: Optional[Any] = _default_cifar10_eval_transform,
+    dataset_root: Union[str, Path] = None
+) -> NCScenario:
     """
     Creates a CL benchmark using the CIFAR10 dataset.
 
@@ -120,7 +128,8 @@ def SplitCIFAR10(
             per_exp_classes={0: 5} if first_exp_with_half_classes else None,
             class_ids_from_zero_in_each_exp=True,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
     else:
         return nc_benchmark(
             train_dataset=cifar_train,
@@ -132,12 +141,13 @@ def SplitCIFAR10(
             shuffle=shuffle,
             per_exp_classes={0: 5} if first_exp_with_half_classes else None,
             train_transform=train_transform,
-            eval_transform=eval_transform)
+            eval_transform=eval_transform,
+        )
 
 
 def _get_cifar10_dataset(dataset_root):
     if dataset_root is None:
-        dataset_root = default_dataset_location('cifar10')
+        dataset_root = default_dataset_location("cifar10")
 
     train_set = CIFAR10(dataset_root, train=True, download=True)
     test_set = CIFAR10(dataset_root, train=False, download=True)
@@ -152,6 +162,4 @@ if __name__ == "__main__":
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
 
-__all__ = [
-    'SplitCIFAR10'
-]
+__all__ = ["SplitCIFAR10"]

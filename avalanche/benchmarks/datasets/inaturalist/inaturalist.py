@@ -38,20 +38,20 @@ from .inaturalist_data import INATURALIST_DATA
 
 
 def pil_loader(path):
-    """ Load an Image with PIL """
+    """Load an Image with PIL"""
     # open path as file to avoid ResourceWarning
     # (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         img = Image.open(f)
-        return img.convert('RGB')
+        return img.convert("RGB")
 
 
 def _isArrayLike(obj):
-    return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
+    return hasattr(obj, "__iter__") and hasattr(obj, "__len__")
 
 
 class INATURALIST2018(Dataset):
-    """ INATURALIST Pytorch Dataset
+    """INATURALIST Pytorch Dataset
 
     For default selection of 10 supercategories:
     - Training Images in total: 428,830
@@ -69,15 +69,32 @@ class INATURALIST2018(Dataset):
       'Plantae': 2917,
       'Reptilia': 284}
     """
-    splits = ['train', 'val', 'test']
 
-    def_supcats = ['Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Fungi',
-                   'Insecta', 'Mammalia', 'Mollusca', 'Plantae', 'Reptilia']
+    splits = ["train", "val", "test"]
 
-    def __init__(self,
-                 root=expanduser("~") + "/.avalanche/data/inaturalist2018/",
-                 split='train', transform=ToTensor(), target_transform=None,
-                 loader=pil_loader, download=True, supcats=None):
+    def_supcats = [
+        "Amphibia",
+        "Animalia",
+        "Arachnida",
+        "Aves",
+        "Fungi",
+        "Insecta",
+        "Mammalia",
+        "Mollusca",
+        "Plantae",
+        "Reptilia",
+    ]
+
+    def __init__(
+        self,
+        root=expanduser("~") + "/.avalanche/data/inaturalist2018/",
+        split="train",
+        transform=ToTensor(),
+        target_transform=None,
+        loader=pil_loader,
+        download=True,
+        supcats=None,
+    ):
         super().__init__()
         # conda install -c conda-forge pycocotools
         from pycocotools.coco import COCO as jsonparser
@@ -94,13 +111,14 @@ class INATURALIST2018(Dataset):
         self.supcats = supcats if supcats is not None else self.def_supcats
 
         if download:
-            download_trainval = self.split in ['train', 'val']
-            self.inat_data = INATURALIST_DATA(data_folder=root,
-                                              trainval=download_trainval)
+            download_trainval = self.split in ["train", "val"]
+            self.inat_data = INATURALIST_DATA(
+                data_folder=root, trainval=download_trainval
+            )
 
         # load annotations
-        ann_file = f'{split}2018.json'
-        self.log.info(f'Loading annotations from: {ann_file}')
+        ann_file = f"{split}2018.json"
+        self.log.info(f"Loading annotations from: {ann_file}")
         self.ds = jsonparser(annotation_file=os.path.join(root, ann_file))
 
         self.img_ids, self.targets = [], []  # targets field is required!
@@ -175,7 +193,7 @@ if __name__ == "__main__":
     import torch
 
     train_data = INATURALIST2018()
-    test_data = INATURALIST2018(split='val')
+    test_data = INATURALIST2018(split="val")
     print("train size: ", len(train_data))
     print("test size: ", len(test_data))
 
@@ -183,14 +201,10 @@ if __name__ == "__main__":
 
     for batch_data in dataloader:
         x, y = batch_data
-        plt.imshow(
-            transforms.ToPILImage()(torch.squeeze(x))
-        )
+        plt.imshow(transforms.ToPILImage()(torch.squeeze(x)))
         plt.show()
         print(x.size())
         print(len(y))
         break
 
-__all__ = [
-    'INATURALIST2018'
-]
+__all__ = ["INATURALIST2018"]

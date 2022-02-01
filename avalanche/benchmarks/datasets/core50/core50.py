@@ -24,20 +24,26 @@ from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks.datasets.core50 import core50_data
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.datasets.downloadable_dataset import \
-    DownloadableDataset
+from avalanche.benchmarks.datasets.downloadable_dataset import (
+    DownloadableDataset,
+)
 
 
 class CORe50Dataset(DownloadableDataset):
-    """ CORe50 Pytorch Dataset """
+    """CORe50 Pytorch Dataset"""
 
     def __init__(
-            self,
-            root: Union[str, Path] = None,
-            *,
-            train=True, transform=None, target_transform=None,
-            loader=default_loader, download=True, mini=False,
-            object_level=True):
+        self,
+        root: Union[str, Path] = None,
+        *,
+        train=True,
+        transform=None,
+        target_transform=None,
+        loader=default_loader,
+        download=True,
+        mini=False,
+        object_level=True,
+    ):
 
         """
         Creates an instance of the CORe50 dataset.
@@ -59,10 +65,11 @@ class CORe50Dataset(DownloadableDataset):
         """
 
         if root is None:
-            root = default_dataset_location('core50')
+            root = default_dataset_location("core50")
 
         super(CORe50Dataset, self).__init__(
-            root, download=download, verbose=True)
+            root, download=download, verbose=True
+        )
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -73,7 +80,7 @@ class CORe50Dataset(DownloadableDataset):
 
         # any scenario and run is good here since we want just to load the
         # train images and targets with no particular order
-        self._scen = 'ni'
+        self._scen = "ni"
         self._run = 0
         self._nbatch = 8
 
@@ -96,9 +103,7 @@ class CORe50Dataset(DownloadableDataset):
         else:
             bp = "core50_128x128"
 
-        img = self.loader(
-            str(self.root / bp / self.paths[index])
-        )
+        img = self.loader(str(self.root / bp / self.paths[index]))
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
@@ -120,12 +125,12 @@ class CORe50Dataset(DownloadableDataset):
             if self.verbose:
                 print("Downloading " + name[1] + "...")
             file = self._download_file(name[1], name[0], name[2])
-            if name[1].endswith('.zip'):
+            if name[1].endswith(".zip"):
                 if self.verbose:
-                    print(f'Extracting {name[0]}...')
+                    print(f"Extracting {name[0]}...")
                 extract_root = self._extract_archive(file)
                 if self.verbose:
-                    print('Extraction completed!')
+                    print("Extraction completed!")
 
     def _load_metadata(self) -> bool:
         if self.mini:
@@ -136,29 +141,30 @@ class CORe50Dataset(DownloadableDataset):
         if not (self.root / bp).exists():
             return False
 
-        if not (self.root / 'batches_filelists').exists():
+        if not (self.root / "batches_filelists").exists():
             return False
 
-        with open(self.root / 'paths.pkl', 'rb') as f:
+        with open(self.root / "paths.pkl", "rb") as f:
             self.train_test_paths = pkl.load(f)
 
         if self.verbose:
             print("Loading labels...")
-        with open(self.root / 'labels.pkl', 'rb') as f:
+        with open(self.root / "labels.pkl", "rb") as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(self._nbatch + 1):
-                self.train_test_targets += \
-                    self.all_targets[self._scen][self._run][i]
+                self.train_test_targets += self.all_targets[self._scen][
+                    self._run
+                ][i]
 
         if self.verbose:
             print("Loading LUP...")
-        with open(self.root / 'LUP.pkl', 'rb') as f:
+        with open(self.root / "LUP.pkl", "rb") as f:
             self.LUP = pkl.load(f)
 
         if self.verbose:
             print("Loading labels names...")
-        with open(self.root / 'labels2names.pkl', 'rb') as f:
+        with open(self.root / "labels2names.pkl", "rb") as f:
             self.labels2names = pkl.load(f)
 
         self.idx_list = []
@@ -178,33 +184,32 @@ class CORe50Dataset(DownloadableDataset):
                 div = 5
             self.targets.append(self.train_test_targets[idx] // div)
 
-        with open(self.root / 'labels2names.pkl', 'rb') as f:
+        with open(self.root / "labels2names.pkl", "rb") as f:
             self.labels2names = pkl.load(f)
 
-        if not (self.root / 'NIC_v2_79_cat').exists():
+        if not (self.root / "NIC_v2_79_cat").exists():
             self._create_cat_filelists()
 
         return True
 
     def _download_error_message(self) -> str:
-        all_urls = [
-            name_url[1] for name_url in core50_data.data
-        ]
+        all_urls = [name_url[1] for name_url in core50_data.data]
 
-        base_msg = \
-            '[CORe50] Error downloading the dataset!\n' \
-            'You should download data manually using the following links:\n'
+        base_msg = (
+            "[CORe50] Error downloading the dataset!\n"
+            "You should download data manually using the following links:\n"
+        )
 
         for url in all_urls:
             base_msg += url
-            base_msg += '\n'
+            base_msg += "\n"
 
-        base_msg += 'and place these files in ' + str(self.root)
+        base_msg += "and place these files in " + str(self.root)
 
         return base_msg
 
     def _create_cat_filelists(self):
-        """ Generates corresponding filelists with category-wise labels. The
+        """Generates corresponding filelists with category-wise labels. The
         default one are based on the object-level labels from 0 to 49."""
 
         for k, v in core50_data.scen2dirs.items():
@@ -213,8 +218,8 @@ class CORe50Dataset(DownloadableDataset):
             if not os.path.exists(root_path):
                 os.makedirs(root_path)
             for run in range(10):
-                cur_path = os.path.join(root_path, "run"+str(run))
-                orig_cur_path = os.path.join(orig_root_path, "run"+str(run))
+                cur_path = os.path.join(root_path, "run" + str(run))
+                orig_cur_path = os.path.join(orig_root_path, "run" + str(run))
                 if not os.path.exists(cur_path):
                     os.makedirs(cur_path)
                 for file in glob.glob(os.path.join(orig_cur_path, "*.txt")):
@@ -230,19 +235,24 @@ class CORe50Dataset(DownloadableDataset):
                     dst_f.close()
 
     def _objlab2cat(self, label, scen, run):
-        """ Mapping an object label into its corresponding category label
-        based on the scenario. """
+        """Mapping an object label into its corresponding category label
+        based on the scenario."""
 
         if scen == "nc":
             return core50_data.name2cat[
-                self.labels2names['nc'][run][label][:-1]]
+                self.labels2names["nc"][run][label][:-1]
+            ]
         else:
             return int(label) // 5
 
 
 def CORe50(*args, **kwargs):
-    warn("Dataset CORe50 has been renamed CORe50Dataset to prevent confusion "
-         "with the CORe50 classic benchmark", DeprecationWarning, 2)
+    warn(
+        "Dataset CORe50 has been renamed CORe50Dataset to prevent confusion "
+        "with the CORe50 classic benchmark",
+        DeprecationWarning,
+        2,
+    )
     return CORe50Dataset(*args, **kwargs)
 
 
@@ -264,16 +274,11 @@ if __name__ == "__main__":
 
     for batch_data in dataloader:
         x, y = batch_data
-        plt.imshow(
-            transforms.ToPILImage()(torch.squeeze(x))
-        )
+        plt.imshow(transforms.ToPILImage()(torch.squeeze(x)))
         plt.show()
         print(x.size())
         print(len(y))
         break
 
 
-__all__ = [
-    'CORe50Dataset',
-    'CORe50'
-]
+__all__ = ["CORe50Dataset", "CORe50"]

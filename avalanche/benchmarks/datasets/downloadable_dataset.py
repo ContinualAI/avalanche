@@ -17,11 +17,14 @@ import shutil
 
 import os
 from torch.utils.data.dataset import Dataset, T_co
-from torchvision.datasets.utils import download_and_extract_archive, \
-    extract_archive, download_url, check_integrity
+from torchvision.datasets.utils import (
+    download_and_extract_archive,
+    extract_archive,
+    download_url,
+    check_integrity,
+)
 
-from avalanche.benchmarks.datasets.dataset_utils import \
-    default_dataset_location
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 
 
 class DownloadableDataset(Dataset[T_co], ABC):
@@ -63,10 +66,11 @@ class DownloadableDataset(Dataset[T_co], ABC):
     """
 
     def __init__(
-            self,
-            root: Union[str, Path],
-            download: bool = True,
-            verbose: bool = False):
+        self,
+        root: Union[str, Path],
+        download: bool = True,
+        verbose: bool = False,
+    ):
         """
         Creates an instance of a downloadable dataset.
 
@@ -126,12 +130,14 @@ class DownloadableDataset(Dataset[T_co], ABC):
 
         if metadata_loaded:
             if self.verbose:
-                print('Files already downloaded and verified')
+                print("Files already downloaded and verified")
             return
 
         if not self.download:
-            msg = 'Error loading dataset metadata (dataset download was ' \
-                  'not attempted as "download" is set to False)'
+            msg = (
+                "Error loading dataset metadata (dataset download was "
+                'not attempted as "download" is set to False)'
+            )
             if metadata_load_error is None:
                 raise RuntimeError(msg)
             else:
@@ -149,8 +155,9 @@ class DownloadableDataset(Dataset[T_co], ABC):
             err_msg = self._download_error_message()
             print(err_msg)
             raise RuntimeError(
-                'Error loading dataset metadata (... but the download '
-                'procedure completed successfully)')
+                "Error loading dataset metadata (... but the download "
+                "procedure completed successfully)"
+            )
 
     @abstractmethod
     def _download_dataset(self) -> None:
@@ -208,10 +215,9 @@ class DownloadableDataset(Dataset[T_co], ABC):
         shutil.rmtree(self.root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def _download_file(self,
-                       url: str,
-                       file_name: str,
-                       checksum: Optional[str]) -> Path:
+    def _download_file(
+        self, url: str, file_name: str, checksum: Optional[str]
+    ) -> Path:
         """
         Utility method that can be used to download and verify a file.
 
@@ -225,14 +231,15 @@ class DownloadableDataset(Dataset[T_co], ABC):
         :return: The path to the downloaded file.
         """
         self.root.mkdir(parents=True, exist_ok=True)
-        download_url(url, str(self.root), filename=file_name,
-                     md5=checksum)
+        download_url(url, str(self.root), filename=file_name, md5=checksum)
         return self.root / file_name
 
-    def _extract_archive(self,
-                         path: Union[str, Path],
-                         sub_directory: str = None,
-                         remove_archive: bool = False) -> Path:
+    def _extract_archive(
+        self,
+        path: Union[str, Path],
+        sub_directory: str = None,
+        remove_archive: bool = False,
+    ) -> Path:
         """
         Utility method that can be used to extract an archive.
 
@@ -253,14 +260,20 @@ class DownloadableDataset(Dataset[T_co], ABC):
         else:
             extract_root = self.root / sub_directory
 
-        extract_archive(str(path), to_path=str(extract_root),
-                        remove_finished=remove_archive)
+        extract_archive(
+            str(path), to_path=str(extract_root), remove_finished=remove_archive
+        )
 
         return extract_root
 
     def _download_and_extract_archive(
-            self, url: str, file_name: str, checksum: Optional[str],
-            sub_directory: str = None, remove_archive: bool = False) -> Path:
+        self,
+        url: str,
+        file_name: str,
+        checksum: Optional[str],
+        sub_directory: str = None,
+        remove_archive: bool = False,
+    ) -> Path:
         """
         Utility that downloads and extracts an archive.
 
@@ -288,8 +301,13 @@ class DownloadableDataset(Dataset[T_co], ABC):
 
         self.root.mkdir(parents=True, exist_ok=True)
         download_and_extract_archive(
-            url, str(self.root), extract_root=str(extract_root),
-            filename=file_name, md5=checksum, remove_finished=remove_archive)
+            url,
+            str(self.root),
+            extract_root=str(extract_root),
+            filename=file_name,
+            md5=checksum,
+            remove_finished=remove_archive,
+        )
 
         return extract_root
 
@@ -327,12 +345,13 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
     """
 
     def __init__(
-            self,
-            root_or_dataset_name: str,
-            url: str,
-            checksum: Optional[str],
-            download: bool = False,
-            verbose: bool = False):
+        self,
+        root_or_dataset_name: str,
+        url: str,
+        checksum: Optional[str],
+        download: bool = False,
+        verbose: bool = False,
+    ):
         """
         Creates an instance of a simple downloadable dataset.
 
@@ -363,8 +382,11 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
         self.url = url
         self.checksum = checksum
 
-        is_path = (isinstance(root_or_dataset_name, Path) or
-                   '/' in root_or_dataset_name or '\\' in root_or_dataset_name)
+        is_path = (
+            isinstance(root_or_dataset_name, Path)
+            or "/" in root_or_dataset_name
+            or "\\" in root_or_dataset_name
+        )
 
         if is_path:
             root = Path(root_or_dataset_name)
@@ -372,21 +394,25 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
             root = default_dataset_location(root_or_dataset_name)
 
         super(SimpleDownloadableDataset, self).__init__(
-            root, download=download, verbose=verbose)
+            root, download=download, verbose=verbose
+        )
 
     def _download_dataset(self) -> None:
         filename = os.path.basename(self.url)
         self._download_and_extract_archive(
-            self.url, filename, self.checksum, sub_directory=None,
-            remove_archive=False)
+            self.url,
+            filename,
+            self.checksum,
+            sub_directory=None,
+            remove_archive=False,
+        )
 
     def _download_error_message(self) -> str:
-        return 'Error downloading the dataset. Consider downloading ' \
-               'it manually at: ' + self.url + ' and placing it ' \
-               'in: ' + str(self.root)
+        return (
+            "Error downloading the dataset. Consider downloading "
+            "it manually at: " + self.url + " and placing it "
+            "in: " + str(self.root)
+        )
 
 
-__all__ = [
-    'DownloadableDataset',
-    'SimpleDownloadableDataset'
-]
+__all__ = ["DownloadableDataset", "SimpleDownloadableDataset"]

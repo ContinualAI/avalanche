@@ -9,14 +9,34 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
-from avalanche.models import MTSimpleMLP, SimpleMLP, IncrementalClassifier, \
-    MultiHeadClassifier, SimpleCNN, NCMClassifier, TrainEvalModel
-from avalanche.models.dynamic_optimizers import add_new_params_to_optimizer, \
-    update_optimizer
+from avalanche.models import (
+    MTSimpleMLP,
+    SimpleMLP,
+    IncrementalClassifier,
+    MultiHeadClassifier,
+    SimpleCNN,
+    NCMClassifier,
+    TrainEvalModel,
+    PNN,
+)
+from avalanche.models.dynamic_optimizers import (
+    add_new_params_to_optimizer,
+    update_optimizer,
+)
+from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.strategies import Naive
-from avalanche.models.pytorchcv_wrapper import vgg, resnet, densenet, \
-    pyramidnet, get_model
-from tests.unit_tests_utils import common_setups, get_fast_benchmark
+from avalanche.models.pytorchcv_wrapper import (
+    vgg,
+    resnet,
+    densenet,
+    pyramidnet,
+    get_model,
+)
+from tests.unit_tests_utils import (
+    common_setups,
+    get_fast_benchmark,
+    load_benchmark,
+)
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -24,11 +44,11 @@ class PytorchcvWrapperTests(unittest.TestCase):
         common_setups()
 
     def test_vgg(self):
-        model = vgg(depth=19, batch_normalization=True,
-                    pretrained=False)
+        model = vgg(depth=19, batch_normalization=True, pretrained=False)
         # Batch norm is activated
-        self.assertIsInstance(model.features.stage1.unit1.bn,
-                              torch.nn.BatchNorm2d)
+        self.assertIsInstance(
+            model.features.stage1.unit1.bn, torch.nn.BatchNorm2d
+        )
         # Check correct depth is loaded
         self.assertEqual(len(model.features.stage5), 5)
 
@@ -46,22 +66,24 @@ class PytorchcvWrapperTests(unittest.TestCase):
 
     def test_pyramidnet(self):
         model = pyramidnet("cifar10", depth=110)
-        self.assertIsInstance(model,
-                              pytorchcv.models.pyramidnet_cifar.CIFARPyramidNet)
+        self.assertIsInstance(
+            model, pytorchcv.models.pyramidnet_cifar.CIFARPyramidNet
+        )
         model = pyramidnet("imagenet", depth=101)
-        self.assertIsInstance(model,
-                              pytorchcv.models.pyramidnet.PyramidNet)
+        self.assertIsInstance(model, pytorchcv.models.pyramidnet.PyramidNet)
 
     def test_densenet(self):
         model = densenet("svhn", depth=40)
-        self.assertIsInstance(model,
-                              pytorchcv.models.densenet_cifar.CIFARDenseNet)
+        self.assertIsInstance(
+            model, pytorchcv.models.densenet_cifar.CIFARDenseNet
+        )
 
     def test_get_model(self):
         # Check general wrapper and whether downloading pretrained model works
-        model = get_model('simplepose_resnet18_coco', pretrained=True)
-        self.assertIsInstance(model,
-                              pytorchcv.models.simplepose_coco.SimplePose)
+        model = get_model("simplepose_resnet18_coco", pretrained=True)
+        self.assertIsInstance(
+            model, pytorchcv.models.simplepose_coco.SimplePose
+        )
 
 
 class DynamicOptimizersTests(unittest.TestCase):
@@ -70,7 +92,7 @@ class DynamicOptimizersTests(unittest.TestCase):
 
     def _is_param_in_optimizer(self, param, optimizer):
         for group in optimizer.param_groups:
-            for curr_p in group['params']:
+            for curr_p in group["params"]:
                 if hash(curr_p) == hash(param):
                     return True
         return False
@@ -97,7 +119,8 @@ class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
         self.benchmark = get_fast_benchmark(
-            use_task_labels=False, shuffle=False)
+            use_task_labels=False, shuffle=False
+        )
 
     def test_incremental_classifier(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
@@ -106,21 +129,34 @@ class DynamicModelsTests(unittest.TestCase):
         criterion = CrossEntropyLoss()
         benchmark = self.benchmark
 
-        strategy = Naive(model, optimizer, criterion,
-                         train_mb_size=100, train_epochs=1,
-                         eval_mb_size=100, device='cpu')
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=100,
+            train_epochs=1,
+            eval_mb_size=100,
+            device="cpu",
+        )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        print("Current Classes: ",
-              benchmark.train_stream[0].classes_in_this_experience)
-        print("Current Classes: ",
-              benchmark.train_stream[4].classes_in_this_experience)
+        print(
+            "Current Classes: ",
+            benchmark.train_stream[0].classes_in_this_experience,
+        )
+        print(
+            "Current Classes: ",
+            benchmark.train_stream[4].classes_in_this_experience,
+        )
 
         # train on first task
         strategy.train(benchmark.train_stream[0])
         w_ptr = model.classifier.classifier.weight.data_ptr()
         b_ptr = model.classifier.classifier.bias.data_ptr()
-        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
-                           for w in group['params']]
+        opt_params_ptrs = [
+            w.data_ptr()
+            for group in optimizer.param_groups
+            for w in group["params"]
+        ]
         # classifier params should be optimized
         assert w_ptr in opt_params_ptrs
         assert b_ptr in opt_params_ptrs
@@ -137,8 +173,11 @@ class DynamicModelsTests(unittest.TestCase):
         # update classifier with new classes.
         old_w_ptr, old_b_ptr = w_ptr, b_ptr
         strategy.train(benchmark.train_stream[4])
-        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
-                           for w in group['params']]
+        opt_params_ptrs = [
+            w.data_ptr()
+            for group in optimizer.param_groups
+            for w in group["params"]
+        ]
         new_w_ptr = model.classifier.classifier.weight.data_ptr()
         new_b_ptr = model.classifier.classifier.bias.data_ptr()
         # weights should change.
@@ -156,9 +195,15 @@ class DynamicModelsTests(unittest.TestCase):
         criterion = CrossEntropyLoss()
         benchmark = self.benchmark
 
-        strategy = Naive(model, optimizer, criterion,
-                         train_mb_size=100, train_epochs=1,
-                         eval_mb_size=100, device='cpu')
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=100,
+            train_epochs=1,
+            eval_mb_size=100,
+            device="cpu",
+        )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
 
         # train on first task
@@ -172,8 +217,8 @@ class DynamicModelsTests(unittest.TestCase):
         b_new = model.classifier.bias.clone()
 
         # old weights should be copied correctly.
-        assert torch.equal(w_old, w_new[:w_old.shape[0]])
-        assert torch.equal(b_old, b_new[:w_old.shape[0]])
+        assert torch.equal(w_old, w_new[: w_old.shape[0]])
+        assert torch.equal(b_old, b_new[: w_old.shape[0]])
 
         # shape should be correct.
         assert w_new.shape[0] == max(dataset.targets) + 1
@@ -187,34 +232,52 @@ class DynamicModelsTests(unittest.TestCase):
         criterion = CrossEntropyLoss()
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
-        strategy = Naive(model, optimizer, criterion,
-                         train_mb_size=100, train_epochs=1,
-                         eval_mb_size=100, device='cpu')
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=100,
+            train_epochs=1,
+            eval_mb_size=100,
+            device="cpu",
+        )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        print("Current Classes: ",
-              benchmark.train_stream[4].classes_in_this_experience)
-        print("Current Classes: ",
-              benchmark.train_stream[0].classes_in_this_experience)
+        print(
+            "Current Classes: ",
+            benchmark.train_stream[4].classes_in_this_experience,
+        )
+        print(
+            "Current Classes: ",
+            benchmark.train_stream[0].classes_in_this_experience,
+        )
 
         # head creation
         strategy.train(benchmark.train_stream[0])
-        w_ptr = model.classifier.classifiers['0'].classifier.weight.data_ptr()
-        b_ptr = model.classifier.classifiers['0'].classifier.bias.data_ptr()
-        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
-                           for w in group['params']]
+        w_ptr = model.classifier.classifiers["0"].classifier.weight.data_ptr()
+        b_ptr = model.classifier.classifiers["0"].classifier.bias.data_ptr()
+        opt_params_ptrs = [
+            w.data_ptr()
+            for group in optimizer.param_groups
+            for w in group["params"]
+        ]
         assert w_ptr in opt_params_ptrs
         assert b_ptr in opt_params_ptrs
 
         # head update
         strategy.train(benchmark.train_stream[4])
         w_ptr_t0 = model.classifier.classifiers[
-            '0'].classifier.weight.data_ptr()
-        b_ptr_t0 = model.classifier.classifiers['0'].classifier.bias.data_ptr()
+            "0"
+        ].classifier.weight.data_ptr()
+        b_ptr_t0 = model.classifier.classifiers["0"].classifier.bias.data_ptr()
         w_ptr_new = model.classifier.classifiers[
-            '4'].classifier.weight.data_ptr()
-        b_ptr_new = model.classifier.classifiers['4'].classifier.bias.data_ptr()
-        opt_params_ptrs = [w.data_ptr() for group in optimizer.param_groups
-                           for w in group['params']]
+            "4"
+        ].classifier.weight.data_ptr()
+        b_ptr_new = model.classifier.classifiers["4"].classifier.bias.data_ptr()
+        opt_params_ptrs = [
+            w.data_ptr()
+            for group in optimizer.param_groups
+            for w in group["params"]
+        ]
 
         assert w_ptr not in opt_params_ptrs  # head0 has been updated
         assert b_ptr not in opt_params_ptrs  # head0 has been updated
@@ -231,9 +294,15 @@ class DynamicModelsTests(unittest.TestCase):
         criterion = CrossEntropyLoss()
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
-        strategy = Naive(model, optimizer, criterion,
-                         train_mb_size=100, train_epochs=1,
-                         eval_mb_size=100, device='cpu')
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=100,
+            train_epochs=1,
+            eval_mb_size=100,
+            device="cpu",
+        )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
 
         # initialize head
@@ -241,26 +310,25 @@ class DynamicModelsTests(unittest.TestCase):
         strategy.train(benchmark.train_stream[4])
 
         # create models with fixed head
-        model_t0 = model.classifiers['0']
-        model_t4 = model.classifiers['4']
+        model_t0 = model.classifiers["0"]
+        model_t4 = model.classifiers["4"]
 
         # check head task0
         for x, y, t in DataLoader(benchmark.train_stream[0].dataset):
             y_mh = model(x, t)
             y_t = model_t0(x)
-            assert ((y_mh - y_t) ** 2).sum() < 1.e-7
+            assert ((y_mh - y_t) ** 2).sum() < 1.0e-7
             break
 
         # check head task4
         for x, y, t in DataLoader(benchmark.train_stream[4].dataset):
             y_mh = model(x, t)
             y_t = model_t4(x)
-            assert ((y_mh - y_t) ** 2).sum() < 1.e-7
+            assert ((y_mh - y_t) ** 2).sum() < 1.0e-7
             break
 
 
 class TrainEvalModelTests(unittest.TestCase):
-
     def test_classifier_selection(self):
         base_model = SimpleCNN()
 
@@ -268,9 +336,11 @@ class TrainEvalModelTests(unittest.TestCase):
         classifier1 = base_model.classifier
         classifier2 = NCMClassifier()
 
-        model = TrainEvalModel(feature_extractor,
-                               train_classifier=classifier1,
-                               eval_classifier=classifier2)
+        model = TrainEvalModel(
+            feature_extractor,
+            train_classifier=classifier1,
+            eval_classifier=classifier2,
+        )
 
         model.eval()
         model.adaptation()
@@ -288,21 +358,16 @@ class TrainEvalModelTests(unittest.TestCase):
 
 
 class NCMClassifierTest(unittest.TestCase):
-
     def test_ncm_classification(self):
-        class_means = torch.tensor([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]
-        ], dtype=torch.float)
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            dtype=torch.float,
+        )
 
-        mb_x = torch.tensor([
-            [4, 3, 2, 1],
-            [3, 4, 2, 1],
-            [3, 2, 4, 1],
-            [3, 2, 1, 4]
-        ], dtype=torch.float)
+        mb_x = torch.tensor(
+            [[4, 3, 2, 1], [3, 4, 2, 1], [3, 2, 4, 1], [3, 2, 1, 4]],
+            dtype=torch.float,
+        )
 
         mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
 
@@ -310,3 +375,23 @@ class NCMClassifierTest(unittest.TestCase):
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
+
+
+class PNNTest(unittest.TestCase):
+    def test_pnn_on_multiple_tasks(self):
+        model = PNN(
+            num_layers=2,
+            in_features=6,
+            hidden_features_per_column=10,
+            adapter="mlp",
+        )
+        benchmark = load_benchmark(use_task_labels=True)
+        d0 = benchmark.train_stream[0].dataset
+        mb0 = iter(DataLoader(d0)).__next__()
+        d1 = benchmark.train_stream[1].dataset
+        mb1 = iter(DataLoader(d1)).__next__()
+
+        avalanche_model_adaptation(model, d0)
+        avalanche_model_adaptation(model, d1)
+        model(mb0[0], task_labels=mb0[-1])
+        model(mb1[0], task_labels=mb1[-1])

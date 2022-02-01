@@ -11,14 +11,17 @@
 
 import torch.nn as nn
 
-from avalanche.models.dynamic_modules import MultiTaskModule, \
-    MultiHeadClassifier
+from avalanche.models.dynamic_modules import (
+    MultiTaskModule,
+    MultiHeadClassifier,
+)
 
 
 class SimpleCNN(nn.Module):
     """
     Convolutional Neural Network
     """
+
     def __init__(self, num_classes=10):
         super(SimpleCNN, self).__init__()
 
@@ -38,11 +41,9 @@ class SimpleCNN(nn.Module):
             nn.Conv2d(64, 64, kernel_size=1, padding=0),
             nn.ReLU(inplace=True),
             nn.AdaptiveMaxPool2d(1),
-            nn.Dropout(p=0.25)
+            nn.Dropout(p=0.25),
         )
-        self.classifier = nn.Sequential(
-            nn.Linear(64, num_classes)
-        )
+        self.classifier = nn.Sequential(nn.Linear(64, num_classes))
 
     def forward(self, x):
         x = self.features(x)
@@ -54,6 +55,7 @@ class SimpleCNN(nn.Module):
 class MTSimpleCNN(SimpleCNN, MultiTaskModule):
     """Convolutional Neural Network
     with multi-head classifier"""
+
     def __init__(self):
         super().__init__()
         self.classifier = MultiHeadClassifier(64)
@@ -65,7 +67,4 @@ class MTSimpleCNN(SimpleCNN, MultiTaskModule):
         return x
 
 
-__all__ = [
-    'SimpleCNN',
-    'MTSimpleCNN'
-]
+__all__ = ["SimpleCNN", "MTSimpleCNN"]

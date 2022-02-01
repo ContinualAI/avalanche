@@ -11,8 +11,10 @@
 
 import torch.nn as nn
 
-from avalanche.models.dynamic_modules import MultiTaskModule, \
-    MultiHeadClassifier
+from avalanche.models.dynamic_modules import (
+    MultiTaskModule,
+    MultiHeadClassifier,
+)
 from avalanche.models.base_model import BaseModel
 
 
@@ -21,8 +23,15 @@ class SimpleMLP(nn.Module, BaseModel):
     Multi-Layer Perceptron with custom parameters.
     It can be configured to have multiple layers and dropout.
     """
-    def __init__(self, num_classes=10, input_size=28 * 28,
-                 hidden_size=512, hidden_layers=1, drop_rate=0.5):
+
+    def __init__(
+        self,
+        num_classes=10,
+        input_size=28 * 28,
+        hidden_size=512,
+        hidden_layers=1,
+        drop_rate=0.5,
+    ):
         """
         :param num_classes: output size
         :param input_size: input size
@@ -32,15 +41,24 @@ class SimpleMLP(nn.Module, BaseModel):
         """
         super().__init__()
 
-        layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
-                                 nn.ReLU(inplace=True),
-                                 nn.Dropout(p=drop_rate)))
+        layers = nn.Sequential(
+            *(
+                nn.Linear(input_size, hidden_size),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=drop_rate),
+            )
+        )
         for layer_idx in range(hidden_layers - 1):
             layers.add_module(
-                f"fc{layer_idx + 1}", nn.Sequential(
-                    *(nn.Linear(hidden_size, hidden_size),
-                      nn.ReLU(inplace=True),
-                      nn.Dropout())))
+                f"fc{layer_idx + 1}",
+                nn.Sequential(
+                    *(
+                        nn.Linear(hidden_size, hidden_size),
+                        nn.ReLU(inplace=True),
+                        nn.Dropout(p=drop_rate),
+                    )
+                ),
+            )
 
         self.features = nn.Sequential(*layers)
         self.classifier = nn.Linear(hidden_size, num_classes)
@@ -62,6 +80,7 @@ class SimpleMLP(nn.Module, BaseModel):
 
 class MTSimpleMLP(MultiTaskModule):
     """Multi-layer perceptron with multi-head classifier"""
+
     def __init__(self, input_size=28 * 28, hidden_size=512):
         super().__init__()
 
@@ -81,7 +100,4 @@ class MTSimpleMLP(MultiTaskModule):
         return x
 
 
-__all__ = [
-    'SimpleMLP',
-    'MTSimpleMLP'
-]
+__all__ = ["SimpleMLP", "MTSimpleMLP"]

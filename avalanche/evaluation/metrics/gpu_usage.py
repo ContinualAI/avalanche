@@ -18,6 +18,7 @@ from typing import Optional, TYPE_CHECKING, List
 
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricResult
+
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
 
@@ -55,8 +56,9 @@ class MaxGPU(Metric[float]):
             warnings.warn("Your system has no GPU!")
             self.gpu_id = None
         elif gpu_id < 0:
-            warnings.warn("GPU metric called with negative GPU id."
-                          "GPU logging disabled")
+            warnings.warn(
+                "GPU metric called with negative GPU id." "GPU logging disabled"
+            )
             self.gpu_id = None
         else:
             if gpu_id >= n_gpus:
@@ -90,13 +92,15 @@ class MaxGPU(Metric[float]):
             gpu_perc = GPUtil.getGPUs()[self.gpu_id].load * 100
             if gpu_perc > self.max_usage:
                 self.max_usage = gpu_perc
-            time.sleep(self.every - ((time.monotonic() - start_time)
-                                     % self.every))
+            time.sleep(
+                self.every - ((time.monotonic() - start_time) % self.every)
+            )
 
     def start_thread(self):
         if self.gpu_id is not None:
-            assert not self.thread, "Trying to start thread " \
-                                    "without joining the previous."
+            assert not self.thread, (
+                "Trying to start thread " "without joining the previous."
+            )
             self.thread = Thread(target=self._f, daemon=True)
             self.thread.start()
 
@@ -133,8 +137,8 @@ class GPUPluginMetric(GenericPluginMetric[float]):
         self._gpu = MaxGPU(gpu_id, every)
 
         super(GPUPluginMetric, self).__init__(
-            self._gpu, reset_at=reset_at, emit_at=emit_at,
-            mode=mode)
+            self._gpu, reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
 
     def update(self, strategy):
         self._gpu.update()
@@ -155,15 +159,18 @@ class MinibatchMaxGPU(GPUPluginMetric):
             usage
         """
         super(MinibatchMaxGPU, self).__init__(
-            gpu_id, every,
-            reset_at='iteration', emit_at='iteration', mode='train')
+            gpu_id,
+            every,
+            reset_at="iteration",
+            emit_at="iteration",
+            mode="train",
+        )
 
-    def before_training(self, strategy: 'BaseStrategy') \
-            -> None:
+    def before_training(self, strategy: "BaseStrategy") -> None:
         super().before_training(strategy)
         self._gpu.start_thread()
 
-    def after_training(self, strategy: 'BaseStrategy') -> None:
+    def after_training(self, strategy: "BaseStrategy") -> None:
         super().before_training(strategy)
         self._gpu.stop_thread()
 
@@ -186,14 +193,14 @@ class EpochMaxGPU(GPUPluginMetric):
             usage
         """
         super(EpochMaxGPU, self).__init__(
-            gpu_id, every,
-            reset_at='epoch', emit_at='epoch', mode='train')
+            gpu_id, every, reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
-    def before_training(self, strategy: 'BaseStrategy'):
+    def before_training(self, strategy: "BaseStrategy"):
         super().before_training(strategy)
         self._gpu.start_thread()
 
-    def after_training(self, strategy: 'BaseStrategy') -> None:
+    def after_training(self, strategy: "BaseStrategy") -> None:
         self._gpu.stop_thread()
 
     def __str__(self):
@@ -215,14 +222,18 @@ class ExperienceMaxGPU(GPUPluginMetric):
             usage
         """
         super(ExperienceMaxGPU, self).__init__(
-            gpu_id, every,
-            reset_at='experience', emit_at='experience', mode='eval')
+            gpu_id,
+            every,
+            reset_at="experience",
+            emit_at="experience",
+            mode="eval",
+        )
 
-    def before_eval(self, strategy: 'BaseStrategy'):
+    def before_eval(self, strategy: "BaseStrategy"):
         super().before_eval(strategy)
         self._gpu.start_thread()
 
-    def after_eval(self, strategy: 'BaseStrategy'):
+    def after_eval(self, strategy: "BaseStrategy"):
         super().after_eval(strategy)
         self._gpu.stop_thread()
 
@@ -245,15 +256,14 @@ class StreamMaxGPU(GPUPluginMetric):
             usage
         """
         super(StreamMaxGPU, self).__init__(
-            gpu_id, every,
-            reset_at='stream', emit_at='stream', mode='eval')
+            gpu_id, every, reset_at="stream", emit_at="stream", mode="eval"
+        )
 
     def before_eval(self, strategy):
         super().before_eval(strategy)
         self._gpu.start_thread()
 
-    def after_eval(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def after_eval(self, strategy: "BaseStrategy") -> MetricResult:
         packed = super().after_eval(strategy)
         self._gpu.stop_thread()
         return packed
@@ -262,8 +272,14 @@ class StreamMaxGPU(GPUPluginMetric):
         return f"MaxGPU{self.gpu_id}Usage_Stream"
 
 
-def gpu_usage_metrics(gpu_id, every=0.5, minibatch=False, epoch=False,
-                      experience=False, stream=False) -> List[PluginMetric]:
+def gpu_usage_metrics(
+    gpu_id,
+    every=0.5,
+    minibatch=False,
+    epoch=False,
+    experience=False,
+    stream=False,
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -300,10 +316,10 @@ def gpu_usage_metrics(gpu_id, every=0.5, minibatch=False, epoch=False,
 
 
 __all__ = [
-    'MaxGPU',
-    'MinibatchMaxGPU',
-    'EpochMaxGPU',
-    'ExperienceMaxGPU',
-    'StreamMaxGPU',
-    'gpu_usage_metrics'
+    "MaxGPU",
+    "MinibatchMaxGPU",
+    "EpochMaxGPU",
+    "ExperienceMaxGPU",
+    "StreamMaxGPU",
+    "gpu_usage_metrics",
 ]

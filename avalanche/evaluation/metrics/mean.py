@@ -21,6 +21,7 @@ class Mean(Metric[float]):
     This utility metric is a general purpose metric that can be used to keep
     track of the mean of a sequence of values.
     """
+
     def __init__(self):
         """
         Creates an instance of the mean metric.
@@ -69,7 +70,7 @@ class Mean(Metric[float]):
         self.summed = 0.0
         self.weight = 0.0
 
-    def __add__(self, other: 'Mean') -> "Mean":
+    def __add__(self, other: "Mean") -> "Mean":
         """
         Return a metric representing the weighted mean of the 2 means.
 
@@ -130,4 +131,4 @@ class Sum(Metric[float]):
         self.summed = 0.0
 
 
-__all__ = ['Mean', 'Sum']
+__all__ = ["Mean", "Sum"]

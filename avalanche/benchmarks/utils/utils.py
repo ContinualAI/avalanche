@@ -33,11 +33,12 @@ def tensor_as_list(sequence) -> List:
     return list(sequence)
 
 
-def _indexes_grouped_by_classes(targets: Sequence[int],
-                                patterns_indexes: Union[None, Sequence[int]],
-                                sort_indexes: bool = True,
-                                sort_classes: bool = True) \
-        -> Union[List[int], None]:
+def _indexes_grouped_by_classes(
+    targets: Sequence[int],
+    patterns_indexes: Union[None, Sequence[int]],
+    sort_indexes: bool = True,
+    sort_classes: bool = True,
+) -> Union[List[int], None]:
     result_per_class: Dict[int, List[int]] = OrderedDict()
     result: List[int] = []
 
@@ -54,8 +55,9 @@ def _indexes_grouped_by_classes(targets: Sequence[int],
     # This means that, if sort_classes is True, the next for statement
     # will initialize "result_per_class" in sorted order which in turn means
     # that patterns will be ordered by ascending class ID.
-    classes = torch.unique(torch.as_tensor(targets),
-                           sorted=sort_classes).tolist()
+    classes = torch.unique(
+        torch.as_tensor(targets), sorted=sort_classes
+    ).tolist()
 
     for class_id in classes:
         result_per_class[class_id] = []
@@ -84,9 +86,12 @@ def _indexes_grouped_by_classes(targets: Sequence[int],
 
 
 def grouped_and_ordered_indexes(
-        targets: Sequence[int], patterns_indexes: Union[None, Sequence[int]],
-        bucket_classes: bool = True, sort_classes: bool = False,
-        sort_indexes: bool = False) -> Union[List[int], None]:
+    targets: Sequence[int],
+    patterns_indexes: Union[None, Sequence[int]],
+    bucket_classes: bool = True,
+    sort_classes: bool = False,
+    sort_indexes: bool = False,
+) -> Union[List[int], None]:
     """
     Given the targets list of a dataset and the patterns to include, returns the
     pattern indexes sorted according to the ``bucket_classes``,
@@ -110,9 +115,12 @@ def grouped_and_ordered_indexes(
         using the existing patterns order.
     """
     if bucket_classes:
-        return _indexes_grouped_by_classes(targets, patterns_indexes,
-                                           sort_indexes=sort_indexes,
-                                           sort_classes=sort_classes)
+        return _indexes_grouped_by_classes(
+            targets,
+            patterns_indexes,
+            sort_indexes=sort_indexes,
+            sort_classes=sort_classes,
+        )
 
     if patterns_indexes is None:
         # No grouping and sub-set creation required... just return None
@@ -128,7 +136,4 @@ def grouped_and_ordered_indexes(
     return result
 
 
-__all__ = [
-    'tensor_as_list',
-    'grouped_and_ordered_indexes'
-]
+__all__ = ["tensor_as_list", "grouped_and_ordered_indexes"]

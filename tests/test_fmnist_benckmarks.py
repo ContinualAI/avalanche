@@ -10,6 +10,7 @@ MNIST_DOWNLOAD_METHOD = None
 class FMNISTBenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.cfashion_mnist as cfashion_mnist
+
         global MNIST_DOWNLOAD_METHOD
         MNIST_DOWNLOAD_METHOD = cfashion_mnist._get_fmnist_dataset
 
@@ -24,6 +25,7 @@ class FMNISTBenchmarksTests(unittest.TestCase):
         global MNIST_DOWNLOAD_METHOD
         if MNIST_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.cfashion_mnist as cfashion_mnist
+
             cfashion_mnist._get_fmnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
@@ -51,5 +53,5 @@ class FMNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(10000, test_sz)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

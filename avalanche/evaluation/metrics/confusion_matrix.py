@@ -10,8 +10,15 @@
 ################################################################################
 from numpy import arange, ndarray
 from typing_extensions import Literal
-from typing import Callable, Union, Optional, Mapping, TYPE_CHECKING, List, \
-    Sequence
+from typing import (
+    Callable,
+    Union,
+    Optional,
+    Mapping,
+    TYPE_CHECKING,
+    List,
+    Sequence,
+)
 
 import wandb
 import numpy as np
@@ -22,10 +29,16 @@ from torch.nn.functional import pad
 
 from avalanche.benchmarks import NCScenario
 from avalanche.evaluation import PluginMetric, Metric
-from avalanche.evaluation.metric_results import AlternativeValues, \
-    MetricValue, MetricResult
-from avalanche.evaluation.metric_utils import default_cm_image_creator, \
-    phase_and_task, stream_type
+from avalanche.evaluation.metric_results import (
+    AlternativeValues,
+    MetricValue,
+    MetricResult,
+)
+from avalanche.evaluation.metric_utils import (
+    default_cm_image_creator,
+    phase_and_task,
+    stream_type,
+)
 
 if TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -59,8 +72,11 @@ class ConfusionMatrix(Metric[Tensor]):
     this metric in its initial state will return an empty Tensor.
     """
 
-    def __init__(self, num_classes: int = None,
-                 normalize: Literal['true', 'pred', 'all'] = None):
+    def __init__(
+        self,
+        num_classes: int = None,
+        normalize: Literal["true", "pred", "all"] = None,
+    ):
         """
         Creates an instance of the standalone confusion matrix metric.
 
@@ -99,72 +115,79 @@ class ConfusionMatrix(Metric[Tensor]):
         :return: None.
         """
         if len(true_y) != len(predicted_y):
-            raise ValueError('Size mismatch for true_y and predicted_y tensors')
+            raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
         if len(true_y.shape) > 2:
-            raise ValueError('Confusion matrix supports labels with at'
-                             ' most 2 dimensions')
+            raise ValueError(
+                "Confusion matrix supports labels with at" " most 2 dimensions"
+            )
         if len(predicted_y.shape) > 2:
-            raise ValueError('Confusion matrix supports predictions with at '
-                             'most 2 dimensions')
+            raise ValueError(
+                "Confusion matrix supports predictions with at "
+                "most 2 dimensions"
+            )
 
         max_label = -1 if self._num_classes is None else self._num_classes - 1
 
         # SELECT VALID PORTION OF TARGET AND PREDICTIONS
         true_y = torch.as_tensor(true_y)
         if len(true_y.shape) == 2 and self._num_classes is not None:
-            true_y = true_y[:, :max_label+1]
+            true_y = true_y[:, : max_label + 1]
         predicted_y = torch.as_tensor(predicted_y)
         if len(predicted_y.shape) == 2 and self._num_classes is not None:
-            predicted_y = predicted_y[:, :max_label+1]
+            predicted_y = predicted_y[:, : max_label + 1]
 
         # COMPUTE MAX LABEL AND CONVERT TARGET AND PREDICTIONS IF NEEDED
         if len(predicted_y.shape) > 1:
             # Logits -> transform to labels
             if self._num_classes is None:
-                max_label = max(max_label, predicted_y.shape[1]-1)
+                max_label = max(max_label, predicted_y.shape[1] - 1)
             predicted_y = torch.max(predicted_y, 1)[1]
         else:
             # Labels -> check non-negative
             min_label = torch.min(predicted_y).item()
             if min_label < 0:
-                raise ValueError('Label values must be non-negative values')
+                raise ValueError("Label values must be non-negative values")
             if self._num_classes is None:
                 max_label = max(max_label, torch.max(predicted_y).item())
             elif torch.max(predicted_y).item() >= self._num_classes:
-                raise ValueError("Encountered predicted label larger than"
-                                 "num_classes")
+                raise ValueError(
+                    "Encountered predicted label larger than" "num_classes"
+                )
 
         if len(true_y.shape) > 1:
             # Logits -> transform to labels
             if self._num_classes is None:
-                max_label = max(max_label, true_y.shape[1]-1)
+                max_label = max(max_label, true_y.shape[1] - 1)
             true_y = torch.max(true_y, 1)[1]
         else:
             # Labels -> check non-negative
             min_label = torch.min(true_y).item()
             if min_label < 0:
-                raise ValueError('Label values must be non-negative values')
+                raise ValueError("Label values must be non-negative values")
 
             if self._num_classes is None:
                 max_label = max(max_label, torch.max(true_y).item())
             elif torch.max(true_y).item() >= self._num_classes:
-                raise ValueError("Encountered target label larger than"
-                                 "num_classes")
+                raise ValueError(
+                    "Encountered target label larger than" "num_classes"
+                )
 
         if max_label < 0:
-            raise ValueError('The Confusion Matrix metric can only handle '
-                             'positive label values')
+            raise ValueError(
+                "The Confusion Matrix metric can only handle "
+                "positive label values"
+            )
 
         if self._cm_tensor is None:
             # Create the confusion matrix
-            self._cm_tensor = torch.zeros((max_label+1, max_label+1),
-                                          dtype=torch.long)
+            self._cm_tensor = torch.zeros(
+                (max_label + 1, max_label + 1), dtype=torch.long
+            )
         elif max_label >= self._cm_tensor.shape[0]:
             # Enlarge the confusion matrix
             size_diff = 1 + max_label - self._cm_tensor.shape[0]
-            self._cm_tensor = pad(self._cm_tensor,
-                                  (0, size_diff, 0, size_diff))
+            self._cm_tensor = pad(self._cm_tensor, (0, size_diff, 0, size_diff))
 
         for pattern_idx in range(len(true_y)):
             self._cm_tensor[true_y[pattern_idx]][predicted_y[pattern_idx]] += 1
@@ -183,8 +206,9 @@ class ConfusionMatrix(Metric[Tensor]):
                 matrix_shape = (self._num_classes, self._num_classes)
             return torch.zeros(matrix_shape, dtype=torch.long)
         if self.normalize is not None:
-            return ConfusionMatrix._normalize_cm(self._cm_tensor,
-                                                 self.normalize)
+            return ConfusionMatrix._normalize_cm(
+                self._cm_tensor, self.normalize
+            )
         return self._cm_tensor
 
     def reset(self) -> None:
@@ -199,17 +223,20 @@ class ConfusionMatrix(Metric[Tensor]):
         self._cm_tensor = None
 
     @staticmethod
-    def _normalize_cm(cm: Tensor,
-                      normalization: Literal['true', 'pred', 'all']):
-        if normalization not in ('true', 'pred', 'all'):
-            raise ValueError('Invalid normalization parameter. Can be \'true\','
-                             ' \'pred\' or \'all\'')
+    def _normalize_cm(
+        cm: Tensor, normalization: Literal["true", "pred", "all"]
+    ):
+        if normalization not in ("true", "pred", "all"):
+            raise ValueError(
+                "Invalid normalization parameter. Can be 'true',"
+                " 'pred' or 'all'"
+            )
 
-        if normalization == 'true':
+        if normalization == "true":
             cm = cm / cm.sum(dim=1, keepdim=True, dtype=torch.float64)
-        elif normalization == 'pred':
+        elif normalization == "pred":
             cm = cm / cm.sum(dim=0, keepdim=True, dtype=torch.float64)
-        elif normalization == 'all':
+        elif normalization == "all":
             cm = cm / cm.sum(dtype=torch.float64)
         cm = ConfusionMatrix.nan_to_num(cm)
         return cm
@@ -241,13 +268,16 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     confusion matrix.
     """
 
-    def __init__(self,
-                 num_classes: Union[int, Mapping[int, int]] = None,
-                 normalize: Literal['true', 'pred', 'all'] = None,
-                 save_image: bool = True,
-                 image_creator: Callable[[Tensor, Sequence], Image] =
-                 default_cm_image_creator,
-                 absolute_class_order: bool = False):
+    def __init__(
+        self,
+        num_classes: Union[int, Mapping[int, int]] = None,
+        normalize: Literal["true", "pred", "all"] = None,
+        save_image: bool = True,
+        image_creator: Callable[
+            [Tensor, Sequence], Image
+        ] = default_cm_image_creator,
+        absolute_class_order: bool = False,
+    ):
         """
         Creates an instance of the Stream Confusion Matrix metric.
 
@@ -285,13 +315,15 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         self.num_classes = num_classes
         self.normalize = normalize
         self.absolute_class_order = absolute_class_order
-        self._matrix: ConfusionMatrix = ConfusionMatrix(num_classes=num_classes,
-                                                        normalize=normalize)
+        self._matrix: ConfusionMatrix = ConfusionMatrix(
+            num_classes=num_classes, normalize=normalize
+        )
         self._image_creator = image_creator
 
     def reset(self) -> None:
-        self._matrix = ConfusionMatrix(num_classes=self.num_classes,
-                                       normalize=self.normalize)
+        self._matrix = ConfusionMatrix(
+            num_classes=self.num_classes, normalize=self.normalize
+        )
 
     def result(self) -> Tensor:
         exp_cm = self._matrix.result()
@@ -303,42 +335,44 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+    def after_eval_iteration(self, strategy: "BaseStrategy") -> None:
         super().after_eval_iteration(strategy)
-        self.update(strategy.mb_y,
-                    strategy.mb_output)
+        self.update(strategy.mb_y, strategy.mb_output)
 
-    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
+    def after_eval(self, strategy: "BaseStrategy") -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
+    def _package_result(self, strategy: "BaseStrategy") -> MetricResult:
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
+        metric_name = "{}/{}_phase/{}_stream".format(
+            str(self), phase_name, stream
+        )
         plot_x_position = strategy.clock.train_iterations
 
         if self._save_image:
             class_order = self._get_display_class_order(exp_cm, strategy)
 
             cm_image = self._image_creator(
-                exp_cm[class_order][:, class_order],
-                class_order
+                exp_cm[class_order][:, class_order], class_order
             )
             metric_representation = MetricValue(
-                self, metric_name, AlternativeValues(cm_image, exp_cm),
-                plot_x_position)
+                self,
+                metric_name,
+                AlternativeValues(cm_image, exp_cm),
+                plot_x_position,
+            )
         else:
             metric_representation = MetricValue(
-                self, metric_name, exp_cm, plot_x_position)
+                self, metric_name, exp_cm, plot_x_position
+            )
 
         return [metric_representation]
 
-    def _get_display_class_order(self, exp_cm: Tensor, strategy: 'BaseStrategy'
-                                 ) -> ndarray:
+    def _get_display_class_order(
+        self, exp_cm: Tensor, strategy: "BaseStrategy"
+    ) -> ndarray:
         benchmark = strategy.experience.benchmark
 
         if self.absolute_class_order or not isinstance(benchmark, NCScenario):
@@ -390,32 +424,33 @@ class WandBStreamConfusionMatrix(PluginMetric):
         self.outputs.append(output)
         self.targets.append(target)
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy'):
+    def after_eval_iteration(self, strategy: "BaseStrategy"):
         super(WandBStreamConfusionMatrix, self).after_eval_iteration(strategy)
         self.update(strategy.mb_output, strategy.mb_y)
 
-    def after_eval(self, strategy: 'BaseStrategy') -> MetricResult:
+    def after_eval(self, strategy: "BaseStrategy") -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') -> MetricResult:
+    def _package_result(self, strategy: "BaseStrategy") -> MetricResult:
         outputs, targets = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
+        metric_name = "{}/{}_phase/{}_stream".format(
+            str(self), phase_name, stream
+        )
         plot_x_position = strategy.clock.train_iterations
 
         # compute predicted classes
         preds = torch.argmax(outputs, dim=1).cpu().numpy()
-        result = wandb.plot.confusion_matrix(preds=preds,
-                                             y_true=targets.cpu().numpy(),
-                                             class_names=self.class_names)
+        result = wandb.plot.confusion_matrix(
+            preds=preds,
+            y_true=targets.cpu().numpy(),
+            class_names=self.class_names,
+        )
 
         metric_representation = MetricValue(
-            self, metric_name, AlternativeValues(result),
-            plot_x_position)
+            self, metric_name, AlternativeValues(result), plot_x_position
+        )
 
         return [metric_representation]
 
@@ -424,14 +459,14 @@ class WandBStreamConfusionMatrix(PluginMetric):
 
 
 def confusion_matrix_metrics(
-        num_classes=None,
-        normalize=None,
-        save_image=True,
-        image_creator=default_cm_image_creator,
-        class_names=None,
-        stream=False,
-        wandb=False,
-        absolute_class_order: bool = False,
+    num_classes=None,
+    normalize=None,
+    save_image=True,
+    image_creator=default_cm_image_creator,
+    class_names=None,
+    stream=False,
+    wandb=False,
+    absolute_class_order: bool = False,
 ) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
@@ -475,12 +510,14 @@ def confusion_matrix_metrics(
 
     if stream:
         metrics.append(
-            StreamConfusionMatrix(num_classes=num_classes,
-                                  normalize=normalize,
-                                  save_image=save_image,
-                                  image_creator=image_creator,
-                                  absolute_class_order=absolute_class_order,
-                                  ))
+            StreamConfusionMatrix(
+                num_classes=num_classes,
+                normalize=normalize,
+                save_image=save_image,
+                image_creator=image_creator,
+                absolute_class_order=absolute_class_order,
+            )
+        )
         if wandb:
             metrics.append(WandBStreamConfusionMatrix(class_names=class_names))
 
@@ -488,8 +525,8 @@ def confusion_matrix_metrics(
 
 
 __all__ = [
-    'ConfusionMatrix',
-    'StreamConfusionMatrix',
-    'WandBStreamConfusionMatrix',
-    'confusion_matrix_metrics'
+    "ConfusionMatrix",
+    "StreamConfusionMatrix",
+    "WandBStreamConfusionMatrix",
+    "confusion_matrix_metrics",
 ]
