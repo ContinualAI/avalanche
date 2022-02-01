@@ -5,12 +5,12 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class Cumulative(SupervisedStrategy):
+class Cumulative(SupervisedTemplate):
     """Cumulative training strategy.
 
     At each experience, train model with data from all previous experiences
@@ -27,7 +27,7 @@ class Cumulative(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """Init.

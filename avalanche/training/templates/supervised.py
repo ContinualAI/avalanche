@@ -9,15 +9,15 @@ from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.plugins import StrategyPlugin
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.skeletons.base_sgd import BaseSGDStrategy
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.base_sgd import BaseSGDTemplate
 from avalanche.training.utils import trigger_plugins
 
 
-class SupervisedStrategy(BaseSGDStrategy):
+class SupervisedTemplate(BaseSGDTemplate):
     """Base class for continual learning strategies.
 
-    BaseStrategy is the super class of all task-based continual learning
+    BaseTemplate is the super class of all task-based continual learning
     strategies. It implements a basic training loop and callback system
     that allows to execute code at each experience of the training loop.
     Plugins can be used to implement callbacks to augment the training
@@ -71,7 +71,7 @@ class SupervisedStrategy(BaseSGDStrategy):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        evaluator=default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -122,7 +122,7 @@ class SupervisedStrategy(BaseSGDStrategy):
 
             This dataset may contain samples from different experiences. If you 
             want the original data for the current experience  
-            use :attr:`.BaseStrategy.experience`.
+            use :attr:`.BaseTemplate.experience`.
         """
 
     @property

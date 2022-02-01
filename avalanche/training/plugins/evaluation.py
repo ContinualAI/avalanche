@@ -11,7 +11,7 @@ from avalanche.logging import StrategyLogger, InteractiveLogger
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import StrategyLogger
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class EvaluationPlugin(StrategyPlugin):
@@ -38,8 +38,7 @@ class EvaluationPlugin(StrategyPlugin):
         strict_checks=False,
         suppress_warnings=False
     ):
-        """
-        Creates an instance of the evaluation plugin.
+        """Creates an instance of the evaluation plugin.
 
         :param metrics: The metrics to compute.
         :param loggers: The loggers to be used to log the metric values.
@@ -140,19 +139,22 @@ class EvaluationPlugin(StrategyPlugin):
             self.all_metric_results[name][1].append(val)
         self.last_metric_results[name] = val
 
-    def _update_metrics(self, strategy: "SupervisedStrategy", callback: str):
+    def _update_metrics(self, strategy: "SupervisedTemplate", callback: str):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
         if not self._active:
             return []
 
         for metric in self.metrics:
-            metric_result = getattr(metric, callback)(strategy)
-            if isinstance(metric_result, Sequence):
-                for mval in metric_result:
-                    self.publish_metric_value(mval)
-            elif metric_result is not None:
-                self.publish_metric_value(metric_result)
+            try:
+                metric_result = getattr(metric, callback)(strategy)
+                if isinstance(metric_result, Sequence):
+                    for mval in metric_result:
+                        self.publish_metric_value(mval)
+                elif metric_result is not None:
+                    self.publish_metric_value(metric_result)
+            except AttributeError:
+                pass
 
         for logger in self.loggers:
             getattr(logger, callback)(strategy, self._metric_values)
@@ -193,59 +195,18 @@ class EvaluationPlugin(StrategyPlugin):
         """
         self.last_metric_results = {}
 
-    def before_training(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_training")
+    def __getattr__(self, item):
+        # We don't want to reimplement all the callbacks just to call the
+        # metrics. What we don't instead is to assume that any method that
+        # starts with `before` or `after` is a callback of the plugin system,
+        # and we forward that call to the metrics.
+        if item.startswith('before_') or item.startswith('after'):
+            # method is a callback. Forward to metrics.
+            return lambda strat: self._update_metrics(strat, item)
+        else:
+            raise AttributeError(f"EvaluationPlugin.{item} is undefined.")
 
-    def before_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_training_exp")
-
-    def before_train_dataset_adaptation(
-        self, strategy: "SupervisedStrategy", **kwargs
-    ):
-        self._update_metrics(strategy, "before_train_dataset_adaptation")
-
-    def after_train_dataset_adaptation(
-        self, strategy: "SupervisedStrategy", **kwargs
-    ):
-        self._update_metrics(strategy, "after_train_dataset_adaptation")
-
-    def before_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_training_epoch")
-
-    def before_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_training_iteration")
-
-    def before_forward(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_forward")
-
-    def after_forward(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_forward")
-
-    def before_backward(self, strategy: "SupervisedStrategy", **kwargs):
-        self.update_metrics = self._update_metrics(strategy, "before_backward")
-
-    def after_backward(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_backward")
-
-    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_training_iteration")
-
-    def before_update(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_update")
-
-    def after_update(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_update")
-
-    def after_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_training_epoch")
-
-    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_training_exp")
-
-    def after_training(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_training")
-
-    def before_eval(self, strategy: "SupervisedStrategy", **kwargs):
+    def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
         self._update_metrics(strategy, "before_eval")
         msgw = (
             "Evaluation stream is not equal to the complete test stream. "
@@ -271,37 +232,8 @@ class EvaluationPlugin(StrategyPlugin):
                     else:
                         warnings.warn(msgw)
 
-    def before_eval_dataset_adaptation(
-        self, strategy: "SupervisedStrategy", **kwargs
-    ):
-        self._update_metrics(strategy, "before_eval_dataset_adaptation")
 
-    def after_eval_dataset_adaptation(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_eval_dataset_adaptation")
-
-    def before_eval_exp(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_eval_exp")
-
-    def after_eval_exp(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_eval_exp")
-
-    def after_eval(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_eval")
-
-    def before_eval_iteration(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_eval_iteration")
-
-    def before_eval_forward(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "before_eval_forward")
-
-    def after_eval_forward(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_eval_forward")
-
-    def after_eval_iteration(self, strategy: "SupervisedStrategy", **kwargs):
-        self._update_metrics(strategy, "after_eval_iteration")
-
-
-default_logger = EvaluationPlugin(
+default_evaluator = EvaluationPlugin(
     accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     loggers=[InteractiveLogger()],
@@ -309,4 +241,4 @@ default_logger = EvaluationPlugin(
 )
 
 
-__all__ = ["EvaluationPlugin", "default_logger"]
+__all__ = ["EvaluationPlugin", "default_evaluator"]

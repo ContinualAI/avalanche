@@ -40,9 +40,9 @@ class RLBaseStrategy(BaseStrategy):
             discount_factor: float = 0.99, evaluator=default_rl_logger,
             eval_every=-1, eval_episodes: int = 1):
         """
-            RLBaseStrategy specializes BaseStrategy to handle Reinforcement Learning tasks
+            RLBaseStrategy specializes BaseTemplate to handle Reinforcement Learning tasks
             in the continual learning setting and should be subclassed by all RL strategies.
-            It implements a general training loop building on top of the one provided by BaseStrategy,
+            It implements a general training loop building on top of the one provided by BaseTemplate,
             which should be valid for both on and off-policy algorithms, in which at each training
             experience iteration a 'rollout phase' is followed by an 'update'.
             All continual learning scenarios described in the super-class are still supported.

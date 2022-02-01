@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
@@ -170,7 +170,7 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
         """
         return self.forward_transfer.result(k=k)
 
-    def before_training_exp(self, strategy: "SupervisedStrategy") -> None:
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def after_eval(self, strategy):
@@ -180,15 +180,15 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
             ), "eval every > -1 to compute forward transfer"
             self.at_init = False
 
-    def before_eval_exp(self, strategy: "SupervisedStrategy") -> None:
+    def before_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         self._current_metric.reset()
 
-    def after_eval_iteration(self, strategy: "SupervisedStrategy") -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self.metric_update(strategy)
 
-    def after_eval_exp(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> MetricResult:
         if self.at_init:
             self.update(
                 self.eval_exp_id, self.metric_result(strategy), initial=True
@@ -199,7 +199,7 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
 
                 return self._package_result(strategy)
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         # Only after the previous experience was trained on can we return the
         # forward transfer metric for this experience.
         result = self.result(k=self.eval_exp_id)
@@ -318,7 +318,7 @@ class GenericStreamForwardTransfer(GenericExperienceForwardTransfer):
         super().before_eval(strategy)
         self.stream_forward_transfer.reset()
 
-    def after_eval_exp(self, strategy: "SupervisedStrategy") -> None:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         if self.at_init:
             self.update(
                 self.eval_exp_id, self.metric_result(strategy), initial=True
@@ -332,11 +332,11 @@ class GenericStreamForwardTransfer(GenericExperienceForwardTransfer):
                     exp_forward_transfer, weight=1
                 )
 
-    def after_eval(self, strategy: "SupervisedStrategy") -> "MetricResult":
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         super().after_eval(strategy)
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         metric_value = self.result()
 
         phase_name, _ = phase_and_task(strategy)

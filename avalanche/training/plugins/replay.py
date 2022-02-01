@@ -9,7 +9,7 @@ from avalanche.training.storage_policy import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ReplayPlugin(StrategyPlugin):
@@ -60,7 +60,7 @@ class ReplayPlugin(StrategyPlugin):
 
     def before_training_exp(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         num_workers: int = 0,
         shuffle: bool = True,
         **kwargs
@@ -83,5 +83,5 @@ class ReplayPlugin(StrategyPlugin):
             shuffle=shuffle,
         )
 
-    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)

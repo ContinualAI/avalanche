@@ -7,18 +7,18 @@ from torch.optim import Optimizer
 from avalanche.benchmarks import Experience
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.skeletons.base import BaseStrategy
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.base import BaseTemplate
 
 from typing import TYPE_CHECKING
 
 from avalanche.training.utils import trigger_plugins
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class BaseSGDStrategy(BaseStrategy):
+class BaseSGDTemplate(BaseTemplate):
     """Base class for continual learning skeletons.
 
     **Training loop**
@@ -43,7 +43,7 @@ class BaseSGDStrategy(BaseStrategy):
             eval_mb_size: int = 1,
             device="cpu",
             plugins: Optional[Sequence["StrategyPlugin"]] = None,
-            evaluator: EvaluationPlugin = default_logger,
+            evaluator: EvaluationPlugin = default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
     ):
@@ -312,7 +312,7 @@ class BaseSGDStrategy(BaseStrategy):
 class PeriodicEval(StrategyPlugin):
     """Schedules periodic evaluation during training.
 
-    This plugin is automatically configured and added by the BaseStrategy.
+    This plugin is automatically configured and added by the BaseTemplate.
     """
 
     def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
@@ -377,13 +377,13 @@ class PeriodicEval(StrategyPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy)
 
-    def after_training_epoch(self, strategy: "SupervisedStrategy", **kwargs):
+    def after_training_epoch(self, strategy: "SupervisedTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
+    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":

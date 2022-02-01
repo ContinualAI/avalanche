@@ -17,7 +17,7 @@ from avalanche.logging import TextLogger
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class InteractiveLogger(TextLogger):
@@ -54,7 +54,7 @@ class InteractiveLogger(TextLogger):
 
     def before_training_epoch(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -63,7 +63,7 @@ class InteractiveLogger(TextLogger):
 
     def after_training_epoch(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -72,7 +72,7 @@ class InteractiveLogger(TextLogger):
 
     def before_eval_exp(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -81,7 +81,7 @@ class InteractiveLogger(TextLogger):
 
     def after_eval_exp(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -90,7 +90,7 @@ class InteractiveLogger(TextLogger):
 
     def after_training_iteration(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -100,7 +100,7 @@ class InteractiveLogger(TextLogger):
 
     def after_eval_iteration(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):

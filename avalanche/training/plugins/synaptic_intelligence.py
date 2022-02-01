@@ -13,7 +13,7 @@ from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 from avalanche.training.utils import get_layers_and_params
 
 if TYPE_CHECKING:
-    from ..skeletons.supervised import SupervisedStrategy
+    from ..templates.supervised import SupervisedTemplate
 
 SynDataType = Dict[str, Dict[str, Tensor]]
 
@@ -91,7 +91,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
 
         self._device = device
 
-    def before_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
+    def before_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         super().before_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.create_syn_data(
             strategy.model,
@@ -107,7 +107,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             self.excluded_parameters,
         )
 
-    def before_backward(self, strategy: "SupervisedStrategy", **kwargs):
+    def before_backward(self, strategy: "SupervisedTemplate", **kwargs):
         super().before_backward(strategy, **kwargs)
 
         exp_id = strategy.clock.train_exp_counter
@@ -127,19 +127,19 @@ class SynapticIntelligencePlugin(StrategyPlugin):
         if syn_loss is not None:
             strategy.loss += syn_loss.to(strategy.device)
 
-    def before_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
+    def before_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         super().before_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.pre_update(
             strategy.model, self.syn_data, self.excluded_parameters
         )
 
-    def after_training_iteration(self, strategy: "SupervisedStrategy", **kwargs):
+    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         super().after_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.post_update(
             strategy.model, self.syn_data, self.excluded_parameters
         )
 
-    def after_training_exp(self, strategy: "SupervisedStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         super().after_training_exp(strategy, **kwargs)
         SynapticIntelligencePlugin.update_ewc_data(
             strategy.model,
@@ -151,7 +151,7 @@ class SynapticIntelligencePlugin(StrategyPlugin):
             eps=self.eps,
         )
 
-    def device(self, strategy: "SupervisedStrategy"):
+    def device(self, strategy: "SupervisedTemplate"):
         if self._device == "as_strategy":
             return strategy.device
 

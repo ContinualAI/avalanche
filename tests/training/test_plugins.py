@@ -644,6 +644,27 @@ class EvaluationPluginTest(unittest.TestCase):
         # check key exists
         assert len(ep.get_all_metrics()["metric"][1]) == 1
 
+    def test_forward_callbacks(self):
+        # The EvaluationPlugin should forward all the callbacks to metrics,
+        # even those that are unused by the EvaluationPlugin itself.
+        class MetricMock:
+            def __init__(self):
+                self.x = 0
+
+            def before_blabla(self, strategy):
+                self.x += 1
+
+        met = MetricMock()
+        evalp = EvaluationPlugin(met)
+        evalp.before_blabla(None)
+
+        # it should ignore undefined callbacks
+        evalp.after_blabla(None)
+
+        # it should raise error for other undefined attributes
+        with self.assertRaises(AttributeError):
+            evalp.asd(None)
+
 
 class EarlyStoppingPluginTest(unittest.TestCase):
     def test_early_stop_epochs(self):

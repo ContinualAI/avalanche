@@ -18,7 +18,7 @@ from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ElapsedTime(Metric[float]):
@@ -178,7 +178,7 @@ class RunningEpochTime(TimePluginMetric):
         self._time.update()
 
     def after_training_iteration(
-        self, strategy: "SupervisedStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> MetricResult:
         super().after_training_iteration(strategy)
         self._time_mean.update(self._time.result())
@@ -209,7 +209,7 @@ class ExperienceTime(TimePluginMetric):
             reset_at="experience", emit_at="experience", mode="eval"
         )
 
-    def before_eval_exp(self, strategy: "SupervisedStrategy"):
+    def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
         self._time.update()
 
@@ -234,7 +234,7 @@ class StreamTime(TimePluginMetric):
             reset_at="stream", emit_at="stream", mode="eval"
         )
 
-    def before_eval(self, strategy: "SupervisedStrategy"):
+    def before_eval(self, strategy: "SupervisedTemplate"):
         super().before_eval(strategy)
         self._time.update()
 

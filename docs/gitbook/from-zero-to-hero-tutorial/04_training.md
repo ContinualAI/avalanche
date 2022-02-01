@@ -101,12 +101,12 @@ In Avalanche, most continual learning strategies are implemented using plugins, 
 
 ```python
 
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins import ReplayPlugin, EWCPlugin
 
 replay = ReplayPlugin(mem_size=100)
 ewc = EWCPlugin(ewc_lambda=0.001)
-strategy = SupervisedStrategy(
+strategy = SupervisedTemplate(
     model, optimizer, criterion,
     plugins=[replay, ewc])
 ```
@@ -214,7 +214,7 @@ class ReplayP(StrategyPlugin):
         super().__init__()
         self.buffer = ReservoirSamplingBuffer(max_size=mem_size)
 
-    def before_training_exp(self, strategy: "BaseStrategy",
+    def before_training_exp(self, strategy: "BaseTemplate",
                             num_workers: int = 0, shuffle: bool = True,
                             **kwargs):
         """ Use a custom dataloader to combine samples from the current data and memory buffer. """
@@ -230,7 +230,7 @@ class ReplayP(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "BaseTemplate", **kwargs):
         """ Update the buffer. """
         self.buffer.update(strategy, **kwargs)
 
@@ -258,10 +258,10 @@ Notice that even though you don't use plugins, `BaseStrategy` implements some in
 
 ```python
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class Cumulative(SupervisedStrategy):
+class Cumulative(SupervisedTemplate):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dataset = None  # cumulative dataset

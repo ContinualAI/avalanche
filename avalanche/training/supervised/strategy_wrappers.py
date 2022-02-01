@@ -14,7 +14,7 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
 from avalanche.models.pnn import PNN
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
     StrategyPlugin,
     CWRStarPlugin,
@@ -30,10 +30,10 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
 )
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class Naive(SupervisedStrategy):
+class Naive(SupervisedTemplate):
     """Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
@@ -55,7 +55,7 @@ class Naive(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -78,7 +78,7 @@ class Naive(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         super().__init__(
             model,
@@ -95,7 +95,7 @@ class Naive(SupervisedStrategy):
         )
 
 
-class PNNStrategy(SupervisedStrategy):
+class PNNStrategy(SupervisedTemplate):
     """Progressive Neural Network strategy.
 
     To use this strategy you need to instantiate a PNN model.
@@ -111,7 +111,7 @@ class PNNStrategy(SupervisedStrategy):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -133,7 +133,7 @@ class PNNStrategy(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         # Check that the model has the correct architecture.
         assert isinstance(model, PNN), "PNNStrategy requires a PNN model."
@@ -152,7 +152,7 @@ class PNNStrategy(SupervisedStrategy):
         )
 
 
-class CWRStar(SupervisedStrategy):
+class CWRStar(SupervisedTemplate):
     """CWR* Strategy."""
 
     def __init__(
@@ -166,7 +166,7 @@ class CWRStar(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -190,7 +190,7 @@ class CWRStar(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
         if plugins is None:
@@ -212,7 +212,7 @@ class CWRStar(SupervisedStrategy):
         )
 
 
-class Replay(SupervisedStrategy):
+class Replay(SupervisedTemplate):
     """Experience replay strategy.
 
     See ReplayPlugin for more details.
@@ -230,7 +230,7 @@ class Replay(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -253,7 +253,7 @@ class Replay(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         rp = ReplayPlugin(mem_size)
@@ -276,7 +276,7 @@ class Replay(SupervisedStrategy):
         )
 
 
-class GSS_greedy(SupervisedStrategy):
+class GSS_greedy(SupervisedTemplate):
     """Experience replay strategy.
 
     See ReplayPlugin for more details.
@@ -296,7 +296,7 @@ class GSS_greedy(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -320,7 +320,7 @@ class GSS_greedy(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         rp = GSS_greedyPlugin(
             mem_size=mem_size, mem_strength=mem_strength, input_size=input_size
@@ -344,7 +344,7 @@ class GSS_greedy(SupervisedStrategy):
         )
 
 
-class GDumb(SupervisedStrategy):
+class GDumb(SupervisedTemplate):
     """GDumb strategy.
 
     See GDumbPlugin for more details.
@@ -362,7 +362,7 @@ class GDumb(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -385,7 +385,7 @@ class GDumb(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         gdumb = GDumbPlugin(mem_size)
@@ -409,7 +409,7 @@ class GDumb(SupervisedStrategy):
         )
 
 
-class LwF(SupervisedStrategy):
+class LwF(SupervisedTemplate):
     """Learning without Forgetting (LwF) strategy.
 
     See LwF plugin for details.
@@ -428,7 +428,7 @@ class LwF(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -453,7 +453,7 @@ class LwF(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         lwf = LwFPlugin(alpha, temperature)
@@ -477,7 +477,7 @@ class LwF(SupervisedStrategy):
         )
 
 
-class AGEM(SupervisedStrategy):
+class AGEM(SupervisedTemplate):
     """Average Gradient Episodic Memory (A-GEM) strategy.
 
     See AGEM plugin for details.
@@ -496,7 +496,7 @@ class AGEM(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -521,7 +521,7 @@ class AGEM(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         agem = AGEMPlugin(patterns_per_exp, sample_size)
@@ -545,7 +545,7 @@ class AGEM(SupervisedStrategy):
         )
 
 
-class GEM(SupervisedStrategy):
+class GEM(SupervisedTemplate):
     """Gradient Episodic Memory (GEM) strategy.
 
     See GEM plugin for details.
@@ -564,7 +564,7 @@ class GEM(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -589,7 +589,7 @@ class GEM(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         gem = GEMPlugin(patterns_per_exp, memory_strength)
@@ -613,7 +613,7 @@ class GEM(SupervisedStrategy):
         )
 
 
-class EWC(SupervisedStrategy):
+class EWC(SupervisedTemplate):
     """Elastic Weight Consolidation (EWC) strategy.
 
     See EWC plugin for details.
@@ -634,7 +634,7 @@ class EWC(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -669,7 +669,7 @@ class EWC(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
         if plugins is None:
@@ -692,7 +692,7 @@ class EWC(SupervisedStrategy):
         )
 
 
-class SynapticIntelligence(SupervisedStrategy):
+class SynapticIntelligence(SupervisedTemplate):
     """Synaptic Intelligence strategy.
 
     This is the Synaptic Intelligence PyTorch implementation of the
@@ -720,7 +720,7 @@ class SynapticIntelligence(SupervisedStrategy):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -749,7 +749,7 @@ class SynapticIntelligence(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         if plugins is None:
             plugins = []
@@ -773,7 +773,7 @@ class SynapticIntelligence(SupervisedStrategy):
         )
 
 
-class CoPE(SupervisedStrategy):
+class CoPE(SupervisedTemplate):
     """Continual Prototype Evolution strategy.
 
     See CoPEPlugin for more details.
@@ -795,7 +795,7 @@ class CoPE(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -827,7 +827,7 @@ class CoPE(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
         if plugins is None:
@@ -849,7 +849,7 @@ class CoPE(SupervisedStrategy):
         )
 
 
-class LFL(SupervisedStrategy):
+class LFL(SupervisedTemplate):
     """Less Forgetful Learning strategy.
 
     See LFL plugin for details.
@@ -868,7 +868,7 @@ class LFL(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -892,7 +892,7 @@ class LFL(SupervisedStrategy):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         :param **base_kwargs: any additional
-            :class:`~avalanche.training.BaseStrategy` constructor arguments.
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         lfl = LFLPlugin(lambda_e)

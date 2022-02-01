@@ -5,13 +5,13 @@ import os
 import torch
 
 from avalanche.training.plugins import StrategyPlugin
-from avalanche.training.skeletons.supervised import SupervisedStrategy
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 
 
-class StreamingLDA(SupervisedStrategy):
+class StreamingLDA(SupervisedTemplate):
     """Deep Streaming Linear Discriminant Analysis.
 
     This strategy does not use backpropagation.
@@ -38,7 +38,7 @@ class StreamingLDA(SupervisedStrategy):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        evaluator=default_evaluator,
         eval_every=-1,
     ):
         """Init function for the SLDA model.
@@ -61,7 +61,7 @@ class StreamingLDA(SupervisedStrategy):
         :param plugins: list of StrategyPlugins
         :param evaluator: Evaluation Plugin instance
         :param eval_every: run eval every `eval_every` epochs.
-            See `BaseStrategy` for details.
+            See `BaseTemplate` for details.
         """
 
         if plugins is None:

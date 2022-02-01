@@ -139,7 +139,7 @@ class CustomReplay(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "BaseTemplate", **kwargs):
         """ We update the buffer after the experience.
             You can use a different callback to update the buffer in a different place
         """

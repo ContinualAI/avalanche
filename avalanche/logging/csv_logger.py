@@ -18,7 +18,7 @@ from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import StrategyLogger
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class CSVLogger(StrategyLogger):
@@ -151,7 +151,7 @@ class CSVLogger(StrategyLogger):
 
     def after_training_epoch(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -175,7 +175,7 @@ class CSVLogger(StrategyLogger):
 
     def after_eval_exp(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -207,7 +207,7 @@ class CSVLogger(StrategyLogger):
 
     def before_training_exp(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -216,7 +216,7 @@ class CSVLogger(StrategyLogger):
 
     def before_eval(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -228,7 +228,7 @@ class CSVLogger(StrategyLogger):
 
     def before_training(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -236,7 +236,7 @@ class CSVLogger(StrategyLogger):
 
     def after_training(
         self,
-        strategy: "SupervisedStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):

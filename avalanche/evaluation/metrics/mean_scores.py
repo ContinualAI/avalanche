@@ -32,7 +32,7 @@ except ImportError:
     from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
     from avalanche.evaluation.metric_results import MetricResult
 
 
@@ -171,12 +171,12 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
     def reset(self) -> None:
         self.mean_scores.reset()
 
-    def update_new_classes(self, strategy: "SupervisedStrategy"):
+    def update_new_classes(self, strategy: "SupervisedTemplate"):
         self.mean_scores.update_new_classes(
             strategy.experience.classes_in_this_experience
         )
 
-    def update(self, strategy: "SupervisedStrategy"):
+    def update(self, strategy: "SupervisedTemplate"):
         self.mean_scores.update(
             predicted_y=strategy.mb_output, true_y=strategy.mb_y
         )
@@ -184,7 +184,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
     def result(self) -> Dict[LabelCat, float]:
         return self.mean_scores.result()
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> "MetricResult":
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         label_cat2mean_score: Dict[LabelCat, float] = self.result()
 
         for label_cat, m in label_cat2mean_score.items():
@@ -238,16 +238,16 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
         epochs of each experience, averaged  by new and old classes.
     """
 
-    def before_training_epoch(self, strategy: "SupervisedStrategy") -> None:
+    def before_training_epoch(self, strategy: "SupervisedTemplate") -> None:
         self.reset()
         self.update_new_classes(strategy)
 
-    def after_training_iteration(self, strategy: "SupervisedStrategy") -> None:
+    def after_training_iteration(self, strategy: "SupervisedTemplate") -> None:
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             self.update(strategy)
         super().after_training_iteration(strategy)
 
-    def after_training_epoch(self, strategy: "SupervisedStrategy") -> "MetricResult":
+    def after_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
 
@@ -258,17 +258,17 @@ class MeanScoresEvalPluginMetric(MeanScoresPluginMetricABC):
         new and old classes.
     """
 
-    def before_training(self, strategy: "SupervisedStrategy") -> None:
+    def before_training(self, strategy: "SupervisedTemplate") -> None:
         self.reset()
 
-    def before_training_exp(self, strategy: "SupervisedStrategy") -> None:
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> None:
         self.update_new_classes(strategy)
 
-    def after_eval_iteration(self, strategy: "SupervisedStrategy") -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         self.update(strategy)
         super().after_eval_iteration(strategy)
 
-    def after_eval(self, strategy: "SupervisedStrategy") -> "MetricResult":
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         return self._package_result(strategy)
 
 

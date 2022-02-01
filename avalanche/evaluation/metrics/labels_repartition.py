@@ -26,7 +26,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
     from avalanche.evaluation.metric_results import MetricResult
 
 
@@ -116,7 +116,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         self.steps.append(self.global_it_counter)
         return super().reset()
 
-    def update(self, strategy: "SupervisedStrategy"):
+    def update(self, strategy: "SupervisedTemplate"):
         if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
@@ -127,7 +127,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
             ),
         )
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> "MetricResult":
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         self.steps.append(self.global_it_counter)
         task2label2count = self.labels_repartition.result()
         for task, label2count in task2label2count.items():

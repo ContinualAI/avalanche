@@ -17,8 +17,8 @@ from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class AlreadyTrainedError(Exception):
     pass
 
 
-class JointTraining(SupervisedStrategy):
+class JointTraining(SupervisedTemplate):
     """Joint training on the entire stream.
 
     JointTraining performs joint training (also called offline training) on
@@ -54,7 +54,7 @@ class JointTraining(SupervisedStrategy):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        evaluator=default_evaluator,
         eval_every=-1,
     ):
         """Init.

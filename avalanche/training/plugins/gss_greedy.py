@@ -6,7 +6,7 @@ from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import StrategyPlugin
 
 if TYPE_CHECKING:
-    from ..skeletons.supervised import SupervisedStrategy
+    from ..templates.supervised import SupervisedTemplate
 
 
 class GSS_greedyPlugin(StrategyPlugin):
@@ -39,7 +39,7 @@ class GSS_greedyPlugin(StrategyPlugin):
 
         self.buffer_score = torch.FloatTensor(self.mem_size).fill_(0)
 
-    def before_training(self, strategy: "SupervisedStrategy", **kwargs):
+    def before_training(self, strategy: "SupervisedTemplate", **kwargs):
         self.device = strategy.device
         self.ext_mem_list_x = self.ext_mem_list_x.to(strategy.device)
         self.ext_mem_list_y = self.ext_mem_list_y.to(strategy.device)

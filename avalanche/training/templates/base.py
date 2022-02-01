@@ -8,7 +8,7 @@ from avalanche.training.plugins import StrategyPlugin
 from avalanche.training.utils import trigger_plugins
 
 
-class BaseStrategy:
+class BaseTemplate:
     """Base class for continual learning skeletons.
 
     **Training loop**

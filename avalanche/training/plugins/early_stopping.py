@@ -18,7 +18,7 @@ class EarlyStoppingPlugin(StrategyPlugin):
         evaluation is called frequently enough during the training loop.
 
         For example, if you set `patience=1`, you must also set `eval_every=1`
-        in the `BaseStrategy`, otherwise the metric won't be updated after
+        in the `BaseTemplate`, otherwise the metric won't be updated after
         every epoch/iteration. Similarly, `peval_mode` must have the same
         value.
 

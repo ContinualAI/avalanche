@@ -10,11 +10,11 @@ from avalanche.benchmarks import Experience
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class SupervisedOnlineStrategy(SupervisedStrategy):
+class SupervisedOnlineTemplate(SupervisedTemplate):
     def __init__(
         self,
         model: Module,
@@ -25,7 +25,7 @@ class SupervisedOnlineStrategy(SupervisedStrategy):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         super().__init__(

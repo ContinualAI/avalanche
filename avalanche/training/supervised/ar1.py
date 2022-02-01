@@ -16,7 +16,7 @@ from avalanche.training.plugins import (
     SynapticIntelligencePlugin,
     CWRStarPlugin,
 )
-from avalanche.training.skeletons.supervised import SupervisedStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,
@@ -25,10 +25,10 @@ from avalanche.training.utils import (
     examples_per_class,
     LayerAndParameter,
 )
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins.evaluation import default_evaluator
 
 
-class AR1(SupervisedStrategy):
+class AR1(SupervisedTemplate):
     """AR1 with Latent Replay.
 
     This implementations allows for the use of both Synaptic Intelligence and
@@ -60,7 +60,7 @@ class AR1(SupervisedStrategy):
         eval_mb_size: int = 128,
         device=None,
         plugins: Optional[Sequence[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """

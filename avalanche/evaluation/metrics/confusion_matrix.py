@@ -41,7 +41,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.skeletons.supervised import SupervisedStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ConfusionMatrix(Metric[Tensor]):
@@ -335,14 +335,14 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
     def before_eval(self, strategy) -> None:
         self.reset()
 
-    def after_eval_iteration(self, strategy: "SupervisedStrategy") -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval_iteration(strategy)
         self.update(strategy.mb_y, strategy.mb_output)
 
-    def after_eval(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
@@ -371,7 +371,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         return [metric_representation]
 
     def _get_display_class_order(
-        self, exp_cm: Tensor, strategy: "SupervisedStrategy"
+        self, exp_cm: Tensor, strategy: "SupervisedTemplate"
     ) -> ndarray:
         benchmark = strategy.experience.benchmark
 
@@ -424,14 +424,14 @@ class WandBStreamConfusionMatrix(PluginMetric):
         self.outputs.append(output)
         self.targets.append(target)
 
-    def after_eval_iteration(self, strategy: "SupervisedStrategy"):
+    def after_eval_iteration(self, strategy: "SupervisedTemplate"):
         super(WandBStreamConfusionMatrix, self).after_eval_iteration(strategy)
         self.update(strategy.mb_output, strategy.mb_y)
 
-    def after_eval(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "SupervisedStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         outputs, targets = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
