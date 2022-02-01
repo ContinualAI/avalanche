@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class EvaluationPlugin(StrategyPlugin):
+class EvaluationPlugin:
     """Manager for logging and metrics.
 
     An evaluation plugin that obtains relevant data from the
@@ -195,16 +195,18 @@ class EvaluationPlugin(StrategyPlugin):
         """
         self.last_metric_results = {}
 
-    def __getattr__(self, item):
+    def __getattribute__(self, item):
         # We don't want to reimplement all the callbacks just to call the
         # metrics. What we don't instead is to assume that any method that
         # starts with `before` or `after` is a callback of the plugin system,
         # and we forward that call to the metrics.
-        if item.startswith('before_') or item.startswith('after'):
-            # method is a callback. Forward to metrics.
-            return lambda strat: self._update_metrics(strat, item)
-        else:
-            raise AttributeError(f"EvaluationPlugin.{item} is undefined.")
+        try:
+            return super().__getattribute__(item)
+        except AttributeError as e:
+            if item.startswith('before_') or item.startswith('after_'):
+                # method is a callback. Forward to metrics.
+                return lambda strat, **kwargs: self._update_metrics(strat, item)
+            raise
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
         self._update_metrics(strategy, "before_eval")

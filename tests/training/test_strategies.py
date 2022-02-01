@@ -82,13 +82,14 @@ class BaseStrategyTest(unittest.TestCase):
         # Case #2: Eval at the end only and before training
         ###################
         acc = StreamAccuracy()
+        evalp = EvaluationPlugin(acc)
         strategy = Naive(
             model,
             optimizer,
             criterion,
             train_epochs=2,
             eval_every=0,
-            evaluator=EvaluationPlugin(acc),
+            evaluator=evalp,
         )
         strategy.train(benchmark.train_stream[0])
         # eval is called once at the end of the training loop
