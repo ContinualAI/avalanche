@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Generic, TypeVar
+from typing import TypeVar
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -8,65 +8,65 @@ if TYPE_CHECKING:
 CallbackResult = TypeVar("CallbackResult")
 
 
-class SupervisedStrategyCallbacks(Generic[CallbackResult], ABC):
-    """
-    Strategy callbacks provide access before/after each phase of the training
-    and evaluation loops. Subclasses can override the desired callbacks to
-    customize the loops. In Avalanche, callbacks are used by
-    :class:`StrategyPlugin` to implement continual strategies, and
-    :class:`StrategyLogger` for automatic logging.
+class BasePlugin(ABC):
+    """ABC for BaseTemplate plugins.
 
-    For each method of the training and evaluation loops, `StrategyCallbacks`
+    A plugin is simply an object implementing some strategy callbacks.
+    Plugins are called automatically during the strategy execution.
+
+    Callbacks provide access before/after each phase of the execution.
+    In general, for each method of the training and evaluation loops,
+    `StrategyCallbacks`
     provide two functions `before_{method}` and `after_{method}`, called
     before and after the method, respectively.
+    Therefore plugins can "inject" additional code by implementing callbacks.
+    Each callback has a `strategy` argument that gives access to the state.
 
-    As a reminder, `BaseTemplate` loops follow the structure shown below:
-
-    **Training loop**
-    The training loop is organized as follows::
-        train
-            train_exp  # for each experience
-                adapt_train_dataset
-                train_dataset_adaptation
-                make_train_dataloader
-                train_epoch  # for each epoch
-                    # forward
-                    # backward
-                    # model update
-
-    **Evaluation loop**
-    The evaluation loop is organized as follows::
-        eval
-            eval_exp  # for each experience
-                adapt_eval_dataset
-                eval_dataset_adaptation
-                make_eval_dataloader
-                eval_epoch  # for each epoch
-                    # forward
-                    # backward
-                    # model update
+    In Avalanche, callbacks are used to implement continual strategies, metrics
+    and loggers.
     """
 
     def __init__(self):
         pass
 
-    def before_training(self, *args, **kwargs) -> CallbackResult:
+    def before_training(self, strategy: "BaseTemplate", *args, **kwargs):
         """Called before `train` by the `BaseTemplate`."""
         pass
 
-    def before_training_exp(self, *args, **kwargs) -> CallbackResult:
+    def before_training_exp(self, strategy: "BaseTemplate", *args, **kwargs):
         """Called before `train_exp` by the `BaseTemplate`."""
         pass
 
-    def before_train_dataset_adaptation(
-        self, *args, **kwargs
-    ) -> CallbackResult:
-        """Called before `train_dataset_adapatation` by the `BaseTemplate`."""
+    def after_training_exp(self, strategy: "BaseTemplate", *args, **kwargs):
+        """Called after `train_exp` by the `BaseTemplate`."""
         pass
 
-    def after_train_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
-        """Called after `train_dataset_adapatation` by the `BaseTemplate`."""
+    def after_training(self, strategy: "BaseTemplate", *args, **kwargs):
+        """Called after `train` by the `BaseTemplate`."""
         pass
+
+    def before_eval(self, strategy: "BaseTemplate", *args, **kwargs) -> CallbackResult:
+        """Called before `eval` by the `BaseTemplate`."""
+        pass
+
+    def before_eval_exp(self, strategy: "BaseTemplate", *args, **kwargs) -> CallbackResult:
+        """Called before `eval_exp` by the `BaseTemplate`."""
+        pass
+
+    def after_eval_exp(self, strategy: "BaseTemplate", *args, **kwargs) -> CallbackResult:
+        """Called after `eval_exp` by the `BaseTemplate`."""
+        pass
+
+    def after_eval(self, strategy: "BaseTemplate", *args, **kwargs) -> CallbackResult:
+        """Called after `eval` by the `BaseTemplate`."""
+        pass
+
+
+class BaseSGDPlugin(BasePlugin, ABC):
+    """ABC for BaseSGDTemplate plugins.
+
+    See `BaseSGDTemplate` for complete description of the train/eval loop.
+    """
 
     def before_training_epoch(self, *args, **kwargs) -> CallbackResult:
         """Called before `train_epoch` by the `BaseTemplate`."""
@@ -110,38 +110,6 @@ class SupervisedStrategyCallbacks(Generic[CallbackResult], ABC):
         """Called after `train_epoch` by the `BaseTemplate`."""
         pass
 
-    def after_training_exp(self, *args, **kwargs) -> CallbackResult:
-        """Called after `train_exp` by the `BaseTemplate`."""
-        pass
-
-    def after_training(self, *args, **kwargs) -> CallbackResult:
-        """Called after `train` by the `BaseTemplate`."""
-        pass
-
-    def before_eval(self, *args, **kwargs) -> CallbackResult:
-        """Called before `eval` by the `BaseTemplate`."""
-        pass
-
-    def before_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
-        """Called before `eval_dataset_adaptation` by the `BaseTemplate`."""
-        pass
-
-    def after_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
-        """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
-        pass
-
-    def before_eval_exp(self, *args, **kwargs) -> CallbackResult:
-        """Called before `eval_exp` by the `BaseTemplate`."""
-        pass
-
-    def after_eval_exp(self, *args, **kwargs) -> CallbackResult:
-        """Called after `eval_exp` by the `BaseTemplate`."""
-        pass
-
-    def after_eval(self, *args, **kwargs) -> CallbackResult:
-        """Called after `eval` by the `BaseTemplate`."""
-        pass
-
     def before_eval_iteration(self, *args, **kwargs) -> CallbackResult:
         """Called before the start of a training iteration by the
         `BaseTemplate`."""
@@ -161,35 +129,26 @@ class SupervisedStrategyCallbacks(Generic[CallbackResult], ABC):
         pass
 
 
-class BaseCallbacks(ABC):
-    """BaseTemplate callbacks.
+class SupervisedPlugin(BaseSGDPlugin, ABC):
+    """ABC for SupervisedTemplate plugins.
 
-    Callbacks provide access before/after each phase of the training
-    and evaluation loops. Subclasses can override the desired callbacks to
-    customize the loops. In Avalanche, callbacks are used by
-    :class:`StrategyPlugin` to implement continual strategies, and
-    :class:`StrategyLogger` for automatic logging.
-
-    For each method of the training and evaluation loops, `StrategyCallbacks`
-    provide two functions `before_{method}` and `after_{method}`, called
-    before and after the method, respectively.
+    See `BaseTemplate` for complete description of the train/eval loop.
     """
 
-    def __init__(self):
+    def before_train_dataset_adaptation(
+        self, *args, **kwargs
+    ) -> CallbackResult:
+        """Called before `train_dataset_adapatation` by the `BaseTemplate`."""
         pass
 
-    def before_training(self, strategy: "BaseTemplate", **kwargs):
-        """Called before `train` by the `BaseTemplate`."""
+    def after_train_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+        """Called after `train_dataset_adapatation` by the `BaseTemplate`."""
         pass
 
-    def before_training_exp(self, strategy: "BaseTemplate", **kwargs):
-        """Called before `train_exp` by the `BaseTemplate`."""
+    def before_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+        """Called before `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
-    def after_training_exp(self, *args, **kwargs):
-        """Called after `train_exp` by the `BaseTemplate`."""
-        pass
-
-    def after_training(self, *args, **kwargs):
-        """Called after `train` by the `BaseTemplate`."""
+    def after_eval_dataset_adaptation(self, *args, **kwargs) -> CallbackResult:
+        """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass

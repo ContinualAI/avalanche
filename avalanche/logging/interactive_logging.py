@@ -11,6 +11,7 @@
 import sys
 from typing import List, TYPE_CHECKING
 
+from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import TextLogger
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class InteractiveLogger(TextLogger):
+class InteractiveLogger(TextLogger, SupervisedPlugin):
     """
     The `InteractiveLogger` class provides logging facilities
     for the console standard output. The logger shows

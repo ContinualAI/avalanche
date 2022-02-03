@@ -1,14 +1,15 @@
-from avalanche.core import SupervisedStrategyCallbacks
+from avalanche.core import SupervisedPlugin
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class StrategyPlugin(SupervisedStrategyCallbacks[Any]):
-    """
-    Base class for strategy plugins. Implements all the callbacks required
-    by the BaseTemplate with an empty function. Subclasses should override
+class StrategyPlugin(SupervisedPlugin):
+    """Base class for SupervisedTemplate's strategy plugins.
+
+    Implements all the callbacks required
+    by the SupervisedTemplate with an empty function. Subclasses should override
     the callbacks.
     """
 

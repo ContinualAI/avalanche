@@ -5,12 +5,11 @@ from typing import Union, Sequence, TYPE_CHECKING
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
-from avalanche.logging import StrategyLogger, InteractiveLogger
+from avalanche.logging import InteractiveLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
-    from avalanche.logging import StrategyLogger
+    from avalanche.logging import BaseLogger
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
@@ -32,7 +31,7 @@ class EvaluationPlugin:
     def __init__(
         self,
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
-        loggers: Union["StrategyLogger", Sequence["StrategyLogger"]] = None,
+        loggers: Union["BaseLogger", Sequence["BaseLogger"]] = None,
         collect_all=True,
         benchmark=None,
         strict_checks=False,
@@ -91,7 +90,7 @@ class EvaluationPlugin:
         else:
             self.complete_test_stream = benchmark.test_stream
 
-        self.loggers: Sequence["StrategyLogger"] = loggers
+        self.loggers: Sequence["BaseLogger"] = loggers
 
         if len(self.loggers) == 0:
             warnings.warn("No loggers specified, metrics will not be logged")
@@ -139,7 +138,7 @@ class EvaluationPlugin:
             self.all_metric_results[name][1].append(val)
         self.last_metric_results[name] = val
 
-    def _update_metrics(self, strategy: "SupervisedTemplate", callback: str):
+    def _update_metrics_and_loggers(self, strategy: "SupervisedTemplate", callback: str):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
         if not self._active:
@@ -157,7 +156,9 @@ class EvaluationPlugin:
                 pass
 
         for logger in self.loggers:
-            getattr(logger, callback)(strategy, self._metric_values)
+            logger.log_metrics(self._metric_values)
+            if hasattr(logger, callback):
+                getattr(logger, callback)(strategy, self._metric_values)
         self._metric_values = []
 
     def get_last_metrics(self):
@@ -205,11 +206,11 @@ class EvaluationPlugin:
         except AttributeError as e:
             if item.startswith('before_') or item.startswith('after_'):
                 # method is a callback. Forward to metrics.
-                return lambda strat, **kwargs: self._update_metrics(strat, item)
+                return lambda strat, **kwargs: self._update_metrics_and_loggers(strat, item)
             raise
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
-        self._update_metrics(strategy, "before_eval")
+        self._update_metrics_and_loggers(strategy, "before_eval")
         msgw = (
             "Evaluation stream is not equal to the complete test stream. "
             "This may result in inconsistent metrics. Use at your own risk."

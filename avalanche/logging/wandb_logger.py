@@ -18,26 +18,26 @@ import errno
 
 import numpy as np
 from numpy import array
-from torch import Tensor
 import torch
 from torch import Tensor
 
 from PIL.Image import Image
 from matplotlib.pyplot import Figure
 
+from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import (
     AlternativeValues,
     MetricValue,
     TensorImage,
 )
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class WandBLogger(StrategyLogger):
+class WandBLogger(BaseLogger, SupervisedPlugin):
     """
     The `WandBLogger` provides an easy integration with
     Weights & Biases logging. Each monitored metric is automatically
@@ -132,7 +132,7 @@ class WandBLogger(StrategyLogger):
         **kwargs
     ):
         for val in metric_values:
-            self.log_metric(val, "after_training_exp")
+            self.log_metrics([val])
 
         self.wandb.log({"TrainingExperience": self.exp_count}, step=self.step)
         self.exp_count += 1

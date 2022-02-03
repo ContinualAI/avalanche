@@ -13,17 +13,16 @@ from typing import List, TYPE_CHECKING, Tuple, Type
 
 import torch
 
+from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue, TensorImage
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
 from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 
-if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
 
 UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
 
 
-class TextLogger(StrategyLogger):
+class TextLogger(BaseLogger, SupervisedPlugin):
     """
     The `TextLogger` class provides logging facilities
     printed to a user specified file. The logger writes
@@ -60,6 +59,7 @@ class TextLogger(StrategyLogger):
         self.metric_vals = {}
 
     def log_single_metric(self, name, value, x_plot) -> None:
+        # We only keep track of the last value for each metric
         self.metric_vals[name] = (name, x_plot, value)
 
     def _val_to_str(self, m_val):

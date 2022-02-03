@@ -21,11 +21,11 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib.pyplot import Figure
 from torchvision.transforms.functional import to_tensor
 from avalanche.evaluation.metric_results import AlternativeValues, TensorImage
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
 import weakref
 
 
-class TensorboardLogger(StrategyLogger):
+class TensorboardLogger(BaseLogger):
     """
     The `TensorboardLogger` provides an easy integration with
     Tensorboard logging. Each monitored metric is automatically

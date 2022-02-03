@@ -15,13 +15,11 @@ import torch
 import os
 
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.logging import StrategyLogger
-
-if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.logging import BaseLogger
+from avalanche.core import SupervisedPlugin
 
 
-class CSVLogger(StrategyLogger):
+class CSVLogger(BaseLogger, SupervisedPlugin):
     """
     The `CSVLogger` logs accuracy and loss metrics into a csv file.
     Metrics are logged separately for training and evaluation in files
@@ -108,9 +106,6 @@ class CSVLogger(StrategyLogger):
             file=self.eval_file,
             flush=True,
         )
-
-    def log_single_metric(self, name, value, x_plot) -> None:
-        pass
 
     def _val_to_str(self, m_val):
         if isinstance(m_val, torch.Tensor):
