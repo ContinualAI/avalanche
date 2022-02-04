@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 import torch
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 if TYPE_CHECKING:
     from ..templates.supervised import SupervisedTemplate
 
 
-class GSS_greedyPlugin(StrategyPlugin):
+class GSS_greedyPlugin(SupervisedPlugin):
     """GSSPlugin replay plugin.
 
     Code adapted from the repository:

@@ -200,14 +200,13 @@ Plugins provide a simple solution to define a new strategy by augmenting the beh
 
 Creating a plugin is straightforward. You create a class which inherits from `StrategyPlugin` and implements the callbacks that you need. The exact callback to use depend on your strategy. You can use the loop shown above to understand what callbacks you need to use. For example, we show below a simple replay plugin that uses `after_training_exp` to update the buffer after each training experience, and the `before_training_exp` to customize the dataloader. Notice that `before_training_exp` is executed after `make_train_dataloader`, which means that the `BaseStrategy` already updated the dataloader. If we used another callback, such as `before_train_dataset_adaptation`, our dataloader would have been overwritten by the `BaseStrategy`. Plugin methods always receive the `strategy` as an argument, so they can access and modify the strategy's state.
 
-
 ```python
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
-class ReplayP(StrategyPlugin):
+class ReplayP(SupervisedPlugin):
 
     def __init__(self, mem_size):
         """ A simple replay plugin with reservoir sampling. """
@@ -239,7 +238,8 @@ benchmark = SplitMNIST(n_experiences=5, seed=1)
 model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
 criterion = CrossEntropyLoss()
-strategy = Naive(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128,
+strategy = Naive(model=model, optimizer=optimizer, criterion=criterion,
+                 train_mb_size=128,
                  plugins=[ReplayP(mem_size=2000)])
 strategy.train(benchmark.train_stream)
 strategy.eval(benchmark.test_stream)

@@ -2,14 +2,14 @@ import warnings
 from typing import TYPE_CHECKING
 
 from avalanche.evaluation.metrics import Mean
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 import inspect
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class LRSchedulerPlugin(StrategyPlugin):
+class LRSchedulerPlugin(SupervisedPlugin):
     """Learning Rate Scheduler Plugin.
 
     This plugin manages learning rate scheduling inside of a strategy using the

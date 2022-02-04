@@ -2,10 +2,10 @@ import operator
 import warnings
 from copy import deepcopy
 
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 
 
-class EarlyStoppingPlugin(StrategyPlugin):
+class EarlyStoppingPlugin(SupervisedPlugin):
     """Early stopping and model checkpoint plugin.
 
     The plugin checks a metric and stops the training loop when the accuracy

@@ -1,12 +1,12 @@
 import copy
 
 import torch
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 from torch.nn import BCELoss
 import numpy as np
 
 
-class ICaRLLossPlugin(StrategyPlugin):
+class ICaRLLossPlugin(SupervisedPlugin):
     """
     ICaRLLossPlugin
     Similar to the Knowledge Distillation Loss. Works as follows:

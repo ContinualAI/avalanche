@@ -8,10 +8,10 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 
 
-class Clock(StrategyPlugin):
+class Clock(SupervisedPlugin):
     """ Counter for strategy events.
 
     WARNING: Clock needs to be the last plugin, otherwise counters will be wrong for plugins called after it.

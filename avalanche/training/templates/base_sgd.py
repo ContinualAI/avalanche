@@ -5,7 +5,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks import Experience
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate
@@ -42,7 +42,7 @@ class BaseSGDTemplate(BaseTemplate):
             train_epochs: int = 1,
             eval_mb_size: int = 1,
             device="cpu",
-            plugins: Optional[Sequence["StrategyPlugin"]] = None,
+            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
             evaluator: EvaluationPlugin = default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
@@ -309,7 +309,7 @@ class BaseSGDTemplate(BaseTemplate):
         trigger_plugins(self, 'after_eval_iteration', **kwargs)
 
 
-class PeriodicEval(StrategyPlugin):
+class PeriodicEval(SupervisedPlugin):
     """Schedules periodic evaluation during training.
 
     This plugin is automatically configured and added by the BaseTemplate.

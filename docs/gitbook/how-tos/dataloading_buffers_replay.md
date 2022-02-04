@@ -109,12 +109,12 @@ for x, y, t in dl:
 
 Avalanche's strategy plugins can be used to update the rehearsal buffer and set the dataloader. This allows to easily implement replay strategies:
 
-
 ```python
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 
-class CustomReplay(StrategyPlugin):
+
+class CustomReplay(SupervisedPlugin):
     def __init__(self, storage_policy):
         super().__init__()
         self.storage_policy = storage_policy

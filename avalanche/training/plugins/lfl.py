@@ -2,12 +2,12 @@ import copy
 
 import torch
 
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import get_last_fc_layer, freeze_everything
 from avalanche.models.base_model import BaseModel
 
 
-class LFLPlugin(StrategyPlugin):
+class LFLPlugin(SupervisedPlugin):
     """Less-Forgetful Learning (LFL) Plugin.
 
     LFL satisfies two properties to mitigate catastrophic forgetting.

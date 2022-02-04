@@ -15,7 +15,7 @@ from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.losses import ICaRLLossPlugin
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -40,7 +40,7 @@ class ICaRL(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
@@ -84,7 +84,7 @@ class ICaRL(SupervisedTemplate):
         else:
             plugins += [icarl]
 
-        if isinstance(criterion, StrategyPlugin):
+        if isinstance(criterion, SupervisedPlugin):
             plugins += [criterion]
 
         super().__init__(
@@ -101,7 +101,7 @@ class ICaRL(SupervisedTemplate):
         )
 
 
-class _ICaRLPlugin(StrategyPlugin):
+class _ICaRLPlugin(SupervisedPlugin):
     """
     iCaRL Plugin.
     iCaRL uses nearest class exemplar classification to prevent

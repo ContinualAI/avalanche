@@ -13,7 +13,6 @@ from typing import Optional, Sequence, TYPE_CHECKING, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
@@ -22,7 +21,7 @@ from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import StrategyPlugin
+    from avalanche.training.plugins import SupervisedPlugin
 
 
 class AlreadyTrainedError(Exception):
@@ -53,7 +52,7 @@ class JointTraining(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
     ):

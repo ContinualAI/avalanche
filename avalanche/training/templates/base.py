@@ -1,10 +1,11 @@
+import warnings
 from typing import Sequence, Optional, Union
 
 import torch
 from torch.nn import Module
 
 from avalanche.benchmarks import Experience
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.core import BasePlugin
 from avalanche.training.utils import trigger_plugins
 
 
@@ -24,11 +25,14 @@ class BaseTemplate:
             eval_exp  # for each experience
 
     """
+    # we need this only for type checking
+    PLUGIN_CLASS = BasePlugin
+
     def __init__(
             self,
             model: Module,
             device="cpu",
-            plugins: Optional[Sequence["StrategyPlugin"]] = None,
+            plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
     ):
         """Init."""
 
@@ -39,7 +43,10 @@ class BaseTemplate:
         """ PyTorch device where the model will be allocated. """
 
         self.plugins = [] if plugins is None else plugins
-        """ List of `StrategyPlugin`s. """
+        """ List of `SupervisedPlugin`s. """
+
+        # check plugin compatibility
+        self.__check_plugin_compatibility()
 
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
@@ -165,6 +172,29 @@ class BaseTemplate:
                 # Unknown parameter, probably added during the eval
                 # model's adaptation. We set it to train mode.
                 layer.train()
+
+    def __check_plugin_compatibility(self):
+        """Check that the list of plugins is compatible with the template.
+
+        This means checking that each plugin impements a subset of the supported callbacks.
+        """
+        # TODO: ideally we would like to check the argument's type to check that it's a supertype of the template.
+        # I don't know if it's possible to do it in Python.
+        ps = self.plugins
+
+        def get_plugins_from_object(obj):
+            is_callback = lambda x: x.startswith('before') or x.startswith('after')
+            return filter(is_callback, dir(obj))
+
+        cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))
+        for p in ps:
+            cb_p = set(get_plugins_from_object(p))
+
+            if not cb_p.issubset(cb_supported):
+                warnings.warn(
+                    f"Plugin {p} implements incompatible callbacks for template"
+                    f" {self}. This may result in errors.")
+                return
 
     #########################################################
     # Plugin Triggers                                       #

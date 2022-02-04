@@ -9,7 +9,7 @@ from torch.nn import Module
 from torch.nn.modules.batchnorm import _NormBase
 
 from .ewc import EwcDataType, ParamDict
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import get_layers_and_params
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 SynDataType = Dict[str, Dict[str, Tensor]]
 
 
-class SynapticIntelligencePlugin(StrategyPlugin):
+class SynapticIntelligencePlugin(SupervisedPlugin):
     """
     The Synaptic Intelligence plugin.
 

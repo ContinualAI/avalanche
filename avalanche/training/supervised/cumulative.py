@@ -6,7 +6,7 @@ from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
+from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
 
 
@@ -26,7 +26,7 @@ class Cumulative(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):

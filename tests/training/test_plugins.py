@@ -24,7 +24,7 @@ from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
 from avalanche.models import BaseModel, SimpleMLP
 from avalanche.training.plugins import (
-    StrategyPlugin,
+    SupervisedPlugin,
     EvaluationPlugin,
     EarlyStoppingPlugin,
 )
@@ -33,7 +33,7 @@ from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
 
 
-class MockPlugin(StrategyPlugin):
+class MockPlugin(SupervisedPlugin):
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -571,7 +571,7 @@ class PluginTests(unittest.TestCase):
             cl_strategy.train(benchmark.train_stream[1], shuffle=False)
 
 
-class SchedulerPluginTestPlugin(StrategyPlugin):
+class SchedulerPluginTestPlugin(SupervisedPlugin):
     def __init__(self, expected_lrs):
         super().__init__()
         self.expected_lrs = expected_lrs

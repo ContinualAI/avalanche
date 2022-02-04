@@ -16,7 +16,7 @@ from torch.optim import Optimizer, SGD
 from avalanche.models.pnn import PNN
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
-    StrategyPlugin,
+    SupervisedPlugin,
     CWRStarPlugin,
     ReplayPlugin,
     GDumbPlugin,
@@ -54,7 +54,7 @@ class Naive(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -110,7 +110,7 @@ class PNNStrategy(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -165,7 +165,7 @@ class CWRStar(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -229,7 +229,7 @@ class Replay(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -295,7 +295,7 @@ class GSS_greedy(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -361,7 +361,7 @@ class GDumb(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -427,7 +427,7 @@ class LwF(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -495,7 +495,7 @@ class AGEM(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -563,7 +563,7 @@ class GEM(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -633,7 +633,7 @@ class EWC(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -719,7 +719,7 @@ class SynapticIntelligence(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -794,7 +794,7 @@ class CoPE(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -867,7 +867,7 @@ class LFL(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs

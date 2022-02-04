@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.nn import Linear
 
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import (
     examples_per_class,
     get_last_fc_layer,
@@ -16,7 +16,7 @@ from avalanche.training.utils import (
 )
 
 
-class CWRStarPlugin(StrategyPlugin):
+class CWRStarPlugin(SupervisedPlugin):
     """CWR* Strategy.
 
     This plugin does not use task identities.

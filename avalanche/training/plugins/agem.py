@@ -5,10 +5,10 @@ from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
 from avalanche.models import avalanche_forward
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 
-class AGEMPlugin(StrategyPlugin):
+class AGEMPlugin(SupervisedPlugin):
     """Average Gradient Episodic Memory Plugin.
 
     AGEM projects the gradient on the current minibatch by using an external

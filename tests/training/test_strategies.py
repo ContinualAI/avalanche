@@ -21,7 +21,7 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
     EvaluationPlugin,
-    StrategyPlugin,
+    SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
 )
@@ -150,7 +150,7 @@ class BaseStrategyTest(unittest.TestCase):
         assert was_hook_called
 
     def test_early_stop(self):
-        class EarlyStopP(StrategyPlugin):
+        class EarlyStopP(SupervisedPlugin):
             def after_training_iteration(
                 self, strategy: "SupervisedTemplate", **kwargs
             ):
@@ -232,7 +232,7 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
     def test_joint(self):
-        class JointSTestPlugin(StrategyPlugin):
+        class JointSTestPlugin(SupervisedPlugin):
             def __init__(self, benchmark):
                 super().__init__()
                 self.benchmark = benchmark
@@ -413,7 +413,7 @@ class StrategyTest(unittest.TestCase):
 
     def test_warning_slda_lwf(self):
         model, _, criterion, my_nc_benchmark = self.init_sit()
-        with self.assertLogs("avalanche.training.strategies", "WARNING") as cm:
+        with self.assertWarns(Warning) as cm:
             StreamingLDA(
                 model,
                 criterion,
@@ -422,12 +422,6 @@ class StrategyTest(unittest.TestCase):
                 num_classes=10,
                 plugins=[LwFPlugin(), ReplayPlugin()],
             )
-        self.assertEqual(1, len(cm.output))
-        self.assertIn(
-            "LwFPlugin seems to use the callback before_backward"
-            " which is disabled by StreamingLDA",
-            cm.output[0],
-        )
 
     def test_lwf(self):
         # SIT scenario

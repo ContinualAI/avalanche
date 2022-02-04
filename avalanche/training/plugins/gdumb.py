@@ -1,15 +1,14 @@
 import copy
 from typing import TYPE_CHECKING
 
-from avalanche.models import DynamicModule
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class GDumbPlugin(StrategyPlugin):
+class GDumbPlugin(SupervisedPlugin):
     """GDumb plugin.
 
     At each experience the model is trained  from scratch using a buffer of

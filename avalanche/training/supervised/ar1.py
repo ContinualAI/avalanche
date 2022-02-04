@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from avalanche.models import MobilenetV1
 from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.training.plugins import (
-    StrategyPlugin,
+    SupervisedPlugin,
     EvaluationPlugin,
     SynapticIntelligencePlugin,
     CWRStarPlugin,
@@ -59,7 +59,7 @@ class AR1(SupervisedTemplate):
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
         device=None,
-        plugins: Optional[Sequence[StrategyPlugin]] = None,
+        plugins: Optional[Sequence[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):

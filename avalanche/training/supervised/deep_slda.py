@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 import os
 import torch
 
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.models.dynamic_modules import MultiTaskModule
@@ -37,7 +37,7 @@ class StreamingLDA(SupervisedTemplate):
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
     ):

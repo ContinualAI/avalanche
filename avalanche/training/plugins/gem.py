@@ -4,10 +4,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from avalanche.models import avalanche_forward
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 
-class GEMPlugin(StrategyPlugin):
+class GEMPlugin(SupervisedPlugin):
     """
     Gradient Episodic Memory Plugin.
     GEM projects the gradient on the current minibatch by using an external
