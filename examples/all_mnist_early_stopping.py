@@ -31,7 +31,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.classic import PermutedMNIST, RotatedMNIST, SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins.early_stopping import EarlyStoppingPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 def main(args):

@@ -4,7 +4,7 @@ from torch.optim import SGD
 from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive, Cumulative
+from avalanche.training.supervised import Naive, Cumulative
 
 
 class MyCumulativeStrategy(Cumulative):

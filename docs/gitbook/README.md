@@ -32,6 +32,7 @@ Check out _how your code changes_ when you start using _Avalanche_! 👇
 
 {% tabs %}
 {% tab title="With Avalanche" %}
+
 ```python
 import torch
 from torch.nn import CrossEntropyLoss
@@ -39,7 +40,7 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.extras.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

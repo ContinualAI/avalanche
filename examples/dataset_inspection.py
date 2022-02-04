@@ -31,7 +31,7 @@ from avalanche.evaluation.metrics.labels_repartition import (
 
 from avalanche.evaluation.metrics.images_samples import images_samples_metrics
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.logging import TensorboardLogger, InteractiveLogger

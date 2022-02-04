@@ -21,7 +21,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
     from avalanche.benchmarks.utils import AvalancheDataset
 
 
@@ -61,13 +61,13 @@ class ImagesSamplePlugin(PluginMetric):
         self.n_wanted_images = self.n_cols * self.n_rows
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         if self.mode == "train" or self.mode == "both":
             return self._make_grid_sample(strategy)
 
     def after_eval_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         if self.mode == "eval" or self.mode == "both":
             return self._make_grid_sample(strategy)
@@ -81,7 +81,9 @@ class ImagesSamplePlugin(PluginMetric):
     def __str__(self):
         return "images"
 
-    def _make_grid_sample(self, strategy: "BaseStrategy") -> "MetricResult":
+    def _make_grid_sample(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         self._load_sorted_images(strategy)
 
         return [
@@ -102,14 +104,14 @@ class ImagesSamplePlugin(PluginMetric):
             )
         ]
 
-    def _load_sorted_images(self, strategy: "BaseStrategy"):
+    def _load_sorted_images(self, strategy: "SupervisedTemplate"):
         self.reset()
         self.images, labels, tasks = self._load_data(strategy)
         if self.group:
             self._sort_images(labels, tasks)
 
     def _load_data(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> Tuple[List[Tensor], List[int], List[int]]:
         dataloader = self._make_dataloader(
             strategy.adapted_dataset, strategy.eval_mb_size

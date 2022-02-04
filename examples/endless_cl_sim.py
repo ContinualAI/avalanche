@@ -27,7 +27,7 @@ from torch.optim import Adam
 
 from avalanche.benchmarks.classic import EndlessCLSim
 from avalanche.models import SimpleCNN
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
 def main(args):

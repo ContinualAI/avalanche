@@ -19,7 +19,7 @@ from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricResult
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class MaxRAM(Metric[float]):
@@ -147,11 +147,11 @@ class MinibatchMaxRAM(RAMPluginMetric):
             every, reset_at="iteration", emit_at="iteration", mode="train"
         )
 
-    def before_training(self, strategy: "BaseStrategy") -> None:
+    def before_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
         self._ram.start_thread()
 
-    def after_training(self, strategy: "BaseStrategy") -> None:
+    def after_training(self, strategy: "SupervisedTemplate") -> None:
         super().after_training(strategy)
         self._ram.stop_thread()
 
@@ -175,11 +175,11 @@ class EpochMaxRAM(RAMPluginMetric):
             every, reset_at="epoch", emit_at="epoch", mode="train"
         )
 
-    def before_training(self, strategy: "BaseStrategy") -> None:
+    def before_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
         self._ram.start_thread()
 
-    def after_training(self, strategy: "BaseStrategy") -> None:
+    def after_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
         self._ram.stop_thread()
 
@@ -203,11 +203,11 @@ class ExperienceMaxRAM(RAMPluginMetric):
             every, reset_at="experience", emit_at="experience", mode="eval"
         )
 
-    def before_eval(self, strategy: "BaseStrategy") -> None:
+    def before_eval(self, strategy: "SupervisedTemplate") -> None:
         super().before_eval(strategy)
         self._ram.start_thread()
 
-    def after_eval(self, strategy: "BaseStrategy") -> None:
+    def after_eval(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval(strategy)
         self._ram.stop_thread()
 
@@ -235,7 +235,7 @@ class StreamMaxRAM(RAMPluginMetric):
         super().before_eval(strategy)
         self._ram.start_thread()
 
-    def after_eval(self, strategy: "BaseStrategy") -> MetricResult:
+    def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         packed = super().after_eval(strategy)
         self._ram.stop_thread()
         return packed

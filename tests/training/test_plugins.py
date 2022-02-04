@@ -24,16 +24,16 @@ from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
 from avalanche.models import BaseModel, SimpleMLP
 from avalanche.training.plugins import (
-    StrategyPlugin,
+    SupervisedPlugin,
     EvaluationPlugin,
     EarlyStoppingPlugin,
 )
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
-class MockPlugin(StrategyPlugin):
+class MockPlugin(SupervisedPlugin):
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -571,7 +571,7 @@ class PluginTests(unittest.TestCase):
             cl_strategy.train(benchmark.train_stream[1], shuffle=False)
 
 
-class SchedulerPluginTestPlugin(StrategyPlugin):
+class SchedulerPluginTestPlugin(SupervisedPlugin):
     def __init__(self, expected_lrs):
         super().__init__()
         self.expected_lrs = expected_lrs
@@ -643,6 +643,27 @@ class EvaluationPluginTest(unittest.TestCase):
 
         # check key exists
         assert len(ep.get_all_metrics()["metric"][1]) == 1
+
+    def test_forward_callbacks(self):
+        # The EvaluationPlugin should forward all the callbacks to metrics,
+        # even those that are unused by the EvaluationPlugin itself.
+        class MetricMock:
+            def __init__(self):
+                self.x = 0
+
+            def before_blabla(self, strategy):
+                self.x += 1
+
+        met = MetricMock()
+        evalp = EvaluationPlugin(met)
+        evalp.before_blabla(None)
+
+        # it should ignore undefined callbacks
+        evalp.after_blabla(None)
+
+        # it should raise error for other undefined attributes
+        with self.assertRaises(AttributeError):
+            evalp.asd(None)
 
 
 class EarlyStoppingPluginTest(unittest.TestCase):

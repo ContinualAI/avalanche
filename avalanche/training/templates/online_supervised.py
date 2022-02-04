@@ -1,20 +1,20 @@
-from typing import Optional, Sequence, List, Union
-
 import copy
+import warnings
+from typing import Optional, List, Union, Sequence
+
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-import warnings
 
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.strategies.base_strategy import BaseStrategy
-from avalanche.benchmarks.scenarios import Experience
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheSubset
+from avalanche.benchmarks import Experience
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
+from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class BaseOnlineStrategy(BaseStrategy):
+class SupervisedOnlineTemplate(SupervisedTemplate):
     def __init__(
         self,
         model: Module,
@@ -24,8 +24,8 @@ class BaseOnlineStrategy(BaseStrategy):
         train_mb_size: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         super().__init__(
@@ -127,7 +127,7 @@ class BaseOnlineStrategy(BaseStrategy):
                 self.experience = sub_experience
                 is_first_sub_exp = i == 0
                 is_last_sub_exp = i == len(sub_experience_list) - 1
-                self.train_exp(
+                self._train_exp(
                     self.experience,
                     eval_streams,
                     is_first_sub_exp=is_first_sub_exp,
@@ -140,7 +140,7 @@ class BaseOnlineStrategy(BaseStrategy):
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(
+    def _train_exp(
         self,
         experience: Experience,
         eval_streams=None,

@@ -30,7 +30,7 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.benchmarks.classic import CORe50
-from avalanche.training.strategies.deep_slda import StreamingLDA
+from avalanche.training.supervised.deep_slda import StreamingLDA
 from avalanche.models import SLDAResNetModel
 
 

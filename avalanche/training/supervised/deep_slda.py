@@ -4,14 +4,14 @@ from typing import Optional, Sequence
 import os
 import torch
 
-from avalanche.training.plugins import StrategyPlugin
-from avalanche.training.strategies import BaseStrategy
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins import SupervisedPlugin
+from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 
 
-class StreamingLDA(BaseStrategy):
+class StreamingLDA(SupervisedTemplate):
     """Deep Streaming Linear Discriminant Analysis.
 
     This strategy does not use backpropagation.
@@ -23,8 +23,6 @@ class StreamingLDA(BaseStrategy):
     Discriminant Analysis, CVPR Workshop, 2020"
     https://openaccess.thecvf.com/content_CVPRW_2020/papers/w15/Hayes_Lifelong_Machine_Learning_With_Deep_Streaming_Linear_Discriminant_Analysis_CVPRW_2020_paper.pdf
     """
-
-    DISABLED_CALLBACKS = ("before_backward", "after_backward")
 
     def __init__(
         self,
@@ -39,8 +37,8 @@ class StreamingLDA(BaseStrategy):
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator=default_evaluator,
         eval_every=-1,
     ):
         """Init function for the SLDA model.
@@ -63,7 +61,7 @@ class StreamingLDA(BaseStrategy):
         :param plugins: list of StrategyPlugins
         :param evaluator: Evaluation Plugin instance
         :param eval_every: run eval every `eval_every` epochs.
-            See `BaseStrategy` for details.
+            See `BaseTemplate` for details.
         """
 
         if plugins is None:

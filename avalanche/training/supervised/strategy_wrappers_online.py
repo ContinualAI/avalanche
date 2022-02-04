@@ -13,14 +13,14 @@ from typing import Optional, Sequence, List, Union
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin
-from avalanche.training.strategies.base_online_strategy import (
-    BaseOnlineStrategy,
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.templates.online_supervised import (
+    SupervisedOnlineTemplate,
 )
 
 
-class OnlineNaive(BaseOnlineStrategy):
+class OnlineNaive(SupervisedOnlineTemplate):
     """Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
@@ -41,8 +41,8 @@ class OnlineNaive(BaseOnlineStrategy):
         train_mb_size: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """

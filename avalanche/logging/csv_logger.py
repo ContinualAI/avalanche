@@ -15,13 +15,14 @@ import torch
 import os
 
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
+from avalanche.core import SupervisedPlugin
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates import SupervisedTemplate
 
 
-class CSVLogger(StrategyLogger):
+class CSVLogger(BaseLogger, SupervisedPlugin):
     """
     The `CSVLogger` logs accuracy and loss metrics into a csv file.
     Metrics are logged separately for training and evaluation in files
@@ -109,9 +110,6 @@ class CSVLogger(StrategyLogger):
             flush=True,
         )
 
-    def log_single_metric(self, name, value, x_plot) -> None:
-        pass
-
     def _val_to_str(self, m_val):
         if isinstance(m_val, torch.Tensor):
             return "\n" + str(m_val)
@@ -151,7 +149,7 @@ class CSVLogger(StrategyLogger):
 
     def after_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -175,7 +173,7 @@ class CSVLogger(StrategyLogger):
 
     def after_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -207,7 +205,7 @@ class CSVLogger(StrategyLogger):
 
     def before_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -216,7 +214,7 @@ class CSVLogger(StrategyLogger):
 
     def before_eval(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -228,7 +226,7 @@ class CSVLogger(StrategyLogger):
 
     def before_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -236,7 +234,7 @@ class CSVLogger(StrategyLogger):
 
     def after_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):

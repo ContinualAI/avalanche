@@ -27,7 +27,7 @@ from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
-from avalanche.training.strategies import (
+from avalanche.training.supervised import (
     Naive,
     Replay,
     CWRStar,
@@ -39,8 +39,8 @@ from avalanche.training.strategies import (
     SynapticIntelligence,
     JointTraining,
 )
-from avalanche.training.strategies.ar1 import AR1
-from avalanche.training.strategies.cumulative import Cumulative
+from avalanche.training.supervised.ar1 import AR1
+from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy

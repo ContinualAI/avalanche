@@ -13,23 +13,22 @@ from typing import Optional, Sequence, TYPE_CHECKING, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_logger
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import StrategyPlugin
+    from avalanche.training.plugins import SupervisedPlugin
 
 
 class AlreadyTrainedError(Exception):
     pass
 
 
-class JointTraining(BaseStrategy):
+class JointTraining(SupervisedTemplate):
     """Joint training on the entire stream.
 
     JointTraining performs joint training (also called offline training) on
@@ -53,8 +52,8 @@ class JointTraining(BaseStrategy):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["StrategyPlugin"]] = None,
-        evaluator=default_logger,
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator=default_evaluator,
         eval_every=-1,
     ):
         """Init.
@@ -132,8 +131,10 @@ class JointTraining(BaseStrategy):
 
         self._experiences = experiences
         self._before_training(**kwargs)
-        for exp in experiences:
-            self.train_exp(exp, eval_streams, **kwargs)
+        for self.experience in experiences:
+            self._before_training_exp(**kwargs)
+            self._train_exp(self.experience, eval_streams, **kwargs)
+            self._after_training_exp(**kwargs)
             # Joint training only needs a single step because
             # it concatenates all the data at once.
             break

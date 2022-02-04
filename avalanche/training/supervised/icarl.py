@@ -13,15 +13,15 @@ from math import ceil
 
 from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.losses import ICaRLLossPlugin
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class ICaRL(BaseStrategy):
+class ICaRL(SupervisedTemplate):
     """iCaRL Strategy.
 
     This strategy does not use task identities.
@@ -40,8 +40,8 @@ class ICaRL(BaseStrategy):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """Init.
@@ -84,7 +84,7 @@ class ICaRL(BaseStrategy):
         else:
             plugins += [icarl]
 
-        if isinstance(criterion, StrategyPlugin):
+        if isinstance(criterion, SupervisedPlugin):
             plugins += [criterion]
 
         super().__init__(
@@ -101,7 +101,7 @@ class ICaRL(BaseStrategy):
         )
 
 
-class _ICaRLPlugin(StrategyPlugin):
+class _ICaRLPlugin(SupervisedPlugin):
     """
     iCaRL Plugin.
     iCaRL uses nearest class exemplar classification to prevent
@@ -140,7 +140,7 @@ class _ICaRLPlugin(StrategyPlugin):
         self.input_size = None
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedTemplate", **kwargs
     ):
         if strategy.clock.train_exp_counter != 0:
             memory = AvalancheTensorDataset(
@@ -154,7 +154,7 @@ class _ICaRLPlugin(StrategyPlugin):
                 (strategy.adapted_dataset, memory)
             )
 
-    def before_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def before_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -166,7 +166,7 @@ class _ICaRLPlugin(StrategyPlugin):
             ]
         )
 
-    def before_forward(self, strategy: "BaseStrategy", **kwargs):
+    def before_forward(self, strategy: "SupervisedTemplate", **kwargs):
         if self.input_size is None:
             with torch.no_grad():
                 self.input_size = strategy.mb_x.shape[1:]
@@ -175,7 +175,7 @@ class _ICaRLPlugin(StrategyPlugin):
                     strategy.mb_x
                 ).shape[1]
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         strategy.model.eval()
 
         self.construct_exemplar_set(strategy)
@@ -221,7 +221,7 @@ class _ICaRLPlugin(StrategyPlugin):
 
             strategy.model.eval_classifier.class_means = self.class_means
 
-    def construct_exemplar_set(self, strategy: BaseStrategy):
+    def construct_exemplar_set(self, strategy: SupervisedTemplate):
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -280,7 +280,7 @@ class _ICaRLPlugin(StrategyPlugin):
             )
             self.order.append(order[torch.where(pick == 1)[0]])
 
-    def reduce_exemplar_set(self, strategy: BaseStrategy):
+    def reduce_exemplar_set(self, strategy: SupervisedTemplate):
         tid = strategy.clock.train_exp_counter
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 

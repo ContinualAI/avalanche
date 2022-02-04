@@ -1,7 +1,7 @@
 import torch
 import argparse
 from avalanche.benchmarks import SplitMNIST
-from avalanche.training.strategies import LwF
+from avalanche.training.supervised import LwF
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,

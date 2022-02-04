@@ -1,15 +1,14 @@
 import copy
 from typing import TYPE_CHECKING
 
-from avalanche.models import DynamicModule
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class GDumbPlugin(StrategyPlugin):
+class GDumbPlugin(SupervisedPlugin):
     """GDumb plugin.
 
     At each experience the model is trained  from scratch using a buffer of
@@ -34,7 +33,7 @@ class GDumbPlugin(StrategyPlugin):
         self.init_model = None
 
     def before_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedTemplate", **kwargs
     ):
         """Reset model."""
         if self.init_model is None:
@@ -44,12 +43,12 @@ class GDumbPlugin(StrategyPlugin):
         strategy.model_adaptation(self.init_model)
 
     def before_eval_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedTemplate", **kwargs
     ):
         strategy.model_adaptation(self.init_model)
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy", **kwargs
+        self, strategy: "SupervisedTemplate", **kwargs
     ):
         self.storage_policy.update(strategy, **kwargs)
         strategy.adapted_dataset = self.storage_policy.buffer

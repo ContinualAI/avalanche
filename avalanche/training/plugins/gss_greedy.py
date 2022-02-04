@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING
 import torch
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 if TYPE_CHECKING:
-    from .. import BaseStrategy
+    from ..templates.supervised import SupervisedTemplate
 
 
-class GSS_greedyPlugin(StrategyPlugin):
+class GSS_greedyPlugin(SupervisedPlugin):
     """GSSPlugin replay plugin.
 
     Code adapted from the repository:
@@ -39,7 +39,7 @@ class GSS_greedyPlugin(StrategyPlugin):
 
         self.buffer_score = torch.FloatTensor(self.mem_size).fill_(0)
 
-    def before_training(self, strategy: "BaseStrategy", **kwargs):
+    def before_training(self, strategy: "SupervisedTemplate", **kwargs):
         self.device = strategy.device
         self.ext_mem_list_x = self.ext_mem_list_x.to(strategy.device)
         self.ext_mem_list_y = self.ext_mem_list_y.to(strategy.device)
@@ -275,17 +275,15 @@ class GSS_greedyPlugin(StrategyPlugin):
                 )
 
             curr_idx = self.ext_mem_list_current_index
-            self.ext_mem_list_x[
-                curr_idx : curr_idx
-                + offset
-            ].data.copy_(updated_mb_x)
-            self.ext_mem_list_y[
-                curr_idx : curr_idx
-                + offset
-            ].data.copy_(updated_mb_y)
-            self.buffer_score[
-                curr_idx : curr_idx + offset
-            ].data.copy_(batch_sample_memory_cos)
+            self.ext_mem_list_x[curr_idx : curr_idx + offset].data.copy_(
+                updated_mb_x
+            )
+            self.ext_mem_list_y[curr_idx : curr_idx + offset].data.copy_(
+                updated_mb_y
+            )
+            self.buffer_score[curr_idx : curr_idx + offset].data.copy_(
+                batch_sample_memory_cos
+            )
             self.ext_mem_list_current_index += offset
 
         strategy.model.train()

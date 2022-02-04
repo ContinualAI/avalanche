@@ -3,10 +3,10 @@ import copy
 import torch
 
 from avalanche.models import avalanche_forward, MultiTaskModule
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 
-class LwFPlugin(StrategyPlugin):
+class LwFPlugin(SupervisedPlugin):
     """
     A Learning without Forgetting plugin.
     LwF uses distillation to regularize the current loss with soft targets

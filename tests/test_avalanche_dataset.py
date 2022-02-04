@@ -6,7 +6,7 @@ from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.models import SimpleMLP
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.benchmarks.generators import dataset_benchmark
 import PIL
 import torch

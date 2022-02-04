@@ -172,8 +172,9 @@ If you want to compare your strategy with other classic continual learning algor
 
 ```python
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb,
-    Cumulative, LwF, GEM, AGEM, EWC, AR1
+from avalanche.training.supervised import Naive, CWRStar, Replay, GDumb,
+
+Cumulative, LwF, GEM, AGEM, EWC, AR1
 
 model = SimpleMLP(num_classes=10)
 cl_strategy = Naive(
@@ -303,13 +304,14 @@ Here we show how you can use all these modules together to **design your experim
 
 ```python
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,\
-    loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,\
-    disk_usage_metrics, gpu_usage_metrics
+from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics,
+
+loss_metrics, timing_metrics, cpu_usage_metrics, StreamConfusionMatrix,
+disk_usage_metrics, gpu_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
@@ -340,7 +342,8 @@ eval_plugin = EvaluationPlugin(
     cpu_usage_metrics(experience=True),
     forgetting_metrics(experience=True, stream=True),
     StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
-    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True,
+                       stream=True),
     loggers=[interactive_logger, text_logger, tb_logger]
 )
 

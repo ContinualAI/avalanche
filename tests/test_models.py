@@ -24,7 +24,7 @@ from avalanche.models.dynamic_optimizers import (
     update_optimizer,
 )
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.models.pytorchcv_wrapper import (
     vgg,
     resnet,

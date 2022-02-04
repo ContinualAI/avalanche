@@ -1,7 +1,7 @@
 import torch
 import argparse
 from avalanche.benchmarks import PermutedMNIST
-from avalanche.training.strategies import LFL
+from avalanche.training.supervised import LFL
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,

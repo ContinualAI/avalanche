@@ -11,12 +11,12 @@ from torch.utils.data import DataLoader
 from avalanche.models import MobilenetV1
 from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.training.plugins import (
-    StrategyPlugin,
+    SupervisedPlugin,
     EvaluationPlugin,
     SynapticIntelligencePlugin,
     CWRStarPlugin,
 )
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,
@@ -25,10 +25,10 @@ from avalanche.training.utils import (
     examples_per_class,
     LayerAndParameter,
 )
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins.evaluation import default_evaluator
 
 
-class AR1(BaseStrategy):
+class AR1(SupervisedTemplate):
     """AR1 with Latent Replay.
 
     This implementations allows for the use of both Synaptic Intelligence and
@@ -59,8 +59,8 @@ class AR1(BaseStrategy):
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
         device=None,
-        plugins: Optional[Sequence[StrategyPlugin]] = None,
-        evaluator: EvaluationPlugin = default_logger,
+        plugins: Optional[Sequence[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """
@@ -296,7 +296,7 @@ class AR1(BaseStrategy):
                 self.mb_x, latent_input=lat_mb_x, return_lat_acts=True
             )
 
-            if self.epoch == 0:
+            if self.clock.train_exp_epochs == 0:
                 # On the first epoch only: store latent activations. Those
                 # activations will be used to update the replay buffer.
                 lat_acts = lat_acts.detach().clone().cpu()

@@ -28,7 +28,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.evaluation.metrics import (
     forgetting_metrics,

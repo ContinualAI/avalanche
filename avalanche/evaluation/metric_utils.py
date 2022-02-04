@@ -18,7 +18,7 @@ from numpy import ndarray, arange
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
     from avalanche.benchmarks.scenarios import Experience
     from avalanche.evaluation import PluginMetric
 
@@ -235,7 +235,7 @@ def stream_type(experience: "Experience") -> str:
     return experience.origin_stream.name
 
 
-def phase_and_task(strategy: "BaseStrategy") -> Tuple[str, int]:
+def phase_and_task(strategy: "SupervisedTemplate") -> Tuple[str, int]:
     """
     Returns the current phase name and the associated task label.
 
@@ -280,7 +280,7 @@ def bytes2human(n):
 
 def get_metric_name(
     metric: "PluginMetric",
-    strategy: "BaseStrategy",
+    strategy: "SupervisedTemplate",
     add_experience=False,
     add_task=True,
 ):

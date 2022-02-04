@@ -2,17 +2,17 @@ from typing import Optional, TYPE_CHECKING
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import (
     ExemplarsBuffer,
     ExperienceBalancedBuffer,
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class ReplayPlugin(StrategyPlugin):
+class ReplayPlugin(SupervisedPlugin):
     """
     Experience replay plugin.
 
@@ -60,7 +60,7 @@ class ReplayPlugin(StrategyPlugin):
 
     def before_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         num_workers: int = 0,
         shuffle: bool = True,
         **kwargs
@@ -83,5 +83,5 @@ class ReplayPlugin(StrategyPlugin):
             shuffle=shuffle,
         )
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)

@@ -32,7 +32,7 @@ import torch.optim.lr_scheduler
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import CoPEPlugin
 from avalanche.evaluation.metrics import (
     StreamForgetting,

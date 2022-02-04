@@ -21,11 +21,11 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
     EvaluationPlugin,
-    StrategyPlugin,
+    SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
 )
-from avalanche.training.strategies import (
+from avalanche.training.supervised import (
     Naive,
     Replay,
     CWRStar,
@@ -39,12 +39,12 @@ from avalanche.training.strategies import (
     JointTraining,
     CoPE,
     StreamingLDA,
-    BaseStrategy,
 )
-from avalanche.training.strategies.cumulative import Cumulative
-from avalanche.training.strategies.joint_training import AlreadyTrainedError
-from avalanche.training.strategies.strategy_wrappers import PNNStrategy
-from avalanche.training.strategies.icarl import ICaRL
+from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.supervised.cumulative import Cumulative
+from avalanche.training.supervised.joint_training import AlreadyTrainedError
+from avalanche.training.supervised.strategy_wrappers import PNNStrategy
+from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 
@@ -82,13 +82,14 @@ class BaseStrategyTest(unittest.TestCase):
         # Case #2: Eval at the end only and before training
         ###################
         acc = StreamAccuracy()
+        evalp = EvaluationPlugin(acc)
         strategy = Naive(
             model,
             optimizer,
             criterion,
             train_epochs=2,
             eval_every=0,
-            evaluator=EvaluationPlugin(acc),
+            evaluator=evalp,
         )
         strategy.train(benchmark.train_stream[0])
         # eval is called once at the end of the training loop
@@ -149,9 +150,9 @@ class BaseStrategyTest(unittest.TestCase):
         assert was_hook_called
 
     def test_early_stop(self):
-        class EarlyStopP(StrategyPlugin):
+        class EarlyStopP(SupervisedPlugin):
             def after_training_iteration(
-                self, strategy: "BaseStrategy", **kwargs
+                self, strategy: "SupervisedTemplate", **kwargs
             ):
                 if strategy.clock.train_epoch_iterations == 10:
                     strategy.stop_training()
@@ -231,13 +232,13 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
     def test_joint(self):
-        class JointSTestPlugin(StrategyPlugin):
+        class JointSTestPlugin(SupervisedPlugin):
             def __init__(self, benchmark):
                 super().__init__()
                 self.benchmark = benchmark
 
             def after_train_dataset_adaptation(
-                self, strategy: "BaseStrategy", **kwargs
+                self, strategy: "SupervisedTemplate", **kwargs
             ):
                 """
                 Check that the dataset used for training contains the
@@ -412,7 +413,7 @@ class StrategyTest(unittest.TestCase):
 
     def test_warning_slda_lwf(self):
         model, _, criterion, my_nc_benchmark = self.init_sit()
-        with self.assertLogs("avalanche.training.strategies", "WARNING") as cm:
+        with self.assertWarns(Warning) as cm:
             StreamingLDA(
                 model,
                 criterion,
@@ -421,12 +422,6 @@ class StrategyTest(unittest.TestCase):
                 num_classes=10,
                 plugins=[LwFPlugin(), ReplayPlugin()],
             )
-        self.assertEqual(1, len(cm.output))
-        self.assertIn(
-            "LwFPlugin seems to use the callback before_backward"
-            " which is disabled by StreamingLDA",
-            cm.output[0],
-        )
 
     def test_lwf(self):
         # SIT scenario

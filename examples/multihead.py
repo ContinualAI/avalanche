@@ -25,7 +25,7 @@ from torch.optim import Adam
 
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.models import MTSimpleMLP
-from avalanche.training.strategies import EWC
+from avalanche.training.supervised import EWC
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin

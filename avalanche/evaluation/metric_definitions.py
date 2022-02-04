@@ -13,20 +13,19 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING
 from typing_extensions import Protocol
 from .metric_results import MetricValue
-from .metric_utils import get_metric_name, phase_and_task
-from ..core import StrategyCallbacks
+from .metric_utils import get_metric_name
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from ..training.strategies import BaseStrategy
+    from ..training.templates.supervised import SupervisedTemplate
+    from ..core import SupervisedPlugin
 
 TResult = TypeVar("TResult")
 TAggregated = TypeVar("TAggregated", bound="PluginMetric")
 
 
 class Metric(Protocol[TResult]):
-    """
-    Definition of a standalone metric.
+    """Standalone metric.
 
     A standalone metric exposes methods to reset its internal state and
     to emit a result. Emitting a result does not automatically cause
@@ -63,9 +62,8 @@ class Metric(Protocol[TResult]):
         pass
 
 
-class PluginMetric(Metric[TResult], StrategyCallbacks["MetricResult"], ABC):
-    """
-    A metric that can be used together with :class:`EvaluationPlugin`.
+class PluginMetric(Metric[TResult], ABC):
+    """A metric that can be used together with :class:`EvaluationPlugin`.
 
     This class leaves the implementation of the `result` and `reset` methods
     to child classes while providing an empty implementation of the callbacks
@@ -98,94 +96,110 @@ class PluginMetric(Metric[TResult], StrategyCallbacks["MetricResult"], ABC):
     def reset(self, **kwargs) -> None:
         pass
 
-    def before_training(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_training_exp(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_training_exp(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
     def before_train_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
     def after_train_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
-    def before_training_epoch(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_training_epoch(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
     def before_training_iteration(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
-    def before_forward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_forward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_backward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_backward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_backward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_backward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
     def after_training_iteration(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
-    def before_update(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_update(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_update(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_update(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_training_epoch(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_training_epoch(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_training_exp(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_training_exp(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_training(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_eval(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
     def before_eval_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
     def after_eval_dataset_adaptation(
-        self, strategy: "BaseStrategy"
+        self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         pass
 
-    def before_eval_exp(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_eval_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_eval_exp(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_eval(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_eval_iteration(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_eval_iteration(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def before_eval_forward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def before_eval_forward(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_eval_forward(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval_forward(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_eval_iteration(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval_iteration(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
 
@@ -221,7 +235,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def update(self, strategy):
         pass
 
-    def _package_result(self, strategy: "BaseStrategy") -> "MetricResult":
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         metric_value = self.result(strategy)
         add_exp = self._emit_at == "experience"
         plot_x_position = strategy.clock.train_iterations
@@ -244,76 +258,76 @@ class GenericPluginMetric(PluginMetric[TResult]):
                 MetricValue(self, metric_name, metric_value, plot_x_position)
             ]
 
-    def before_training(self, strategy: "BaseStrategy"):
+    def before_training(self, strategy: "SupervisedTemplate"):
         super().before_training(strategy)
         if self._reset_at == "stream" and self._mode == "train":
             self.reset()
 
-    def before_training_exp(self, strategy: "BaseStrategy"):
+    def before_training_exp(self, strategy: "SupervisedTemplate"):
         super().before_training_exp(strategy)
         if self._reset_at == "experience" and self._mode == "train":
             self.reset(strategy)
 
-    def before_training_epoch(self, strategy: "BaseStrategy"):
+    def before_training_epoch(self, strategy: "SupervisedTemplate"):
         super().before_training_epoch(strategy)
         if self._reset_at == "epoch" and self._mode == "train":
             self.reset(strategy)
 
-    def before_training_iteration(self, strategy: "BaseStrategy"):
+    def before_training_iteration(self, strategy: "SupervisedTemplate"):
         super().before_training_iteration(strategy)
         if self._reset_at == "iteration" and self._mode == "train":
             self.reset(strategy)
 
-    def after_training_iteration(self, strategy: "BaseStrategy") -> None:
+    def after_training_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_training_iteration(strategy)
         if self._mode == "train":
             self.update(strategy)
         if self._emit_at == "iteration" and self._mode == "train":
             return self._package_result(strategy)
 
-    def after_training_epoch(self, strategy: "BaseStrategy"):
+    def after_training_epoch(self, strategy: "SupervisedTemplate"):
         super().after_training_epoch(strategy)
         if self._emit_at == "epoch" and self._mode == "train":
             return self._package_result(strategy)
 
-    def after_training_exp(self, strategy: "BaseStrategy"):
+    def after_training_exp(self, strategy: "SupervisedTemplate"):
         super().after_training_exp(strategy)
         if self._emit_at == "experience" and self._mode == "train":
             return self._package_result(strategy)
 
-    def after_training(self, strategy: "BaseStrategy"):
+    def after_training(self, strategy: "SupervisedTemplate"):
         super().after_training(strategy)
         if self._emit_at == "stream" and self._mode == "train":
             return self._package_result(strategy)
 
-    def before_eval(self, strategy: "BaseStrategy"):
+    def before_eval(self, strategy: "SupervisedTemplate"):
         super().before_eval(strategy)
         if self._reset_at == "stream" and self._mode == "eval":
             self.reset(strategy)
 
-    def before_eval_exp(self, strategy: "BaseStrategy"):
+    def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
         if self._reset_at == "experience" and self._mode == "eval":
             self.reset(strategy)
 
-    def after_eval_exp(self, strategy: "BaseStrategy"):
+    def after_eval_exp(self, strategy: "SupervisedTemplate"):
         super().after_eval_exp(strategy)
         if self._emit_at == "experience" and self._mode == "eval":
             return self._package_result(strategy)
 
-    def after_eval(self, strategy: "BaseStrategy"):
+    def after_eval(self, strategy: "SupervisedTemplate"):
         super().after_eval(strategy)
         if self._emit_at == "stream" and self._mode == "eval":
             return self._package_result(strategy)
 
-    def after_eval_iteration(self, strategy: "BaseStrategy"):
+    def after_eval_iteration(self, strategy: "SupervisedTemplate"):
         super().after_eval_iteration(strategy)
         if self._mode == "eval":
             self.update(strategy)
         if self._emit_at == "iteration" and self._mode == "eval":
             return self._package_result(strategy)
 
-    def before_eval_iteration(self, strategy: "BaseStrategy"):
+    def before_eval_iteration(self, strategy: "SupervisedTemplate"):
         super().before_eval_iteration(strategy)
         if self._reset_at == "iteration" and self._mode == "eval":
             self.reset(strategy)

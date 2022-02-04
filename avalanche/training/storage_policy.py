@@ -16,7 +16,7 @@ from avalanche.benchmarks.utils import (
 from avalanche.models import FeatureExtractorBackbone
 
 if TYPE_CHECKING:
-    from .strategies import BaseStrategy
+    from .templates.supervised import SupervisedTemplate
 
 
 class ExemplarsBuffer(ABC):
@@ -45,7 +45,7 @@ class ExemplarsBuffer(ABC):
         self._buffer = new_buffer
 
     @abstractmethod
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update `self.buffer` using the `strategy` state.
 
         :param strategy:
@@ -55,7 +55,7 @@ class ExemplarsBuffer(ABC):
         ...
 
     @abstractmethod
-    def resize(self, strategy: "BaseStrategy", new_size: int):
+    def resize(self, strategy: "SupervisedTemplate", new_size: int):
         """Update the maximum size of the buffer.
 
         :param strategy:
@@ -82,7 +82,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         # INVARIANT: _buffer_weights is always sorted.
         self._buffer_weights = torch.zeros(0)
 
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update buffer."""
         self.update_from_dataset(strategy.experience.dataset)
 
@@ -184,7 +184,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
         )
 
     @abstractmethod
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update `self.buffer_groups` using the `strategy` state.
 
         :param strategy:
@@ -222,7 +222,7 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
         """
         super().__init__(max_size, adaptive_size, num_experiences)
 
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
         num_exps = strategy.clock.train_exp_counter + 1
         lens = self.get_group_lengths(num_exps)
@@ -270,7 +270,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
 
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
 
         # Get sample idxs per class
@@ -341,7 +341,7 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         self.seen_groups = set()
         self._curr_strategy = None
 
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
         new_groups = self._make_groups(strategy, new_data)
         self.seen_groups.update(new_groups.keys())
@@ -433,7 +433,7 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         self.selection_strategy = ss
         self._curr_strategy = None
 
-    def update(self, strategy: "BaseStrategy", **kwargs):
+    def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
         self.update_from_dataset(strategy, new_data)
 
@@ -456,7 +456,7 @@ class ExemplarsSelectionStrategy(ABC):
 
     @abstractmethod
     def make_sorted_indices(
-        self, strategy: "BaseStrategy", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         """
         Should return the sorted list of indices to keep as exemplars.
@@ -470,7 +470,7 @@ class RandomExemplarsSelectionStrategy(ExemplarsSelectionStrategy):
     """Select the exemplars at random in the dataset"""
 
     def make_sorted_indices(
-        self, strategy: "BaseStrategy", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         indices = list(range(len(data)))
         random.shuffle(indices)
@@ -485,7 +485,7 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
 
     @torch.no_grad()
     def make_sorted_indices(
-        self, strategy: "BaseStrategy", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         self.feature_extractor.eval()
         features = cat(

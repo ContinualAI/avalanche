@@ -20,7 +20,7 @@ import random
 import numpy as np
 from torch.optim.lr_scheduler import MultiStepLR
 
-from avalanche.training.strategies.icarl import ICaRL
+from avalanche.training.supervised.icarl import ICaRL
 
 
 def get_dataset_per_pixel_mean(dataset):

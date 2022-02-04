@@ -13,18 +13,18 @@ from typing import List, TYPE_CHECKING, Tuple, Type
 
 import torch
 
+from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue, TensorImage
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
 from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
-
+    from avalanche.training.templates import SupervisedTemplate
 
 UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
 
 
-class TextLogger(StrategyLogger):
+class TextLogger(BaseLogger, SupervisedPlugin):
     """
     The `TextLogger` class provides logging facilities
     printed to a user specified file. The logger writes
@@ -61,6 +61,7 @@ class TextLogger(StrategyLogger):
         self.metric_vals = {}
 
     def log_single_metric(self, name, value, x_plot) -> None:
+        # We only keep track of the last value for each metric
         self.metric_vals[name] = (name, x_plot, value)
 
     def _val_to_str(self, m_val):
@@ -81,7 +82,7 @@ class TextLogger(StrategyLogger):
 
     def before_training_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -90,7 +91,7 @@ class TextLogger(StrategyLogger):
 
     def before_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -99,7 +100,7 @@ class TextLogger(StrategyLogger):
 
     def after_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -114,7 +115,7 @@ class TextLogger(StrategyLogger):
 
     def after_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -141,7 +142,7 @@ class TextLogger(StrategyLogger):
 
     def before_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -150,7 +151,7 @@ class TextLogger(StrategyLogger):
 
     def before_eval(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -159,7 +160,7 @@ class TextLogger(StrategyLogger):
 
     def after_training(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -168,7 +169,7 @@ class TextLogger(StrategyLogger):
 
     def after_eval(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs,
     ):
@@ -177,7 +178,7 @@ class TextLogger(StrategyLogger):
         self.print_current_metrics()
         self.metric_vals = {}
 
-    def _on_exp_start(self, strategy: "BaseStrategy"):
+    def _on_exp_start(self, strategy: "SupervisedTemplate"):
         action_name = "training" if strategy.is_training else "eval"
         exp_id = strategy.experience.current_experience
         task_id = phase_and_task(strategy)[1]
@@ -193,9 +194,7 @@ class TextLogger(StrategyLogger):
         else:
             print(
                 "-- Starting {} on experience {} (Task {}) from {}"
-                " stream --".format(
-                    action_name, exp_id, task_id, stream
-                ),
+                " stream --".format(action_name, exp_id, task_id, stream),
                 file=self.file,
                 flush=True,
             )

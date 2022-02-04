@@ -12,7 +12,7 @@ from torch.optim import Adam
 from avalanche.benchmarks import SplitMNIST
 from avalanche.evaluation.metrics.mean_scores import mean_scores_metrics
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.logging import TensorboardLogger, InteractiveLogger

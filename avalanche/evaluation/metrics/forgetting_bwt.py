@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
@@ -194,21 +194,21 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
         """
         return self.forgetting.result(k=k)
 
-    def before_training_exp(self, strategy: "BaseStrategy") -> None:
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
         self.reset_last()
 
-    def before_eval_exp(self, strategy: "BaseStrategy") -> None:
+    def before_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         self._current_metric.reset()
 
-    def after_eval_iteration(self, strategy: "BaseStrategy") -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self.metric_update(strategy)
 
-    def after_eval_exp(self, strategy: "BaseStrategy") -> MetricResult:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> MetricResult:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.update(
@@ -222,7 +222,7 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
 
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "BaseStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         # this checks if the evaluation experience has been
         # already encountered at training time
         # before the last training.
@@ -360,7 +360,7 @@ class GenericStreamForgetting(GenericExperienceForgetting):
         super().before_eval(strategy)
         self.stream_forgetting.reset()
 
-    def after_eval_exp(self, strategy: "BaseStrategy") -> None:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
             self.exp_update(
@@ -380,10 +380,10 @@ class GenericStreamForgetting(GenericExperienceForgetting):
         if exp_forgetting is not None:
             self.stream_forgetting.update(exp_forgetting, weight=1)
 
-    def after_eval(self, strategy: "BaseStrategy") -> "MetricResult":
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "BaseStrategy") -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         metric_value = self.result()
 
         phase_name, _ = phase_and_task(strategy)

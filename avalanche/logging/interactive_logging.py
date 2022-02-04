@@ -11,16 +11,17 @@
 import sys
 from typing import List, TYPE_CHECKING
 
+from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import TextLogger
 
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class InteractiveLogger(TextLogger):
+class InteractiveLogger(TextLogger, SupervisedPlugin):
     """
     The `InteractiveLogger` class provides logging facilities
     for the console standard output. The logger shows
@@ -54,7 +55,7 @@ class InteractiveLogger(TextLogger):
 
     def before_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -63,7 +64,7 @@ class InteractiveLogger(TextLogger):
 
     def after_training_epoch(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -72,7 +73,7 @@ class InteractiveLogger(TextLogger):
 
     def before_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -81,7 +82,7 @@ class InteractiveLogger(TextLogger):
 
     def after_eval_exp(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -90,7 +91,7 @@ class InteractiveLogger(TextLogger):
 
     def after_training_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):
@@ -100,7 +101,7 @@ class InteractiveLogger(TextLogger):
 
     def after_eval_iteration(
         self,
-        strategy: "BaseStrategy",
+        strategy: "SupervisedTemplate",
         metric_values: List["MetricValue"],
         **kwargs
     ):

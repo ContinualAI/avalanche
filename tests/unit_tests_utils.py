@@ -13,11 +13,29 @@ from torchvision.transforms import Compose, ToTensor
 from avalanche.benchmarks import nc_benchmark
 
 
+# Environment variable used to skip some expensive tests that are very unlikely
+# to break unless you touch their code directly (e.g. datasets).
+FAST_TEST = False
+if "FAST_TEST" in os.environ:
+    FAST_TEST = os.environ["FAST_TEST"].lower() == "true"
+
+# Environment variable used to update the metric pickles providing the ground
+# truth for metric tests. If you change the metrics (names, x values, y
+# values, ...) you may need to update them.
 UPDATE_METRICS = False
 if "UPDATE_METRICS" in os.environ:
     UPDATE_METRICS = os.environ["UPDATE_METRICS"].lower() == "true"
 
 print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+
+
+def is_github_action():
+    """Check whether we are running in a Github action.
+
+    We want to avoid some expensive operations (such as downloading data)
+    inside the CI pipeline.
+    """
+    return "GITHUB_ACTION" in os.environ
 
 
 def common_setups():

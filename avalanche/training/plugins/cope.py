@@ -7,12 +7,12 @@ from torch.nn.modules import Module
 
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 
 
-class CoPEPlugin(StrategyPlugin):
+class CoPEPlugin(SupervisedPlugin):
     """Continual Prototype Evolution plugin.
 
     Each class has a prototype for nearest-neighbor classification.
