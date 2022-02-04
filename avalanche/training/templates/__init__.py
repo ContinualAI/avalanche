@@ -1,6 +1,7 @@
 """Templates define the train/eval loops logic.
 
-Some CL scenarios need different loops, such as supervised CL and reinforcement learning CL.
+Some CL scenarios need different loops, such as supervised CL and
+reinforcement learning CL.
 Templates define a "template" of the algorithm, which consists of:
 - which attributes are used by the strategy
 - training loop logic

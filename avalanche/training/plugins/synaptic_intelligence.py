@@ -127,13 +127,17 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
         if syn_loss is not None:
             strategy.loss += syn_loss.to(strategy.device)
 
-    def before_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
+    def before_training_iteration(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         super().before_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.pre_update(
             strategy.model, self.syn_data, self.excluded_parameters
         )
 
-    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_iteration(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         super().after_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.post_update(
             strategy.model, self.syn_data, self.excluded_parameters

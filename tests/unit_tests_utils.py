@@ -37,6 +37,7 @@ def is_github_action():
     """
     return "GITHUB_ACTION" in os.environ
 
+
 def common_setups():
     # adapt_dataset_urls()
     pass

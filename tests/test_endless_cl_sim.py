@@ -20,7 +20,10 @@ from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
 class EndlessCLSimTest(unittest.TestCase):
-    @unittest.skipIf(FAST_TEST or is_github_action(), "We don't want to download large datasets in github actions.")
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_endless_cl_classification(self):
 
         if "FAST_TEST" in os.environ:
@@ -60,7 +63,10 @@ class EndlessCLSimTest(unittest.TestCase):
                 pass
         return
 
-    @unittest.skipIf(FAST_TEST or is_github_action(), "We don't want to download large datasets in github actions.")
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_endless_cl_video(self):
         if "FAST_TEST" in os.environ:
             pass

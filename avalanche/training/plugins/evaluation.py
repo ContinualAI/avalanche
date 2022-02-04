@@ -138,7 +138,9 @@ class EvaluationPlugin:
             self.all_metric_results[name][1].append(val)
         self.last_metric_results[name] = val
 
-    def _update_metrics_and_loggers(self, strategy: "SupervisedTemplate", callback: str):
+    def _update_metrics_and_loggers(
+        self, strategy: "SupervisedTemplate", callback: str
+    ):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
         if not self._active:
@@ -204,9 +206,11 @@ class EvaluationPlugin:
         try:
             return super().__getattribute__(item)
         except AttributeError as e:
-            if item.startswith('before_') or item.startswith('after_'):
+            if item.startswith("before_") or item.startswith("after_"):
                 # method is a callback. Forward to metrics.
-                return lambda strat, **kwargs: self._update_metrics_and_loggers(strat, item)
+                return lambda strat, **kwargs: self._update_metrics_and_loggers(
+                    strat, item
+                )
             raise
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):

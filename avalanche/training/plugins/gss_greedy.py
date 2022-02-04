@@ -275,17 +275,15 @@ class GSS_greedyPlugin(SupervisedPlugin):
                 )
 
             curr_idx = self.ext_mem_list_current_index
-            self.ext_mem_list_x[
-                curr_idx : curr_idx
-                + offset
-            ].data.copy_(updated_mb_x)
-            self.ext_mem_list_y[
-                curr_idx : curr_idx
-                + offset
-            ].data.copy_(updated_mb_y)
-            self.buffer_score[
-                curr_idx : curr_idx + offset
-            ].data.copy_(batch_sample_memory_cos)
+            self.ext_mem_list_x[curr_idx : curr_idx + offset].data.copy_(
+                updated_mb_x
+            )
+            self.ext_mem_list_y[curr_idx : curr_idx + offset].data.copy_(
+                updated_mb_y
+            )
+            self.buffer_score[curr_idx : curr_idx + offset].data.copy_(
+                batch_sample_memory_cos
+            )
             self.ext_mem_list_current_index += offset
 
         strategy.model.train()

@@ -106,7 +106,7 @@ class SupervisedTemplate(BaseSGDTemplate):
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
-            peval_mode=peval_mode
+            peval_mode=peval_mode,
         )
         self._criterion = criterion
 
@@ -160,8 +160,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     def _load_train_state(self, prev_state):
         super()._load_train_state(prev_state)
-        self.adapted_dataset = prev_state['adapted_dataset']
-        self.dataloader = prev_state['dataloader']
+        self.adapted_dataset = prev_state["adapted_dataset"]
+        self.dataloader = prev_state["dataloader"]
 
     def _save_train_state(self):
         """Save the training state which may be modified by the eval loop.
@@ -173,8 +173,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
         state = super()._save_train_state()
         new_state = {
-            'adapted_dataset': self.adapted_dataset,
-            'dataloader': self.dataloader
+            "adapted_dataset": self.adapted_dataset,
+            "dataloader": self.dataloader,
         }
         return {**state, **new_state}
 
@@ -273,13 +273,13 @@ class SupervisedTemplate(BaseSGDTemplate):
     #########################################################
 
     def _before_train_dataset_adaptation(self, **kwargs):
-        trigger_plugins(self, 'before_train_dataset_adaptation', **kwargs)
+        trigger_plugins(self, "before_train_dataset_adaptation", **kwargs)
 
     def _after_train_dataset_adaptation(self, **kwargs):
-        trigger_plugins(self, 'after_train_dataset_adaptation', **kwargs)
+        trigger_plugins(self, "after_train_dataset_adaptation", **kwargs)
 
     def _before_eval_dataset_adaptation(self, **kwargs):
-        trigger_plugins(self, 'before_eval_dataset_adaptation', **kwargs)
+        trigger_plugins(self, "before_eval_dataset_adaptation", **kwargs)
 
     def _after_eval_dataset_adaptation(self, **kwargs):
-        trigger_plugins(self, 'after_eval_dataset_adaptation', **kwargs)
+        trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)

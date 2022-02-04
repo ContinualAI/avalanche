@@ -25,14 +25,15 @@ class BaseTemplate:
             eval_exp  # for each experience
 
     """
+
     # we need this only for type checking
     PLUGIN_CLASS = BasePlugin
 
     def __init__(
-            self,
-            model: Module,
-            device="cpu",
-            plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
+        self,
+        model: Module,
+        device="cpu",
+        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
     ):
         """Init."""
 
@@ -105,7 +106,8 @@ class BaseTemplate:
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
+    def eval(self, exp_list: Union[Experience, Sequence[Experience]],
+             **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -151,19 +153,19 @@ class BaseTemplate:
             _prev_model_training_modes[name] = layer.training
 
         _prev_state = {
-            'experience': self.experience,
-            'is_training': self.is_training,
-            'model_training_mode': _prev_model_training_modes
+            "experience": self.experience,
+            "is_training": self.is_training,
+            "model_training_mode": _prev_model_training_modes,
         }
         return _prev_state
 
     def _load_train_state(self, prev_state):
         # restore train-state variables and training mode.
-        self.experience = prev_state['experience']
-        self.is_training = prev_state['is_training']
+        self.experience = prev_state["experience"]
+        self.is_training = prev_state["is_training"]
 
         # restore each layer's training mode to original
-        prev_training_modes = prev_state['model_training_mode']
+        prev_training_modes = prev_state["model_training_mode"]
         for name, layer in self.model.named_modules():
             try:
                 prev_mode = prev_training_modes[name]
@@ -176,14 +178,18 @@ class BaseTemplate:
     def __check_plugin_compatibility(self):
         """Check that the list of plugins is compatible with the template.
 
-        This means checking that each plugin impements a subset of the supported callbacks.
+        This means checking that each plugin impements a subset of the
+        supported callbacks.
         """
-        # TODO: ideally we would like to check the argument's type to check that it's a supertype of the template.
+        # TODO: ideally we would like to check the argument's type to check
+        #  that it's a supertype of the template.
         # I don't know if it's possible to do it in Python.
         ps = self.plugins
 
         def get_plugins_from_object(obj):
-            is_callback = lambda x: x.startswith('before') or x.startswith('after')
+            def is_callback(x):
+                return x.startswith("before") or \
+                       x.startswith("after")
             return filter(is_callback, dir(obj))
 
         cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))
@@ -193,7 +199,8 @@ class BaseTemplate:
             if not cb_p.issubset(cb_supported):
                 warnings.warn(
                     f"Plugin {p} implements incompatible callbacks for template"
-                    f" {self}. This may result in errors.")
+                    f" {self}. This may result in errors."
+                )
                 return
 
     #########################################################
@@ -201,25 +208,25 @@ class BaseTemplate:
     #########################################################
 
     def _before_training_exp(self, **kwargs):
-        trigger_plugins(self, 'before_training_exp', **kwargs)
+        trigger_plugins(self, "before_training_exp", **kwargs)
 
     def _after_training_exp(self, **kwargs):
-        trigger_plugins(self, 'after_training_exp', **kwargs)
+        trigger_plugins(self, "after_training_exp", **kwargs)
 
     def _before_training(self, **kwargs):
-        trigger_plugins(self, 'before_training', **kwargs)
+        trigger_plugins(self, "before_training", **kwargs)
 
     def _after_training(self, **kwargs):
-        trigger_plugins(self, 'after_training', **kwargs)
+        trigger_plugins(self, "after_training", **kwargs)
 
     def _before_eval(self, **kwargs):
-        trigger_plugins(self, 'before_eval', **kwargs)
+        trigger_plugins(self, "before_eval", **kwargs)
 
     def _after_eval(self, **kwargs):
-        trigger_plugins(self, 'after_eval', **kwargs)
+        trigger_plugins(self, "after_eval", **kwargs)
 
     def _before_eval_exp(self, **kwargs):
-        trigger_plugins(self, 'before_eval_exp', **kwargs)
+        trigger_plugins(self, "before_eval_exp", **kwargs)
 
     def _after_eval_exp(self, **kwargs):
-        trigger_plugins(self, 'after_eval_exp', **kwargs)
+        trigger_plugins(self, "after_eval_exp", **kwargs)

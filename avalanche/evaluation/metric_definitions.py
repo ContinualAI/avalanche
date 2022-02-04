@@ -99,7 +99,9 @@ class PluginMetric(Metric[TResult], ABC):
     def before_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def before_training_exp(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
     def before_train_dataset_adaptation(
@@ -112,7 +114,9 @@ class PluginMetric(Metric[TResult], ABC):
     ) -> "MetricResult":
         pass
 
-    def before_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def before_training_epoch(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
     def before_training_iteration(
@@ -143,10 +147,14 @@ class PluginMetric(Metric[TResult], ABC):
     def after_update(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_training_epoch(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_training_exp(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
     def after_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
@@ -174,16 +182,24 @@ class PluginMetric(Metric[TResult], ABC):
     def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_eval_iteration(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def before_eval_iteration(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def before_eval_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def before_eval_forward(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_eval_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_eval_forward(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
-    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_eval_iteration(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         pass
 
 

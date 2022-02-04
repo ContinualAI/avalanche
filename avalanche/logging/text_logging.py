@@ -192,9 +192,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         else:
             print(
                 "-- Starting {} on experience {} (Task {}) from {}"
-                " stream --".format(
-                    action_name, exp_id, task_id, stream
-                ),
+                " stream --".format(action_name, exp_id, task_id, stream),
                 file=self.file,
                 flush=True,
             )

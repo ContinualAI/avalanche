@@ -34,18 +34,19 @@ class BaseSGDTemplate(BaseTemplate):
             eval_exp  # for each experience
 
     """
+
     def __init__(
-            self,
-            model: Module,
-            optimizer: Optimizer,
-            train_mb_size: int = 1,
-            train_epochs: int = 1,
-            eval_mb_size: int = 1,
-            device="cpu",
-            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-            evaluator: EvaluationPlugin = default_evaluator,
-            eval_every=-1,
-            peval_mode="epoch",
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
     ):
         """Init.
 
@@ -267,46 +268,46 @@ class BaseSGDTemplate(BaseTemplate):
     #########################################################
 
     def _before_training_epoch(self, **kwargs):
-        trigger_plugins(self, 'before_training_epoch', **kwargs)
+        trigger_plugins(self, "before_training_epoch", **kwargs)
 
     def _after_training_epoch(self, **kwargs):
-        trigger_plugins(self, 'after_training_epoch', **kwargs)
+        trigger_plugins(self, "after_training_epoch", **kwargs)
 
     def _before_training_iteration(self, **kwargs):
-        trigger_plugins(self, 'before_training_iteration', **kwargs)
+        trigger_plugins(self, "before_training_iteration", **kwargs)
 
     def _before_forward(self, **kwargs):
-        trigger_plugins(self, 'before_forward', **kwargs)
+        trigger_plugins(self, "before_forward", **kwargs)
 
     def _after_forward(self, **kwargs):
-        trigger_plugins(self, 'after_forward', **kwargs)
+        trigger_plugins(self, "after_forward", **kwargs)
 
     def _before_backward(self, **kwargs):
-        trigger_plugins(self, 'before_backward', **kwargs)
+        trigger_plugins(self, "before_backward", **kwargs)
 
     def _after_backward(self, **kwargs):
-        trigger_plugins(self, 'after_backward', **kwargs)
+        trigger_plugins(self, "after_backward", **kwargs)
 
     def _after_training_iteration(self, **kwargs):
-        trigger_plugins(self, 'after_training_iteration', **kwargs)
+        trigger_plugins(self, "after_training_iteration", **kwargs)
 
     def _before_update(self, **kwargs):
-        trigger_plugins(self, 'before_update', **kwargs)
+        trigger_plugins(self, "before_update", **kwargs)
 
     def _after_update(self, **kwargs):
-        trigger_plugins(self, 'after_update', **kwargs)
+        trigger_plugins(self, "after_update", **kwargs)
 
     def _before_eval_iteration(self, **kwargs):
-        trigger_plugins(self, 'before_eval_iteration', **kwargs)
+        trigger_plugins(self, "before_eval_iteration", **kwargs)
 
     def _before_eval_forward(self, **kwargs):
-        trigger_plugins(self, 'before_eval_forward', **kwargs)
+        trigger_plugins(self, "before_eval_forward", **kwargs)
 
     def _after_eval_forward(self, **kwargs):
-        trigger_plugins(self, 'after_eval_forward', **kwargs)
+        trigger_plugins(self, "after_eval_forward", **kwargs)
 
     def _after_eval_iteration(self, **kwargs):
-        trigger_plugins(self, 'after_eval_iteration', **kwargs)
+        trigger_plugins(self, "after_eval_iteration", **kwargs)
 
 
 class PeriodicEval(SupervisedPlugin):
@@ -383,7 +384,9 @@ class PeriodicEval(SupervisedPlugin):
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_iteration(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":

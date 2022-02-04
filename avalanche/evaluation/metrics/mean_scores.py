@@ -247,7 +247,9 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
             self.update(strategy)
         super().after_training_iteration(strategy)
 
-    def after_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_training_epoch(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
 

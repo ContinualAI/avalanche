@@ -81,7 +81,9 @@ class ImagesSamplePlugin(PluginMetric):
     def __str__(self):
         return "images"
 
-    def _make_grid_sample(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def _make_grid_sample(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
         self._load_sorted_images(strategy)
 
         return [

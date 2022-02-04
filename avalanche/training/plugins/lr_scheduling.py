@@ -146,7 +146,9 @@ class LRSchedulerPlugin(SupervisedPlugin):
             self.rolling_metric.reset()
         self._eval_train_epoch = strategy.clock.train_exp_epochs
 
-    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_iteration(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         if self.metric != "train_loss":
             return
         self.rolling_metric.update(strategy.loss, weight=len(strategy.mb_x))

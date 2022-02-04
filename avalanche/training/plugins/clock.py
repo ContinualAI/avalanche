@@ -12,9 +12,10 @@ from avalanche.training.plugins import SupervisedPlugin
 
 
 class Clock(SupervisedPlugin):
-    """ Counter for strategy events.
+    """Counter for strategy events.
 
-    WARNING: Clock needs to be the last plugin, otherwise counters will be wrong for plugins called after it.
+    WARNING: Clock needs to be the last plugin, otherwise counters will be
+    wrong for plugins called after it.
     """
 
     def __init__(self):
