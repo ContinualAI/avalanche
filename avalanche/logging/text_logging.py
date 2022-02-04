@@ -18,6 +18,8 @@ from avalanche.evaluation.metric_results import MetricValue, TensorImage
 from avalanche.logging import BaseLogger
 from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 
+if TYPE_CHECKING:
+    from avalanche.training.templates import SupervisedTemplate
 
 UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
 

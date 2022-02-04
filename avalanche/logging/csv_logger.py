@@ -18,6 +18,9 @@ from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import BaseLogger
 from avalanche.core import SupervisedPlugin
 
+if TYPE_CHECKING:
+    from avalanche.training.templates import SupervisedTemplate
+
 
 class CSVLogger(BaseLogger, SupervisedPlugin):
     """
