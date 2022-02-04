@@ -1,7 +1,7 @@
 import unittest
 
 from avalanche.benchmarks import Experience, SplitCIFAR10
-from tests.unit_tests_utils import load_experience_train_eval
+from tests.unit_tests_utils import load_experience_train_eval, FAST_TEST, is_github_action
 
 CIFAR10_DOWNLOADS = 0
 CIFAR10_DOWNLOAD_METHOD = None
@@ -29,6 +29,7 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
             ccifar10._get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD
             CIFAR10_DOWNLOAD_METHOD = None
 
+    @unittest.skipIf(FAST_TEST or is_github_action(), "We don't want to download large datasets in github actions.")
     def test_SplitCifar10_benchmark(self):
         benchmark = SplitCIFAR10(5)
         self.assertEqual(5, len(benchmark.train_stream))
@@ -54,6 +55,7 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
 
         self.assertEqual(10000, test_sz)
 
+    @unittest.skipIf(FAST_TEST or is_github_action(), "We don't want to download large datasets in github actions.")
     def test_SplitCifar10_benchmark_download_once(self):
         global CIFAR10_DOWNLOADS
         CIFAR10_DOWNLOADS = 0
