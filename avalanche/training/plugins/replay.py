@@ -29,42 +29,46 @@ class ReplayPlugin(SupervisedPlugin):
 
     The :mem_size: attribute controls the total number of patterns to be stored
     in the external memory.
+
+    :param batch_size: the size of the data batch. If set to `None`, it
+        will be set equal to the strategy's batch size.
+    :param batch_size_mem: the size of the memory batch. If
+        `task_balanced_dataloader` is set to True, it must be greater than or
+        equal to the number of tasks. If its value is set to `None`
+        (the default value), it will be automatically set equal to the
+        data batch size.
+    :param task_balanced_dataloader: if True, buffer data loaders will be
+            task-balanced, otherwise it will create a single dataloader for the
+            buffer samples.
     :param storage_policy: The policy that controls how to add new exemplars
                            in memory
-    :param force_data_batch_size: How many of the samples should be from the
-            current `data`. If None, it will equally divide each batch between
-            samples from all seen tasks in the current `data` and `memory`.
     """
 
-    def __init__(
-        self,
-        mem_size: int = 200,
-        storage_policy: Optional["ExemplarsBuffer"] = None,
-        force_data_batch_size: int = None,
-    ):
+    def __init__(self, mem_size: int = 200, batch_size: int = None,
+                 batch_size_mem: int = None,
+                 task_balanced_dataloader: bool = False,
+                 storage_policy: Optional["ExemplarsBuffer"] = None):
         super().__init__()
         self.mem_size = mem_size
-        self.force_data_batch_size = force_data_batch_size
+        self.batch_size = batch_size
+        self.batch_size_mem = batch_size_mem
+        self.task_balanced_dataloader = task_balanced_dataloader
 
         if storage_policy is not None:  # Use other storage policy
             self.storage_policy = storage_policy
             assert storage_policy.max_size == self.mem_size
         else:  # Default
             self.storage_policy = ExperienceBalancedBuffer(
-                max_size=self.mem_size, adaptive_size=True
-            )
+                max_size=self.mem_size,
+                adaptive_size=True)
 
     @property
     def ext_mem(self):
         return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
-    def before_training_exp(
-        self,
-        strategy: "SupervisedTemplate",
-        num_workers: int = 0,
-        shuffle: bool = True,
-        **kwargs
-    ):
+    def before_training_exp(self, strategy: "SupervisedTemplate",
+                            num_workers: int = 0, shuffle: bool = True,
+                            **kwargs):
         """
         Dataloader to build batches containing examples from both memories and
         the training dataset
@@ -73,15 +77,24 @@ class ReplayPlugin(SupervisedPlugin):
             # first experience. We don't use the buffer, no need to change
             # the dataloader.
             return
+
+        batch_size = self.batch_size
+        if batch_size is None:
+            batch_size = strategy.train_mb_size
+
+        batch_size_mem = self.batch_size_mem
+        if batch_size_mem is None:
+            batch_size_mem = strategy.train_mb_size
+
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             self.storage_policy.buffer,
             oversample_small_tasks=True,
+            batch_size=batch_size,
+            batch_size_mem=batch_size_mem,
+            task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
-            batch_size=strategy.train_mb_size,
-            force_data_batch_size=self.force_data_batch_size,
-            shuffle=shuffle,
-        )
+            shuffle=shuffle)
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
