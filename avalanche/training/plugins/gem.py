@@ -4,10 +4,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from avalanche.models import avalanche_forward
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 
-class GEMPlugin(StrategyPlugin):
+class GEMPlugin(SupervisedPlugin):
     """
     Gradient Episodic Memory Plugin.
     GEM projects the gradient on the current minibatch by using an external
@@ -48,16 +48,23 @@ class GEMPlugin(StrategyPlugin):
                 strategy.optimizer.zero_grad()
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
-                out = avalanche_forward(strategy.model, xref,
-                                        self.memory_tid[t])
+                out = avalanche_forward(
+                    strategy.model, xref, self.memory_tid[t]
+                )
                 loss = strategy._criterion(out, yref)
                 loss.backward()
 
-                G.append(torch.cat([p.grad.flatten() if p.grad is not None
-                                    else torch.zeros(p.numel(),
-                                                     device=strategy.device)
-                                    for p in strategy.model.parameters()],
-                                   dim=0))
+                G.append(
+                    torch.cat(
+                        [
+                            p.grad.flatten()
+                            if p.grad is not None
+                            else torch.zeros(p.numel(), device=strategy.device)
+                            for p in strategy.model.parameters()
+                        ],
+                        dim=0,
+                    )
+                )
 
             self.G = torch.stack(G)  # (experiences, parameters)
 
@@ -68,9 +75,15 @@ class GEMPlugin(StrategyPlugin):
         """
 
         if strategy.clock.train_exp_counter > 0:
-            g = torch.cat([p.grad.flatten() if p.grad is not None
-                           else torch.zeros(p.numel(), device=strategy.device)
-                           for p in strategy.model.parameters()], dim=0)
+            g = torch.cat(
+                [
+                    p.grad.flatten()
+                    if p.grad is not None
+                    else torch.zeros(p.numel(), device=strategy.device)
+                    for p in strategy.model.parameters()
+                ],
+                dim=0,
+            )
 
             to_project = (torch.mv(self.G, g) < 0).any()
         else:
@@ -84,7 +97,8 @@ class GEMPlugin(StrategyPlugin):
                 curr_pars = p.numel()
                 if p.grad is not None:
                     p.grad.copy_(
-                        v_star[num_pars:num_pars + curr_pars].view(p.size()))
+                        v_star[num_pars : num_pars + curr_pars].view(p.size())
+                    )
                 num_pars += curr_pars
 
             assert num_pars == v_star.numel(), "Error in projecting gradient"
@@ -94,9 +108,11 @@ class GEMPlugin(StrategyPlugin):
         Save a copy of the model after each experience
         """
 
-        self.update_memory(strategy.experience.dataset,
-                           strategy.clock.train_exp_counter,
-                           strategy.train_mb_size)
+        self.update_memory(
+            strategy.experience.dataset,
+            strategy.clock.train_exp_counter,
+            strategy.train_mb_size,
+        )
 
     @torch.no_grad()
     def update_memory(self, dataset, t, batch_size):
@@ -115,8 +131,9 @@ class GEMPlugin(StrategyPlugin):
                 else:
                     self.memory_x[t] = torch.cat((self.memory_x[t], x), dim=0)
                     self.memory_y[t] = torch.cat((self.memory_y[t], y), dim=0)
-                    self.memory_tid[t] = torch.cat((self.memory_tid[t], tid),
-                                                   dim=0)
+                    self.memory_tid[t] = torch.cat(
+                        (self.memory_tid[t], tid), dim=0
+                    )
 
             else:
                 diff = self.patterns_per_experience - tot
@@ -125,12 +142,15 @@ class GEMPlugin(StrategyPlugin):
                     self.memory_y[t] = y[:diff].clone()
                     self.memory_tid[t] = tid[:diff].clone()
                 else:
-                    self.memory_x[t] = torch.cat((self.memory_x[t], x[:diff]),
-                                                 dim=0)
-                    self.memory_y[t] = torch.cat((self.memory_y[t], y[:diff]),
-                                                 dim=0)
-                    self.memory_tid[t] = torch.cat((self.memory_tid[t],
-                                                    tid[:diff]), dim=0)
+                    self.memory_x[t] = torch.cat(
+                        (self.memory_x[t], x[:diff]), dim=0
+                    )
+                    self.memory_y[t] = torch.cat(
+                        (self.memory_y[t], y[:diff]), dim=0
+                    )
+                    self.memory_tid[t] = torch.cat(
+                        (self.memory_tid[t], tid[:diff]), dim=0
+                    )
                 break
             tot += x.size(0)
 

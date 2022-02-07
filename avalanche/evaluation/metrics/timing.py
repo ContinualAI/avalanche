@@ -16,8 +16,9 @@ from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics.mean import Mean
+
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ElapsedTime(Metric[float]):
@@ -39,6 +40,7 @@ class ElapsedTime(Metric[float]):
     the initial time. This metric in its initial state (or if the `update`
     method was invoked only once) will return an elapsed time of 0.
     """
+
     def __init__(self):
         """
         Creates an instance of the ElapsedTime metric.
@@ -91,7 +93,8 @@ class TimePluginMetric(GenericPluginMetric[float]):
         self._time = ElapsedTime()
 
         super(TimePluginMetric, self).__init__(
-            self._time, reset_at, emit_at, mode)
+            self._time, reset_at, emit_at, mode
+        )
 
     def update(self, strategy):
         self._time.update()
@@ -113,7 +116,8 @@ class MinibatchTime(TimePluginMetric):
         Creates an instance of the minibatch time metric.
         """
         super(MinibatchTime, self).__init__(
-            reset_at='iteration', emit_at='iteration', mode='train')
+            reset_at="iteration", emit_at="iteration", mode="train"
+        )
 
     def before_training_iteration(self, strategy) -> MetricResult:
         super().before_training_iteration(strategy)
@@ -137,7 +141,8 @@ class EpochTime(TimePluginMetric):
         """
 
         super(EpochTime, self).__init__(
-            reset_at='epoch', emit_at='epoch', mode='train')
+            reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
     def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
@@ -164,15 +169,17 @@ class RunningEpochTime(TimePluginMetric):
         self._time_mean = Mean()
 
         super(RunningEpochTime, self).__init__(
-            reset_at='epoch', emit_at='iteration', mode='train')
+            reset_at="epoch", emit_at="iteration", mode="train"
+        )
 
     def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
         self._time_mean.reset()
         self._time.update()
 
-    def after_training_iteration(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def after_training_iteration(
+        self, strategy: "SupervisedTemplate"
+    ) -> MetricResult:
         super().after_training_iteration(strategy)
         self._time_mean.update(self._time.result())
         self._time.reset()
@@ -199,9 +206,10 @@ class ExperienceTime(TimePluginMetric):
         Creates an instance of the experience time metric.
         """
         super(ExperienceTime, self).__init__(
-            reset_at='experience', emit_at='experience', mode='eval')
+            reset_at="experience", emit_at="experience", mode="eval"
+        )
 
-    def before_eval_exp(self, strategy: 'BaseStrategy'):
+    def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
         self._time.update()
 
@@ -223,9 +231,10 @@ class StreamTime(TimePluginMetric):
         Creates an instance of the stream time metric.
         """
         super(StreamTime, self).__init__(
-            reset_at='stream', emit_at='stream', mode='eval')
+            reset_at="stream", emit_at="stream", mode="eval"
+        )
 
-    def before_eval(self, strategy: 'BaseStrategy'):
+    def before_eval(self, strategy: "SupervisedTemplate"):
         super().before_eval(strategy)
         self._time.update()
 
@@ -233,8 +242,14 @@ class StreamTime(TimePluginMetric):
         return "Time_Stream"
 
 
-def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
-                   experience=False, stream=False) -> List[PluginMetric]:
+def timing_metrics(
+    *,
+    minibatch=False,
+    epoch=False,
+    epoch_running=False,
+    experience=False,
+    stream=False
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -273,11 +288,11 @@ def timing_metrics(*, minibatch=False, epoch=False, epoch_running=False,
 
 
 __all__ = [
-    'ElapsedTime',
-    'MinibatchTime',
-    'EpochTime',
-    'RunningEpochTime',
-    'ExperienceTime',
-    'StreamTime',
-    'timing_metrics'
+    "ElapsedTime",
+    "MinibatchTime",
+    "EpochTime",
+    "RunningEpochTime",
+    "ExperienceTime",
+    "StreamTime",
+    "timing_metrics",
 ]

@@ -1,16 +1,15 @@
 import copy
 from typing import TYPE_CHECKING
 
-from avalanche.models import DynamicModule
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class GDumbPlugin(StrategyPlugin):
-    """ GDumb plugin.
+class GDumbPlugin(SupervisedPlugin):
+    """GDumb plugin.
 
     At each experience the model is trained  from scratch using a buffer of
     samples collected from all the previous learning experiences.
@@ -29,25 +28,27 @@ class GDumbPlugin(StrategyPlugin):
         # model initialization
         self.buffer = {}
         self.storage_policy = ClassBalancedBuffer(
-            max_size=self.mem_size,
-            adaptive_size=True
+            max_size=self.mem_size, adaptive_size=True
         )
         self.init_model = None
 
-    def before_train_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                        **kwargs):
-        """ Reset model. """
+    def before_train_dataset_adaptation(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
+        """Reset model."""
         if self.init_model is None:
             self.init_model = copy.deepcopy(strategy.model)
         else:
             strategy.model = copy.deepcopy(self.init_model)
         strategy.model_adaptation(self.init_model)
 
-    def before_eval_dataset_adaptation(self, strategy: 'BaseStrategy',
-                                       **kwargs):
+    def before_eval_dataset_adaptation(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         strategy.model_adaptation(self.init_model)
 
-    def after_train_dataset_adaptation(self, strategy: "BaseStrategy",
-                                       **kwargs):
+    def after_train_dataset_adaptation(
+        self, strategy: "SupervisedTemplate", **kwargs
+    ):
         self.storage_policy.update(strategy, **kwargs)
         strategy.adapted_dataset = self.storage_policy.buffer

@@ -13,18 +13,27 @@ from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 from torch.utils.data import TensorDataset
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks import nc_benchmark, GenericCLScenario, \
-    benchmark_with_validation_stream
+from avalanche.benchmarks import (
+    nc_benchmark,
+    GenericCLScenario,
+    benchmark_with_validation_stream,
+)
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import Mean
 from avalanche.logging import TextLogger
-from avalanche.models import BaseModel
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.models import BaseModel, SimpleMLP
+from avalanche.training.plugins import (
+    SupervisedPlugin,
+    EvaluationPlugin,
+    EarlyStoppingPlugin,
+)
+from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 
-class MockPlugin(StrategyPlugin):
+class MockPlugin(SupervisedPlugin):
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -107,10 +116,16 @@ class PluginTests(unittest.TestCase):
         benchmark = PluginTests.create_benchmark()
 
         plug = MockPlugin()
-        strategy = Naive(model, optimizer, criterion,
-                         train_mb_size=100, train_epochs=1, eval_mb_size=100,
-                         device='cpu', plugins=[plug]
-                         )
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=100,
+            train_epochs=1,
+            eval_mb_size=100,
+            device="cpu",
+            plugins=[plug],
+        )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         strategy.train(benchmark.train_stream[0], num_workers=4)
         strategy.eval([benchmark.test_stream[0]], num_workers=4)
@@ -123,62 +138,74 @@ class PluginTests(unittest.TestCase):
         dataset = make_classification(
             n_samples=10 * n_samples_per_class,
             n_classes=10,
-            n_features=6, n_informative=6, n_redundant=0,
-            random_state=seed)
+            n_features=6,
+            n_informative=6,
+            n_redundant=0,
+            random_state=seed,
+        )
 
         X = torch.from_numpy(dataset[0]).float()
         y = torch.from_numpy(dataset[1]).long()
 
         train_X, test_X, train_y, test_y = train_test_split(
-            X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed)
+            X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
+        )
 
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
-        return nc_benchmark(train_dataset, test_dataset, 5,
-                            task_labels=task_labels,
-                            fixed_class_order=list(range(10)))
+        return nc_benchmark(
+            train_dataset,
+            test_dataset,
+            5,
+            task_labels=task_labels,
+            fixed_class_order=list(range(10)),
+        )
 
     def test_scheduler_plugin(self):
         PluginTests._test_scheduler_multi_step_lr_plugin(
-            gamma=1 / 2.,
+            gamma=1 / 2.0,
             milestones=[2, 3],
-            base_lr=4.,
+            base_lr=4.0,
             epochs=3,
             reset_lr=True,
             reset_scheduler=True,
-            expected=[[4., 2., 1.], [4., 2., 1.]])
+            expected=[[4.0, 2.0, 1.0], [4.0, 2.0, 1.0]],
+        )
 
         PluginTests._test_scheduler_multi_step_lr_plugin(
-            gamma=1 / 2.,
+            gamma=1 / 2.0,
             milestones=[2, 3],
-            base_lr=4.,
+            base_lr=4.0,
             epochs=3,
             reset_lr=False,
             reset_scheduler=True,
-            expected=[[4., 2., 1.], [1., .5, .25]])
+            expected=[[4.0, 2.0, 1.0], [1.0, 0.5, 0.25]],
+        )
 
         PluginTests._test_scheduler_multi_step_lr_plugin(
-            gamma=1 / 2.,
+            gamma=1 / 2.0,
             milestones=[2, 3],
-            base_lr=4.,
+            base_lr=4.0,
             epochs=3,
             reset_lr=True,
             reset_scheduler=False,
-            expected=[[4., 2., 1.], [4., 4., 4.]])
+            expected=[[4.0, 2.0, 1.0], [4.0, 4.0, 4.0]],
+        )
 
         PluginTests._test_scheduler_multi_step_lr_plugin(
-            gamma=1 / 2.,
+            gamma=1 / 2.0,
             milestones=[2, 3],
-            base_lr=4.,
+            base_lr=4.0,
             epochs=3,
             reset_lr=False,
             reset_scheduler=False,
-            expected=[[4., 2., 1.], [1., 1., 1.]])
+            expected=[[4.0, 2.0, 1.0], [1.0, 1.0, 1.0]],
+        )
 
     @staticmethod
     def _test_scheduler_multi_step_lr_plugin(
-            gamma, milestones, base_lr, epochs,
-            reset_lr, reset_scheduler, expected):
+        gamma, milestones, base_lr, epochs, reset_lr, reset_scheduler, expected
+    ):
 
         benchmark = PluginTests.create_benchmark()
         model = _PlainMLP(input_size=6, hidden_size=10)
@@ -186,8 +213,15 @@ class PluginTests(unittest.TestCase):
         scheduler = MultiStepLR(optim, milestones=milestones, gamma=gamma)
 
         PluginTests._test_scheduler_plugin(
-            benchmark, model, optim, scheduler,
-            epochs, reset_lr, reset_scheduler, expected)
+            benchmark,
+            model,
+            optim,
+            scheduler,
+            epochs,
+            reset_lr,
+            reset_scheduler,
+            expected,
+        )
 
     def assert_model_equals(self, model1, model2):
         dict1 = model1.state_dict()
@@ -201,25 +235,28 @@ class PluginTests(unittest.TestCase):
             self.assertTrue(torch.equal(v, dict2[k]))
 
     def assert_benchmark_equals(
-            self,
-            bench1: GenericCLScenario,
-            bench2: GenericCLScenario):
-        self.assertSetEqual(set(bench1.streams.keys()),
-                            set(bench2.streams.keys()))
+        self, bench1: GenericCLScenario, bench2: GenericCLScenario
+    ):
+        self.assertSetEqual(
+            set(bench1.streams.keys()), set(bench2.streams.keys())
+        )
 
         for stream_name in list(bench1.streams.keys()):
-            for exp1, exp2 in zip(bench1.streams[stream_name],
-                                  bench2.streams[stream_name]):
+            for exp1, exp2 in zip(
+                bench1.streams[stream_name], bench2.streams[stream_name]
+            ):
                 dataset1 = exp1.dataset
                 dataset2 = exp2.dataset
                 for t_idx in range(3):
                     dataset1_content = dataset1[:][t_idx]
                     dataset2_content = dataset2[:][t_idx]
-                    self.assertTrue(torch.equal(dataset1_content,
-                                                dataset2_content))
+                    self.assertTrue(
+                        torch.equal(dataset1_content, dataset2_content)
+                    )
 
     def _verify_rop_tests_reproducibility(
-            self, init_strategy, n_epochs, criterion):
+        self, init_strategy, n_epochs, criterion
+    ):
         # This doesn't actually test the support for the specific scheduler
         # (ReduceLROnPlateau), but it's only used to check if:
         # - the same model+benchmark pair can be instantiated in a
@@ -250,12 +287,13 @@ class PluginTests(unittest.TestCase):
                 for epoch in range(n_epochs):
                     train_loss.reset()
                     for x, y, t in TaskBalancedDataLoader(
-                            exp.dataset,
-                            oversample_small_groups=True,
-                            num_workers=0,
-                            batch_size=32,
-                            shuffle=False,
-                            pin_memory=False):
+                        exp.dataset,
+                        oversample_small_groups=True,
+                        num_workers=0,
+                        batch_size=32,
+                        shuffle=False,
+                        pin_memory=False,
+                    ):
                         optimizer.zero_grad()
                         outputs = model(x)
                         loss = criterion(outputs, y)
@@ -264,7 +302,7 @@ class PluginTests(unittest.TestCase):
                         optimizer.step()
                     scheduler.step(train_loss.result())
                     for group in optimizer.param_groups:
-                        expected_lrs[-1].append(group['lr'])
+                        expected_lrs[-1].append(group["lr"])
                         break
             expected_lrs_rnd.append(expected_lrs)
         self.assertEqual(expected_lrs_rnd[0], expected_lrs_rnd[1])
@@ -276,21 +314,24 @@ class PluginTests(unittest.TestCase):
 
         def _prepare_rng_critical_parts(seed=1234):
             torch.random.manual_seed(seed)
-            return (PluginTests.create_benchmark(seed=seed),
-                    _PlainMLP(input_size=6, hidden_size=10))
+            return (
+                PluginTests.create_benchmark(seed=seed),
+                _PlainMLP(input_size=6, hidden_size=10),
+            )
 
         self._verify_rop_tests_reproducibility(
-            _prepare_rng_critical_parts,
-            n_epochs,
-            criterion)
+            _prepare_rng_critical_parts, n_epochs, criterion
+        )
 
         # Everything is in order, now we can test the plugin support for the
         # ReduceLROnPlateau scheduler!
 
         for reset_lr, reset_scheduler in itertools.product(
-                (True, False), (True, False)):
-            with self.subTest(reset_lr=reset_lr,
-                              reset_scheduler=reset_scheduler):
+            (True, False), (True, False)
+        ):
+            with self.subTest(
+                reset_lr=reset_lr, reset_scheduler=reset_scheduler
+            ):
                 # First, obtain the reference (expected) lr timeline by running
                 # a plain PyTorch training loop with ReduceLROnPlateau.
                 benchmark, model = _prepare_rng_critical_parts()
@@ -302,7 +343,7 @@ class PluginTests(unittest.TestCase):
                 for exp in benchmark.train_stream:
                     if reset_lr:
                         for group in optimizer.param_groups:
-                            group['lr'] = 0.001
+                            group["lr"] = 0.001
 
                     if reset_scheduler:
                         scheduler = ReduceLROnPlateau(optimizer)
@@ -312,12 +353,13 @@ class PluginTests(unittest.TestCase):
                     for epoch in range(n_epochs):
                         train_loss.reset()
                         for x, y, t in TaskBalancedDataLoader(
-                                exp.dataset,
-                                oversample_small_groups=True,
-                                num_workers=0,
-                                batch_size=32,
-                                shuffle=False,
-                                pin_memory=False):
+                            exp.dataset,
+                            oversample_small_groups=True,
+                            num_workers=0,
+                            batch_size=32,
+                            shuffle=False,
+                            pin_memory=False,
+                        ):
                             optimizer.zero_grad()
                             outputs = model(x)
                             loss = criterion(outputs, y)
@@ -326,7 +368,7 @@ class PluginTests(unittest.TestCase):
                             optimizer.step()
                         scheduler.step(train_loss.result())
                         for group in optimizer.param_groups:
-                            expected_lrs[-1].append(group['lr'])
+                            expected_lrs[-1].append(group["lr"])
                             break
 
                 # Now we have the correct timeline stored in expected_lrs.
@@ -336,10 +378,17 @@ class PluginTests(unittest.TestCase):
                 scheduler = ReduceLROnPlateau(optimizer)
 
                 PluginTests._test_scheduler_plugin(
-                    benchmark, model, optimizer, scheduler,
-                    n_epochs, reset_lr, reset_scheduler, expected_lrs,
+                    benchmark,
+                    model,
+                    optimizer,
+                    scheduler,
+                    n_epochs,
+                    reset_lr,
+                    reset_scheduler,
+                    expected_lrs,
                     criterion=criterion,
-                    metric='train_loss')
+                    metric="train_loss",
+                )
 
         # Other tests
         benchmark, model = _prepare_rng_critical_parts()
@@ -349,22 +398,16 @@ class PluginTests(unittest.TestCase):
 
         # The metric must be set
         with self.assertRaises(Exception):
-            LRSchedulerPlugin(
-                scheduler,
-                metric=None)
+            LRSchedulerPlugin(scheduler, metric=None)
 
         # Doesn't make sense to set the metric when using a non-metric
         # based scheduler (should warn)
         with self.assertWarns(Warning):
-            LRSchedulerPlugin(
-                scheduler2,
-                metric='train_loss')
+            LRSchedulerPlugin(scheduler2, metric="train_loss")
 
         # Must raise an error on unsupported metric
         with self.assertRaises(Exception):
-            LRSchedulerPlugin(
-                scheduler,
-                metric='cuteness')
+            LRSchedulerPlugin(scheduler, metric="cuteness")
 
     def test_scheduler_reduce_on_plateau_plugin_with_val_stream(self):
         # Regression test for issue #858 (part 2)
@@ -375,21 +418,22 @@ class PluginTests(unittest.TestCase):
             torch.random.manual_seed(seed)
             initial_benchmark = PluginTests.create_benchmark(seed=seed)
             val_benchmark = benchmark_with_validation_stream(
-                initial_benchmark, 0.3, shuffle=True)
-            return (val_benchmark,
-                    _PlainMLP(input_size=6, hidden_size=10))
+                initial_benchmark, 0.3, shuffle=True
+            )
+            return (val_benchmark, _PlainMLP(input_size=6, hidden_size=10))
 
         self._verify_rop_tests_reproducibility(
-            _prepare_rng_critical_parts,
-            n_epochs,
-            criterion)
+            _prepare_rng_critical_parts, n_epochs, criterion
+        )
 
         # Everything is in order, now we can test the plugin support for the
         # ReduceLROnPlateau scheduler!
         for reset_lr, reset_scheduler in itertools.product(
-                (True, False), (True, False)):
-            with self.subTest(reset_lr=reset_lr,
-                              reset_scheduler=reset_scheduler):
+            (True, False), (True, False)
+        ):
+            with self.subTest(
+                reset_lr=reset_lr, reset_scheduler=reset_scheduler
+            ):
                 # First, obtain the reference (expected) lr timeline by running
                 # a plain PyTorch training loop with ReduceLROnPlateau.
                 benchmark, model = _prepare_rng_critical_parts()
@@ -403,26 +447,27 @@ class PluginTests(unittest.TestCase):
                     model.train()
                     if reset_lr:
                         for group in optimizer.param_groups:
-                            group['lr'] = 0.001
+                            group["lr"] = 0.001
 
                     if reset_scheduler:
                         scheduler = ReduceLROnPlateau(optimizer)
 
                     for epoch in range(n_epochs):
                         for x, y, t in TaskBalancedDataLoader(
-                                exp.dataset,
-                                oversample_small_groups=True,
-                                num_workers=0,
-                                batch_size=32,
-                                shuffle=False,
-                                pin_memory=False):
+                            exp.dataset,
+                            oversample_small_groups=True,
+                            num_workers=0,
+                            batch_size=32,
+                            shuffle=False,
+                            pin_memory=False,
+                        ):
                             optimizer.zero_grad()
                             outputs = model(x)
                             loss = criterion(outputs, y)
                             loss.backward()
                             optimizer.step()
                         for group in optimizer.param_groups:
-                            expected_lrs[-1].append(group['lr'])
+                            expected_lrs[-1].append(group["lr"])
                             break
 
                         val_loss = Mean()
@@ -431,10 +476,11 @@ class PluginTests(unittest.TestCase):
                         model.eval()
                         with torch.no_grad():
                             for x, y, t in DataLoader(
-                                    val_exp.dataset,
-                                    num_workers=0,
-                                    batch_size=100,
-                                    pin_memory=False):
+                                val_exp.dataset,
+                                num_workers=0,
+                                batch_size=100,
+                                pin_memory=False,
+                            ):
                                 outputs = model(x)
                                 loss = criterion(outputs, y)
                                 val_loss.update(loss, weight=len(x))
@@ -448,22 +494,39 @@ class PluginTests(unittest.TestCase):
                 scheduler = ReduceLROnPlateau(optimizer)
 
                 PluginTests._test_scheduler_plugin(
-                    benchmark, model, optimizer, scheduler,
-                    n_epochs, reset_lr, reset_scheduler, expected_lrs,
+                    benchmark,
+                    model,
+                    optimizer,
+                    scheduler,
+                    n_epochs,
+                    reset_lr,
+                    reset_scheduler,
+                    expected_lrs,
                     criterion=criterion,
-                    metric='val_loss',
-                    eval_on_valid_stream=True)
+                    metric="val_loss",
+                    eval_on_valid_stream=True,
+                )
 
     @staticmethod
     def _test_scheduler_plugin(
-            benchmark, model, optim, scheduler, epochs,
-            reset_lr, reset_scheduler, expected, criterion=None,
-            metric=None, eval_on_valid_stream=False):
+        benchmark,
+        model,
+        optim,
+        scheduler,
+        epochs,
+        reset_lr,
+        reset_scheduler,
+        expected,
+        criterion=None,
+        metric=None,
+        eval_on_valid_stream=False,
+    ):
         lr_scheduler_plugin = LRSchedulerPlugin(
             scheduler,
             reset_lr=reset_lr,
             reset_scheduler=reset_scheduler,
-            metric=metric)
+            metric=metric,
+        )
 
         verifier_plugin = SchedulerPluginTestPlugin(expected)
 
@@ -471,27 +534,44 @@ class PluginTests(unittest.TestCase):
             criterion = CrossEntropyLoss()
         if eval_on_valid_stream:
             cl_strategy = Naive(
-                model, optim, criterion, train_mb_size=32,
-                train_epochs=epochs, eval_mb_size=100,
+                model,
+                optim,
+                criterion,
+                train_mb_size=32,
+                train_epochs=epochs,
+                eval_mb_size=100,
                 plugins=[lr_scheduler_plugin, verifier_plugin],
-                eval_every=1, evaluator=None)
+                eval_every=1,
+                evaluator=None,
+            )
 
-            cl_strategy.train(benchmark.train_stream[0], shuffle=False,
-                              eval_streams=[benchmark.valid_stream[0]])
-            cl_strategy.train(benchmark.train_stream[1], shuffle=False,
-                              eval_streams=[benchmark.valid_stream[1]])
+            cl_strategy.train(
+                benchmark.train_stream[0],
+                shuffle=False,
+                eval_streams=[benchmark.valid_stream[0]],
+            )
+            cl_strategy.train(
+                benchmark.train_stream[1],
+                shuffle=False,
+                eval_streams=[benchmark.valid_stream[1]],
+            )
         else:
             cl_strategy = Naive(
-                model, optim, criterion, train_mb_size=32,
-                train_epochs=epochs, eval_mb_size=100,
+                model,
+                optim,
+                criterion,
+                train_mb_size=32,
+                train_epochs=epochs,
+                eval_mb_size=100,
                 plugins=[lr_scheduler_plugin, verifier_plugin],
-                evaluator=None)
+                evaluator=None,
+            )
 
             cl_strategy.train(benchmark.train_stream[0], shuffle=False)
             cl_strategy.train(benchmark.train_stream[1], shuffle=False)
 
 
-class SchedulerPluginTestPlugin(StrategyPlugin):
+class SchedulerPluginTestPlugin(SupervisedPlugin):
     def __init__(self, expected_lrs):
         super().__init__()
         self.expected_lrs = expected_lrs
@@ -501,8 +581,9 @@ class SchedulerPluginTestPlugin(StrategyPlugin):
         curr_epoch = strategy.clock.train_exp_epochs
         expected_lr = self.expected_lrs[exp_id][curr_epoch]
         for group in strategy.optimizer.param_groups:
-            assert group['lr'] == expected_lr,\
-                f"LR mismatch: {group['lr']} vs {expected_lr}"
+            assert (
+                group["lr"] == expected_lr
+            ), f"LR mismatch: {group['lr']} vs {expected_lr}"
 
 
 class _PlainMLP(nn.Module, BaseModel):
@@ -511,18 +592,30 @@ class _PlainMLP(nn.Module, BaseModel):
 
     Needed to reproduce tests for the ReduceLROnPlateau scheduler
     """
-    def __init__(self, num_classes=10, input_size=28 * 28,
-                 hidden_size=512, hidden_layers=1):
+
+    def __init__(
+        self,
+        num_classes=10,
+        input_size=28 * 28,
+        hidden_size=512,
+        hidden_layers=1,
+    ):
 
         super().__init__()
 
-        layers = nn.Sequential(*(nn.Linear(input_size, hidden_size),
-                                 nn.ReLU(inplace=True)))
+        layers = nn.Sequential(
+            *(nn.Linear(input_size, hidden_size), nn.ReLU(inplace=True))
+        )
         for layer_idx in range(hidden_layers - 1):
             layers.add_module(
-                f"fc{layer_idx + 1}", nn.Sequential(
-                    *(nn.Linear(hidden_size, hidden_size),
-                      nn.ReLU(inplace=True))))
+                f"fc{layer_idx + 1}",
+                nn.Sequential(
+                    *(
+                        nn.Linear(hidden_size, hidden_size),
+                        nn.ReLU(inplace=True),
+                    )
+                ),
+            )
 
         self.features = nn.Sequential(*layers)
         self.classifier = nn.Linear(hidden_size, num_classes)
@@ -542,5 +635,116 @@ class _PlainMLP(nn.Module, BaseModel):
         return x
 
 
-if __name__ == '__main__':
+class EvaluationPluginTest(unittest.TestCase):
+    def test_publish_metric(self):
+        ep = EvaluationPlugin()
+        mval = MetricValue(self, "metric", 1.0, 0)
+        ep.publish_metric_value(mval)
+
+        # check key exists
+        assert len(ep.get_all_metrics()["metric"][1]) == 1
+
+    def test_forward_callbacks(self):
+        # The EvaluationPlugin should forward all the callbacks to metrics,
+        # even those that are unused by the EvaluationPlugin itself.
+        class MetricMock:
+            def __init__(self):
+                self.x = 0
+
+            def before_blabla(self, strategy):
+                self.x += 1
+
+        met = MetricMock()
+        evalp = EvaluationPlugin(met)
+        evalp.before_blabla(None)
+
+        # it should ignore undefined callbacks
+        evalp.after_blabla(None)
+
+        # it should raise error for other undefined attributes
+        with self.assertRaises(AttributeError):
+            evalp.asd(None)
+
+
+class EarlyStoppingPluginTest(unittest.TestCase):
+    def test_early_stop_epochs(self):
+        class MockEvaluator:
+            def __init__(self, clock, metrics):
+                self.clock = clock
+                self.metrics = metrics
+
+            def get_last_metrics(self):
+                idx = self.clock.train_exp_iterations
+                return {"Top1_Acc_Stream/eval_phase/a": self.metrics[idx]}
+
+        class ESMockStrategy:
+            """An empty strategy to test early stopping."""
+
+            def __init__(self, p, metric_vals):
+                self.p = p
+                self.clock = Clock()
+                self.evaluator = MockEvaluator(self.clock, metric_vals)
+
+                self.model = SimpleMLP()
+
+            def before_training_iteration(self):
+                self.p.before_training_iteration(self)
+                self.clock.before_training_iteration(self)
+
+            def before_training_epoch(self):
+                self.p.before_training_epoch(self)
+                self.clock.before_training_epoch(self)
+
+            def after_training_iteration(self):
+                self.p.after_training_iteration(self)
+                self.clock.after_training_iteration(self)
+
+            def after_training_epoch(self):
+                self.p.after_training_epoch(self)
+                self.clock.after_training_epoch(self)
+
+            def stop_training(self):
+                raise StopIteration()
+
+        def run_es(mvals, p):
+            strat = ESMockStrategy(p, mvals)
+            for t in range(100):
+                try:
+                    if t % 10 == 0:
+                        strat.before_training_epoch()
+                    strat.before_training_iteration()
+                    strat.after_training_iteration()
+                    if t % 10 == 9:
+                        strat.after_training_epoch()
+                except StopIteration:
+                    break
+            return strat
+
+        # best on epoch
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name="a")
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 9
+        assert p.best_val == 90
+
+        # best on iteration
+        metric_vals = list(range(200))
+        p = EarlyStoppingPlugin(5, val_stream_name="a", peval_mode="iteration")
+        run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 99
+        assert p.best_val == 99
+
+        # check patience
+        metric_vals = list([1 for _ in range(200)])
+        p = EarlyStoppingPlugin(5, val_stream_name="a")
+        strat = run_es(metric_vals, p)
+        print(f"best step={p.best_step}, val={p.best_val}")
+        assert p.best_step == 0
+        assert strat.clock.train_exp_epochs == p.patience
+        assert p.best_val == 1
+
+
+if __name__ == "__main__":
     unittest.main()

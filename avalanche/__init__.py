@@ -12,6 +12,7 @@ _dataset_add = None
 
 def _avdataset_radd(self, other, *args, **kwargs):
     from avalanche.benchmarks.utils import AvalancheDataset
+
     global _dataset_add
     if isinstance(other, AvalancheDataset):
         return NotImplemented
@@ -21,6 +22,7 @@ def _avdataset_radd(self, other, *args, **kwargs):
 
 def _avalanche_monkey_patches():
     from torch.utils.data.dataset import Dataset
+
     global _dataset_add
     _dataset_add = Dataset.__add__
     Dataset.__add__ = _avdataset_radd

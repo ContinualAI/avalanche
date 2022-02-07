@@ -14,26 +14,29 @@ from typing import Dict, TYPE_CHECKING, Union
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics import Accuracy, Mean
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation.metric_utils import (
+    get_metric_name,
+    phase_and_task,
+    stream_type,
+)
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):
     """
-        The standalone Forward Transfer metric.
-        This metric returns the forward transfer relative to a specific key.
-        Alternatively, this metric returns a dict in which each key is
-        associated to the forward transfer.
-        Forward transfer is computed as the difference between the value
-        recorded for a specific key after the previous experience has
-        been trained on, and random initialization before training.
-        The value associated to a key can be updated with the `update` method.
+    The standalone Forward Transfer metric.
+    This metric returns the forward transfer relative to a specific key.
+    Alternatively, this metric returns a dict in which each key is
+    associated to the forward transfer.
+    Forward transfer is computed as the difference between the value
+    recorded for a specific key after the previous experience has
+    been trained on, and random initialization before training.
+    The value associated to a key can be updated with the `update` method.
 
-        At initialization, this metric returns an empty dictionary.
-        """
+    At initialization, this metric returns an empty dictionary.
+    """
 
     def __init__(self):
         """
@@ -167,37 +170,36 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
         """
         return self.forward_transfer.result(k=k)
 
-    def before_training_exp(self, strategy: 'BaseStrategy') -> None:
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def after_eval(self, strategy):
         if self.at_init:
-            assert strategy.eval_every > -1, \
-                "eval every > -1 to compute forward transfer"
+            assert (
+                strategy.eval_every > -1
+            ), "eval every > -1 to compute forward transfer"
             self.at_init = False
 
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
+    def before_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         self._current_metric.reset()
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self.metric_update(strategy)
 
-    def after_eval_exp(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> MetricResult:
         if self.at_init:
-            self.update(self.eval_exp_id,
-                        self.metric_result(strategy), initial=True)
+            self.update(
+                self.eval_exp_id, self.metric_result(strategy), initial=True
+            )
         else:
             if self.train_exp_id == self.eval_exp_id - 1:
-                self.update(self.eval_exp_id,
-                            self.metric_result(strategy))
+                self.update(self.eval_exp_id, self.metric_result(strategy))
 
                 return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         # Only after the previous experience was trained on can we return the
         # forward transfer metric for this experience.
         result = self.result(k=self.eval_exp_id)
@@ -205,8 +207,9 @@ class GenericExperienceForwardTransfer(PluginMetric[Dict[int, float]]):
             metric_name = get_metric_name(self, strategy, add_experience=True)
             plot_x_position = strategy.clock.train_iterations
 
-            metric_values = [MetricValue(
-                self, metric_name, result, plot_x_position)]
+            metric_values = [
+                MetricValue(self, metric_name, result, plot_x_position)
+            ]
             return metric_values
 
     def metric_update(self, strategy):
@@ -224,6 +227,7 @@ class ExperienceForwardTransfer(GenericExperienceForwardTransfer):
     The Forward Transfer computed on each experience separately.
     The transfer is computed based on the accuracy metric.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -233,8 +237,7 @@ class ExperienceForwardTransfer(GenericExperienceForwardTransfer):
         """
 
     def metric_update(self, strategy):
-        self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, 0)
+        self._current_metric.update(strategy.mb_y, strategy.mb_output, 0)
 
     def metric_result(self, strategy):
         return self._current_metric.result(0)[0]
@@ -315,34 +318,32 @@ class GenericStreamForwardTransfer(GenericExperienceForwardTransfer):
         super().before_eval(strategy)
         self.stream_forward_transfer.reset()
 
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         if self.at_init:
-            self.update(self.eval_exp_id,
-                        self.metric_result(strategy), initial=True)
+            self.update(
+                self.eval_exp_id, self.metric_result(strategy), initial=True
+            )
         else:
             if self.train_exp_id == self.eval_exp_id - 1:
-                self.update(self.eval_exp_id,
-                            self.metric_result(strategy))
+                self.update(self.eval_exp_id, self.metric_result(strategy))
             exp_forward_transfer = self.exp_result(k=self.eval_exp_id)
             if exp_forward_transfer is not None:
-                self.stream_forward_transfer.update(exp_forward_transfer,
-                                                    weight=1)
+                self.stream_forward_transfer.update(
+                    exp_forward_transfer, weight=1
+                )
 
-    def after_eval(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         super().after_eval(strategy)
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         metric_value = self.result()
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
+        metric_name = "{}/{}_phase/{}_stream".format(
+            str(self), phase_name, stream
+        )
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -366,6 +367,7 @@ class StreamForwardTransfer(GenericStreamForwardTransfer):
     after the previous experience and the accuracy result obtained
     on random initialization.
     """
+
     def __init__(self):
         super().__init__()
         self._current_metric = Accuracy()
@@ -374,8 +376,7 @@ class StreamForwardTransfer(GenericStreamForwardTransfer):
         """
 
     def metric_update(self, strategy):
-        self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, 0)
+        self._current_metric.update(strategy.mb_y, strategy.mb_output, 0)
 
     def metric_result(self, strategy):
         return self._current_metric.result(0)[0]
@@ -410,10 +411,10 @@ def forward_transfer_metrics(*, experience=False, stream=False):
 
 
 __all__ = [
-    'ForwardTransfer',
-    'GenericExperienceForwardTransfer',
-    'ExperienceForwardTransfer',
-    'GenericStreamForwardTransfer',
-    'StreamForwardTransfer',
-    'forward_transfer_metrics'
+    "ForwardTransfer",
+    "GenericExperienceForwardTransfer",
+    "ExperienceForwardTransfer",
+    "GenericStreamForwardTransfer",
+    "StreamForwardTransfer",
+    "forward_transfer_metrics",
 ]

@@ -1,8 +1,16 @@
 import unittest
 
-from avalanche.benchmarks import PermutedMNIST, Experience, RotatedMNIST, \
-    SplitMNIST
-from tests.unit_tests_utils import load_experience_train_eval
+from avalanche.benchmarks import (
+    PermutedMNIST,
+    Experience,
+    RotatedMNIST,
+    SplitMNIST,
+)
+from tests.unit_tests_utils import (
+    load_experience_train_eval,
+    FAST_TEST,
+    is_github_action,
+)
 
 MNIST_DOWNLOADS = 0
 MNIST_DOWNLOAD_METHOD = None
@@ -11,6 +19,7 @@ MNIST_DOWNLOAD_METHOD = None
 class MNISTBenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.cmnist as cmnist
+
         global MNIST_DOWNLOAD_METHOD
         MNIST_DOWNLOAD_METHOD = cmnist._get_mnist_dataset
 
@@ -25,9 +34,14 @@ class MNISTBenchmarksTests(unittest.TestCase):
         global MNIST_DOWNLOAD_METHOD
         if MNIST_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.cmnist as cmnist
+
             cmnist._get_mnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_SplitMNIST_benchmark(self):
         benchmark = SplitMNIST(5)
         self.assertEqual(5, len(benchmark.train_stream))
@@ -53,6 +67,10 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
         self.assertEqual(10000, test_sz)
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_PermutedMNIST_benchmark(self):
         benchmark = PermutedMNIST(3)
         self.assertEqual(3, len(benchmark.train_stream))
@@ -70,6 +88,10 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
             load_experience_train_eval(experience)
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_RotatedMNIST_benchmark(self):
         benchmark = RotatedMNIST(3)
         self.assertEqual(3, len(benchmark.train_stream))
@@ -87,6 +109,10 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
             load_experience_train_eval(experience)
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_PermutedMNIST_benchmark_download_once(self):
         global MNIST_DOWNLOADS
         MNIST_DOWNLOADS = 0
@@ -97,6 +123,10 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
         self.assertEqual(1, MNIST_DOWNLOADS)
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_RotatedMNIST_benchmark_download_once(self):
         global MNIST_DOWNLOADS
         MNIST_DOWNLOADS = 0
@@ -139,5 +169,5 @@ class MNISTBenchmarksTests(unittest.TestCase):
     #     print('Elapsed:', elapsed_time)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

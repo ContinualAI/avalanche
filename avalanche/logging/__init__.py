@@ -1,4 +1,4 @@
-from .strategy_logger import *
+from .base_logger import *
 from .tensorboard_logger import *
 from .wandb_logger import *
 from .text_logging import TextLogger

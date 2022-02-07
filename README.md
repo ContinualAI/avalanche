@@ -50,7 +50,7 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

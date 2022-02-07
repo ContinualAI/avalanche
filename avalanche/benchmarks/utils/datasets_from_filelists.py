@@ -35,7 +35,7 @@ def default_image_loader(path):
 
     :returns: Returns the image as a RGB PIL image.
     """
-    return Image.open(path).convert('RGB')
+    return Image.open(path).convert("RGB")
 
 
 def default_flist_reader(flist):
@@ -49,7 +49,7 @@ def default_flist_reader(flist):
     """
 
     imlist = []
-    with open(flist, 'r') as rf:
+    with open(flist, "r") as rf:
         for line in rf.readlines():
             impath, imlabel = line.strip().split()
             imlist.append((impath, int(imlabel)))
@@ -64,8 +64,13 @@ class PathsDataset(data.Dataset):
     """
 
     def __init__(
-            self, root, files, transform=None, target_transform=None,
-            loader=default_image_loader):
+        self,
+        root,
+        files,
+        transform=None,
+        target_transform=None,
+        loader=default_image_loader,
+    ):
         """
         Creates a File Dataset from a list of files and labels.
 
@@ -140,8 +145,14 @@ class FilelistDataset(PathsDataset):
     """
 
     def __init__(
-            self, root, flist, transform=None, target_transform=None,
-            flist_reader=default_flist_reader, loader=default_image_loader):
+        self,
+        root,
+        flist,
+        transform=None,
+        target_transform=None,
+        flist_reader=default_flist_reader,
+        loader=default_image_loader,
+    ):
         """
         This reader reads a filelist and return a list of paths.
 
@@ -158,14 +169,25 @@ class FilelistDataset(PathsDataset):
 
         flist = str(flist)  # Manages Path objects
         files_and_labels = flist_reader(flist)
-        super().__init__(root, files_and_labels, transform=transform,
-                         target_transform=target_transform, loader=loader)
+        super().__init__(
+            root,
+            files_and_labels,
+            transform=transform,
+            target_transform=target_transform,
+            loader=loader,
+        )
 
 
-def datasets_from_filelists(root, train_filelists, test_filelists,
-                            complete_test_set_only=False,
-                            train_transform=None, train_target_transform=None,
-                            test_transform=None, test_target_transform=None):
+def datasets_from_filelists(
+    root,
+    train_filelists,
+    test_filelists,
+    complete_test_set_only=False,
+    train_transform=None,
+    train_target_transform=None,
+    test_transform=None,
+    test_target_transform=None,
+):
     """
     This reader reads a list of Caffe-style filelists and returns the proper
     Dataset objects.
@@ -206,13 +228,15 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
     """
 
     if complete_test_set_only:
-        if not (isinstance(test_filelists, str) or
-                isinstance(test_filelists, Path)):
+        if not (
+            isinstance(test_filelists, str) or isinstance(test_filelists, Path)
+        ):
             if len(test_filelists) > 1:
                 raise ValueError(
-                    'When complete_test_set_only is True, test_filelists must '
-                    'be a str, Path or a list with a single element describing '
-                    'the path to the complete test set.')
+                    "When complete_test_set_only is True, test_filelists must "
+                    "be a str, Path or a list with a single element describing "
+                    "the path to the complete test set."
+                )
             else:
                 test_filelists = test_filelists[0]
         else:
@@ -220,29 +244,43 @@ def datasets_from_filelists(root, train_filelists, test_filelists,
     else:
         if len(test_filelists) != len(train_filelists):
             raise ValueError(
-                'When complete_test_set_only is False, test_filelists and '
-                'train_filelists must contain the same number of elements.')
+                "When complete_test_set_only is False, test_filelists and "
+                "train_filelists must contain the same number of elements."
+            )
 
-    transform_groups = dict(train=(train_transform, train_target_transform),
-                            eval=(test_transform, test_target_transform))
-    train_inc_datasets = \
-        [AvalancheDataset(FilelistDataset(root, tr_flist),
-                          transform_groups=transform_groups,
-                          initial_transform_group='train')
-         for tr_flist in train_filelists]
-    test_inc_datasets = \
-        [AvalancheDataset(FilelistDataset(root, te_flist),
-                          transform_groups=transform_groups,
-                          initial_transform_group='eval')
-         for te_flist in test_filelists]
+    transform_groups = dict(
+        train=(train_transform, train_target_transform),
+        eval=(test_transform, test_target_transform),
+    )
+    train_inc_datasets = [
+        AvalancheDataset(
+            FilelistDataset(root, tr_flist),
+            transform_groups=transform_groups,
+            initial_transform_group="train",
+        )
+        for tr_flist in train_filelists
+    ]
+    test_inc_datasets = [
+        AvalancheDataset(
+            FilelistDataset(root, te_flist),
+            transform_groups=transform_groups,
+            initial_transform_group="eval",
+        )
+        for te_flist in test_filelists
+    ]
 
     return train_inc_datasets, test_inc_datasets
 
 
 def datasets_from_paths(
-        train_list, test_list, complete_test_set_only=False,
-        train_transform=None, train_target_transform=None,
-        test_transform=None, test_target_transform=None):
+    train_list,
+    test_list,
+    complete_test_set_only=False,
+    train_transform=None,
+    train_target_transform=None,
+    test_transform=None,
+    test_target_transform=None,
+):
     """
     This utility takes, for each dataset to generate, a list of tuples each
     containing two elements: the full path to the pattern and its class label.
@@ -288,9 +326,10 @@ def datasets_from_paths(
         if not isinstance(test_list[0], Tuple):
             if len(test_list) > 1:
                 raise ValueError(
-                    'When complete_test_set_only is True, test_list must '
-                    'be a single list of tuples or a nested list containing '
-                    'a single lis of tuples')
+                    "When complete_test_set_only is True, test_list must "
+                    "be a single list of tuples or a nested list containing "
+                    "a single lis of tuples"
+                )
             else:
                 test_list = test_list[0]
         else:
@@ -298,20 +337,28 @@ def datasets_from_paths(
     else:
         if len(test_list) != len(train_list):
             raise ValueError(
-                'When complete_test_set_only is False, test_list and '
-                'train_list must contain the same number of elements.')
+                "When complete_test_set_only is False, test_list and "
+                "train_list must contain the same number of elements."
+            )
 
-    transform_groups = dict(train=(train_transform, train_target_transform),
-                            eval=(test_transform, test_target_transform))
+    transform_groups = dict(
+        train=(train_transform, train_target_transform),
+        eval=(test_transform, test_target_transform),
+    )
 
     common_root = None
 
     # Detect common root
     try:
-        all_paths = [pattern_tuple[0] for exp_list in train_list
-                     for pattern_tuple in exp_list] + \
-                    [pattern_tuple[0] for exp_list in test_list
-                     for pattern_tuple in exp_list]
+        all_paths = [
+            pattern_tuple[0]
+            for exp_list in train_list
+            for pattern_tuple in exp_list
+        ] + [
+            pattern_tuple[0]
+            for exp_list in test_list
+            for pattern_tuple in exp_list
+        ]
 
         common_root = os.path.commonpath(all_paths)
     except ValueError:
@@ -319,8 +366,7 @@ def datasets_from_paths(
         # See the official documentation for more details
         pass
 
-    if common_root is not None and len(common_root) > 0 and \
-            common_root != '/':
+    if common_root is not None and len(common_root) > 0 and common_root != "/":
         has_common_root = True
         common_root = str(common_root)
     else:
@@ -341,7 +387,7 @@ def datasets_from_paths(
             st_list = list()
             for x in train_list[idx_exp_list]:
                 rel = os.path.relpath(x[0], common_root)
-                if len(rel) == 0 or rel == '.':
+                if len(rel) == 0 or rel == ".":
                     # May happen if the dataset has a single path
                     single_path_case = True
                     break
@@ -354,7 +400,7 @@ def datasets_from_paths(
             st_list = list()
             for x in test_list[idx_exp_list]:
                 rel = os.path.relpath(x[0], common_root)
-                if len(rel) == 0 or rel == '.':
+                if len(rel) == 0 or rel == ".":
                     # May happen if the dataset has a single path
                     single_path_case = True
                     break
@@ -367,16 +413,22 @@ def datasets_from_paths(
             has_common_root = False
             common_root = None
 
-    train_inc_datasets = \
-        [AvalancheDataset(PathsDataset(common_root, tr_flist),
-                          transform_groups=transform_groups,
-                          initial_transform_group='train')
-         for tr_flist in train_list]
-    test_inc_datasets = \
-        [AvalancheDataset(PathsDataset(common_root, te_flist),
-                          transform_groups=transform_groups,
-                          initial_transform_group='eval')
-         for te_flist in test_list]
+    train_inc_datasets = [
+        AvalancheDataset(
+            PathsDataset(common_root, tr_flist),
+            transform_groups=transform_groups,
+            initial_transform_group="train",
+        )
+        for tr_flist in train_list
+    ]
+    test_inc_datasets = [
+        AvalancheDataset(
+            PathsDataset(common_root, te_flist),
+            transform_groups=transform_groups,
+            initial_transform_group="eval",
+        )
+        for te_flist in test_list
+    ]
 
     return train_inc_datasets, test_inc_datasets
 
@@ -394,8 +446,7 @@ def common_paths_root(exp_list):
         # See the official documentation for more details
         pass
 
-    if common_root is not None and len(common_root) > 0 and \
-            common_root != '/':
+    if common_root is not None and len(common_root) > 0 and common_root != "/":
         has_common_root = True
         common_root = str(common_root)
     else:
@@ -414,7 +465,7 @@ def common_paths_root(exp_list):
                 break
 
             rel = os.path.relpath(x[0], common_root)
-            if len(rel) == 0 or rel == '.':
+            if len(rel) == 0 or rel == ".":
                 # May happen if the dataset has a single path
                 single_path_case = True
                 break
@@ -429,11 +480,11 @@ def common_paths_root(exp_list):
 
 
 __all__ = [
-    'default_image_loader',
-    'default_flist_reader',
-    'PathsDataset',
-    'FilelistDataset',
-    'datasets_from_filelists',
-    'datasets_from_paths',
-    'common_paths_root'
+    "default_image_loader",
+    "default_flist_reader",
+    "PathsDataset",
+    "FilelistDataset",
+    "datasets_from_filelists",
+    "datasets_from_paths",
+    "common_paths_root",
 ]

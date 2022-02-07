@@ -13,15 +13,19 @@ from typing import Optional, List, Sequence, Dict, Any
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_cl_scenario import \
-    GenericCLScenario, GenericScenarioStream, GenericExperience
-from avalanche.benchmarks.scenarios.new_instances.ni_utils import \
-    _exp_structure_from_assignment
+from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+    GenericCLScenario,
+    GenericScenarioStream,
+    GenericExperience,
+)
+from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
+    _exp_structure_from_assignment,
+)
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
-class NIScenario(GenericCLScenario['NIExperience']):
+class NIScenario(GenericCLScenario["NIExperience"]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -39,17 +43,18 @@ class NIScenario(GenericCLScenario['NIExperience']):
     """
 
     def __init__(
-            self,
-            train_dataset: AvalancheDataset,
-            test_dataset: AvalancheDataset,
-            n_experiences: int,
-            task_labels: bool = False,
-            shuffle: bool = True,
-            seed: Optional[int] = None,
-            balance_experiences: bool = False,
-            min_class_patterns_in_exp: int = 0,
-            fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
-            reproducibility_data: Optional[Dict[str, Any]] = None):
+        self,
+        train_dataset: AvalancheDataset,
+        test_dataset: AvalancheDataset,
+        n_experiences: int,
+        task_labels: bool = False,
+        shuffle: bool = True,
+        seed: Optional[int] = None,
+        balance_experiences: bool = False,
+        min_class_patterns_in_exp: int = 0,
+        fixed_exp_assignment: Optional[Sequence[Sequence[int]]] = None,
+        reproducibility_data: Optional[Dict[str, Any]] = None,
+    ):
         """
         Creates a NIScenario instance given the training and test Datasets and
         the number of experiences.
@@ -102,17 +107,22 @@ class NIScenario(GenericCLScenario['NIExperience']):
 
         if reproducibility_data is not None:
             self.train_exps_patterns_assignment = reproducibility_data[
-                'exps_patterns_assignment']
-            self._has_task_labels = reproducibility_data['has_task_labels']
+                "exps_patterns_assignment"
+            ]
+            self._has_task_labels = reproducibility_data["has_task_labels"]
             n_experiences = len(self.train_exps_patterns_assignment)
 
         if n_experiences < 1:
-            raise ValueError('Invalid number of experiences (n_experiences '
-                             'parameter): must be greater than 0')
+            raise ValueError(
+                "Invalid number of experiences (n_experiences "
+                "parameter): must be greater than 0"
+            )
 
         if min_class_patterns_in_exp < 0 and reproducibility_data is None:
-            raise ValueError('Invalid min_class_patterns_in_exp parameter: '
-                             'must be greater than or equal to 0')
+            raise ValueError(
+                "Invalid min_class_patterns_in_exp parameter: "
+                "must be greater than or equal to 0"
+            )
 
         # # Good idea, but doesn't work
         # transform_groups = train_eval_transforms(train_dataset, test_dataset)
@@ -126,15 +136,17 @@ class NIScenario(GenericCLScenario['NIExperience']):
         #     .replace_transforms(*transform_groups['eval'], group='eval')
 
         unique_targets, unique_count = torch.unique(
-            torch.as_tensor(train_dataset.targets), return_counts=True)
+            torch.as_tensor(train_dataset.targets), return_counts=True
+        )
 
         self.n_classes: int = len(unique_targets)
         """
         The amount of classes in the original training set.
         """
 
-        self.n_patterns_per_class: List[int] = \
-            [0 for _ in range(self.n_classes)]
+        self.n_patterns_per_class: List[int] = [
+            0 for _ in range(self.n_classes)
+        ]
         """
         The amount of patterns for each class in the original training set.
         """
@@ -143,10 +155,10 @@ class NIScenario(GenericCLScenario['NIExperience']):
             included_patterns = list()
             for exp_def in fixed_exp_assignment:
                 included_patterns.extend(exp_def)
-            subset = AvalancheSubset(train_dataset,
-                                     indices=included_patterns)
+            subset = AvalancheSubset(train_dataset, indices=included_patterns)
             unique_targets, unique_count = torch.unique(
-                torch.as_tensor(subset.targets), return_counts=True)
+                torch.as_tensor(subset.targets), return_counts=True
+            )
 
         for unique_idx in range(len(unique_targets)):
             class_id = int(unique_targets[unique_idx])
@@ -186,8 +198,9 @@ class NIScenario(GenericCLScenario['NIExperience']):
             # satisfiable.
             min_class_patterns = min(self.n_patterns_per_class)
             if min_class_patterns < n_experiences * min_class_patterns_in_exp:
-                raise ValueError('min_class_patterns_in_exp constraint '
-                                 'can\'t be satisfied')
+                raise ValueError(
+                    "min_class_patterns_in_exp constraint " "can't be satisfied"
+                )
 
             if seed is not None:
                 torch.random.manual_seed(seed)
@@ -195,8 +208,9 @@ class NIScenario(GenericCLScenario['NIExperience']):
             # First, get the patterns indexes for each class
             targets_as_tensor = torch.as_tensor(train_dataset.targets)
             classes_to_patterns_idx = [
-                torch.nonzero(
-                    torch.eq(targets_as_tensor, class_id)).view(-1).tolist()
+                torch.nonzero(torch.eq(targets_as_tensor, class_id))
+                .view(-1)
+                .tolist()
                 for class_id in range(self.n_classes)
             ]
 
@@ -204,7 +218,8 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 classes_to_patterns_idx = [
                     torch.as_tensor(cls_patterns)[
                         torch.randperm(len(cls_patterns))
-                    ].tolist() for cls_patterns in classes_to_patterns_idx
+                    ].tolist()
+                    for cls_patterns in classes_to_patterns_idx
                 ]
 
             # Here we assign patterns to each experience. Two different
@@ -229,8 +244,10 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 # remaining patterns which we'll have to assign in a second
                 # experience.
                 class_patterns_per_exp = [
-                    ((n_class_patterns // n_experiences),
-                     (n_class_patterns % n_experiences))
+                    (
+                        (n_class_patterns // n_experiences),
+                        (n_class_patterns % n_experiences),
+                    )
                     for n_class_patterns in self.n_patterns_per_class
                 ]
 
@@ -240,9 +257,11 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 # This is the easier experience: just assign the average amount
                 # of class patterns to each experience.
                 self.exp_structure = [
-                    [class_patterns_this_exp[0]
-                     for class_patterns_this_exp
-                     in class_patterns_per_exp] for _ in range(n_experiences)
+                    [
+                        class_patterns_this_exp[0]
+                        for class_patterns_this_exp in class_patterns_per_exp
+                    ]
+                    for _ in range(n_experiences)
                 ]
 
                 # Now we have to distribute the remaining patterns of each class
@@ -256,7 +275,8 @@ class NIScenario(GenericCLScenario['NIExperience']):
                         continue
                     if shuffle:
                         assignment_of_remaining_patterns = torch.randperm(
-                            n_experiences).tolist()[:n_remaining]
+                            n_experiences
+                        ).tolist()[:n_remaining]
                     else:
                         assignment_of_remaining_patterns = range(n_remaining)
                     for exp_id in assignment_of_remaining_patterns:
@@ -297,8 +317,10 @@ class NIScenario(GenericCLScenario['NIExperience']):
 
                 # First, initialize exp_patterns and exp_structure
                 exp_patterns = [[] for _ in range(n_experiences)]
-                self.exp_structure = [[0 for _ in range(self.n_classes)]
-                                      for _ in range(n_experiences)]
+                self.exp_structure = [
+                    [0 for _ in range(self.n_classes)]
+                    for _ in range(n_experiences)
+                ]
 
                 # For each experience we assign exactly
                 # min_class_patterns_in_exp patterns from each class
@@ -313,11 +335,13 @@ class NIScenario(GenericCLScenario['NIExperience']):
                     for class_id in range(self.n_classes):
                         next_idx = next_idx_per_class[class_id]
                         end_idx = next_idx + min_class_patterns_in_exp
-                        selected_patterns = \
-                            classes_to_patterns_idx[next_idx:end_idx]
+                        selected_patterns = classes_to_patterns_idx[
+                            next_idx:end_idx
+                        ]
                         exp_patterns[exp_id].extend(selected_patterns)
-                        self.exp_structure[exp_id][class_id] += \
-                            min_class_patterns_in_exp
+                        self.exp_structure[exp_id][
+                            class_id
+                        ] += min_class_patterns_in_exp
                         remaining_patterns.difference_update(selected_patterns)
                         next_idx_per_class[class_id] = end_idx
 
@@ -335,8 +359,10 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 else:
                     remaining_patterns.sort()
                     patterns_order = remaining_patterns
-                targets_order = [train_dataset.targets[pattern_idx]
-                                 for pattern_idx in patterns_order]
+                targets_order = [
+                    train_dataset.targets[pattern_idx]
+                    for pattern_idx in patterns_order
+                ]
 
                 avg_exp_size = len(patterns_order) // n_experiences
                 n_remaining = len(patterns_order) % n_experiences
@@ -344,23 +370,28 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 for exp_id in range(n_experiences):
                     next_idx = prev_idx + avg_exp_size
                     exp_patterns[exp_id].extend(
-                        patterns_order[prev_idx:next_idx])
-                    cls_ids, cls_counts = torch.unique(torch.as_tensor(
-                        targets_order[prev_idx:next_idx]), return_counts=True)
+                        patterns_order[prev_idx:next_idx]
+                    )
+                    cls_ids, cls_counts = torch.unique(
+                        torch.as_tensor(targets_order[prev_idx:next_idx]),
+                        return_counts=True,
+                    )
 
                     cls_ids = cls_ids.tolist()
                     cls_counts = cls_counts.tolist()
 
                     for unique_idx in range(len(cls_ids)):
-                        self.exp_structure[exp_id][cls_ids[unique_idx]] += \
-                            cls_counts[unique_idx]
+                        self.exp_structure[exp_id][
+                            cls_ids[unique_idx]
+                        ] += cls_counts[unique_idx]
                     prev_idx = next_idx
 
                 # Distribute remaining patterns
                 if n_remaining > 0:
                     if shuffle:
                         assignment_of_remaining_patterns = torch.randperm(
-                            n_experiences).tolist()[:n_remaining]
+                            n_experiences
+                        ).tolist()[:n_remaining]
                     else:
                         assignment_of_remaining_patterns = range(n_remaining)
                     for exp_id in assignment_of_remaining_patterns:
@@ -371,8 +402,9 @@ class NIScenario(GenericCLScenario['NIExperience']):
                         self.exp_structure[exp_id][pattern_target] += 1
                         prev_idx += 1
 
-        self.n_patterns_per_experience = [len(exp_patterns[exp_id])
-                                          for exp_id in range(n_experiences)]
+        self.n_patterns_per_experience = [
+            len(exp_patterns[exp_id]) for exp_id in range(n_experiences)
+        ]
 
         self._classes_in_exp = None  # Will be lazy initialized later
 
@@ -383,11 +415,14 @@ class NIScenario(GenericCLScenario['NIExperience']):
                 train_task_labels.append(t_id)
             else:
                 train_task_labels.append(0)
-            task_labels = ConstantSequence(train_task_labels[-1],
-                                           len(train_dataset))
+            task_labels = ConstantSequence(
+                train_task_labels[-1], len(train_dataset)
+            )
             train_experiences.append(
-                AvalancheSubset(train_dataset, indices=exp_def,
-                                task_labels=task_labels))
+                AvalancheSubset(
+                    train_dataset, indices=exp_def, task_labels=task_labels
+                )
+            )
 
         self.train_exps_patterns_assignment = exp_patterns
         """ A list containing which training instances are assigned to each
@@ -396,33 +431,37 @@ class NIScenario(GenericCLScenario['NIExperience']):
 
         super(NIScenario, self).__init__(
             stream_definitions={
-                'train': (train_experiences, train_task_labels,
-                          train_dataset),
-                'test': (test_dataset, [0], test_dataset)
+                "train": (train_experiences, train_task_labels, train_dataset),
+                "test": (test_dataset, [0], test_dataset),
             },
             complete_test_set_only=True,
-            experience_factory=NIExperience)
+            experience_factory=NIExperience,
+        )
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
         reproducibility_data = {
-            'exps_patterns_assignment': self.train_exps_patterns_assignment,
-            'has_task_labels': bool(self._has_task_labels),
-
+            "exps_patterns_assignment": self.train_exps_patterns_assignment,
+            "has_task_labels": bool(self._has_task_labels),
         }
         return reproducibility_data
 
 
-class NIExperience(GenericExperience[NIScenario,
-                                     GenericScenarioStream['NIExperience',
-                                                           NIScenario]]):
+class NIExperience(
+    GenericExperience[
+        NIScenario, GenericScenarioStream["NIExperience", NIScenario]
+    ]
+):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference
     to the stream from which this experience was taken.
     """
-    def __init__(self, origin_stream: GenericScenarioStream['NIExperience',
-                                                            NIScenario],
-                 current_experience: int):
+
+    def __init__(
+        self,
+        origin_stream: GenericScenarioStream["NIExperience", NIScenario],
+        current_experience: int,
+    ):
         """
         Creates a ``NIExperience`` instance given the stream from this
         experience was taken and and the current experience ID.
@@ -431,11 +470,7 @@ class NIExperience(GenericExperience[NIScenario,
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        super(NIExperience, self).__init__(
-            origin_stream, current_experience)
+        super(NIExperience, self).__init__(origin_stream, current_experience)
 
 
-__all__ = [
-    'NIScenario',
-    'NIExperience'
-]
+__all__ = ["NIScenario", "NIExperience"]

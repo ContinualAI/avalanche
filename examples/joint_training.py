@@ -27,15 +27,17 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import JointTraining
+from avalanche.training.supervised import JointTraining
 
 
 def main(args):
 
     # Config
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}"
+        if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu"
+    )
     # model
     model = SimpleMLP(num_classes=10)
 
@@ -50,8 +52,14 @@ def main(args):
 
     # Joint training strategy
     joint_train = JointTraining(
-        model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-        eval_mb_size=32, device=device)
+        model,
+        optimizer,
+        criterion,
+        train_mb_size=32,
+        train_epochs=1,
+        eval_mb_size=32,
+        device=device,
+    )
 
     # train and test loop
     results = []
@@ -62,10 +70,14 @@ def main(args):
     results.append(joint_train.eval(test_stream))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuda', type=int, default=0,
-                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument(
+        "--cuda",
+        type=int,
+        default=0,
+        help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
     args = parser.parse_args()
 
     main(args)

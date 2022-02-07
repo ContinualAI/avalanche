@@ -29,7 +29,4 @@ if __name__ == "__main__":
     mnist = DatasetFolder(".", download=True)
 
 
-__all__ = [
-    'ImageFolder',
-    'DatasetFolder'
-]
+__all__ = ["ImageFolder", "DatasetFolder"]

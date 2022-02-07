@@ -138,7 +138,7 @@ print(split_mnist.test_stream)
 # stores a set of the (optionally remapped) IDs of classes of patterns
 # assigned to that experience.
 print('--- Classes in each experience:')
-split_mnist.classes_in_experience
+print(split_mnist.original_classes_in_exp)
 ```
 
 #### Train and Test Streams

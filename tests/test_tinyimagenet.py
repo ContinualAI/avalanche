@@ -15,9 +15,14 @@ import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
 from avalanche.benchmarks.scenarios.generic_definitions import Experience
+from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
 class TinyImagenetTest(unittest.TestCase):
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_tinyimagenet_default_loader(self):
 
         logger = logging.getLogger("avalanche")
@@ -32,5 +37,5 @@ class TinyImagenetTest(unittest.TestCase):
             self.assertIsInstance(task_info, Experience)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

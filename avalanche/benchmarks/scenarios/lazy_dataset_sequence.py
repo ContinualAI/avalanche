@@ -29,11 +29,13 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
     """
 
     def __init__(
-            self,
-            experience_generator: Iterable[AvalancheDataset],
-            stream_length: int):
-        self._exp_source: Optional[Iterable[AvalancheDataset]] = \
-            experience_generator
+        self,
+        experience_generator: Iterable[AvalancheDataset],
+        stream_length: int,
+    ):
+        self._exp_source: Optional[
+            Iterable[AvalancheDataset]
+        ] = experience_generator
         """
         The source of the experiences stream, as an Iterable.
         
@@ -67,10 +69,11 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
             if callable(self._exp_source):
                 # https://stackoverflow.com/a/17092033
                 raise ValueError(
-                    'The provided generator is not iterable. When using a '
+                    "The provided generator is not iterable. When using a "
                     'generator function based on "yield", remember to pass the'
-                    ' result of that function, not the '
-                    'function itself!') from None
+                    " result of that function, not the "
+                    "function itself!"
+                ) from None
             raise e
         """
         The experience generator, as an Iterator.
@@ -78,8 +81,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         This field is None when if all the experiences have been loaded.
         """
 
-        self.targets_field_sequence: Dict[int, Optional[Sequence]] = \
-            defaultdict(lambda: None)
+        self.targets_field_sequence: Dict[
+            int, Optional[Sequence]
+        ] = defaultdict(lambda: None)
         """
         A dictionary mapping each experience to its `targets` field.
         
@@ -87,8 +91,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         now, including the ones of dropped experiences.
         """
 
-        self.task_labels_field_sequence: Dict[int, Optional[Sequence[int]]] = \
-            defaultdict(lambda: None)
+        self.task_labels_field_sequence: Dict[
+            int, Optional[Sequence[int]]
+        ] = defaultdict(lambda: None)
         """
         A dictionary mapping each experience to its `targets_task_labels` field.
 
@@ -114,12 +119,13 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         exp_idx = int(exp_idx)  # Handle single element tensors
         self.load_all_experiences(exp_idx)
         if exp_idx not in self._loaded_experiences:
-            raise RuntimeError(f'Experience {exp_idx} has been dropped')
+            raise RuntimeError(f"Experience {exp_idx} has been dropped")
 
         return self._loaded_experiences[exp_idx]
 
-    def get_experience_if_loaded(self, exp_idx: int) -> \
-            Optional[AvalancheDataset]:
+    def get_experience_if_loaded(
+        self, exp_idx: int
+    ) -> Optional[AvalancheDataset]:
         """
         Gets the dataset associated to an experience.
 
@@ -132,8 +138,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         """
         exp_idx = int(exp_idx)  # Handle single element tensors
         if exp_idx >= len(self):
-            raise IndexError(f'The stream doesn\'t contain {exp_idx+1}'
-                             f'experiences')
+            raise IndexError(
+                f"The stream doesn't contain {exp_idx+1}" f"experiences"
+            )
 
         return self._loaded_experiences.get(exp_idx, None)
 
@@ -158,9 +165,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         if to_exp < 0:
             return
 
-        to_exp = min(to_exp, len(self)-1)
+        to_exp = min(to_exp, len(self) - 1)
 
-        for exp_id in range(0, to_exp+1):
+        for exp_id in range(0, to_exp + 1):
             if exp_id in self._loaded_experiences:
                 del self._loaded_experiences[exp_id]
 
@@ -180,31 +187,35 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
             to_exp = int(to_exp)  # Handle single element tensors
 
         if to_exp >= len(self):
-            raise IndexError(f'The stream doesn\'t contain {to_exp+1}'
-                             f'experiences')
+            raise IndexError(
+                f"The stream doesn't contain {to_exp+1}" f"experiences"
+            )
 
         if self._next_exp_id > to_exp:
             # Nothing to do
             return
 
-        for exp_id in range(self._next_exp_id, to_exp+1):
+        for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
                 generated_exp: AvalancheDataset = next(self._exp_generator)
             except StopIteration:
                 raise RuntimeError(
-                    f'Unexpected end of stream. The generator was supposed to '
-                    f'generate {len(self)} experiences, but an error occurred '
-                    f'while generating experience {exp_id}.')
+                    f"Unexpected end of stream. The generator was supposed to "
+                    f"generate {len(self)} experiences, but an error occurred "
+                    f"while generating experience {exp_id}."
+                )
 
             if not isinstance(generated_exp, AvalancheDataset):
                 raise ValueError(
-                    'All experience datasets must be subclasses of'
-                    ' AvalancheDataset')
+                    "All experience datasets must be subclasses of"
+                    " AvalancheDataset"
+                )
 
             self._loaded_experiences[exp_id] = generated_exp
             self.targets_field_sequence[exp_id] = generated_exp.targets
-            self.task_labels_field_sequence[exp_id] = \
-                generated_exp.targets_task_labels
+            self.task_labels_field_sequence[
+                exp_id
+            ] = generated_exp.targets_task_labels
             self._next_exp_id += 1
 
         if self._next_exp_id == len(self):
@@ -213,6 +224,4 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
             self._exp_source = None
 
 
-__all__ = [
-    'LazyDatasetSequence'
-]
+__all__ = ["LazyDatasetSequence"]

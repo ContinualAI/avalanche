@@ -25,7 +25,7 @@ from torch.optim import Adam
 
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.models import MTSimpleMLP
-from avalanche.training.strategies import EWC
+from avalanche.training.supervised import EWC
 from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -34,9 +34,11 @@ from avalanche.training.plugins import EvaluationPlugin
 def main(args):
 
     # Config
-    device = torch.device(f"cuda:{args.cuda}"
-                          if torch.cuda.is_available() and
-                          args.cuda >= 0 else "cpu")
+    device = torch.device(
+        f"cuda:{args.cuda}"
+        if torch.cuda.is_available() and args.cuda >= 0
+        else "cpu"
+    )
     # model
     model = MTSimpleMLP()
 
@@ -54,16 +56,24 @@ def main(args):
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=False, epoch=True, experience=True, stream=True),
+            minibatch=False, epoch=True, experience=True, stream=True
+        ),
         forgetting_metrics(experience=True),
-        loggers=[interactive_logger])
+        loggers=[interactive_logger],
+    )
 
     # Choose a CL strategy
     strategy = EWC(
-        model=model, optimizer=optimizer, criterion=criterion,
-        train_mb_size=128, train_epochs=3, eval_mb_size=128, device=device,
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        train_mb_size=128,
+        train_epochs=3,
+        eval_mb_size=128,
+        device=device,
         evaluator=eval_plugin,
-        ewc_lambda=0.4)
+        ewc_lambda=0.4,
+    )
 
     # train and test loop
     for train_task in train_stream:
@@ -71,9 +81,13 @@ def main(args):
         strategy.eval(test_stream)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuda', type=int, default=0,
-                        help='Select zero-indexed cuda device. -1 to use CPU.')
+    parser.add_argument(
+        "--cuda",
+        type=int,
+        default=0,
+        help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
     args = parser.parse_args()
     main(args)

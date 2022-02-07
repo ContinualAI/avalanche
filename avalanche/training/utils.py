@@ -25,6 +25,16 @@ from torch.utils.data import Dataset, DataLoader
 from avalanche.models.batch_renorm import BatchRenorm2D
 
 
+def trigger_plugins(strategy, event, **kwargs):
+    """Call plugins on a specific callback
+
+    :return:
+    """
+    for p in strategy.plugins:
+        if hasattr(p, event):
+            getattr(p, event)(strategy, **kwargs)
+
+
 def load_all_dataset(dataset: Dataset, num_workers: int = 0):
     """
     Retrieves the contents of a whole dataset by using a DataLoader
@@ -41,8 +51,9 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
         batch_size = max(1, len(dataset) // num_workers)
     else:
         batch_size = len(dataset)
-    loader = DataLoader(dataset, batch_size=batch_size, drop_last=False,
-                        num_workers=num_workers)
+    loader = DataLoader(
+        dataset, batch_size=batch_size, drop_last=False, num_workers=num_workers
+    )
     has_task_labels = False
     batches_x = []
     batches_y = []
@@ -71,8 +82,10 @@ def zerolike_params_dict(model):
     :param model: a pytorch model
     """
 
-    return [(k, torch.zeros_like(p).to(p.device))
-            for k, p in model.named_parameters()]
+    return [
+        (k, torch.zeros_like(p).to(p.device))
+        for k, p in model.named_parameters()
+    ]
 
 
 def copy_params_dict(model, copy_grad=False):
@@ -97,11 +110,12 @@ class LayerAndParameter(NamedTuple):
     parameter: Tensor
 
 
-def get_layers_and_params(model: Module, prefix='') -> List[LayerAndParameter]:
+def get_layers_and_params(model: Module, prefix="") -> List[LayerAndParameter]:
     result: List[LayerAndParameter] = []
     for param_name, param in model.named_parameters(recurse=False):
-        result.append(LayerAndParameter(
-            prefix[:-1], model, prefix + param_name, param))
+        result.append(
+            LayerAndParameter(prefix[:-1], model, prefix + param_name, param)
+        )
 
     layer_name: str
     layer: Module
@@ -109,7 +123,7 @@ def get_layers_and_params(model: Module, prefix='') -> List[LayerAndParameter]:
         if layer == model:
             continue
 
-        layer_complete_name = prefix + layer_name + '.'
+        layer_complete_name = prefix + layer_name + "."
 
         result += get_layers_and_params(layer, prefix=layer_complete_name)
 
@@ -137,8 +151,9 @@ def swap_last_fc_layer(model: Module, new_layer: Module) -> None:
     setattr(model, last_fc_name, new_layer)
 
 
-def adapt_classification_layer(model: Module, num_classes: int,
-                               bias: bool = None) -> Tuple[str, Linear]:
+def adapt_classification_layer(
+    model: Module, num_classes: int, bias: bool = None
+) -> Tuple[str, Linear]:
     last_fc_layer: Linear
     last_fc_name, last_fc_layer = get_last_fc_layer(model)
 
@@ -152,36 +167,46 @@ def adapt_classification_layer(model: Module, num_classes: int,
     return last_fc_name, new_fc
 
 
-def replace_bn_with_brn(m: Module, momentum=0.1, r_d_max_inc_step=0.0001,
-                        r_max=1.0, d_max=0.0, max_r_max=3.0, max_d_max=5.0):
+def replace_bn_with_brn(
+    m: Module,
+    momentum=0.1,
+    r_d_max_inc_step=0.0001,
+    r_max=1.0,
+    d_max=0.0,
+    max_r_max=3.0,
+    max_d_max=5.0,
+):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
         if type(target_attr) == torch.nn.BatchNorm2d:
             # print('replaced: ', name, attr_str)
-            setattr(m, attr_str,
-                    BatchRenorm2D(
-                        target_attr.num_features,
-                        gamma=target_attr.weight,
-                        beta=target_attr.bias,
-                        running_mean=target_attr.running_mean,
-                        running_var=target_attr.running_var,
-                        eps=target_attr.eps,
-                        momentum=momentum,
-                        r_d_max_inc_step=r_d_max_inc_step,
-                        r_max=r_max,
-                        d_max=d_max,
-                        max_r_max=max_r_max,
-                        max_d_max=max_d_max
-                    )
-                    )
+            setattr(
+                m,
+                attr_str,
+                BatchRenorm2D(
+                    target_attr.num_features,
+                    gamma=target_attr.weight,
+                    beta=target_attr.bias,
+                    running_mean=target_attr.running_mean,
+                    running_var=target_attr.running_var,
+                    eps=target_attr.eps,
+                    momentum=momentum,
+                    r_d_max_inc_step=r_d_max_inc_step,
+                    r_max=r_max,
+                    d_max=d_max,
+                    max_r_max=max_r_max,
+                    max_d_max=max_d_max,
+                ),
+            )
     for n, ch in m.named_children():
-        replace_bn_with_brn(ch, momentum, r_d_max_inc_step, r_max, d_max,
-                            max_r_max, max_d_max)
+        replace_bn_with_brn(
+            ch, momentum, r_d_max_inc_step, r_max, d_max, max_r_max, max_d_max
+        )
 
 
 def change_brn_pars(
-        m: Module, momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0,
-        d_max=0.0):
+    m: Module, momentum=0.1, r_d_max_inc_step=0.0001, r_max=1.0, d_max=0.0
+):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
         if type(target_attr) == BatchRenorm2D:
@@ -210,12 +235,14 @@ def unfreeze_everything(model: Module, set_train_mode: bool = True):
         layer_param.parameter.requires_grad = True
 
 
-def freeze_up_to(model: Module,
-                 freeze_until_layer: str = None,
-                 set_eval_mode: bool = True,
-                 set_requires_grad_false: bool = True,
-                 layer_filter: Callable[[LayerAndParameter], bool] = None,
-                 module_prefix: str = ''):
+def freeze_up_to(
+    model: Module,
+    freeze_until_layer: str = None,
+    set_eval_mode: bool = True,
+    set_requires_grad_false: bool = True,
+    layer_filter: Callable[[LayerAndParameter], bool] = None,
+    module_prefix: str = "",
+):
     """
     A simple utility that can be used to freeze a model.
 
@@ -242,8 +269,10 @@ def freeze_up_to(model: Module,
 
     to_freeze_layers = dict()
     for param_def in get_layers_and_params(model, prefix=module_prefix):
-        if freeze_until_layer is not None and \
-                freeze_until_layer == param_def.layer_name:
+        if (
+            freeze_until_layer is not None
+            and freeze_until_layer == param_def.layer_name
+        ):
             break
 
         freeze_param = layer_filter is None or layer_filter(param_def)
@@ -271,28 +300,30 @@ def examples_per_class(targets):
     result = defaultdict(int)
 
     unique_classes, examples_count = torch.unique(
-        torch.as_tensor(targets), return_counts=True)
+        torch.as_tensor(targets), return_counts=True
+    )
     for unique_idx in range(len(unique_classes)):
-        result[int(unique_classes[unique_idx])] = \
-            int(examples_count[unique_idx])
+        result[int(unique_classes[unique_idx])] = int(
+            examples_count[unique_idx]
+        )
 
     return result
 
 
 __all__ = [
-    'load_all_dataset',
-    'zerolike_params_dict',
-    'copy_params_dict',
-    'LayerAndParameter',
-    'get_layers_and_params',
-    'get_layer_by_name',
-    'get_last_fc_layer',
-    'swap_last_fc_layer',
-    'adapt_classification_layer',
-    'replace_bn_with_brn',
-    'change_brn_pars',
-    'freeze_everything',
-    'unfreeze_everything',
-    'freeze_up_to',
-    'examples_per_class'
+    "load_all_dataset",
+    "zerolike_params_dict",
+    "copy_params_dict",
+    "LayerAndParameter",
+    "get_layers_and_params",
+    "get_layer_by_name",
+    "get_last_fc_layer",
+    "swap_last_fc_layer",
+    "adapt_classification_layer",
+    "replace_bn_with_brn",
+    "change_brn_pars",
+    "freeze_everything",
+    "unfreeze_everything",
+    "freeze_up_to",
+    "examples_per_class",
 ]

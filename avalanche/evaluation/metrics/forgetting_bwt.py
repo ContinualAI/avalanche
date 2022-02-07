@@ -14,11 +14,14 @@ from typing import Dict, TYPE_CHECKING, Union, List
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics import Accuracy, Mean
-from avalanche.evaluation.metric_utils import get_metric_name, \
-    phase_and_task, stream_type
+from avalanche.evaluation.metric_utils import (
+    get_metric_name,
+    phase_and_task,
+    stream_type,
+)
 
 if TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
@@ -191,38 +194,35 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
         """
         return self.forgetting.result(k=k)
 
-    def before_training_exp(self, strategy: 'BaseStrategy') -> None:
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> None:
         self.train_exp_id = strategy.experience.current_experience
 
     def before_eval(self, strategy) -> None:
         self.reset_last()
 
-    def before_eval_exp(self, strategy: 'BaseStrategy') -> None:
+    def before_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         self._current_metric.reset()
 
-    def after_eval_iteration(self, strategy: 'BaseStrategy') -> None:
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval_iteration(strategy)
         self.eval_exp_id = strategy.experience.current_experience
         self.metric_update(strategy)
 
-    def after_eval_exp(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> MetricResult:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
-            self.update(self.eval_exp_id,
-                        self.metric_result(strategy),
-                        initial=True)
+            self.update(
+                self.eval_exp_id, self.metric_result(strategy), initial=True
+            )
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
-            self.update(self.eval_exp_id,
-                        self.metric_result(strategy))
+            self.update(self.eval_exp_id, self.metric_result(strategy))
 
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') \
-            -> MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         # this checks if the evaluation experience has been
         # already encountered at training time
         # before the last training.
@@ -232,8 +232,9 @@ class GenericExperienceForgetting(PluginMetric[Dict[int, float]]):
             metric_name = get_metric_name(self, strategy, add_experience=True)
             plot_x_position = strategy.clock.train_iterations
 
-            metric_values = [MetricValue(
-                self, metric_name, forgetting, plot_x_position)]
+            metric_values = [
+                MetricValue(self, metric_name, forgetting, plot_x_position)
+            ]
             return metric_values
 
     def metric_update(self, strategy):
@@ -272,8 +273,7 @@ class ExperienceForgetting(GenericExperienceForgetting):
         """
 
     def metric_update(self, strategy):
-        self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, 0)
+        self._current_metric.update(strategy.mb_y, strategy.mb_output, 0)
 
     def metric_result(self, strategy):
         return self._current_metric.result(0)[0]
@@ -360,18 +360,17 @@ class GenericStreamForgetting(GenericExperienceForgetting):
         super().before_eval(strategy)
         self.stream_forgetting.reset()
 
-    def after_eval_exp(self, strategy: 'BaseStrategy') -> None:
+    def after_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         # update experience on which training just ended
         if self.train_exp_id == self.eval_exp_id:
-            self.exp_update(self.eval_exp_id,
-                            self.metric_result(strategy),
-                            initial=True)
+            self.exp_update(
+                self.eval_exp_id, self.metric_result(strategy), initial=True
+            )
         else:
             # update other experiences
             # if experience has not been encountered in training
             # its value will not be considered in forgetting
-            self.exp_update(self.eval_exp_id,
-                            self.metric_result(strategy))
+            self.exp_update(self.eval_exp_id, self.metric_result(strategy))
 
         # this checks if the evaluation experience has been
         # already encountered at training time
@@ -381,20 +380,17 @@ class GenericStreamForgetting(GenericExperienceForgetting):
         if exp_forgetting is not None:
             self.stream_forgetting.update(exp_forgetting, weight=1)
 
-    def after_eval(self, strategy: 'BaseStrategy') -> \
-            'MetricResult':
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: 'BaseStrategy') -> \
-            MetricResult:
+    def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
         metric_value = self.result()
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = '{}/{}_phase/{}_stream' \
-            .format(str(self),
-                    phase_name,
-                    stream)
+        metric_name = "{}/{}_phase/{}_stream".format(
+            str(self), phase_name, stream
+        )
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -435,8 +431,7 @@ class StreamForgetting(GenericStreamForgetting):
         """
 
     def metric_update(self, strategy):
-        self._current_metric.update(strategy.mb_y,
-                                    strategy.mb_output, 0)
+        self._current_metric.update(strategy.mb_y, strategy.mb_output, 0)
 
     def metric_result(self, strategy):
         return self._current_metric.result(0)[0]
@@ -445,8 +440,7 @@ class StreamForgetting(GenericStreamForgetting):
         return "StreamForgetting"
 
 
-def forgetting_metrics(*, experience=False, stream=False) \
-        -> List[PluginMetric]:
+def forgetting_metrics(*, experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -483,8 +477,10 @@ def forgetting_to_bwt(f):
     elif isinstance(f, float):
         bwt = -1 * f
     else:
-        raise ValueError("Forgetting data type not recognized when converting"
-                         "to backward transfer.")
+        raise ValueError(
+            "Forgetting data type not recognized when converting"
+            "to backward transfer."
+        )
     return bwt
 
 
@@ -577,8 +573,7 @@ class StreamBWT(StreamForgetting):
         return "StreamBWT"
 
 
-def bwt_metrics(*, experience=False, stream=False) \
-        -> List[PluginMetric]:
+def bwt_metrics(*, experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -603,14 +598,14 @@ def bwt_metrics(*, experience=False, stream=False) \
 
 
 __all__ = [
-    'Forgetting',
-    'GenericExperienceForgetting',
-    'GenericStreamForgetting',
-    'ExperienceForgetting',
-    'StreamForgetting',
-    'forgetting_metrics',
-    'BWT',
-    'ExperienceBWT',
-    'StreamBWT',
-    'bwt_metrics'
+    "Forgetting",
+    "GenericExperienceForgetting",
+    "GenericStreamForgetting",
+    "ExperienceForgetting",
+    "StreamForgetting",
+    "forgetting_metrics",
+    "BWT",
+    "ExperienceBWT",
+    "StreamBWT",
+    "bwt_metrics",
 ]

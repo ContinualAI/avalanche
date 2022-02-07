@@ -1,11 +1,26 @@
 import copy
 import re
 from abc import ABC
-from typing import Generic, TypeVar, Union, Sequence, Callable, Optional, \
-    Dict, Any, Iterable, List, Set, Tuple, NamedTuple, Mapping
+from typing import (
+    Generic,
+    TypeVar,
+    Union,
+    Sequence,
+    Callable,
+    Optional,
+    Dict,
+    Any,
+    Iterable,
+    List,
+    Set,
+    Tuple,
+    NamedTuple,
+    Mapping,
+)
 
 import warnings
 from torch.utils.data.dataset import Dataset
+
 try:
     from gym import Env
 except ImportError:
@@ -13,22 +28,33 @@ except ImportError:
     class Env:
         pass
 
-from avalanche.benchmarks.scenarios.generic_definitions import \
-    TExperience, ScenarioStream, TScenarioStream, Experience, TScenario
-from avalanche.benchmarks.scenarios.lazy_dataset_sequence import \
-    LazyDatasetSequence
+
+from avalanche.benchmarks.scenarios.generic_definitions import (
+    TExperience,
+    ScenarioStream,
+    TScenarioStream,
+    Experience,
+    TScenario,
+)
+from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
+    LazyDatasetSequence,
+)
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
-TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
-TGenericExperience = TypeVar('TGenericExperience', bound='GenericExperience')
-TGenericScenarioStream = TypeVar('TGenericScenarioStream',
-                                 bound='GenericScenarioStream')
+TGenericCLScenario = TypeVar("TGenericCLScenario", bound="GenericCLScenario")
+TGenericExperience = TypeVar("TGenericExperience", bound="GenericExperience")
+TGenericScenarioStream = TypeVar(
+    "TGenericScenarioStream", bound="GenericScenarioStream"
+)
 
 RLStreamDataOrigin = Union[Env, Sequence[Env]]
-TStreamDataOrigin = Union[AvalancheDataset, Sequence[AvalancheDataset],
-                          Tuple[Iterable[AvalancheDataset], int], 
-                          RLStreamDataOrigin]
+TStreamDataOrigin = Union[
+    AvalancheDataset,
+    Sequence[AvalancheDataset],
+    Tuple[Iterable[AvalancheDataset], int],
+    RLStreamDataOrigin,
+]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
 
@@ -43,11 +69,12 @@ class StreamUserDef(NamedTuple):
     is_lazy: Optional[bool] = None
 
 
-TStreamUserDef = \
-    Union[Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset, bool],
-          Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset],
-          Tuple[TStreamDataOrigin, TStreamTaskLabels],
-          Tuple[TStreamDataOrigin]]
+TStreamUserDef = Union[
+    Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset, bool],
+    Tuple[TStreamDataOrigin, TStreamTaskLabels, TOriginDataset],
+    Tuple[TStreamDataOrigin, TStreamTaskLabels],
+    Tuple[TStreamDataOrigin],
+]
 
 TStreamsUserDict = Dict[str, StreamUserDef]
 
@@ -62,7 +89,7 @@ class StreamDef(NamedTuple):
 
 TStreamsDict = Dict[str, StreamDef]
 
-STREAM_NAME_REGEX = re.compile('^[A-Za-z][A-Za-z_\\d]*$')
+STREAM_NAME_REGEX = re.compile("^[A-Za-z][A-Za-z_\\d]*$")
 
 
 class GenericCLScenario(Generic[TExperience]):
@@ -86,12 +113,15 @@ class GenericCLScenario(Generic[TExperience]):
     character and must not start with a number.
     """
 
-    def __init__(self: TGenericCLScenario,
-                 *,
-                 stream_definitions: TStreamsUserDict,
-                 complete_test_set_only: bool = False,
-                 experience_factory: Callable[['GenericScenarioStream', int],
-                                              TExperience] = None):
+    def __init__(
+        self: TGenericCLScenario,
+        *,
+        stream_definitions: TStreamsUserDict,
+        complete_test_set_only: bool = False,
+        experience_factory: Callable[
+            ["GenericScenarioStream", int], TExperience
+        ] = None,
+    ):
         """
         Creates an instance of a Continual Learning benchmark instance.
 
@@ -142,31 +172,34 @@ class GenericCLScenario(Generic[TExperience]):
             constructor will be used.
         """
 
-        self.stream_definitions = \
-            GenericCLScenario._check_stream_definitions(stream_definitions)
+        self.stream_definitions = GenericCLScenario._check_stream_definitions(
+            stream_definitions
+        )
         """
         A structure containing the definition of the streams.
         """
 
-        self.original_train_dataset: Optional[Dataset] = \
-            self.stream_definitions['train'].origin_dataset
+        self.original_train_dataset: Optional[
+            Dataset
+        ] = self.stream_definitions["train"].origin_dataset
         """ The original training set. May be None. """
 
-        self.original_test_dataset: Optional[Dataset] = \
-            self.stream_definitions['test'].origin_dataset
+        self.original_test_dataset: Optional[Dataset] = self.stream_definitions[
+            "test"
+        ].origin_dataset
         """ The original test set. May be None. """
 
         self.train_stream: GenericScenarioStream[
-            TExperience, TGenericCLScenario] = GenericScenarioStream('train',
-                                                                     self)
+            TExperience, TGenericCLScenario
+        ] = GenericScenarioStream("train", self)
         """
         The stream used to obtain the training experiences. 
         This stream can be sliced in order to obtain a subset of this stream.
         """
 
         self.test_stream: GenericScenarioStream[
-            TExperience, TGenericCLScenario] = GenericScenarioStream('test',
-                                                                     self)
+            TExperience, TGenericCLScenario
+        ] = GenericScenarioStream("test", self)
         """
         The stream used to obtain the test experiences. This stream can be 
         sliced in order to obtain a subset of this stream.
@@ -186,16 +219,18 @@ class GenericCLScenario(Generic[TExperience]):
         """
 
         if self.complete_test_set_only:
-            if len(self.stream_definitions['test'].exps_data) > 1:
+            if len(self.stream_definitions["test"].exps_data) > 1:
                 raise ValueError(
-                    'complete_test_set_only is True, but the test stream'
-                    ' contains more than one experience')
+                    "complete_test_set_only is True, but the test stream"
+                    " contains more than one experience"
+                )
 
         if experience_factory is None:
             experience_factory = GenericExperience
 
-        self.experience_factory: Callable[[TGenericScenarioStream, int],
-                                          TExperience] = experience_factory
+        self.experience_factory: Callable[
+            [TGenericScenarioStream, int], TExperience
+        ] = experience_factory
 
         # Create the original_<stream_name>_dataset fields for other streams
         self._make_original_dataset_fields()
@@ -204,26 +239,27 @@ class GenericCLScenario(Generic[TExperience]):
         self._make_stream_fields()
 
     @property
-    def streams(self) -> Dict[str, 'GenericScenarioStream['
-                                   'TExperience, TGenericCLScenario]']:
+    def streams(
+        self,
+    ) -> Dict[str, "GenericScenarioStream[" "TExperience, TGenericCLScenario]"]:
         streams_dict = dict()
         for stream_name in self.stream_definitions.keys():
-            streams_dict[stream_name] = getattr(self, f'{stream_name}_stream')
+            streams_dict[stream_name] = getattr(self, f"{stream_name}_stream")
 
         return streams_dict
 
     @property
     def n_experiences(self) -> int:
-        """  The number of incremental training experiences contained
-        in the train stream. """
-        return len(self.stream_definitions['train'].exps_data)
+        """The number of incremental training experiences contained
+        in the train stream."""
+        return len(self.stream_definitions["train"].exps_data)
 
     @property
     def task_labels(self) -> Sequence[List[int]]:
-        """ The task label of each training experience. """
+        """The task label of each training experience."""
         t_labels = []
 
-        for exp_t_labels in self.stream_definitions['train'].exps_task_labels:
+        for exp_t_labels in self.stream_definitions["train"].exps_task_labels:
             t_labels.append(list(exp_t_labels))
 
         return t_labels
@@ -251,8 +287,9 @@ class GenericCLScenario(Generic[TExperience]):
         return dict()
 
     @property
-    def classes_in_experience(self) -> Mapping[str,
-                                               Sequence[Optional[Set[int]]]]:
+    def classes_in_experience(
+        self,
+    ) -> Mapping[str, Sequence[Optional[Set[int]]]]:
         """
         A dictionary mapping each stream (by name) to a list.
 
@@ -267,8 +304,9 @@ class GenericCLScenario(Generic[TExperience]):
 
         return LazyStreamClassesInExps(self)
 
-    def get_classes_timeline(self, current_experience: int,
-                             stream: str = 'train'):
+    def get_classes_timeline(
+        self, current_experience: int, stream: str = "train"
+    ):
         """
         Returns the classes timeline given the ID of a experience.
 
@@ -292,8 +330,9 @@ class GenericCLScenario(Generic[TExperience]):
             the benchmark is initialized by using a lazy generator.
         """
 
-        class_set_current_exp = \
-            self.classes_in_experience[stream][current_experience]
+        class_set_current_exp = self.classes_in_experience[stream][
+            current_experience
+        ]
 
         if class_set_current_exp is not None:
             # May be None in lazy benchmarks
@@ -315,10 +354,13 @@ class GenericCLScenario(Generic[TExperience]):
         else:
             previous_classes = None
 
-        if class_set_current_exp is not None and \
-                class_set_prev_exps is not None:
-            classes_seen_so_far = \
-                list(class_set_current_exp.union(class_set_prev_exps))
+        if (
+            class_set_current_exp is not None
+            and class_set_prev_exps is not None
+        ):
+            classes_seen_so_far = list(
+                class_set_current_exp.union(class_set_prev_exps)
+            )
         else:
             classes_seen_so_far = None
 
@@ -336,28 +378,33 @@ class GenericCLScenario(Generic[TExperience]):
         else:
             future_classes = None
 
-        return (classes_in_this_exp, previous_classes, classes_seen_so_far,
-                future_classes)
+        return (
+            classes_in_this_exp,
+            previous_classes,
+            classes_seen_so_far,
+            future_classes,
+        )
 
     def _make_original_dataset_fields(self):
         for stream_name, stream_def in self.stream_definitions.items():
-            if stream_name in ['train', 'test']:
+            if stream_name in ["train", "test"]:
                 continue
 
             orig_dataset = stream_def.origin_dataset
-            setattr(self, f'original_{stream_name}_dataset', orig_dataset)
+            setattr(self, f"original_{stream_name}_dataset", orig_dataset)
 
     def _make_stream_fields(self):
         for stream_name, stream_def in self.stream_definitions.items():
-            if stream_name in ['train', 'test']:
+            if stream_name in ["train", "test"]:
                 continue
 
             stream_obj = GenericScenarioStream(stream_name, self)
-            setattr(self, f'{stream_name}_stream', stream_obj)
+            setattr(self, f"{stream_name}_stream", stream_obj)
 
     @staticmethod
     def _check_stream_definitions(
-            stream_definitions: TStreamsUserDict) -> TStreamsDict:
+        stream_definitions: TStreamsUserDict,
+    ) -> TStreamsDict:
         """
         A function used to check the input stream definitions.
 
@@ -370,16 +417,17 @@ class GenericCLScenario(Generic[TExperience]):
         """
         streams_defs = dict()
 
-        if 'train' not in stream_definitions:
-            raise ValueError('No train stream found!')
+        if "train" not in stream_definitions:
+            raise ValueError("No train stream found!")
 
-        if 'test' not in stream_definitions:
-            raise ValueError('No test stream found!')
+        if "test" not in stream_definitions:
+            raise ValueError("No test stream found!")
 
         for stream_name, stream_def in stream_definitions.items():
             GenericCLScenario._check_stream_name(stream_name)
             stream_def = GenericCLScenario._check_and_adapt_user_stream_def(
-                stream_def, stream_name)
+                stream_def, stream_name
+            )
             streams_defs[stream_name] = stream_def
 
         return streams_defs
@@ -390,11 +438,12 @@ class GenericCLScenario(Generic[TExperience]):
             raise ValueError('Invalid type for stream name. Must be a "str"')
 
         if STREAM_NAME_REGEX.fullmatch(stream_name) is None:
-            raise ValueError(f'Invalid name for stream {stream_name}')
+            raise ValueError(f"Invalid name for stream {stream_name}")
 
     @staticmethod
     def _check_and_adapt_user_stream_def(
-            stream_def: TStreamUserDef, stream_name: str) -> StreamDef:
+        stream_def: TStreamUserDef, stream_name: str
+    ) -> StreamDef:
         exp_data = stream_def[0]
         task_labels = None
         origin_dataset = None
@@ -416,22 +465,26 @@ class GenericCLScenario(Generic[TExperience]):
                 # per se (only if is_lazy==True, otherwise is treated as a
                 # standard Sequence)
                 if not isinstance(exp_data, LazyDatasetSequence):
-                    if (not isinstance(exp_data, tuple)) or \
-                            (not len(exp_data) == 2):
+                    if (not isinstance(exp_data, tuple)) or (
+                        not len(exp_data) == 2
+                    ):
                         raise ValueError(
-                            f'The stream {stream_name} was flagged as '
-                            f'lazy-generated but its definition is not a '
-                            f'2-elements tuple (generator and stream length).')
+                            f"The stream {stream_name} was flagged as "
+                            f"lazy-generated but its definition is not a "
+                            f"2-elements tuple (generator and stream length)."
+                        )
             else:
-                if (not len(exp_data) == 2) or \
-                        (not isinstance(exp_data[1], int)):
+                if (not len(exp_data) == 2) or (
+                    not isinstance(exp_data[1], int)
+                ):
                     raise ValueError(
-                        f'The stream {stream_name} was detected '
-                        f'as lazy-generated but its definition is not a '
-                        f'2-elements tuple. If you\'re trying to define a '
-                        f'non-lazily generated stream, don\'t use a tuple '
-                        f'when passing the list of datasets, use a list '
-                        f'instead.')
+                        f"The stream {stream_name} was detected "
+                        f"as lazy-generated but its definition is not a "
+                        f"2-elements tuple. If you're trying to define a "
+                        f"non-lazily generated stream, don't use a tuple "
+                        f"when passing the list of datasets, use a list "
+                        f"instead."
+                    )
 
             if isinstance(exp_data, LazyDatasetSequence):
                 stream_length = len(exp_data)
@@ -444,8 +497,9 @@ class GenericCLScenario(Generic[TExperience]):
             exp_data = [exp_data]
             is_lazy = False
             stream_length = 1
-        elif isinstance(exp_data, Env) or \
-                all([isinstance(e, Env) for e in exp_data]):
+        elif isinstance(exp_data, Env) or all(
+            [isinstance(e, Env) for e in exp_data]
+        ):
             return StreamDef(exp_data, None, None, False)
         else:
             # Standard def
@@ -456,14 +510,16 @@ class GenericCLScenario(Generic[TExperience]):
             for i, dataset in enumerate(exp_data):
                 if not isinstance(dataset, AvalancheDataset):
                     raise ValueError(
-                        'All experience datasets must be subclasses of'
-                        ' AvalancheDataset')
+                        "All experience datasets must be subclasses of"
+                        " AvalancheDataset"
+                    )
 
         if task_labels is None:
             if is_lazy:
                 raise ValueError(
-                    'Task labels must be defined for each experience when '
-                    'creating the stream using a generator.')
+                    "Task labels must be defined for each experience when "
+                    "creating the stream using a generator."
+                )
 
             # Extract task labels from the dataset
             task_labels = []
@@ -481,8 +537,9 @@ class GenericCLScenario(Generic[TExperience]):
 
         if stream_length != len(task_labels):
             raise ValueError(
-                f'{len(exp_data)} experiences have been defined, but task '
-                f'labels for {len(task_labels)} experiences are given.')
+                f"{len(exp_data)} experiences have been defined, but task "
+                f"labels for {len(task_labels)} experiences are given."
+            )
 
         if is_lazy:
             if isinstance(exp_data, LazyDatasetSequence):
@@ -493,22 +550,21 @@ class GenericCLScenario(Generic[TExperience]):
             lazy_sequence = LazyDatasetSequence(exp_data, stream_length)
             lazy_sequence.load_all_experiences()
 
-        return StreamDef(
-            lazy_sequence,
-            task_labels,
-            origin_dataset,
-            is_lazy)
+        return StreamDef(lazy_sequence, task_labels, origin_dataset, is_lazy)
 
 
-class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
-                            ScenarioStream[TGenericCLScenario, TExperience],
-                            Sequence[TExperience]):
-
-    def __init__(self: TGenericScenarioStream,
-                 name: str,
-                 benchmark: TGenericCLScenario,
-                 *,
-                 slice_ids: List[int] = None):
+class GenericScenarioStream(
+    Generic[TExperience, TGenericCLScenario],
+    ScenarioStream[TGenericCLScenario, TExperience],
+    Sequence[TExperience],
+):
+    def __init__(
+        self: TGenericScenarioStream,
+        name: str,
+        benchmark: TGenericCLScenario,
+        *,
+        slice_ids: List[int] = None,
+    ):
         self.slice_ids: Optional[List[int]] = slice_ids
         """
         Describes which experiences are contained in the current stream slice. 
@@ -535,8 +591,9 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         else:
             return len(self.slice_ids)
 
-    def __getitem__(self, exp_idx: Union[int, slice, Iterable[int]]) -> \
-            Union[TExperience, TScenarioStream]:
+    def __getitem__(
+        self, exp_idx: Union[int, slice, Iterable[int]]
+    ) -> Union[TExperience, TScenarioStream]:
         """
         Gets a experience given its experience index (or a stream slice given
         the experience order).
@@ -553,15 +610,18 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
                     return self.benchmark.experience_factory(self, exp_idx)
                 else:
                     return self.benchmark.experience_factory(
-                        self, self.slice_ids[exp_idx])
-            raise IndexError('Experience index out of bounds' +
-                             str(int(exp_idx)))
+                        self, self.slice_ids[exp_idx]
+                    )
+            raise IndexError(
+                "Experience index out of bounds" + str(int(exp_idx))
+            )
         else:
             return self._create_slice(exp_idx)
 
-    def _create_slice(self: TGenericScenarioStream,
-                      exps_slice: Union[int, slice, Iterable[int]]) \
-            -> TScenarioStream:
+    def _create_slice(
+        self: TGenericScenarioStream,
+        exps_slice: Union[int, slice, Iterable[int]],
+    ) -> TScenarioStream:
         """
         Creates a sliced version of this stream.
 
@@ -610,26 +670,30 @@ class GenericScenarioStream(Generic[TExperience, TGenericCLScenario],
         :return: None
         """
         self.benchmark.stream_definitions[
-            self.name].exps_data.drop_previous_experiences(to_exp)
+            self.name
+        ].exps_data.drop_previous_experiences(to_exp)
 
 
 class LazyStreamClassesInExps(Mapping[str, Sequence[Optional[Set[int]]]]):
     def __init__(self, benchmark: GenericCLScenario):
         self._benchmark = benchmark
-        self._default_lcie = LazyClassesInExps(benchmark, stream='train')
+        self._default_lcie = LazyClassesInExps(benchmark, stream="train")
 
     def __len__(self):
         return len(self._benchmark.stream_definitions)
 
     def __getitem__(self, stream_name_or_exp_id):
         if isinstance(stream_name_or_exp_id, str):
-            return LazyClassesInExps(self._benchmark,
-                                     stream=stream_name_or_exp_id)
+            return LazyClassesInExps(
+                self._benchmark, stream=stream_name_or_exp_id
+            )
 
         warnings.warn(
-            'Using classes_in_experience[exp_id] is deprecated. '
-            'Consider using classes_in_experience[stream_name][exp_id]'
-            'instead.', stacklevel=2)
+            "Using classes_in_experience[exp_id] is deprecated. "
+            "Consider using classes_in_experience[stream_name][exp_id]"
+            "instead.",
+            stacklevel=2,
+        )
         return self._default_lcie[stream_name_or_exp_id]
 
     def __iter__(self):
@@ -637,7 +701,7 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Optional[Set[int]]]]):
 
 
 class LazyClassesInExps(Sequence[Optional[Set[int]]]):
-    def __init__(self, benchmark: GenericCLScenario, stream: str = 'train'):
+    def __init__(self, benchmark: GenericCLScenario, stream: str = "train"):
         self._benchmark = benchmark
         self._stream = stream
 
@@ -646,13 +710,16 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
 
     def __getitem__(self, exp_id) -> Set[int]:
         return manage_advanced_indexing(
-            exp_id, self._get_single_exp_classes,
-            len(self), LazyClassesInExps._slice_collate)
+            exp_id,
+            self._get_single_exp_classes,
+            len(self),
+            LazyClassesInExps._slice_collate,
+        )
 
     def __str__(self):
-        return '[' + \
-               ', '.join([str(self[idx]) for idx in range(len(self))]) + \
-               ']'
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
 
     def _get_single_exp_classes(self, exp_id):
         b = self._benchmark.stream_definitions[self._stream]
@@ -668,22 +735,22 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
         if any(x is None for x in classes_in_exps):
             return None
 
-        return [
-            list(x) for x in classes_in_exps
-        ]
+        return [list(x) for x in classes_in_exps]
 
 
-def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
-                   sliceable_len: int) -> List[int]:
+def _get_slice_ids(
+    slice_definition: Union[int, slice, Iterable[int]], sliceable_len: int
+) -> List[int]:
     # Obtain experiences list from slice object (or any iterable)
     exps_list: List[int]
     if isinstance(slice_definition, slice):
-        exps_list = list(
-            range(*slice_definition.indices(sliceable_len)))
+        exps_list = list(range(*slice_definition.indices(sliceable_len)))
     elif isinstance(slice_definition, int):
         exps_list = [slice_definition]
-    elif hasattr(slice_definition, 'shape') and \
-            len(getattr(slice_definition, 'shape')) == 0:
+    elif (
+        hasattr(slice_definition, "shape")
+        and len(getattr(slice_definition, "shape")) == 0
+    ):
         exps_list = [int(slice_definition)]
     else:
         exps_list = list(slice_definition)
@@ -691,11 +758,13 @@ def _get_slice_ids(slice_definition: Union[int, slice, Iterable[int]],
     # Check experience id(s) boundaries
     if max(exps_list) >= sliceable_len:
         raise IndexError(
-            'Experience index out of range: ' + str(max(exps_list)))
+            "Experience index out of range: " + str(max(exps_list))
+        )
 
     if min(exps_list) < 0:
         raise IndexError(
-            'Experience index out of range: ' + str(min(exps_list)))
+            "Experience index out of range: " + str(min(exps_list))
+        )
 
     return exps_list
 
@@ -714,13 +783,14 @@ class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
     """
 
     def __init__(
-            self: TExperience,
-            origin_stream: TScenarioStream,
-            current_experience: int,
-            classes_in_this_exp: Sequence[int],
-            previous_classes: Sequence[int],
-            classes_seen_so_far: Sequence[int],
-            future_classes: Optional[Sequence[int]]):
+        self: TExperience,
+        origin_stream: TScenarioStream,
+        current_experience: int,
+        classes_in_this_exp: Sequence[int],
+        previous_classes: Sequence[int],
+        classes_seen_so_far: Sequence[int],
+        future_classes: Optional[Sequence[int]],
+    ):
         """
         Creates an instance of the abstract experience given the benchmark
         stream, the current experience ID and data about the classes timeline.
@@ -767,16 +837,20 @@ class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
         multiple tasks, accessing this property will result in an exception.
         """
         if len(self.task_labels) != 1:
-            raise ValueError('The task_label property can only be accessed '
-                             'when the experience contains a single task label')
+            raise ValueError(
+                "The task_label property can only be accessed "
+                "when the experience contains a single task label"
+            )
 
         return self.task_labels[0]
 
 
-class GenericExperience(AbstractExperience[TGenericCLScenario,
-                                           GenericScenarioStream[
-                                               TGenericExperience,
-                                               TGenericCLScenario]]):
+class GenericExperience(
+    AbstractExperience[
+        TGenericCLScenario,
+        GenericScenarioStream[TGenericExperience, TGenericCLScenario],
+    ]
+):
     """
     Definition of a learning experience based on a :class:`GenericCLScenario`
     instance.
@@ -786,10 +860,13 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
     this class are usually obtained from a benchmark stream.
     """
 
-    def __init__(self: TGenericExperience,
-                 origin_stream: GenericScenarioStream[TGenericExperience,
-                                                      TGenericCLScenario],
-                 current_experience: int):
+    def __init__(
+        self: TGenericExperience,
+        origin_stream: GenericScenarioStream[
+            TGenericExperience, TGenericCLScenario
+        ],
+        current_experience: int,
+    ):
         """
         Creates an instance of a generic experience given the stream from this
         experience was taken and and the current experience ID.
@@ -798,17 +875,29 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.dataset: AvalancheDataset = \
+        self.dataset: AvalancheDataset = (
             origin_stream.benchmark.stream_definitions[
-                origin_stream.name].exps_data[current_experience]
+                origin_stream.name
+            ].exps_data[current_experience]
+        )
 
-        (classes_in_this_exp, previous_classes, classes_seen_so_far,
-         future_classes) = origin_stream.benchmark.get_classes_timeline(
-            current_experience, stream=origin_stream.name)
+        (
+            classes_in_this_exp,
+            previous_classes,
+            classes_seen_so_far,
+            future_classes,
+        ) = origin_stream.benchmark.get_classes_timeline(
+            current_experience, stream=origin_stream.name
+        )
 
         super(GenericExperience, self).__init__(
-            origin_stream, current_experience, classes_in_this_exp,
-            previous_classes, classes_seen_so_far, future_classes)
+            origin_stream,
+            current_experience,
+            classes_in_this_exp,
+            previous_classes,
+            classes_seen_so_far,
+            future_classes,
+        )
 
     def _get_stream_def(self):
         return self.benchmark.stream_definitions[self.origin_stream.name]
@@ -820,14 +909,14 @@ class GenericExperience(AbstractExperience[TGenericCLScenario,
 
 
 __all__ = [
-    'StreamUserDef',
-    'TStreamUserDef',
-    'TStreamsUserDict',
-    'StreamDef',
-    'TStreamsDict',
-    'TGenericCLScenario',
-    'GenericCLScenario',
-    'GenericScenarioStream',
-    'AbstractExperience',
-    'GenericExperience',
+    "StreamUserDef",
+    "TStreamUserDef",
+    "TStreamsUserDict",
+    "StreamDef",
+    "TStreamsDict",
+    "TGenericCLScenario",
+    "GenericCLScenario",
+    "GenericScenarioStream",
+    "AbstractExperience",
+    "GenericExperience",
 ]

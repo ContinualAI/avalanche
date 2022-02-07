@@ -38,18 +38,19 @@ Most strategies require only 3 mandatory arguments:
 
 Additional arguments are optional and allow you to customize training (batch size, epochs, ...) or strategy-specific parameters (buffer size, regularization strength, ...).
 
-
 ```python
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive, CWRStar, Replay, GDumb, Cumulative, LwF, GEM, AGEM, EWC
+from avalanche.training.supervised import Naive, CWRStar, Replay, GDumb,
+
+Cumulative, LwF, GEM, AGEM, EWC
 
 model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
 cl_strategy = Naive(
-    model, optimizer, criterion, 
+    model, optimizer, criterion,
     train_mb_size=100, train_epochs=4, eval_mb_size=100
 )
 ```
@@ -98,14 +99,14 @@ strategy = Naive(
 
 In Avalanche, most continual learning strategies are implemented using plugins, which makes it easy to combine them together. For example, it is extremely easy to create a hybrid strategy that combines replay and EWC together by passing the appropriate `plugins` list to the `BaseStrategy`:
 
-
 ```python
-from avalanche.training.strategies import BaseStrategy
+
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins import ReplayPlugin, EWCPlugin
 
 replay = ReplayPlugin(mem_size=100)
 ewc = EWCPlugin(ewc_lambda=0.001)
-strategy = BaseStrategy(
+strategy = SupervisedTemplate(
     model, optimizer, criterion,
     plugins=[replay, ewc])
 ```
@@ -199,21 +200,20 @@ Plugins provide a simple solution to define a new strategy by augmenting the beh
 
 Creating a plugin is straightforward. You create a class which inherits from `StrategyPlugin` and implements the callbacks that you need. The exact callback to use depend on your strategy. You can use the loop shown above to understand what callbacks you need to use. For example, we show below a simple replay plugin that uses `after_training_exp` to update the buffer after each training experience, and the `before_training_exp` to customize the dataloader. Notice that `before_training_exp` is executed after `make_train_dataloader`, which means that the `BaseStrategy` already updated the dataloader. If we used another callback, such as `before_train_dataset_adaptation`, our dataloader would have been overwritten by the `BaseStrategy`. Plugin methods always receive the `strategy` as an argument, so they can access and modify the strategy's state.
 
-
 ```python
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
-class ReplayP(StrategyPlugin):
+class ReplayP(SupervisedPlugin):
 
     def __init__(self, mem_size):
         """ A simple replay plugin with reservoir sampling. """
         super().__init__()
         self.buffer = ReservoirSamplingBuffer(max_size=mem_size)
 
-    def before_training_exp(self, strategy: "BaseStrategy",
+    def before_training_exp(self, strategy: "BaseTemplate",
                             num_workers: int = 0, shuffle: bool = True,
                             **kwargs):
         """ Use a custom dataloader to combine samples from the current data and memory buffer. """
@@ -229,7 +229,7 @@ class ReplayP(StrategyPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
+    def after_training_exp(self, strategy: "BaseTemplate", **kwargs):
         """ Update the buffer. """
         self.buffer.update(strategy, **kwargs)
 
@@ -238,7 +238,8 @@ benchmark = SplitMNIST(n_experiences=5, seed=1)
 model = SimpleMLP(num_classes=10)
 optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
 criterion = CrossEntropyLoss()
-strategy = Naive(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128,
+strategy = Naive(model=model, optimizer=optimizer, criterion=criterion,
+                 train_mb_size=128,
                  plugins=[ReplayP(mem_size=2000)])
 strategy.train(benchmark.train_stream)
 strategy.eval(benchmark.test_stream)
@@ -255,13 +256,12 @@ Notice that even though you don't use plugins, `BaseStrategy` implements some in
 
 `BaseStrategy` provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. As an example, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
 
-
 ```python
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training import BaseStrategy
+from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class Cumulative(BaseStrategy):
+class Cumulative(SupervisedTemplate):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dataset = None  # cumulative dataset
@@ -275,7 +275,9 @@ class Cumulative(BaseStrategy):
             self.dataset = AvalancheConcatDataset([self.dataset, curr_data])
         self.adapted_dataset = self.dataset.train()
 
-strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128)
+
+strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion,
+                      train_mb_size=128)
 strategy.train(benchmark.train_stream)
 ```
 

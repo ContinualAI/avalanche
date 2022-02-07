@@ -10,20 +10,43 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification
 from copy import deepcopy
-from avalanche.evaluation.metrics import Accuracy, Loss, ConfusionMatrix, \
-    DiskUsage, MAC, CPUUsage, MaxGPU, MaxRAM, Mean, Sum, ElapsedTime, \
-    Forgetting, ForwardTransfer
-from avalanche.training.strategies.base_strategy import BaseStrategy
+from avalanche.evaluation.metrics import (
+    Accuracy,
+    Loss,
+    ConfusionMatrix,
+    DiskUsage,
+    MAC,
+    CPUUsage,
+    MaxGPU,
+    MaxRAM,
+    Mean,
+    Sum,
+    ElapsedTime,
+    Forgetting,
+    ForwardTransfer,
+)
+from avalanche.training.templates.supervised import SupervisedTemplate
 import pathlib
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from avalanche.benchmarks.utils import AvalancheTensorDataset, \
-    AvalancheDatasetType
+from avalanche.benchmarks.utils import (
+    AvalancheTensorDataset,
+    AvalancheDatasetType,
+)
 from avalanche.benchmarks import nc_benchmark, dataset_benchmark
-from avalanche.evaluation.metrics import forgetting_metrics, \
-    accuracy_metrics, loss_metrics, cpu_usage_metrics, timing_metrics, \
-    ram_usage_metrics, disk_usage_metrics, MAC_metrics, \
-    bwt_metrics, confusion_matrix_metrics, forward_transfer_metrics
+from avalanche.evaluation.metrics import (
+    forgetting_metrics,
+    accuracy_metrics,
+    loss_metrics,
+    cpu_usage_metrics,
+    timing_metrics,
+    ram_usage_metrics,
+    disk_usage_metrics,
+    MAC_metrics,
+    bwt_metrics,
+    confusion_matrix_metrics,
+    forward_transfer_metrics,
+)
 from avalanche.models import SimpleMLP
 from avalanche.logging import TextLogger
 from avalanche.training.plugins import EvaluationPlugin
@@ -71,7 +94,7 @@ class GeneralMetricTests(unittest.TestCase):
     def test_loss(self):
         metric = Loss()
         self.assertEqual(metric.result(0)[0], 0)
-        metric.update(torch.tensor(1.), self.batch_size, 0)
+        metric.update(torch.tensor(1.0), self.batch_size, 0)
         self.assertGreaterEqual(metric.result(0)[0], 0)
         metric.reset()
         self.assertEqual(metric.result(), {})
@@ -79,8 +102,8 @@ class GeneralMetricTests(unittest.TestCase):
     def test_loss_multi_task(self):
         metric = Loss()
         self.assertEqual(metric.result(), {})
-        metric.update(torch.tensor(1.), 1, 0)
-        metric.update(torch.tensor(2.), 1, 1)
+        metric.update(torch.tensor(1.0), 1, 0)
+        metric.update(torch.tensor(2.0), 1, 1)
         out = metric.result()
         for k, v in out.items():
             self.assertIn(k, [0, 1])
@@ -200,6 +223,7 @@ class GeneralMetricTests(unittest.TestCase):
         metric.reset()
         self.assertEqual(metric.result(), {})
 
+
 #################################
 #################################
 #      PLUGIN METRIC TEST       #
@@ -207,7 +231,7 @@ class GeneralMetricTests(unittest.TestCase):
 #################################
 
 
-DEVICE = 'cpu'
+DEVICE = "cpu"
 DELTA = 0.01
 
 
@@ -230,55 +254,94 @@ class PluginMetricTests(unittest.TestCase):
         dataset = make_classification(
             n_samples=6 * n_samples_per_class,
             n_classes=6,
-            n_features=4, n_informative=4, n_redundant=0)
+            n_features=4,
+            n_informative=4,
+            n_redundant=0,
+        )
         X = torch.from_numpy(dataset[0]).float()
         y = torch.from_numpy(dataset[1]).long()
         train_X, test_X, train_y, test_y = train_test_split(
-            X, y, train_size=0.5, shuffle=True, stratify=y)
+            X, y, train_size=0.5, shuffle=True, stratify=y
+        )
         tr_d = TensorDataset(train_X, train_y)
         ts_d = TensorDataset(test_X, test_y)
-        benchmark = nc_benchmark(train_dataset=tr_d, test_dataset=ts_d,
-                                 n_experiences=3,
-                                 task_labels=False, shuffle=False, seed=0)
+        benchmark = nc_benchmark(
+            train_dataset=tr_d,
+            test_dataset=ts_d,
+            n_experiences=3,
+            task_labels=False,
+            shuffle=False,
+            seed=0,
+        )
         model = SimpleMLP(input_size=4, num_classes=benchmark.n_classes)
 
-        f = open('log.txt', 'w')
+        f = open("log.txt", "w")
         text_logger = TextLogger(f)
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True, trained_experience=True),
-            loss_metrics(minibatch=True, epoch=True, epoch_running=True,
-                         experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+                trained_experience=True,
+            ),
+            loss_metrics(
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             forgetting_metrics(experience=True, stream=True),
             forward_transfer_metrics(experience=True, stream=True),
-            confusion_matrix_metrics(num_classes=10, save_image=False,
-                                     normalize='all', stream=True),
+            confusion_matrix_metrics(
+                num_classes=10, save_image=False, normalize="all", stream=True
+            ),
             bwt_metrics(experience=True, stream=True),
             cpu_usage_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             timing_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             ram_usage_metrics(
-                every=0.5, minibatch=True, epoch=True,
-                experience=True, stream=True),
+                every=0.5,
+                minibatch=True,
+                epoch=True,
+                experience=True,
+                stream=True,
+            ),
             disk_usage_metrics(
-                minibatch=True, epoch=True, experience=True, stream=True),
-            MAC_metrics(
-                minibatch=True, epoch=True, experience=True),
+                minibatch=True, epoch=True, experience=True, stream=True
+            ),
+            MAC_metrics(minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
-            collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
-            model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=10, train_epochs=2,
-            eval_mb_size=10, device=DEVICE, evaluator=eval_plugin,
-            eval_every=1)
+            collect_all=True,
+        )  # collect all metrics (set to True by default)
+        cl_strategy = SupervisedTemplate(
+            model,
+            SGD(model.parameters(), lr=0.001, momentum=0.9),
+            CrossEntropyLoss(),
+            train_mb_size=10,
+            train_epochs=2,
+            eval_mb_size=10,
+            device=DEVICE,
+            evaluator=eval_plugin,
+            eval_every=1,
+        )
         for i, experience in enumerate(benchmark.train_stream):
-            cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream],
-                              shuffle=False)
+            cl_strategy.train(
+                experience, eval_streams=[benchmark.test_stream], shuffle=False
+            )
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
@@ -286,14 +349,23 @@ class PluginMetricTests(unittest.TestCase):
         # the pickle file with target values.
         # Make sure the old tests were passing for all unchanged metrics
         if UPDATE_METRICS:
-            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                                   'target_metrics',
-                                   'sit.pickle'), 'wb') as f:
-                pickle.dump(dict(cls.all_metrics), f,
-                            protocol=4)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                               'target_metrics',
-                               'sit.pickle'), 'rb') as f:
+            with open(
+                os.path.join(
+                    pathlib.Path(__file__).parent.absolute(),
+                    "target_metrics",
+                    "sit.pickle",
+                ),
+                "wb",
+            ) as f:
+                pickle.dump(dict(cls.all_metrics), f, protocol=4)
+        with open(
+            os.path.join(
+                pathlib.Path(__file__).parent.absolute(),
+                "target_metrics",
+                "sit.pickle",
+            ),
+            "rb",
+        ) as f:
             cls.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -306,37 +378,46 @@ class PluginMetricTests(unittest.TestCase):
                 self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
-                self.assertEqual(el, elref)
+                emsg = (
+                    f"wrong timestep for {kref} (Expected={elref}, "
+                    f"Actual={el})."
+                )
+                self.assertEqual(el, elref, msg=emsg)
             for el, elref in zip(v[1], vref[1]):
-                self.assertAlmostEqual(el, elref, delta=DELTA)
+                emsg = (
+                    f"wrong value for {kref} (Expected={elref}, "
+                    f"Actual={el})."
+                )
+                self.assertAlmostEqual(el, elref, delta=DELTA, msg=emsg)
 
     def test_accuracy(self):
-        self.metric_check('Acc')
+        self.metric_check("Acc")
 
     def test_loss(self):
-        self.metric_check('Loss')
+        self.metric_check("Loss")
 
     def test_mac(self):
-        self.metric_check('MAC')
+        self.metric_check("MAC")
 
     def test_forgetting_bwt(self):
-        df = filter_dict(self.all_metrics, 'Forgetting')
-        db = filter_dict(self.all_metrics, 'BWT')
-        self.metric_check('Forgetting')
-        self.metric_check('BWT')
+        df = filter_dict(self.all_metrics, "Forgetting")
+        db = filter_dict(self.all_metrics, "BWT")
+        self.metric_check("Forgetting")
+        self.metric_check("BWT")
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
-                (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience')))
+                (kf.startswith("Stream") and kb.startswith("Stream"))
+                or (kf.startswith("Experience") and kb.startswith("Experience"))
+            )
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 
     def test_fwt(self):
-        self.metric_check('ForwardTransfer')
+        self.metric_check("ForwardTransfer")
 
     def test_cm(self):
-        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
-        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        d = filter_dict(self.all_metrics, "ConfusionMatrix")
+        d_ref = filter_dict(self.ref, "ConfusionMatrix")
         for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
             self.assertEqual(k, kref)
             for el, elref in zip(v[0], vref[0]):
@@ -356,55 +437,94 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         dataset = make_classification(
             n_samples=6 * n_samples_per_class,
             n_classes=6,
-            n_features=4, n_informative=4, n_redundant=0)
+            n_features=4,
+            n_informative=4,
+            n_redundant=0,
+        )
         X = torch.from_numpy(dataset[0]).float()
         y = torch.from_numpy(dataset[1]).long()
         train_X, test_X, train_y, test_y = train_test_split(
-            X, y, train_size=0.5, shuffle=True, stratify=y)
+            X, y, train_size=0.5, shuffle=True, stratify=y
+        )
         tr_d = TensorDataset(train_X, train_y)
         ts_d = TensorDataset(test_X, test_y)
-        benchmark = nc_benchmark(train_dataset=tr_d, test_dataset=ts_d,
-                                 n_experiences=3,
-                                 task_labels=True, shuffle=False, seed=0)
+        benchmark = nc_benchmark(
+            train_dataset=tr_d,
+            test_dataset=ts_d,
+            n_experiences=3,
+            task_labels=True,
+            shuffle=False,
+            seed=0,
+        )
         model = SimpleMLP(input_size=4, num_classes=benchmark.n_classes)
 
-        f = open('log.txt', 'w')
+        f = open("log.txt", "w")
         text_logger = TextLogger(f)
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True, trained_experience=True),
-            loss_metrics(minibatch=True, epoch=True, epoch_running=True,
-                         experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+                trained_experience=True,
+            ),
+            loss_metrics(
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             forgetting_metrics(experience=True, stream=True),
-            confusion_matrix_metrics(num_classes=6, save_image=False,
-                                     normalize='all', stream=True),
+            confusion_matrix_metrics(
+                num_classes=6, save_image=False, normalize="all", stream=True
+            ),
             bwt_metrics(experience=True, stream=True),
             forward_transfer_metrics(experience=True, stream=True),
             cpu_usage_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             timing_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             ram_usage_metrics(
-                every=0.5, minibatch=True, epoch=True,
-                experience=True, stream=True),
+                every=0.5,
+                minibatch=True,
+                epoch=True,
+                experience=True,
+                stream=True,
+            ),
             disk_usage_metrics(
-                minibatch=True, epoch=True, experience=True, stream=True),
-            MAC_metrics(
-                minibatch=True, epoch=True, experience=True),
+                minibatch=True, epoch=True, experience=True, stream=True
+            ),
+            MAC_metrics(minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
-            collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
-            model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=10, train_epochs=2,
-            eval_mb_size=10, device=DEVICE, evaluator=eval_plugin,
-            eval_every=1)
+            collect_all=True,
+        )  # collect all metrics (set to True by default)
+        cl_strategy = SupervisedTemplate(
+            model,
+            SGD(model.parameters(), lr=0.001, momentum=0.9),
+            CrossEntropyLoss(),
+            train_mb_size=10,
+            train_epochs=2,
+            eval_mb_size=10,
+            device=DEVICE,
+            evaluator=eval_plugin,
+            eval_every=1,
+        )
         for i, experience in enumerate(benchmark.train_stream):
-            cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream],
-                              shuffle=False)
+            cl_strategy.train(
+                experience, eval_streams=[benchmark.test_stream], shuffle=False
+            )
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
@@ -412,14 +532,23 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
         # the pickle file with target values.
         # Make sure the old tests were passing for all unchanged metrics
         if UPDATE_METRICS:
-            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                                   'target_metrics',
-                                   'mt.pickle'), 'wb') as f:
-                pickle.dump(dict(cls.all_metrics), f,
-                            protocol=4)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                               'target_metrics',
-                               'mt.pickle'), 'rb') as f:
+            with open(
+                os.path.join(
+                    pathlib.Path(__file__).parent.absolute(),
+                    "target_metrics",
+                    "mt.pickle",
+                ),
+                "wb",
+            ) as f:
+                pickle.dump(dict(cls.all_metrics), f, protocol=4)
+        with open(
+            os.path.join(
+                pathlib.Path(__file__).parent.absolute(),
+                "target_metrics",
+                "mt.pickle",
+            ),
+            "rb",
+        ) as f:
             cls.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -432,37 +561,46 @@ class PluginMetricMultiTaskTests(unittest.TestCase):
                 self.assertTrue(el >= init)
                 init = el
             for el, elref in zip(v[0], vref[0]):
-                self.assertEqual(el, elref)
+                emsg = (
+                    f"wrong value for {kref} (Expected={elref},"
+                    " Actual={el})."
+                )
+                self.assertEqual(el, elref, msg=emsg)
             for el, elref in zip(v[1], vref[1]):
-                self.assertAlmostEqual(el, elref, delta=DELTA)
+                emsg = (
+                    f"wrong value for {kref} (Expected={elref},"
+                    " Actual={el})."
+                )
+                self.assertAlmostEqual(el, elref, delta=DELTA, msg=emsg)
 
     def test_accuracy(self):
-        self.metric_check('Acc')
+        self.metric_check("Acc")
 
     def test_loss(self):
-        self.metric_check('Loss')
+        self.metric_check("Loss")
 
     def test_mac(self):
-        self.metric_check('MAC')
+        self.metric_check("MAC")
 
     def test_fwt(self):
-        self.metric_check('ForwardTransfer')
+        self.metric_check("ForwardTransfer")
 
     def test_forgetting_bwt(self):
-        df = filter_dict(self.all_metrics, 'Forgetting')
-        db = filter_dict(self.all_metrics, 'BWT')
-        self.metric_check('Forgetting')
-        self.metric_check('BWT')
+        df = filter_dict(self.all_metrics, "Forgetting")
+        db = filter_dict(self.all_metrics, "BWT")
+        self.metric_check("Forgetting")
+        self.metric_check("BWT")
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
-                (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience')))
+                (kf.startswith("Stream") and kb.startswith("Stream"))
+                or (kf.startswith("Experience") and kb.startswith("Experience"))
+            )
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 
     def test_cm(self):
-        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
-        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        d = filter_dict(self.all_metrics, "ConfusionMatrix")
+        d_ref = filter_dict(self.ref, "ConfusionMatrix")
         for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
             self.assertEqual(k, kref)
             for el, elref in zip(v[0], vref[0]):
@@ -484,63 +622,105 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
             dataset = make_classification(
                 n_samples=3 * n_samples_per_class,
                 n_classes=3,
-                n_features=3, n_informative=3, n_redundant=0)
+                n_features=3,
+                n_informative=3,
+                n_redundant=0,
+            )
             X = torch.from_numpy(dataset[0]).float()
             y = torch.from_numpy(dataset[1]).long()
             train_X, test_X, train_y, test_y = train_test_split(
-                X, y, train_size=0.5, shuffle=True, stratify=y)
+                X, y, train_size=0.5, shuffle=True, stratify=y
+            )
             datasets.append((train_X, train_y, test_X, test_y))
 
-        tr_ds = [AvalancheTensorDataset(
-            tr_X, tr_y,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 3, (150,)).tolist())
-            for tr_X, tr_y, _, _ in datasets]
-        ts_ds = [AvalancheTensorDataset(
-            ts_X, ts_y,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
-            task_labels=torch.randint(0, 3, (150,)).tolist())
-            for _, _, ts_X, ts_y in datasets]
+        tr_ds = [
+            AvalancheTensorDataset(
+                tr_X,
+                tr_y,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=torch.randint(0, 3, (150,)).tolist(),
+            )
+            for tr_X, tr_y, _, _ in datasets
+        ]
+        ts_ds = [
+            AvalancheTensorDataset(
+                ts_X,
+                ts_y,
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=torch.randint(0, 3, (150,)).tolist(),
+            )
+            for _, _, ts_X, ts_y in datasets
+        ]
         benchmark = dataset_benchmark(train_datasets=tr_ds, test_datasets=ts_ds)
         model = SimpleMLP(num_classes=3, input_size=3)
 
-        f = open('log.txt', 'w')
+        f = open("log.txt", "w")
         text_logger = TextLogger(f)
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True, trained_experience=True),
-            loss_metrics(minibatch=True, epoch=True, epoch_running=True,
-                         experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+                trained_experience=True,
+            ),
+            loss_metrics(
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             forgetting_metrics(experience=True, stream=True),
-            confusion_matrix_metrics(num_classes=3, save_image=False,
-                                     normalize='all', stream=True),
+            confusion_matrix_metrics(
+                num_classes=3, save_image=False, normalize="all", stream=True
+            ),
             bwt_metrics(experience=True, stream=True),
             forward_transfer_metrics(experience=True, stream=True),
             cpu_usage_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             timing_metrics(
-                minibatch=True, epoch=True, epoch_running=True,
-                experience=True, stream=True),
+                minibatch=True,
+                epoch=True,
+                epoch_running=True,
+                experience=True,
+                stream=True,
+            ),
             ram_usage_metrics(
-                every=0.5, minibatch=True, epoch=True,
-                experience=True, stream=True),
+                every=0.5,
+                minibatch=True,
+                epoch=True,
+                experience=True,
+                stream=True,
+            ),
             disk_usage_metrics(
-                minibatch=True, epoch=True, experience=True, stream=True),
-            MAC_metrics(
-                minibatch=True, epoch=True, experience=True),
+                minibatch=True, epoch=True, experience=True, stream=True
+            ),
+            MAC_metrics(minibatch=True, epoch=True, experience=True),
             loggers=[text_logger],
-            collect_all=True)  # collect all metrics (set to True by default)
-        cl_strategy = BaseStrategy(
-            model, SGD(model.parameters(), lr=0.001, momentum=0.9),
-            CrossEntropyLoss(), train_mb_size=2, train_epochs=2,
-            eval_mb_size=2, device=DEVICE,
-            evaluator=eval_plugin, eval_every=1)
+            collect_all=True,
+        )  # collect all metrics (set to True by default)
+        cl_strategy = SupervisedTemplate(
+            model,
+            SGD(model.parameters(), lr=0.001, momentum=0.9),
+            CrossEntropyLoss(),
+            train_mb_size=4,
+            train_epochs=2,
+            eval_mb_size=2,
+            device=DEVICE,
+            evaluator=eval_plugin,
+            eval_every=1,
+        )
         for i, experience in enumerate(benchmark.train_stream):
-            cl_strategy.train(experience,
-                              eval_streams=[benchmark.test_stream],
-                              shuffle=False)
+            cl_strategy.train(
+                experience, eval_streams=[benchmark.test_stream], shuffle=False
+            )
             cl_strategy.eval(benchmark.test_stream)
         cls.all_metrics = cl_strategy.evaluator.get_all_metrics()
         f.close()
@@ -548,14 +728,23 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
         # the pickle file with target values.
         # Make sure the old tests were passing for all unchanged metrics
         if UPDATE_METRICS:
-            with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                                   'target_metrics',
-                                   'tpp.pickle'), 'wb') as f:
-                pickle.dump(dict(cls.all_metrics), f,
-                            protocol=4)
-        with open(os.path.join(pathlib.Path(__file__).parent.absolute(),
-                               'target_metrics',
-                               'tpp.pickle'), 'rb') as f:
+            with open(
+                os.path.join(
+                    pathlib.Path(__file__).parent.absolute(),
+                    "target_metrics",
+                    "tpp.pickle",
+                ),
+                "wb",
+            ) as f:
+                pickle.dump(dict(cls.all_metrics), f, protocol=4)
+        with open(
+            os.path.join(
+                pathlib.Path(__file__).parent.absolute(),
+                "target_metrics",
+                "tpp.pickle",
+            ),
+            "rb",
+        ) as f:
             cls.ref = pickle.load(f)
 
     def metric_check(self, name):
@@ -573,32 +762,33 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
                 self.assertAlmostEqual(el, elref, delta=DELTA)
 
     def test_accuracy(self):
-        self.metric_check('Acc')
+        self.metric_check("Acc")
 
     def test_loss(self):
-        self.metric_check('Loss')
+        self.metric_check("Loss")
 
     def test_mac(self):
-        self.metric_check('MAC')
+        self.metric_check("MAC")
 
     def test_fwt(self):
-        self.metric_check('ForwardTransfer')
+        self.metric_check("ForwardTransfer")
 
     def test_forgetting_bwt(self):
-        df = filter_dict(self.all_metrics, 'Forgetting')
-        db = filter_dict(self.all_metrics, 'BWT')
-        self.metric_check('Forgetting')
-        self.metric_check('BWT')
+        df = filter_dict(self.all_metrics, "Forgetting")
+        db = filter_dict(self.all_metrics, "BWT")
+        self.metric_check("Forgetting")
+        self.metric_check("BWT")
         for (kf, vf), (kb, vb) in zip(df.items(), db.items()):
             self.assertTrue(
-                (kf.startswith('Stream') and kb.startswith('Stream')) or
-                (kf.startswith('Experience') and kb.startswith('Experience')))
+                (kf.startswith("Stream") and kb.startswith("Stream"))
+                or (kf.startswith("Experience") and kb.startswith("Experience"))
+            )
             for f, b in zip(vf[1], vb[1]):
                 self.assertEqual(f, -b)
 
     def test_cm(self):
-        d = filter_dict(self.all_metrics, 'ConfusionMatrix')
-        d_ref = filter_dict(self.ref, 'ConfusionMatrix')
+        d = filter_dict(self.all_metrics, "ConfusionMatrix")
+        d_ref = filter_dict(self.ref, "ConfusionMatrix")
         for (k, v), (kref, vref) in zip(d.items(), d_ref.items()):
             self.assertEqual(k, kref)
             for el, elref in zip(v[0], vref[0]):
@@ -607,5 +797,5 @@ class PluginMetricTaskLabelPerPatternTests(unittest.TestCase):
                 self.assertTrue((el == elref).all())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

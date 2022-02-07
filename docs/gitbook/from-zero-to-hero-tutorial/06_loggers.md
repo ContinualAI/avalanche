@@ -36,18 +36,20 @@ The `global counters` are updated automatically by the strategy.
 
 #### How to use loggers
 
-
 ```python
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import forgetting_metrics, \
-accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
+from avalanche.evaluation.metrics import forgetting_metrics,
+
+accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics,
 confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger, WandBLogger
+from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger,
+
+WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 benchmark = SplitMNIST(n_experiences=5, return_task_id=False)
 
@@ -82,7 +84,8 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=True,
                              stream=True),
-    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True,
+                       stream=True),
     loggers=loggers,
     benchmark=benchmark
 )

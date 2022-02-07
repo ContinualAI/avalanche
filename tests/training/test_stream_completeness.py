@@ -14,7 +14,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.evaluation.metrics import accuracy_metrics
 from tests.unit_tests_utils import get_fast_benchmark
 
@@ -29,13 +29,20 @@ class TestStreamCompleteness(unittest.TestCase):
         cls.benchmark = get_fast_benchmark()
 
     def test_raise_error(self):
-        eval_plugin = EvaluationPlugin(accuracy_metrics(stream=True),
-                                       loggers=None,
-                                       benchmark=self.benchmark,
-                                       strict_checks=True)
-        strategy = Naive(self.model, self.optimizer, self.criterion,
-                         train_epochs=2, eval_every=-1,
-                         evaluator=eval_plugin)
+        eval_plugin = EvaluationPlugin(
+            accuracy_metrics(stream=True),
+            loggers=None,
+            benchmark=self.benchmark,
+            strict_checks=True,
+        )
+        strategy = Naive(
+            self.model,
+            self.optimizer,
+            self.criterion,
+            train_epochs=2,
+            eval_every=-1,
+            evaluator=eval_plugin,
+        )
         for exp in self.benchmark.train_stream:
             strategy.train(exp)
             strategy.eval(self.benchmark.test_stream)
@@ -43,13 +50,20 @@ class TestStreamCompleteness(unittest.TestCase):
             strategy.eval(self.benchmark.test_stream[:2])
 
     def test_raise_warning(self):
-        eval_plugin = EvaluationPlugin(accuracy_metrics(stream=True),
-                                       loggers=None,
-                                       benchmark=self.benchmark,
-                                       strict_checks=False)
-        strategy = Naive(self.model, self.optimizer, self.criterion,
-                         train_epochs=2, eval_every=-1,
-                         evaluator=eval_plugin)
+        eval_plugin = EvaluationPlugin(
+            accuracy_metrics(stream=True),
+            loggers=None,
+            benchmark=self.benchmark,
+            strict_checks=False,
+        )
+        strategy = Naive(
+            self.model,
+            self.optimizer,
+            self.criterion,
+            train_epochs=2,
+            eval_every=-1,
+            evaluator=eval_plugin,
+        )
         for exp in self.benchmark.train_stream:
             strategy.train(exp)
             strategy.eval(self.benchmark.test_stream)
@@ -57,14 +71,20 @@ class TestStreamCompleteness(unittest.TestCase):
             strategy.eval(self.benchmark.test_stream[:2])
 
     def test_no_errors(self):
-        eval_plugin = EvaluationPlugin(accuracy_metrics(stream=True),
-                                       loggers=None,
-                                       benchmark=self.benchmark,
-                                       strict_checks=True)
-        strategy = Naive(self.model, self.optimizer, self.criterion,
-                         train_epochs=2, eval_every=0,
-                         evaluator=eval_plugin)
+        eval_plugin = EvaluationPlugin(
+            accuracy_metrics(stream=True),
+            loggers=None,
+            benchmark=self.benchmark,
+            strict_checks=True,
+        )
+        strategy = Naive(
+            self.model,
+            self.optimizer,
+            self.criterion,
+            train_epochs=2,
+            eval_every=0,
+            evaluator=eval_plugin,
+        )
         for exp in self.benchmark.train_stream:
-            strategy.train(exp, eval_streams=[
-                self.benchmark.test_stream])
+            strategy.train(exp, eval_streams=[self.benchmark.test_stream])
             strategy.eval(self.benchmark.test_stream)

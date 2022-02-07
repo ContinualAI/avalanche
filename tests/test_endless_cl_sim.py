@@ -16,9 +16,14 @@ import unittest
 import os
 
 from avalanche.benchmarks.classic import EndlessCLSim
+from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
 class EndlessCLSimTest(unittest.TestCase):
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_endless_cl_classification(self):
 
         if "FAST_TEST" in os.environ:
@@ -26,76 +31,80 @@ class EndlessCLSimTest(unittest.TestCase):
         else:
             # "Classes"
             scenario = EndlessCLSim(
-                scenario="Classes", 
+                scenario="Classes",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Illumination
             scenario = EndlessCLSim(
-                scenario="Illumination", 
+                scenario="Illumination",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Weather
             scenario = EndlessCLSim(
-                scenario="Weather", 
+                scenario="Weather",
                 sequence_order=None,
                 task_order=None,
                 semseg=False,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
         return
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_endless_cl_video(self):
         if "FAST_TEST" in os.environ:
             pass
         else:
             # "Classes"
             scenario = EndlessCLSim(
-                scenario="Classes",  
+                scenario="Classes",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root="/data/avalanche"
+                dataset_root="/data/avalanche",
             )
             for experience in scenario.train_stream:
                 pass
 
             # Illumination
             scenario = EndlessCLSim(
-                scenario="Illumination", 
+                scenario="Illumination",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
 
             # Weather
             scenario = EndlessCLSim(
-                scenario="Weather",  
+                scenario="Weather",
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root=None
+                dataset_root=None,
             )
             for experience in scenario.train_stream:
                 pass
         return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

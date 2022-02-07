@@ -25,9 +25,10 @@ class DiskUsage(Metric[float]):
     This metric can be used to monitor the size of a set of directories.
     e.g. This can be useful to monitor the size of a replay buffer,
     """
-    def __init__(self,
-                 paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
-                 ):
+
+    def __init__(
+        self, paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
+    ):
         """
         Creates an instance of the standalone disk usage metric.
 
@@ -100,8 +101,8 @@ class DiskPluginMetric(GenericPluginMetric[float]):
         self._disk = DiskUsage(paths_to_monitor=paths)
 
         super(DiskPluginMetric, self).__init__(
-            self._disk, reset_at=reset_at, emit_at=emit_at,
-            mode=mode)
+            self._disk, reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
 
     def update(self, strategy):
         self._disk.update()
@@ -125,7 +126,10 @@ class MinibatchDiskUsage(DiskPluginMetric):
         """
         super(MinibatchDiskUsage, self).__init__(
             paths_to_monitor,
-            reset_at='iteration', emit_at='iteration', mode='train')
+            reset_at="iteration",
+            emit_at="iteration",
+            mode="train",
+        )
 
     def __str__(self):
         return "DiskUsage_MB"
@@ -145,8 +149,8 @@ class EpochDiskUsage(DiskPluginMetric):
         Creates an instance of the epoch Disk usage metric.
         """
         super(EpochDiskUsage, self).__init__(
-            paths_to_monitor,
-            reset_at='epoch', emit_at='epoch', mode='train')
+            paths_to_monitor, reset_at="epoch", emit_at="epoch", mode="train"
+        )
 
     def __str__(self):
         return "DiskUsage_Epoch"
@@ -167,7 +171,10 @@ class ExperienceDiskUsage(DiskPluginMetric):
         """
         super(ExperienceDiskUsage, self).__init__(
             paths_to_monitor,
-            reset_at='experience', emit_at='experience', mode='eval')
+            reset_at="experience",
+            emit_at="experience",
+            mode="eval",
+        )
 
     def __str__(self):
         return "DiskUsage_Exp"
@@ -187,16 +194,21 @@ class StreamDiskUsage(DiskPluginMetric):
         Creates an instance of the stream Disk usage metric.
         """
         super(StreamDiskUsage, self).__init__(
-            paths_to_monitor,
-            reset_at='stream', emit_at='stream', mode='eval')
+            paths_to_monitor, reset_at="stream", emit_at="stream", mode="eval"
+        )
 
     def __str__(self):
         return "DiskUsage_Stream"
 
 
-def disk_usage_metrics(*, paths_to_monitor=None, minibatch=False, epoch=False,
-                       experience=False, stream=False) \
-        -> List[PluginMetric]:
+def disk_usage_metrics(
+    *,
+    paths_to_monitor=None,
+    minibatch=False,
+    epoch=False,
+    experience=False,
+    stream=False
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     standalone metrics.
@@ -230,10 +242,10 @@ def disk_usage_metrics(*, paths_to_monitor=None, minibatch=False, epoch=False,
 
 
 __all__ = [
-    'DiskUsage',
-    'MinibatchDiskUsage',
-    'EpochDiskUsage',
-    'ExperienceDiskUsage',
-    'StreamDiskUsage',
-    'disk_usage_metrics'
+    "DiskUsage",
+    "MinibatchDiskUsage",
+    "EpochDiskUsage",
+    "ExperienceDiskUsage",
+    "StreamDiskUsage",
+    "disk_usage_metrics",
 ]

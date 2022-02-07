@@ -31,7 +31,7 @@ from avalanche.evaluation.metrics.labels_repartition import (
 
 from avalanche.evaluation.metrics.images_samples import images_samples_metrics
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.logging import TensorboardLogger, InteractiveLogger
@@ -54,7 +54,10 @@ def main(cuda: int):
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(stream=True, experience=True),
         images_samples_metrics(
-            on_train=True, on_eval=True, n_cols=10, n_rows=10,
+            on_train=True,
+            on_eval=True,
+            n_cols=10,
+            n_rows=10,
         ),
         labels_repartition_metrics(
             # image_creator=repartition_bar_chart_image_creator,

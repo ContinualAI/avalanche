@@ -9,10 +9,11 @@
 # Website: continualai.org                                                     #
 ################################################################################
 
-name = ('Stream-51.zip', 'http://klab.cis.rit.edu/files/Stream-51.zip',
-        '5f34d542b71af7e5ecb2226d1bc7297c')
+name = (
+    "Stream-51.zip",
+    "http://klab.cis.rit.edu/files/Stream-51.zip",
+    "5f34d542b71af7e5ecb2226d1bc7297c",
+)
 
 
-__all__ = [
-    'name'
-]
+__all__ = ["name"]

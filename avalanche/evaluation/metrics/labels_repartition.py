@@ -26,7 +26,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.strategies import BaseStrategy
+    from avalanche.training.templates.supervised import SupervisedTemplate
     from avalanche.evaluation.metric_results import MetricResult
 
 
@@ -34,6 +34,7 @@ class LabelsRepartition(Metric):
     """
     Metric used to monitor the labels repartition.
     """
+
     def __init__(self):
         self.task2label2count: Dict[int, Dict[int, int]] = {}
         self.class_order = None
@@ -115,7 +116,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         self.steps.append(self.global_it_counter)
         return super().reset()
 
-    def update(self, strategy: "BaseStrategy"):
+    def update(self, strategy: "SupervisedTemplate"):
         if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
             return
         self.labels_repartition.update(
@@ -126,7 +127,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
             ),
         )
 
-    def _package_result(self, strategy: "BaseStrategy") -> "MetricResult":
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         self.steps.append(self.global_it_counter)
         task2label2count = self.labels_repartition.result()
         for task, label2count in task2label2count.items():
@@ -145,7 +146,8 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
                 f"/{stream_type(strategy.experience)}_stream"
                 f"/Task_{task:03}",
                 value=AlternativeValues(
-                    self.image_creator(label2counts, self.steps), label2counts,
+                    self.image_creator(label2counts, self.steps),
+                    label2counts,
                 )
                 if self.image_creator is not None
                 else label2counts,
@@ -206,7 +208,7 @@ def labels_repartition_metrics(
 
 
 __all__ = [
-    'LabelsRepartitionPlugin',
-    'LabelsRepartition',
-    'labels_repartition_metrics'
+    "LabelsRepartitionPlugin",
+    "LabelsRepartition",
+    "labels_repartition_metrics",
 ]

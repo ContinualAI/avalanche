@@ -1,15 +1,16 @@
 import torch
 from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils.data_loader import \
-    GroupBalancedInfiniteDataLoader
+from avalanche.benchmarks.utils.data_loader import (
+    GroupBalancedInfiniteDataLoader,
+)
 from avalanche.models import avalanche_forward
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 
-class AGEMPlugin(StrategyPlugin):
-    """ Average Gradient Episodic Memory Plugin.
-    
+class AGEMPlugin(SupervisedPlugin):
+    """Average Gradient Episodic Memory Plugin.
+
     AGEM projects the gradient on the current minibatch by using an external
     episodic memory of patterns from previous experiences. If the dot product
     between the current gradient and the (average) gradient of a randomly
@@ -53,9 +54,11 @@ class AGEMPlugin(StrategyPlugin):
             loss.backward()
             # gradient can be None for some head on multi-headed models
             self.reference_gradients = [
-                p.grad.view(-1) if p.grad is not None
+                p.grad.view(-1)
+                if p.grad is not None
                 else torch.zeros(p.numel(), device=strategy.device)
-                for n, p in strategy.model.named_parameters()]
+                for n, p in strategy.model.named_parameters()
+            ]
             self.reference_gradients = torch.cat(self.reference_gradients)
             strategy.optimizer.zero_grad()
 
@@ -66,30 +69,37 @@ class AGEMPlugin(StrategyPlugin):
         """
         if len(self.buffers) > 0:
             current_gradients = [
-                p.grad.view(-1) if p.grad is not None
+                p.grad.view(-1)
+                if p.grad is not None
                 else torch.zeros(p.numel(), device=strategy.device)
-                for n, p in strategy.model.named_parameters()]
+                for n, p in strategy.model.named_parameters()
+            ]
             current_gradients = torch.cat(current_gradients)
 
-            assert current_gradients.shape == self.reference_gradients.shape, \
-                "Different model parameters in AGEM projection"
+            assert (
+                current_gradients.shape == self.reference_gradients.shape
+            ), "Different model parameters in AGEM projection"
 
             dotg = torch.dot(current_gradients, self.reference_gradients)
             if dotg < 0:
-                alpha2 = dotg / torch.dot(self.reference_gradients,
-                                          self.reference_gradients)
-                grad_proj = current_gradients - \
-                    self.reference_gradients * alpha2
-                
-                count = 0 
+                alpha2 = dotg / torch.dot(
+                    self.reference_gradients, self.reference_gradients
+                )
+                grad_proj = (
+                    current_gradients - self.reference_gradients * alpha2
+                )
+
+                count = 0
                 for n, p in strategy.model.named_parameters():
                     n_param = p.numel()
                     if p.grad is not None:
-                        p.grad.copy_(grad_proj[count:count+n_param].view_as(p))
+                        p.grad.copy_(
+                            grad_proj[count : count + n_param].view_as(p)
+                        )
                     count += n_param
 
     def after_training_exp(self, strategy, **kwargs):
-        """ Update replay memory with patterns from current experience. """
+        """Update replay memory with patterns from current experience."""
         self.update_memory(strategy.experience.dataset)
 
     def sample_from_memory(self):
@@ -106,14 +116,15 @@ class AGEMPlugin(StrategyPlugin):
         """
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
-            dataset, _ = random_split(dataset,
-                                      [self.patterns_per_experience,
-                                       removed_els])
+            dataset, _ = random_split(
+                dataset, [self.patterns_per_experience, removed_els]
+            )
         self.buffers.append(dataset)
         self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
             self.buffers,
             batch_size=self.sample_size // len(self.buffers),
             num_workers=4,
             pin_memory=True,
-            persistent_workers=True)
+            persistent_workers=True,
+        )
         self.buffer_dliter = iter(self.buffer_dataloader)

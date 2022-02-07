@@ -12,8 +12,9 @@ The Project is maintained mostly by [ContinualAI Lab](https://www.continualai.or
 
 * [**Antonio Carta**](http://pages.di.unipi.it/carta/) (Lead Mantainer)
 * [**Lorenzo Pellegrini** ](https://www.unibo.it/sitoweb/l.pellegrini)(Mantainer)
-* [**Andrea Cossu**](https://andreacossu.github.io) **(**Mantainer)
+* [**Andrea Cossu**](https://andreacossu.github.io) (Mantainer)
 * [**Gabriele Graffieti**](https://www.unibo.it/sitoweb/gabriele.graffieti/en) (Mantainer)
+* [**Hamed Hemati**](https://www.unisg.ch/personenverzeichnis/80af945c-59bf-452e-b2de-369bd134e6af) **** (Mantainer)
 * [**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com) (Project Manager)
 
 ## 🔨 Contributors
@@ -30,7 +31,7 @@ _Avalanche_ is a great tool also thanks to its many users. Here we list some res
 * [**Pervasive AI Lab**](http://pai.di.unipi.it) (PI: Davide Bacciu)
 * [**BioLab** ](http://biolab.csr.unibo.it/home.asp)(PI: Davide Maltoni, University of Bologna)
 * [**Computational Intelligence & Machine Learning Group**](http://ciml.di.unipi.it/index.html) (PI: Alessio Micheli, University of Pisa)
-* [**Italian Association for Machine Learning**](https://iaml.it) (President: Simone Scardapane,  Sapienza University)
+* [**Italian Association for Machine Learning**](https://iaml.it) (President: Simone Scardapane, Sapienza University)
 * [**AIforPeople**](https://www.aiforpeople.org) (President: Marta Ziosi, University of Oxford)
 * [**Learning and Machine Perception Team**](http://www.cvc.uab.es/lamp/) (PI: Joost van de Weijer)
 * [**Tinne Tuytelaars’ group**](https://homes.esat.kuleuven.be/\~tuytelaa/) (PI: Tinne Tuytelaars)
@@ -38,7 +39,7 @@ _Avalanche_ is a great tool also thanks to its many users. Here we list some res
 * [**LASTI Lab**](https://kalisteo.cea.fr/index.php/textual-and-visual-semantic/) (PI: Adrian Popescu)
 * [**Visual Artificial Intelligence Laboratory**](https://cms.brookes.ac.uk/staff/FabioCuzzolin) (PI: Fabio Cuzzolin)
 * [**Eugenio Culurciello’s group**](https://scholar.google.com/citations?user=SeGmqkIAAAAJ\&hl=en) (PI: Eugenio Culurciello)
-* _..._[_and many more!_ ](https://www.continualai.org/research)
+* _..._[_and many more!_](https://www.continualai.org/research)
 
 ## 📫 Contacts
 

@@ -11,8 +11,13 @@ class SLDAResNetModel(nn.Module):
     a pretrained ResNet model.
     """
 
-    def __init__(self, arch='resnet18', output_layer_name='layer4.1',
-                 imagenet_pretrained=True, device='cpu'):
+    def __init__(
+        self,
+        arch="resnet18",
+        output_layer_name="layer4.1",
+        imagenet_pretrained=True,
+        device="cpu",
+    ):
         """
         :param arch: backbone architecture (default is resnet-18, but others
         can be used by modifying layer for
@@ -25,20 +30,24 @@ class SLDAResNetModel(nn.Module):
 
         super(SLDAResNetModel, self).__init__()
 
-        feat_extractor = models.__dict__[arch](
-            pretrained=imagenet_pretrained).to(device).eval()
+        feat_extractor = (
+            models.__dict__[arch](pretrained=imagenet_pretrained)
+            .to(device)
+            .eval()
+        )
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
-            feat_extractor, output_layer_name).eval()
+            feat_extractor, output_layer_name
+        ).eval()
 
     @staticmethod
     def pool_feat(features):
         feat_size = features.shape[-1]
         num_channels = features.shape[1]
-        features2 = features.permute(0, 2, 3,
-                                     1)  # 1 x feat_size x feat_size x
+        features2 = features.permute(0, 2, 3, 1)  # 1 x feat_size x feat_size x
         # num_channels
-        features3 = torch.reshape(features2, (
-            features.shape[0], feat_size * feat_size, num_channels))
+        features3 = torch.reshape(
+            features2, (features.shape[0], feat_size * feat_size, num_channels)
+        )
         feat = features3.mean(1)  # mb x num_channels
         return feat
 

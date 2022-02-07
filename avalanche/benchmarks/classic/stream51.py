@@ -14,8 +14,9 @@ from typing import Union
 from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
-    create_generic_benchmark_from_paths
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    create_generic_benchmark_from_paths,
+)
 from torchvision import transforms
 import math
 import os
@@ -24,12 +25,13 @@ from avalanche.benchmarks.utils import AvalancheDatasetType
 
 _mu = [0.485, 0.456, 0.406]
 _std = [0.229, 0.224, 0.225]
-_default_stream51_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=_mu,
-                         std=_std)
-])
+_default_stream51_transform = transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=_mu, std=_std),
+    ]
+)
 
 
 def _adjust_bbox(img_shapes, bbox, ratio=1.1):
@@ -53,23 +55,25 @@ def _adjust_bbox(img_shapes, bbox, ratio=1.1):
         min([int(center[0] + (cw * ratio / 2)), img_shapes[0]]),
         max([int(center[0] - (cw * ratio / 2)), 0]),
         min([int(center[1] + (ch * ratio / 2)), img_shapes[1]]),
-        max([int(center[1] - (ch * ratio / 2)), 0])]
+        max([int(center[1] - (ch * ratio / 2)), 0]),
+    ]
     return [bbox[3], bbox[1], bbox[2] - bbox[3], bbox[0] - bbox[1]]
 
 
 def CLStream51(
-        *,
-        scenario: Literal[
-            'iid', 'class_iid', 'instance',
-            'class_instance'] = "class_instance",
-        seed=10,
-        eval_num=None,
-        bbox_crop=True,
-        ratio: float = 1.10,
-        download=True,
-        train_transform=_default_stream51_transform,
-        eval_transform=_default_stream51_transform,
-        dataset_root: Union[str, Path] = None):
+    *,
+    scenario: Literal[
+        "iid", "class_iid", "instance", "class_instance"
+    ] = "class_instance",
+    seed=10,
+    eval_num=None,
+    bbox_crop=True,
+    ratio: float = 1.10,
+    download=True,
+    train_transform=_default_stream51_transform,
+    eval_transform=_default_stream51_transform,
+    dataset_root: Union[str, Path] = None
+):
     """
     Creates a CL benchmark for Stream-51.
 
@@ -129,8 +133,9 @@ def CLStream51(
     # get train and test sets and order them by benchmark
     train_set = Stream51(root=dataset_root, train=True, download=download)
     test_set = Stream51(root=dataset_root, train=False, download=download)
-    samples = Stream51.make_dataset(train_set.samples, ordering=scenario,
-                                    seed=seed)
+    samples = Stream51.make_dataset(
+        train_set.samples, ordering=scenario, seed=seed
+    )
     dataset_root = train_set.root
 
     # set appropriate train parameters
@@ -138,51 +143,65 @@ def CLStream51(
     train_set.targets = [s[0] for s in samples]
 
     # compute number of tasks
-    if eval_num is None and scenario == 'instance':
+    if eval_num is None and scenario == "instance":
         eval_num = 30000
         num_tasks = math.ceil(
-            len(train_set) / eval_num)  # evaluate every 30000 samples
-    elif eval_num is None and scenario == 'class_instance':
+            len(train_set) / eval_num
+        )  # evaluate every 30000 samples
+    elif eval_num is None and scenario == "class_instance":
         eval_num = 10
+        num_tasks = math.ceil(51 / eval_num)  # evaluate every 10 classes
+    elif scenario == "instance":
         num_tasks = math.ceil(
-            51 / eval_num)  # evaluate every 10 classes
-    elif scenario == 'instance':
-        num_tasks = math.ceil(
-            len(train_set) / eval_num)  # evaluate every eval_num samples
+            len(train_set) / eval_num
+        )  # evaluate every eval_num samples
     else:
-        num_tasks = math.ceil(
-            51 / eval_num)  # evaluate every eval_num classes
+        num_tasks = math.ceil(51 / eval_num)  # evaluate every eval_num classes
 
-    if scenario == 'instance':
+    if scenario == "instance":
         # break files into task lists based on eval_num samples
         train_filelists_paths = []
         start = 0
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
             train_filelists_paths.append(
-                [(os.path.join(dataset_root, train_set.samples[j][-1]),
-                  train_set.samples[j][0],
-                  _adjust_bbox(train_set.samples[j][-3],
-                               train_set.samples[j][-2],
-                               ratio)) for j in
-                 range(start, end)])
+                [
+                    (
+                        os.path.join(dataset_root, train_set.samples[j][-1]),
+                        train_set.samples[j][0],
+                        _adjust_bbox(
+                            train_set.samples[j][-3],
+                            train_set.samples[j][-2],
+                            ratio,
+                        ),
+                    )
+                    for j in range(start, end)
+                ]
+            )
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = \
-            [(os.path.join(dataset_root, test_set.samples[j][-1]),
-              test_set.samples[j][0],
-              _adjust_bbox(test_set.samples[j][-3],
-                           test_set.samples[j][-2],
-                           ratio)) for j in range(len(test_set))]
+        test_filelists_paths = [
+            (
+                os.path.join(dataset_root, test_set.samples[j][-1]),
+                test_set.samples[j][0],
+                _adjust_bbox(
+                    test_set.samples[j][-3], test_set.samples[j][-2], ratio
+                ),
+            )
+            for j in range(len(test_set))
+        ]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
-    elif scenario == 'class_instance':
+    elif scenario == "class_instance":
         # break files into task lists based on classes
         train_filelists_paths = []
         test_filelists_paths = []
         test_ood_filelists_paths = []
-        class_change = [i for i in range(1, len(train_set.targets)) if
-                        train_set.targets[i] != train_set.targets[i - 1]]
+        class_change = [
+            i
+            for i in range(1, len(train_set.targets))
+            if train_set.targets[i] != train_set.targets[i - 1]
+        ]
         unique_so_far = []
         start = 0
         for i in range(num_tasks):
@@ -190,7 +209,8 @@ def CLStream51(
                 end = len(train_set)
             else:
                 end = class_change[
-                    min(eval_num + eval_num * i - 1, len(class_change) - 1)]
+                    min(eval_num + eval_num * i - 1, len(class_change) - 1)
+                ]
             unique_labels = [train_set.targets[k] for k in range(start, end)]
             unique_labels = list(set(unique_labels))
             unique_so_far += unique_labels
@@ -202,61 +222,85 @@ def CLStream51(
                 else:
                     test_ood_files.append(ix)
             test_filelists_paths.append(
-                [(os.path.join(dataset_root, test_set.samples[j][-1]),
-                  test_set.samples[j][0],
-                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                               ratio)) for j in
-                 test_files])
+                [
+                    (
+                        os.path.join(dataset_root, test_set.samples[j][-1]),
+                        test_set.samples[j][0],
+                        _adjust_bbox(
+                            test_set.samples[j][-3],
+                            test_set.samples[j][-2],
+                            ratio,
+                        ),
+                    )
+                    for j in test_files
+                ]
+            )
             test_ood_filelists_paths.append(
-                [(os.path.join(dataset_root, test_set.samples[j][-1]),
-                  test_set.samples[j][0],
-                  _adjust_bbox(test_set.samples[j][-3], test_set.samples[j][-2],
-                               ratio)) for j in
-                 test_ood_files])
+                [
+                    (
+                        os.path.join(dataset_root, test_set.samples[j][-1]),
+                        test_set.samples[j][0],
+                        _adjust_bbox(
+                            test_set.samples[j][-3],
+                            test_set.samples[j][-2],
+                            ratio,
+                        ),
+                    )
+                    for j in test_ood_files
+                ]
+            )
             train_filelists_paths.append(
-                [(os.path.join(dataset_root, train_set.samples[j][-1]),
-                  train_set.samples[j][0],
-                  _adjust_bbox(train_set.samples[j][-3],
-                               train_set.samples[j][-2],
-                               ratio)) for j in
-                 range(start, end)])
+                [
+                    (
+                        os.path.join(dataset_root, train_set.samples[j][-1]),
+                        train_set.samples[j][0],
+                        _adjust_bbox(
+                            train_set.samples[j][-3],
+                            train_set.samples[j][-2],
+                            ratio,
+                        ),
+                    )
+                    for j in range(start, end)
+                ]
+            )
             start = end
     else:
         raise NotImplementedError
 
     if not bbox_crop:
         # remove bbox coordinates from lists
-        train_filelists_paths = [[[j[0], j[1]] for j in i] for i in
-                                 train_filelists_paths]
-        test_filelists_paths = [[[j[0], j[1]] for j in i] for i in
-                                test_filelists_paths]
-        if scenario == 'class_instance':
-            test_ood_filelists_paths = [[[j[0], j[1]] for j in i] for i in
-                                        test_ood_filelists_paths]
+        train_filelists_paths = [
+            [[j[0], j[1]] for j in i] for i in train_filelists_paths
+        ]
+        test_filelists_paths = [
+            [[j[0], j[1]] for j in i] for i in test_filelists_paths
+        ]
+        if scenario == "class_instance":
+            test_ood_filelists_paths = [
+                [[j[0], j[1]] for j in i] for i in test_ood_filelists_paths
+            ]
 
     benchmark_obj = create_generic_benchmark_from_paths(
         train_lists_of_files=train_filelists_paths,
         test_lists_of_files=test_filelists_paths,
         task_labels=[0 for _ in range(num_tasks)],
-        complete_test_set_only=scenario == 'instance',
+        complete_test_set_only=scenario == "instance",
         train_transform=train_transform,
         eval_transform=eval_transform,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION)
+        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+    )
 
     return benchmark_obj
 
 
-__all__ = [
-    'CLStream51'
-]
+__all__ = ["CLStream51"]
 
 if __name__ == "__main__":
     from torch.utils.data.dataloader import DataLoader
     from torchvision import transforms
     import matplotlib.pyplot as plt
 
-    benchmark = CLStream51(scenario="class_instance", seed=10,
-                           bbox_crop=True)
+    benchmark = CLStream51(scenario="class_instance", seed=10, bbox_crop=True)
 
     train_imgs_count = 0
     for i, batch in enumerate(benchmark.train_stream):

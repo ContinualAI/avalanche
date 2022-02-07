@@ -2,13 +2,13 @@ import copy
 
 import torch
 
-from avalanche.training.plugins.strategy_plugin import StrategyPlugin
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import get_last_fc_layer, freeze_everything
 from avalanche.models.base_model import BaseModel
 
 
-class LFLPlugin(StrategyPlugin):
-    """ Less-Forgetful Learning (LFL) Plugin.
+class LFLPlugin(SupervisedPlugin):
+    """Less-Forgetful Learning (LFL) Plugin.
 
     LFL satisfies two properties to mitigate catastrophic forgetting.
     1) To keep the decision boundaries unchanged
@@ -62,8 +62,11 @@ class LFLPlugin(StrategyPlugin):
         """
         Add euclidean loss between prev and current features as penalty
         """
-        lambda_e = self.lambda_e[strategy.clock.train_exp_counter] \
-            if isinstance(self.lambda_e, (list, tuple)) else self.lambda_e
+        lambda_e = (
+            self.lambda_e[strategy.clock.train_exp_counter]
+            if isinstance(self.lambda_e, (list, tuple))
+            else self.lambda_e
+        )
 
         penalty = self.penalty(strategy.mb_x, strategy.model, lambda_e)
         strategy.loss += penalty
@@ -89,4 +92,4 @@ class LFLPlugin(StrategyPlugin):
         is implemented
         """
         if not isinstance(strategy.model, BaseModel):
-            raise NotImplementedError(BaseModel.__name__+'.get_features()')
+            raise NotImplementedError(BaseModel.__name__ + ".get_features()")

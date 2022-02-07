@@ -10,16 +10,26 @@ from torch.utils.data import DataLoader
 
 from avalanche.models import MobilenetV1
 from avalanche.models.batch_renorm import BatchRenorm2D
-from avalanche.training.plugins import StrategyPlugin, EvaluationPlugin, \
-    SynapticIntelligencePlugin, CWRStarPlugin
-from avalanche.training.strategies import BaseStrategy
-from avalanche.training.utils import replace_bn_with_brn, get_last_fc_layer, \
-    freeze_up_to, change_brn_pars, examples_per_class, LayerAndParameter
-from avalanche.training.plugins.evaluation import default_logger
+from avalanche.training.plugins import (
+    SupervisedPlugin,
+    EvaluationPlugin,
+    SynapticIntelligencePlugin,
+    CWRStarPlugin,
+)
+from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.utils import (
+    replace_bn_with_brn,
+    get_last_fc_layer,
+    freeze_up_to,
+    change_brn_pars,
+    examples_per_class,
+    LayerAndParameter,
+)
+from avalanche.training.plugins.evaluation import default_evaluator
 
 
-class AR1(BaseStrategy):
-    """ AR1 with Latent Replay.
+class AR1(SupervisedTemplate):
+    """AR1 with Latent Replay.
 
     This implementations allows for the use of both Synaptic Intelligence and
     Latent Replay to protect the lower level of the model from forgetting.
@@ -30,17 +40,29 @@ class AR1(BaseStrategy):
     arguments).
     """
 
-    def __init__(self, criterion=None, lr: float = 0.001, momentum=0.9,
-                 l2=0.0005, train_epochs: int = 4,
-                 init_update_rate: float = 0.01,
-                 inc_update_rate=0.00005,
-                 max_r_max=1.25, max_d_max=0.5, inc_step=4.1e-05,
-                 rm_sz: int = 1500,
-                 freeze_below_layer: str = "lat_features.19.bn.beta",
-                 latent_layer_num: int = 19, ewc_lambda: float = 0,
-                 train_mb_size: int = 128, eval_mb_size: int = 128, device=None,
-                 plugins: Optional[Sequence[StrategyPlugin]] = None,
-                 evaluator: EvaluationPlugin = default_logger, eval_every=-1):
+    def __init__(
+        self,
+        criterion=None,
+        lr: float = 0.001,
+        momentum=0.9,
+        l2=0.0005,
+        train_epochs: int = 4,
+        init_update_rate: float = 0.01,
+        inc_update_rate=0.00005,
+        max_r_max=1.25,
+        max_d_max=0.5,
+        inc_step=4.1e-05,
+        rm_sz: int = 1500,
+        freeze_below_layer: str = "lat_features.19.bn.beta",
+        latent_layer_num: int = 19,
+        ewc_lambda: float = 0,
+        train_mb_size: int = 128,
+        eval_mb_size: int = 128,
+        device=None,
+        plugins: Optional[Sequence[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+    ):
         """
         Creates an instance of the AR1 strategy.
 
@@ -82,9 +104,11 @@ class AR1(BaseStrategy):
                     of all the epochs for a single experience.
         """
 
-        warnings.warn("The AR1 strategy implementation is in an alpha stage "
-                      "and is not perfectly aligned with the paper "
-                      "implementation. Please use at your own risk!")
+        warnings.warn(
+            "The AR1 strategy implementation is in an alpha stage "
+            "and is not perfectly aligned with the paper "
+            "implementation. Please use at your own risk!"
+        )
 
         if plugins is None:
             plugins = []
@@ -92,23 +116,32 @@ class AR1(BaseStrategy):
         # Model setup
         model = MobilenetV1(pretrained=True, latent_layer_num=latent_layer_num)
         replace_bn_with_brn(
-            model, momentum=init_update_rate, r_d_max_inc_step=inc_step,
-            max_r_max=max_r_max, max_d_max=max_d_max)
+            model,
+            momentum=init_update_rate,
+            r_d_max_inc_step=inc_step,
+            max_r_max=max_r_max,
+            max_d_max=max_d_max,
+        )
 
         fc_name, fc_layer = get_last_fc_layer(model)
 
         if ewc_lambda != 0:
             # Synaptic Intelligence is not applied to the last fully
             # connected layer (and implicitly to "freeze below" ones.
-            plugins.append(SynapticIntelligencePlugin(
-                ewc_lambda, excluded_parameters=[fc_name]))
+            plugins.append(
+                SynapticIntelligencePlugin(
+                    ewc_lambda, excluded_parameters=[fc_name]
+                )
+            )
 
-        self.cwr_plugin = CWRStarPlugin(model, cwr_layer_name=fc_name,
-                                        freeze_remaining_model=False)
+        self.cwr_plugin = CWRStarPlugin(
+            model, cwr_layer_name=fc_name, freeze_remaining_model=False
+        )
         plugins.append(self.cwr_plugin)
 
-        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum,
-                        weight_decay=l2)
+        optimizer = SGD(
+            model.parameters(), lr=lr, momentum=momentum, weight_decay=l2
+        )
 
         if criterion is None:
             criterion = CrossEntropyLoss()
@@ -127,10 +160,17 @@ class AR1(BaseStrategy):
         self.replay_mb_size = 0
 
         super().__init__(
-            model, optimizer, criterion,
-            train_mb_size=train_mb_size, train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size, device=device, plugins=plugins,
-            evaluator=evaluator, eval_every=eval_every)
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+        )
 
     def _before_training_exp(self, **kwargs):
         self.model.eval()
@@ -147,19 +187,29 @@ class AR1(BaseStrategy):
 
             # "freeze_up_to" will freeze layers below "freeze_below_layer"
             # Beware that Batch ReNorm layers are not frozen!
-            freeze_up_to(self.model, freeze_until_layer=self.freeze_below_layer,
-                         layer_filter=AR1.filter_bn_and_brn)
+            freeze_up_to(
+                self.model,
+                freeze_until_layer=self.freeze_below_layer,
+                layer_filter=AR1.filter_bn_and_brn,
+            )
 
             # Adapt the parameters of BatchReNorm layers
-            change_brn_pars(self.model, momentum=self.inc_update_rate,
-                            r_d_max_inc_step=0, r_max=self.max_r_max,
-                            d_max=self.max_d_max)
+            change_brn_pars(
+                self.model,
+                momentum=self.inc_update_rate,
+                r_d_max_inc_step=0,
+                r_max=self.max_r_max,
+                d_max=self.max_d_max,
+            )
 
             # Adapt the model and optimizer
             self.model = self.model.to(self.device)
             self.optimizer = SGD(
-                self.model.parameters(), lr=self.lr, momentum=self.momentum,
-                weight_decay=self.l2)
+                self.model.parameters(),
+                lr=self.lr,
+                momentum=self.momentum,
+                weight_decay=self.l2,
+            )
 
         # super()... will run S.I. and CWR* plugin callbacks
         super()._before_training_exp(**kwargs)
@@ -169,8 +219,10 @@ class AR1(BaseStrategy):
             for class_id, count in examples_per_class(self.rm[1]).items():
                 self.model.cur_j[class_id] += count
             self.cwr_plugin.cur_class = [
-                cls for cls in set(self.model.cur_j.keys())
-                if self.model.cur_j[cls] > 0]
+                cls
+                for cls in set(self.model.cur_j.keys())
+                if self.model.cur_j[cls] > 0
+            ]
             self.cwr_plugin.reset_weights(self.cwr_plugin.cur_class)
 
     def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
@@ -200,28 +252,37 @@ class AR1(BaseStrategy):
         if self.clock.train_exp_counter > 0:
             train_patterns = len(self.adapted_dataset)
             current_batch_mb_size = train_patterns // (
-                    (train_patterns + self.rm_sz) // self.train_mb_size)
+                (train_patterns + self.rm_sz) // self.train_mb_size
+            )
 
         current_batch_mb_size = max(1, current_batch_mb_size)
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
-            self.adapted_dataset, num_workers=num_workers,
-            batch_size=current_batch_mb_size, shuffle=shuffle)
+            self.adapted_dataset,
+            num_workers=num_workers,
+            batch_size=current_batch_mb_size,
+            shuffle=shuffle,
+        )
 
     def training_epoch(self, **kwargs):
-        for mb_it, self.mbatch in \
-                enumerate(self.dataloader):
+        for mb_it, self.mbatch in enumerate(self.dataloader):
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
             if self.clock.train_exp_counter > 0:
-                lat_mb_x = self.rm[0][mb_it * self.replay_mb_size:
-                                      (mb_it + 1) * self.replay_mb_size]
+                lat_mb_x = self.rm[0][
+                    mb_it
+                    * self.replay_mb_size : (mb_it + 1)
+                    * self.replay_mb_size
+                ]
                 lat_mb_x = lat_mb_x.to(self.device)
-                lat_mb_y = self.rm[1][mb_it * self.replay_mb_size:
-                                      (mb_it + 1) * self.replay_mb_size]
+                lat_mb_y = self.rm[1][
+                    mb_it
+                    * self.replay_mb_size : (mb_it + 1)
+                    * self.replay_mb_size
+                ]
                 lat_mb_y = lat_mb_y.to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
             else:
@@ -232,9 +293,10 @@ class AR1(BaseStrategy):
             # means that lat_acts.shape[0] == self.mb_x[0].
             self._before_forward(**kwargs)
             self.mb_output, lat_acts = self.model(
-                self.mb_x, latent_input=lat_mb_x, return_lat_acts=True)
+                self.mb_x, latent_input=lat_mb_x, return_lat_acts=True
+            )
 
-            if self.epoch == 0:
+            if self.clock.train_exp_epochs == 0:
                 # On the first epoch only: store latent activations. Those
                 # activations will be used to update the replay buffer.
                 lat_acts = lat_acts.detach().clone().cpu()
@@ -260,13 +322,16 @@ class AR1(BaseStrategy):
             self._after_training_iteration(**kwargs)
 
     def _after_training_exp(self, **kwargs):
-        h = min(self.rm_sz // (self.clock.train_exp_counter + 1),
-                self.cur_acts.size(0))
+        h = min(
+            self.rm_sz // (self.clock.train_exp_counter + 1),
+            self.cur_acts.size(0),
+        )
 
         curr_data = self.experience.dataset
         idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
         rm_add_y = torch.tensor(
-            [curr_data.targets[idx_cur] for idx_cur in idxs_cur])
+            [curr_data.targets[idx_cur] for idx_cur in idxs_cur]
+        )
 
         rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 
