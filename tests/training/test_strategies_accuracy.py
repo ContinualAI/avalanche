@@ -77,7 +77,7 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=32,
             device=get_device(),
             eval_mb_size=512,
-            train_epochs=1,
+            train_epochs=3,
             evaluator=evalp,
         )
         benchmark = get_fast_benchmark(use_task_labels=True)
