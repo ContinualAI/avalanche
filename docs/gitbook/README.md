@@ -4,7 +4,7 @@ description: Powered by ContinualAI
 
 # Avalanche: an End-to-End Library for Continual Learning
 
-![](../../.gitbook/assets/avalanche_logo_with_clai.png)
+![](../../.gitbook/assets/avalanche\_logo\_with\_clai.png)
 
 **Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the unique goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
 
@@ -24,7 +24,7 @@ The library is organized in five main modules:
 * **`Models`**: In this module you'll be able to find several model architectures and pre-trained models that can be used for your continual learning experiment (similar to what has been done in [torchvision.models](https://pytorch.org/docs/stable/torchvision/index.html)).
 * **`Logging`**: It includes advanced logging and plotting features, including native _stdout_, _file_ and [TensorBoard](https://www.tensorflow.org/tensorboard) support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
-_Avalanche_ the first experiment of a **End-to-end Library** for [reproducible continual learning](https://github.com/ContinualAI/reproducible-continual-learning) research & development where you can find _benchmarks_, _algorithms,_ _evaluation metrics_ and much more_,_ **in the same place**.
+_Avalanche_ the first experiment of a **End-to-end Library** for [reproducible continual learning](https://github.com/ContinualAI/reproducible-continual-learning) research & development where you can find _benchmarks_, _algorithms,_ _evaluation metrics_ and much more, **in the same place**.
 
 Let's make it together 👫 a wonderful ride! 🎈
 
@@ -239,13 +239,13 @@ If you used _Avalanche_ in your research project, please remember to cite our re
 
 ## 🗂️ Maintained by ContinualAI Lab
 
-![](<../../.gitbook/assets/continualai_lab_logo (1).png>)
+![](<../../.gitbook/assets/continualai\_lab\_logo (1).png>)
 
 _Avalanche_ is the flagship open-source collaborative project of [**ContinualAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
 
 Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](questions-and-issues/ask-your-question.md) center. Do you want to improve _Avalanche_ yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/\~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
 
-The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _and used extensively by the Units_ of the [_**ContinualAI Research (CLAIR)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world_._
+The _Avalanche_ project is maintained by the collaborative research team [_**ContinualAI Lab**_](https://www.continualai.org/lab/) _and used extensively by the Units_ of the [_**ContinualAI Research (CLAIR)**_](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world.
 
 We are always looking for new _awesome members_ willing to join the _ContinualAI Lab_, so check out our [official website](https://www.continualai.org/lab/) if you want to learn more about us and our activities, or [contact us](contacts-and-links/the-team.md#contacts).
 

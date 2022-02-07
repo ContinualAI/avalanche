@@ -127,14 +127,16 @@ class DataLoaderTests(unittest.TestCase):
         )
         for step in benchmark.train_stream:
             adapted_dataset = step.dataset
-            dataloader = ReplayDataLoader(
-                adapted_dataset,
-                replayPlugin.storage_policy.buffer,
-                oversample_small_tasks=True,
-                num_workers=0,
-                batch_size=batch_size,
-                shuffle=True,
-            )
+            if len(replayPlugin.storage_policy.buffer) > 0:
+                dataloader = ReplayDataLoader(
+                        adapted_dataset,
+                        replayPlugin.storage_policy.buffer,
+                        oversample_small_tasks=True,
+                        num_workers=0,
+                        batch_size=batch_size,
+                        shuffle=True)
+            else:
+                dataloader = TaskBalancedDataLoader(adapted_dataset)
 
             for mini_batch in dataloader:
                 mb_task_labels = mini_batch[-1]
