@@ -41,7 +41,7 @@ from avalanche.training.supervised import (
 )
 from avalanche.training.supervised.ar1 import AR1
 from avalanche.training.supervised.cumulative import Cumulative
-from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
+from avalanche.benchmarks import nc_benchmark, SplitCIFAR10, Experience
 from avalanche.training.utils import get_last_fc_layer
 from avalanche.evaluation.metrics import StreamAccuracy
 from avalanche.benchmarks.utils.data_loader import (
@@ -146,6 +146,48 @@ class DataLoaderTests(unittest.TestCase):
                     difference = max(lengths) - min(lengths)
                     self.assertLessEqual(difference, 1)
                 self.assertLessEqual(sum(lengths), batch_size)
+            cl_strategy.train(step)
+
+    def test_dataload_batch_balancing_forced_size(self):
+        benchmark = get_fast_benchmark()
+        batch_size = 32
+        replayPlugin = ReplayPlugin(mem_size=100)
+
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        cl_strategy = Naive(
+            model,
+            SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),
+            CrossEntropyLoss(), train_mb_size=batch_size, train_epochs=1,
+            eval_mb_size=100, plugins=[replayPlugin]
+        )
+        step: Experience
+        for step in benchmark.train_stream:
+            adapted_dataset = step.dataset
+            if step.current_experience > 0:
+                dataloader = ReplayDataLoader(
+                    adapted_dataset,
+                    replayPlugin.storage_policy.buffer,
+                    oversample_small_tasks=True,
+                    num_workers=0,
+                    batch_size=batch_size,
+                    force_data_batch_size=12,
+                    shuffle=True,
+                    drop_last=True)
+
+                for mini_batch in dataloader:
+                    if step.current_experience > 0:
+                        self.assertEqual(batch_size, len(mini_batch[0]))
+                    else:
+                        self.assertEqual(12, len(mini_batch[0]))
+                    mb_task_labels = mini_batch[-1]
+                    lengths = []
+                    for task_id in adapted_dataset.task_set:
+                        len_task = (mb_task_labels == task_id).sum()
+                        lengths.append(len_task)
+                    if sum(lengths) == batch_size:
+                        difference = max(lengths) - min(lengths)
+                        self.assertLessEqual(difference, 1)
+                    self.assertLessEqual(sum(lengths), batch_size)
             cl_strategy.train(step)
 
 

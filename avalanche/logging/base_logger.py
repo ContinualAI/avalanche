@@ -2,6 +2,8 @@ from abc import ABC
 
 from typing import TYPE_CHECKING, List
 
+from avalanche.distributed import DistributedHelper
+
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
     from avalanche.training.templates.supervised import SupervisedTemplate
@@ -27,6 +29,30 @@ class BaseLogger(ABC):
 
     def __init__(self):
         super().__init__()
+
+        if not DistributedHelper.is_main_process:
+            raise RuntimeError(
+                'You are creating a logger in a non-main process during a '
+                'distributed training session. '
+                'Jump to this error for an example on how to fix this.')
+
+        # You have to create the loggers in the main process only. Otherwise,
+        # metrics will end up duplicated in your log files and consistency
+        # errors may arise, too. When creating the EvaluationPlugin in a
+        # non-main process, just pass loggers=None.
+        #
+        # Recommended way:
+        # if not DistributedHelper.is_main_process
+        #     # Define the loggers
+        #     loggers = [...]
+        # else:
+        #     loggers = None
+        #
+        # # Instantiate the evaluation plugin
+        # eval_plugin = EvaluationPlugin(metricA, metricB, ..., loggers=loggers)
+        #
+        # # Instantiate the strategy
+        # strategy = MyStrategy(..., evaluator=eval_plugin)
 
     def log_single_metric(self, name, value, x_plot):
         """Log a metric value.

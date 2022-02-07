@@ -5,9 +5,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks import Experience
+from avalanche.distributed import DistributedHelper
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.model_instance import SGDModelInstance
 from avalanche.training.templates.base import BaseTemplate
 
 from typing import TYPE_CHECKING
@@ -68,6 +70,8 @@ class BaseSGDTemplate(BaseTemplate):
         """
         super().__init__(model=model, device=device, plugins=plugins)
 
+        self.model_instance = SGDModelInstance(initial_model=model)
+
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
 
@@ -107,16 +111,37 @@ class BaseSGDTemplate(BaseTemplate):
         self.dataloader = None
         """ Dataloader. """
 
-        self.mbatch = None
-        """ Current mini-batch. """
-
-        self.mb_output = None
-        """ Model's output computed on the current mini-batch. """
-
-        self.loss = None
-        """ Loss of the current mini-batch. """
-
         self._stop_training = False
+
+    @property
+    def mbatch(self):
+        """ Current mini-batch. """
+        return self.model_instance.distributed_mb_input
+
+    @mbatch.setter
+    def mbatch(self, value):
+        """ Sets the current mini-batch. """
+        self.model_instance.local_mb_input = value
+
+    @property
+    def mb_output(self):
+        """ Model's output computed on the current mini-batch. """
+        return self.model_instance.distributed_mb_output
+
+    @mb_output.setter
+    def mb_output(self, value):
+        """ Sets the model's output computed on the current mini-batch. """
+        self.model_instance.local_mb_output = value
+
+    @property
+    def loss(self):
+        """ Loss of the current mini-batch. """
+        return self.model_instance.distributed_loss
+
+    @loss.setter
+    def loss(self, value):
+        """ Sets the loss of the current mini-batch. """
+        self.model_instance.local_loss = value
 
     def train(
         self,
@@ -148,6 +173,13 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_train_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+
+        if DistributedHelper.is_distributed:
+            self._before_wrap_model_distributed(**kwargs)
+            self.model_instance.distributed_model = \
+                self.wrap_model_distributed()
+            self._after_wrap_model_distributed(**kwargs)
+
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
@@ -179,6 +211,13 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_eval_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+
+        if DistributedHelper.is_distributed:
+            self._before_wrap_model_distributed(**kwargs)
+            self.model_instance.distributed_model = \
+                self.wrap_model_distributed()
+            self._after_wrap_model_distributed(**kwargs)
+
         self._before_eval_exp(**kwargs)
         self.eval_epoch(**kwargs)
 
@@ -224,7 +263,7 @@ class BaseSGDTemplate(BaseTemplate):
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = None
 
             # Forward
             self._before_forward(**kwargs)
@@ -232,10 +271,10 @@ class BaseSGDTemplate(BaseTemplate):
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion()
+            self.loss = self.criterion()
 
             self._before_backward(**kwargs)
-            self.loss.backward()
+            self.model_instance.local_loss.backward()
             self._after_backward(**kwargs)
 
             # Optimization step
@@ -258,10 +297,20 @@ class BaseSGDTemplate(BaseTemplate):
 
             self._after_eval_iteration(**kwargs)
 
+    def wrap_model_distributed(self):
+        """
+        Prepare the model for distributed training/eval.
+        """
+        return DistributedHelper.wrap_model(self.model_instance.local_model)
+
     def _unpack_minibatch(self):
         """Move to device"""
-        for i in range(len(self.mbatch)):
-            self.mbatch[i] = self.mbatch[i].to(self.device)
+        unpacked_mb = []
+
+        assert len(self.model_instance.local_mb_input) >= 3
+        for i, mb_elem in enumerate(self.model_instance.local_mb_input):
+            unpacked_mb.append(mb_elem.to(self.device))
+        self.model_instance.local_mb_input = unpacked_mb
 
     #########################################################
     # Plugin Triggers                                       #
@@ -308,6 +357,12 @@ class BaseSGDTemplate(BaseTemplate):
 
     def _after_eval_iteration(self, **kwargs):
         trigger_plugins(self, "after_eval_iteration", **kwargs)
+
+    def _before_wrap_model_distributed(self, **kwargs):
+        trigger_plugins(self, "before_wrap_model_distributed", **kwargs)
+
+    def _after_wrap_model_distributed(self, **kwargs):
+        trigger_plugins(self, "after_wrap_model_distributed", **kwargs)
 
 
 class PeriodicEval(SupervisedPlugin):

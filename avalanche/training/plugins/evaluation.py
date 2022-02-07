@@ -3,6 +3,7 @@ from copy import copy
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
 
+from avalanche.distributed import DistributedHelper
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
@@ -92,7 +93,7 @@ class EvaluationPlugin:
 
         self.loggers: Sequence["BaseLogger"] = loggers
 
-        if len(self.loggers) == 0:
+        if len(self.loggers) == 0 and DistributedHelper.is_main_process:
             warnings.warn("No loggers specified, metrics will not be logged")
 
         if self.collect_all:
@@ -240,10 +241,45 @@ class EvaluationPlugin:
                         warnings.warn(msgw)
 
 
+class LazyDefaultLoggersList(Sequence["BaseLogger"]):
+    """
+    Used to prevent the creation of loggers on a non-main process when
+    running distributed training jobs.
+
+    Beware that the content of this sequence (and thus the behavior of
+    `__len__` and `__getitem__`) varies depending on the value of
+    `DistributedHelper.is_main_process`. This means that objects of this class
+    should be used only by modules able to handle this behavior, which is not
+    standard for Sequences.
+    """
+
+    def __init__(self):
+        self._default_loggers = None
+
+    def __len__(self):
+        if DistributedHelper.is_main_process:
+            return 1
+        else:
+            return 0
+
+    def __getitem__(self, item):
+        self._instantiate_loggers()
+        return self._default_loggers[item]
+
+    def _instantiate_loggers(self):
+        if self._default_loggers is not None:
+            return
+
+        if DistributedHelper.is_main_process:
+            self._default_loggers = [InteractiveLogger()]
+        else:
+            self._default_loggers = []
+
+
 default_evaluator = EvaluationPlugin(
     accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
     loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loggers=[InteractiveLogger()],
+    loggers=LazyDefaultLoggersList(),
     suppress_warnings=True,
 )
 

@@ -6,6 +6,8 @@ from torch.nn import Module
 
 from avalanche.benchmarks import Experience
 from avalanche.core import BasePlugin
+from avalanche.training.plugins.model_instance import SGDModelInstance, \
+    ModelInstance
 from avalanche.training.utils import trigger_plugins
 
 
@@ -37,7 +39,7 @@ class BaseTemplate:
     ):
         """Init."""
 
-        self.model: Module = model
+        self.model_instance = ModelInstance(initial_model=model)
         """ PyTorch model. """
 
         self.device = device
@@ -60,6 +62,17 @@ class BaseTemplate:
 
         self.current_eval_stream = None
         """ Current evaluation stream. """
+
+    @property
+    def model(self) -> Module:
+        """ PyTorch model. """
+        # This will return the local model if training locally
+        return self.model_instance.distributed_model
+
+    @model.setter
+    def model(self, value):
+        """ Sets the PyTorch model. """
+        self.model_instance.local_model = value
 
     def train(
         self,
@@ -137,7 +150,7 @@ class BaseTemplate:
         self._after_eval(**kwargs)
 
         # restore previous shared state.
-        self._load_train_state(prev_train_state)
+        self._load_train_state(prev_train_state, strategy_kw=kwargs)
 
     def _eval_exp(self, **kwargs):
         raise NotImplementedError()
@@ -159,7 +172,7 @@ class BaseTemplate:
         }
         return _prev_state
 
-    def _load_train_state(self, prev_state):
+    def _load_train_state(self, prev_state, *, strategy_kw):
         # restore train-state variables and training mode.
         self.experience = prev_state["experience"]
         self.is_training = prev_state["is_training"]

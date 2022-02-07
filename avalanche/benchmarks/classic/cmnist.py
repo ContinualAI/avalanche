@@ -29,6 +29,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.distributed import DistributedHelper
 
 _default_mnist_train_transform = Compose(
     [ToTensor(), Normalize((0.1307,), (0.3081,))]
@@ -394,9 +395,12 @@ def _get_mnist_dataset(dataset_root):
     if dataset_root is None:
         dataset_root = default_dataset_location("mnist")
 
-    train_set = MNIST(root=dataset_root, train=True, download=True)
+    with DistributedHelper.main_process_first():
+        train_set = MNIST(root=dataset_root,
+                          train=True, download=True)
 
-    test_set = MNIST(root=dataset_root, train=False, download=True)
+        test_set = MNIST(root=dataset_root,
+                         train=False, download=True)
 
     return train_set, test_set
 

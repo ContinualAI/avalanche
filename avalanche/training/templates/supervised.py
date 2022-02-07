@@ -2,9 +2,10 @@ from typing import Sequence, Optional
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.distributed import DistributedHelper
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -148,7 +149,11 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     def criterion(self):
         """Loss function."""
-        return self._criterion(self.mb_output, self.mb_y)
+
+        predictions = self.model_instance.local_mb_output
+        truth = self.model_instance.local_mb_input[1]
+
+        return self._criterion(predictions, truth)
 
     def _before_training_exp(self, **kwargs):
         """Setup to train on a single experience."""
@@ -158,10 +163,14 @@ class SupervisedTemplate(BaseSGDTemplate):
         self._after_train_dataset_adaptation(**kwargs)
         super()._before_training_exp(**kwargs)
 
-    def _load_train_state(self, prev_state):
-        super()._load_train_state(prev_state)
+    def _load_train_state(self, prev_state, *, strategy_kw):
+        super()._load_train_state(prev_state, strategy_kw=strategy_kw)
         self.adapted_dataset = prev_state["adapted_dataset"]
         self.dataloader = prev_state["dataloader"]
+
+        self._before_wrap_model_distributed(**strategy_kw)
+        self.wrap_model_distributed()
+        self._after_wrap_model_distributed(**strategy_kw)
 
     def _save_train_state(self):
         """Save the training state which may be modified by the eval loop.
@@ -223,16 +232,32 @@ class SupervisedTemplate(BaseSGDTemplate):
         :param kwargs:
         :return:
         """
+
+        sampler = None
+
+        if DistributedHelper.is_distributed:
+            sampler = DistributedSampler(
+                self.adapted_dataset, shuffle=False, drop_last=False)
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
+            sampler=sampler,
+            shuffle=False,
+            drop_last=False
         )
 
     def forward(self):
         """Compute the model's output given the current mini-batch."""
-        return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
+
+        local_mb_x = self.model_instance.local_mb_input[0]
+        local_mb_t = self.model_instance.local_mb_input[-1]
+        return avalanche_forward(
+            self.model,
+            local_mb_x,
+            local_mb_t)
 
     def model_adaptation(self, model=None):
         """Adapts the model to the current data.
@@ -240,7 +265,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
         """
         if model is None:
-            model = self.model
+            model = self.model_instance.local_model
         avalanche_model_adaptation(model, self.experience.dataset)
         return model.to(self.device)
 
@@ -250,8 +275,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         Keep in mind that in the most general case mb_task_id is a tensor
         which may contain different labels for each sample.
         """
-        assert len(self.mbatch) >= 3
         super()._unpack_minibatch()
+        assert len(self.mbatch) >= 3
 
     def eval_dataset_adaptation(self, **kwargs):
         """Initialize `self.adapted_dataset`."""
