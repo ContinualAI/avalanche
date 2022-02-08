@@ -127,8 +127,8 @@ class PluginTests(unittest.TestCase):
             plugins=[plug],
         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        strategy.train(benchmark.train_stream[0], num_workers=4)
-        strategy.eval([benchmark.test_stream[0]], num_workers=4)
+        strategy.train(benchmark.train_stream[0], num_workers=0)
+        strategy.eval([benchmark.test_stream[0]], num_workers=0)
         assert all(plug.activated)
 
     @staticmethod
