@@ -50,7 +50,7 @@ class OldBaseStrategy:
                  criterion=CrossEntropyLoss(),
                  train_mb_size: int = 1, train_epochs: int = 1,
                  eval_mb_size: int = 1, device='cpu',
-                 plugins = None,
+                 plugins=None,
                  evaluator=None, eval_every=-1, peval_mode='epoch'):
         self._criterion = criterion
         self.model: Module = model
