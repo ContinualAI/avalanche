@@ -1,6 +1,7 @@
 """
     We test the new SupervisedTemplate against the old BaseStrategy.
-    A sort of integration tests to check that the new organization did not break anything.
+    A sort of regression test to check that the new organization
+    did not break anything.
 """
 
 ################################################################################

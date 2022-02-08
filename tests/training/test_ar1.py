@@ -23,7 +23,7 @@ class AR1Test(unittest.TestCase):
     def test_ar1(self):
         my_nc_benchmark = self.load_ar1_benchmark()
         strategy = AR1(
-            train_epochs=1, train_mb_size=10, eval_mb_size=10, rm_sz=200
+            train_epochs=1, train_mb_size=10, eval_mb_size=10, rm_sz=20
         )
         StrategyTest.run_strategy(self, my_nc_benchmark, strategy)
 
@@ -32,10 +32,10 @@ class AR1Test(unittest.TestCase):
         Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
         2 classes per experience. This toy benchmark is intended
         """
-        n_samples_per_class = 50
+        n_samples_per_class = 5
         dataset = make_classification(
             n_samples=10 * n_samples_per_class,
-            n_classes=10,
+            n_classes=9,
             n_features=224 * 224 * 3,
             n_informative=6,
             n_redundant=0,
@@ -51,6 +51,6 @@ class AR1Test(unittest.TestCase):
         train_dataset = TensorDataset(train_X, train_y)
         test_dataset = TensorDataset(test_X, test_y)
         my_nc_benchmark = nc_benchmark(
-            train_dataset, test_dataset, 5, task_labels=False
+            train_dataset, test_dataset, 3, task_labels=False
         )
         return my_nc_benchmark

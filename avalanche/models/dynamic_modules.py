@@ -118,6 +118,11 @@ class MultiTaskModule(DynamicModule):
                                    max(dataset.targets) + 1)
         if self.training:
             self.train_adaptation(dataset)
+        else:
+            self.eval_adaptation(dataset)
+
+    def eval_adaptation(self, dataset: AvalancheDataset):
+        pass
 
     def train_adaptation(self, dataset: AvalancheDataset = None):
         """Update known task labels."""
