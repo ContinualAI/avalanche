@@ -100,7 +100,7 @@ class AGEMPlugin(SupervisedPlugin):
 
     def after_training_exp(self, strategy, **kwargs):
         """Update replay memory with patterns from current experience."""
-        self.update_memory(strategy.experience.dataset)
+        self.update_memory(strategy.experience.dataset, **kwargs)
 
     def sample_from_memory(self):
         """
@@ -110,7 +110,7 @@ class AGEMPlugin(SupervisedPlugin):
         return next(self.buffer_dliter)
 
     @torch.no_grad()
-    def update_memory(self, dataset):
+    def update_memory(self, dataset, num_workers=4, **kwargs):
         """
         Update replay memory with patterns from current experience.
         """
@@ -120,11 +120,12 @@ class AGEMPlugin(SupervisedPlugin):
                 dataset, [self.patterns_per_experience, removed_els]
             )
         self.buffers.append(dataset)
+        persistent_workers = num_workers > 0
         self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
             self.buffers,
             batch_size=self.sample_size // len(self.buffers),
-            num_workers=4,
+            num_workers=num_workers,
             pin_memory=True,
-            persistent_workers=True,
+            persistent_workers=persistent_workers,
         )
         self.buffer_dliter = iter(self.buffer_dataloader)
