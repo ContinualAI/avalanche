@@ -2,8 +2,7 @@
 cff-version: 1.2.0
 title: "Avalanche: an End-to-End Library for Continual Learning"
 authors:
-  - name: "The NetHack DevTeam"
-  - name: "The NLE team"
+  - name: "The Avalanche team"
 message: "If you used Avalanche in your research project, please remember to cite our paper."
 preferred-citation:
   authors:
@@ -64,7 +63,7 @@ preferred-citation:
     - family-names: Maltoni
       given-names: Davide
   title: "Avalanche: an End-to-End Library for Continual Learning"
-  type: inproceedings
+  type: conference-paper
   year: 2021
   conference:
     name: "2nd Continual Learning in Computer Vision Workshop"
