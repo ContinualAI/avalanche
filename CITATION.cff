@@ -63,7 +63,7 @@ preferred-citation:
     - family-names: Maltoni
       given-names: Davide
   title: "Avalanche: an End-to-End Library for Continual Learning"
-  type: conference-paper
+  type: proceedings
   year: 2021
   conference:
     name: "2nd Continual Learning in Computer Vision Workshop"
