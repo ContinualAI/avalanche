@@ -263,7 +263,6 @@ class BaseSGDTemplate(BaseTemplate):
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = None
 
             # Forward
             self._before_forward(**kwargs)

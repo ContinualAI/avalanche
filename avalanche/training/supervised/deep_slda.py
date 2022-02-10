@@ -122,8 +122,6 @@ class StreamingLDA(SupervisedTemplate):
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
-            self.loss = 0
-
             # Forward
             self._before_forward(**kwargs)
             # compute output on entire minibatch
@@ -131,7 +129,7 @@ class StreamingLDA(SupervisedTemplate):
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion()
+            self.loss = self.criterion()
 
             # Optimization step
             self._before_update(**kwargs)

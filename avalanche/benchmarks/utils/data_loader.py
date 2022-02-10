@@ -386,7 +386,7 @@ class ReplayDataLoader:
             )[0])
 
         for task_id in memory.task_set:
-            dataset = data.task_set[task_id]
+            dataset = memory.task_set[task_id]
             mb_sz = self.memory_batch_sizes[task_id]
 
             loaders_for_len_estimation.append(_make_data_loader(

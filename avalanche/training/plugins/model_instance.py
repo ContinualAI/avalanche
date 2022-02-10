@@ -149,11 +149,6 @@ class SGDModelInstance(ModelInstance):
     particular, you should try to minimize the retrieval of `distributed_*`
     values, as accessing these fields requires a synchronization step which
     blocks all processes.
-
-    This class is also in charge of managing the lifetime of model inputs and
-    outputs: setting a new value for the model will reset (set to None) the
-    input minibatch. Setting a new input minibatch will reset the minibatch
-    output. Setting a new minibatch output will reset the last loss.
     """
 
     def __init__(self, initial_model=None):
@@ -210,10 +205,8 @@ class SGDModelInstance(ModelInstance):
     def local_mb_input(self, value):
         """
         Sets the local input minibatch.
-
-        This will also reset the minibatch output and loss.
         """
-        self._on_reset_io()
+        self._on_reset_inputs()
         self._local_mb_input = value
 
     @property
@@ -227,8 +220,6 @@ class SGDModelInstance(ModelInstance):
     def local_mb_output(self, value):
         """
         Sets the local minibatch output.
-
-        This will also reset the loss.
         """
         self._on_reset_outputs()
         self._local_mb_output = value
@@ -330,7 +321,7 @@ class SGDModelInstance(ModelInstance):
         """
         The current (distributed) minibatch output.
 
-         If not running a distributed training, this is the same as
+        If not running a distributed training, this is the same as
         `local_loss`.
 
         When running a distributed training, this value will be obtained by
@@ -357,25 +348,13 @@ class SGDModelInstance(ModelInstance):
 
         return self._distributed_loss
 
-    def _on_model_reset(self):
-        super(SGDModelInstance, self)._on_model_reset()
-        self._on_reset_io()
-
-    def _on_reset_io(self):
-        # Will also reset other dependent elements such as mb_output and loss
-        self._on_reset_inputs()
-
     def _on_reset_inputs(self):
         self._local_mb_input = None
         self._distributed_mb_input = None
 
-        return self._on_reset_outputs()
-
     def _on_reset_outputs(self):
         self._local_mb_output = None
         self._distributed_mb_output = None
-
-        return self._on_reset_losses()
 
     def _on_reset_losses(self):
         self._local_loss = None
