@@ -1,0 +1,71 @@
+# Copyright (c) ContinualAI
+cff-version: 1.2.0
+title: "Avalanche: an End-to-End Library for Continual Learning"
+authors:
+  - name: "The Avalanche team"
+message: "If you used Avalanche in your research project, please remember to cite our paper."
+preferred-citation:
+  authors:
+    - family-names: Lomonaco
+      given-names: Vincenzo
+    - family-names: Pellegrini
+      given-names: Lorenzo
+    - family-names: Cossu
+      given-names: Andrea
+    - family-names: Carta
+      given-names: Antonio
+    - family-names: Graffieti
+      given-names: Gabriele
+    - family-names: Hayes
+      given-names: Tyler L.
+    - family-names: De Lange
+      given-names: Matthias
+    - family-names: Masana
+      given-names: Marc
+    - family-names: Pomponi
+      given-names: Jary 
+    - family-names: Van de Ven
+      given-names: Gido
+    - family-names: Mundt
+      given-names: Martin
+    - family-names: She
+      given-names: Qi
+    - family-names: Cooper
+      given-names: Keiland
+    - family-names: Forest
+      given-names: Jeremy
+    - family-names: Belouadah
+      given-names: Eden
+    - family-names: Calderara
+      given-names: Simone
+    - family-names: Parisi
+      given-names: German I.
+    - family-names: Cuzzolin
+      given-names: Fabio
+    - family-names: Tolias
+      given-names: Andreas
+    - family-names: Scardapane
+      given-names: Simone
+    - family-names: Antiga
+      given-names: Luca
+    - family-names: Amhad
+      given-names: Subutai
+    - family-names: Popescu
+      given-names: Adrian
+    - family-names: Kanan
+      given-names: Christopher
+    - family-names: Van de Weijer
+      given-names: Joost
+    - family-names: Tuytelaars
+      given-names: Tinne
+    - family-names: Bacciu
+      given-names: Davide
+    - family-names: Maltoni
+      given-names: Davide
+  title: "Avalanche: an End-to-End Library for Continual Learning"
+  type: proceedings
+  year: 2021
+  conference:
+    name: "2nd Continual Learning in Computer Vision Workshop"
+  publisher:
+    name: "Proceedings of IEEE Conference on Computer Vision and Pattern Recognition"

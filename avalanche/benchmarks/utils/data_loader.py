@@ -15,7 +15,7 @@
     between the current data and the replay memory.
 """
 from itertools import chain
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 
 import torch
 from torch.utils.data import RandomSampler, DistributedSampler
@@ -289,21 +289,18 @@ class GroupBalancedInfiniteDataLoader:
 class ReplayDataLoader:
     """Custom data loader for rehearsal/replay strategies."""
 
-    def __init__(
-        self,
-        data: AvalancheDataset,
-        memory: AvalancheDataset = None,
-        oversample_small_tasks: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
-        batch_size: int = 32,
-        force_data_batch_size: int = None,
-        distributed_sampling: bool = True,
-        **kwargs
-    ):
-        """Custom data loader for rehearsal strategies.
+    def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
+                 oversample_small_tasks: bool = False,
+                 collate_mbatches=_default_collate_mbatches_fn,
+                 batch_size: int = 32,
+                 batch_size_mem: int = 32,
+                 task_balanced_dataloader: bool = False,
+                 distributed_sampling: bool = True,
+                 **kwargs):
+        """ Custom data loader for rehearsal strategies.
 
-        The iterates in parallel two datasets, the current `data` and the
-        rehearsal `memory`, which are used to create mini-batches by
+        This dataloader iterates in parallel two datasets, the current `data`
+        and the rehearsal `memory`, which are used to create mini-batches by
         concatenating their data together. Mini-batches from both of them are
         balanced using the task label (i.e. each mini-batch contains a balanced
         number of examples from all the tasks in the `data` and `memory`).
@@ -318,81 +315,81 @@ class ReplayDataLoader:
         :param collate_mbatches: function that given a sequence of mini-batches
             (one for each task) combines them into a single mini-batch. Used to
             combine the mini-batches obtained separately from each task.
-        :param batch_size: the size of the batch. It must be greater than or
-            equal to the number of tasks.
-        :param force_data_batch_size: How many of the samples should be from the
-            current `data`. If None, it will equally divide each batch between
-            samples from all seen tasks in the current `data` and `memory`.
+        :param batch_size: the size of the data batch. It must be greater
+            than or equal to the number of tasks.
+        :param batch_size_mem: the size of the memory batch. If
+            `task_balanced_dataloader` is set to True, it must be greater than
+            or equal to the number of tasks.
+        :param task_balanced_dataloader: if true, buffer data loaders will be
+            task-balanced, otherwise it creates a single data loader for the
+            buffer samples.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
         self.data = data
         self.memory = memory
         self.oversample_small_tasks = oversample_small_tasks
+        self.task_balanced_dataloader = task_balanced_dataloader
         self.collate_mbatches = collate_mbatches
-        self.data_batch_sizes = dict()
-        self.memory_batch_sizes = dict()
+        self.data_batch_sizes: Union[int, Dict[int, int]] = dict()
+        self.memory_batch_sizes: Union[int, Dict[int, int]] = dict()
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
 
-        if force_data_batch_size is not None:
-            assert (
-                force_data_batch_size <= batch_size
-            ), "Forced batch size of data must be <= entire batch size"
-
-            remaining_example_data = 0
-
-            mem_keys = len(self.memory.task_set)
-            mem_batch_size = batch_size - force_data_batch_size
-            mem_batch_size_k = mem_batch_size // mem_keys
-            remaining_example_mem = mem_batch_size % mem_keys
-
-            assert mem_batch_size >= mem_keys, (
-                "Batch size must be greater or equal "
-                "to the number of tasks in the memory."
-            )
-
-            self.data_batch_sizes, _ = self._get_batch_sizes(
-                data, force_data_batch_size, remaining_example_data)
-
-            self.memory_batch_sizes, _ = self._get_batch_sizes(
-                memory, mem_batch_size_k, remaining_example_mem)
-        else:
-            num_keys = len(self.data.task_set) + len(self.memory.task_set)
-            assert batch_size >= num_keys, (
-                "Batch size must be greater or equal "
-                "to the number of tasks in the memory "
+        num_keys = len(self.memory.task_set)
+        if task_balanced_dataloader:
+            assert batch_size_mem >= num_keys, \
+                "Batch size must be greator or equal " \
+                "to the number of tasks in the memory " \
                 "and current data."
-            )
 
-            single_group_batch_size = batch_size // num_keys
-            remaining_example = batch_size % num_keys
+        self.data_batch_sizes, _ = self._get_batch_sizes(
+            data, batch_size, 0, False)
 
-            self.data_batch_sizes, remaining_example = self._get_batch_sizes(
-                data, single_group_batch_size, remaining_example)
+        # Create dataloader for memory items
+        if task_balanced_dataloader:
+            single_group_batch_size = batch_size_mem // num_keys
+            remaining_example = batch_size_mem % num_keys
+        else:
+            single_group_batch_size = batch_size_mem
+            remaining_example = 0
 
-            self.memory_batch_sizes, remaining_example = self._get_batch_sizes(
-                memory, single_group_batch_size, remaining_example)
+        self.memory_batch_sizes, _ = self._get_batch_sizes(
+            memory, single_group_batch_size, remaining_example,
+            task_balanced_dataloader)
 
         loaders_for_len_estimation = []
 
-        for task_id in data.task_set:
-            dataset = data.task_set[task_id]
-            mb_sz = self.data_batch_sizes[task_id]
-
+        if isinstance(self.data_batch_sizes, int):
             loaders_for_len_estimation.append(_make_data_loader(
-                dataset, distributed_sampling, kwargs, mb_sz,
+                data, distributed_sampling, kwargs, self.data_batch_sizes,
                 force_no_workers=True
             )[0])
+        else:
+            # Task balanced
+            for task_id in data.task_set:
+                dataset = data.task_set[task_id]
+                mb_sz = self.data_batch_sizes[task_id]
 
-        for task_id in memory.task_set:
-            dataset = memory.task_set[task_id]
-            mb_sz = self.memory_batch_sizes[task_id]
+                loaders_for_len_estimation.append(_make_data_loader(
+                    dataset, distributed_sampling, kwargs, mb_sz,
+                    force_no_workers=True
+                )[0])
 
+        if isinstance(self.memory_batch_sizes, int):
             loaders_for_len_estimation.append(_make_data_loader(
-                dataset, distributed_sampling, kwargs, mb_sz,
+                memory, distributed_sampling, kwargs, self.memory_batch_sizes,
                 force_no_workers=True
             )[0])
+        else:
+            for task_id in memory.task_set:
+                dataset = memory.task_set[task_id]
+                mb_sz = self.memory_batch_sizes[task_id]
+
+                loaders_for_len_estimation.append(_make_data_loader(
+                    dataset, distributed_sampling, kwargs, mb_sz,
+                    force_no_workers=True
+                )[0])
 
         self.max_len = max([len(d) for d in loaders_for_len_estimation])
 
@@ -420,6 +417,7 @@ class ReplayDataLoader:
                 )
             ]
         )
+
         try:
             for it in range(max_len):
                 mb_curr = []
@@ -482,41 +480,39 @@ class ReplayDataLoader:
         loaders = dict()
         samplers = dict()
 
-        for task_id in data.task_set:
-            dataset = data.task_set[task_id]
-            mb_sz = batch_sizes[task_id]
-
+        if isinstance(batch_sizes, int):
             loader, sampler = _make_data_loader(
-                dataset, self.distributed_sampling, self.loader_kwargs, mb_sz)
+                data, self.distributed_sampling, self.loader_kwargs,
+                batch_sizes,
+            )
+            loaders[0] = loader
+            samplers[0] = sampler
+        else:
+            for task_id in data.task_set:
+                dataset = data.task_set[task_id]
+                mb_sz = batch_sizes[task_id]
 
-            loaders[task_id] = loader
-            samplers[task_id] = sampler
+                loader, sampler = _make_data_loader(
+                    dataset, self.distributed_sampling, self.loader_kwargs, mb_sz)
+
+                loaders[task_id] = loader
+                samplers[task_id] = sampler
         return loaders, samplers
 
-    def _create_dataloaders(
-        self, data_dict, single_exp_batch_size, remaining_example, **kwargs
-    ):
-        loaders_dict: Dict[int, DataLoader] = {}
-        for task_id in data_dict.task_set:
-            data = data_dict.task_set[task_id]
-            current_batch_size = single_exp_batch_size
-            if remaining_example > 0:
-                current_batch_size += 1
-                remaining_example -= 1
-            loaders_dict[task_id] = DataLoader(
-                data, batch_size=current_batch_size, **kwargs
-            )
-        return loaders_dict, remaining_example
-
     @staticmethod
-    def _get_batch_sizes(data_dict, single_exp_batch_size, remaining_example):
+    def _get_batch_sizes(data_dict, single_exp_batch_size, remaining_example,
+                         task_balanced_dataloader):
         batch_sizes = dict()
-        for task_id in data_dict.task_set:
-            current_batch_size = single_exp_batch_size
-            if remaining_example > 0:
-                current_batch_size += 1
-                remaining_example -= 1
-            batch_sizes[task_id] = current_batch_size
+        if task_balanced_dataloader:
+            for task_id in data_dict.task_set:
+                current_batch_size = single_exp_batch_size
+                if remaining_example > 0:
+                    current_batch_size += 1
+                    remaining_example -= 1
+                batch_sizes[task_id] = current_batch_size
+        else:
+            # Current data is loaded without task balancing
+            batch_sizes = single_exp_batch_size
         return batch_sizes, remaining_example
 
 

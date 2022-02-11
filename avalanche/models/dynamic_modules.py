@@ -94,7 +94,35 @@ class MultiTaskModule(DynamicModule):
     def __init__(self):
         super().__init__()
         self.known_train_tasks_labels = set()
+        self.max_class_label = 0
         """ Set of task labels encountered up to now. """
+
+    def adaptation(self, dataset: AvalancheDataset = None):
+        """Adapt the module (freeze units, add units...) using the current
+        data. Optimizers must be updated after the model adaptation.
+
+        Avalanche strategies call this method to adapt the architecture
+        *before* processing each experience. Strategies also update the
+        optimizer automatically.
+
+        .. warning::
+            As a general rule, you should NOT use this method to train the
+            model. The dataset should be used only to check conditions which
+            require the model's adaptation, such as the discovery of new
+            classes or tasks.
+
+        :param dataset: data from the current experience.
+        :return:
+        """
+        self.max_class_label = max(self.max_class_label,
+                                   max(dataset.targets) + 1)
+        if self.training:
+            self.train_adaptation(dataset)
+        else:
+            self.eval_adaptation(dataset)
+
+    def eval_adaptation(self, dataset: AvalancheDataset):
+        pass
 
     def train_adaptation(self, dataset: AvalancheDataset = None):
         """Update known task labels."""
@@ -127,17 +155,16 @@ class MultiTaskModule(DynamicModule):
         else:
             unique_tasks = torch.unique(task_labels)
 
-        out = None
+        out = torch.zeros(x.shape[0], self.max_class_label, device=x.device)
         for task in unique_tasks:
             task_mask = task_labels == task
             x_task = x[task_mask]
             out_task = self.forward_single_task(x_task, task.item())
-
-            if out is None:
-                out = torch.empty(
-                    x.shape[0], *out_task.shape[1:], device=out_task.device
-                )
-            out[task_mask] = out_task
+            assert len(out_task.shape) == 2,\
+                "multi-head assumes mini-batches of 2 dimensions " \
+                "<batch, classes>"
+            n_labels_head = out_task.shape[1]
+            out[task_mask, :n_labels_head] = out_task
         return out
 
     def forward_single_task(
@@ -254,6 +281,8 @@ class MultiHeadClassifier(MultiTaskModule):
             self.in_features, self.starting_out_features
         )
         self.classifiers["0"] = first_head
+        self.max_class_label = max(self.max_class_label,
+                                   initial_out_features)
 
     def adaptation(self, dataset: AvalancheDataset):
         """If `dataset` contains new tasks, a new head is initialized.

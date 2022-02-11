@@ -10,6 +10,7 @@
 ################################################################################
 
 import unittest
+from collections import defaultdict
 
 import torch
 from torchvision.transforms import ToTensor, Compose, transforms, Resize
@@ -127,14 +128,16 @@ class DataLoaderTests(unittest.TestCase):
         )
         for step in benchmark.train_stream:
             adapted_dataset = step.dataset
-            dataloader = ReplayDataLoader(
-                adapted_dataset,
-                replayPlugin.storage_policy.buffer,
-                oversample_small_tasks=True,
-                num_workers=0,
-                batch_size=batch_size,
-                shuffle=True,
-            )
+            if len(replayPlugin.storage_policy.buffer) > 0:
+                dataloader = ReplayDataLoader(
+                        adapted_dataset,
+                        replayPlugin.storage_policy.buffer,
+                        oversample_small_tasks=True,
+                        num_workers=0,
+                        batch_size=batch_size,
+                        shuffle=True)
+            else:
+                dataloader = TaskBalancedDataLoader(adapted_dataset)
 
             for mini_batch in dataloader:
                 mb_task_labels = mini_batch[-1]
@@ -151,7 +154,9 @@ class DataLoaderTests(unittest.TestCase):
     def test_dataload_batch_balancing_forced_size(self):
         benchmark = get_fast_benchmark()
         batch_size = 32
-        replayPlugin = ReplayPlugin(mem_size=100)
+        mem_batch_size = 12
+        total_mem_size = 100
+        replayPlugin = ReplayPlugin(mem_size=total_mem_size)
 
         model = SimpleMLP(input_size=6, hidden_size=10)
         cl_strategy = Naive(
@@ -167,19 +172,27 @@ class DataLoaderTests(unittest.TestCase):
                 dataloader = ReplayDataLoader(
                     adapted_dataset,
                     replayPlugin.storage_policy.buffer,
-                    oversample_small_tasks=True,
+                    oversample_small_tasks=False,
                     num_workers=0,
                     batch_size=batch_size,
-                    force_data_batch_size=12,
+                    batch_size_mem=mem_batch_size,
                     shuffle=True,
-                    drop_last=True)
+                    drop_last=False)
+
+                current_t_label = step.task_label
+                task_n_instances = defaultdict(int)
 
                 for mini_batch in dataloader:
-                    if step.current_experience > 0:
-                        self.assertEqual(batch_size, len(mini_batch[0]))
-                    else:
-                        self.assertEqual(12, len(mini_batch[0]))
+                    self.assertLessEqual(len(mini_batch[0]),
+                                         batch_size + mem_batch_size)
+
                     mb_task_labels = mini_batch[-1]
+                    t_label, t_count = torch.unique(
+                        mb_task_labels, return_counts=True)
+
+                    for t_l, t_c in zip(t_label, t_count):
+                        task_n_instances[int(t_l)] += int(t_c)
+
                     lengths = []
                     for task_id in adapted_dataset.task_set:
                         len_task = (mb_task_labels == task_id).sum()
@@ -188,6 +201,16 @@ class DataLoaderTests(unittest.TestCase):
                         difference = max(lengths) - min(lengths)
                         self.assertLessEqual(difference, 1)
                     self.assertLessEqual(sum(lengths), batch_size)
+
+                self.assertEqual(len(adapted_dataset),
+                                 task_n_instances[current_t_label])
+
+                prev_tasks_instances = sum(
+                    n_mem for t_mem, n_mem in
+                    task_n_instances.items() if t_mem != current_t_label)
+
+                self.assertEqual(total_mem_size, prev_tasks_instances)
+
             cl_strategy.train(step)
 
 
