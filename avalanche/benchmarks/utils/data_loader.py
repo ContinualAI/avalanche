@@ -493,7 +493,8 @@ class ReplayDataLoader:
                 mb_sz = batch_sizes[task_id]
 
                 loader, sampler = _make_data_loader(
-                    dataset, self.distributed_sampling, self.loader_kwargs, mb_sz)
+                    dataset, self.distributed_sampling,
+                    self.loader_kwargs, mb_sz)
 
                 loaders[task_id] = loader
                 samplers[task_id] = sampler
