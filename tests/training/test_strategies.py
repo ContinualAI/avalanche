@@ -735,7 +735,7 @@ class StrategyTest(unittest.TestCase):
         for train_batch_info in benchmark.train_stream:
             print("Start of experience ", train_batch_info.current_experience)
 
-            cl_strategy.train(train_batch_info)
+            cl_strategy.train(train_batch_info, num_workers=0)
             print("Training completed")
 
             print("Computing accuracy on the current test set")
