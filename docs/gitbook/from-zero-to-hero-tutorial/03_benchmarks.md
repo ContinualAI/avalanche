@@ -8,7 +8,7 @@ Welcome to the "_benchmarks_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install git+https://github.com/ContinualAI/avalanche.git
+!pip install avalanche-lib
 ```
 
 ## 🎯 Nomenclature

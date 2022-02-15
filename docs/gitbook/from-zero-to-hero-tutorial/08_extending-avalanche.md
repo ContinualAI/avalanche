@@ -5,8 +5,8 @@ description: 'Make it Custom, Make it Yours'
 # Extending Avalanche
 
 
-```
-!pip install git+https://github.com/ContinualAI/avalanche.git
+```python
+!pip install avalanche-lib
 ```
 
 

@@ -8,7 +8,7 @@ Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install git+https://github.com/ContinualAI/avalanche.git
+!pip install avalanche-lib
 ```
 
 ## 📈 The Evaluation Module
@@ -82,18 +82,18 @@ The Evaluation Plugin accepts as inputs the plugin metrics you want to track. In
 It is also recommended to pass to the Evaluation Plugin the benchmark instance used in the experiment. This allows the plugin to check for consistency during metrics computation. For example, the Evaluation Plugin checks that the `strategy.eval` calls are performed on the same stream or sub-stream. Otherwise, same metric could refer to different portions of the stream.  
 These checks can be configured to raise errors (stopping computation) or only warnings.
 
+
 ```python
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.evaluation.metrics import forgetting_metrics,
-
-accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics,
+from avalanche.evaluation.metrics import forgetting_metrics, \
+accuracy_metrics, loss_metrics, timing_metrics, cpu_usage_metrics, \
 confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.supervised import Naive
+from avalanche.training.strategies import Naive
 
 benchmark = SplitMNIST(n_experiences=5)
 
@@ -111,10 +111,8 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
-    confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False,
-                             stream=True),
-    disk_usage_metrics(minibatch=True, epoch=True, experience=True,
-                       stream=True),
+    confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False, stream=True),
+    disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[InteractiveLogger()],
     benchmark=benchmark,
     strict_checks=False

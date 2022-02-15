@@ -15,7 +15,7 @@ First, let's install Avalanche. You can skip this step if you have installed it 
 
 
 ```python
-!pip install git+https://github.com/ContinualAI/avalanche.git
+!pip install avalanche-lib
 ```
 
 ## Dataloaders
@@ -109,12 +109,12 @@ for x, y, t in dl:
 
 Avalanche's strategy plugins can be used to update the rehearsal buffer and set the dataloader. This allows to easily implement replay strategies:
 
+
 ```python
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.training.plugins import StrategyPlugin
 
-
-class CustomReplay(SupervisedPlugin):
+class CustomReplay(StrategyPlugin):
     def __init__(self, storage_policy):
         super().__init__()
         self.storage_policy = storage_policy
@@ -139,7 +139,7 @@ class CustomReplay(SupervisedPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=shuffle)
 
-    def after_training_exp(self, strategy: "BaseTemplate", **kwargs):
+    def after_training_exp(self, strategy: "BaseStrategy", **kwargs):
         """ We update the buffer after the experience.
             You can use a different callback to update the buffer in a different place
         """
