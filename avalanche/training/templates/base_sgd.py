@@ -179,7 +179,6 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_eval_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
-        self._before_eval_exp(**kwargs)
         self.eval_epoch(**kwargs)
 
     def make_train_dataloader(self, **kwargs):
