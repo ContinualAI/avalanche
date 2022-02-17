@@ -39,7 +39,7 @@ from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import GenericScenarioStream, Experience, \
     TScenario, TScenarioStream, GenericCLScenario, StreamUserDef, \
-    TStreamsUserDict
+    TStreamsUserDict, GenericExperience
 from typing import TypedDict
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -357,11 +357,16 @@ def split_lvis(imgs_path, train_json_path, val_json_path, n_experiences,
             'test': val_def
         },
         complete_test_set_only=True,
-        experience_factory=DetectionExperience
+        experience_factory=det_exp_factory
     )
 
 
-TDetectionExperience = TypeVar("TDetectionExperience", bound="GenericExperience")
+def det_exp_factory(stream: GenericScenarioStream, exp_id: int):
+    return DetectionExperience(stream, exp_id)
+
+
+TDetectionExperience = TypeVar("TDetectionExperience",
+                               bound=GenericExperience)
 
 
 class DetectionExperience(
@@ -404,7 +409,8 @@ class DetectionExperience(
 class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
     def __init__(
             self,
-            n_classes: int,*,
+            n_classes: int,
+            *,
             stream_definitions: TStreamsUserDict,
             complete_test_set_only: bool = False,
             experience_factory: Callable[
