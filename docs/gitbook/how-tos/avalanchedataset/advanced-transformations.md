@@ -16,12 +16,7 @@ Let's start by installing Avalanche:
 
 
 ```python
-!pip install git+https://github.com/ContinualAI/avalanche.git
-
-# Or, if you cloned Avalanche on your PC:
-# import sys
-# from pathlib import Path
-# sys.path.append(str(Path.cwd() / '../../..'))
+!pip install avalanche-lib
 ```
 
 ## Transformation groups

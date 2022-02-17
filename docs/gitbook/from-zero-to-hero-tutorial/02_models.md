@@ -14,7 +14,7 @@ You can use any model provided in the [Pytorch](https://pytorch.org/) official e
 
 
 ```python
-!pip install git+https://github.com/ContinualAI/avalanche.git
+!pip install avalanche-lib
 ```
 
 
