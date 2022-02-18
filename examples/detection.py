@@ -14,8 +14,11 @@ This is a simple example on how to run detection benchmarks.
 """
 
 import logging
+
 # This sets the root logger to write to stdout (your console).
 # Your script/app needs to call this somewhere at least once.
+from avalanche.benchmarks.datasets.lvis.lvis import LvisDataset
+
 logging.basicConfig(level=logging.NOTSET)
 
 import matplotlib
@@ -27,20 +30,18 @@ matplotlib.use('Agg')
 
 import argparse
 from pathlib import Path
-from typing import Union, List, Sequence, TypeVar, Callable
+from typing import List, TypeVar, Callable
 
 import matplotlib.pyplot as plt
 import torch
 from PIL import Image
-from lvis_api import LVIS
 from matplotlib import patches
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import GenericScenarioStream, Experience, \
     TScenario, TScenarioStream, GenericCLScenario, StreamUserDef, \
     TStreamsUserDict, GenericExperience
-from typing import TypedDict
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
@@ -65,10 +66,7 @@ def main(args):
     n_exps = 100  # Keep it high to run a short exp
     # Dataset download at: https://www.lvisdataset.org/dataset
     benchmark = split_lvis(
-        '/ssd1/datasets/coco',
-        '/ssd1/datasets/coco/lvis_v1_train.json',
-        '/ssd1/datasets/coco/lvis_v1_val.json',
-        n_exps,
+        n_experiences=n_exps,
         train_transform=train_transform,
         eval_transform=test_transform)
 
@@ -164,140 +162,24 @@ def main(args):
         break
 
 
-class LVISImgEntry(TypedDict):
-    id: int
-    date_captured: str
-    neg_category_ids: List[int]
-    license: int
-    height: int
-    width: int
-    flickr_url: str
-    coco_url: str
-    not_exhaustive_category_ids: List[int]
-
-
-class LVISAnnotationEntry(TypedDict):
-    id: int
-    area: float
-    segmentation: List[List[float]]
-    image_id: int
-    bbox: List[int]
-    category_id: int
-
-
-class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
-    def __init__(
-            self,
-            lvis_api: LVIS,
-            img_ids: List[int] = None):
-        super(LVISDetectionTargets, self).__init__()
-        self.lvis_api = lvis_api
-        if img_ids is None:
-            img_ids = list(sorted(lvis_api.get_img_ids()))
-
-        self.img_ids = img_ids
-
-    def __len__(self):
-        return len(self.img_ids)
-
-    def __getitem__(self, index):
-        img_id = self.img_ids[index]
-        annotation_ids = self.lvis_api.get_ann_ids(img_ids=[img_id])
-        annotation_dicts: List[LVISAnnotationEntry] = \
-            self.lvis_api.load_anns(annotation_ids)
-        return annotation_dicts
-
-
-class LvisDataset(Dataset):
-    def __init__(
-            self,
-            lvis_api: LVIS,
-            rel_path: Union[str, Path],
-            img_ids: List[int] = None,
-            transforms=None):
-        super(LvisDataset, self).__init__()
-        self.lvis_api = lvis_api
-        self.rel_path = Path(rel_path)
-        if img_ids is None:
-            img_ids = list(sorted(lvis_api.get_img_ids()))
-
-        self.img_ids = img_ids
-        self.transforms = transforms
-        self.targets = LVISDetectionTargets(self.lvis_api, self.img_ids)
-
-    def __len__(self):
-        return len(self.img_ids)
-
-    def __getitem__(self, index):
-        img_id = self.img_ids[index]
-        img_dict: LVISImgEntry = self.lvis_api.load_imgs(ids=[img_id])[0]
-        coco_url = img_dict['coco_url']
-        splitted_url = coco_url.split('/')
-        img_path = splitted_url[-2] + '/' + splitted_url[-1]
-        final_path = self.rel_path / img_path
-        annotation_dicts = self.targets[index]
-
-        num_objs = len(annotation_dicts)
-
-        boxes = []
-        labels = []
-        for i in range(num_objs):
-            xmin = annotation_dicts[i]['bbox'][0]
-            ymin = annotation_dicts[i]['bbox'][1]
-            xmax = xmin + annotation_dicts[i]['bbox'][2]
-            ymax = ymin + annotation_dicts[i]['bbox'][3]
-            boxes.append([xmin, ymin, xmax, ymax])
-            labels.append(annotation_dicts[i]['category_id'])
-
-        if len(boxes) > 0:
-            boxes = torch.as_tensor(boxes, dtype=torch.float32)
-        else:
-            boxes = torch.empty((0, 4), dtype=torch.float32)
-        labels = torch.as_tensor(labels, dtype=torch.int64)
-
-        image_id = torch.tensor([img_id])
-        areas = []
-        for i in range(num_objs):
-            areas.append(annotation_dicts[i]['area'])
-        areas = torch.as_tensor(areas, dtype=torch.float32)
-        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
-
-        target = dict()
-        target["boxes"] = boxes
-        target["labels"] = labels
-        target["image_id"] = image_id
-        target["area"] = areas
-        target["iscrowd"] = iscrowd
-
-        img = Image.open(str(final_path)).convert("RGB")
-
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
-
-        return img, target
-
-
 def detection_collate_fn(batch):
     return tuple(zip(*batch))
 
 
-def split_lvis(imgs_path, train_json_path, val_json_path, n_experiences,
+def split_lvis(n_experiences,
                train_transform=None, eval_transform=None,
-               shuffle=True):
-    train_api = LVIS(train_json_path)
-    val_api = LVIS(val_json_path)
+               shuffle=True, root_path=None):
 
     transform_groups = dict(
         train=(train_transform, None),
         eval=(eval_transform, None),
     )
 
-    all_cat_ids = set(train_api.get_cat_ids())
-    all_cat_ids.union(val_api.get_cat_ids())
+    train_dataset = LvisDataset(root=root_path, train=True)
+    val_dataset = LvisDataset(root=root_path, train=False)
 
-    train_dataset = LvisDataset(train_api, imgs_path, img_ids=None)
-
-    val_dataset = LvisDataset(val_api, imgs_path, img_ids=None)
+    all_cat_ids = set(train_dataset.lvis_api.get_cat_ids())
+    all_cat_ids.union(val_dataset.lvis_api.get_cat_ids())
 
     exp_n_imgs = len(train_dataset) // n_experiences
     remaining = len(train_dataset) % n_experiences
