@@ -1,4 +1,3 @@
-import cv2
 import logging
 import os
 
@@ -107,6 +106,7 @@ class LVISVis:
         return color_list[idx % len(color_list), 0:3]
 
     def load_img(self, img_id):
+        import cv2
         img = self.lvis_gt.load_imgs([img_id])[0]
         img_path = os.path.join(self.img_dir, img["coco_url"].split("/")[-1])
         if not os.path.exists(img_path):
