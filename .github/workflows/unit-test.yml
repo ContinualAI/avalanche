@@ -15,6 +15,7 @@ on:
   push:
     branches:
       - master
+      - detection
     paths:
       - '**.py'
       - '.github/workflows/unit-test.yml'
@@ -22,6 +23,7 @@ on:
   pull_request:
     branches:
       - master
+      - detection
     paths:
       - '**.py'
       - '.github/workflows/unit-test.yml'
