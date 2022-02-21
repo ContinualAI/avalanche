@@ -32,15 +32,16 @@ Check out _how your code changes_ when you start using _Avalanche_! 👇
 
 {% tabs %}
 {% tab title="With Avalanche" %}
-
 ```python
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
-from avalanche.extras.models import SimpleMLP
-from avalanche.training.supervised import Naive
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.evaluation.metrics import accuracy_metrics
+from avalanche.models import SimpleMLP
+from avalanche.training.strategies import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -56,11 +57,14 @@ test_stream = perm_mnist.test_stream
 # Prepare for training & testing
 optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = CrossEntropyLoss()
+eval_plugin = EvaluationPlugin(
+    accuracy_metrics(minibatch=True, epoch=True, epoch_running=True, 
+                     experience=True, stream=True))
 
 # Continual learning strategy
 cl_strategy = Naive(
-    model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-    eval_mb_size=32, device=device)
+    model, optimizer, criterion, train_mb_size=32, train_epochs=2, 
+    eval_mb_size=32, evaluator=eval_plugin, device=device)
 
 # train and test loop
 results = []
@@ -73,18 +77,18 @@ for train_task in train_stream:
 {% tab title="Without Avalanche" %}
 ```python
 import torch
+import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
+from torch.utils.data import DataLoader
+import numpy as np
+from copy import copy
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-n_tasks = 5
-n_classes = 10
-train_ep = 2
-mb_size = 32
 
 # model
 class SimpleMLP(nn.Module):
@@ -106,12 +110,12 @@ class SimpleMLP(nn.Module):
         x = self.features(x)
         x = self.classifier(x)
         return x
-model = SimpleMLP(num_classes=n_classes)
+model = SimpleMLP(num_classes=10)
 
 # CL Benchmark Creation
 list_train_dataset = []
 list_test_dataset = []
-rng_permute = np.random.RandomState(seed)
+rng_permute = np.random.RandomState(0)
 train_transform = transforms.Compose([
     RandomCrop(28, padding=4),
     ToTensor(),
@@ -122,30 +126,40 @@ test_transform = transforms.Compose([
     transforms.Normalize((0.1307,), (0.3081,))
 ])
 
-# for every incremental experience
-for _ in range(n_tasks):
+# permutation transformation
+class PixelsPermutation(object):
+    def __init__(self, index_permutation):
+        self.permutation = index_permutation
+
+    def __call__(self, x):
+        return x.view(-1)[self.permutation].view(1, 28, 28)
+
+def get_permutation():
+    return torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)
+
+# for every incremental step
+permutations = []
+for i in range(3):
     # choose a random permutation of the pixels in the image
-    idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)
+    idx_permute = get_permutation()
+    current_perm = PixelsPermutation(idx_permute)
+    permutations.append(idx_permute)
 
     # add the permutation to the default dataset transformation
     train_transform_list = train_transform.transforms.copy()
-    train_transform_list.append(
-        transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
-    )
+    train_transform_list.append(current_perm)
     new_train_transform = transforms.Compose(train_transform_list)
 
     test_transform_list = test_transform.transforms.copy()
-    test_transform_list.append(
-        transforms.Lambda(lambda x: x.view(-1)[idx_permute].view(1, 28, 28))
-    )
+    test_transform_list.append(current_perm)
     new_test_transform = transforms.Compose(test_transform_list)
 
     # get the datasets with the constructed transformation
     permuted_train = MNIST(root='./data/mnist',
-                           download=True, transform=train_transformation)
+                           download=True, transform=new_train_transform)
     permuted_test = MNIST(root='./data/mnist',
                     train=False,
-                    download=True, transform=test_transformation)
+                    download=True, transform=new_test_transform)
     list_train_dataset.append(permuted_train)
     list_test_dataset.append(permuted_test)
 
@@ -156,9 +170,9 @@ criterion = CrossEntropyLoss()
 for task_id, train_dataset in enumerate(list_train_dataset):
 
     train_data_loader = DataLoader(
-        train_dataset, num_workers=num_workers, batch_size=train_mb_size)
-
-    for ep in range(train_ep):
+        train_dataset, num_workers=4, batch_size=32)
+    
+    for ep in range(2):
         for iteration, (train_mb_x, train_mb_y) in enumerate(train_data_loader):
             optimizer.zero_grad()
             train_mb_x = train_mb_x.to(device)
@@ -176,10 +190,10 @@ for task_id, train_dataset in enumerate(list_train_dataset):
 # Test
 acc_results = []
 for task_id, test_dataset in enumerate(list_test_dataset):
-
+    
     test_data_loader = DataLoader(
-        test_dataset, num_workers=num_workers, batch_size=test_mb_size)
-
+        test_dataset, num_workers=4, batch_size=32)
+    
     correct = 0
     for iteration, (test_mb_x, test_mb_y) in enumerate(test_data_loader):
 
@@ -194,9 +208,9 @@ for task_id, test_dataset in enumerate(list_test_dataset):
         test_loss = criterion(test_logits, test_mb_y)
 
         # compute acc
-        correct += (test_mb_y.eq(test_logits.long())).sum()
-
-    acc_results.append(len(test_dataset)/correct)
+        correct += test_mb_y.eq(test_logits.argmax(dim=1)).sum().item()
+    
+    acc_results.append(correct / len(test_dataset))
 ```
 {% endtab %}
 {% endtabs %}
@@ -213,14 +227,14 @@ For example, you may start with our _**5-minutes**_ **guide** that will let you 
 
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
 
-{% content-ref url="broken-reference" %}
-[Broken link](broken-reference)
+{% content-ref url="broken-reference/" %}
+[broken-reference](broken-reference/)
 {% endcontent-ref %}
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
 
-{% content-ref url="broken-reference" %}
-[Broken link](broken-reference)
+{% content-ref url="broken-reference/" %}
+[broken-reference](broken-reference/)
 {% endcontent-ref %}
 
 ## 📑 Cite Avalanche
