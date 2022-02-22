@@ -1,6 +1,6 @@
 import copy
 import itertools
-from typing import List
+from typing import List, Optional, Dict
 
 import numpy as np
 import pycocotools.mask as mask_util
@@ -20,7 +20,7 @@ class LvisEvaluator:
         self.iou_types = iou_types
         self.img_ids = []
         self.predictions = []
-        self.lvis_eval_per_iou = dict()
+        self.lvis_eval_per_iou: Optional[Dict[str, LVISEval]] = dict()
 
     def update(self, predictions):
         img_ids = list(np.unique(list(predictions.keys())))
@@ -49,7 +49,8 @@ class LvisEvaluator:
         else:
             return self.predictions, True
 
-    def evaluate(self, max_dets_per_image=None):
+    def evaluate(self, max_dets_per_image=None) -> \
+            Optional[Dict[str, LVISEval]]:
         all_preds, main_process = self.synchronize_between_processes()
         if main_process:
             if max_dets_per_image is None:

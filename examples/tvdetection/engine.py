@@ -6,7 +6,7 @@ import torch
 import torchvision.models.detection.mask_rcnn
 from lvis_api import LVIS
 from pycocotools.coco import COCO
-from torch.utils.data import Subset
+from torch.utils.data import Subset, DataLoader
 
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset, \
     AvalancheConcatDataset
@@ -82,10 +82,12 @@ def _get_iou_types(model):
 
 
 def evaluate_coco(
-        model, data_loader, device, coco, metric_logger, cpu_device, iou_types):
+        model, data_loader, device, coco, metric_logger, cpu_device,
+        iou_types, export_predictions=False):
     coco_evaluator = CocoEvaluator(coco, iou_types)
     header = "Test:"
 
+    all_predictions = []
     for images, targets, *_ in metric_logger.log_every(
             data_loader, 100, header):
         images = list(img.to(device) for img in images)
@@ -100,6 +102,8 @@ def evaluate_coco(
 
         res = {target["image_id"].item(): output
                for target, output in zip(targets, outputs)}
+        if export_predictions:
+            all_predictions.append(res)
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
@@ -114,17 +118,22 @@ def evaluate_coco(
     # accumulate predictions from all images
     coco_evaluator.accumulate()
     coco_evaluator.summarize()
-    return coco_evaluator
+
+    if export_predictions:
+        return coco_evaluator, all_predictions
+    else:
+        return coco_evaluator
 
 
 def evaluate_lvis(
         model, data_loader, device, lvis: LVIS, metric_logger, cpu_device,
-        iou_types):
+        iou_types, export_predictions=False):
 
     # Lorenzo: implemented by taking inspiration from COCO code
     lvis_evaluator = LvisEvaluator(lvis, iou_types)
     header = "Test:"
 
+    all_predictions = []
     for images, targets, *_ in metric_logger.log_every(
             data_loader, 100, header):
         images = list(img.to(device) for img in images)
@@ -138,6 +147,8 @@ def evaluate_lvis(
 
         res = {target["image_id"].item(): output
                for target, output in zip(targets, outputs)}
+        if export_predictions:
+            all_predictions.append(res)
         evaluator_time = time.time()
         lvis_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
@@ -150,11 +161,14 @@ def evaluate_lvis(
     lvis_eval_per_iou = lvis_evaluator.evaluate()
     lvis_evaluator.summarize()
 
-    return lvis_eval_per_iou
+    if export_predictions:
+        return lvis_eval_per_iou, all_predictions
+    else:
+        return lvis_eval_per_iou
 
 
 @torch.inference_mode()
-def evaluate(model, data_loader, device):
+def evaluate(model, data_loader, device, export_predictions=False):
     # Lorenzo: splitted evaluation in "evaluate_coco" and "evaluate_lvis"
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
@@ -168,11 +182,11 @@ def evaluate(model, data_loader, device):
     if isinstance(det_api, COCO):
         result = evaluate_coco(
             model, data_loader, device, det_api, metric_logger,
-            cpu_device, iou_types)
+            cpu_device, iou_types, export_predictions=export_predictions)
     else:
         result = evaluate_lvis(
             model, data_loader, device, det_api, metric_logger,
-            cpu_device, iou_types)
+            cpu_device, iou_types, export_predictions=export_predictions)
 
     torch.set_num_threads(n_threads)
     return result
@@ -193,6 +207,8 @@ def get_detection_api_from_dataset(dataset):
             dataset = dataset._dataset_list[0]
         elif isinstance(dataset, AvalancheDataset):
             dataset = dataset._dataset
+        elif isinstance(dataset, DataLoader):
+            dataset = dataset.dataset
 
     if isinstance(dataset, torchvision.datasets.CocoDetection):
         return dataset.coco

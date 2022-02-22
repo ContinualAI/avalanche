@@ -12,25 +12,32 @@
 """
 This is a simple example on how to run detection benchmarks.
 """
-
+import json
 import logging
 
 # This sets the root logger to write to stdout (your console).
 # Your script/app needs to call this somewhere at least once.
+from json import JSONEncoder
+
+from torch import Tensor
+
 from avalanche.benchmarks.datasets.lvis.lvis import LvisDataset
+from examples.tvdetection.coco_eval import CocoEvaluator
+from examples.tvdetection.lvis_eval import LvisEvaluator
+from lvis_api import LVISEval, LVIS
 
 logging.basicConfig(level=logging.NOTSET)
 
 import matplotlib
+matplotlib.use('Agg')
 
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
-from examples.tvdetection.engine import train_one_epoch, evaluate
-
-matplotlib.use('Agg')
+from examples.tvdetection.engine import train_one_epoch, evaluate, \
+    get_detection_api_from_dataset
 
 import argparse
 from pathlib import Path
-from typing import List, TypeVar, Callable
+from typing import List, TypeVar, Callable, Any
 
 import matplotlib.pyplot as plt
 import torch
@@ -147,7 +154,7 @@ def main(args):
 
         # Just run the eval on a small set (otherwise it takes ages to complete)
         mini_test = AvalancheSubset(benchmark.test_stream[0].dataset,
-                                    indices=list(range(1000)))
+                                    indices=list(range(200)))
         data_loader = DataLoader(
             mini_test, batch_size=5, shuffle=False, drop_last=False,
             num_workers=4,
@@ -158,7 +165,13 @@ def main(args):
 
         # TODO: integrate metrics
         # results.append(cl_strategy.eval(scenario.test_stream))
-        evaluate(model, data_loader, device=device)
+        eval_result, all_predictions = evaluate(
+            model, data_loader, device=device, export_predictions=True)
+        if isinstance(eval_result, CocoEvaluator):
+            raise ValueError('Unsupported at the moment')
+        elif isinstance(eval_result['bbox'], LVISEval):
+            save_eval_output_to_json(all_predictions, 'lvis_res.json')
+            evaluate_from_json(data_loader, 'lvis_res.json')
         break
 
 
@@ -323,6 +336,58 @@ def plot_sample(img: Image.Image, target):
         plt.gca().add_patch(rect)
 
     plt.savefig('my_img.png')
+
+
+class TensorEncoder(JSONEncoder):
+    def __init__(self, **kwargs):
+        super(TensorEncoder, self).__init__(**kwargs)
+
+    def default(self, o: Any) -> Any:
+        if isinstance(o, Tensor):
+            o = o.detach().cpu().tolist()
+
+        return o
+
+
+def tensor_decoder(dct):
+    for t_name in ['boxes', 'mask', 'scores', 'keypoints', 'labels']:
+        if t_name in dct:
+            if t_name == 'labels':
+                dct[t_name] = torch.as_tensor(dct[t_name], dtype=torch.int64)
+            else:
+                dct[t_name] = torch.as_tensor(dct[t_name])
+
+            if t_name == 'boxes':
+                dct[t_name] = torch.reshape(dct[t_name], shape=(-1, 4))
+            # TODO: implement mask shape
+
+    return dct
+
+
+def save_eval_output_to_json(model_output, json_path):
+    print('Saving JSON output to', json_path)
+    with open(str(json_path), 'w') as f:
+        json.dump(model_output, f, cls=TensorEncoder)
+    print('Result correctly saved')
+
+
+def evaluate_from_json(lvis_api_container, json_path, iou_types=['bbox']):
+    lvis_api = get_detection_api_from_dataset(lvis_api_container)
+
+    print('Loading JSON output from', json_path)
+    with open(str(json_path), 'r') as f:
+        res = json.load(f, object_hook=tensor_decoder)
+
+    print('Outputs correctly loaded')
+    lvis_evaluator = LvisEvaluator(lvis_api, iou_types)
+    for r in res:
+        # Convert keys from str to int (JSON forces str as key type)
+        r = {int(k): v for k, v in r.items()}
+        lvis_evaluator.update(r)
+
+    lvis_evaluator.evaluate()
+    lvis_evaluator.summarize()
+    return lvis_evaluator
 
 
 if __name__ == "__main__":
