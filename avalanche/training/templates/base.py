@@ -26,7 +26,7 @@ class BaseTemplate:
 
     """
 
-    # we need this only for type checking
+    # For type checking and generating compatibility warnings
     PLUGIN_CLASS = BasePlugin
 
     def __init__(
@@ -199,9 +199,10 @@ class BaseTemplate:
             if not cb_p.issubset(cb_supported):
                 warnings.warn(
                     f"Plugin {p} implements incompatible callbacks for template"
-                    f" {self}. This may result in errors."
+                    f" {self}. This may result in errors.\n"
+                    f"The following are not supported:\n"
+                    + "".join([f"  {x}\n" for x in cb_p.difference(cb_supported)])
                 )
-                return
 
     #########################################################
     # Plugin Triggers                                       #

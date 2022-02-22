@@ -61,6 +61,9 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     """
 
+    # For type checking and generating compatibility warnings
+    PLUGIN_CLASS = SupervisedPlugin
+
     def __init__(
         self,
         model: Module,
@@ -70,7 +73,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
