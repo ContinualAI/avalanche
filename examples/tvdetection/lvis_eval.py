@@ -6,7 +6,8 @@ import numpy as np
 import pycocotools.mask as mask_util
 import torch
 import torch.distributed as dist
-from lvis_api import LVISEval, LVISResults, LVIS
+# from lvis_api import LVISEval, LVISResults, LVIS
+from lvis import LVISEval, LVISResults, LVIS
 
 
 class LvisEvaluator:
