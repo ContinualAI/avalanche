@@ -195,7 +195,9 @@ def evaluate(model, data_loader, device, export_predictions=False):
 def get_detection_api_from_dataset(dataset):
     # Lorenzo: adapted to support LVIS and AvalancheDataset
     for _ in range(10):
-        if isinstance(dataset, CocoDetection):
+        if isinstance(dataset, (LVIS, COCO)):
+            return dataset
+        elif isinstance(dataset, CocoDetection):
             break
         elif hasattr(dataset, 'lvis_api'):
             break

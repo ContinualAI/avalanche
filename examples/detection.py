@@ -76,8 +76,11 @@ def main(args):
         n_experiences=n_exps,
         train_transform=train_transform,
         eval_transform=test_transform)
-
     # ---------
+
+    if args.results_path is not None:
+        # Only compute metrics on pre-computed model outputs
+        return verify_output_only(args, benchmark)
 
     # MODEL CREATION
     # load a model pre-trained on COCO
@@ -167,12 +170,29 @@ def main(args):
         # results.append(cl_strategy.eval(scenario.test_stream))
         eval_result, all_predictions = evaluate(
             model, data_loader, device=device, export_predictions=True)
-        if isinstance(eval_result, CocoEvaluator):
-            raise ValueError('Unsupported at the moment')
-        elif isinstance(eval_result['bbox'], LVISEval):
-            save_eval_output_to_json(all_predictions, 'lvis_res.json')
-            evaluate_from_json(data_loader, 'lvis_res.json')
+
+        save_eval_output_to_json(all_predictions, 'lvis_res.json')
         break
+
+
+def verify_output_only(args, benchmark):
+    results_path = args.results_path
+    print("Computing accuracy on the whole test set")
+
+    lvis_eval = evaluate_from_json(
+        benchmark.test_stream[0].dataset, results_path, iou_types=['bbox'])
+
+    # Encode metrics in CodaLab output format
+    bbox_eval = lvis_eval.lvis_eval_per_iou['bbox']
+    score_str = ''
+    ordered_keys = sorted(bbox_eval.results.keys())
+    for key in ordered_keys:
+        value = bbox_eval.results[key]
+        score_str += '{}: {:.5f}\n'.format(key, value)
+
+    score_str = score_str[:-1]  # Remove final \n
+    print(score_str)
+    return 0
 
 
 def detection_collate_fn(batch):
@@ -397,6 +417,12 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
+    parser.add_argument(
+        "--results_path",
+        type=str,
+        default=None,
+        help='Path to the file containing the model output for the val set'
     )
     args = parser.parse_args()
     main(args)
