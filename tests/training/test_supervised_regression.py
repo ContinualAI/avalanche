@@ -28,6 +28,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.scenarios import Experience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.core import FittingEvents
 from avalanche.models import DynamicModule, SimpleMLP, MTSimpleMLP
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_forward
@@ -462,7 +463,7 @@ class PeriodicEval:
             self._maybe_peval(strategy, strategy.clock.train_exp_iterations)
 
 
-class StoreLosses:
+class StoreLosses(FittingEvents):
     def __init__(self):
         self.values = []
 

@@ -5,7 +5,7 @@ import torch
 from torch.nn import Module
 
 from avalanche.benchmarks import Experience
-from avalanche.core import BasePlugin
+from avalanche.core import BasePlugin, Plugin
 from avalanche.training.utils import trigger_plugins
 
 
@@ -26,14 +26,13 @@ class BaseTemplate:
 
     """
 
-    # For type checking and generating compatibility warnings
-    PLUGIN_CLASS = BasePlugin
+    PLUGIN_TYPE = BasePlugin
 
     def __init__(
         self,
         model: Module,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
+        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
     ):
         """Init."""
 
@@ -43,7 +42,8 @@ class BaseTemplate:
         self.device = device
         """ PyTorch device where the model will be allocated. """
 
-        self.plugins = [] if plugins is None else plugins
+        self.plugins: Sequence[BaseTemplate.CompatiblePlugin] \
+            = [] if plugins is None else plugins
         """ List of `SupervisedPlugin`s. """
 
         # check plugin compatibility
@@ -181,27 +181,21 @@ class BaseTemplate:
         This means checking that each plugin impements a subset of the
         supported callbacks.
         """
-        # TODO: ideally we would like to check the argument's type to check
-        #  that it's a supertype of the template.
-        # I don't know if it's possible to do it in Python.
-        ps = self.plugins
 
-        def get_plugins_from_object(obj):
-            def is_callback(x):
-                return x.startswith("before") or \
-                       x.startswith("after")
-            return filter(is_callback, dir(obj))
+        supported_features = self.PLUGIN_TYPE.features()
+        for plugin in self.plugins:
+            assert isinstance(plugin, Plugin), \
+                f"{type(plugin)} should inherit from {Plugin}"
 
-        cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))
-        for p in ps:
-            cb_p = set(get_plugins_from_object(p))
+            plugin_features = plugin.features()
 
-            if not cb_p.issubset(cb_supported):
+            if not plugin_features.issubset(supported_features):
+                unsupported = plugin_features.difference(supported_features)
                 warnings.warn(
-                    f"Plugin {p} implements incompatible callbacks for template"
-                    f" {self}. This may result in errors.\n"
-                    f"The following are not supported:\n"
-                    + "".join([f"  {x}\n" for x in cb_p.difference(cb_supported)])
+                    f"{plugin} contains features unsupported by {self}. "
+                    f"Remove the following unsported features {unsupported}\n"
+                    "Alternaively attach the plugin to a different strategy "
+                    "that does support the unsported features"
                 )
 
     #########################################################

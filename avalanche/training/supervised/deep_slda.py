@@ -3,8 +3,8 @@ from typing import Optional, Sequence
 
 import os
 import torch
+from avalanche.core import EvalEvents, FittingEvents, TrainingEvents
 
-from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.models.dynamic_modules import MultiTaskModule
@@ -24,6 +24,11 @@ class StreamingLDA(SupervisedTemplate):
     https://openaccess.thecvf.com/content_CVPRW_2020/papers/w15/Hayes_Lifelong_Machine_Learning_With_Deep_Streaming_Linear_Discriminant_Analysis_CVPRW_2020_paper.pdf
     """
 
+    class StreamingLDAPlugin(TrainingEvents, EvalEvents, FittingEvents):
+        pass
+
+    PLUGIN_TYPE = StreamingLDAPlugin
+
     def __init__(
         self,
         slda_model,
@@ -37,7 +42,7 @@ class StreamingLDA(SupervisedTemplate):
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
     ):

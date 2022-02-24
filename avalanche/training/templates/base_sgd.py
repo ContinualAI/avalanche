@@ -1,12 +1,12 @@
 from typing import Sequence, Optional, Union
-from avalanche.core import BaseSGDPlugin
+from avalanche.core import BaseSGDPlugin, SupervisedPlugin
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks import Experience
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate
@@ -37,7 +37,7 @@ class BaseSGDTemplate(BaseTemplate):
     """
 
     # For type checking and generating compatibility warnings
-    PLUGIN_CLASS = BaseSGDPlugin
+    PLUGIN_TYPE = BaseSGDPlugin
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class BaseSGDTemplate(BaseTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
+        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",

@@ -8,6 +8,7 @@ from torch.optim import Optimizer
 
 from avalanche.benchmarks import Experience
 from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.core import BasePlugin, BaseSGDPlugin
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -15,6 +16,10 @@ from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class SupervisedOnlineTemplate(SupervisedTemplate):
+
+    # For type checking and generating compatibility warnings
+    PLUGIN_TYPE = SupervisedPlugin
+
     def __init__(
         self,
         model: Module,
@@ -24,7 +29,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         train_mb_size: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,
+        plugins: Optional[List[PLUGIN_TYPE]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
