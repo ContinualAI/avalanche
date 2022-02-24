@@ -25,7 +25,7 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.lvis.lvis_data import lvis_archives
-from lvis import LVIS
+from lvis_api import LVIS
 import torch
 
 
