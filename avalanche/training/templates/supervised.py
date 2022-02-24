@@ -126,11 +126,6 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
 
     @property
-    def is_eval(self):
-        """True if the strategy is in evaluation mode."""
-        return not self.is_training
-
-    @property
     def mb_x(self):
         """Current mini-batch input."""
         return self.mbatch[0]

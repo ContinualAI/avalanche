@@ -4,7 +4,8 @@ import time
 
 import torch
 import torchvision.models.detection.mask_rcnn
-from lvis_api import LVIS
+# from lvis_api import LVIS
+from lvis import LVIS
 from pycocotools.coco import COCO
 from torch.utils.data import Subset
 
