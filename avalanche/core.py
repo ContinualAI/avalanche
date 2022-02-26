@@ -1,4 +1,4 @@
-from typing import Set, TypeVar, Generic
+from typing import Set, TypeVar, Generic, Type
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -8,77 +8,95 @@ CallbackResult = TypeVar("CallbackResult")
 Template = TypeVar("Template", covariant=True)
 
 
+FeatureSet = Set[Type['Plugin']]
+"""
+A feature set is a set of classes (inheriting from `Plugin`) that are used to 
+communicate the requirements of a plugin to a strategy.
+"""
+
+
 class Plugin():
     """
-    A plugin is simply an object implementing some strategy callbacks.
+    A plugin is used to add functionality to a strategy.
 
-    Callbacks provide access before/after each phase of the execution.
+    To create your own plugin you should inherit from one or more plugin
+    subclasses. ::
+
+        class MyPlugin(TrainingEvents, RequiresSGD):
+            def before_training(self, strategy, *args, **kwargs):
+                pass
+
+    Plugins typically provide access before/after each phase of the execution.
     In general, for each method of the training and evaluation loops,
     Most callbacks provide two functions `before_{method}` and 
     `after_{method}`, called before and after the method, respectively.
-    Therefore plugins can "inject" additional code by implementing callbacks.
-    Each callback has a `strategy` argument that gives access to the state.
 
     In Avalanche, callbacks are used to implement continual strategies, metrics
     and loggers.
 
     Continual learning strategies are diverse and as such not all plugin are 
-    compatible with all strategies. Therefore the `Plugin` class tracks
-    interfaces that a plugin requires. At runtime the plugin checks this feature
-    set to see if any unsupported features exist. When creating a plugin
-    simply inherit from the plugin features you need. ::
+    compatible with all strategies. Therefore the `Plugin` class automatically
+    tracks the features that a plugin requires. 
+    
+    For example `MyPlugin` requires that the strategy calls the callbacks in
+    defined by `TrainingEvents` and that the strategy uses SGD (not all 
+    strategies use SGD!). ::
 
-        class MyPlugin(TrainingEvents, RequiresSGD):
-            pass
+        MyPlugin.required_featureset() == {TrainingEvents, RequiresSGD}
 
-    As an advanced feature you may register a plugin as requiring 
-    implementation by a continual learning strategy it should inherit from
-    `Plugin` and be decorated with `@Plugin.requires_compatibility`. ::
-
-        @Plugin.requires_compatibility
-        class MyPlugin(Plugin):
-
-            def new_callback():
-                pass
+    At runtime a warning will be generated in the event an incompatible `Plugin`
+    is used.
     """
-    
-    # _features is a set of classes that must be supported for the plugin to
-    # be usable
-    _features: Set['Plugin'] = set()
 
-    def __init_subclass__(cls) -> None:
-        """
-        When inheriting from one or more `Plugin`s the plugin also inherit the
-        union of its required features. 
-        """
-        for base in cls.__bases__:
-            if issubclass(base, Plugin):
-                cls._features = cls._features.copy()
-                cls._features = cls._features.union(base._features)
-    
     @classmethod
-    def features(cls) -> Set['Plugin']:
+    def required_featureset(cls) -> FeatureSet:
         """
-        Returns a set of classes that a strategy should be compatible with
+        Returns a set of classes that need to be explicitly supported by the
+        strategy for the `Plugin` to be compatible. 
         """
-        return cls._features.copy()
+        return set()
 
     @staticmethod
-    def requires_compatibility(cls: 'Plugin'):
+    def make_required_feature(feature_cls: Type['Plugin']) -> Type['Plugin']:
         """
-        For defining a class as implementing new features that require 
-        compatibility with the continual learning strategy.
+        Decorator to note that a `Plugin` requires a strategy to explicitly
+        support it.
+
+        ::
+
+            @Plugin.make_required_feature
+            class FeatureA(Plugin):
+                pass
+
+            @Plugin.make_required_feature
+            class FeatureB(Plugin):
+                pass
+
+            class MyPlugin(FeatureA, FeatureB):
+                pass
+            
+            MyPlugin.required_featureset() == {FeatureA, FeatureB}
         """
-        assert issubclass(cls, Plugin), f"{cls} must be a {Plugin}"
-        cls._features = cls._features.copy()   
-        cls._features.add(cls)
-        return cls
+
+        """
+        Attach a class method to recursively build a FeatureSet. Since we take
+        the union of the sets this can be used safely regardless of the method
+        resolution order.
+        """
+        assert issubclass(feature_cls, Plugin), \
+            f"{feature_cls} must inherit from {Plugin}"
+
+        def _add_feature(cls: Type['Plugin']) -> FeatureSet:
+            feature_set = super(feature_cls, cls).required_featureset()
+            return feature_set.union({feature_cls})
+        feature_cls.required_featureset = classmethod(_add_feature)
+        return feature_cls
 
 
-@Plugin.requires_compatibility
+@Plugin.make_required_feature
 class TrainingEvents(Generic[Template], Plugin):
-    """Defines the basic events used for training a model. Requires support by
-    the strategy to be used.
+    """Defines the basic events used for training a model. Requires explicit
+    support from a strategy to be attached.
 
     See `BaseSGDTemplate` for complete description of the train/eval loop.
     See `Plugin` for overview of how plugins work.
@@ -104,11 +122,11 @@ class TrainingEvents(Generic[Template], Plugin):
         pass
 
 
-@Plugin.requires_compatibility
+@Plugin.make_required_feature
 class EvalEvents(Generic[Template], Plugin):
     """
-    Defines the basic events used for evaluating a model. Requires support by
-    the strategy to be used.
+    Defines the basic events used for evaluating a model. Requires explicit
+    support from a strategy to be attached.
 
     See `BaseSGDTemplate` for complete description of the train/eval loop.
     See `Plugin` for overview of how plugins work.
@@ -137,10 +155,10 @@ class EvalEvents(Generic[Template], Plugin):
         pass
 
 
-@Plugin.requires_compatibility
+@Plugin.make_required_feature
 class FittingEvents(Generic[Template], Plugin):
-    """Defines the events for fitting a model. Requires support by
-    the strategy to be used.
+    """Defines the events for fitting a model. Requires explicit
+    support from a strategy to be attached.
 
     See `BaseSGDTemplate` for complete description of the train/eval loop.
     See `Plugin` for overview of how plugins work.
@@ -237,17 +255,17 @@ class FittingEvents(Generic[Template], Plugin):
         pass
 
 
-@Plugin.requires_compatibility
-class RequiresSGD(Plugin):
+@Plugin.make_required_feature
+class RequireSGD(Plugin):
     """
     Marker interface used to indicate that a plugin requires the strategy to 
-    use SGD. Requires support by the strategy to be used.
+    use SGD. Requires explicit support from a strategy to be attached.
 
     See `Plugin` for overview of how plugins work.
     """
 
 
-@Plugin.requires_compatibility
+@Plugin.make_required_feature
 class DatasetAdaptationEvents(Generic[Template], Plugin):
     """Defines the events for dataset adapatation plugins. Requires support by
     the strategy to be used.
@@ -288,7 +306,7 @@ class BasePlugin(TrainingEvents, EvalEvents):
     """
 
 
-class BaseSGDPlugin(TrainingEvents, EvalEvents, FittingEvents, RequiresSGD):
+class BaseSGDPlugin(TrainingEvents, EvalEvents, FittingEvents, RequireSGD):
     """
     `BaseSGDPlugin` is a `Plugin` that requires a continual learning strategy
     to support `TrainingEvents`, `EvalEvents`, `FittingEvents`, and requires

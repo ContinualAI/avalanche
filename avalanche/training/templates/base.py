@@ -5,7 +5,7 @@ import torch
 from torch.nn import Module
 
 from avalanche.benchmarks import Experience
-from avalanche.core import BasePlugin, Plugin
+from avalanche.core import FeatureSet, BasePlugin, Plugin
 from avalanche.training.utils import trigger_plugins
 
 
@@ -26,13 +26,11 @@ class BaseTemplate:
 
     """
 
-    PLUGIN_TYPE = BasePlugin
-
     def __init__(
         self,
         model: Module,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
+        plugins: Optional[Sequence[BasePlugin]] = None,
     ):
         """Init."""
 
@@ -42,7 +40,7 @@ class BaseTemplate:
         self.device = device
         """ PyTorch device where the model will be allocated. """
 
-        self.plugins: Sequence[BaseTemplate.CompatiblePlugin] \
+        self.plugins: Sequence[Plugin] \
             = [] if plugins is None else plugins
         """ List of `SupervisedPlugin`s. """
 
@@ -175,6 +173,14 @@ class BaseTemplate:
                 # model's adaptation. We set it to train mode.
                 layer.train()
 
+    @classmethod
+    def compatible_featureset(cls) -> FeatureSet:
+        """
+        Returns a set of classes (inheriting from `Plugin`) representing 
+        compatibility. See `Plugin` for more information.
+        """
+        return BasePlugin.required_featureset()
+
     def __check_plugin_compatibility(self):
         """Check that the list of plugins is compatible with the template.
 
@@ -182,18 +188,19 @@ class BaseTemplate:
         supported callbacks.
         """
 
-        supported_features = self.PLUGIN_TYPE.features()
+        supported_features = self.compatible_featureset()
         for plugin in self.plugins:
             assert isinstance(plugin, Plugin), \
                 f"{type(plugin)} should inherit from {Plugin}"
 
-            plugin_features = plugin.features()
+            plugin_features = plugin.required_featureset()
 
             if not plugin_features.issubset(supported_features):
                 unsupported = plugin_features.difference(supported_features)
                 warnings.warn(
-                    f"{plugin} contains features unsupported by {self}. "
-                    f"Remove the following unsported features {unsupported}\n"
+                    f"{type(plugin)} contains features unsupported by "
+                    f"{type(self)}. Remove the following unsported features:"
+                    f"\n{unsupported}\n"
                     "Alternaively attach the plugin to a different strategy "
                     "that does support the unsported features"
                 )

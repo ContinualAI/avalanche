@@ -5,6 +5,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.core import FeatureSet
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -61,9 +62,6 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     """
 
-    # For type checking and generating compatibility warnings
-    PLUGIN_TYPE = SupervisedPlugin
-
     def __init__(
         self,
         model: Module,
@@ -73,7 +71,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
+        plugins: Optional[Sequence[SupervisedPlugin]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -270,6 +268,10 @@ class SupervisedTemplate(BaseSGDTemplate):
         # This allows to add new parameters (new heads) and
         # freezing old units during the model's adaptation phase.
         reset_optimizer(self.optimizer, self.model)
+
+    @classmethod
+    def compatible_featureset(cls) -> FeatureSet:
+        return SupervisedPlugin.required_featureset()
 
     #########################################################
     # Plugin Triggers                                       #

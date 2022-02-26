@@ -1,5 +1,5 @@
 from typing import Sequence, Optional, Union
-from avalanche.core import BaseSGDPlugin, SupervisedPlugin
+from avalanche.core import (FeatureSet, BaseSGDPlugin, SupervisedPlugin)
 
 import torch
 from torch.nn import Module
@@ -36,9 +36,6 @@ class BaseSGDTemplate(BaseTemplate):
 
     """
 
-    # For type checking and generating compatibility warnings
-    PLUGIN_TYPE = BaseSGDPlugin
-
     def __init__(
         self,
         model: Module,
@@ -47,7 +44,7 @@ class BaseSGDTemplate(BaseTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
+        plugins: Optional[Sequence[BaseSGDPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -265,6 +262,10 @@ class BaseSGDTemplate(BaseTemplate):
         """Move to device"""
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
+
+    @classmethod
+    def compatible_featureset(cls) -> FeatureSet:
+        return BaseSGDPlugin.required_featureset()
 
     #########################################################
     # Plugin Triggers                                       #

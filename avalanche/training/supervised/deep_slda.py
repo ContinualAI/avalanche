@@ -3,7 +3,7 @@ from typing import Optional, Sequence
 
 import os
 import torch
-from avalanche.core import EvalEvents, FittingEvents, TrainingEvents
+from avalanche.core import EvalEvents, FeatureSet, FittingEvents, TrainingEvents
 
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -27,8 +27,6 @@ class StreamingLDA(SupervisedTemplate):
     class StreamingLDAPlugin(TrainingEvents, EvalEvents, FittingEvents):
         pass
 
-    PLUGIN_TYPE = StreamingLDAPlugin
-
     def __init__(
         self,
         slda_model,
@@ -42,7 +40,7 @@ class StreamingLDA(SupervisedTemplate):
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_TYPE]] = None,
+        plugins: Optional[Sequence[StreamingLDAPlugin]] = None,
         evaluator=default_evaluator,
         eval_every=-1,
     ):
@@ -259,6 +257,10 @@ class StreamingLDA(SupervisedTemplate):
         self.cK = d["cK"].to(self.device)
         self.Sigma = d["Sigma"].to(self.device)
         self.num_updates = d["num_updates"]
+
+    @classmethod
+    def compatible_featureset(cls) -> FeatureSet:
+        return cls.StreamingLDAPlugin.required_featureset()
 
 
 __all__ = ["StreamingLDA"]
