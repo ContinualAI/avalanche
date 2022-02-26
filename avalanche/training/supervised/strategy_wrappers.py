@@ -19,6 +19,7 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     CWRStarPlugin,
     ReplayPlugin,
+    GenerativeReplayPlugin,
     GDumbPlugin,
     LwFPlugin,
     AGEMPlugin,
