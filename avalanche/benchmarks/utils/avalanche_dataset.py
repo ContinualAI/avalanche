@@ -505,7 +505,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                     [dataset_copy.target_transform, target_transform]
                 )
             else:
-                dataset_copy.target_transform = transform
+                dataset_copy.target_transform = target_transform
 
         return dataset_copy
 
