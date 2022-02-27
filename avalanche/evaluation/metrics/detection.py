@@ -7,7 +7,6 @@ from json import JSONEncoder
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name
-from avalanche.training.templates import SupervisedTemplate
 from examples.tvdetection.lvis_eval import LvisEvaluator
 from examples.tvdetection.engine import get_detection_api_from_dataset
 
@@ -82,8 +81,8 @@ class LvisMetrics(PluginMetric[str]):
             self.current_outputs.append(res)
 
         # Ensure int keys
-        r = {int(k): v for k, v in res.items()}
-        self.lvis_evaluator.update(r)
+        # res = {int(k): v for k, v in res.items()}
+        self.lvis_evaluator.update(res)
 
     def result(self):
         if not self.no_save:
@@ -100,9 +99,10 @@ class LvisMetrics(PluginMetric[str]):
             value = bbox_eval.results[key]
             score_str += '{}: {:.5f}\n'.format(key, value)
         score_str = score_str[:-1]  # Remove final \n
+        print("******* ", score_str)
         return score_str
 
-    def before_eval_exp(self, strategy: "SupervisedTemplate") -> None:
+    def before_eval_exp(self, strategy) -> None:
         super().before_eval_exp(strategy)
 
         self.reset()
@@ -112,19 +112,15 @@ class LvisMetrics(PluginMetric[str]):
             self.lvis_evaluator = LvisEvaluator(lvis_api, self.iou_types)
         self.current_filename = self._get_filename(strategy)
 
-    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> None:
+    def after_eval_iteration(self, strategy) -> None:
         super().after_eval_iteration(strategy)
-        outputs = [{k: v.detach().cpu() for k, v in t.items()}
-                   for t in strategy.mb_output]
-        res = {target["image_id"].item(): output
-               for target, output in zip(strategy.mb_y, outputs)}
-        self.update(res)
+        self.update(strategy.res)
 
-    def after_eval_exp(self, strategy: "SupervisedTemplate"):
+    def after_eval_exp(self, strategy):
         super().after_eval_exp(strategy)
         return self._package_result(strategy)
 
-    def _package_result(self, strategy: "SupervisedTemplate"):
+    def _package_result(self, strategy):
         metric_name = get_metric_name(self, strategy, add_experience=True,
                                       add_task=False)
         plot_x_position = strategy.clock.train_iterations

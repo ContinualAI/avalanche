@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.core import SupervisedPlugin
 
 
 class Clock(SupervisedPlugin):

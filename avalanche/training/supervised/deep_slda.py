@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 import os
 import torch
 
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.core import SupervisedPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.models.dynamic_modules import MultiTaskModule

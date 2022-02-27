@@ -1,7 +1,7 @@
 import copy
 
 import torch
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.core import SupervisedPlugin
 from torch.nn import BCELoss
 import numpy as np
 

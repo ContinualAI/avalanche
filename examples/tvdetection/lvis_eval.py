@@ -15,8 +15,8 @@ class LvisEvaluator:
     def __init__(self, lvis_gt: LVIS, iou_types: List[str]):
         assert isinstance(iou_types, (list, tuple))
         self.lvis_gt = lvis_gt
-        if not isinstance(lvis_gt, LVIS):
-            raise TypeError('Unsupported LVIS object', lvis_gt)
+        #if not isinstance(lvis_gt, LVIS):
+        #    raise TypeError('Unsupported LVIS object', lvis_gt)
 
         self.iou_types = iou_types
         self.img_ids = []

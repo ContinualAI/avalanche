@@ -2,7 +2,7 @@ import warnings
 from typing import TYPE_CHECKING
 
 from avalanche.evaluation.metrics import Mean
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.core import SupervisedPlugin
 import inspect
 
 if TYPE_CHECKING:

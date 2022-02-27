@@ -21,7 +21,7 @@ from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
-    from avalanche.training.plugins import SupervisedPlugin
+    from avalanche.core import SupervisedPlugin
 
 
 class AlreadyTrainedError(Exception):

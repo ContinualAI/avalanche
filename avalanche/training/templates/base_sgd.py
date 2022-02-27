@@ -5,7 +5,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks import Experience
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate

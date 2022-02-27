@@ -2,7 +2,7 @@ import operator
 import warnings
 from copy import deepcopy
 
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.core import SupervisedPlugin
 
 
 class EarlyStoppingPlugin(SupervisedPlugin):

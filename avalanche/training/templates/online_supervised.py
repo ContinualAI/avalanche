@@ -9,7 +9,8 @@ from torch.optim import Optimizer
 from avalanche.benchmarks import Experience
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin
+from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
 
