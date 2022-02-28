@@ -181,7 +181,8 @@ class LVISLogger(BaseLogger):
             # TODO: print every print_freq. See MetricLogger.log_every
 
     def after_train_epoch(self, strategy, metric_values):
-        self.metric_logger.update(loss=strategy.losses_reduced, **strategy.loss_dict_reduced)
+        self.metric_logger.update(
+            loss=strategy.losses_reduced, **strategy.loss_dict_reduced)
         self.metric_logger.update(lr=strategy.optimizer.param_groups[0]["lr"])
 
 
@@ -234,7 +235,9 @@ def main(args):
 
     train_mb_size = 5
     warmup_factor = 1.0 / 1000
-    warmup_iters = min(1000, len(benchmark.train_stream[0].dataset) // train_mb_size - 1)
+    warmup_iters = min(
+        1000, len(benchmark.train_stream[0].dataset) // train_mb_size - 1
+    )
     lr_scheduler = torch.optim.lr_scheduler.LinearLR(
         optimizer, start_factor=warmup_factor, total_iters=warmup_iters
     )
