@@ -26,7 +26,7 @@ lvis_archives = [
         "http://images.cocodataset.org/zips/val2017.zip",
         "442b8da7639aecaf257c1dceb8ba8c80"),
     (
-        "train2017.zip",  # Training set annotations
+        "train2017.zip",  # Training set images
         "http://images.cocodataset.org/zips/train2017.zip",
         "cced6f7f71b7629ddf16f17bbcfab6b2")
 ]

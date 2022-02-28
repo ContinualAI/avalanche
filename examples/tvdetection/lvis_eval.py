@@ -1,12 +1,12 @@
 import copy
 import itertools
+import logging
 from typing import List
 
 import numpy as np
 import pycocotools.mask as mask_util
 import torch
 import torch.distributed as dist
-# from lvis_api import LVISEval, LVISResults, LVIS
 from lvis import LVISEval, LVISResults, LVIS
 
 
@@ -58,7 +58,7 @@ class LvisEvaluator:
 
             eval_imgs = [lvis_res['image_id'] for lvis_res in all_preds]
 
-            gt_subset = self.lvis_gt.make_subset(eval_imgs)
+            gt_subset = LvisEvaluator._make_lvis_subset(self.lvis_gt, eval_imgs)
 
             for iou_type in self.iou_types:
                 print('Evaluating for iou', iou_type)
@@ -142,6 +142,48 @@ class LvisEvaluator:
                 lvis_results.append(lvis_pred)
 
         return lvis_results
+
+    @staticmethod
+    def _make_lvis_subset(lvis_gt, img_ids):
+        img_ids = set(img_ids)
+
+        subset = dict()
+        subset['categories'] = list(lvis_gt.dataset["categories"])
+
+        subset_imgs = []
+        for img in lvis_gt.dataset["images"]:
+            if img["id"] in img_ids:
+                subset_imgs.append(img)
+        subset['images'] = subset_imgs
+
+        subset_anns = []
+        for ann in lvis_gt.dataset["annotations"]:
+            if ann["image_id"] in img_ids:
+                subset_anns.append(ann)
+        subset['annotations'] = subset_anns
+
+        return DictLVIS(subset)
+
+
+class DictLVIS(LVIS):
+    """
+    Child class of LVIS that allows for the creation of LVIS objects from
+    a dictionary.
+    """
+
+    def __init__(self, annotation_dict):
+        """Class for reading and visualizing annotations.
+        Args:
+            annotation_dict (dict): annotations
+        """
+        self.logger = logging.getLogger(__name__)
+        self.dataset = annotation_dict
+
+        assert (
+                type(self.dataset) == dict
+        ), "Annotation file format {} not supported.".format(
+            type(self.dataset))
+        self._create_index()
 
 
 def convert_to_xywh(boxes):

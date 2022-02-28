@@ -33,3 +33,4 @@ dependencies:
     - gdown
     - ctrl-benchmark
     - gym
+    - lvis

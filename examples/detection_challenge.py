@@ -63,13 +63,14 @@ class NaiveObjectDetection(BaseSGDTemplate):
             collate_fn=detection_collate_fn
         )
 
-    def make_eval_dataloader(self, **kwargs):
+    def make_eval_dataloader(self, num_workers=4, **kwargs):
         """Assign dataloader to self.dataloader."""
         self.dataloader = DataLoader(
             self.experience.dataset,
             batch_size=self.eval_mb_size,
             shuffle=False,
-            drop_last=False, num_workers=4,
+            drop_last=False,
+            num_workers=num_workers,
             collate_fn=detection_collate_fn
         )
 
@@ -194,7 +195,6 @@ def main(args):
     # ---------
 
     # --- TRANSFORMATIONS
-    # TODO: implement support for multi-parameter transforms in AvalancheDataset
     train_transform = ToTensor()
     test_transform = ToTensor()
     # ---------
@@ -253,7 +253,7 @@ def main(args):
         ],
         evaluator=EvaluationPlugin(
             ElapsedTime(),
-            LvisMetrics(save_folder='/home/acossu/lvis_test'),
+            LvisMetrics(save_folder='./model_outputs'),
             loggers=[lvis_logger, InteractiveLogger()])
     )
 
@@ -271,11 +271,8 @@ def main(args):
         cl_strategy.train(experience)
         print("Training completed")
 
-        # TODO: Just run the eval on a small set (otherwise it takes ages to
-        # complete)
         cl_strategy.eval(benchmark.test_stream[0])
-        # TODO: evaluate(model, data_loader, device=device)
-        # Antonio: part of the logic there goes inside a logger/metric.
+        # evaluate(model, data_loader, device=device)
 
 
 def detection_collate_fn(batch):
