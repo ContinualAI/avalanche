@@ -268,7 +268,7 @@ def main(args):
         print("Start of experience: ", experience.current_experience)
         print('Dataset contains', len(experience.dataset), 'instances')
 
-        # cl_strategy.train(experience)
+        cl_strategy.train(experience)
         print("Training completed")
 
         # TODO: Just run the eval on a small set (otherwise it takes ages to
