@@ -60,9 +60,10 @@ class LvisMetrics(PluginMetric[str]):
         self.save_folder = save_folder
         self.filename_prefix = filename_prefix
         self.iou_types = iou_types
-        self.lvis_evaluator = None
 
+        self.lvis_evaluator = None
         """Main LVIS evaluator object to compute metrics"""
+
         self.current_filename = None
         """File containing current model dump"""
 
@@ -79,9 +80,6 @@ class LvisMetrics(PluginMetric[str]):
     def update(self, res):
         if not self.no_save:
             self.current_outputs.append(res)
-
-        # Ensure int keys
-        # res = {int(k): v for k, v in res.items()}
         self.lvis_evaluator.update(res)
 
     def result(self):
@@ -106,10 +104,9 @@ class LvisMetrics(PluginMetric[str]):
         super().before_eval_exp(strategy)
 
         self.reset()
-        if self.lvis_evaluator is None:  # only for the first experience
-            lvis_api = get_detection_api_from_dataset(
-                strategy.experience.dataset)
-            self.lvis_evaluator = LvisEvaluator(lvis_api, self.iou_types)
+        lvis_api = get_detection_api_from_dataset(
+            strategy.experience.dataset)
+        self.lvis_evaluator = LvisEvaluator(lvis_api, self.iou_types)
         self.current_filename = self._get_filename(strategy)
 
     def after_eval_iteration(self, strategy) -> None:
