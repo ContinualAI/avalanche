@@ -14,11 +14,31 @@ from typing import List, Optional, TYPE_CHECKING, Tuple, Union
 from PIL.Image import Image
 from matplotlib.figure import Figure
 from torch import Tensor
+from enum import Enum
 
 if TYPE_CHECKING:
     from .metric_definitions import Metric
 
 MetricResult = Optional[List["MetricValue"]]
+
+
+class LoggingType(Enum):
+    """A type for MetricValues.
+
+    It can be used by MetricValues to choose how they want to be visualize.
+    For example, a 2D tensor could be a line plot or be used to create a
+    histogram.
+    """
+    ANY = 1  # generic type. The logger will use the value type to decide how
+    # to serialize it.
+    IMAGE = 2
+    FIGURE = 3  # Matplotlib figure.
+    HISTOGRAM = 4
+    # you can add others here. All Tensorboard metrics are good candidates:
+    # https://pytorch.org/docs/stable/tensorboard.html
+    # just remember to add explicit support to the loggers once you add them.
+    # If a metric is already printed correctly by the loggers (e.g. scalars)
+    # there is no need to add it here.
 
 
 @dataclass
@@ -76,6 +96,7 @@ class MetricValue(object):
         name: str,
         value: Union[MetricType, AlternativeValues],
         x_plot: int,
+        logging_type: LoggingType = LoggingType.ANY,
     ):
         """
         Creates an instance of MetricValue.
@@ -95,11 +116,13 @@ class MetricValue(object):
         :param x_plot: The position of the value. This value roughly corresponds
             to the x-axis position of the value in a plot. When logging a
             singleton value, pass 0 as a value for this parameter.
+        :param logging_type: determines how the metric should be logged.
         """
         self.origin: "Metric" = origin
         self.name: str = name
         self.value: Union[MetricType, AlternativeValues] = value
         self.x_plot: int = x_plot
+        self.logging_type = logging_type
 
 
 __all__ = [
