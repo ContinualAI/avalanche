@@ -61,6 +61,11 @@ class BaseTemplate:
         self.current_eval_stream = None
         """ Current evaluation stream. """
 
+    @property
+    def is_eval(self):
+        """True if the strategy is in evaluation mode."""
+        return not self.is_training
+    
     def train(
         self,
         experiences: Union[Experience, Sequence[Experience]],
