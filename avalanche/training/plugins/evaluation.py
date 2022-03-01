@@ -147,15 +147,13 @@ class EvaluationPlugin:
             return []
 
         for metric in self.metrics:
-            try:
+            if hasattr(metric, callback):
                 metric_result = getattr(metric, callback)(strategy)
                 if isinstance(metric_result, Sequence):
                     for mval in metric_result:
                         self.publish_metric_value(mval)
                 elif metric_result is not None:
                     self.publish_metric_value(metric_result)
-            except AttributeError:
-                pass
 
         for logger in self.loggers:
             logger.log_metrics(self._metric_values)
