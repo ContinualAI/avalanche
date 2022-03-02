@@ -20,6 +20,8 @@ from avalanche.training.plugins import (
     CWRStarPlugin,
     ReplayPlugin,
     GenerativeReplayPlugin,
+    VAEPlugin,
+    trainGeneratorPlugin,
     GDumbPlugin,
     LwFPlugin,
     AGEMPlugin,
@@ -32,6 +34,7 @@ from avalanche.training.plugins import (
     LFLPlugin,
 )
 from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.models.generator import VAE, VAE_loss
 
 
 class Naive(SupervisedTemplate):
@@ -324,14 +327,24 @@ class GenerativeReplay(SupervisedTemplate):
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        """         self.generator = Generator
-                rp = GenerativeReplayPlugin(mem_size, generator=self.generator)
-                vaep = VAEPlugin()
-                if plugins is None:
-                    plugins = [rp, vaep]
-                else:
-                    plugins.append(rp)
-                    plugins.append(vaep) """
+
+        # By default we use a fully-connected VAE. The user should be able to input their own generator.
+        self.generator = VAE((1, 28, 28), nhid=2)
+        lr = 0.01
+        from torch.optim import Adam  # this should go to the model file
+        optimizer_generator = Adam(filter(
+            lambda p: p.requires_grad, self.generator.parameters()), lr=lr, weight_decay=0.0001)
+
+        gg = GenerativeReplayForGenerator(model=self.generator, optimizer=optimizer_generator, criterion=VAE_loss, train_mb_size=64, train_epochs=10,
+                                          eval_mb_size=32, device=device)
+        rp = GenerativeReplayPlugin(generator=gg)
+
+        tgp = trainGeneratorPlugin()
+        if plugins is None:
+            plugins = [tgp, rp]
+        else:
+            plugins.append(tgp)
+            plugins.append(rp)
 
         super().__init__(
             model,
@@ -395,6 +408,12 @@ class GenerativeReplayForGenerator(SupervisedTemplate):
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
+        vaep = VAEPlugin()
+        if plugins is None:
+            plugins = [vaep]
+        else:
+            plugins.append(vaep)
+
         self.model = model
         plugins.append(GenerativeReplayPlugin(generator=self))
         super().__init__(
