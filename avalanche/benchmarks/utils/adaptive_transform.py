@@ -115,6 +115,9 @@ class MultiParamTransform:
                 hasattr(transform_callable, 'max_params'):
             min_params = transform_callable.min_params
             max_params = transform_callable.max_params
+        elif MultiParamTransform._is_torchvision_transform(transform_callable):
+            min_params = 1
+            max_params = 1
         else:
             t_sig = signature(transform_callable)
             for param_name in t_sig.parameters:
@@ -142,6 +145,12 @@ class MultiParamTransform:
                 # elif param.kind == Parameter.VAR_KEYWORD  # **kwargs
                 # **kwargs can be safely ignored (they will be empty)
         return min_params, max_params
+
+    @staticmethod
+    def _is_torchvision_transform(transform_callable):
+        tc_class = transform_callable.__class__
+        tc_module = tc_class.__module__
+        return 'torchvision.transforms' in tc_module
 
 
 class ComposeMaxParamsWarning(Warning):

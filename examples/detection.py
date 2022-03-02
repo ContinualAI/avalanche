@@ -17,7 +17,7 @@ import logging
 
 # This sets the root logger to write to stdout (your console).
 # Your script/app needs to call this somewhere at least once.
-from avalanche.benchmarks.datasets.lvis.lvis import LvisDataset
+from avalanche.benchmarks.datasets.lvis.lvis_dataset import LvisDataset
 
 logging.basicConfig(level=logging.NOTSET)
 

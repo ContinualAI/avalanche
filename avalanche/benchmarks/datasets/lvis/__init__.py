@@ -1,1 +1,1 @@
-from .lvis import *
+from .lvis_dataset import *

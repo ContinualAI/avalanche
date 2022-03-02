@@ -285,7 +285,8 @@ if __name__ == "__main__":
     dataloader = DataLoader(train_data, batch_size=1,
                             collate_fn=_detection_collate_fn)
 
-    for batch_data in dataloader:
+    n_to_show = 5
+    for instance_idx, batch_data in enumerate(dataloader):
         x, y = batch_data
         x = x[0]
         y = y[0]
@@ -293,7 +294,8 @@ if __name__ == "__main__":
         plt.show()
         print('X image shape', x.shape)
         print('N annotations:', len(y['boxes']))
-        break
+        if (instance_idx + 1) >= n_to_show:
+            break
 
 __all__ = [
     "LvisDataset",
