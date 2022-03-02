@@ -276,6 +276,7 @@ class Replay(SupervisedTemplate):
             **base_kwargs
         )
 
+
 class GenerativeReplay(SupervisedTemplate):
     """Naive finetuning.
 
@@ -297,7 +298,7 @@ class GenerativeReplay(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,  #Optional
+        plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -323,14 +324,14 @@ class GenerativeReplay(SupervisedTemplate):
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        '''         self.generator = Generator
+        """         self.generator = Generator
                 rp = GenerativeReplayPlugin(mem_size, generator=self.generator)
                 vaep = VAEPlugin()
                 if plugins is None:
                     plugins = [rp, vaep]
                 else:
                     plugins.append(rp)
-                    plugins.append(vaep) '''
+                    plugins.append(vaep) """
 
         super().__init__(
             model,
@@ -345,7 +346,8 @@ class GenerativeReplay(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
-    
+
+
 class GenerativeReplayForGenerator(SupervisedTemplate):
     """Naive finetuning.
 
@@ -367,7 +369,7 @@ class GenerativeReplayForGenerator(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,  #Optional
+        plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -404,14 +406,15 @@ class GenerativeReplayForGenerator(SupervisedTemplate):
             eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
-            #evaluator=evaluator,
+            # evaluator=evaluator,
             eval_every=eval_every,
             **base_kwargs
         )
 
     def criterion(self):
         """Loss function."""
-        return self._criterion(self.mb_x ,self.mb_x_recon, self.mean, self.logvar)
+        return self._criterion(self.mb_x, self.mb_x_recon, 
+                               self.mean, self.logvar)
 
 
 class GSS_greedy(SupervisedTemplate):
