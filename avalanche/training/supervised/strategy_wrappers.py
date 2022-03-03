@@ -281,15 +281,17 @@ class Replay(SupervisedTemplate):
 
 
 class GenerativeReplay(SupervisedTemplate):
-    """Naive finetuning.
+    """Generative Replay Strategy
 
-    The simplest (and least effective) Continual Learning strategy. Naive just
-    incrementally fine tunes a single model without employing any method
-    to contrast the catastrophic forgetting of previous knowledge.
+    This implements Deep Generative Replay for a Scholar consisting of a Solver,
+    and Generator as described in https://arxiv.org/abs/1705.08690.
+
+    For the case where the Generator is the model itself that is to be trained,
+    please simply add the GenerativeReplayPlugin(generator=self) to 
+    your Generator's strategy, similar like in the VAETraining class.
+
+    See GenerativeReplayPlugin for more details.
     This strategy does not use task identities.
-
-    Naive is easy to set up and its results are commonly used to show the worst
-    performing baseline.
     """
 
     def __init__(
@@ -307,7 +309,8 @@ class GenerativeReplay(SupervisedTemplate):
         **base_kwargs
     ):
         """
-        Creates an instance of the Naive strategy.
+        Creates an instance of SupervisedTemplate with the appropriate plugins
+        for generative replay.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -328,21 +331,26 @@ class GenerativeReplay(SupervisedTemplate):
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
-        # Check if user inputs a generator model
+        # Check if user inputs a generator model 
+        # (which is already wrapped in a strategy, see VAETraining as example)
         if 'generator' in base_kwargs:
-            self.generator = base_kwargs['generator']
+            self.generator_strategy = base_kwargs['generator']
         else:
             # By default we use a fully-connected VAE.
-            self.generator = VAE((1, 28, 28), nhid=2)
+            lr = 0.01
+            from torch.optim import Adam  # this should go to the model file
+            optimizer_generator = Adam(filter(
+                lambda p: p.requires_grad, self.generator.parameters()), lr=lr,
+                 weight_decay=0.0001)
+            generator = VAE((1, 28, 28), nhid=2)
+            self.generator_strategy = VAETraining(
+                model=generator, 
+                optimizer=optimizer_generator,
+                criterion=VAE_loss, train_mb_size=64, 
+                train_epochs=10,
+                eval_mb_size=32, device=device)
 
-        lr = 0.01
-        from torch.optim import Adam  # this should go to the model file
-        optimizer_generator = Adam(filter(
-            lambda p: p.requires_grad, self.generator.parameters()), lr=lr, weight_decay=0.0001)
-
-        gg = GenerativeReplayForGenerator(model=self.generator, optimizer=optimizer_generator, criterion=VAE_loss, train_mb_size=64, train_epochs=10,
-                                          eval_mb_size=32, device=device)
-        rp = GenerativeReplayPlugin(generator=gg)
+        rp = GenerativeReplayPlugin(generator=self.generator_strategy)
 
         tgp = trainGeneratorPlugin()
 
@@ -367,16 +375,17 @@ class GenerativeReplay(SupervisedTemplate):
         )
 
 
-class GenerativeReplayForGenerator(SupervisedTemplate):
-    """Naive finetuning.
+class VAETraining(SupervisedTemplate):
+    """VAETraining class
 
-    The simplest (and least effective) Continual Learning strategy. Naive just
-    incrementally fine tunes a single model without employing any method
-    to contrast the catastrophic forgetting of previous knowledge.
-    This strategy does not use task identities.
+    This is the training strategy for the VAE model
+    found in the models directory.
+    The actual training loop is modified in the VAEPlugin,
+    go there for more details.
 
-    Naive is easy to set up and its results are commonly used to show the worst
-    performing baseline.
+    This class is meant to add this plugin and 
+    to overwrite the criterion function in order to pass all necessary variables
+    to the VAE loss function.
     """
 
     def __init__(
@@ -420,8 +429,10 @@ class GenerativeReplayForGenerator(SupervisedTemplate):
         else:
             plugins.append(vaep)
 
-        self.model = model
-        plugins.append(GenerativeReplayPlugin(generator=self))
+        if base_kwargs['generative_replay']:
+            self.model = model
+            plugins.append(GenerativeReplayPlugin(generator=self))
+
         super().__init__(
             model,
             optimizer,
@@ -431,7 +442,7 @@ class GenerativeReplayForGenerator(SupervisedTemplate):
             eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
-            # evaluator=evaluator,
+            evaluator=evaluator,
             eval_every=eval_every,
             **base_kwargs
         )

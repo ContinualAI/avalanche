@@ -37,7 +37,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
                            in memory
     """
 
-    def __init__(self, generator, mem_size: int = 200, batch_size: int = None,
+    def __init__(self, generator=None, mem_size: int = 200, batch_size: int = None,
                  batch_size_mem: int = None,
                  task_balanced_dataloader: bool = False,
                  untrained_solver: bool = True):
@@ -47,9 +47,21 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.batch_size_mem = batch_size_mem
         self.task_balanced_dataloader = task_balanced_dataloader
         self.generator_strategy = generator
-        self.generator = generator.model
+        if self.generator_strategy:
+            self.generator = generator.model
+        else: 
+            self.generator = None
         self.untrained_solver = untrained_solver
         self.classes_until_now = []
+
+    def before_training(self, strategy, *args, **kwargs):
+        """Called before `train` by the `BaseTemplate`."""
+        # If generator is None at this point, 
+        # we can take it that the strategy's model is the generator itself.
+        # This allows us to use easily use this Plugin for generator strategy
+        if not self.generator_strategy:
+            self.generator_strategy = strategy
+            self.generator = strategy.model
 
     def before_training_exp(self, strategy: "SupervisedTemplate",
                             num_workers: int = 0, shuffle: bool = True,
@@ -69,6 +81,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.untrained_solver = False
             return
         # self.classes_until_now = [class_id for exp_classes in self.classes_until_now for class_id in exp_classes]
+
         # Sample data from generator
         memory = self.generator.generate(
             len(strategy.adapted_dataset)*(len(self.classes_until_now)-1)).to(strategy.device)
