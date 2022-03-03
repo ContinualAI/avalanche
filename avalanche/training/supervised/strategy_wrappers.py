@@ -328,8 +328,13 @@ class GenerativeReplay(SupervisedTemplate):
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
-        # By default we use a fully-connected VAE. The user should be able to input their own generator.
-        self.generator = VAE((1, 28, 28), nhid=2)
+        # Check if user inputs a generator model
+        if 'generator' in base_kwargs:
+            self.generator = base_kwargs['generator']
+        else:
+            # By default we use a fully-connected VAE.
+            self.generator = VAE((1, 28, 28), nhid=2)
+
         lr = 0.01
         from torch.optim import Adam  # this should go to the model file
         optimizer_generator = Adam(filter(
@@ -340,6 +345,7 @@ class GenerativeReplay(SupervisedTemplate):
         rp = GenerativeReplayPlugin(generator=gg)
 
         tgp = trainGeneratorPlugin()
+
         if plugins is None:
             plugins = [tgp, rp]
         else:
