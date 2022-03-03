@@ -349,7 +349,9 @@ class GenerativeReplay(SupervisedTemplate):
                 optimizer=optimizer_generator,
                 criterion=VAE_loss, train_mb_size=64, 
                 train_epochs=10,
-                eval_mb_size=32, device=device, generative_replay=True)
+                eval_mb_size=32, device=device,
+                plugins=[GenerativeReplayPlugin()],
+                generative_replay=False)
 
         rp = GenerativeReplayPlugin(generator=self.generator_strategy)
 
@@ -431,10 +433,10 @@ class VAETraining(SupervisedTemplate):
         else:
             plugins.append(vaep)
 
-        if generative_replay:
-            print("Train VAE with generative replay.")
-            self.model = model
-            plugins.append(GenerativeReplayPlugin(generator=self))
+        # if generative_replay:
+        #    print("Train VAE with generative replay.")
+        #    self.model = model
+        #    plugins.append(GenerativeReplayPlugin(generator=self))
 
         super().__init__(
             model,
