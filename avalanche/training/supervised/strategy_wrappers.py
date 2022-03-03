@@ -287,8 +287,8 @@ class GenerativeReplay(SupervisedTemplate):
     and Generator as described in https://arxiv.org/abs/1705.08690.
 
     For the case where the Generator is the model itself that is to be trained,
-    please simply add the GenerativeReplayPlugin(generator=self) to 
-    your Generator's strategy, similar like in the VAETraining class.
+    please simply add the GenerativeReplayPlugin() when instantiating 
+    your Generator's strategy.
 
     See GenerativeReplayPlugin for more details.
     This strategy does not use task identities.
@@ -350,8 +350,7 @@ class GenerativeReplay(SupervisedTemplate):
                 criterion=VAE_loss, train_mb_size=64, 
                 train_epochs=10,
                 eval_mb_size=32, device=device,
-                plugins=[GenerativeReplayPlugin()],
-                generative_replay=False)
+                plugins=[GenerativeReplayPlugin()])
 
         rp = GenerativeReplayPlugin(generator=self.generator_strategy)
 
@@ -403,7 +402,6 @@ class VAETraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
-        generative_replay=False,
         **base_kwargs
     ):
         """
@@ -432,11 +430,6 @@ class VAETraining(SupervisedTemplate):
             plugins = [vaep]
         else:
             plugins.append(vaep)
-
-        # if generative_replay:
-        #    print("Train VAE with generative replay.")
-        #    self.model = model
-        #    plugins.append(GenerativeReplayPlugin(generator=self))
 
         super().__init__(
             model,
