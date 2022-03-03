@@ -401,6 +401,7 @@ class VAETraining(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
+        generative_replay=False,
         **base_kwargs
     ):
         """
@@ -430,7 +431,7 @@ class VAETraining(SupervisedTemplate):
         else:
             plugins.append(vaep)
 
-        if ('generative_replay' in base_kwargs) and base_kwargs['generative_replay']:
+        if generative_replay:
             print("Train VAE with generative replay.")
             self.model = model
             plugins.append(GenerativeReplayPlugin(generator=self))
