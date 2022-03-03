@@ -92,10 +92,10 @@ class Encoder(nn.Module):
     Encoder part of the VAE, computer the latent represenations of the input.
 
     :param shape: Shape of the input to the network: (channels, height, width)
-    :param nhid: Dimension of last hidden layer
+    :param latent_dim: Dimension of last hidden layer
     '''
 
-    def __init__(self, shape, nhid=128):
+    def __init__(self, shape, latent_dim=128):
         super(Encoder, self).__init__()
         c, h, w = shape
         ww = ((w-8)//2 - 4)//2
@@ -156,7 +156,7 @@ class VAE(nn.Module):
     def __init__(self, shape, nhid=16, n_classes=10):
         super(VAE, self).__init__()
         self.dim = nhid
-        self.encoder = Encoder(shape, nhid)
+        self.encoder = Encoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)
         self.classification = MLP([128, n_classes], last_activation=False)
