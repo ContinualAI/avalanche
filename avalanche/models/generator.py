@@ -105,7 +105,7 @@ class Encoder(nn.Module):
             nn.Linear(in_features=h*w, out_features=400),
             nn.BatchNorm1d(400),
             nn.LeakyReLU(),
-            MLP([400, nhid])
+            MLP([400, latent_dim])
                                    )
 
     def forward(self, x, y=None):
