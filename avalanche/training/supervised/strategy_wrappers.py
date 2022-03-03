@@ -337,12 +337,13 @@ class GenerativeReplay(SupervisedTemplate):
             self.generator_strategy = base_kwargs['generator']
         else:
             # By default we use a fully-connected VAE.
+            generator = VAE((1, 28, 28), nhid=2)
             lr = 0.01
             from torch.optim import Adam  # this should go to the model file
             optimizer_generator = Adam(filter(
-                lambda p: p.requires_grad, self.generator.parameters()), lr=lr,
+                lambda p: p.requires_grad, generator.parameters()), lr=lr,
                  weight_decay=0.0001)
-            generator = VAE((1, 28, 28), nhid=2)
+
             self.generator_strategy = VAETraining(
                 model=generator, 
                 optimizer=optimizer_generator,
