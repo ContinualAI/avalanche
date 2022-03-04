@@ -84,7 +84,7 @@ class OpenLORIS(DownloadableDataset):
         # any scenario and factor is good here since we want just to load the
         # train images and targets with no particular order
         scen = "domain"
-        factor = 0
+        factor = [_ for _ in range(4)]
         ntask = 9
 
         print("Loading paths...")
@@ -95,8 +95,9 @@ class OpenLORIS(DownloadableDataset):
         with open(str(self.root / "Labels.pkl"), "rb") as f:
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
-            for i in range(ntask + 1):
-                self.train_test_targets += self.all_targets[scen][factor][i]
+            for fact in factor:
+                for i in range(ntask + 1):
+                    self.train_test_targets += self.all_targets[scen][fact][i]
 
         print("Loading LUP...")
         with open(str(self.root / "LUP.pkl"), "rb") as f:
@@ -104,10 +105,12 @@ class OpenLORIS(DownloadableDataset):
 
         self.idx_list = []
         if self.train:
-            for i in range(ntask + 1):
-                self.idx_list += self.LUP[scen][factor][i]
+            for fact in factor:
+                for i in range(ntask):
+                    self.idx_list += self.LUP[scen][fact][i]
         else:
-            self.idx_list = self.LUP[scen][factor][-1]
+            for fact in factor:
+                self.idx_list += self.LUP[scen][fact][-1]
 
         self.paths = []
         self.targets = []
