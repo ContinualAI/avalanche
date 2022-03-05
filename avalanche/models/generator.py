@@ -3,7 +3,7 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 03-03-2022                                                              #
+# Date: 03-03-2022                                                             #
 # Author: Florian Mies                                                         #
 # Website: https://github.com/travela                                          #
 ################################################################################
@@ -167,7 +167,9 @@ class VAE(nn.Module):
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
 
-    # Orginial forward of VAE. We modify this to tie it in with Avalanche plugin syntax
+    # Orginial forward of VAE.
+    # We modify this to allow for Replay-through-Feedback,
+    # see VAEPlugin for details.
     # def forward(self, x):
     #    mean, logvar = self.encoder(x)
     #    z = self.sampling(mean, logvar)

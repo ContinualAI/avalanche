@@ -33,6 +33,7 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
 )
+from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models.generator import VAE, VAE_loss
 
@@ -283,8 +284,13 @@ class Replay(SupervisedTemplate):
 class GenerativeReplay(SupervisedTemplate):
     """Generative Replay Strategy
 
-    This implements Deep Generative Replay for a Scholar consisting of a Solver,
+    This implements Deep Generative Replay for a Scholar consisting of a Solver
     and Generator as described in https://arxiv.org/abs/1705.08690.
+
+    The model parameter should contain the solver. As an optional input
+    a generator can be wrapped in a trainable strategy 
+    and passed through generator_strategy. 
+    By default a simple VAE will be used as generator.
 
     For the case where the Generator is the model itself that is to be trained,
     please simply add the GenerativeReplayPlugin() when instantiating 
@@ -303,16 +309,17 @@ class GenerativeReplay(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
+        generator_strategy: BaseTemplate = None,
         **base_kwargs
     ):
         """
-        Creates an instance of SupervisedTemplate with the appropriate plugins
-        for generative replay.
+        Creates an instance of Generative Replay Strategy 
+        for a solver-generator pair.
 
-        :param model: The model.
+        :param model: The solver model.
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
         :param train_mb_size: The train minibatch size. Defaults to 1.
@@ -327,23 +334,29 @@ class GenerativeReplay(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
+        :param generator_strategy: A trainable strategy with a generative model,
+            which employs GenerativeReplayPlugin. Defaults to None.
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         # Check if user inputs a generator model 
-        # (which is already wrapped in a strategy, see VAETraining as example)
-        if 'generator' in base_kwargs:
-            self.generator_strategy = base_kwargs['generator']
+        # (which is wrapped in a strategy that can be trained and 
+        # uses the GenerativeReplayPlugin;
+        # see 'VAETraining" as an example below.)
+        if generator_strategy is not None:
+            self.generator_strategy = generator_strategy
         else:
-            # By default we use a fully-connected VAE.
+            # By default we use a fully-connected VAE as the generator.
+            # model:
             generator = VAE((1, 28, 28), nhid=2)
+            # optimzer:
             lr = 0.01
-            from torch.optim import Adam  # this should go to the model file
+            from torch.optim import Adam
             optimizer_generator = Adam(filter(
                 lambda p: p.requires_grad, generator.parameters()), lr=lr,
                  weight_decay=0.0001)
-
+            # strategy (with plugin):
             self.generator_strategy = VAETraining(
                 model=generator, 
                 optimizer=optimizer_generator,
