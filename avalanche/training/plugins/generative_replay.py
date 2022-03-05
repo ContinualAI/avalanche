@@ -1,3 +1,19 @@
+################################################################################
+# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 05-03-2022                                                             #
+# Author: Florian Mies                                                         #
+# Website: https://github.com/travela                                          #
+################################################################################
+
+"""
+
+All plugins related to Generative Replay.
+
+"""
+
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.core import SupervisedPlugin
@@ -7,21 +23,15 @@ import torch
 
 class GenerativeReplayPlugin(SupervisedPlugin):
     """
-    Experience replay plugin.
+    Experience generative replay plugin.
 
-    Handles an external memory filled with randomly selected
-    patterns and implementing `before_training_exp` and `after_training_exp`
-    callbacks.
-    The `before_training_exp` callback is implemented in order to use the
-    dataloader that creates mini-batches with examples from both training
-    data and external memory. The examples in the mini-batch is balanced
-    such that there are the same number of examples for each experience.
+    Updates the Dataloader of a strategy before training an experience
+    by sampling a generator model and weaving the replay data into
+    the original training data. 
 
-    The `after_training_exp` callback is implemented in order to add new
-    patterns to the external memory.
-
-    The :mem_size: attribute controls the total number of patterns to be stored
-    in the external memory.
+    The examples in the created mini-batch contain one part of the original data
+    and one part of generative data for each class 
+    that has been encountered so far.
 
     :param batch_size: the size of the data batch. If set to `None`, it
         will be set equal to the strategy's batch size.
@@ -33,14 +43,20 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     :param task_balanced_dataloader: if True, buffer data loaders will be
             task-balanced, otherwise it will create a single dataloader for the
             buffer samples.
-    :param storage_policy: The policy that controls how to add new exemplars
-                           in memory
+    :param untrained_solver: if True we assume this is the beginning of 
+        a continual learning task and add replay data only from the second 
+        experience onwards, otherwise we sample and add generative replay data
+        before training the first experience. Default to True.
     """
 
-    def __init__(self, generator=None, mem_size: int = 200, batch_size: int = None,
+    def __init__(self, generator=None, mem_size: int = 200, 
+                 batch_size: int = None,
                  batch_size_mem: int = None,
                  task_balanced_dataloader: bool = False,
                  untrained_solver: bool = True):
+        '''
+        Init.
+        '''
         super().__init__()
         self.mem_size = mem_size
         self.batch_size = batch_size
@@ -55,10 +71,10 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.classes_until_now = []
 
     def before_training(self, strategy, *args, **kwargs):
-        """Called before `train` by the `BaseTemplate`."""
-        # If generator is None at this point, 
-        # we can take it that the strategy's model is the generator itself.
-        # This allows us to use easily use this Plugin for generator strategy
+        """Checks whether we are using a user defined external generator 
+        or we use the strategy's model as the generator. 
+        If the generator is None after initialization 
+        we assume that strategy.model is the generator."""
         if not self.generator_strategy:
             self.generator_strategy = strategy
             self.generator = strategy.model
@@ -67,24 +83,22 @@ class GenerativeReplayPlugin(SupervisedPlugin):
                             num_workers: int = 0, shuffle: bool = True,
                             **kwargs):
         """
-        Dataloader to build batches containing examples from both memories and
-        the training dataset
+        ReplayDataloader to build batches containing examples from both, 
+        data sampled from the generator and the training dataset.
         """
         self.classes_until_now.append(
             strategy.experience.classes_in_this_experience)
 
-        print("Classes so far: ", self.classes_until_now,
-              len(self.classes_until_now))
         if self.untrained_solver:
-            # The solver needs to train on the first experience before it can label generated data
-            # as well as the generator needs to train first.
+            # The solver needs to be trained to label generated data
+            # the generator needs to be trained before we can sample.
             self.untrained_solver = False
             return
-        # self.classes_until_now = [class_id for exp_classes in self.classes_until_now for class_id in exp_classes]
 
         # Sample data from generator
         memory = self.generator.generate(
-            len(strategy.adapted_dataset)*(len(self.classes_until_now)-1)).to(strategy.device)
+            len(strategy.adapted_dataset) *
+            (len(self.classes_until_now)-1)).to(strategy.device)
         # Label the generated data using the current solver model
         strategy.model.eval()
         with torch.no_grad():
@@ -101,7 +115,8 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         batch_size_mem = self.batch_size_mem
         if batch_size_mem is None:
             batch_size_mem = strategy.train_mb_size
-        # Update strategies dataloader by mixing current experience's data with generated data.
+        # Update strategy's dataloader by interleaving 
+        # current experience's data with generated data.
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             memory,
@@ -113,11 +128,19 @@ class GenerativeReplayPlugin(SupervisedPlugin):
 
 
 class VAEPlugin(SupervisedPlugin):
+    """
+    VAEPlugin which facilitates the conventional training of the models.VAE.
+
+    The VAE's forward call computes the representations in the latent space,
+    'after_forward' computes the remaining steps of the classic VAE forward.
+    """
 
     def after_forward(
         self, strategy, *args, **kwargs
     ):
-        # Forward call computes the representations in the latent space. They are stored at strategy.mb_output and can be used here
+        """
+        Compute the reconstruction of the input and posterior distribution.
+        """
         strategy.mean, strategy.logvar = strategy.model.calc_mean(
             strategy.mb_output), strategy.model.calc_logvar(strategy.mb_output)
         z = strategy.model.sampling(strategy.mean, strategy.logvar)
@@ -126,7 +149,9 @@ class VAEPlugin(SupervisedPlugin):
     def after_eval_forward(
         self, strategy, *args, **kwargs
     ):
-        # Forward call computes the representations in the latent space. They are stored at strategy.mb_output and can be used here
+        """
+        Compute the reconstruction of the input and posterior distribution.
+        """
         strategy.mean, strategy.logvar = strategy.model.calc_mean(
             strategy.mb_output), strategy.model.calc_logvar(strategy.mb_output)
         z = strategy.model.sampling(strategy.mean, strategy.logvar)
@@ -134,10 +159,15 @@ class VAEPlugin(SupervisedPlugin):
 
 
 class trainGeneratorPlugin(SupervisedPlugin):
+    """
+    trainGeneratorPlugin makes sure that after each experience of training 
+    the solver of a scholar model, we also train the generator on the data 
+    of the current experience.
+    """
+
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
-        print("Start training of Generator ... ")
-        # strategy.generator.train(strategy.dataloader)
+        """
+        The training method expects an Experience object 
+        with a 'dataset' parameter.
+        """
         strategy.plugins[1].generator_strategy.train(strategy.experience) 
-        # Originally wanted to train directly on strategy.dataloader which already contains generated data
-        # However training requires an experience which has an attribute dataset with teh entire dataset.
-        # We there do the sampling step again
