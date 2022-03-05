@@ -1,3 +1,19 @@
+################################################################################
+# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 05-03-2022                                                             #
+# Author: Florian Mies                                                         #
+# Website: https://github.com/travela                                          #
+################################################################################
+
+"""
+
+All plugins related to Generative Replay.
+
+"""
+
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.core import SupervisedPlugin
@@ -38,6 +54,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
                  batch_size_mem: int = None,
                  task_balanced_dataloader: bool = False,
                  untrained_solver: bool = True):
+        '''
+        Init.
+        '''
         super().__init__()
         self.mem_size = mem_size
         self.batch_size = batch_size
