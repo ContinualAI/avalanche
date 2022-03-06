@@ -395,12 +395,12 @@ class VAETraining(SupervisedTemplate):
 
     This is the training strategy for the VAE model
     found in the models directory.
-    The actual training loop is modified in the VAEPlugin,
-    go there for more details.
+    We make use of the SupervisedTemplate, even though technically this is not a
+    supervised training. However, this reduces the modification to a minimum.
 
-    This class is meant to add this plugin and 
-    to overwrite the criterion function in order to pass all necessary variables
-    to the VAE loss function.
+    We only need to overwrite the criterion function in order to pass all 
+    necessary variables to the VAE loss function. 
+    Furthermore we remove all metrics from the evaluator.
     """
 
     def __init__(
@@ -457,7 +457,8 @@ class VAETraining(SupervisedTemplate):
         )
 
     def criterion(self):
-        """Loss function."""
+        """Adapt input to criterion as needed to compute reconstruction loss 
+        and KL divergence. See default criterion VAELoss."""
         return self._criterion(self.mb_x, self.mb_output)
 
 

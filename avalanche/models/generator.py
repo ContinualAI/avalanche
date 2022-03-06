@@ -168,7 +168,7 @@ class VAE(Generator, nn.Module):
 
     def get_features(self, x):
         """
-        Get features for encoder part given input
+        Get features for encoder part given input x
         """
         return self.encoder(x)
 
@@ -193,9 +193,6 @@ class VAE(Generator, nn.Module):
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
 
-    # Orginial forward of VAE.
-    # We modify this to allow for Replay-through-Feedback,
-    # see VAEPlugin for details.
     def forward(self, x):
         """
         Forward. 
@@ -205,12 +202,6 @@ class VAE(Generator, nn.Module):
             represntations), self.calc_logvar(represntations)
         z = self.sampling(mean, logvar)
         return self.decoder(z), mean, logvar
-
-#    def forward(self, x):
-#        """
-#        Forward. Computes representations of encoder.
-#        """
-#        return self.encoder(x)
 
 
 # Loss functions    

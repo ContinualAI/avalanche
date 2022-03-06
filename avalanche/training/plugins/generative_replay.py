@@ -68,6 +68,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         else: 
             self.generator = None
         self.untrained_solver = untrained_solver
+        self.model_is_generator = False
         self.classes_until_now = []
 
     def before_training(self, strategy, *args, **kwargs):
@@ -78,6 +79,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         if not self.generator_strategy:
             self.generator_strategy = strategy
             self.generator = strategy.model
+            self.model_is_generator = True
 
     def before_training_exp(self, strategy: "SupervisedTemplate",
                             num_workers: int = 0, shuffle: bool = True,
@@ -99,11 +101,16 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         memory = self.generator.generate(
             len(strategy.adapted_dataset) *
             (len(self.classes_until_now)-1)).to(strategy.device)
-        # Label the generated data using the current solver model
-        strategy.model.eval()
-        with torch.no_grad():
-            memory_output = strategy.model(memory).argmax(dim=-1)
-        strategy.model.train()
+        # Label the generated data using the current solver model, 
+        # in case there is a solver
+        if not self.model_is_generator:
+            strategy.model.eval()
+            with torch.no_grad():
+                memory_output = strategy.model(memory).argmax(dim=-1)
+            strategy.model.train()
+        else:
+            # Mock labels:
+            memory_output = torch.zeros(memory.shape[0])
         # Create an AvalancheDataset from memory data and labels
         memory = AvalancheDataset(torch.utils.data.TensorDataset(
             memory.detach().cpu(), memory_output.detach().cpu()))
@@ -127,9 +134,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             shuffle=shuffle)
 
 
-class VAEPlugin(SupervisedPlugin):
+class RtFPlugin(SupervisedPlugin):
     """
-    VAEPlugin which facilitates the conventional training of the models.VAE.
+    RtFPlugin which facilitates the conventional training of the models.VAE.
 
     The VAE's forward call computes the representations in the latent space,
     'after_forward' computes the remaining steps of the classic VAE forward.
@@ -141,21 +148,7 @@ class VAEPlugin(SupervisedPlugin):
         """
         Compute the reconstruction of the input and posterior distribution.
         """
-        strategy.mean, strategy.logvar = strategy.model.calc_mean(
-            strategy.mb_output), strategy.model.calc_logvar(strategy.mb_output)
-        z = strategy.model.sampling(strategy.mean, strategy.logvar)
-        strategy.mb_x_recon = strategy.model.decoder(z)
-
-    def after_eval_forward(
-        self, strategy, *args, **kwargs
-    ):
-        """
-        Compute the reconstruction of the input and posterior distribution.
-        """
-        strategy.mean, strategy.logvar = strategy.model.calc_mean(
-            strategy.mb_output), strategy.model.calc_logvar(strategy.mb_output)
-        z = strategy.model.sampling(strategy.mean, strategy.logvar)
-        strategy.mb_x_recon = strategy.model.decoder(z)
+        print("Replay-through-Feedback to be implemented soon.")
 
 
 class trainGeneratorPlugin(SupervisedPlugin):
