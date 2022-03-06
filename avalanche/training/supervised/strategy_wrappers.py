@@ -20,7 +20,6 @@ from avalanche.training.plugins import (
     CWRStarPlugin,
     ReplayPlugin,
     GenerativeReplayPlugin,
-    VAEPlugin,
     trainGeneratorPlugin,
     GDumbPlugin,
     LwFPlugin,
@@ -36,6 +35,7 @@ from avalanche.training.plugins import (
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models.generator import VAE, VAE_loss
+from avalanche.logging import InteractiveLogger
 
 
 class Naive(SupervisedTemplate):
@@ -407,13 +407,16 @@ class VAETraining(SupervisedTemplate):
         self,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion=VAE_loss,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = None,
+        evaluator: EvaluationPlugin = EvaluationPlugin(
+            loggers=[InteractiveLogger()],
+            suppress_warnings=True,
+            ),
         eval_every=-1,
         **base_kwargs
     ):
