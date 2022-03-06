@@ -413,7 +413,7 @@ class VAETraining(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = None,
         eval_every=-1,
         **base_kwargs
     ):
