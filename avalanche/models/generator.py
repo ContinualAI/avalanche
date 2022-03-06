@@ -138,7 +138,7 @@ class Decoder(nn.Module):
                                  .view(-1, *self.shape))
 
 
-class VAE(nn.Module):
+class VAE(Generator, nn.Module):
     '''
     Variational autoencoder module: 
     fully-connected and suited for any input shape and type.
@@ -166,24 +166,9 @@ class VAE(nn.Module):
         self.classification = MLP([128, n_classes], last_activation=False)
         self.decoder = Decoder(shape, nhid)
 
-    def sampling(self, mean, logvar):
+    def get_features(self, x):
         """
-        VAE 'reparametrization trick'
-        """
-        eps = torch.randn(mean.shape).to(device)
-        sigma = 0.5 * torch.exp(logvar)
-        return mean + eps * sigma
-
-    # Orginial forward of VAE.
-    # We modify this to allow for Replay-through-Feedback,
-    # see VAEPlugin for details.
-    # def forward(self, x):
-    #    mean, logvar = self.encoder(x)
-    #    z = self.sampling(mean, logvar)
-    #    return self.decoder(z), mean, logvar
-    def forward(self, x):
-        """
-        Forward. Computes representations of encoder.
+        Get features for encoder part given input
         """
         return self.encoder(x)
 
@@ -200,6 +185,33 @@ class VAE(nn.Module):
             res = res.squeeze(0)
         return res
 
+    def sampling(self, mean, logvar):
+        """
+        VAE 'reparametrization trick'
+        """
+        eps = torch.randn(mean.shape).to(device)
+        sigma = 0.5 * torch.exp(logvar)
+        return mean + eps * sigma
+
+    # Orginial forward of VAE.
+    # We modify this to allow for Replay-through-Feedback,
+    # see VAEPlugin for details.
+    def forward(self, x):
+        """
+        Forward. 
+        """
+        represntations = self.encoder(x)
+        mean, logvar = self.calc_mean(
+            represntations), self.calc_logvar(represntations)
+        z = self.sampling(mean, logvar)
+        return self.decoder(z), mean, logvar
+
+#    def forward(self, x):
+#        """
+#        Forward. Computes representations of encoder.
+#        """
+#        return self.encoder(x)
+
 
 # Loss functions    
 BCE_loss = nn.BCELoss(reduction="sum")
@@ -207,7 +219,7 @@ MSE_loss = nn.MSELoss(reduction="sum")
 CE_loss = nn.CrossEntropyLoss()
 
 
-def VAE_loss(X, X_hat, mean, logvar):
+def VAE_loss(X, forward_output):
     '''
     Loss function of a VAE using mean squared error for reconstruction loss.
     This is the criterion for VAE training loop.
@@ -217,6 +229,7 @@ def VAE_loss(X, X_hat, mean, logvar):
     :param mean: mean of the VAE output distribution.
     :param logvar: logvar of the VAE output distribution.
     '''
+    X_hat, mean, logvar = forward_output
     reconstruction_loss = MSE_loss(X_hat, X)
     KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean**2)
     return reconstruction_loss + KL_divergence

@@ -412,7 +412,7 @@ class VAETraining(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: int = None,
         device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,  # Optional
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         **base_kwargs
@@ -438,11 +438,6 @@ class VAETraining(SupervisedTemplate):
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        vaep = VAEPlugin()
-        if plugins is None:
-            plugins = [vaep]
-        else:
-            plugins.append(vaep)
 
         super().__init__(
             model,
@@ -460,8 +455,7 @@ class VAETraining(SupervisedTemplate):
 
     def criterion(self):
         """Loss function."""
-        return self._criterion(self.mb_x, self.mb_x_recon, 
-                               self.mean, self.logvar)
+        return self._criterion(self.mb_x, self.mb_output)
 
 
 class GSS_greedy(SupervisedTemplate):
