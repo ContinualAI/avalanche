@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2017. Vincenzo Lomonaco. All rights reserved.                  #
+# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -97,12 +97,10 @@ class Encoder(nn.Module):
 
     def __init__(self, shape, latent_dim=128):
         super(Encoder, self).__init__()
-        c, h, w = shape
-        ww = ((w-8)//2 - 4)//2
-        hh = ((h-8)//2 - 4)//2
+        flattened_size = torch.Size(shape).numel()
         self.encode = nn.Sequential(
             Flatten(),
-            nn.Linear(in_features=h*w, out_features=400),
+            nn.Linear(in_features=flattened_size, out_features=400),
             nn.BatchNorm1d(400),
             nn.LeakyReLU(),
             MLP([400, latent_dim])
@@ -123,27 +121,27 @@ class Decoder(nn.Module):
 
     def __init__(self, shape, nhid=16):
         super(Decoder, self).__init__()
-        c, w, h = shape
+        flattened_size = torch.Size(shape).numel()
         self.shape = shape
         self.decode = nn.Sequential(
-            MLP([nhid, 64, 128, 256, c*w*h], last_activation=False),
+            MLP([nhid, 64, 128, 256, flattened_size], last_activation=False),
             nn.Sigmoid())
         self.invTrans = transforms.Compose([
                                     transforms.Normalize((0.1307,), (0.3081,))
                         ])
 
     def forward(self, z, y=None):
-        c, w, h = self.shape
         if (y is None):
-            return self.invTrans(self.decode(z).view(-1, c, w, h))
+            return self.invTrans(self.decode(z).view(-1, *self.shape))
         else:
             return self.invTrans(self.decode(torch.cat((z, y), dim=1))
-                                 .view(-1, c, w, h))
+                                 .view(-1, *self.shape))
 
 
 class VAE(nn.Module):
     '''
-    Variational autoencoder module.
+    Variational autoencoder module: 
+    fully-connected and suited for any input shape and type.
 
     The encoder only computes the latent represenations
     and we have then two possible output heads: 
@@ -154,6 +152,12 @@ class VAE(nn.Module):
     '''
 
     def __init__(self, shape, nhid=16, n_classes=10):
+        """
+        :param shape: Shape of each input sample
+        :param nhid: Dimension of latent space of Encoder.
+        :param n_classes: Number of classes - 
+                        defines classification head's dimension
+        """
         super(VAE, self).__init__()
         self.dim = nhid
         self.encoder = Encoder(shape, latent_dim=128)
@@ -163,6 +167,9 @@ class VAE(nn.Module):
         self.decoder = Decoder(shape, nhid)
 
     def sampling(self, mean, logvar):
+        """
+        VAE 'reparametrization trick'
+        """
         eps = torch.randn(mean.shape).to(device)
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
@@ -175,9 +182,17 @@ class VAE(nn.Module):
     #    z = self.sampling(mean, logvar)
     #    return self.decoder(z), mean, logvar
     def forward(self, x):
+        """
+        Forward. Computes representations of encoder.
+        """
         return self.encoder(x)
 
     def generate(self, batch_size=None):
+        """
+        Generate random samples.
+        Output is either a single sample if batch_size=None,
+        else it is a batch of samples of size "batch_size". 
+        """
         z = torch.randn((batch_size, self.dim)).to(
             device) if batch_size else torch.randn((1, self.dim)).to(device)
         res = self.decoder(z)
