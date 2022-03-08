@@ -69,10 +69,8 @@ def main(args):
     cl_strategy = VAETraining(
         model,
         torch.optim.Adam(model.parameters(), lr=0.001),
-        CrossEntropyLoss(),
         train_mb_size=100,
         train_epochs=4,
-        eval_mb_size=100,
         device=device,
         plugins=[GenerativeReplayPlugin()]
     )
