@@ -83,7 +83,7 @@ def main(args):
         print("Training completed")
 
         samples = model.generate(10)
-        samples = samples.cpu().numpy()
+        samples = samples.detach().cpu().numpy()
 
         f, axarr = plt.subplots(1, 10)
         for j in range(10):
