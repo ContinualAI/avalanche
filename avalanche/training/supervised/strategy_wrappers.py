@@ -1107,6 +1107,8 @@ __all__ = [
     "PNNStrategy",
     "CWRStar",
     "Replay",
+    "GenerativeReplay",
+    "VAETraining",
     "GDumb",
     "LwF",
     "AGEM",
