@@ -17,23 +17,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from torchvision import transforms
 from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
+import matplotlib.pyplot as plt
+import numpy as np
 from avalanche.benchmarks import SplitMNIST
-from avalanche.models import SimpleMLP
-from avalanche.training.supervised import GenerativeReplay
-from avalanche.evaluation.metrics import (
-    forgetting_metrics,
-    accuracy_metrics,
-    loss_metrics,
-)
+from avalanche.models import VAE
+from avalanche.training.supervised import VAETraining
+from avalanche.training.plugins import GenerativeReplayPlugin
 from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
@@ -64,22 +60,13 @@ def main(args):
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = VAE((1, 28, 28), nhid=2)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
 
-    eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True),
-        loggers=[interactive_logger],
-    )
-
     # CREATE THE STRATEGY INSTANCE (GenerativeReplay)
-    cl_strategy = GenerativeReplay(
+    cl_strategy = VAETraining(
         model,
         torch.optim.Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
@@ -87,19 +74,23 @@ def main(args):
         train_epochs=4,
         eval_mb_size=100,
         device=device,
-        evaluator=eval_plugin,
+        plugins=[GenerativeReplayPlugin()]
     )
 
     # TRAINING LOOP
     print("Starting experiment...")
-    results = []
     for experience in scenario.train_stream:
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 
-        print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        samples = model.generate(10)
+        samples = samples.cpu().numpy()
+
+        f, axarr = plt.subplots(1, 10)
+        for j in range(10):
+            axarr[j].imshow(samples[j, 0], cmap="gray")
+        np.vectorize(lambda ax: ax.axis('off'))(axarr)
 
 
 if __name__ == "__main__":
