@@ -33,6 +33,12 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     and one part of generative data for each class 
     that has been encountered so far.
 
+    In this version of the plugin the number of replay samples is 
+    increased with each new experience. Another way to implempent 
+    the algorithm is by weighting the loss function and give more 
+    importance to the replayed data as the number of experiences 
+    increases. This will be implemented as an option for the user soon.
+
     :param batch_size: the size of the data batch. If set to `None`, it
         will be set equal to the strategy's batch size.
     :param batch_size_mem: the size of the memory batch. If
