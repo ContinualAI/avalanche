@@ -226,4 +226,4 @@ def VAE_loss(X, forward_output):
     return reconstruction_loss + KL_divergence
 
 
-__all__ = ["VAE, VAE_loss"]
+__all__ = ["VAE", "VAE_loss"]
