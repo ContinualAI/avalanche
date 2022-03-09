@@ -42,7 +42,7 @@ class Generator(BaseModel):
 ###########################
 # VARIATIONAL AUTOENCODER #
 ###########################
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Flatten(nn.Module):
@@ -151,7 +151,7 @@ class VAE(Generator, nn.Module):
     More details can be found in: https://arxiv.org/abs/1809.10635
     '''
 
-    def __init__(self, shape, nhid=16, n_classes=10):
+    def __init__(self, shape, nhid=16, n_classes=10, device="cpu"):
         """
         :param shape: Shape of each input sample
         :param nhid: Dimension of latent space of Encoder.
@@ -160,6 +160,7 @@ class VAE(Generator, nn.Module):
         """
         super(VAE, self).__init__()
         self.dim = nhid
+        self.device = device
         self.encoder = Encoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)
@@ -179,7 +180,8 @@ class VAE(Generator, nn.Module):
         else it is a batch of samples of size "batch_size". 
         """
         z = torch.randn((batch_size, self.dim)).to(
-            device) if batch_size else torch.randn((1, self.dim)).to(device)
+            self.device) if batch_size else torch.randn((1, self.dim)).to(
+                self.device)
         res = self.decoder(z)
         if not batch_size:
             res = res.squeeze(0)
@@ -189,7 +191,7 @@ class VAE(Generator, nn.Module):
         """
         VAE 'reparametrization trick'
         """
-        eps = torch.randn(mean.shape).to(device)
+        eps = torch.randn(mean.shape).to(self.device)
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
 
@@ -224,3 +226,6 @@ def VAE_loss(X, forward_output):
     reconstruction_loss = MSE_loss(X_hat, X)
     KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean**2)
     return reconstruction_loss + KL_divergence
+
+
+__all__ = ["VAE", "VAE_loss"]
