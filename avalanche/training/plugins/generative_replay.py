@@ -69,7 +69,6 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.generator = None
         self.untrained_solver = untrained_solver
         self.model_is_generator = False
-        self.classes_until_now = []
 
     def before_training(self, strategy, *args, **kwargs):
         """Checks whether we are using a user defined external generator 
@@ -88,8 +87,6 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         ReplayDataloader to build batches containing examples from both, 
         data sampled from the generator and the training dataset.
         """
-        self.classes_until_now.append(
-            strategy.experience.classes_in_this_experience)
 
         if self.untrained_solver:
             # The solver needs to be trained before labelling generated data and
@@ -100,7 +97,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         # Sample data from generator
         memory = self.generator.generate(
             len(strategy.adapted_dataset) *
-            (len(self.classes_until_now)-1)).to(strategy.device)
+            (strategy.experience.current_experience)).to(strategy.device)
         # Label the generated data using the current solver model, 
         # in case there is a solver
         if not self.model_is_generator:
@@ -128,34 +125,18 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             strategy.adapted_dataset,
             memory,
             batch_size=batch_size,
-            batch_size_mem=batch_size_mem*(len(self.classes_until_now)-1),
+            batch_size_mem=batch_size_mem *
+            (strategy.experience.current_experience),
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
             shuffle=shuffle)
 
 
-class RtFPlugin(SupervisedPlugin):
+class TrainGeneratorAfterExpPlugin(SupervisedPlugin):
     """
-    RtFPlugin which facilitates the conventional training of the models.VAE.
-
-    The VAE's forward call computes the representations in the latent space,
-    'after_forward' computes the remaining steps of the classic VAE forward.
-    """
-
-    def after_forward(
-        self, strategy, *args, **kwargs
-    ):
-        """
-        Compute the reconstruction of the input and posterior distribution.
-        """
-        print("Replay-through-Feedback to be implemented soon.")
-
-
-class trainGeneratorPlugin(SupervisedPlugin):
-    """
-    trainGeneratorPlugin makes sure that after each experience of training 
-    the solver of a scholar model, we also train the generator on the data 
-    of the current experience.
+    TrainGeneratorAfterExpPlugin makes sure that after each experience of 
+    training the solver of a scholar model, we also train the generator on the 
+    data of the current experience.
     """
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
