@@ -42,7 +42,7 @@ class Generator(BaseModel):
 ###########################
 # VARIATIONAL AUTOENCODER #
 ###########################
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Flatten(nn.Module):
@@ -178,8 +178,8 @@ class VAE(Generator, nn.Module):
         Output is either a single sample if batch_size=None,
         else it is a batch of samples of size "batch_size". 
         """
-        z = torch.randn((batch_size, self.dim)).to(
-            device) if batch_size else torch.randn((1, self.dim)).to(device)
+        z = torch.randn((batch_size, self.dim)
+                        ) if batch_size else torch.randn((1, self.dim))
         res = self.decoder(z)
         if not batch_size:
             res = res.squeeze(0)
@@ -189,7 +189,7 @@ class VAE(Generator, nn.Module):
         """
         VAE 'reparametrization trick'
         """
-        eps = torch.randn(mean.shape).to(device)
+        eps = torch.randn(mean.shape)
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
 
@@ -224,3 +224,6 @@ def VAE_loss(X, forward_output):
     reconstruction_loss = MSE_loss(X_hat, X)
     KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean**2)
     return reconstruction_loss + KL_divergence
+
+
+__all__ = ["VAE, VAE_loss"]
