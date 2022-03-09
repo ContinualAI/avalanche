@@ -77,7 +77,9 @@ def main(args):
 
     # TRAINING LOOP
     print("Starting experiment...")
+    f, axarr = plt.subplots(len(scenario.train_stream), 10)
     for experience in scenario.train_stream:
+        k = 0
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
@@ -85,10 +87,13 @@ def main(args):
         samples = model.generate(10)
         samples = samples.detach().cpu().numpy()
 
-        f, axarr = plt.subplots(1, 10)
         for j in range(10):
-            axarr[j].imshow(samples[j, 0], cmap="gray")
+            axarr[k, j].imshow(samples[k, j, 0], cmap="gray")
+            axarr[k, 4].set_title("Generated images for experience " + str(k))
         np.vectorize(lambda ax: ax.axis('off'))(axarr)
+
+        plt.savefig("VAE_output_per_exp")
+        plt.show()
 
 
 if __name__ == "__main__":
