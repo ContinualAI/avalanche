@@ -56,7 +56,7 @@ def main(args):
     # ---------
 
     # --- SCENARIO CREATION
-    scenario = SplitMNIST(n_experiences=3, seed=1234)
+    scenario = SplitMNIST(n_experiences=10, seed=1234)
     # ---------
 
     # MODEL CREATION
@@ -78,10 +78,11 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     f, axarr = plt.subplots(scenario.n_experiences, 10)
-    for experience in scenario.train_stream:
-        k = 0
-        print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
+    for k in range(3):  # scenario.train_stream:
+        # k = 0
+        print("Start of experience ",
+              scenario.train_stream[k].current_experience)
+        cl_strategy.train(scenario.train_stream[k])
         print("Training completed")
 
         samples = model.generate(10)
