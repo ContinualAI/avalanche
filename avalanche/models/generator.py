@@ -151,7 +151,7 @@ class VAE(Generator, nn.Module):
     More details can be found in: https://arxiv.org/abs/1809.10635
     '''
 
-    def __init__(self, shape, nhid=16, n_classes=10):
+    def __init__(self, shape, nhid=16, n_classes=10, device="cpu"):
         """
         :param shape: Shape of each input sample
         :param nhid: Dimension of latent space of Encoder.
@@ -160,6 +160,7 @@ class VAE(Generator, nn.Module):
         """
         super(VAE, self).__init__()
         self.dim = nhid
+        self.device = device
         self.encoder = Encoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)
@@ -178,8 +179,9 @@ class VAE(Generator, nn.Module):
         Output is either a single sample if batch_size=None,
         else it is a batch of samples of size "batch_size". 
         """
-        z = torch.randn((batch_size, self.dim)
-                        ) if batch_size else torch.randn((1, self.dim))
+        z = torch.randn((batch_size, self.dim)).to(
+            self.device) if batch_size else torch.randn((1, self.dim)).to(
+                self.device)
         res = self.decoder(z)
         if not batch_size:
             res = res.squeeze(0)
@@ -189,7 +191,7 @@ class VAE(Generator, nn.Module):
         """
         VAE 'reparametrization trick'
         """
-        eps = torch.randn(mean.shape)
+        eps = torch.randn(mean.shape).to(self.device)
         sigma = 0.5 * torch.exp(logvar)
         return mean + eps * sigma
 
