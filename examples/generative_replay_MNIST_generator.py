@@ -89,7 +89,7 @@ def main(args):
         samples = samples.detach().cpu().numpy()
 
         for j in range(10):
-            axarr[k, j].imshow(samples[k, j, 0], cmap="gray")
+            axarr[k, j].imshow(samples[j, 0], cmap="gray")
             axarr[k, 4].set_title("Generated images for experience " + str(k))
         np.vectorize(lambda ax: ax.axis('off'))(axarr)
 
