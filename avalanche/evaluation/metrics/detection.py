@@ -37,20 +37,38 @@ def tensor_decoder(dct):
     return dct
 
 
-class LvisMetrics(PluginMetric[str]):
-    """This metric serializes model outputs to JSON files.
-    The metric produces one file for each evaluation experience.
-    It also returns the metrics computed by LVIS benchmark based
-    on model output. Metrics are returned after each
-    evaluation experience."""
+class LvisMetrics(PluginMetric[dict]):
+    """
+    Metric used to compute the metrics using the Lvis API.
 
-    def __init__(self, save_folder=None, filename_prefix='model_output',
-                 iou_types: Union[str, List[str]] = 'bbox'):
+    Metrics are returned after each evaluation experience.
+
+    This metric can also be used to serialize model outputs to JSON files,
+    by producing one file for each evaluation experience. This can be useful
+    if outputs have to been processed later (like in a competition).
+    """
+
+    def __init__(
+            self,
+            *,
+            save_folder=None,
+            filename_prefix='model_output',
+            iou_types: Union[str, List[str]] = 'bbox',
+            summarize_to_stdout: bool = True):
         """
+        Creates an instance of LvisMetrics.
+
         :param save_folder: path to the folder where to write model output
-            files. None to disable writing to file.
-        :param filename_prefix: prefix common to all model outputs files
-        :param iou_types: list of iou types
+            files. Defaults to None, which means that the model output of
+            test instances will not be stored.
+        :param filename_prefix: prefix common to all model outputs files.
+            Ignored if `save_folder` is None. Defaults to "model_output"
+        :param iou_types: list of (or a single string) strings describing
+            the iou types to use when computing metrics.
+            Defaults to "bbox". Valid values are "bbox" and "segm".
+        :param summarize_to_stdout: if True, a summary of evaluation metrics
+            will be printed to stdout (as a table) using the Lvis API.
+            Defaults to True.
         """
         super().__init__()
 
@@ -61,47 +79,73 @@ class LvisMetrics(PluginMetric[str]):
             iou_types = [iou_types]
 
         self.save_folder = save_folder
+        """
+        The folder to use when storing the model outputs.
+        """
+
         self.filename_prefix = filename_prefix
+        """
+        The file name prefix to use when storing the model outputs.
+        """
+
         self.iou_types = iou_types
+        """
+        The IoU types for which metrics will be computed.
+        """
+
+        self.summarize_to_stdout = summarize_to_stdout
+        """
+        If True, a summary of evaluation metrics will be printed to stdout.
+        """
 
         self.lvis_evaluator = None
-        """Main LVIS evaluator object to compute metrics"""
+        """
+        Main LVIS evaluator object to compute metrics.
+        """
 
         self.current_filename = None
-        """File containing current model dump"""
+        """
+        File containing current model dump.
+        """
 
         self.current_outputs = []
-        """List of dictionaries containing the current model outputs"""
+        """
+        List of dictionaries containing the current model outputs.
+        """
 
-        self.no_save = save_folder is None
-        """If True, no JSON file will be written"""
+        self.save = save_folder is not None
+        """
+        If True, model outputs will be written to file.
+        """
 
     def reset(self) -> None:
         self.current_outputs = []
         self.current_filename = None
 
     def update(self, res):
-        if not self.no_save:
+        if self.save:
             self.current_outputs.append(res)
         self.lvis_evaluator.update(res)
 
     def result(self):
-        if not self.no_save:
+        if self.save:
             with open(self.current_filename, 'w') as f:
                 json.dump(self.current_outputs, f, cls=TensorEncoder)
 
         self.lvis_evaluator.evaluate()
-        self.lvis_evaluator.summarize()
+        if self.summarize_to_stdout:
+            self.lvis_evaluator.summarize()
+
+        result_dict = dict()
+
         # Encode metrics in CodaLab output format
-        bbox_eval = self.lvis_evaluator.lvis_eval_per_iou['bbox']
-        score_str = ''
-        ordered_keys = sorted(bbox_eval.results.keys())
-        for key in ordered_keys:
-            value = bbox_eval.results[key]
-            score_str += '{}: {:.5f}\n'.format(key, value)
-        score_str = score_str[:-1]  # Remove final \n
-        print("******* ", score_str)
-        return score_str
+        for iou, eval_data in self.lvis_evaluator.lvis_eval_per_iou.items():
+            result_dict[iou] = dict()
+            for key in eval_data.results:
+                value = eval_data.results[key]
+                result_dict[iou][key] = value
+
+        return result_dict
 
     def before_eval_exp(self, strategy) -> None:
         super().before_eval_exp(strategy)
@@ -110,7 +154,8 @@ class LvisMetrics(PluginMetric[str]):
         lvis_api = get_detection_api_from_dataset(
             strategy.experience.dataset)
         self.lvis_evaluator = LvisEvaluator(lvis_api, self.iou_types)
-        self.current_filename = self._get_filename(strategy)
+        if self.save:
+            self.current_filename = self._get_filename(strategy)
 
     def after_eval_iteration(self, strategy) -> None:
         super().after_eval_iteration(strategy)
@@ -121,13 +166,24 @@ class LvisMetrics(PluginMetric[str]):
         return self._package_result(strategy)
 
     def _package_result(self, strategy):
-        metric_name = get_metric_name(self, strategy, add_experience=True,
-                                      add_task=False)
+        base_metric_name = get_metric_name(
+            self, strategy, add_experience=True, add_task=False)
         plot_x_position = strategy.clock.train_iterations
-        filename = self.result()
-        metric_values = [
-            MetricValue(self, metric_name, filename, plot_x_position)
-        ]
+        result_dict = self.result()
+
+        metric_values = []
+        for iou, iou_dict in result_dict.items():
+            for metric_key, metric_value in iou_dict.items():
+                metric_name = base_metric_name + f'/{iou}/{metric_key}'
+                metric_values.append(
+                    MetricValue(
+                        self,
+                        metric_name,
+                        metric_value,
+                        plot_x_position
+                    )
+                )
+
         return metric_values
 
     def _get_filename(self, strategy):

@@ -4,46 +4,41 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 14-02-2022                                                             #
-# Author(s): Lorenzo Pellegrini                                                #
+# Author(s): Lorenzo Pellegrini, Antonio Carta                                 #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
 """
-This is a simple example on how to run detection benchmarks.
+This example shows how to run object detection/segmentation tasks.
+This example will use a toy benchmark based on the LVIS dataset in which the
+stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
 import logging
 
-# This sets the root logger to write to stdout (your console).
-# Your script/app needs to call this somewhere at least once.
-from avalanche.benchmarks.datasets.lvis.lvis_dataset import LvisDataset
-
-logging.basicConfig(level=logging.NOTSET)
-
-import matplotlib
-
+from avalanche.benchmarks import StreamUserDef
+from avalanche.benchmarks.datasets.lvis import LvisDataset
+from avalanche.benchmarks.scenarios.detection_scenario import \
+    DetectionCLScenario
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
-from examples.tvdetection.engine import train_one_epoch, evaluate
+from avalanche.training.supervised.naive_object_detection import \
+    NaiveObjectDetection
 
-matplotlib.use('Agg')
-
+from avalanche.evaluation.metrics import LvisMetrics, timing_metrics, \
+    loss_metrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 import argparse
-from pathlib import Path
-from typing import List, TypeVar, Callable
-
-import matplotlib.pyplot as plt
 import torch
-from PIL import Image
-from matplotlib import patches
-from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
-
-from avalanche.benchmarks import GenericScenarioStream, Experience, \
-    TScenario, TScenarioStream, GenericCLScenario, StreamUserDef, \
-    TStreamsUserDict, GenericExperience
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+
+
+# This sets the root logger to write to stdout (your console).
+# Your script/app needs to call this somewhere at least once.
+logging.basicConfig(level=logging.NOTSET)
 
 
 def main(args):
@@ -56,7 +51,6 @@ def main(args):
     # ---------
 
     # --- TRANSFORMATIONS
-    # TODO: implement support for multi-parameter transforms in AvalancheDataset
     train_transform = ToTensor()
     test_transform = ToTensor()
     # ---------
@@ -64,12 +58,10 @@ def main(args):
     # --- SCENARIO CREATION
     torch.random.manual_seed(1234)
     n_exps = 100  # Keep it high to run a short exp
-    # Dataset download at: https://www.lvisdataset.org/dataset
     benchmark = split_lvis(
         n_experiences=n_exps,
         train_transform=train_transform,
         eval_transform=test_transform)
-
     # ---------
 
     # MODEL CREATION
@@ -81,94 +73,77 @@ def main(args):
     for p in model.parameters():
         p.requires_grad = False
 
-    # replace the classifier with a new one, that has
-    # num_classes which is user-defined
+    # Replace the classifier with a new one, that has "num_classes" outputs
     num_classes = benchmark.n_classes + 1  # N classes + background
-    # get number of input features for the classifier
+    # Get number of input features for the classifier
     in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
+    # Replace the pre-trained head with a new one
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     model = model.to(device)
 
+    # Define the optimizer and the scheduler
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(params, lr=0.005,
+                                momentum=0.9, weight_decay=0.0005)
+
+    train_mb_size = 5
+    warmup_factor = 1.0 / 1000
+    warmup_iters = min(
+        1000, len(benchmark.train_stream[0].dataset) // train_mb_size - 1
+    )
+    lr_scheduler = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=warmup_factor, total_iters=warmup_iters
+    )
+
     # CREATE THE STRATEGY INSTANCE (NAIVE)
-    # TODO: integrate into a strategy
-    # cl_strategy = Naive(
-    #     model,
-    #     SGD(model.parameters(), lr=0.001, momentum=0.9),
-    #     CrossEntropyLoss(),
-    #     train_mb_size=100,
-    #     train_epochs=4,
-    #     eval_mb_size=100,
-    #     device=device,
-    # )
+    cl_strategy = NaiveObjectDetection(
+        model=model,
+        optimizer=optimizer,
+        train_mb_size=train_mb_size,
+        train_epochs=1,
+        eval_mb_size=train_mb_size,
+        device=device,
+        plugins=[
+            LRSchedulerPlugin(lr_scheduler)
+        ],
+        evaluator=EvaluationPlugin(
+            timing_metrics(epoch=True),
+            loss_metrics(epoch_running=True),
+            LvisMetrics(),
+            loggers=[InteractiveLogger()])
+    )
 
     # TRAINING LOOP
     print("Starting experiment...")
-    for experience in benchmark.train_stream:
+    for i, experience in enumerate(benchmark.train_stream):
         print("Start of experience: ", experience.current_experience)
+        print('Train dataset contains', len(experience.dataset), 'instances')
 
-        print('Dataset contains', len(experience.dataset), 'instances')
-
-        params = [p for p in model.parameters() if p.requires_grad]
-
-        print('Learnable parameters:')
-        for n, p in model.named_parameters():
-            if p.requires_grad:
-                print(n)
-
-        optimizer = torch.optim.SGD(params, lr=0.005,
-                                    momentum=0.9, weight_decay=0.0005)
-
-        if Path('model_checkpoint.pth').exists():
-            checkpoint = torch.load('model_checkpoint.pth')
-            model.load_state_dict(checkpoint['model_state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            model.to(device)
-        else:
-            data_loader = DataLoader(
-                experience.dataset, batch_size=5, shuffle=True, drop_last=True,
-                num_workers=4,
-                collate_fn=detection_collate_fn
-            )
-
-            for epoch in range(1):
-                train_one_epoch(model, optimizer, data_loader, device, epoch,
-                                print_freq=10)
-            # cl_strategy.train(experience)
-
-            if not Path('model_checkpoint.pth').exists():
-                torch.save({
-                    'epoch': 0,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                }, 'model_checkpoint.pth')
+        cl_strategy.train(experience, num_workers=4)
         print("Training completed")
 
-        # Just run the eval on a small set (otherwise it takes ages to complete)
-        mini_test = AvalancheSubset(benchmark.test_stream[0].dataset,
-                                    indices=list(range(1000)))
-        data_loader = DataLoader(
-            mini_test, batch_size=5, shuffle=False, drop_last=False,
-            num_workers=4,
-            collate_fn=detection_collate_fn
-        )
-
-        print("Computing accuracy on the whole test set")
-
-        # TODO: integrate metrics
-        # results.append(cl_strategy.eval(scenario.test_stream))
-        evaluate(model, data_loader, device=device)
-        break
-
-
-def detection_collate_fn(batch):
-    return tuple(zip(*batch))
+        cl_strategy.eval(benchmark.test_stream, num_workers=4)
+        print('Evaluation completed')
 
 
 def split_lvis(n_experiences,
                train_transform=None, eval_transform=None,
                shuffle=True, root_path=None):
+    """
+    Creates the example Split LVIS benchmark.
+
+    This is a toy benchmark created only to show how a detection benchmark can
+    be created. It was not meant to be used for research purposes!
+
+    :param n_experiences: The number of train experiences to create.
+    :param train_transform: The train transformation.
+    :param eval_transform: The eval transformation.
+    :param shuffle: If True, the dataset will be split randomly
+    :param root_path: The root path of the dataset. Defaults to None,
+        which means that the default path will be used.
+    :return: A :class:`DetectionScenario` instance.
+    """
 
     transform_groups = dict(
         train=(train_transform, None),
@@ -238,91 +213,10 @@ def split_lvis(n_experiences,
             'train': train_def,
             'test': val_def
         },
-        complete_test_set_only=True,
-        experience_factory=det_exp_factory
+        complete_test_set_only=True
     )
 
 
-def det_exp_factory(stream: GenericScenarioStream, exp_id: int):
-    return DetectionExperience(stream, exp_id)
-
-
-TDetectionExperience = TypeVar("TDetectionExperience",
-                               bound=GenericExperience)
-
-
-class DetectionExperience(
-    Experience[TScenario, TScenarioStream]
-):
-    def __init__(
-        self: TDetectionExperience,
-        origin_stream: TScenarioStream,
-        current_experience: int,
-    ):
-        self.origin_stream: TScenarioStream = origin_stream
-        self.benchmark: TScenario = origin_stream.benchmark
-        self.current_experience: int = current_experience
-
-        self.dataset: AvalancheDataset = (
-            origin_stream.benchmark.stream_definitions[
-                origin_stream.name
-            ].exps_data[current_experience]
-        )
-
-    def _get_stream_def(self):
-        return self.benchmark.stream_definitions[self.origin_stream.name]
-
-    @property
-    def task_labels(self) -> List[int]:
-        stream_def = self._get_stream_def()
-        return list(stream_def.exps_task_labels[self.current_experience])
-
-    @property
-    def task_label(self) -> int:
-        if len(self.task_labels) != 1:
-            raise ValueError(
-                "The task_label property can only be accessed "
-                "when the experience contains a single task label"
-            )
-
-        return self.task_labels[0]
-
-
-class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
-    def __init__(
-            self,
-            n_classes: int,
-            *,
-            stream_definitions: TStreamsUserDict,
-            complete_test_set_only: bool = False,
-            experience_factory: Callable[
-                ["GenericScenarioStream", int], TDetectionExperience
-            ] = None):
-        if experience_factory is None:
-            experience_factory = DetectionExperience
-
-        super(DetectionCLScenario, self).__init__(
-            stream_definitions=stream_definitions,
-            complete_test_set_only=complete_test_set_only,
-            experience_factory=experience_factory
-        )
-
-        self.n_classes = n_classes
-
-
-def plot_sample(img: Image.Image, target):
-    plt.gca().imshow(img)
-    for box in target['boxes']:
-        box = box.tolist()
-
-        rect = patches.Rectangle(
-            (box[0], box[1]), box[2] - box[0], box[3] - box[1],
-            linewidth=1,
-            edgecolor='r',
-            facecolor='none')
-        plt.gca().add_patch(rect)
-
-    plt.savefig('my_img.png')
 
 
 if __name__ == "__main__":

@@ -159,7 +159,6 @@ class NaiveObjectDetection(SupervisedTemplate):
             pin_memory=pin_memory,
             collate_fn=detection_collate_fn
         )
-        print('Eval len:', len(self.dataloader))
 
     def criterion(self):
         """
