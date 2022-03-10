@@ -52,6 +52,7 @@ setuptools.setup(
         'torchvision',
         'gdown',
         'ctrl-benchmark',
-        'setuptools<=59.5.0'
+        'setuptools<=59.5.0',
+        'lvis'
     ]
 )
