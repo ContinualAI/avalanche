@@ -175,10 +175,13 @@ class BaseSGDTemplate(BaseTemplate):
             self.training_epoch(**kwargs)
             self._after_training_epoch(**kwargs)
 
-    def _eval_exp(self, **kwargs):
+    def _before_eval_exp(self, **kwargs):
         self.make_eval_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+        super()._before_eval_exp(**kwargs)
+
+    def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
     def make_train_dataloader(self, **kwargs):
