@@ -141,7 +141,7 @@ class BaseSGDTemplate(BaseTemplate):
         :return: dictionary containing last recorded value for
             each metric name
         """
-        super().eval(exp_list)
+        super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
     def _before_training_exp(self, **kwargs):
