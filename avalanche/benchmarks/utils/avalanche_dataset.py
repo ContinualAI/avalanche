@@ -301,7 +301,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         self._optimize_task_labels()
         self._optimize_task_dict()
 
-        self.task_set = _TaskSubsetDict(self)
+        self.task_set = self._make_task_set_dict()
         """
         A dictionary that can be used to obtain the subset of patterns given
         a specific task label.
@@ -1126,31 +1126,23 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def _flatten_dataset(self):
         pass
 
+    def _make_task_set_dict(self) -> Dict[int, "AvalancheDataset"]:
+        task_dict = _TaskSubsetDict()
+        for task_id in sorted(self.tasks_pattern_indices.keys()):
+            task_indices = self.tasks_pattern_indices[task_id]
+            task_dict[task_id] = (self, task_indices)
+
+        return task_dict
+
 
 class _TaskSubsetDict(OrderedDict):
-    def __init__(self, avalanche_dataset: AvalancheDataset):
-        self._full_dataset = avalanche_dataset
-        task_ids = self._full_dataset.tasks_pattern_indices.keys()
-        task_ids = sorted(list(task_ids))
-        base_dict = OrderedDict()
-        for x in task_ids:
-            base_dict[x] = x
-        super().__init__(base_dict)
+    def __getitem__(self, item):
+        avl_dataset, indices = super().__getitem__(item)
+        return _TaskSubsetDict._make_subset(avl_dataset, indices)
 
-    def __getitem__(self, task_id: int):
-        if task_id not in self._full_dataset.tasks_pattern_indices:
-            raise KeyError("No pattern with " + str(task_id) + " found")
-        pattern_indices = self._full_dataset.tasks_pattern_indices[task_id]
-        return self._make_subset(pattern_indices)
-
-    def or_empty(self, task_id: int):
-        try:
-            return self[task_id]
-        except KeyError:
-            return self._make_subset([])
-
-    def _make_subset(self, indices: Sequence[int]):
-        return AvalancheSubset(self._full_dataset, indices=indices)
+    @staticmethod
+    def _make_subset(avl_dataset, indices: Sequence[int]):
+        return AvalancheSubset(avl_dataset, indices=indices)
 
 
 class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):

@@ -1,5 +1,7 @@
 from typing import Sequence, Optional
+from pkg_resources import parse_version
 
+import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -126,11 +128,6 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
 
     @property
-    def is_eval(self):
-        """True if the strategy is in evaluation mode."""
-        return not self.is_training
-
-    @property
     def mb_x(self):
         """Current mini-batch input."""
         return self.mbatch[0]
@@ -191,7 +188,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         super()._before_eval_exp(**kwargs)
 
     def make_train_dataloader(
-        self, num_workers=0, shuffle=True, pin_memory=True, **kwargs
+        self, num_workers=0, shuffle=True, pin_memory=True,
+        persistent_workers=False, **kwargs
     ):
         """Data loader initialization.
 
@@ -203,6 +201,12 @@ class SupervisedTemplate(BaseSGDTemplate):
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to True.
         """
+
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version('1.7.0'):
+            other_dataloader_args['persistent_workers'] = persistent_workers
+
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
@@ -210,9 +214,12 @@ class SupervisedTemplate(BaseSGDTemplate):
             batch_size=self.train_mb_size,
             shuffle=shuffle,
             pin_memory=pin_memory,
+            **other_dataloader_args
         )
 
-    def make_eval_dataloader(self, num_workers=0, pin_memory=True, **kwargs):
+    def make_eval_dataloader(
+            self, num_workers=0, pin_memory=True, persistent_workers=False,
+            **kwargs):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
@@ -223,11 +230,17 @@ class SupervisedTemplate(BaseSGDTemplate):
         :param kwargs:
         :return:
         """
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version('1.7.0'):
+            other_dataloader_args['persistent_workers'] = persistent_workers
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
+            **other_dataloader_args
         )
 
     def forward(self):

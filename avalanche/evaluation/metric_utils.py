@@ -248,14 +248,14 @@ def phase_and_task(strategy: "SupervisedTemplate") -> Tuple[str, int]:
     :return: The current phase name as either "Train" or "Task" and the
         associated task label.
     """
-    if not hasattr(strategy.experience, 'task_labels'):
-        task = None
-    else:
+    if hasattr(strategy.experience, 'task_labels'):
         task = strategy.experience.task_labels
         if len(task) > 1:
             task = None  # task labels per patterns
         else:
             task = task[0]
+    else:
+        task = None
 
     if strategy.is_eval:
         return EVAL, task
