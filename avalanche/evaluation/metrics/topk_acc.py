@@ -253,7 +253,8 @@ class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
 class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
     """
     At the end of each experience, this plugin metric reports the average
-    top-k accuracy for only the experiences that the model has been trained on so far.
+    top-k accuracy for only the experiences
+    that the model has been trained on so far.
 
     This metric only works at eval time.
     """
@@ -277,8 +278,8 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
 
     def update(self, strategy):
         """
-        Only update the top-k accuracy with results from experiences that have been
-        trained on
+        Only update the top-k accuracy with results from experiences
+        that have been trained on
         """
         if strategy.experience.current_experience <= self._current_experience:
             TopkAccuracyPluginMetric.update(self, strategy)
@@ -290,8 +291,8 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
 class StreamTopkAccuracy(TopkAccuracyPluginMetric):
     """
     At the end of the entire stream of experiences, this plugin metric
-    reports the average top-k accuracy over all patterns seen in all experiences.
-    This metric only works at eval time.
+    reports the average top-k accuracy over all patterns
+    seen in all experiences. This metric only works at eval time.
     """
 
     def __init__(self, top_k):
