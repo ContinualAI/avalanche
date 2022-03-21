@@ -32,9 +32,9 @@ class TopkAccuracy(Metric[float]):
         """
         Creates an instance of the standalone Top-k Accuracy metric.
 
-        By default this metric in its initial state will return an accuracy
-        value of 0. The metric can be updated by using the `update` method
-        while the running top-k accuracy can be retrieved using the `result` method.
+        By default this metric in its initial state will return a value of 0.
+        The metric can be updated by using the `update` method while
+        the running top-k accuracy can be retrieved using the `result` method.
 
         :param top_k: integer number to define the value of k.
         """
@@ -81,7 +81,9 @@ class TopkAccuracy(Metric[float]):
             )
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
-                self._topk_acc_dict[t.item()].update(accuracy(pred, true, top_k=self.top_k), 1)
+                self._topk_acc_dict[t.item()].update(
+                    accuracy(pred, true, top_k=self.top_k), 1
+                )
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
@@ -239,7 +241,8 @@ class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of the ExperienceTopkAccuracy metric.
         """
         super(ExperienceTopkAccuracy, self).__init__(
-            reset_at="experience", emit_at="experience", mode="eval", top_k=top_k
+            reset_at="experience", emit_at="experience",
+            mode="eval", top_k=top_k
         )
         self.top_k = top_k
 
@@ -260,7 +263,8 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of the TrainedExperienceTopkAccuracy metric.
         """
         super(TrainedExperienceTopkAccuracy, self).__init__(
-            reset_at="stream", emit_at="stream", mode="eval", top_k=top_k
+            reset_at="stream", emit_at="stream",
+            mode="eval", top_k=top_k
         )
         self._current_experience = 0
         self.top_k = top_k
@@ -295,7 +299,8 @@ class StreamTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of StreamTopkAccuracy metric
         """
         super(StreamTopkAccuracy, self).__init__(
-            reset_at="stream", emit_at="stream", mode="eval", top_k=top_k
+            reset_at="stream", emit_at="stream",
+            mode="eval", top_k=top_k
         )
         self.top_k = top_k
 
