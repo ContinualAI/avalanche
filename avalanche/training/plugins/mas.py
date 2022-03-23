@@ -108,6 +108,11 @@ class MASPlugin(SupervisedPlugin):
         importance = {name: importance[name] / len(dataloader)
                       for name in importance.keys()}
 
+        # Importance magnitude
+        if self.verbose:
+            for name in importance:
+                print(name, torch.norm(importance[name]).item())
+
         return importance
 
     def before_backward(self, strategy: BaseSGDTemplate, **kwargs):
@@ -130,7 +135,7 @@ class MASPlugin(SupervisedPlugin):
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
                 loss_reg += torch.sum(self.importance[name] *
-                                      (param - self.params[name]).pow(2)) / 2
+                                      (param - self.params[name]).pow(2))
 
         # Update loss
         strategy.loss += self._lambda * loss_reg
