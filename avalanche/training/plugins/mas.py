@@ -12,7 +12,21 @@ from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 class MASPlugin(SupervisedPlugin):
     """
-    Memory Aware Synapses (MAS)
+    Memory Aware Synapses (MAS) plugin.
+
+    Similarly to EWC, the MAS plugin computes the importance of each
+    parameter at the end of each experience. The approach computes
+    importance via a second pass on the dataset. MAS does not require
+    supervision and estimates importance using the gradients of the
+    L2 norm of the output. Importance is then used to add a penalty
+    term to the loss function.
+
+    Technique introduced in:
+    "Memory Aware Synapses: Learning what (not) to forget"
+    by Aljundi et. al (2018).
+
+    Implementation based on FACIL, as in:
+    https://github.com/mmasana/FACIL/blob/master/src/approach/mas.py
     """
 
     def __init__(self,
@@ -21,11 +35,12 @@ class MASPlugin(SupervisedPlugin):
                  verbose=False):
         """
         :param lambda_reg: hyperparameter weighting the penalty term
-               in the overall loss.
-        :param alpha: hyperparameter that specifies the weight given
-               to the influence of the previous experience.
-        :param verbose: when True, the computation of the influence of
-               each parameter shows a progress bar.
+               in the loss.
+        :param alpha: hyperparameter used to update the importance
+               by also considering the influence in the previous
+               experience.
+        :param verbose: when True, the computation of the influence
+               shows a progress bar using tqdm.
         """
 
         # Init super class
@@ -54,17 +69,17 @@ class MASPlugin(SupervisedPlugin):
             raise ValueError("Current dataset is not available")
 
         # Do forward and backward pass to accumulate L2-loss gradients
-        # BUG: Using a None collate_fn causes a type error with PyTorch 1.8.1
         strategy.model.train()
         dataloader = DataLoader(
             strategy.experience.dataset,
             batch_size=strategy.train_mb_size,)  # type: ignore
 
+        # Progress bar
         if self.verbose:
             print("Computing importance")
             dataloader = tqdm(dataloader)
 
-        for i, batch in enumerate(dataloader):
+        for _, batch in enumerate(dataloader):
             # Get batch
             if len(batch) == 2 or len(batch) == 3:
                 x, _, t = batch[0], batch[1], batch[-1]
@@ -96,13 +111,14 @@ class MASPlugin(SupervisedPlugin):
         return importance
 
     def before_backward(self, strategy: BaseSGDTemplate, **kwargs):
-        # Check if the task is not the last
+        # Check if the task is not the first
         exp_counter = strategy.clock.train_exp_counter
         if exp_counter == 0:
             return
 
         loss_reg = 0.
 
+        # Check if properties have been initialized
         if not self.importance:
             raise ValueError("Importance is not available")
         if not self.params:
@@ -110,19 +126,21 @@ class MASPlugin(SupervisedPlugin):
         if not strategy.loss:
             raise ValueError("Loss is not available")
 
+        # Apply penalty term
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
                 loss_reg += torch.sum(self.importance[name] *
                                       (param - self.params[name]).pow(2)) / 2
 
+        # Update loss
         strategy.loss += self._lambda * loss_reg
 
     def before_training(self, strategy: BaseSGDTemplate, **kwargs):
-        # Current paramaters before the first task starts
+        # Parameters before the first task starts
         if not self.params:
             self.params = dict(copy_params_dict(strategy.model))
 
-        # Store Fisher information weight importance
+        # Initialize Fisher information weight importance
         if not self.importance:
             self.importance = dict(zerolike_params_dict(strategy.model))
 
