@@ -50,7 +50,8 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.supervised import Naive
+from avalanche.training import Naive
+
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -71,10 +72,10 @@ cl_strategy = Naive(
     model, optimizer, criterion, train_mb_size=32, train_epochs=2,
     eval_mb_size=32, device=device)
 
-# train and test loop
+# train and test loop over the stream of experiences
 results = []
-for train_task in train_stream:
-    cl_strategy.train(train_task, num_workers=4)
+for train_exp in train_stream:
+    cl_strategy.train(train_exp)
     results.append(cl_strategy.eval(test_stream))
 ```
 
