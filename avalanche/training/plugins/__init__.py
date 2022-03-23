@@ -13,3 +13,4 @@ from .cope import CoPEPlugin, PPPloss
 from .lfl import LFLPlugin
 from .early_stopping import EarlyStoppingPlugin
 from .lr_scheduling import LRSchedulerPlugin
+from .mas import MASPlugin

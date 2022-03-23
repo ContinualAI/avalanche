@@ -10,7 +10,7 @@ from avalanche.training.templates.base_sgd import BaseSGDTemplate
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 
-class MemoryAwareSynapses(SupervisedPlugin):
+class MASPlugin(SupervisedPlugin):
     """
     Memory Aware Synapses (MAS)
     """
