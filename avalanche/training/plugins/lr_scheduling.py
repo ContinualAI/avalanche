@@ -1,6 +1,8 @@
 import warnings
 from typing import TYPE_CHECKING
 
+from typing_extensions import Literal
+
 from avalanche.evaluation.metrics import Mean
 from avalanche.training.plugins import SupervisedPlugin
 import inspect
@@ -14,13 +16,15 @@ class LRSchedulerPlugin(SupervisedPlugin):
 
     This plugin manages learning rate scheduling inside of a strategy using the
     PyTorch scheduler passed to the constructor. The step() method of the
-    scheduler is called after each training epoch.
+    scheduler is called after each training epoch or iteration.
 
     Metric-based schedulers (like ReduceLROnPlateau) are supported as well.
     """
 
     def __init__(
-        self, scheduler, reset_scheduler=True, reset_lr=True, metric=None
+            self, scheduler, reset_scheduler=True, reset_lr=True, metric=None,
+            step_granularity: Literal['epoch', 'iteration'] = 'epoch',
+            first_epoch_only=False, first_exp_only=False
     ):
         """
         Creates a ``LRSchedulerPlugin`` instance.
@@ -42,6 +46,16 @@ class LRSchedulerPlugin(SupervisedPlugin):
             validation stream to the strategy train method, otherwise the
             periodic evaluation stream will use the training set to compute
             the validation loss.
+        :param step_granularity: defines how often the scheduler's `step()`
+            method will be called. Defaults to 'epoch'. Valid values are
+            'epoch' and 'iteration'.
+        :param first_epoch_only: if True, the scheduler will only be stepped
+            in the first epoch of each training experience. This is not mutually
+            exclusive with `first_exp_only`: by setting both values to True,
+            the scheduler will be stepped only in the very first epoch of the
+            whole training stream.
+        :param first_exp_only: if True, the scheduler will only be considered
+            in the first training experience.
         """
 
         super().__init__()
@@ -50,10 +64,14 @@ class LRSchedulerPlugin(SupervisedPlugin):
         self.reset_lr = reset_lr
         self.metric = metric
         self.rolling_metric = Mean()
+        self.step_granularity = step_granularity
+        self.first_epoch_only = first_epoch_only
+        self.first_exp_only = first_exp_only
 
         # Used to detect and manage the periodic eval phase
         self._was_training = False
-        self._eval_train_epoch = 0
+        self._just_validated = False
+        self._executed_train_iteration = False
 
         arg_names = inspect.getfullargspec(self.scheduler.step)[0]
         needs_metrics = "metrics" in arg_names
@@ -78,15 +96,20 @@ class LRSchedulerPlugin(SupervisedPlugin):
                 f"is supported at the moment (got {metric}."
             )
 
+        if self.step_granularity not in ['iteration', 'epoch']:
+            raise ValueError(
+                'Wrong value of step_granularity: valid values are '
+                '"iteration" and "epoch"')
+
         LRSchedulerPlugin._patch_lr_on_plateau(self.scheduler)
 
     def after_training_epoch(self, strategy: "SupervisedTemplate", **kwargs):
-        if self.metric == "train_loss":
-            self.scheduler.step(metrics=self.rolling_metric.result())
-            self.rolling_metric.reset()
-        elif self.metric != "val_loss":
-            self.scheduler.step()
-            self.rolling_metric.reset()
+        if self.step_granularity == 'epoch' and \
+                self.metric in [None, 'train_loss']:
+            self._step_scheduler(strategy, **kwargs)
+
+    def before_training_iteration(self, strategy, **kwargs):
+        self._just_validated = False
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         param_groups = strategy.optimizer.param_groups
@@ -117,41 +140,44 @@ class LRSchedulerPlugin(SupervisedPlugin):
     def after_training(self, strategy: "SupervisedTemplate", **kwargs):
         self._was_training = False
 
-    def after_eval(self, strategy: "SupervisedTemplate", **kwargs):
+    def before_training_exp(self, strategy, *args, **kwargs):
+        self._executed_train_iteration = False
 
+    def after_eval(self, strategy: "SupervisedTemplate", **kwargs):
         if self.metric == "val_loss" and self._was_training:
 
-            if strategy.clock.train_exp_epochs == 0:
+            if not self._executed_train_iteration:
                 # The base strategy may run an evaluation pass on the
                 # validation set before running the training loop. In that
                 # case, we should just discard the result.
                 # print('Ignoring pre-training validation')
                 pass
-            elif self._eval_train_epoch == strategy.clock.train_exp_epochs:
+            elif self._just_validated:
                 # The base strategy may run an evaluation pass on the
                 # validation set after the training loop. In that
                 # case, we should discard the result only if the validation pass
                 # has been duplicated.
-
-                # In fact, the previous branch of the "if" could be omitted
-                # because this one can cover both the pre-training and
-                # duplicate post-training cases...
-                # print('Ignoring post-training duplicate validation '
-                #      f'{self._eval_train_epoch}')
+                # print('Ignoring, as just validated')
                 pass
             else:
                 # print('Stepping after validation',
                 #       self.rolling_metric.result())
-                self.scheduler.step(metrics=self.rolling_metric.result())
+                self._step_scheduler(strategy, **kwargs)
             self.rolling_metric.reset()
-        self._eval_train_epoch = strategy.clock.train_exp_epochs
+
+        self._just_validated = True
 
     def after_training_iteration(
         self, strategy: "SupervisedTemplate", **kwargs
     ):
-        if self.metric != "train_loss":
-            return
-        self.rolling_metric.update(strategy.loss, weight=len(strategy.mb_x))
+        self._executed_train_iteration = True
+
+        if self.metric == "train_loss":
+            self.rolling_metric.update(strategy.loss, weight=len(strategy.mb_x))
+
+        if self.step_granularity == 'iteration' and \
+                self.metric in [None, 'train_loss']:
+            self._step_scheduler(strategy, **kwargs)
 
     def after_eval_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         if self.metric != "val_loss":
@@ -183,5 +209,31 @@ class LRSchedulerPlugin(SupervisedPlugin):
             )
         )
 
+    def _check_first_epoch_or_experience(self, strategy):
+        if strategy.clock.train_exp_counter > 0 and self.first_exp_only:
+            return False
 
-__all__ = ["LRSchedulerPlugin"]
+        if strategy.clock.train_exp_epochs > 0 and self.first_epoch_only:
+            return False
+
+        return True
+
+    def _step_scheduler(self, strategy: "SupervisedTemplate", **kwargs):
+        if strategy.is_training:
+            if self._check_first_epoch_or_experience(strategy):
+                if self.metric == "train_loss":
+                    self.scheduler.step(metrics=self.rolling_metric.result())
+                elif self.metric != "val_loss":
+                    self.scheduler.step()
+
+            if self.metric == "train_loss" or self.metric != "val_loss":
+                self.rolling_metric.reset()
+        else:
+            # Validating
+            if self._check_first_epoch_or_experience(strategy):
+                self.scheduler.step(metrics=self.rolling_metric.result())
+
+
+__all__ = [
+    "LRSchedulerPlugin"
+]
