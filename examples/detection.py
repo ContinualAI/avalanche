@@ -23,9 +23,9 @@ from avalanche.benchmarks.scenarios.detection_scenario import \
     DetectionCLScenario
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
 from avalanche.training.supervised.naive_object_detection import \
-    NaiveObjectDetection
+    ObjectDetectionTemplate
 
-from avalanche.evaluation.metrics import LvisMetrics, timing_metrics, \
+from avalanche.evaluation.metrics import make_lvis_metrics, timing_metrics, \
     loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
@@ -97,7 +97,7 @@ def main(args):
     )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
-    cl_strategy = NaiveObjectDetection(
+    cl_strategy = ObjectDetectionTemplate(
         model=model,
         optimizer=optimizer,
         train_mb_size=train_mb_size,
@@ -105,12 +105,13 @@ def main(args):
         eval_mb_size=train_mb_size,
         device=device,
         plugins=[
-            LRSchedulerPlugin(lr_scheduler)
+            LRSchedulerPlugin(lr_scheduler, step_granularity='iteration',
+                              first_exp_only=True, first_epoch_only=True)
         ],
         evaluator=EvaluationPlugin(
             timing_metrics(epoch=True),
             loss_metrics(epoch_running=True),
-            LvisMetrics(),
+            make_lvis_metrics(),
             loggers=[InteractiveLogger()])
     )
 

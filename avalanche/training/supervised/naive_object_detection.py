@@ -15,6 +15,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import detection_collate_fn, \
     TaskBalancedDataLoader, detection_collate_mbatches_fn
 from avalanche.core import SupervisedPlugin
@@ -23,7 +24,7 @@ from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 
 
-class NaiveObjectDetection(SupervisedTemplate):
+class ObjectDetectionTemplate(SupervisedTemplate):
     """
     The object detection naive strategy.
 
@@ -225,5 +226,5 @@ class NaiveObjectDetection(SupervisedTemplate):
 
 __all__ = [
     'detection_collate_fn',
-    'NaiveObjectDetection'
+    'ObjectDetectionTemplate'
 ]
