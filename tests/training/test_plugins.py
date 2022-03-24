@@ -432,9 +432,10 @@ class PluginTests(unittest.TestCase):
         # ReduceLROnPlateau scheduler!
 
         for reset_lr, reset_scheduler, granularity, first_epoch_only, \
-            first_exp_only in itertools.product(
-            (True, False), (True, False), ('iteration', 'epoch'), (True, False),
-            (True, False)):
+            first_exp_only in \
+                itertools.product((True, False), (True, False),
+                                  ('iteration', 'epoch'), (True, False),
+                                  (True, False)):
             with self.subTest(
                     reset_lr=reset_lr, reset_scheduler=reset_scheduler,
                     granularity=granularity, first_epoch_only=first_epoch_only,
@@ -551,9 +552,10 @@ class PluginTests(unittest.TestCase):
         # Everything is in order, now we can test the plugin support for the
         # ReduceLROnPlateau scheduler!
         for reset_lr, reset_scheduler, granularity, first_epoch_only, \
-            first_exp_only in itertools.product(
-            (True, False), (True, False), ('iteration', 'epoch'), (True, False),
-            (True, False)):
+            first_exp_only in \
+                itertools.product((True, False), (True, False),
+                                  ('iteration', 'epoch'), (True, False),
+                                  (True, False)):
             with self.subTest(
                     reset_lr=reset_lr, reset_scheduler=reset_scheduler,
                     granularity=granularity, first_epoch_only=first_epoch_only,
