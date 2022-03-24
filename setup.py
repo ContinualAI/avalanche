@@ -50,6 +50,7 @@ setuptools.setup(
         'tqdm',
         'torch',
         'torchvision',
+        'torchmetrics',
         'gdown',
         'ctrl-benchmark',
         'lvis',
