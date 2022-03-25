@@ -108,9 +108,9 @@ SupportedDatasetApiDef = Tuple['str', Union[Tuple[Type], Type]]
 
 
 DEFAULT_SUPPROTED_DETECTION_DATASETS: Sequence[SupportedDatasetApiDef] = (
-    ('lvis_api', LVIS),  # LvisDataset from Avalanche
+    ('coco', COCO),  # CocoDetection from torchvision
+    ('lvis_api', LVIS)  # LvisDataset from Avalanche
 )
-#    ('coco', COCO),  # CocoDetection from torchvision
 
 
 class DetectionMetrics(PluginMetric[dict]):
