@@ -24,7 +24,7 @@ from avalanche.benchmarks.datasets import (
     DownloadableDataset,
     default_dataset_location,
 )
-from avalanche.benchmarks.datasets.lvis.lvis_data import lvis_archives
+from avalanche.benchmarks.datasets.lvis_dataset.lvis_data import lvis_archives
 from lvis import LVIS
 import torch
 
@@ -41,7 +41,7 @@ class LvisDataset(DownloadableDataset):
         loader=default_loader,
         download=True,
         lvis_api=None,
-        img_ids: List[int] = None
+        img_ids: List[int] = None,
     ):
         """
         Creates an instance of the LVIS dataset.
@@ -200,7 +200,7 @@ class LvisDataset(DownloadableDataset):
         splitted_url = coco_url.split('/')
         img_path = splitted_url[-2] + '/' + splitted_url[-1]
         final_path = self.root / img_path  # <root>/train2017/<img_id>.jpg
-        return Image.open(str(final_path)).convert("RGB")
+        return self.loader(str(final_path))
 
 
 class LVISImgEntry(TypedDict):

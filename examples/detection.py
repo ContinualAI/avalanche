@@ -18,7 +18,7 @@ stream of experiences is obtained by splitting the dataset in equal parts.
 import logging
 
 from avalanche.benchmarks import StreamUserDef
-from avalanche.benchmarks.datasets.lvis import LvisDataset
+from avalanche.benchmarks.datasets import LvisDataset
 from avalanche.benchmarks.scenarios.detection_scenario import \
     DetectionCLScenario
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
