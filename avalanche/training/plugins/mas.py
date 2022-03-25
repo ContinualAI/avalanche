@@ -100,18 +100,15 @@ class MASPlugin(SupervisedPlugin):
             # Accumulate importance
             for name, param in strategy.model.named_parameters():
                 if param.requires_grad:
-                    if param.grad is None:
-                        raise ValueError("Gradient is None")
-                    importance[name] += param.grad.abs() * len(batch)
+                    # In multi-head architectures, the gradient is going
+                    # to be None for all the heads different from the
+                    # current one.
+                    if param.grad is not None:
+                        importance[name] += param.grad.abs() * len(batch)
 
         # Normalize importance
         importance = {name: importance[name] / len(dataloader)
                       for name in importance.keys()}
-
-        # Importance magnitude
-        if self.verbose:
-            for name in importance:
-                print(name, torch.norm(importance[name]).item())
 
         return importance
 
