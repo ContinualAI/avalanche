@@ -15,7 +15,6 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import detection_collate_fn, \
     TaskBalancedDataLoader, detection_collate_mbatches_fn
 from avalanche.core import SupervisedPlugin

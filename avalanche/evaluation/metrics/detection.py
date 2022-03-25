@@ -18,6 +18,8 @@ from avalanche.benchmarks.utils import AvalancheSubset, \
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator import \
+    CocoEvaluator
 from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator import \
     LvisEvaluator
 
@@ -129,9 +131,10 @@ class DetectionMetrics(PluginMetric[dict]):
             self,
             *,
             evaluator_factory:
-            Optional[Callable[[Any, List[str]], DetectionEvaluator]],
+            Callable[[Any, List[str]], DetectionEvaluator] = CocoEvaluator,
             gt_api_def: Sequence[SupportedDatasetApiDef] =
             DEFAULT_SUPPROTED_DETECTION_DATASETS,
+            default_to_coco=False,
             save_folder=None,
             filename_prefix='model_output',
             save_stream='test',
@@ -140,8 +143,8 @@ class DetectionMetrics(PluginMetric[dict]):
         """
         Creates an instance of DetectionMetrics.
 
-        :param evaluator_factory: The factory for the evaluator to use. If 
-            None, the COCO evaluator will be used. The factory should accept
+        :param evaluator_factory: The factory for the evaluator to use. By 
+            default, the COCO evaluator will be used. The factory should accept
             2 parameters: the API object containing the test annotations and
             the list of IOU types to consider. It must return an instance
             of a DetectionEvaluator.
@@ -150,6 +153,8 @@ class DetectionMetrics(PluginMetric[dict]):
             while the Type must be the one the API object.
             For instance, for :class:`LvisDataset` is `('lvis_api', lvis.LVIS)`.
             Defaults to the datasets explicitly supported by Avalanche.
+        :param default_to_coco: If True, it will try to convert the dataset 
+            to the COCO format.
         :param save_folder: path to the folder where to write model output
             files. Defaults to None, which means that the model output of
             test instances will not be stored.
@@ -196,9 +201,6 @@ class DetectionMetrics(PluginMetric[dict]):
         If True, a summary of evaluation metrics will be printed to stdout.
         """
 
-        if evaluator_factory is None:
-            evaluator_factory = ...
-
         self.evaluator_factory = evaluator_factory
         """
         The factory of the evaluator object.
@@ -213,6 +215,11 @@ class DetectionMetrics(PluginMetric[dict]):
         """
         The name and type of the dataset API object containing the ground
         truth test annotations.
+        """
+
+        self.default_to_coco = default_to_coco
+        """
+        If True, it will try to convert the dataset to the COCO format.
         """
 
         self.current_filename = None
@@ -248,8 +255,9 @@ class DetectionMetrics(PluginMetric[dict]):
         self.evaluator.update(res)
 
     def result(self):
+        # result_dict may be None if not running in the main process
         result_dict = self.evaluator.evaluate()
-        if self.summarize_to_stdout:
+        if result_dict is not None and self.summarize_to_stdout:
             self.evaluator.summarize()
 
         if isinstance(result_dict, Tuple):
@@ -264,7 +272,7 @@ class DetectionMetrics(PluginMetric[dict]):
         detection_api = get_detection_api_from_dataset(
             strategy.experience.dataset,
             supported_types=self.gt_api_def,
-            default_to_coco=False)
+            default_to_coco=self.default_to_coco)
         self.evaluator = self.evaluator_factory(detection_api, self.iou_types)
         if self.save:
             self.current_filename = self._get_filename(strategy)
@@ -327,8 +335,7 @@ def make_lvis_metrics(
         filename_prefix='model_output',
         iou_types: Union[str, List[str]] = 'bbox',
         summarize_to_stdout: bool = True,
-        evaluator_factory:
-        Union[Callable[[Any, List[str]], DetectionEvaluator], None] =
+        evaluator_factory: Callable[[Any, List[str]], DetectionEvaluator] =
         LvisEvaluator,
         gt_api_def: Sequence[SupportedDatasetApiDef] =
         DEFAULT_SUPPROTED_DETECTION_DATASETS):
@@ -349,7 +356,7 @@ def make_lvis_metrics(
         Defaults to True.
     :param evaluator_factory: Defaults to :class:`LvisEvaluator` constructor.
     :param gt_api_def: Defaults to the list of supported datasets (LVIS is
-        supported in Avalanche through class:`LvisDataset`.
+        supported in Avalanche through class:`LvisDataset`).
     :return: A metric plugin that can compute metrics on the LVIS dataset.
     """
     return DetectionMetrics(
@@ -365,7 +372,7 @@ def get_detection_api_from_dataset(
         dataset,
         supported_types: Sequence[Tuple['str', Union[Type, Tuple[Type]]]] =
         DEFAULT_SUPPROTED_DETECTION_DATASETS,
-        default_to_coco: bool = True):
+        default_to_coco: bool = True, none_if_not_found=False):
     """
     Adapted from:
     https://github.com/pytorch/vision/blob/main/references/detection/engine.py
@@ -374,19 +381,23 @@ def get_detection_api_from_dataset(
     :param supported_types: The supported API types
     :param default_to_coco: If True, if no API object can be found, the dataset
         will be converted to COCO.
+    :param none_if_not_found: If True, it will return None if no valid
+        detection API object is found. Else, it will consider `default_to_coco`
+        or will raise an error.
 
     :return: The detection object.
     """
 
+    recursion_result = None
     if isinstance(dataset, Subset):
-        return get_detection_api_from_dataset(
-            dataset.dataset, supported_types)
+        recursion_result = get_detection_api_from_dataset(
+            dataset.dataset, supported_types, none_if_not_found=True)
     elif isinstance(dataset, AvalancheSubset):
-        return get_detection_api_from_dataset(
-            dataset._original_dataset, supported_types)
+        recursion_result = get_detection_api_from_dataset(
+            dataset._original_dataset, supported_types, none_if_not_found=True)
     elif isinstance(dataset, AvalancheDataset):
-        return get_detection_api_from_dataset(
-            dataset._dataset, supported_types)
+        recursion_result = get_detection_api_from_dataset(
+            dataset._dataset, supported_types, none_if_not_found=True)
     elif isinstance(dataset, (AvalancheConcatDataset, ConcatDataset)):
         if isinstance(dataset, AvalancheConcatDataset):
             datasets_list = dataset._dataset_list
@@ -394,20 +405,26 @@ def get_detection_api_from_dataset(
             datasets_list = dataset.datasets
 
         for dataset in datasets_list:
-            res = get_detection_api_from_dataset(dataset, supported_types)
+            res = get_detection_api_from_dataset(
+                dataset, supported_types, none_if_not_found=True)
             if res is not None:
-                return res
-    else:
-        for supported_n, supported_t in supported_types:
-            candidate_api = getattr(dataset, supported_n, None)
-            if candidate_api is not None:
-                if isinstance(candidate_api, supported_t):
-                    return candidate_api
+                recursion_result = res
+                break
 
-        if default_to_coco:
-            return convert_to_coco_api(dataset)
-        else:
-            raise ValueError('Could not find a valid dataset API object')
+    if recursion_result is not None:
+        return recursion_result
+
+    for supported_n, supported_t in supported_types:
+        candidate_api = getattr(dataset, supported_n, None)
+        if candidate_api is not None:
+            if isinstance(candidate_api, supported_t):
+                return candidate_api
+    if none_if_not_found:
+        return None
+    elif default_to_coco:
+        return convert_to_coco_api(dataset)
+    else:
+        raise ValueError('Could not find a valid dataset API object')
 
 
 def convert_to_coco_api(ds):

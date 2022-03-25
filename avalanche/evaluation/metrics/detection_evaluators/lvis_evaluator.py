@@ -1,3 +1,16 @@
+# For the Avalanche adaptation:
+################################################################################
+# Copyright (c) 2022 ContinualAI                                               #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 25-03-2022                                                             #
+# Author: Lorenzo Pellegrini                                                   #
+#                                                                              #
+# E-mail: contact@continualai.org                                              #
+# Website: www.continualai.org                                                 #
+################################################################################
+
 import copy
 import itertools
 import logging
