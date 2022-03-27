@@ -30,11 +30,15 @@ class Generator(BaseModel):
     """
 
     @abstractmethod
-    def generate(self, batch_size=None):
+    def generate(self, batch_size=None, condition=None):
         """
         Lets the generator sample random samples.
         Output is either a single sample or, if provided,
         a batch of samples of size "batch_size" 
+
+        :param batch_size: Number of samples to generate
+        :param condition: Possible condition for a condotional generator 
+                          (e.g. a class label)
         """
 
 
