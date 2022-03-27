@@ -365,7 +365,7 @@ class GenerativeReplay(SupervisedTemplate):
                 eval_mb_size=32, device=device,
                 plugins=[GenerativeReplayPlugin()])
 
-        rp = GenerativeReplayPlugin(generator=self.generator_strategy)
+        rp = GenerativeReplayPlugin(generator_strategy=self.generator_strategy)
 
         tgp = TrainGeneratorAfterExpPlugin()
 

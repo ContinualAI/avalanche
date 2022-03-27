@@ -15,9 +15,8 @@ All plugins related to Generative Replay.
 """
 
 from copy import deepcopy
-from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.core import SupervisedPlugin
+from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
 import torch
 
@@ -56,7 +55,8 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         before training the first experience. Default to True.
     """
 
-    def __init__(self, generator=None, mem_size: int = 200, 
+    def __init__(self, generator_strategy: "BaseTemplate" = None, 
+                 mem_size: int = 200, 
                  batch_size: int = None,
                  batch_size_mem: int = None,
                  task_balanced_dataloader: bool = False,
@@ -69,9 +69,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.batch_size = batch_size
         self.batch_size_mem = batch_size_mem
         self.task_balanced_dataloader = task_balanced_dataloader
-        self.generator_strategy = generator
+        self.generator_strategy = generator_strategy
         if self.generator_strategy:
-            self.generator = generator.model
+            self.generator = generator_strategy.model
         else: 
             self.generator = None
         self.untrained_solver = untrained_solver
