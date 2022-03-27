@@ -63,7 +63,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         """Checks whether we are using a user defined external generator 
         or we use the strategy's model as the generator. 
         If the generator is None after initialization 
-        we assume that strategy.model is the generator."""
+        we assume that strategy.model is the generator.
+        (e.g. this would be the case when training a VAE with 
+        generative replay)"""
         if not self.generator_strategy:
             self.generator_strategy = strategy
             self.generator = strategy.model
