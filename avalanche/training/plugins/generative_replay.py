@@ -138,4 +138,6 @@ class TrainGeneratorAfterExpPlugin(SupervisedPlugin):
         The training method expects an Experience object 
         with a 'dataset' parameter.
         """
-        strategy.plugins[1].generator_strategy.train(strategy.experience) 
+        for plugin in strategy.plugins:
+            if type(plugin) is GenerativeReplayPlugin:
+                plugin.generator_strategy.train(strategy.experience) 
