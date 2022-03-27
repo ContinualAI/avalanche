@@ -26,7 +26,7 @@ import torch.optim.lr_scheduler
 import matplotlib.pyplot as plt
 import numpy as np
 from avalanche.benchmarks import SplitMNIST
-from avalanche.models import VAE
+from avalanche.models import MlpVAE
 from avalanche.training.supervised import VAETraining
 from avalanche.training.plugins import GenerativeReplayPlugin
 from avalanche.logging import InteractiveLogger
@@ -60,7 +60,7 @@ def main(args):
     # ---------
 
     # MODEL CREATION
-    model = VAE((1, 28, 28), nhid=2)
+    model = MlpVAE((1, 28, 28), nhid=2)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()

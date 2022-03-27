@@ -34,7 +34,7 @@ from avalanche.training.plugins import (
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
-from avalanche.models.generator import VAE, VAE_loss
+from avalanche.models.generator import MlpVAE, VAE_loss
 from avalanche.logging import InteractiveLogger
 
 
@@ -349,7 +349,7 @@ class GenerativeReplay(SupervisedTemplate):
         else:
             # By default we use a fully-connected VAE as the generator.
             # model:
-            generator = VAE((1, 28, 28), nhid=2, device=device)
+            generator = MlpVAE((1, 28, 28), nhid=2, device=device)
             # optimzer:
             lr = 0.01
             from torch.optim import Adam
@@ -365,7 +365,7 @@ class GenerativeReplay(SupervisedTemplate):
                 eval_mb_size=32, device=device,
                 plugins=[GenerativeReplayPlugin()])
 
-        rp = GenerativeReplayPlugin(generator=self.generator_strategy)
+        rp = GenerativeReplayPlugin(generator_strategy=self.generator_strategy)
 
         tgp = TrainGeneratorAfterExpPlugin()
 

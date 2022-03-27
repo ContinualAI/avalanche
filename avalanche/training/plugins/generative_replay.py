@@ -15,9 +15,8 @@ All plugins related to Generative Replay.
 """
 
 from copy import deepcopy
-from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.core import SupervisedPlugin
+from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
 import torch
 
@@ -26,13 +25,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     """
     Experience generative replay plugin.
 
-    Updates the Dataloader of a strategy before training an experience
-    by sampling a generator model and weaving the replay data into
-    the original training data. 
-
-    The examples in the created mini-batch contain one part of the original data
-    and one part of generative data for each class 
-    that has been encountered so far.
+    Updates the current mbatch of a strategy before training an experience
+    by sampling a generator model and concatenating the replay data to the 
+    current batch. 
 
     In this version of the plugin the number of replay samples is 
     increased with each new experience. Another way to implempent 
@@ -40,38 +35,25 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     importance to the replayed data as the number of experiences 
     increases. This will be implemented as an option for the user soon.
 
-    :param batch_size: the size of the data batch. If set to `None`, it
-        will be set equal to the strategy's batch size.
-    :param batch_size_mem: the size of the memory batch. If
-        `task_balanced_dataloader` is set to True, it must be greater than or
-        equal to the number of tasks. If its value is set to `None`
-        (the default value), it will be automatically set equal to the
-        data batch size.
-    :param task_balanced_dataloader: if True, buffer data loaders will be
-            task-balanced, otherwise it will create a single dataloader for the
-            buffer samples.
+    :param generator_strategy: In case the plugin is applied to a non-generative
+     model (e.g. a simple classifier), this should contain an Avalanche strategy 
+     for a model that implements a 'generate' method 
+     (see avalanche.models.generator.Generator). Defaults to None.
     :param untrained_solver: if True we assume this is the beginning of 
         a continual learning task and add replay data only from the second 
         experience onwards, otherwise we sample and add generative replay data
         before training the first experience. Default to True.
     """
 
-    def __init__(self, generator=None, mem_size: int = 200, 
-                 batch_size: int = None,
-                 batch_size_mem: int = None,
-                 task_balanced_dataloader: bool = False,
+    def __init__(self, generator_strategy: "BaseTemplate" = None, 
                  untrained_solver: bool = True):
         '''
         Init.
         '''
         super().__init__()
-        self.mem_size = mem_size
-        self.batch_size = batch_size
-        self.batch_size_mem = batch_size_mem
-        self.task_balanced_dataloader = task_balanced_dataloader
-        self.generator_strategy = generator
+        self.generator_strategy = generator_strategy
         if self.generator_strategy:
-            self.generator = generator.model
+            self.generator = generator_strategy.model
         else: 
             self.generator = None
         self.untrained_solver = untrained_solver
@@ -81,7 +63,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         """Checks whether we are using a user defined external generator 
         or we use the strategy's model as the generator. 
         If the generator is None after initialization 
-        we assume that strategy.model is the generator."""
+        we assume that strategy.model is the generator.
+        (e.g. this would be the case when training a VAE with 
+        generative replay)"""
         if not self.generator_strategy:
             self.generator_strategy = strategy
             self.generator = strategy.model
@@ -154,4 +138,6 @@ class TrainGeneratorAfterExpPlugin(SupervisedPlugin):
         The training method expects an Experience object 
         with a 'dataset' parameter.
         """
-        strategy.plugins[1].generator_strategy.train(strategy.experience) 
+        for plugin in strategy.plugins:
+            if type(plugin) is GenerativeReplayPlugin:
+                plugin.generator_strategy.train(strategy.experience) 

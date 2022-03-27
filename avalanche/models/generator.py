@@ -19,9 +19,8 @@ from abc import abstractmethod
 from matplotlib import transforms
 import torch
 import torch.nn as nn
-from collections import OrderedDict
 from torchvision import transforms
-
+from avalanche.models.utils import MLP, Flatten
 from avalanche.models.base_model import BaseModel
 
 
@@ -31,11 +30,15 @@ class Generator(BaseModel):
     """
 
     @abstractmethod
-    def generate(self, batch_size=None):
+    def generate(self, batch_size=None, condition=None):
         """
         Lets the generator sample random samples.
         Output is either a single sample or, if provided,
         a batch of samples of size "batch_size" 
+
+        :param batch_size: Number of samples to generate
+        :param condition: Possible condition for a condotional generator 
+                          (e.g. a class label)
         """
 
 
@@ -44,49 +47,7 @@ class Generator(BaseModel):
 ###########################
 
 
-class Flatten(nn.Module):
-    '''
-    Simple nn.Module to flatten each tensor of a batch of tensors.
-    '''
-
-    def __init__(self):
-        super(Flatten, self).__init__()
-
-    def forward(self, x):
-        batch_size = x.shape[0]
-        return x.view(batch_size, -1)
-
-
-class MLP(nn.Module):
-    '''
-    Simple nn.Module to create a multi-layer perceptron 
-    with BatchNorm and ReLU activations.
-
-    :param hidden_size: An array indicating the number of neurons in each layer.
-    :type hidden_size: int[]
-    :param last_activation: Indicates whether to add BatchNorm and ReLU 
-                            after the last layer.
-    :type last_activation: Boolean
-    '''
-
-    def __init__(self, hidden_size, last_activation=True):
-        super(MLP, self).__init__()
-        q = []
-        for i in range(len(hidden_size)-1):
-            in_dim = hidden_size[i]
-            out_dim = hidden_size[i+1]
-            q.append(("Linear_%d" % i, nn.Linear(in_dim, out_dim)))
-            if (i < len(hidden_size)-2) or ((i == len(hidden_size) - 2)
-                                            and (last_activation)):
-                q.append(("BatchNorm_%d" % i, nn.BatchNorm1d(out_dim)))
-                q.append(("ReLU_%d" % i, nn.ReLU(inplace=True)))
-        self.mlp = nn.Sequential(OrderedDict(q))
-
-    def forward(self, x):
-        return self.mlp(x)
-
-
-class VAEEncoder(nn.Module):
+class VAEMLPEncoder(nn.Module):
     '''
     Encoder part of the VAE, computer the latent represenations of the input.
 
@@ -95,7 +56,7 @@ class VAEEncoder(nn.Module):
     '''
 
     def __init__(self, shape, latent_dim=128):
-        super(VAEEncoder, self).__init__()
+        super(VAEMLPEncoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.encode = nn.Sequential(
             Flatten(),
@@ -110,7 +71,7 @@ class VAEEncoder(nn.Module):
         return x
 
 
-class VAEDecoder(nn.Module):
+class VAEMLPDecoder(nn.Module):
     '''
     Decoder part of the VAE. Reverses Encoder.
 
@@ -119,7 +80,7 @@ class VAEDecoder(nn.Module):
     '''
 
     def __init__(self, shape, nhid=16):
-        super(VAEDecoder, self).__init__()
+        super(VAEMLPDecoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.shape = shape
         self.decode = nn.Sequential(
@@ -137,7 +98,7 @@ class VAEDecoder(nn.Module):
                                  .view(-1, *self.shape))
 
 
-class VAE(Generator, nn.Module):
+class MlpVAE(Generator, nn.Module):
     '''
     Variational autoencoder module: 
     fully-connected and suited for any input shape and type.
@@ -157,14 +118,14 @@ class VAE(Generator, nn.Module):
         :param n_classes: Number of classes - 
                         defines classification head's dimension
         """
-        super(VAE, self).__init__()
+        super(MlpVAE, self).__init__()
         self.dim = nhid
         self.device = device
-        self.encoder = VAEEncoder(shape, latent_dim=128)
+        self.encoder = VAEMLPEncoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)
         self.classification = MLP([128, n_classes], last_activation=False)
-        self.decoder = VAEDecoder(shape, nhid)
+        self.decoder = VAEMLPDecoder(shape, nhid)
 
     def get_features(self, x):
         """
@@ -229,4 +190,4 @@ def VAE_loss(X, forward_output):
     return reconstruction_loss + KL_divergence
 
 
-__all__ = ["VAE", "VAE_loss"]
+__all__ = ["MlpVAE", "VAE_loss"]
