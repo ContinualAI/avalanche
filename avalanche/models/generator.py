@@ -47,7 +47,7 @@ class Generator(BaseModel):
 ###########################
 
 
-class VAEEncoder(nn.Module):
+class VAEMLPEncoder(nn.Module):
     '''
     Encoder part of the VAE, computer the latent represenations of the input.
 
@@ -56,7 +56,7 @@ class VAEEncoder(nn.Module):
     '''
 
     def __init__(self, shape, latent_dim=128):
-        super(VAEEncoder, self).__init__()
+        super(VAEMLPEncoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.encode = nn.Sequential(
             Flatten(),
@@ -71,7 +71,7 @@ class VAEEncoder(nn.Module):
         return x
 
 
-class VAEDecoder(nn.Module):
+class VAEMLPDecoder(nn.Module):
     '''
     Decoder part of the VAE. Reverses Encoder.
 
@@ -80,7 +80,7 @@ class VAEDecoder(nn.Module):
     '''
 
     def __init__(self, shape, nhid=16):
-        super(VAEDecoder, self).__init__()
+        super(VAEMLPDecoder, self).__init__()
         flattened_size = torch.Size(shape).numel()
         self.shape = shape
         self.decode = nn.Sequential(
@@ -98,7 +98,7 @@ class VAEDecoder(nn.Module):
                                  .view(-1, *self.shape))
 
 
-class VAE(Generator, nn.Module):
+class MlpVAE(Generator, nn.Module):
     '''
     Variational autoencoder module: 
     fully-connected and suited for any input shape and type.
@@ -118,14 +118,14 @@ class VAE(Generator, nn.Module):
         :param n_classes: Number of classes - 
                         defines classification head's dimension
         """
-        super(VAE, self).__init__()
+        super(MlpVAE, self).__init__()
         self.dim = nhid
         self.device = device
-        self.encoder = VAEEncoder(shape, latent_dim=128)
+        self.encoder = VAEMLPEncoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)
         self.classification = MLP([128, n_classes], last_activation=False)
-        self.decoder = VAEDecoder(shape, nhid)
+        self.decoder = VAEMLPDecoder(shape, nhid)
 
     def get_features(self, x):
         """
@@ -190,4 +190,4 @@ def VAE_loss(X, forward_output):
     return reconstruction_loss + KL_divergence
 
 
-__all__ = ["VAE", "VAE_loss"]
+__all__ = ["MlpVAE", "VAE_loss"]
