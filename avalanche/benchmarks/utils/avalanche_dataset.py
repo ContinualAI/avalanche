@@ -717,6 +717,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy = copy.copy(self)
         dataset_copy._frozen_transforms = dict(dataset_copy._frozen_transforms)
         dataset_copy.transform_groups = dict(dataset_copy.transform_groups)
+        dataset_copy.task_set = dataset_copy._make_task_set_dict()
 
         return dataset_copy
 
