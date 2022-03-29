@@ -39,6 +39,7 @@ from avalanche.training.supervised import (
     JointTraining,
     CoPE,
     StreamingLDA,
+    MAS,
 )
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.supervised.cumulative import Cumulative
@@ -699,6 +700,37 @@ class StrategyTest(unittest.TestCase):
             optimizer,
             criterion,
             lambda_e=0.0001,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        benchmark = self.load_benchmark(use_task_labels=True)
+        self.run_strategy(benchmark, strategy)
+
+    def test_mas(self):
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = MAS(
+            model,
+            optimizer,
+            criterion,
+            lambda_reg=1.,
+            alpha=0.5,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = MAS(
+            model,
+            optimizer,
+            criterion,
+            lambda_reg=1.,
+            alpha=0.5,
             train_mb_size=10,
             device=self.device,
             eval_mb_size=50,
