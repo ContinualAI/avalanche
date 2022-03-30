@@ -2,6 +2,7 @@ import unittest
 
 from os.path import expanduser
 
+import avalanche
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.models import SimpleMLP
 from torch.optim import SGD
@@ -49,6 +50,13 @@ def pil_images_equal(img_a, img_b):
     return not diff.getbbox()
 
 
+def zero_if_label_2(img_tensor: Tensor, class_label):
+    if int(class_label) == 2:
+        torch.full(img_tensor.shape, 0.0, out=img_tensor)
+
+    return img_tensor, class_label
+
+
 class AvalancheDatasetTests(unittest.TestCase):
     def test_mnist_no_transforms(self):
         dataset = MNIST(
@@ -84,6 +92,57 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(0, t2)
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
+
+    def test_avalanche_dataset_multi_param_transform(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
+
+        ref_instance2_idx = None
+
+        for instance_idx, (_, instance_y) in enumerate(dataset_mnist):
+            if instance_y == 2:
+                ref_instance2_idx = instance_idx
+                break
+
+        self.assertIsNotNone(ref_instance2_idx)
+
+        ref_instance_idx = None
+        for instance_idx, (_, instance_y) in enumerate(dataset_mnist):
+            if instance_y != 2:
+                ref_instance_idx = instance_idx
+                break
+
+        self.assertIsNotNone(ref_instance_idx)
+
+        with self.assertWarns(
+                avalanche.benchmarks.utils.ComposeMaxParamsWarning):
+            dataset_transform = avalanche.benchmarks.utils.Compose(
+                [ToTensor(), zero_if_label_2]
+            )
+
+        self.assertEqual(1, dataset_transform.min_params)
+        self.assertEqual(2, dataset_transform.max_params)
+
+        x, y = dataset_mnist[ref_instance_idx]
+        dataset = AvalancheDataset(
+            dataset_mnist, transform=dataset_transform)
+        x2, y2, t2 = dataset[ref_instance_idx]
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(y2, int)
+        self.assertIsInstance(t2, int)
+        self.assertEqual(0, t2)
+        self.assertTrue(torch.equal(ToTensor()(x), x2))
+        self.assertEqual(y, y2)
+
+        # Check that the multi-param transform was correctly called
+        x3, y3, _ = dataset[ref_instance2_idx]
+
+        self.assertEqual(2, y3)
+        self.assertIsInstance(x3, Tensor)
+        self.assertEqual(0.0, torch.min(x3))
+        self.assertEqual(0.0, torch.max(x3))
 
     def test_avalanche_dataset_slice(self):
         dataset_mnist = MNIST(

@@ -14,6 +14,8 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
+import itertools
+from collections import defaultdict
 from itertools import chain
 from typing import Dict, Sequence
 
@@ -38,6 +40,31 @@ def _default_collate_mbatches_fn(mbatches):
         t = torch.cat([el[i] for el in mbatches], dim=0)
         batch.append(t)
     return batch
+
+
+def detection_collate_fn(batch):
+    """
+    Collate function used when loading detection datasets using a DataLoader.
+    """
+    return tuple(zip(*batch))
+
+
+def detection_collate_mbatches_fn(mbatches):
+    """
+    Collate function used when loading detection datasets using a DataLoader.
+    """
+    lists_dict = defaultdict(list)
+    for mb in mbatches:
+        for mb_elem_idx, mb_elem in enumerate(mb):
+            lists_dict[mb_elem_idx].append(mb_elem)
+
+    lists = []
+    for mb_elem_idx in range(max(lists_dict.keys()) + 1):
+        lists.append(list(itertools.chain.from_iterable(
+            lists_dict[mb_elem_idx]
+        )))
+
+    return lists
 
 
 class TaskBalancedDataLoader:
@@ -388,6 +415,8 @@ class ReplayDataLoader:
 
 
 __all__ = [
+    "detection_collate_fn",
+    "detection_collate_mbatches_fn",
     "TaskBalancedDataLoader",
     "GroupBalancedDataLoader",
     "ReplayDataLoader",
