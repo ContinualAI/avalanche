@@ -29,4 +29,5 @@ dependencies:
     - gdown
     - ctrl-benchmark
     - gym
+    - higher
     - lvis
