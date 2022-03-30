@@ -24,6 +24,7 @@ from avalanche.training.plugins import (
     AGEMPlugin,
     GEMPlugin,
     EWCPlugin,
+    RWalkPlugin,
     EvaluationPlugin,
     SynapticIntelligencePlugin,
     CoPEPlugin,
@@ -692,6 +693,79 @@ class EWC(SupervisedTemplate):
         )
 
 
+class RWalk(SupervisedTemplate):
+    """Riemannian Walk (RWalk) strategy.
+
+    See RWalk plugin for details.
+    This strategy does not use task identities.
+    """
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion,
+        ewc_lambda: float,
+        ewc_alpha: float = 0.9,
+        delta_t: int = 10,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+        **base_kwargs
+    ):
+        """Init.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param ewc_lambda: hyperparameter to weigh the penalty inside the total
+               loss. The larger the lambda, the larger the regularization.
+        :param ewc_alpha: Specify the moving average factor for the importance
+                matrix, as defined RWalk paper (a.k.a. EWC++). Higher values
+                lead to higher weight to newly computed importances. Must be
+                in [0, 1]. Defaults to 0.9.
+        :param delta_t: Specify the iterations interval in which the parameter
+                scores are updated. Defaults to 10.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+        ewc = RWalkPlugin(ewc_lambda, ewc_alpha, delta_t)
+        if plugins is None:
+            plugins = [ewc]
+        else:
+            plugins.append(ewc)
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+
 class SynapticIntelligence(SupervisedTemplate):
     """Synaptic Intelligence strategy.
 
@@ -926,6 +1000,7 @@ __all__ = [
     "AGEM",
     "GEM",
     "EWC",
+    "RWalk",
     "SynapticIntelligence",
     "GSS_greedy",
     "CoPE",
