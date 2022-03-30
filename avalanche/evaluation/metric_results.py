@@ -49,7 +49,7 @@ class TensorImage:
         return self.image.numpy()
 
 
-MetricType = Union[float, int, Tensor, Image, TensorImage, Figure]
+MetricType = Union[float, int, str, Tensor, Image, TensorImage, Figure]
 
 
 class AlternativeValues:

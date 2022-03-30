@@ -237,15 +237,23 @@ class BaseSGDTemplate(BaseTemplate):
             self.loss += self.criterion()
 
             self._before_backward(**kwargs)
-            self.loss.backward()
+            self.backward()
             self._after_backward(**kwargs)
 
             # Optimization step
             self._before_update(**kwargs)
-            self.optimizer.step()
+            self.optimizer_step()
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+    def backward(self):
+        """Run the backward pass."""
+        self.loss.backward()
+
+    def optimizer_step(self):
+        """Execute the optimizer step (weights update)."""
+        self.optimizer.step()
 
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""

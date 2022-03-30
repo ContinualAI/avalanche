@@ -9,14 +9,14 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-channels:
+channels: 
 - conda-forge
 dependencies:
 - pip
 - psutil
 - conda-forge::gputil
 - wandb
-- tensorboard
+- tensorboard>=1.15
 - scikit-learn
 - matplotlib
 - numpy
@@ -29,4 +29,5 @@ dependencies:
     - gdown
     - ctrl-benchmark
     - gym
+    - higher
     - lvis
