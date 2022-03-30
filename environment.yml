@@ -16,7 +16,7 @@ dependencies:
 - psutil
 - conda-forge::gputil
 - wandb
-- tensorboard
+- tensorboard>=1.15
 - scikit-learn
 - matplotlib
 - numpy
