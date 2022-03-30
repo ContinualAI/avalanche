@@ -11,6 +11,7 @@
 from typing import Optional, Sequence
 
 import torch
+from pkg_resources import parse_version
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -42,6 +43,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
     For more info, refer to "TorchVision Object Detection Finetuning Tutorial":
     https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
     """
+
     def __init__(
             self,
             model: Module,
@@ -101,25 +103,25 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         self.detection_loss_dict = None
         """
         A dictionary of detection losses.
-        
+
         Only valid during the training phase.
         """
 
         self.detection_predictions = None
         """
         A list of detection predictions.
-        
+
         This is different from mb_output: mb_output is a list of dictionaries 
         (one dictionary for each image in the input minibatch), 
         while this field, which is populated after calling `criterion()`,
         will be a dictionary {image_id: list_of_predictions}.
-        
+
         Only valid during the evaluation phase. 
         """
 
     def make_train_dataloader(
-        self, num_workers=0, shuffle=True, pin_memory=True, **kwargs
-    ):
+            self, num_workers=0, shuffle=True, pin_memory=True,
+            persistent_workers=False, **kwargs):
         """Data loader initialization.
 
         Called at the start of each learning experience after the dataset
@@ -129,7 +131,16 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to True.
+        :param persistent_workers: If True, the data loader will not shutdown
+            the worker processes after a dataset has been consumed once.
+            Used only if `PyTorch >= 1.7.0`.
         """
+
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version('1.7.0'):
+            other_dataloader_args['persistent_workers'] = persistent_workers
+
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
@@ -138,7 +149,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             shuffle=shuffle,
             pin_memory=pin_memory,
             collate_mbatches=detection_collate_mbatches_fn,
-            collate_fn=detection_collate_fn
+            collate_fn=detection_collate_fn,
+            **other_dataloader_args
         )
 
     def make_eval_dataloader(self, num_workers=0, pin_memory=True, **kwargs):
