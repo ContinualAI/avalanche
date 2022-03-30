@@ -14,4 +14,5 @@ from .timing import *
 from .mean_scores import *
 from .labels_repartition import *
 from .images_samples import *
+from .topk_acc import *
 from .detection import *

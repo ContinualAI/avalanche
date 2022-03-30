@@ -16,7 +16,7 @@ dependencies:
 - psutil
 - conda-forge::gputil
 - wandb
-- tensorboard
+- tensorboard>=1.15
 - scikit-learn
 - matplotlib
 - numpy
@@ -33,5 +33,6 @@ dependencies:
     - pytorchcv
     - gdown
     - ctrl-benchmark
+    - higher
     - gym
     - lvis
