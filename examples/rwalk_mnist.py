@@ -4,7 +4,8 @@ import argparse
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 from avalanche.benchmarks import PermutedMNIST, nc_benchmark
-from avalanche.training.supervised import RWalk
+from avalanche.training.supervised import Naive
+from avalanche.training.plugins import RWalkPlugin
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
@@ -17,8 +18,6 @@ from avalanche.training.plugins import EvaluationPlugin
 
 """
 This example tests RWalk on Split MNIST and Permuted MNIST.
-It is possible to choose, among other options, between EWC with separate
-penalties and online EWC with a single penalty.
 """
 
 
@@ -72,17 +71,21 @@ def main(args):
     )
 
     # create strategy
-    strategy = RWalk(
+    strategy = Naive(
         model,
         optimizer,
         criterion,
-        ewc_lambda=args.ewc_lambda,
-        ewc_alpha=args.ewc_alpha,
-        delta_t=args.delta_t,
         train_epochs=args.epochs,
         device=device,
         train_mb_size=args.minibatch_size,
         evaluator=eval_plugin,
+        plugins=[
+            RWalkPlugin(
+                ewc_lambda=args.ewc_lambda,
+                ewc_alpha=args.ewc_alpha,
+                delta_t=args.delta_t,
+            )
+        ],
     )
 
     # train on the selected scenario with the chosen strategy
