@@ -208,6 +208,7 @@ class RWalkPlugin(SupervisedPlugin):
                 zip(self.exp_importance, self.exp_scores):
             assert k1 == k2, "Error in RWalk penalties computation."
 
-            self.exp_penalties.append((k1, imp/max_imp + F.relu(score)/max_score))
+            self.exp_penalties.append(
+                (k1, imp/max_imp + F.relu(score)/max_score))
 
         self.checkpoint_scores = zerolike_params_dict(strategy.model)
