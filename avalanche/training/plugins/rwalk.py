@@ -18,6 +18,11 @@ class RWalkPlugin(SupervisedPlugin):
     value it had on previous experiences, proportional to a score that has
     high values if small changes cause large improvements in the loss.
     This plugin does not use task identities.
+
+    .. note::
+        To reproduce the results of the paper in class-incremental scenarios,
+        this plug-in should be used in conjunction with a replay strategy 
+        (e.g., :class:`ReplayPlugin`).
     """
 
     def __init__(self, ewc_lambda: float = 0.1,
@@ -189,18 +194,20 @@ class RWalkPlugin(SupervisedPlugin):
 
             self.exp_scores = exp_scores
 
-        self.exp_penalties = []
-
         # Compute weight penalties once for all successive iterations
         # (t_k+1 variables remain constant in Eq. 8 in the paper)
+        self.exp_penalties = []
+
+        # Normalize terms in [0,1] interval, as suggested in the paper
+        # (the importance is already > 0, while negative scores are relu-ed
+        # out, hence we scale only the max-values of both terms)
         max_score = max(map(lambda x: x[1].max(), self.exp_scores))
         max_imp = max(map(lambda x: x[1].max(), self.exp_importance))
 
         for (k1, imp), (k2, score) in \
-                zip(self.exp_importance, self.exp_scores,
-                    self.exp_params, strategy.model.named_parameters()):
+                zip(self.exp_importance, self.exp_scores):
             assert k1 == k2, "Error in RWalk penalties computation."
 
-            self.exp_penalties.append(imp/max_imp + F.relu(score)/max_score)
+            self.exp_penalties.append((k1, imp/max_imp + F.relu(score)/max_score))
 
         self.checkpoint_scores = zerolike_params_dict(strategy.model)
