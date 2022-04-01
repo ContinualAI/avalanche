@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 12-10-2020                                                             #
-# Author(s): Vincenzo Lomonaco                                                 #
+# Date: 01-04-2022                                                             #
+# Author(s): Florian Mies                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -39,31 +39,13 @@ def main(args):
         if torch.cuda.is_available() and args.cuda >= 0
         else "cpu"
     )
-    n_batches = 5
-    # ---------
-
-    # --- TRANSFORMATIONS
-    train_transform = transforms.Compose(
-        [
-            RandomCrop(28, padding=4),
-            ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,)),
-        ]
-    )
-    test_transform = transforms.Compose(
-        [ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-    # ---------
 
     # --- SCENARIO CREATION
     scenario = SplitMNIST(n_experiences=10, seed=1234)
     # ---------
 
     # MODEL CREATION
-    model = MlpVAE((1, 28, 28), nhid=2)
-
-    # choose some metrics and evaluation method
-    interactive_logger = InteractiveLogger()
+    model = MlpVAE((1, 28, 28), nhid=2, device=device)
 
     # CREATE THE STRATEGY INSTANCE (GenerativeReplay)
     cl_strategy = VAETraining(

@@ -360,9 +360,9 @@ class GenerativeReplay(SupervisedTemplate):
             self.generator_strategy = VAETraining(
                 model=generator, 
                 optimizer=optimizer_generator,
-                criterion=VAE_loss, train_mb_size=64, 
-                train_epochs=10,
-                eval_mb_size=32, device=device,
+                criterion=VAE_loss, train_mb_size=train_mb_size, 
+                train_epochs=train_epochs,
+                eval_mb_size=eval_mb_size, device=device,
                 plugins=[GenerativeReplayPlugin()])
 
         rp = GenerativeReplayPlugin(generator_strategy=self.generator_strategy)
