@@ -43,10 +43,18 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         a continual learning task and add replay data only from the second 
         experience onwards, otherwise we sample and add generative replay data
         before training the first experience. Default to True.
+    :param replay_size: The user can specify the batch size of replays that 
+        should be added to each data batch. By default each data batch will be 
+        matched with replays of the same number.
+    :param increasing_replay_size: If set to True, each experience this will 
+        double the amount of replay data added to each data batch. The effect 
+        will be that the older experiences will gradually increase in importance
+        to the final loss.
     """
 
     def __init__(self, generator_strategy: "BaseTemplate" = None, 
-                 untrained_solver: bool = True):
+                 untrained_solver: bool = True, replay_size: int = None,
+                 increasing_replay_size: bool = False):
         '''
         Init.
         '''
@@ -58,6 +66,8 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.generator = None
         self.untrained_solver = untrained_solver
         self.model_is_generator = False
+        self.replay_size = replay_size
+        self.increasing_replay_size = increasing_replay_size
 
     def before_training(self, strategy: "SupervisedTemplate", *args, **kwargs):
         """Checks whether we are using a user defined external generator 
@@ -106,10 +116,19 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             # The solver needs to be trained before labelling generated data and
             # the generator needs to be trained before we can sample.
             return
+        # determine how many replay data points to generate
+        if self.replay_size:
+            number_replays_to_generate = self.replay_size
+        else:
+            if self.increasing_replay_size:
+                number_replays_to_generate = len(
+                    strategy.mbatch[0]) * (
+                        strategy.experience.current_experience)
+            else:
+                number_replays_to_generate = len(strategy.mbatch[0])
         # extend X with replay data
-        replay = self.old_generator.generate(
-            len(strategy.mbatch[0]) * (strategy.experience.current_experience)
-            ).to(strategy.device)  
+        replay = self.old_generator.generate(number_replays_to_generate
+                                             ).to(strategy.device)  
         strategy.mbatch[0] = torch.cat([strategy.mbatch[0], replay], dim=0)
         # extend y with predicted labels (or mock labels if model==generator)
         if not self.model_is_generator:
