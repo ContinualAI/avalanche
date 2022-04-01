@@ -30,8 +30,8 @@ import time
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies.strategy_wrappers_online import OnlineNaive
-from avalanche.training.strategies.strategy_wrappers import Naive
+from avalanche.training.supervised.strategy_wrappers import Naive
+from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.benchmarks.utils.avalanche_dataset import AvalancheSubset
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics

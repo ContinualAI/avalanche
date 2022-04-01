@@ -48,8 +48,8 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
             "Some plugins may not work properly."
         )
 
-    def create_sub_experience_list(self, experience):
-        """Creates a list of sub-experiences from an experience.
+    def create_online_experience_list(self, experience):
+        """Creates a list of min-experiences from an experience.
         It returns a list of experiences, where each experience is
         a subset of the original experience.
 
@@ -60,23 +60,29 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
         # Shuffle the indices
         indices = torch.randperm(len(experience.dataset))
-        num_sub_exps = len(indices) // self.train_mb_size
+        num_online_exps = len(indices) // self.train_mb_size
 
-        sub_experience_list = []
-        for subexp_id in range(num_sub_exps):
-            subexp_indices = indices[
-                subexp_id
-                * self.train_mb_size : (subexp_id + 1)
+        online_experience_list = []
+        for onlineexp_id in range(num_online_exps):
+            onlineexp_indices = indices[
+                onlineexp_id
+                * self.train_mb_size : (onlineexp_id + 1)
                 * self.train_mb_size
             ]
-            sub_experience = copy.copy(experience)
-            subexp_ds = AvalancheSubset(
-                sub_experience.dataset, indices=subexp_indices
+            online_experience = copy.copy(experience)
+            onlineexp_ds = AvalancheSubset(
+                online_experience.dataset, indices=onlineexp_indices
             )
-            sub_experience.dataset = subexp_ds
-            sub_experience_list.append(sub_experience)
+            online_experience.dataset = onlineexp_ds
 
-        return sub_experience_list
+            # Add attributes for online-experiences
+            online_experience.is_online_exp = True
+            online_experience.online_exp_id = onlineexp_id
+            online_experience.online_exp_total = num_online_exps
+
+            online_experience_list.append(online_experience)
+
+        return online_experience_list
 
     def train(
         self,
@@ -112,26 +118,24 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
             eval_streams = [experiences]
         self._eval_streams = eval_streams
 
-        self.num_sub_exps = len(experiences[0].dataset) // self.train_mb_size
+        self.num_online_exps = len(experiences[0].dataset) // self.train_mb_size
         self._before_training(**kwargs)
 
-        # Keep the (full) experience in self.full_experience
+        # Keep the (full) experience in self._experience
         # for model adaptation
-        for self.full_experience in experiences:
-            sub_experience_list = self.create_sub_experience_list(
-                self.full_experience
+        for self._experience in experiences:
+            online_experience_list = self.create_online_experience_list(
+                self._experience
             )
 
-            # Train for each sub-experience
-            for i, sub_experience in enumerate(sub_experience_list):
-                self.experience = sub_experience
-                is_first_sub_exp = i == 0
-                is_last_sub_exp = i == len(sub_experience_list) - 1
+            # Train for each online-experience
+            for i, online_experience in enumerate(online_experience_list):
+                self.experience = online_experience
+                is_first_online_exp = i == 0
+                is_last_online_exp = i == len(online_experience_list) - 1
                 self._train_exp(
                     self.experience,
                     eval_streams,
-                    is_first_sub_exp=is_first_sub_exp,
-                    is_last_sub_exp=is_last_sub_exp,
                     **kwargs
                 )
 
@@ -144,8 +148,6 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         self,
         experience: Experience,
         eval_streams=None,
-        is_first_sub_exp=False,
-        is_last_sub_exp=False,
         **kwargs
     ):
         """Training loop over a single Experience object.
@@ -154,10 +156,10 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         :param eval_streams: list of streams for evaluation.
             If None: use the training experience for evaluation.
             Use [] if you do not want to evaluate during training.
-        :param is_first_sub_exp: whether the current sub-experience
-            is the first sub-experience.
-        :param is_last_sub_exp: whether the current sub-experience
-            is the last sub-experience.
+        :param is_first_online_exp: whether the current online-experience
+            is the first online-experience.
+        :param is_last_online_exp: whether the current online-experience
+            is the last online-experience.
         :param kwargs: custom arguments.
         """
         self.experience = experience
@@ -175,11 +177,11 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         self._after_train_dataset_adaptation(**kwargs)
         self.make_train_dataloader(**kwargs)
 
-        # Model Adaptation (e.g. freeze/add new units) in the
-        # first sub-experience
-        if is_first_sub_exp:
+        # Model adaptation before the first online-experience
+        if self.experience.online_exp_id == 0:
             self.model = self.model_adaptation()
             self.make_optimizer()
+
         self._before_training_exp(**kwargs)
         self._before_training_epoch(**kwargs)
 
@@ -190,7 +192,6 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         for self.n_pass in range(self.num_passes):
             self.training_epoch(**kwargs)
 
-        # if is_last_sub_exp:
         self._after_training_epoch(**kwargs)
         self._after_training_exp(**kwargs)
 
@@ -205,5 +206,5 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
         for module in model.modules():
             if isinstance(module, DynamicModule):
-                module.adaptation(self.full_experience.dataset)
+                module.adaptation(self._experience.dataset)
         return model.to(self.device)
