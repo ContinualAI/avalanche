@@ -101,12 +101,10 @@ def CLEAR(
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
-        If returning feature tensors, then train_transform must be None.
     :param eval_transform: The transformation to apply to the test data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
         comprehensive list of possible transformations). Defaults to None.
-        If returning feature tensors, then eval_transform must be None.
     :param dataset_root: The root path of the dataset.
         Defaults to None, which means that the default location for
         'clear10' will be used.
@@ -138,8 +136,6 @@ def CLEAR(
         raise NotImplementedError()
     
     if feature_type is None:
-        assert isinstance(train_transform, type(None)), "No image transform"
-        assert isinstance(eval_transform, type(None)), "No image transform"
         clear_dataset_train = CLEARImage(
             root=dataset_root,
             data_name=data_name,
@@ -160,8 +156,6 @@ def CLEAR(
         test_samples = clear_dataset_test.paths_and_targets
         benchmark_generator = create_generic_benchmark_from_paths
     else:
-        assert isinstance(train_transform, type(None)), "Feature transform"
-        assert isinstance(eval_transform, type(None)), "Feature transform"
         clear_dataset_train = CLEARFeature(
             root=dataset_root,
             data_name=data_name,
