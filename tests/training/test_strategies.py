@@ -24,6 +24,7 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
+    RWalkPlugin,
 )
 from avalanche.training.supervised import (
     Naive,
@@ -39,6 +40,7 @@ from avalanche.training.supervised import (
     JointTraining,
     CoPE,
     StreamingLDA,
+    MAS,
 )
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.supervised.cumulative import Cumulative
@@ -573,6 +575,45 @@ class StrategyTest(unittest.TestCase):
         benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
+    def test_rwalk(self):
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=[
+                RWalkPlugin(
+                    ewc_lambda=0.1,
+                    ewc_alpha=0.9,
+                    delta_t=10,
+                ),
+            ],
+        )
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=[
+                RWalkPlugin(
+                    ewc_lambda=0.1,
+                    ewc_alpha=0.9,
+                    delta_t=10,
+                ),
+            ],
+        )
+        benchmark = self.load_benchmark(use_task_labels=True)
+        self.run_strategy(benchmark, strategy)
+
     def test_synaptic_intelligence(self):
         # SIT scenario
         model, optimizer, criterion, my_nc_benchmark = self.init_sit()
@@ -699,6 +740,37 @@ class StrategyTest(unittest.TestCase):
             optimizer,
             criterion,
             lambda_e=0.0001,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        benchmark = self.load_benchmark(use_task_labels=True)
+        self.run_strategy(benchmark, strategy)
+
+    def test_mas(self):
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = MAS(
+            model,
+            optimizer,
+            criterion,
+            lambda_reg=1.,
+            alpha=0.5,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = MAS(
+            model,
+            optimizer,
+            criterion,
+            lambda_reg=1.,
+            alpha=0.5,
             train_mb_size=10,
             device=self.device,
             eval_mb_size=50,

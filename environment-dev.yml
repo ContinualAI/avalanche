@@ -12,24 +12,27 @@
 channels:
 - conda-forge
 dependencies:
+- pip
 - psutil
 - conda-forge::gputil
 - wandb
-- tensorboard
+- tensorboard>=1.15
 - scikit-learn
 - matplotlib
 - numpy
 - conda-forge::quadprog
 - tqdm
-- pip
+- conda-forge::pycocotools
+- conda-forge::torchmetrics
 - conda-forge::pycodestyle
 - sphinx
 - sphinx_rtd_theme
 - conda-forge::astroid=2.4.2
 - conda-forge::sphinx-autoapi
-- conda-forge::pycocotools
 - pip:
     - pytorchcv
     - gdown
     - ctrl-benchmark
+    - higher
     - gym
+    - lvis

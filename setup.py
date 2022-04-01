@@ -45,13 +45,16 @@ setuptools.setup(
         'pytorchcv',
         'quadprog',
         'wandb',
-        'tensorboard',
+        'tensorboard>=1.15',
         'pycocotools',
         'tqdm',
         'torch',
         'torchvision',
+        'torchmetrics',
+        'higher',
         'gdown',
         'ctrl-benchmark',
+        'lvis',
         'setuptools<=59.5.0'
     ]
 )

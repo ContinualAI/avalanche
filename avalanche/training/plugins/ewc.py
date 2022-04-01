@@ -85,6 +85,10 @@ class EWCPlugin(SupervisedPlugin):
                     self.saved_params[experience],
                     self.importances[experience],
                 ):
+                    # dynamic models may add new units
+                    # new units are ignored by the regularization
+                    n_units = saved_param.shape[0]
+                    cur_param = saved_param[:n_units]
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == "online":
             prev_exp = exp_counter - 1
@@ -93,6 +97,10 @@ class EWCPlugin(SupervisedPlugin):
                 self.saved_params[prev_exp],
                 self.importances[prev_exp],
             ):
+                # dynamic models may add new units
+                # new units are ignored by the regularization
+                n_units = saved_param.shape[0]
+                cur_param = saved_param[:n_units]
                 penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         else:
             raise ValueError("Wrong EWC mode.")

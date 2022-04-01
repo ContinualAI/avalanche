@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 from torch.utils.data import random_split
 
@@ -110,10 +112,13 @@ class AGEMPlugin(SupervisedPlugin):
         return next(self.buffer_dliter)
 
     @torch.no_grad()
-    def update_memory(self, dataset, num_workers=4, **kwargs):
+    def update_memory(self, dataset, num_workers=0, **kwargs):
         """
         Update replay memory with patterns from current experience.
         """
+        if num_workers > 0:
+            warnings.warn("Num workers > 0 is known to cause heavy"
+                          "slowdowns in AGEM.")
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
             dataset, _ = random_split(

@@ -169,7 +169,7 @@ class CORe50Dataset(DownloadableDataset):
 
         self.idx_list = []
         if self.train:
-            for i in range(self._nbatch + 1):
+            for i in range(self._nbatch):
                 self.idx_list += self.LUP[self._scen][self._run][i]
         else:
             self.idx_list = self.LUP[self._scen][self._run][-1]

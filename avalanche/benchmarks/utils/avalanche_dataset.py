@@ -24,8 +24,8 @@ from enum import Enum, auto
 import torch
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
-from torchvision.transforms import Compose
 
+from .adaptive_transform import Compose, MultiParamTransform
 from .dataset_utils import (
     manage_advanced_indexing,
     SequenceDataset,
@@ -57,15 +57,41 @@ from typing import (
     Callable,
     Dict,
     Tuple,
-    Collection,
+    Collection
 )
+
+from typing_extensions import Protocol
 
 T_co = TypeVar("T_co", covariant=True)
 TTargetType = TypeVar("TTargetType")
 
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
-XTransform = Optional[Callable[[Any], Any]]
-YTransform = Optional[Callable[[Any], TTargetType]]
+
+
+# Info: https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
+class XComposedTransformDef(Protocol):
+    def __call__(self, *input_values: Any) -> Any:
+        pass
+
+
+class XTransformDef(Protocol):
+    def __call__(self, input_value: Any) -> Any:
+        pass
+
+
+class YTransformDef(Protocol):
+    def __call__(self, input_value: Any) -> Any:
+        pass
+
+
+XTransform = Optional[Union[XTransformDef, XComposedTransformDef]]
+YTransform = Optional[YTransformDef]
+TransformGroupDef = Union[
+    None,
+    XTransform,
+    Tuple[XTransform, YTransform]
+]
+
 
 SupportedDataset = Union[
     IDatasetWithTargets, ITensorDataset, Subset, ConcatDataset
@@ -122,7 +148,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         *,
         transform: XTransform = None,
         target_transform: YTransform = None,
-        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+        transform_groups: Dict[str, TransformGroupDef] = None,
         initial_transform_group: str = None,
         task_labels: Union[int, Sequence[int]] = None,
         targets: Sequence[TTargetType] = None,
@@ -275,7 +301,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         self._optimize_task_labels()
         self._optimize_task_dict()
 
-        self.task_set = _TaskSubsetDict(self)
+        self.task_set = self._make_task_set_dict()
         """
         A dictionary that can be used to obtain the subset of patterns given
         a specific task label.
@@ -505,7 +531,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
                     [dataset_copy.target_transform, target_transform]
                 )
             else:
-                dataset_copy.target_transform = transform
+                dataset_copy.target_transform = target_transform
 
         return dataset_copy
 
@@ -691,6 +717,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         dataset_copy = copy.copy(self)
         dataset_copy._frozen_transforms = dict(dataset_copy._frozen_transforms)
         dataset_copy.transform_groups = dict(dataset_copy.transform_groups)
+        dataset_copy.task_set = dataset_copy._make_task_set_dict()
 
         return dataset_copy
 
@@ -763,30 +790,30 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         if has_task_label:
             element = element[:-1]
 
-        pattern = element[0]
-        label = element[1]
-
-        pattern, label = self._apply_transforms(pattern, label)
+        element = self._apply_transforms(element)
 
         return TupleTLabel(
-            (pattern, label, *element[2:], self.targets_task_labels[idx])
+            (*element, self.targets_task_labels[idx])
         )
 
-    def _apply_transforms(self, pattern: Any, label: int):
+    def _apply_transforms(self, element: Sequence[Any]):
+        element = list(element)
         frozen_group = self._frozen_transforms[self.current_transform_group]
-        if frozen_group[0] is not None:
-            pattern = frozen_group[0](pattern)
 
-        if self.transform is not None:
-            pattern = self.transform(pattern)
-
+        # Target transform
         if frozen_group[1] is not None:
-            label = frozen_group[1](label)
+            element[1] = frozen_group[1](element[1])
 
         if self.target_transform is not None:
-            label = self.target_transform(label)
+            element[1] = self.target_transform(element[1])
 
-        return pattern, label
+        if frozen_group[0] is not None:
+            element = MultiParamTransform(frozen_group[0])(*element)
+
+        if self.transform is not None:
+            element = MultiParamTransform(self.transform)(*element)
+
+        return element
 
     @staticmethod
     def _check_groups_dict_format(groups_dict):
@@ -825,7 +852,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
     def _initialize_groups_dict(
         self,
-        transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]],
+        transform_groups: Optional[Dict[str, TransformGroupDef]],
         dataset: Any,
         transform: XTransform,
         target_transform: YTransform,
@@ -854,6 +881,24 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             }
         else:
             transform_groups = dict(transform_groups)
+
+        for group_name, group_transforms in dict(transform_groups).items():
+            if group_transforms is None:
+                transform_groups[group_name] = (None, None)
+            elif isinstance(group_transforms, Callable):
+                # Single transformation: (safely) assume it is the X transform
+                transform_groups[group_name] = (group_transforms, None)
+            elif isinstance(group_transforms, Sequence) and \
+                    len(group_transforms) == 2:
+                # X and Y transforms
+                transform_groups[group_name] = (group_transforms[0],
+                                                group_transforms[1])
+            else:
+                raise ValueError(
+                    f'Unsupported transformations for group {group_name}. '
+                    f'The transformation group may be None, a single Callable, '
+                    f'or a tuple of 2 elements containing the X and Y '
+                    f'transforms')
 
         if "train" in transform_groups:
             if "eval" not in transform_groups:
@@ -1082,31 +1127,23 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
     def _flatten_dataset(self):
         pass
 
+    def _make_task_set_dict(self) -> Dict[int, "AvalancheDataset"]:
+        task_dict = _TaskSubsetDict()
+        for task_id in sorted(self.tasks_pattern_indices.keys()):
+            task_indices = self.tasks_pattern_indices[task_id]
+            task_dict[task_id] = (self, task_indices)
+
+        return task_dict
+
 
 class _TaskSubsetDict(OrderedDict):
-    def __init__(self, avalanche_dataset: AvalancheDataset):
-        self._full_dataset = avalanche_dataset
-        task_ids = self._full_dataset.tasks_pattern_indices.keys()
-        task_ids = sorted(list(task_ids))
-        base_dict = OrderedDict()
-        for x in task_ids:
-            base_dict[x] = x
-        super().__init__(base_dict)
+    def __getitem__(self, item):
+        avl_dataset, indices = super().__getitem__(item)
+        return _TaskSubsetDict._make_subset(avl_dataset, indices)
 
-    def __getitem__(self, task_id: int):
-        if task_id not in self._full_dataset.tasks_pattern_indices:
-            raise KeyError("No pattern with " + str(task_id) + " found")
-        pattern_indices = self._full_dataset.tasks_pattern_indices[task_id]
-        return self._make_subset(pattern_indices)
-
-    def or_empty(self, task_id: int):
-        try:
-            return self[task_id]
-        except KeyError:
-            return self._make_subset([])
-
-    def _make_subset(self, indices: Sequence[int]):
-        return AvalancheSubset(self._full_dataset, indices=indices)
+    @staticmethod
+    def _make_subset(avl_dataset, indices: Sequence[int]):
+        return AvalancheSubset(avl_dataset, indices=indices)
 
 
 class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):

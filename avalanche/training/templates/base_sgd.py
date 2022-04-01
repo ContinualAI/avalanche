@@ -141,7 +141,7 @@ class BaseSGDTemplate(BaseTemplate):
         :return: dictionary containing last recorded value for
             each metric name
         """
-        super().eval(exp_list)
+        super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
     def _before_training_exp(self, **kwargs):
@@ -175,10 +175,13 @@ class BaseSGDTemplate(BaseTemplate):
             self.training_epoch(**kwargs)
             self._after_training_epoch(**kwargs)
 
-    def _eval_exp(self, **kwargs):
+    def _before_eval_exp(self, **kwargs):
         self.make_eval_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+        super()._before_eval_exp(**kwargs)
+
+    def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
     def make_train_dataloader(self, **kwargs):
@@ -234,15 +237,23 @@ class BaseSGDTemplate(BaseTemplate):
             self.loss += self.criterion()
 
             self._before_backward(**kwargs)
-            self.loss.backward()
+            self.backward()
             self._after_backward(**kwargs)
 
             # Optimization step
             self._before_update(**kwargs)
-            self.optimizer.step()
+            self.optimizer_step()
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+    def backward(self):
+        """Run the backward pass."""
+        self.loss.backward()
+
+    def optimizer_step(self):
+        """Execute the optimizer step (weights update)."""
+        self.optimizer.step()
 
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""
