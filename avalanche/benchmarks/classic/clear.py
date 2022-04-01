@@ -43,6 +43,7 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 
 EVALUATION_PROTOCOLS = ['iid', 'streaming']
 
+
 def CLEAR(
     *,
     evaluation_protocol: str = "streaming",
@@ -123,7 +124,7 @@ def CLEAR(
     )
     
     if evaluation_protocol == "streaming":
-        assert seed == None, (
+        assert seed is None, (
             "Seed for train/test split is not required "
             "under streaming protocol"
         )
@@ -136,10 +137,9 @@ def CLEAR(
     else:
         raise NotImplementedError()
     
-    
-    if feature_type == None:
-        assert type(train_transform) != type(None), "Must have image transform"
-        assert type(eval_transform) != type(None), "Must have image transform"
+    if feature_type is None:
+        assert isinstance(train_transform, type(None)), "No image transform"
+        assert isinstance(eval_transform, type(None)), "No image transform"
         clear_dataset_train = CLEARImage(
             root=dataset_root,
             data_name=data_name,
@@ -160,8 +160,8 @@ def CLEAR(
         test_samples = clear_dataset_test.paths_and_targets
         benchmark_generator = create_generic_benchmark_from_paths
     else:
-        assert type(train_transform) == type(None), "Must not transform tensors"
-        assert type(eval_transform) == type(None), "Must not transform tensors"
+        assert isinstance(train_transform, type(None)), "Feature transform"
+        assert isinstance(eval_transform, type(None)), "Feature transform"
         clear_dataset_train = CLEARFeature(
             root=dataset_root,
             data_name=data_name,
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     for p in EVALUATION_PROTOCOLS:
         seed_list = [None] if p == 'streaming' else SEED_LIST
         for f in CLEAR_FEATURE_TYPES[data_name] + [None]:
-            t = transform if f == None else None
+            t = transform if f is None else None
             for seed in seed_list:
                 benchmark_instance = CLEAR(
                     evaluation_protocol=p,

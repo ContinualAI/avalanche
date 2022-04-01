@@ -39,12 +39,14 @@ CLEAR_FEATURE_TYPES = {
 
 SPLIT_OPTIONS = ['all', 'train', 'test']
 
-SEED_LIST = [0, 1, 2, 3, 4] # Available seeds for train:test split
+SEED_LIST = [0, 1, 2, 3, 4]  # Available seeds for train:test split
+
 
 def _load_json(json_location):
     with open(json_location, 'r') as f:
         obj = json.load(f)
     return obj
+
 
 class CLEARDataset(DownloadableDataset):
     """CLEAR Base Dataset for downloading / loading metadata"""
@@ -129,7 +131,7 @@ class CLEARDataset(DownloadableDataset):
                 filelists.append(
                     default_flist_reader(f_path)
                 )
-            except:
+            except Exception as e:
                 print(f"Error reading {f_path}")
                 return False
         
@@ -217,7 +219,7 @@ class CLEARImage(CLEARDataset):
         self.split = split
         assert self.split in SPLIT_OPTIONS, "Invalid split option"
         if self.split == 'all':
-            assert seed == None, "Specify a seed if not splitting train:test"
+            assert seed is None, "Specify a seed if not splitting train:test"
         else:
             assert seed in SEED_LIST
         self.seed = seed
@@ -263,15 +265,15 @@ class CLEARImage(CLEARDataset):
                 self.paths_and_targets.append(
                     default_flist_reader(f_path)
                 )
-            except:
+            except Exception as e:
                 print(f"Error reading {f_path}")
                 return False
             
         self.paths = []
         self.targets = []
 
-        for l in self.paths_and_targets:
-            for img_path, target in l:
+        for path_and_target_list in self.paths_and_targets:
+            for img_path, target in path_and_target_list:
                 self.paths.append(img_path)
                 self.targets.append(target)
 
@@ -342,7 +344,7 @@ class CLEARFeature(CLEARDataset):
         assert self.split in ['all', 'train', 'test'], "Invalid split option"
         
         if self.split == 'all':
-            assert seed == None, "Specify a seed if not splitting train:test"
+            assert seed is None, "Specify a seed if not splitting train:test"
         else:
             assert seed in SEED_LIST
         self.seed = seed
@@ -391,7 +393,7 @@ class CLEARFeature(CLEARDataset):
                 self.tensors_and_targets.append(
                     (tensors, targets)
                 )
-            except:
+            except Exception as e:
                 print(f"Error loading {f_path}")
                 return False
             
@@ -415,6 +417,7 @@ class CLEARFeature(CLEARDataset):
 
     def __len__(self):
         return len(self.targets)
+
 
 if __name__ == "__main__":
 
