@@ -4,9 +4,9 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 03-31-2022                                                             #
-# Author: Zhiqiu Lin
-# E-mail: zl279@cornell.edu
-# Website: https://clear-benchmark.github.io                                                #
+# Author: Zhiqiu Lin                                                           #
+# E-mail: zl279@cornell.edu                                                    #
+# Website: https://clear-benchmark.github.io                                   #
 ################################################################################
 
 """ CLEAR10 data. """

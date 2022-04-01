@@ -4,15 +4,15 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 03-31-2022                                                             #
-# Author: Zhiqiu Lin
-# E-mail: zl279@cornell.edu
-# Website: https://clear-benchmark.github.io                                                #
+# Author: Zhiqiu Lin                                                           #
+# E-mail: zl279@cornell.edu                                                    #
+# Website: https://clear-benchmark.github.io                                   #
 ################################################################################
 
 """ CLEAR Pytorch Dataset """
 
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 import json
 import os
 
@@ -33,9 +33,11 @@ _CLEAR_DATA_MODULE = {
     'clear10' : clear10_data
 }
 
-_CLEAR_FEATURE_TYPES = {
+CLEAR_FEATURE_TYPES = {
     'clear10' : ['moco_b0', 'moco_imagenet', 'byol_imagenet', 'imagenet']
 }
+
+SPLIT_OPTIONS = ['all', 'train', 'test']
 
 SEED_LIST = [0, 1, 2, 3, 4] # Available seeds for train:test split
 
@@ -111,6 +113,9 @@ class CLEARDataset(DownloadableDataset):
             train_folder_path / 'bucket_indices.json'
         )
         
+        class_names_file = self.root / "class_names.txt"
+        self.class_names = class_names_file.read_text().split("\n")
+        
         filelist_folder_path = (
             train_folder_path / 'filelists'
         )
@@ -169,7 +174,7 @@ class CLEARDataset(DownloadableDataset):
         return len(self.samples)
 
     
-class CLEARImageDataset(CLEARDataset):
+class CLEARImage(CLEARDataset):
     """CLEAR Image Dataset (base class for CLEAR10Image)"""
 
     def __init__(
@@ -191,8 +196,8 @@ class CLEARImageDataset(CLEARDataset):
         so it is not intended for CL purposes. It simply download and
         unzip the CLEAR dataset.
         
-        Filelists for each bucket for benchmark creation will be
-        loaded in self.filelists
+        Paths and targets for each bucket for benchmark creation will be
+        loaded in self.paths_and_targets
         
         :param root: The directory where the dataset can be found or downloaded.
             Defaults to None, which means that the default location for
@@ -210,7 +215,7 @@ class CLEARImageDataset(CLEARDataset):
         :param loader: The image loader to use.
         """
         self.split = split
-        assert self.split in ['all', 'train', 'test'], "Invalid split option"
+        assert self.split in SPLIT_OPTIONS, "Invalid split option"
         if self.split == 'all':
             assert seed == None, "Specify a seed if not splitting train:test"
         else:
@@ -220,7 +225,13 @@ class CLEARImageDataset(CLEARDataset):
         self.target_transform = target_transform
         self.loader = loader
         
-        super(CLEARImageDataset, self).__init__(
+        self.class_names: List[str] = None
+        """
+        After _load_metadata(), the class names will be loaded in order
+        aligned with target index.
+        """
+        
+        super(CLEARImage, self).__init__(
             root,
             data_name=data_name,
             download=download,
@@ -228,7 +239,7 @@ class CLEARImageDataset(CLEARDataset):
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARImageDataset, self)._load_metadata():
+        if not super(CLEARImage, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -245,11 +256,11 @@ class CLEARImageDataset(CLEARDataset):
             
         filelist_name = f"{self.split}.txt"
         
-        self.filelists = []
+        self.paths_and_targets = []
         for bucket_index in self.bucket_indices:
             f_path = filelist_folder_path / str(bucket_index) / filelist_name
             try:
-                self.filelists.append(
+                self.paths_and_targets.append(
                     default_flist_reader(f_path)
                 )
             except:
@@ -259,8 +270,8 @@ class CLEARImageDataset(CLEARDataset):
         self.paths = []
         self.targets = []
 
-        for f_list in self.filelists:
-            for img_path, target in f_list:
+        for l in self.paths_and_targets:
+            for img_path, target in l:
                 self.paths.append(img_path)
                 self.targets.append(target)
 
@@ -283,7 +294,7 @@ class CLEARImageDataset(CLEARDataset):
         return len(self.targets)
 
 
-class CLEARFeatureDataset(CLEARDataset):
+class CLEARFeature(CLEARDataset):
     """CLEAR Feature Dataset (base class for CLEAR10Feature)"""
 
     def __init__(
@@ -337,10 +348,10 @@ class CLEARFeatureDataset(CLEARDataset):
         self.seed = seed
         
         self.feature_type = feature_type
-        assert feature_type in _CLEAR_FEATURE_TYPES[data_name]
+        assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
         
-        super(CLEARFeatureDataset, self).__init__(
+        super(CLEARFeature, self).__init__(
             root,
             data_name=data_name,
             download=download,
@@ -348,7 +359,7 @@ class CLEARFeatureDataset(CLEARDataset):
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARFeatureDataset, self)._load_metadata():
+        if not super(CLEARFeature, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -427,7 +438,7 @@ if __name__ == "__main__":
     root = f"../avalanche_datasets/{data_name}"
     if not os.path.exists(root):
         Path(root).mkdir(parents=True)
-    clear_dataset_all = CLEARImageDataset(
+    clear_dataset_all = CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -435,7 +446,7 @@ if __name__ == "__main__":
         seed=None,
         transform=transform,
     )
-    clear_dataset_train = CLEARImageDataset(
+    clear_dataset_train = CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -443,7 +454,7 @@ if __name__ == "__main__":
         seed=0,
         transform=transform,
     )
-    clear_dataset_test = CLEARImageDataset(
+    clear_dataset_test = CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -455,7 +466,7 @@ if __name__ == "__main__":
     print("clear10 size (train): ", len(clear_dataset_train))
     print("clear10 size (test): ", len(clear_dataset_test))
     
-    clear_dataset_all_feature = CLEARFeatureDataset(
+    clear_dataset_all_feature = CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -463,7 +474,7 @@ if __name__ == "__main__":
         split='all',
         seed=None,
     )
-    clear_dataset_train_feature = CLEARFeatureDataset(
+    clear_dataset_train_feature = CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -471,7 +482,7 @@ if __name__ == "__main__":
         split='train',
         seed=0,
     )
-    clear_dataset_test_feature = CLEARFeatureDataset(
+    clear_dataset_test_feature = CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -482,6 +493,9 @@ if __name__ == "__main__":
     print("clear10 size (all features): ", len(clear_dataset_all_feature))
     print("clear10 size (train features): ", len(clear_dataset_train_feature))
     print("clear10 size (test features): ", len(clear_dataset_test_feature))
+    print("Classes are: ")
+    for i, name in enumerate(clear_dataset_test.class_names):
+        print(f"{i} : {name}")
     dataloader = DataLoader(clear_dataset_test_feature, batch_size=1)
 
     for batch_data in dataloader:
@@ -490,4 +504,4 @@ if __name__ == "__main__":
         print(len(y))
         break
 
-__all__ = ["CLEARFeatureDataset", "CLEARImageDataset"] # TODO
+__all__ = ["CLEARFeature", "CLEARImage", "SEED_LIST", "CLEAR_FEATURE_TYPES"]

@@ -11,4 +11,5 @@ from .ctiny_imagenet import *
 from .ctrl import *
 from .endless_cl_sim import *
 from .openloris import *
+from .clear import *
 from .stream51 import *
