@@ -152,8 +152,12 @@ def CLEAR(
             seed=seed,
             transform=eval_transform,
         )
-        train_samples = clear_dataset_train.paths_and_targets
-        test_samples = clear_dataset_test.paths_and_targets
+        train_samples = clear_dataset_train.get_paths_and_targets(
+            root_appended=True
+        )
+        test_samples = clear_dataset_test.get_paths_and_targets(
+            root_appended=True
+        )
         benchmark_generator = create_generic_benchmark_from_paths
     else:
         clear_dataset_train = CLEARFeature(
@@ -179,7 +183,7 @@ def CLEAR(
     benchmark_obj = benchmark_generator(
         train_samples,
         test_samples,
-        task_labels=[0 for _ in range(len(train_samples))],
+        task_labels=list(range(len(train_samples))),
         complete_test_set_only=False,
         train_transform=train_transform,
         eval_transform=eval_transform,
@@ -209,7 +213,7 @@ if __name__ == "__main__":
     
     for p in EVALUATION_PROTOCOLS:
         seed_list = [None] if p == 'streaming' else SEED_LIST
-        for f in CLEAR_FEATURE_TYPES[data_name] + [None]:
+        for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:
                 benchmark_instance = CLEAR(
@@ -220,6 +224,7 @@ if __name__ == "__main__":
                     eval_transform=t,
                     dataset_root=root
                 )
+                benchmark_instance.train_stream[0]
                 # check_vision_benchmark(benchmark_instance)
                 print(
                     f"Check pass for {p} protocol, and "
