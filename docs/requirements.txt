@@ -16,6 +16,6 @@ torchvision
 torchmetrics
 gdown
 lvis
-higher,
-lvis,
+higher
+lvis
 ctrl-benchmark
