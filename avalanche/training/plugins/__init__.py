@@ -13,4 +13,7 @@ from .cope import CoPEPlugin, PPPloss
 from .lfl import LFLPlugin
 from .early_stopping import EarlyStoppingPlugin
 from .lr_scheduling import LRSchedulerPlugin
+from .generative_replay import GenerativeReplayPlugin, \
+    TrainGeneratorAfterExpPlugin
+from .rwalk import RWalkPlugin
 from .mas import MASPlugin

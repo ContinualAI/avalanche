@@ -13,5 +13,9 @@ pycocotools
 tqdm
 torch
 torchvision
+torchmetrics
 gdown
+lvis
+higher
+lvis
 ctrl-benchmark

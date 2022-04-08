@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-channels:
+channels: 
 - conda-forge
 dependencies:
 - pip

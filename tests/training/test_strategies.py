@@ -24,6 +24,7 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
+    RWalkPlugin,
 )
 from avalanche.training.supervised import (
     Naive,
@@ -570,6 +571,45 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=10,
             eval_mb_size=50,
             train_epochs=2,
+        )
+        benchmark = self.load_benchmark(use_task_labels=True)
+        self.run_strategy(benchmark, strategy)
+
+    def test_rwalk(self):
+        # SIT scenario
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=[
+                RWalkPlugin(
+                    ewc_lambda=0.1,
+                    ewc_alpha=0.9,
+                    delta_t=10,
+                ),
+            ],
+        )
+        self.run_strategy(my_nc_benchmark, strategy)
+
+        # MT scenario
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=[
+                RWalkPlugin(
+                    ewc_lambda=0.1,
+                    ewc_alpha=0.9,
+                    delta_t=10,
+                ),
+            ],
         )
         benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)

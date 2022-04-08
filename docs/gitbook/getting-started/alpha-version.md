@@ -25,7 +25,7 @@ Avalanche supports all the most popular computer vision datasets used in _Contin
 * **Toy datasets**: MNIST, Fashion MNIST, KMNIST, EMNIST, QMNIST.
 * **CIFAR:** CIFAR10, CIFAR100.
 * **ImageNet**: TinyImagenet, MiniImagenet, Imagenet.
-* **Others**: EndlessCLDataset, CUB200, OpenLORIS, Stream-51, INATURALIST2018, Omniglot, ...
+* **Others**: EndlessCLDataset, CUB200, OpenLORIS, Stream-51, INATURALIST2018, Omniglot, CLEARImage, ...
 
 ### 📚 Benchmarks
 
@@ -34,7 +34,7 @@ All the major continual learning benchmarks are available and ready to use. Benc
 * **MNIST**: SplitMNIST, RotatedMNIST, PermutedMNIST, SplitFashionMNIST.
 * **CIFAR10**: SplitCIFAR10, SplitCIFAR100, SplitCIFAR110.
 * **CORe50**: all the CORe50 scenarios are supported.
-* **Others**: SplitCUB200, CLStream51, OpenLORIS.
+* **Others**: SplitCUB200, CLStream51, CLEAR.
 
 ## 📈 Continual Learning Strategies
 
