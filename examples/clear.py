@@ -97,19 +97,26 @@ data_name = 'clear10'
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
-transform = transforms.Compose([
+train_transform = transforms.Compose([
+    transforms.Resize(224),
+    transforms.RandomCrop(224),
+    transforms.ToTensor(),
+    normalize,
+])
+test_transform = transforms.Compose([
     transforms.Resize(224),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
     normalize,
 ])
 
+root = ".."
 
 # log to Tensorboard
-tb_logger = TensorboardLogger()
+tb_logger = TensorboardLogger(root)
 
 # log to text file
-text_logger = TextLogger(open('log.txt', 'w'))
+text_logger = TextLogger(open(f'{root}/log.txt', 'w'))
 
 # print to stdout
 interactive_logger = InteractiveLogger()
@@ -142,15 +149,17 @@ for eval_mode in EVALUATION_PROTOCOLS:
                 evaluation_protocol=eval_mode,
                 feature_type=None,
                 seed=seed,
-                train_transform=transform,
-                eval_transform=transform
+                train_transform=train_transform,
+                eval_transform=test_transform,
+                dataset_root=f"{root}/avalanche_datasets/clear10"
             )
             model = torchvision.models.__dict__['resnet18'](pretrained=True)
         elif mode == 'feature':
             scenario = CLEAR(
                             evaluation_protocol=eval_mode,
                             feature_type=CLEAR_FEATURE_TYPES[data_name][-1],
-                            seed=seed
+                            seed=seed,
+                            dataset_root=f"{root}/avalanche_datasets/clear10"
                         )
             # feature size for imagenet is 2048
             model = nn.Linear(

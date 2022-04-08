@@ -183,7 +183,7 @@ def CLEAR(
     benchmark_obj = benchmark_generator(
         train_samples,
         test_samples,
-        task_labels=[0 for _ in range(len(train_samples))],
+        task_labels=list(range(len(train_samples))),
         complete_test_set_only=False,
         train_transform=train_transform,
         eval_transform=eval_transform,
