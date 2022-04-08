@@ -74,10 +74,10 @@ class StrategyTest(unittest.TestCase):
             model,
             optimizer,
             criterion,
-            train_mb_size=32,
+            train_mb_size=64,
             device=get_device(),
             eval_mb_size=512,
-            train_epochs=3,
+            train_epochs=6,
             evaluator=evalp,
         )
         benchmark = get_fast_benchmark(use_task_labels=True)
