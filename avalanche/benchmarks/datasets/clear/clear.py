@@ -199,7 +199,9 @@ class CLEARImage(CLEARDataset):
         unzip the CLEAR dataset.
         
         Paths and targets for each bucket for benchmark creation will be
-        loaded in self.paths_and_targets
+        loaded in self._paths_and_targets ; 
+        can use self.get_paths_and_targets() with root appended to each path
+        
         
         :param root: The directory where the dataset can be found or downloaded.
             Defaults to None, which means that the default location for
@@ -258,11 +260,11 @@ class CLEARImage(CLEARDataset):
             
         filelist_name = f"{self.split}.txt"
         
-        self.paths_and_targets = []
+        self._paths_and_targets = []
         for bucket_index in self.bucket_indices:
             f_path = filelist_folder_path / str(bucket_index) / filelist_name
             try:
-                self.paths_and_targets.append(
+                self._paths_and_targets.append(
                     default_flist_reader(f_path)
                 )
             except Exception as e:
@@ -272,13 +274,26 @@ class CLEARImage(CLEARDataset):
         self.paths = []
         self.targets = []
 
-        for path_and_target_list in self.paths_and_targets:
+        for path_and_target_list in self._paths_and_targets:
             for img_path, target in path_and_target_list:
                 self.paths.append(img_path)
                 self.targets.append(target)
 
         return True
 
+    def get_paths_and_targets(self, root_appended=True):
+        """Return self._paths_and_targets with root appended or not
+        """
+        if not root_appended:
+            return self._paths_and_targets
+        else:
+            paths_and_targets = []
+            for path_and_target_list in self._paths_and_targets:
+                for img_path, target in path_and_target_list:
+                    self.paths.append(self.root / img_path)
+                    self.targets.append(target)
+            return paths_and_targets
+            
     def __getitem__(self, index):
         img_path = self.paths[index]
         target = self.targets[index]
