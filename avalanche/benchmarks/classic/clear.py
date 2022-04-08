@@ -213,7 +213,7 @@ if __name__ == "__main__":
     
     for p in EVALUATION_PROTOCOLS:
         seed_list = [None] if p == 'streaming' else SEED_LIST
-        for f in CLEAR_FEATURE_TYPES[data_name] + [None]:
+        for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:
                 benchmark_instance = CLEAR(

@@ -289,9 +289,11 @@ class CLEARImage(CLEARDataset):
         else:
             paths_and_targets = []
             for path_and_target_list in self._paths_and_targets:
+                paths_and_targets.append([])
                 for img_path, target in path_and_target_list:
-                    self.paths.append(self.root / img_path)
-                    self.targets.append(target)
+                    paths_and_targets[-1].append(
+                        (self.root / img_path, target)
+                    )
             return paths_and_targets
             
     def __getitem__(self, index):
