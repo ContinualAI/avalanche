@@ -19,6 +19,8 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     CWRStarPlugin,
     ReplayPlugin,
+    GenerativeReplayPlugin,
+    TrainGeneratorAfterExpPlugin,
     GDumbPlugin,
     LwFPlugin,
     AGEMPlugin,
@@ -31,7 +33,10 @@ from avalanche.training.plugins import (
     LFLPlugin,
     MASPlugin,
 )
+from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.models.generator import MlpVAE, VAE_loss
+from avalanche.logging import InteractiveLogger
 
 
 class Naive(SupervisedTemplate):
@@ -275,6 +280,194 @@ class Replay(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+
+class GenerativeReplay(SupervisedTemplate):
+    """Generative Replay Strategy
+
+    This implements Deep Generative Replay for a Scholar consisting of a Solver
+    and Generator as described in https://arxiv.org/abs/1705.08690.
+
+    The model parameter should contain the solver. As an optional input
+    a generator can be wrapped in a trainable strategy 
+    and passed to the generator_strategy parameter. By default a simple VAE will
+    be used as generator.
+
+    For the case where the Generator is the model itself that is to be trained,
+    please simply add the GenerativeReplayPlugin() when instantiating 
+    your Generator's strategy.
+
+    See GenerativeReplayPlugin for more details.
+    This strategy does not use task identities.
+    """
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+        generator_strategy: BaseTemplate = None,
+        replay_size: int = None,
+        increasing_replay_size: bool = False,
+        **base_kwargs
+    ):
+        """
+        Creates an instance of Generative Replay Strategy 
+        for a solver-generator pair.
+
+        :param model: The solver model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param generator_strategy: A trainable strategy with a generative model,
+            which employs GenerativeReplayPlugin. Defaults to None.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        # Check if user inputs a generator model 
+        # (which is wrapped in a strategy that can be trained and 
+        # uses the GenerativeReplayPlugin;
+        # see 'VAETraining" as an example below.)
+        if generator_strategy is not None:
+            self.generator_strategy = generator_strategy
+        else:
+            # By default we use a fully-connected VAE as the generator.
+            # model:
+            generator = MlpVAE((1, 28, 28), nhid=2, device=device)
+            # optimzer:
+            lr = 0.01
+            from torch.optim import Adam
+            optimizer_generator = Adam(filter(
+                lambda p: p.requires_grad, generator.parameters()), lr=lr,
+                 weight_decay=0.0001)
+            # strategy (with plugin):
+            self.generator_strategy = VAETraining(
+                model=generator, 
+                optimizer=optimizer_generator,
+                criterion=VAE_loss, train_mb_size=train_mb_size, 
+                train_epochs=train_epochs,
+                eval_mb_size=eval_mb_size, device=device,
+                plugins=[GenerativeReplayPlugin(
+                    replay_size=replay_size,
+                    increasing_replay_size=increasing_replay_size)])
+
+        rp = GenerativeReplayPlugin(
+            generator_strategy=self.generator_strategy,
+            replay_size=replay_size,
+            increasing_replay_size=increasing_replay_size)
+
+        tgp = TrainGeneratorAfterExpPlugin()
+
+        if plugins is None:
+            plugins = [tgp, rp]
+        else:
+            plugins.append(tgp)
+            plugins.append(rp)
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+
+class VAETraining(SupervisedTemplate):
+    """VAETraining class
+
+    This is the training strategy for the VAE model
+    found in the models directory.
+    We make use of the SupervisedTemplate, even though technically this is not a
+    supervised training. However, this reduces the modification to a minimum.
+
+    We only need to overwrite the criterion function in order to pass all 
+    necessary variables to the VAE loss function. 
+    Furthermore we remove all metrics from the evaluator.
+    """
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=VAE_loss,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = EvaluationPlugin(
+            loggers=[InteractiveLogger()],
+            suppress_warnings=True,
+            ),
+        eval_every=-1,
+        **base_kwargs
+    ):
+        """
+        Creates an instance of the Naive strategy.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+    def criterion(self):
+        """Adapt input to criterion as needed to compute reconstruction loss 
+        and KL divergence. See default criterion VAELoss."""
+        return self._criterion(self.mb_x, self.mb_output)
 
 
 class GSS_greedy(SupervisedTemplate):
@@ -997,6 +1190,8 @@ __all__ = [
     "PNNStrategy",
     "CWRStar",
     "Replay",
+    "GenerativeReplay",
+    "VAETraining",
     "GDumb",
     "LwF",
     "AGEM",
