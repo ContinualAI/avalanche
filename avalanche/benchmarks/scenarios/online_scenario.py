@@ -154,7 +154,7 @@ class OnlineCLScenario(CLScenario):
             raise ValueError("Unknown experience split strategy")
 
         streams_dict = {s.name: s for s in original_streams}
-        if 'train' not in original_streams:
+        if 'train' not in streams_dict:
             raise ValueError("Missing train stream for `original_streams`.")
 
         online_train_stream = split_foo(streams_dict['train'])
@@ -162,4 +162,5 @@ class OnlineCLScenario(CLScenario):
         for s in original_streams:
             s = copy(s)
             s.name = 'original_' + s.name
+            streams.append(s)
         super().__init__(streams)

@@ -220,7 +220,7 @@ class CLScenario:
 
     def streams(self):
         for s in self._streams.values():
-            return s
+            yield s
 
     def __getattr__(self, item):
         if item in self._streams:
