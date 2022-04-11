@@ -11,12 +11,12 @@
 
 from typing import TypeVar, List, Callable
 
-from avalanche.benchmarks import GenericExperience, Experience, TScenario, \
-    TScenarioStream, GenericCLScenario, TStreamsUserDict, GenericScenarioStream
+from avalanche.benchmarks import GenericClassificationExperience, Experience, TScenario, \
+    TScenarioStream, GenericCLScenario, TStreamsUserDict, ClassificationStream
 from avalanche.benchmarks.utils import AvalancheDataset
 
 TDetectionExperience = TypeVar("TDetectionExperience",
-                               bound=GenericExperience)
+                               bound=GenericClassificationExperience)
 
 
 class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
@@ -34,7 +34,7 @@ class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
             n_classes: int = None,
             complete_test_set_only: bool = False,
             experience_factory: Callable[
-                ["GenericScenarioStream", int], TDetectionExperience
+                ["ClassificationStream", int], TDetectionExperience
             ] = None):
         """
         Creates an instance a Continual Learning object detection benchmark.

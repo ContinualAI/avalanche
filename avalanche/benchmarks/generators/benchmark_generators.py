@@ -36,10 +36,10 @@ import torch
 from avalanche.benchmarks import (
     GenericCLScenario,
     Experience,
-    GenericScenarioStream,
+    ClassificationStream,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+from avalanche.benchmarks.scenarios.classification_scenario import (
     TStreamsUserDict,
     StreamUserDef,
 )
@@ -484,7 +484,7 @@ def data_incremental_benchmark(
         [Experience], Sequence[AvalancheDataset]
     ] = None,
     experience_factory: Callable[
-        [GenericScenarioStream, int], Experience
+        [ClassificationStream, int], Experience
     ] = None,
 ):
     """
@@ -758,7 +758,7 @@ def benchmark_with_validation_stream(
     ] = None,
     *,
     experience_factory: Callable[
-        [GenericScenarioStream, int], Experience
+        [ClassificationStream, int], Experience
     ] = None,
     lazy_splitting: bool = None,
 ):

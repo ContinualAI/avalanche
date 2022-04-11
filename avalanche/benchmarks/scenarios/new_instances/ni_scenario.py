@@ -13,10 +13,10 @@ from typing import Optional, List, Sequence, Dict, Any
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+from avalanche.benchmarks.scenarios.classification_scenario import (
     GenericCLScenario,
-    GenericScenarioStream,
-    GenericExperience,
+    ClassificationStream,
+    GenericClassificationExperience,
 )
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
@@ -447,8 +447,8 @@ class NIScenario(GenericCLScenario["NIExperience"]):
 
 
 class NIExperience(
-    GenericExperience[
-        NIScenario, GenericScenarioStream["NIExperience", NIScenario]
+    GenericClassificationExperience[
+        NIScenario, ClassificationStream["NIExperience", NIScenario]
     ]
 ):
     """
@@ -459,7 +459,7 @@ class NIExperience(
 
     def __init__(
         self,
-        origin_stream: GenericScenarioStream["NIExperience", NIScenario],
+        origin_stream: ClassificationStream["NIExperience", NIScenario],
         current_experience: int,
     ):
         """

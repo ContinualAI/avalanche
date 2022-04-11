@@ -42,8 +42,8 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
-TGenericCLScenario = TypeVar("TGenericCLScenario", bound="GenericCLScenario")
-TGenericExperience = TypeVar("TGenericExperience", bound="GenericExperience")
+TGenericCLClassificationScenario = TypeVar("TGenericCLScenario", bound="GenericCLScenario")
+TGenericClassificationExperience = TypeVar("TGenericExperience", bound="GenericExperience")
 TGenericScenarioStream = TypeVar(
     "TGenericScenarioStream", bound="GenericScenarioStream"
 )
@@ -114,12 +114,12 @@ class GenericCLScenario(Generic[TExperience]):
     """
 
     def __init__(
-        self: TGenericCLScenario,
+        self: TGenericCLClassificationScenario,
         *,
         stream_definitions: TStreamsUserDict,
         complete_test_set_only: bool = False,
         experience_factory: Callable[
-            ["GenericScenarioStream", int], TExperience
+            ["ClassificationStream", int], TExperience
         ] = None,
     ):
         """
@@ -189,17 +189,17 @@ class GenericCLScenario(Generic[TExperience]):
         ].origin_dataset
         """ The original test set. May be None. """
 
-        self.train_stream: GenericScenarioStream[
-            TExperience, TGenericCLScenario
-        ] = GenericScenarioStream("train", self)
+        self.train_stream: ClassificationStream[
+            TExperience, TGenericCLClassificationScenario
+        ] = ClassificationStream("train", self)
         """
         The stream used to obtain the training experiences. 
         This stream can be sliced in order to obtain a subset of this stream.
         """
 
-        self.test_stream: GenericScenarioStream[
-            TExperience, TGenericCLScenario
-        ] = GenericScenarioStream("test", self)
+        self.test_stream: ClassificationStream[
+            TExperience, TGenericCLClassificationScenario
+        ] = ClassificationStream("test", self)
         """
         The stream used to obtain the test experiences. This stream can be 
         sliced in order to obtain a subset of this stream.
@@ -226,7 +226,7 @@ class GenericCLScenario(Generic[TExperience]):
                 )
 
         if experience_factory is None:
-            experience_factory = GenericExperience
+            experience_factory = GenericClassificationExperience
 
         self.experience_factory: Callable[
             [TGenericScenarioStream, int], TExperience
@@ -241,7 +241,7 @@ class GenericCLScenario(Generic[TExperience]):
     @property
     def streams(
         self,
-    ) -> Dict[str, "GenericScenarioStream[" "TExperience, TGenericCLScenario]"]:
+    ) -> Dict[str, "ClassificationStream[" "TExperience, TGenericCLClassificationScenario]"]:
         streams_dict = dict()
         for stream_name in self.stream_definitions.keys():
             streams_dict[stream_name] = getattr(self, f"{stream_name}_stream")
@@ -398,7 +398,7 @@ class GenericCLScenario(Generic[TExperience]):
             if stream_name in ["train", "test"]:
                 continue
 
-            stream_obj = GenericScenarioStream(stream_name, self)
+            stream_obj = ClassificationStream(stream_name, self)
             setattr(self, f"{stream_name}_stream", stream_obj)
 
     @staticmethod
@@ -553,15 +553,15 @@ class GenericCLScenario(Generic[TExperience]):
         return StreamDef(lazy_sequence, task_labels, origin_dataset, is_lazy)
 
 
-class GenericScenarioStream(
-    Generic[TExperience, TGenericCLScenario],
-    ScenarioStream[TGenericCLScenario, TExperience],
+class ClassificationStream(
+    Generic[TExperience, TGenericCLClassificationScenario],
+    ScenarioStream[TGenericCLClassificationScenario, TExperience],
     Sequence[TExperience],
 ):
     def __init__(
         self: TGenericScenarioStream,
         name: str,
-        benchmark: TGenericCLScenario,
+        benchmark: TGenericCLClassificationScenario,
         *,
         slice_ids: List[int] = None,
     ):
@@ -769,7 +769,7 @@ def _get_slice_ids(
     return exps_list
 
 
-class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
+class AbstractClassificationExperience(Experience[TScenario, TScenarioStream], ABC):
     """
     Definition of a learning experience. A learning experience contains a set of
     patterns which has become available at a particular time instant. The
@@ -845,10 +845,10 @@ class AbstractExperience(Experience[TScenario, TScenarioStream], ABC):
         return self.task_labels[0]
 
 
-class GenericExperience(
-    AbstractExperience[
-        TGenericCLScenario,
-        GenericScenarioStream[TGenericExperience, TGenericCLScenario],
+class GenericClassificationExperience(
+    AbstractClassificationExperience[
+        TGenericCLClassificationScenario,
+        ClassificationStream[TGenericClassificationExperience, TGenericCLClassificationScenario],
     ]
 ):
     """
@@ -861,9 +861,9 @@ class GenericExperience(
     """
 
     def __init__(
-        self: TGenericExperience,
-        origin_stream: GenericScenarioStream[
-            TGenericExperience, TGenericCLScenario
+        self: TGenericClassificationExperience,
+        origin_stream: ClassificationStream[
+            TGenericClassificationExperience, TGenericCLClassificationScenario
         ],
         current_experience: int,
     ):
@@ -890,7 +890,7 @@ class GenericExperience(
             current_experience, stream=origin_stream.name
         )
 
-        super(GenericExperience, self).__init__(
+        super(GenericClassificationExperience, self).__init__(
             origin_stream,
             current_experience,
             classes_in_this_exp,
@@ -914,9 +914,9 @@ __all__ = [
     "TStreamsUserDict",
     "StreamDef",
     "TStreamsDict",
-    "TGenericCLScenario",
+    "TGenericCLClassificationScenario",
     "GenericCLScenario",
-    "GenericScenarioStream",
-    "AbstractExperience",
-    "GenericExperience",
+    "ClassificationStream",
+    "AbstractClassificationExperience",
+    "GenericClassificationExperience",
 ]
