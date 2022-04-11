@@ -1,7 +1,7 @@
 import unittest
 
 from avalanche.benchmarks.scenarios.generic_scenario import CLExperience, \
-    CLStream, CLScenario, LazyCLStream, MaskedAttributeError
+    EagerCLStream, CLScenario, CLStream, MaskedAttributeError
 
 
 class ExperienceTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class ExperienceTests(unittest.TestCase):
 class StreamTests(unittest.TestCase):
     def test_stream_getitem(self):
         # streams should be indexable
-        s = CLStream('a', [CLExperience(), CLExperience(), CLExperience()])
+        s = EagerCLStream('a', [CLExperience(), CLExperience(), CLExperience()])
 
         s[0]
         s[1]
@@ -38,7 +38,7 @@ class StreamTests(unittest.TestCase):
 
     def test_stream_slicing(self):
         # streams should be sliceable
-        s = CLStream('a', [CLExperience(), CLExperience(), CLExperience()])
+        s = EagerCLStream('a', [CLExperience(), CLExperience(), CLExperience()])
 
         ss = s[1:2]
         assert len(ss) == 1
@@ -52,7 +52,7 @@ class StreamTests(unittest.TestCase):
         def ls():
             for el in [CLExperience(), CLExperience(), CLExperience()]:
                 yield el
-        s = LazyCLStream('a', ls())
+        s = CLStream('a', ls())
         for i, el in enumerate(s):
             assert el.current_experience == i
 
@@ -60,8 +60,8 @@ class StreamTests(unittest.TestCase):
 class ScenarioTests(unittest.TestCase):
     def test_scenario_streams(self):
         # streams should be indexable
-        sa = CLStream('a', [CLExperience(1), CLExperience(2), CLExperience(3)])
-        sb = CLStream('b', [CLExperience(12), CLExperience(13)])
+        sa = EagerCLStream('a', [CLExperience(1), CLExperience(2), CLExperience(3)])
+        sb = EagerCLStream('b', [CLExperience(12), CLExperience(13)])
         bench = CLScenario([sa, sb])
 
         bench.a_stream

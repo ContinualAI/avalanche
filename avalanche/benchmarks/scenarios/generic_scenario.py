@@ -1,3 +1,4 @@
+from abc import ABC
 from copy import copy
 from enum import Enum
 from typing import List, Iterable
@@ -21,7 +22,7 @@ class ExperienceMode(Enum):
     - LOGGING: maximum visibility. Useful when computing metrics.
     """
     TRAIN = 1
-    INFERENCE = 2
+    EVAL = 2
     LOGGING = 3
 
 
@@ -30,13 +31,22 @@ class ExperienceAttribute:
     experience which may only be available at train or eval time.
 
     For example, experiences often keep a reference to the entire stream,
-    which should be accessible only by the evaluation .
+    which should be accessible only by the loggers and evaluation system,
+    but should never be used by the strategy in the train/eval loops.
     """
 
-    def __init__(self, value, use_in_train=False, use_in_inference=False):
+    def __init__(self, value, use_in_train=False, use_in_eval=False):
+        """Init.
+
+        :param value: attribute value.
+        :param use_in_train: if True the attribute is available at training
+            time.
+        :param use_in_eval: if True the attribute is available at evaluation
+            time.
+        """
         self.value = value
         self.use_in_train = use_in_train
-        self.use_in_inference = use_in_inference
+        self.use_in_eval = use_in_eval
 
 
 class CLExperience(object):
@@ -68,8 +78,8 @@ class CLExperience(object):
         if isinstance(v, ExperienceAttribute):
             if self._exp_mode == ExperienceMode.TRAIN and v.use_in_train:
                 return v.value
-            elif self._exp_mode == ExperienceMode.INFERENCE \
-                    and v.use_in_inference:
+            elif self._exp_mode == ExperienceMode.EVAL \
+                    and v.use_in_eval:
                 return v.value
             elif self._exp_mode == ExperienceMode.LOGGING:
                 return v.value
@@ -99,7 +109,7 @@ class CLExperience(object):
         experience IDs) is available.
         """
         exp = copy(self)
-        exp._exp_mode = ExperienceMode.INFERENCE
+        exp._exp_mode = ExperienceMode.EVAL
         return exp
 
     def logging(self):
@@ -114,60 +124,18 @@ class CLExperience(object):
 
 
 class CLStream:
-    """A stream is a named list of experiences.
+    """A CL stream is a named iterator of experiences.
 
-    NOTE: streams should not be used by training strategies since they
-    provide access to past, current, and future data.
-    """
-
-    def __init__(self, name: str, exps: List[CLExperience],
-                 benchmark=None, set_stream_info: bool=True):
-        """Create a CL stream given a list of experiences.
-
-        `origin_stream` and `current_experience` are set for each experience in
-        `exps`.
-
-        :param name: name of the stream.
-        :param exps: list of experiences.
-        :param benchmark: a reference to the benchmark.
-        :param set_stream_info: if True, set the `origin_stream` and
-            `current_experience` identifier for each experience. If False,
-            the attributes are left unchanged.
-        """
-        self.name = name
-        self.exps = exps
-        self.benchmark = benchmark
-
-        for i, e in enumerate(self.exps):
-            e.origin_stream = self
-            e.current_experience = i
-
-    def __getitem__(self, item):
-        # These allows for slicing experiences
-        if isinstance(item, slice):
-            return CLStream(name=self.name, exps=self.exps[item],
-                            set_stream_info=False)
-        else:
-            return self.exps[item]
-
-    def __len__(self):
-        return len(self.exps)
-
-
-class LazyCLStream:
-    """A lazy stream is a named iterator of experiences.
-
-    It should be preferred to `CLStream` whenever keeping the entire stream
-    in memory is expensive, while generating experiences on the fly is fast.
+    In general, many streams may be generator and not explicit lists to avoid
+    keeping many objects in memory.
 
     NOTE: streams should not be used by training strategies since they
     provide access to past, current, and future data.
     """
     def __init__(self, name: str, exps_iter: Iterable[CLExperience],
-                 benchmark=None, set_stream_info: bool=True, length=None):
+                 benchmark=None, set_stream_info: bool = True):
         self.name = name
         self.exps_iter = exps_iter
-        self.length = length
 
         self.benchmark = benchmark
         self.set_stream_info = set_stream_info
@@ -183,8 +151,48 @@ class LazyCLStream:
                 yield exp
         return foo(self)
 
+
+class EagerCLStream(CLStream):
+    """A CL stream which is a named list of experiences.
+
+    Eager streams are indexable and sliceable, like python lists.
+
+    NOTE: streams should not be used by training strategies since they
+    provide access to past, current, and future data.
+    """
+
+    def __init__(self, name: str, exps: List[CLExperience],
+                 benchmark=None, set_stream_info: bool = True):
+        """Create a CL stream given a list of experiences.
+
+        `origin_stream` and `current_experience` are set for each experience in
+        `exps`.
+
+        :param name: name of the stream.
+        :param exps: list of experiences.
+        :param benchmark: a reference to the benchmark.
+        :param set_stream_info: if True, set the `origin_stream` and
+            `current_experience` identifier for each experience. If False,
+            the attributes are left unchanged.
+        """
+        super().__init__(name, exps, benchmark, set_stream_info)
+        self.exps = exps
+
+        for i, e in enumerate(self.exps):
+            if self.set_stream_info:
+                e.origin_stream = self
+                e.current_experience = i
+
+    def __getitem__(self, item):
+        # These allows for slicing experiences
+        if isinstance(item, slice):
+            return EagerCLStream(name=self.name, exps=self.exps[item],
+                                 set_stream_info=False)
+        else:
+            return self.exps[item]
+
     def __len__(self):
-        return self.length
+        return len(self.exps)
 
 
 class CLScenario:
@@ -201,7 +209,7 @@ class CLScenario:
     provide access to past, current, and future data.
     """
 
-    def __init__(self, streams: List[CLStream]):
+    def __init__(self, streams: List[EagerCLStream]):
         """Creates an instance of a Continual Learning benchmark.
 
         :param streams: a list of streams.

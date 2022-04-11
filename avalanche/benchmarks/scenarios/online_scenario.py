@@ -1,11 +1,40 @@
-from typing import List, Callable, Sequence, Iterable
+from copy import copy
+from typing import Callable, Iterable, List
 
 import torch
 
-from benchmarks import Experience
-from benchmarks.scenarios.generic_scenario import CLExperience, CLStream, \
-    LazyCLStream, ExperienceAttribute
-from benchmarks.utils import AvalancheSubset, AvalancheDataset
+from avalanche.benchmarks.scenarios.generic_scenario import CLExperience, \
+    EagerCLStream, \
+    CLStream, ExperienceAttribute, CLScenario
+from avalanche.benchmarks.utils import AvalancheSubset
+
+
+class OnlineCLExperience(CLExperience):
+    """Online CL (OCL) Experience.
+
+    OCL experiences are created by splitting a larger experience. Therefore,
+    they keep track of the original experience for logging purposes.
+    """
+
+    def __init__(self, current_experience: int = None,
+                 origin_stream=None,
+                 origin_experience = None,
+                 is_first_subexp: bool = False,
+                 sub_stream_length: int = None):
+        """Init.
+
+        :param current_experience: experience identifier.
+        :param origin_stream: origin stream.
+        :param origin_experience: origin experience used to create self.
+        :param is_first_subexp: whether self is the first in the sub-experiences
+            stream.
+        :param sub_stream_length: the sub-stream length.
+        """
+        super().__init__(current_experience, origin_stream)
+
+        self.origin_experience = ExperienceAttribute(origin_experience)
+        self.is_first_subexp = ExperienceAttribute(is_first_subexp)
+        self.sub_stream_length = ExperienceAttribute(sub_stream_length)
 
 
 def fixed_size_experience_split(
@@ -38,6 +67,7 @@ def fixed_size_experience_split(
             ].tolist()
 
         init_idx = 0
+        is_first = True
         while init_idx < len(exp_indices):
             final_idx = init_idx + experience_size  # Exclusive
             if final_idx > len(exp_indices):
@@ -46,18 +76,21 @@ def fixed_size_experience_split(
 
                 final_idx = len(exp_indices)
 
-            exp = CLExperience()
-            exp.origin_experience = ExperienceAttribute(experience)
+            exp = OnlineCLExperience(
+                origin_experience=experience,
+                is_first_subexp=is_first
+            )
             exp.dataset = AvalancheSubset(
                     exp_dataset, indices=exp_indices[init_idx:final_idx]
                 )
+            is_first = False
             yield exp
             init_idx = final_idx
     return gen()
 
 
 def split_online_stream(
-    original_stream: CLStream,
+    original_stream: EagerCLStream,
     experience_size: int,
     shuffle: bool = False,
     drop_last: bool = False,
@@ -102,8 +135,31 @@ def split_online_stream(
             for sub_exp in experience_split_strategy(exp, experience_size):
                 yield exp
 
-    return LazyCLStream(
+    return CLStream(
         name=original_stream.name,
         exps_iter=exps_iter(),
         set_stream_info=True
     )
+
+
+class OnlineCLScenario(CLScenario):
+    def __init__(self,
+                 original_streams: List[EagerCLStream],
+                 experience_size: int = 10,
+                 stream_split_strategy='fixed_size_split'):
+
+        if stream_split_strategy == 'fixed_size_split':
+            split_foo = lambda s: split_online_stream(s, experience_size)
+        else:
+            raise ValueError("Unknown experience split strategy")
+
+        streams_dict = {s.name: s for s in original_streams}
+        if 'train' not in original_streams:
+            raise ValueError("Missing train stream for `original_streams`.")
+
+        online_train_stream = split_foo(streams_dict['train'])
+        streams = [online_train_stream]
+        for s in original_streams:
+            s = copy(s)
+            s.name = 'original_' + s.name
+        super().__init__(streams)
