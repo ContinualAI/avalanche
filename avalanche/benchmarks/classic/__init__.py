@@ -12,3 +12,4 @@ from .ctrl import *
 from .endless_cl_sim import *
 from .openloris import *
 from .stream51 import *
+from .ex_model import *

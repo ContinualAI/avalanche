@@ -1,4 +1,13 @@
-from abc import ABC
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 11-04-2022                                                             #
+# Author(s): Antonio Carta                                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
 from copy import copy
 from enum import Enum
 from typing import List, Iterable
@@ -184,7 +193,7 @@ class EagerCLStream(CLStream):
                 e.current_experience = i
 
     def __getitem__(self, item):
-        # These allows for slicing experiences
+        # This check allows CL streams slicing
         if isinstance(item, slice):
             return EagerCLStream(name=self.name, exps=self.exps[item],
                                  set_stream_info=False)
@@ -217,13 +226,10 @@ class CLScenario:
         self._streams = {}
         for s in streams:
             self._streams[s.name + '_stream'] = s
+        for s in streams:
+            self.__dict__[s.name + '_stream'] = s
 
+    @property
     def streams(self):
-        for s in self._streams.values():
-            yield s
-
-    def __getattr__(self, item):
-        if item in self._streams:
-            return self._streams[item]
-        else:
-            raise AttributeError(f'Unknown attribute {item}')
+        # we don't want in-place modifications so we return a copy
+        return copy(self._streams)

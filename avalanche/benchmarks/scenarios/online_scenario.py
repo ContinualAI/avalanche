@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 11-04-2022                                                             #
+# Author(s): Antonio Carta                                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
 from copy import copy
 from typing import Callable, Iterable, List
 
