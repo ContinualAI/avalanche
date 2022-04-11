@@ -8,15 +8,15 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-import torch
-import unittest
-
 import os
 import sys
+import unittest
 
+import torch
+from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torch.nn import CrossEntropyLoss, Linear
 
+from avalanche.evaluation.metrics import StreamAccuracy
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
@@ -42,14 +42,12 @@ from avalanche.training.supervised import (
     StreamingLDA,
     MAS,
 )
-from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.supervised.cumulative import Cumulative
+from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
-from avalanche.training.supervised.icarl import ICaRL
+from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.utils import get_last_fc_layer
-from avalanche.evaluation.metrics import StreamAccuracy
-
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 
 

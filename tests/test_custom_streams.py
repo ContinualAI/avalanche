@@ -1,20 +1,8 @@
 import unittest
 
-from os.path import expanduser
-
 import torch
-from torchvision.datasets import MNIST
-
-from avalanche.benchmarks.scenarios.new_classes import NCExperience
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheTensorDataset
-from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
-    make_nc_transformation_subset,
-)
-from avalanche.benchmarks import (
-    nc_benchmark,
-    GenericScenarioStream,
-    GenericCLScenario,
-)
+from avalanche.benchmarks.utils import AvalancheTensorDataset
+from avalanche.benchmarks import GenericCLScenario
 
 
 class CustomStreamsTests(unittest.TestCase):

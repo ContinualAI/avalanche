@@ -1,7 +1,5 @@
 import unittest
 
-from torch.utils.data.dataloader import DataLoader
-
 from avalanche.benchmarks import Experience, SplitCIFAR100, SplitCIFAR110
 from tests.unit_tests_utils import (
     load_experience_train_eval,

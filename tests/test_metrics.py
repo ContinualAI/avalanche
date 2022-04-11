@@ -1,15 +1,9 @@
 """ Metrics Tests"""
 
 import unittest
+
 import torch
-from torch.utils.data import TensorDataset
-import numpy as np
-import random
-import pickle
-import os
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import make_classification
-from copy import deepcopy
+
 from avalanche.evaluation.metrics import (
     Accuracy,
     Loss,
@@ -25,31 +19,6 @@ from avalanche.evaluation.metrics import (
     Forgetting,
     ForwardTransfer,
 )
-from avalanche.training.templates.supervised import SupervisedTemplate
-import pathlib
-from torch.nn import CrossEntropyLoss
-from torch.optim import SGD
-from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
-)
-from avalanche.benchmarks import nc_benchmark, dataset_benchmark
-from avalanche.evaluation.metrics import (
-    forgetting_metrics,
-    accuracy_metrics,
-    loss_metrics,
-    cpu_usage_metrics,
-    timing_metrics,
-    ram_usage_metrics,
-    disk_usage_metrics,
-    MAC_metrics,
-    bwt_metrics,
-    confusion_matrix_metrics,
-    forward_transfer_metrics,
-)
-from avalanche.models import SimpleMLP
-from avalanche.logging import TextLogger
-from avalanche.training.plugins import EvaluationPlugin
 
 
 #################################
@@ -57,7 +26,6 @@ from avalanche.training.plugins import EvaluationPlugin
 #    STANDALONE METRIC TEST     #
 #################################
 #################################
-from tests.unit_tests_utils import UPDATE_METRICS
 
 
 class GeneralMetricTests(unittest.TestCase):
