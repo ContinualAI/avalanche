@@ -42,8 +42,12 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
-TGenericCLClassificationScenario = TypeVar("TGenericCLScenario", bound="GenericCLScenario")
-TGenericClassificationExperience = TypeVar("TGenericExperience", bound="GenericExperience")
+TGenericCLClassificationScenario = TypeVar(
+    "TGenericCLScenario", bound="GenericCLScenario"
+)
+TGenericClassificationExperience = TypeVar(
+    "TGenericExperience", bound="GenericExperience"
+)
 TGenericScenarioStream = TypeVar(
     "TGenericScenarioStream", bound="GenericScenarioStream"
 )
@@ -241,7 +245,11 @@ class GenericCLScenario(Generic[TExperience]):
     @property
     def streams(
         self,
-    ) -> Dict[str, "ClassificationStream[" "TExperience, TGenericCLClassificationScenario]"]:
+    ) -> Dict[
+        str,
+        "ClassificationStream["
+        "TExperience, TGenericCLClassificationScenario]",
+    ]:
         streams_dict = dict()
         for stream_name in self.stream_definitions.keys():
             streams_dict[stream_name] = getattr(self, f"{stream_name}_stream")
@@ -769,7 +777,9 @@ def _get_slice_ids(
     return exps_list
 
 
-class AbstractClassificationExperience(Experience[TScenario, TScenarioStream], ABC):
+class AbstractClassificationExperience(
+    Experience[TScenario, TScenarioStream], ABC
+):
     """
     Definition of a learning experience. A learning experience contains a set of
     patterns which has become available at a particular time instant. The
@@ -848,7 +858,9 @@ class AbstractClassificationExperience(Experience[TScenario, TScenarioStream], A
 class GenericClassificationExperience(
     AbstractClassificationExperience[
         TGenericCLClassificationScenario,
-        ClassificationStream[TGenericClassificationExperience, TGenericCLClassificationScenario],
+        ClassificationStream[
+            TGenericClassificationExperience, TGenericCLClassificationScenario
+        ],
     ]
 ):
     """

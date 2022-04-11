@@ -13,9 +13,13 @@ from typing import Callable, Iterable, List
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_scenario import CLExperience, \
-    EagerCLStream, \
-    CLStream, ExperienceAttribute, CLScenario
+from avalanche.benchmarks.scenarios.generic_scenario import (
+    CLExperience,
+    EagerCLStream,
+    CLStream,
+    ExperienceAttribute,
+    CLScenario,
+)
 from avalanche.benchmarks.utils import AvalancheSubset
 
 
@@ -26,11 +30,14 @@ class OnlineCLExperience(CLExperience):
     they keep track of the original experience for logging purposes.
     """
 
-    def __init__(self, current_experience: int = None,
-                 origin_stream=None,
-                 origin_experience = None,
-                 is_first_subexp: bool = False,
-                 sub_stream_length: int = None):
+    def __init__(
+        self,
+        current_experience: int = None,
+        origin_stream=None,
+        origin_experience=None,
+        is_first_subexp: bool = False,
+        sub_stream_length: int = None,
+    ):
         """Init.
 
         :param current_experience: experience identifier.
@@ -87,15 +94,15 @@ def fixed_size_experience_split(
                 final_idx = len(exp_indices)
 
             exp = OnlineCLExperience(
-                origin_experience=experience,
-                is_first_subexp=is_first
+                origin_experience=experience, is_first_subexp=is_first
             )
             exp.dataset = AvalancheSubset(
-                    exp_dataset, indices=exp_indices[init_idx:final_idx]
-                )
+                exp_dataset, indices=exp_indices[init_idx:final_idx]
+            )
             is_first = False
             yield exp
             init_idx = final_idx
+
     return gen()
 
 
@@ -104,8 +111,9 @@ def split_online_stream(
     experience_size: int,
     shuffle: bool = False,
     drop_last: bool = False,
-    experience_split_strategy: Callable[[CLExperience],
-                                        Iterable[CLExperience]] = None
+    experience_split_strategy: Callable[
+        [CLExperience], Iterable[CLExperience]
+    ] = None,
 ):
     """Split a stream of large batches to create an online stream of small
     mini-batches.
@@ -126,8 +134,8 @@ def split_online_stream(
     :param drop_last: If True, if the last experience doesn't contain
         `experience_size` instances, then the last experience will be dropped.
         Defaults to False. Ignored if `experience_split_strategy` is used.
-    :param experience_split_strategy: A function that implements a custom splitting
-        strategy. The function must accept an experience and return an
+    :param experience_split_strategy: A function that implements a custom
+        splitting strategy. The function must accept an experience and return an
         experience's iterator. Defaults to None, which means
         that the standard splitting strategy will be used (which creates
         experiences of size `experience_size`).
@@ -137,8 +145,11 @@ def split_online_stream(
     :return: A lazy online stream with experiences of size `experience_size`.
     """
     if experience_split_strategy is None:
-        experience_split_strategy = lambda exp, size: \
-            fixed_size_experience_split(exp, size, shuffle, drop_last)
+        experience_split_strategy = (
+            lambda exp, size: fixed_size_experience_split(
+                exp, size, shuffle, drop_last
+            )
+        )
 
     def exps_iter():
         for exp in original_stream:
@@ -146,31 +157,32 @@ def split_online_stream(
                 yield exp
 
     return CLStream(
-        name=original_stream.name,
-        exps_iter=exps_iter(),
-        set_stream_info=True
+        name=original_stream.name, exps_iter=exps_iter(), set_stream_info=True
     )
 
 
 class OnlineCLScenario(CLScenario):
-    def __init__(self,
-                 original_streams: List[EagerCLStream],
-                 experience_size: int = 10,
-                 stream_split_strategy='fixed_size_split'):
+    def __init__(
+        self,
+        original_streams: List[EagerCLStream],
+        experience_size: int = 10,
+        stream_split_strategy="fixed_size_split",
+    ):
 
-        if stream_split_strategy == 'fixed_size_split':
-            split_foo = lambda s: split_online_stream(s, experience_size)
+        if stream_split_strategy == "fixed_size_split":
+            def split_foo(s):
+                return split_online_stream(s, experience_size)
         else:
             raise ValueError("Unknown experience split strategy")
 
         streams_dict = {s.name: s for s in original_streams}
-        if 'train' not in streams_dict:
+        if "train" not in streams_dict:
             raise ValueError("Missing train stream for `original_streams`.")
 
-        online_train_stream = split_foo(streams_dict['train'])
+        online_train_stream = split_foo(streams_dict["train"])
         streams = [online_train_stream]
         for s in original_streams:
             s = copy(s)
-            s.name = 'original_' + s.name
+            s.name = "original_" + s.name
             streams.append(s)
         super().__init__(streams)

@@ -29,7 +29,7 @@ from avalanche.training.plugins import (
     CoPEPlugin,
     GSS_greedyPlugin,
     LFLPlugin,
-    MASPlugin
+    MASPlugin,
 )
 from avalanche.training.templates.supervised import SupervisedTemplate
 
@@ -929,7 +929,7 @@ class MAS(SupervisedTemplate):
         model: Module,
         optimizer: Optimizer,
         criterion,
-        lambda_reg: float = 1.,
+        lambda_reg: float = 1.0,
         alpha: float = 0.5,
         verbose: bool = False,
         train_mb_size: int = 1,
@@ -969,10 +969,7 @@ class MAS(SupervisedTemplate):
         """
 
         # Instantiate plugin
-        mas = MASPlugin(
-            lambda_reg=lambda_reg,
-            alpha=alpha,
-            verbose=verbose)
+        mas = MASPlugin(lambda_reg=lambda_reg, alpha=alpha, verbose=verbose)
 
         # Add plugin to the strategy
         if plugins is None:
@@ -1009,5 +1006,5 @@ __all__ = [
     "GSS_greedy",
     "CoPE",
     "LFL",
-    "MAS"
+    "MAS",
 ]

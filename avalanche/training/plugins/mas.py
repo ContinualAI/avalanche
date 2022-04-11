@@ -29,10 +29,9 @@ class MASPlugin(SupervisedPlugin):
     https://github.com/mmasana/FACIL/blob/master/src/approach/mas.py
     """
 
-    def __init__(self,
-                 lambda_reg: float = 1.,
-                 alpha: float = 0.5,
-                 verbose=False):
+    def __init__(
+        self, lambda_reg: float = 1.0, alpha: float = 0.5, verbose=False
+    ):
         """
         :param lambda_reg: hyperparameter weighting the penalty term
                in the loss.
@@ -72,7 +71,8 @@ class MASPlugin(SupervisedPlugin):
         strategy.model.train()
         dataloader = DataLoader(
             strategy.experience.dataset,
-            batch_size=strategy.train_mb_size,)  # type: ignore
+            batch_size=strategy.train_mb_size,
+        )  # type: ignore
 
         # Progress bar
         if self.verbose:
@@ -94,7 +94,7 @@ class MASPlugin(SupervisedPlugin):
             out = avalanche_forward(strategy.model, x, t)
 
             # Average L2-Norm of the output
-            loss = torch.norm(out, p='fro', dim=1).mean()
+            loss = torch.norm(out, p="fro", dim=1).mean()
             loss.backward()
 
             # Accumulate importance
@@ -107,8 +107,10 @@ class MASPlugin(SupervisedPlugin):
                         importance[name] += param.grad.abs() * len(batch)
 
         # Normalize importance
-        importance = {name: importance[name] / len(dataloader)
-                      for name in importance.keys()}
+        importance = {
+            name: importance[name] / len(dataloader)
+            for name in importance.keys()
+        }
 
         return importance
 
@@ -118,7 +120,7 @@ class MASPlugin(SupervisedPlugin):
         if exp_counter == 0:
             return
 
-        loss_reg = 0.
+        loss_reg = 0.0
 
         # Check if properties have been initialized
         if not self.importance:
@@ -131,8 +133,9 @@ class MASPlugin(SupervisedPlugin):
         # Apply penalty term
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
-                loss_reg += torch.sum(self.importance[name] *
-                                      (param - self.params[name]).pow(2))
+                loss_reg += torch.sum(
+                    self.importance[name] * (param - self.params[name]).pow(2)
+                )
 
         # Update loss
         strategy.loss += self._lambda * loss_reg
@@ -158,5 +161,7 @@ class MASPlugin(SupervisedPlugin):
 
         # Update importance
         for name in self.importance.keys():
-            self.importance[name] = self.alpha * self.importance[name] + \
-                                    (1 - self.alpha) * curr_importance[name]
+            self.importance[name] = (
+                self.alpha * self.importance[name]
+                + (1 - self.alpha) * curr_importance[name]
+            )

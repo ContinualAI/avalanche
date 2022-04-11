@@ -16,6 +16,7 @@ from typing import List, Iterable
 class MaskedAttributeError(ValueError):
     """An error that is thrown when the user tries to access experience
     attributes which are private in the current experience's mode"""
+
     pass
 
 
@@ -30,6 +31,7 @@ class ExperienceMode(Enum):
     - INFERENCE: evaluation time (e.g. eval method in strategies).
     - LOGGING: maximum visibility. Useful when computing metrics.
     """
+
     TRAIN = 1
     EVAL = 2
     LOGGING = 3
@@ -65,8 +67,7 @@ class CLExperience(object):
     inside the stream for evaluation purposes.
     """
 
-    def __init__(self, current_experience: int = None,
-                 origin_stream=None):
+    def __init__(self, current_experience: int = None, origin_stream=None):
         super().__init__()
         self.current_experience = ExperienceAttribute(current_experience)
         """Experience identifier (the position in the origin_stream)."""
@@ -87,16 +88,20 @@ class CLExperience(object):
         if isinstance(v, ExperienceAttribute):
             if self._exp_mode == ExperienceMode.TRAIN and v.use_in_train:
                 return v.value
-            elif self._exp_mode == ExperienceMode.EVAL \
-                    and v.use_in_eval:
+            elif self._exp_mode == ExperienceMode.EVAL and v.use_in_eval:
                 return v.value
             elif self._exp_mode == ExperienceMode.LOGGING:
                 return v.value
             else:
-                mode = "train" if self._exp_mode == ExperienceMode.TRAIN \
+                mode = (
+                    "train"
+                    if self._exp_mode == ExperienceMode.TRAIN
                     else "eval"
-                se = f"Attribute {item} is not available for the experience " \
-                     f"in {mode} mode."
+                )
+                se = (
+                    f"Attribute {item} is not available for the experience "
+                    f"in {mode} mode."
+                )
                 raise MaskedAttributeError(se)
         else:
             return v
@@ -141,8 +146,14 @@ class CLStream:
     NOTE: streams should not be used by training strategies since they
     provide access to past, current, and future data.
     """
-    def __init__(self, name: str, exps_iter: Iterable[CLExperience],
-                 benchmark=None, set_stream_info: bool = True):
+
+    def __init__(
+        self,
+        name: str,
+        exps_iter: Iterable[CLExperience],
+        benchmark=None,
+        set_stream_info: bool = True,
+    ):
         self.name = name
         self.exps_iter = exps_iter
 
@@ -158,6 +169,7 @@ class CLStream:
                     exp.current_experience = i
                     exp.origin_stream = self
                 yield exp
+
         return foo(self)
 
 
@@ -170,8 +182,13 @@ class EagerCLStream(CLStream):
     provide access to past, current, and future data.
     """
 
-    def __init__(self, name: str, exps: List[CLExperience],
-                 benchmark=None, set_stream_info: bool = True):
+    def __init__(
+        self,
+        name: str,
+        exps: List[CLExperience],
+        benchmark=None,
+        set_stream_info: bool = True,
+    ):
         """Create a CL stream given a list of experiences.
 
         `origin_stream` and `current_experience` are set for each experience in
@@ -195,8 +212,9 @@ class EagerCLStream(CLStream):
     def __getitem__(self, item):
         # This check allows CL streams slicing
         if isinstance(item, slice):
-            return EagerCLStream(name=self.name, exps=self.exps[item],
-                                 set_stream_info=False)
+            return EagerCLStream(
+                name=self.name, exps=self.exps[item], set_stream_info=False
+            )
         else:
             return self.exps[item]
 
@@ -225,9 +243,9 @@ class CLScenario:
         """
         self._streams = {}
         for s in streams:
-            self._streams[s.name + '_stream'] = s
+            self._streams[s.name + "_stream"] = s
         for s in streams:
-            self.__dict__[s.name + '_stream'] = s
+            self.__dict__[s.name + "_stream"] = s
 
     @property
     def streams(self):

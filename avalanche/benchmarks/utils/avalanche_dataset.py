@@ -57,7 +57,7 @@ from typing import (
     Callable,
     Dict,
     Tuple,
-    Collection
+    Collection,
 )
 
 from typing_extensions import Protocol
@@ -86,11 +86,7 @@ class YTransformDef(Protocol):
 
 XTransform = Optional[Union[XTransformDef, XComposedTransformDef]]
 YTransform = Optional[YTransformDef]
-TransformGroupDef = Union[
-    None,
-    XTransform,
-    Tuple[XTransform, YTransform]
-]
+TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
 SupportedDataset = Union[
@@ -154,7 +150,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
         targets: Sequence[TTargetType] = None,
         dataset_type: AvalancheDatasetType = None,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None
+        targets_adapter: Callable[[Any], TTargetType] = None,
     ):
         """
         Creates a ``AvalancheDataset`` instance.
@@ -792,9 +788,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
 
         element = self._apply_transforms(element)
 
-        return TupleTLabel(
-            (*element, self.targets_task_labels[idx])
-        )
+        return TupleTLabel((*element, self.targets_task_labels[idx]))
 
     def _apply_transforms(self, element: Sequence[Any]):
         element = list(element)
@@ -888,17 +882,22 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             elif isinstance(group_transforms, Callable):
                 # Single transformation: (safely) assume it is the X transform
                 transform_groups[group_name] = (group_transforms, None)
-            elif isinstance(group_transforms, Sequence) and \
-                    len(group_transforms) == 2:
+            elif (
+                isinstance(group_transforms, Sequence)
+                and len(group_transforms) == 2
+            ):
                 # X and Y transforms
-                transform_groups[group_name] = (group_transforms[0],
-                                                group_transforms[1])
+                transform_groups[group_name] = (
+                    group_transforms[0],
+                    group_transforms[1],
+                )
             else:
                 raise ValueError(
-                    f'Unsupported transformations for group {group_name}. '
-                    f'The transformation group may be None, a single Callable, '
-                    f'or a tuple of 2 elements containing the X and Y '
-                    f'transforms')
+                    f"Unsupported transformations for group {group_name}. "
+                    f"The transformation group may be None, a single Callable, "
+                    f"or a tuple of 2 elements containing the X and Y "
+                    f"transforms"
+                )
 
         if "train" in transform_groups:
             if "eval" not in transform_groups:
@@ -1168,7 +1167,7 @@ class AvalancheSubset(AvalancheDataset[T_co, TTargetType]):
         targets: Sequence[TTargetType] = None,
         dataset_type: AvalancheDatasetType = None,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None
+        targets_adapter: Callable[[Any], TTargetType] = None,
     ):
         """
         Creates an ``AvalancheSubset`` instance.
@@ -1560,7 +1559,7 @@ class AvalancheTensorDataset(AvalancheDataset[T_co, TTargetType]):
         targets: Union[Sequence[TTargetType], int] = None,
         dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None
+        targets_adapter: Callable[[Any], TTargetType] = None,
     ):
         """
         Creates a ``AvalancheTensorDataset`` instance.
@@ -1675,7 +1674,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
         ] = None,
         dataset_type: AvalancheDatasetType = None,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None
+        targets_adapter: Callable[[Any], TTargetType] = None,
     ):
         """
         Creates a ``AvalancheConcatDataset`` instance.

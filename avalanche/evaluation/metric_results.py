@@ -29,6 +29,7 @@ class LoggingType(Enum):
     For example, a 2D tensor could be a line plot or be used to create a
     histogram.
     """
+
     ANY = 1  # generic type. The logger will use the value type to decide how
     # to serialize it.
     IMAGE = 2

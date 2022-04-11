@@ -111,8 +111,7 @@ class BaseTemplate:
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]],
-             **kwargs):
+    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -193,8 +192,8 @@ class BaseTemplate:
 
         def get_plugins_from_object(obj):
             def is_callback(x):
-                return x.startswith("before") or \
-                       x.startswith("after")
+                return x.startswith("before") or x.startswith("after")
+
             return filter(is_callback, dir(obj))
 
         cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))

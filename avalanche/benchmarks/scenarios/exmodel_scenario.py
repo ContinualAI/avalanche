@@ -22,10 +22,12 @@ class ExModelExperience(CLExperience):
     The original data is not available.
     """
 
-    def __init__(self, expert_model, current_experience: int = None,
-                 origin_stream=None):
-        super().__init__(current_experience=current_experience,
-                         origin_stream=origin_stream)
+    def __init__(
+        self, expert_model, current_experience: int = None, origin_stream=None
+    ):
+        super().__init__(
+            current_experience=current_experience, origin_stream=origin_stream
+        )
         self.expert_model = expert_model
 
 
@@ -43,8 +45,9 @@ class ExModelCLScenario(CLScenario):
     https://arxiv.org/abs/2112.06511
     """
 
-    def __init__(self, original_benchmark: CLScenario,
-                 expert_models: List[Module]):
+    def __init__(
+        self, original_benchmark: CLScenario, expert_models: List[Module]
+    ):
         """Init.
 
         :param original_benchmark: a reference to the original benchmark
@@ -53,7 +56,7 @@ class ExModelCLScenario(CLScenario):
             trained on the i-th experience of the train stream of
             `original_benchmark`.
         """
-        expert_stream = CLStream('expert_models', expert_models)
+        expert_stream = CLStream("expert_models", expert_models)
         streams = [expert_stream]
 
         self.original_benchmark = original_benchmark

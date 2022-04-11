@@ -109,12 +109,13 @@ class DataLoaderTests(unittest.TestCase):
             adapted_dataset = step.dataset
             if len(replayPlugin.storage_policy.buffer) > 0:
                 dataloader = ReplayDataLoader(
-                        adapted_dataset,
-                        replayPlugin.storage_policy.buffer,
-                        oversample_small_tasks=True,
-                        num_workers=0,
-                        batch_size=batch_size,
-                        shuffle=True)
+                    adapted_dataset,
+                    replayPlugin.storage_policy.buffer,
+                    oversample_small_tasks=True,
+                    num_workers=0,
+                    batch_size=batch_size,
+                    shuffle=True,
+                )
             else:
                 dataloader = TaskBalancedDataLoader(adapted_dataset)
 

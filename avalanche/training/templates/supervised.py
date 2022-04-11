@@ -188,8 +188,12 @@ class SupervisedTemplate(BaseSGDTemplate):
         super()._before_eval_exp(**kwargs)
 
     def make_train_dataloader(
-        self, num_workers=0, shuffle=True, pin_memory=True,
-        persistent_workers=False, **kwargs
+        self,
+        num_workers=0,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=False,
+        **kwargs
     ):
         """Data loader initialization.
 
@@ -204,8 +208,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version('1.7.0'):
-            other_dataloader_args['persistent_workers'] = persistent_workers
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -218,8 +222,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         )
 
     def make_eval_dataloader(
-            self, num_workers=0, pin_memory=True, persistent_workers=False,
-            **kwargs):
+        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+    ):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
@@ -232,8 +236,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
         other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version('1.7.0'):
-            other_dataloader_args['persistent_workers'] = persistent_workers
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
 
         self.dataloader = DataLoader(
             self.adapted_dataset,

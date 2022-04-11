@@ -31,13 +31,16 @@ class Compose:
         if len(transforms) > 0:
             for tr in transforms:
                 self.param_def.append(
-                    MultiParamTransform._detect_parameters(tr))
+                    MultiParamTransform._detect_parameters(tr)
+                )
             all_maxes = set([max_p for _, max_p in self.param_def])
             if len(all_maxes) > 1:
                 warnings.warn(
-                    'Transformations define a different amount of parameters. '
-                    'This may lead to errors. This warning will only appear'
-                    'once.', ComposeMaxParamsWarning)
+                    "Transformations define a different amount of parameters. "
+                    "This may lead to errors. This warning will only appear"
+                    "once.",
+                    ComposeMaxParamsWarning,
+                )
 
             if -1 in all_maxes:
                 self.max_param = -1  # At least one transform has an *args param
@@ -47,21 +50,23 @@ class Compose:
 
     def __call__(self, *args, force_tuple_output=False):
         if len(self.transforms) > 0:
-            for transform, (min_par, max_par) in zip(self.transforms,
-                                                     self.param_def):
+            for transform, (min_par, max_par) in zip(
+                self.transforms, self.param_def
+            ):
                 args = MultiParamTransform._call_transform(
-                    transform, min_par, max_par, *args)
+                    transform, min_par, max_par, *args
+                )
 
         if len(args) == 1 and not force_tuple_output:
             return args[0]  # Single return value (as an unwrapped value)
         return args  # Multiple return values (as a tuple)
 
     def __repr__(self):
-        format_string = self.__class__.__name__ + '('
+        format_string = self.__class__.__name__ + "("
         for t in self.transforms:
-            format_string += '\n'
-            format_string += '    {0}'.format(t)
-        format_string += '\n)'
+            format_string += "\n"
+            format_string += "    {0}".format(t)
+        format_string += "\n)"
         return format_string
 
 
@@ -69,22 +74,25 @@ class MultiParamTransform:
     def __init__(self, transform: Callable):
         self.transform = transform
 
-        self.min_params, self.max_params = \
-            MultiParamTransform._detect_parameters(transform)
+        (
+            self.min_params,
+            self.max_params,
+        ) = MultiParamTransform._detect_parameters(transform)
 
     def __call__(self, *args, force_tuple_output=False):
         args = MultiParamTransform._call_transform(
-            self.transform, self.min_params, self.max_params, *args)
+            self.transform, self.min_params, self.max_params, *args
+        )
 
         if len(args) == 1 and not force_tuple_output:
             return args[0]  # Single return value (as an unwrapped value)
         return args  # Multiple return values (as a tuple)
 
     def __repr__(self):
-        format_string = self.__class__.__name__ + '('
-        format_string += '\n'
-        format_string += '    {0}'.format(self.transform)
-        format_string += '\n)'
+        format_string = self.__class__.__name__ + "("
+        format_string += "\n"
+        format_string += "    {0}".format(self.transform)
+        format_string += "\n)"
         return format_string
 
     @staticmethod
@@ -111,8 +119,9 @@ class MultiParamTransform:
         min_params = 0
         max_params = 0
 
-        if hasattr(transform_callable, 'min_params') and \
-                hasattr(transform_callable, 'max_params'):
+        if hasattr(transform_callable, "min_params") and hasattr(
+            transform_callable, "max_params"
+        ):
             min_params = transform_callable.min_params
             max_params = transform_callable.max_params
         elif MultiParamTransform._is_torchvision_transform(transform_callable):
@@ -124,9 +133,10 @@ class MultiParamTransform:
                 param = t_sig.parameters[param_name]
                 if param.kind == Parameter.KEYWORD_ONLY:
                     raise ValueError(
-                        f'Invalid transformation {transform_callable}: '
-                        f'keyword-only parameters (such as {param_name}) are '
-                        'not supported.')
+                        f"Invalid transformation {transform_callable}: "
+                        f"keyword-only parameters (such as {param_name}) are "
+                        "not supported."
+                    )
                 elif param.kind == Parameter.POSITIONAL_ONLY:
                     # Positional-only (not much used)
                     min_params += 1
@@ -150,7 +160,7 @@ class MultiParamTransform:
     def _is_torchvision_transform(transform_callable):
         tc_class = transform_callable.__class__
         tc_module = tc_class.__module__
-        return 'torchvision.transforms' in tc_module
+        return "torchvision.transforms" in tc_module
 
 
 class ComposeMaxParamsWarning(Warning):
@@ -161,8 +171,4 @@ class ComposeMaxParamsWarning(Warning):
 warnings.simplefilter("once", ComposeMaxParamsWarning)
 
 
-__all__ = [
-    'Compose',
-    'MultiParamTransform',
-    'ComposeMaxParamsWarning'
-]
+__all__ = ["Compose", "MultiParamTransform", "ComposeMaxParamsWarning"]

@@ -61,11 +61,33 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 
-COCO_STATS_DET_ORDER = ("AP", "AP50", "AP75", "APs", "APm", "APl", "AR@1",
-                        "AR@10", "AR@100", "ARs@100", "ARm@100", "ARl@100")
+COCO_STATS_DET_ORDER = (
+    "AP",
+    "AP50",
+    "AP75",
+    "APs",
+    "APm",
+    "APl",
+    "AR@1",
+    "AR@10",
+    "AR@100",
+    "ARs@100",
+    "ARm@100",
+    "ARl@100",
+)
 
-COCO_STATS_KPS_ORDER = ("AP", "AP50", "AP75", "APm", "APl", "AR",
-                        "AR50", "AR75", "ARm", "ARl")
+COCO_STATS_KPS_ORDER = (
+    "AP",
+    "AP50",
+    "AP75",
+    "APm",
+    "APl",
+    "AR",
+    "AR50",
+    "AR75",
+    "ARm",
+    "ARl",
+)
 
 
 class CocoEvaluator:
@@ -78,6 +100,7 @@ class CocoEvaluator:
     This mostly acts a wrapper around :class:`COCOEval` from the `pycocotools`
     library.
     """
+
     def __init__(self, coco_gt: COCO, iou_types: List[str]):
         assert isinstance(iou_types, (list, tuple))
         coco_gt = copy.deepcopy(coco_gt)
@@ -98,8 +121,9 @@ class CocoEvaluator:
         for iou_type in self.iou_types:
             results = self.prepare(predictions, iou_type)
             with redirect_stdout(io.StringIO()):
-                coco_dt = COCO.loadRes(
-                    self.coco_gt, results) if results else COCO()
+                coco_dt = (
+                    COCO.loadRes(self.coco_gt, results) if results else COCO()
+                )
             coco_eval = self.coco_eval[iou_type]
 
             coco_eval.cocoDt = coco_dt
@@ -110,13 +134,13 @@ class CocoEvaluator:
 
     def synchronize_between_processes(self):
         for iou_type in self.iou_types:
-            self.eval_imgs[iou_type] = \
-                np.concatenate(self.eval_imgs[iou_type], 2)
+            self.eval_imgs[iou_type] = np.concatenate(
+                self.eval_imgs[iou_type], 2
+            )
 
             create_common_coco_eval(
-                self.coco_eval[iou_type],
-                self.img_ids,
-                self.eval_imgs[iou_type])
+                self.coco_eval[iou_type], self.img_ids, self.eval_imgs[iou_type]
+            )
 
         if dist.is_initialized():
             return dist.get_rank() == 0
@@ -136,13 +160,15 @@ class CocoEvaluator:
                 with redirect_stdout(io.StringIO()):
                     eval_data.summarize()
                 metrics_stats = eval_data.stats
-                if iou == 'segm' or iou == 'bbox':
+                if iou == "segm" or iou == "bbox":
                     for metric_name, metric_value in zip(
-                            COCO_STATS_DET_ORDER, metrics_stats):
+                        COCO_STATS_DET_ORDER, metrics_stats
+                    ):
                         result_dict[iou][metric_name] = metric_value
-                elif iou == 'keypoints':
+                elif iou == "keypoints":
                     for metric_name, metric_value in zip(
-                            COCO_STATS_KPS_ORDER, metrics_stats):
+                        COCO_STATS_KPS_ORDER, metrics_stats
+                    ):
                         result_dict[iou][metric_name] = metric_value
 
         if dist.is_initialized():
@@ -205,8 +231,11 @@ class CocoEvaluator:
 
             rles = [
                 mask_util.encode(
-                    np.array(mask[0, :, :, np.newaxis], dtype=np.uint8,
-                             order="F"))[0] for mask in masks
+                    np.array(
+                        mask[0, :, :, np.newaxis], dtype=np.uint8, order="F"
+                    )
+                )[0]
+                for mask in masks
             ]
             for rle in rles:
                 rle["counts"] = rle["counts"].decode("utf-8")
@@ -321,11 +350,12 @@ def create_common_coco_eval(coco_eval, img_ids, eval_imgs):
 def evaluate(imgs):
     with redirect_stdout(io.StringIO()):
         imgs.evaluate()
-    return (imgs.params.imgIds,
-            np.asarray(imgs.evalImgs).reshape(
-                -1, len(imgs.params.areaRng), len(imgs.params.imgIds)))
+    return (
+        imgs.params.imgIds,
+        np.asarray(imgs.evalImgs).reshape(
+            -1, len(imgs.params.areaRng), len(imgs.params.imgIds)
+        ),
+    )
 
 
-__all__ = [
-    'CocoEvaluator'
-]
+__all__ = ["CocoEvaluator"]

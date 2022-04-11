@@ -29,7 +29,9 @@ from typing import (
 import torch
 from torch import Tensor
 
-from avalanche.benchmarks.scenarios.classification_scenario import GenericCLScenario
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    GenericCLScenario,
+)
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario

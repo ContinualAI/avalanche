@@ -117,8 +117,9 @@ class AGEMPlugin(SupervisedPlugin):
         Update replay memory with patterns from current experience.
         """
         if num_workers > 0:
-            warnings.warn("Num workers > 0 is known to cause heavy"
-                          "slowdowns in AGEM.")
+            warnings.warn(
+                "Num workers > 0 is known to cause heavy" "slowdowns in AGEM."
+            )
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
             dataset, _ = random_split(

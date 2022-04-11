@@ -56,10 +56,13 @@ import torch
 from PIL import Image
 from torchvision.datasets.folder import default_loader
 
-from avalanche.benchmarks.datasets import SimpleDownloadableDataset, \
-    default_dataset_location
-from avalanche.benchmarks.datasets.penn_fudan.penn_fudan_data import \
-    penn_fudan_data
+from avalanche.benchmarks.datasets import (
+    SimpleDownloadableDataset,
+    default_dataset_location,
+)
+from avalanche.benchmarks.datasets.penn_fudan.penn_fudan_data import (
+    penn_fudan_data,
+)
 
 
 def default_mask_loader(mask_path):
@@ -74,13 +77,15 @@ class PennFudanDataset(SimpleDownloadableDataset):
     https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
     """
 
-    def __init__(self,
-                 root: Union[str, Path] = None,
-                 *,
-                 transform=None,
-                 loader=default_loader,
-                 mask_loader=default_mask_loader,
-                 download=True):
+    def __init__(
+        self,
+        root: Union[str, Path] = None,
+        *,
+        transform=None,
+        loader=default_loader,
+        mask_loader=default_mask_loader,
+        download=True
+    ):
         """
         Creates an instance of the Penn-Fudan dataset.
 
@@ -109,7 +114,7 @@ class PennFudanDataset(SimpleDownloadableDataset):
             penn_fudan_data[0],
             penn_fudan_data[1],
             download=download,
-            verbose=True
+            verbose=True,
         )
 
         self._load_dataset()
@@ -117,8 +122,8 @@ class PennFudanDataset(SimpleDownloadableDataset):
     def _load_metadata(self):
         # load all image files, sorting them to
         # ensure that they are aligned
-        self.imgs = (self.root / 'PennFudanPed' / "PNGImages").iterdir()
-        self.masks = (self.root / 'PennFudanPed' / "PedMasks").iterdir()
+        self.imgs = (self.root / "PennFudanPed" / "PNGImages").iterdir()
+        self.masks = (self.root / "PennFudanPed" / "PedMasks").iterdir()
 
         self.imgs = list(sorted(self.imgs))
         self.masks = list(sorted(self.masks))
@@ -190,7 +195,7 @@ class PennFudanDataset(SimpleDownloadableDataset):
         return len(self.imgs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # this little example script can be used to visualize the first image
     # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader
@@ -199,7 +204,8 @@ if __name__ == '__main__':
     import torch
 
     train_data = PennFudanDataset(
-        transform=lambda im, ann: (transforms.ToTensor()(im), ann))
+        transform=lambda im, ann: (transforms.ToTensor()(im), ann)
+    )
     dataloader = DataLoader(train_data, batch_size=1)
 
     for batch_data in dataloader:
@@ -211,6 +217,4 @@ if __name__ == '__main__':
         break
 
 
-__all__ = [
-    'PennFudanDataset'
-]
+__all__ = ["PennFudanDataset"]

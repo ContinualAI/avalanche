@@ -21,14 +21,19 @@ from typing import Union
 
 from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.datasets import LvisDataset
-from avalanche.benchmarks.scenarios.detection_scenario import \
-    DetectionCLScenario
+from avalanche.benchmarks.scenarios.detection_scenario import (
+    DetectionCLScenario,
+)
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
-from avalanche.training.supervised.naive_object_detection import \
-    ObjectDetectionTemplate
+from avalanche.training.supervised.naive_object_detection import (
+    ObjectDetectionTemplate,
+)
 
-from avalanche.evaluation.metrics import make_lvis_metrics, timing_metrics, \
-    loss_metrics
+from avalanche.evaluation.metrics import (
+    make_lvis_metrics,
+    timing_metrics,
+    loss_metrics,
+)
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 import argparse
@@ -65,13 +70,15 @@ def main(args):
     benchmark = split_lvis(
         n_experiences=n_exps,
         train_transform=train_transform,
-        eval_transform=test_transform)
+        eval_transform=test_transform,
+    )
     # ---------
 
     # MODEL CREATION
     # load a model pre-trained on COCO
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-        pretrained=True)
+        pretrained=True
+    )
 
     # Just tune the box predictor
     for p in model.parameters():
@@ -88,8 +95,9 @@ def main(args):
 
     # Define the optimizer and the scheduler
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(
+        params, lr=0.005, momentum=0.9, weight_decay=0.0005
+    )
 
     train_mb_size = 5
     warmup_factor = 1.0 / 1000
@@ -109,32 +117,41 @@ def main(args):
         eval_mb_size=train_mb_size,
         device=device,
         plugins=[
-            LRSchedulerPlugin(lr_scheduler, step_granularity='iteration',
-                              first_exp_only=True, first_epoch_only=True)
+            LRSchedulerPlugin(
+                lr_scheduler,
+                step_granularity="iteration",
+                first_exp_only=True,
+                first_epoch_only=True,
+            )
         ],
         evaluator=EvaluationPlugin(
             timing_metrics(epoch=True),
             loss_metrics(epoch_running=True),
             make_lvis_metrics(),
-            loggers=[InteractiveLogger()])
+            loggers=[InteractiveLogger()],
+        ),
     )
 
     # TRAINING LOOP
     print("Starting experiment...")
     for i, experience in enumerate(benchmark.train_stream):
         print("Start of experience: ", experience.current_experience)
-        print('Train dataset contains', len(experience.dataset), 'instances')
+        print("Train dataset contains", len(experience.dataset), "instances")
 
         cl_strategy.train(experience, num_workers=8)
         print("Training completed")
 
         cl_strategy.eval(benchmark.test_stream, num_workers=8)
-        print('Evaluation completed')
+        print("Evaluation completed")
 
 
 def split_lvis(
-        n_experiences: int, train_transform=None, eval_transform=None,
-        shuffle=True, root_path: Union[str, Path] = None):
+    n_experiences: int,
+    train_transform=None,
+    eval_transform=None,
+    shuffle=True,
+    root_path: Union[str, Path] = None,
+):
     """
     Creates the example Split LVIS benchmark.
 
@@ -163,7 +180,7 @@ def split_lvis(
         n_classes=len(all_cat_ids),
         train_transform=train_transform,
         eval_transform=eval_transform,
-        shuffle=shuffle
+        shuffle=shuffle,
     )
 
 

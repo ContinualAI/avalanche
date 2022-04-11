@@ -36,7 +36,9 @@ class GroupedBatchSampler(BatchSampler):
 
     def __init__(self, sampler, group_ids, batch_size):
         if not isinstance(sampler, Sampler):
-            raise ValueError(f"sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}")
+            raise ValueError(
+                f"sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}"
+            )
         self.sampler = sampler
         self.group_ids = group_ids
         self.batch_size = batch_size
@@ -65,10 +67,16 @@ class GroupedBatchSampler(BatchSampler):
         if num_remaining > 0:
             # for the remaining batches, take first the buffers with largest number
             # of elements
-            for group_id, _ in sorted(buffer_per_group.items(), key=lambda x: len(x[1]), reverse=True):
+            for group_id, _ in sorted(
+                buffer_per_group.items(), key=lambda x: len(x[1]), reverse=True
+            ):
                 remaining = self.batch_size - len(buffer_per_group[group_id])
-                samples_from_group_id = _repeat_to_at_least(samples_per_group[group_id], remaining)
-                buffer_per_group[group_id].extend(samples_from_group_id[:remaining])
+                samples_from_group_id = _repeat_to_at_least(
+                    samples_per_group[group_id], remaining
+                )
+                buffer_per_group[group_id].extend(
+                    samples_from_group_id[:remaining]
+                )
                 assert len(buffer_per_group[group_id]) == self.batch_size
                 yield buffer_per_group[group_id]
                 num_remaining -= 1
