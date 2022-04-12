@@ -16,15 +16,15 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.evaluation.metrics import StreamAccuracy
-from avalanche.logging import TextLogger
+from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
+from avalanche.logging import TextLogger, InteractiveLogger
 from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
     EvaluationPlugin,
     SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
-    RWalkPlugin,
+    RWalkPlugin, EarlyStoppingPlugin,
 )
 from avalanche.training.supervised import (
     Naive,
@@ -128,6 +128,30 @@ class BaseStrategyTest(unittest.TestCase):
         strategy.train(benchmark.train_stream[0])
         curve = strategy.evaluator.get_all_metrics()[curve_key][1]
         assert len(curve) == 5
+
+    def test_plugins_compatibility_checks(self):
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        benchmark = get_fast_benchmark()
+        optimizer = SGD(model.parameters(), lr=1e-3)
+        criterion = CrossEntropyLoss()
+
+        evalp = EvaluationPlugin(
+            loss_metrics(minibatch=True, epoch=True, experience=True,
+                         stream=True),
+            loggers=[InteractiveLogger()],
+            strict_checks=None
+        )
+
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_epochs=2,
+            eval_every=-1,
+            evaluator=evalp,
+            plugins=[EarlyStoppingPlugin(patience=10, val_stream_name='train')]
+        )
+        strategy.train(benchmark.train_stream[0])
 
     def test_forward_hooks(self):
         model = SimpleMLP(input_size=6, hidden_size=10)

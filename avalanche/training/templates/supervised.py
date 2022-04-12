@@ -62,6 +62,7 @@ class SupervisedTemplate(BaseSGDTemplate):
                     # model update
 
     """
+    PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
         self,

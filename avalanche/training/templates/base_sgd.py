@@ -1,10 +1,11 @@
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks import ClassificationExperience
+from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -34,6 +35,7 @@ class BaseSGDTemplate(BaseTemplate):
             eval_exp  # for each experience
 
     """
+    PLUGIN_CLASS = BaseSGDPlugin
 
     def __init__(
         self,

@@ -160,3 +160,9 @@ class TrainGeneratorAfterExpPlugin(SupervisedPlugin):
         for plugin in strategy.plugins:
             if type(plugin) is GenerativeReplayPlugin:
                 plugin.generator_strategy.train(strategy.experience) 
+
+
+__all__ = [
+    'GenerativeReplayPlugin',
+    'TrainGeneratorAfterExpPlugin'
+]
