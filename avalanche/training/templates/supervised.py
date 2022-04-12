@@ -70,7 +70,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = 1,
+        eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,

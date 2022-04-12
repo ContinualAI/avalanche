@@ -1,8 +1,10 @@
 import warnings
+from typing import List
 
 import torch
 from torch.utils.data import random_split
 
+from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -33,7 +35,8 @@ class AGEMPlugin(SupervisedPlugin):
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
 
-        self.buffers = []  # one AvalancheDataset for each experience.
+        self.buffers: List[AvalancheDataset] = []  # one AvalancheDataset for
+        # each experience.
         self.buffer_dataloader = None
         self.buffer_dliter = None
 

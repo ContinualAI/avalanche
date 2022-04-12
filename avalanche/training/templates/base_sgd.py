@@ -41,9 +41,9 @@ class BaseSGDTemplate(BaseTemplate):
         optimizer: Optimizer,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = 1,
+        eval_mb_size: Optional[int] = 1,
         device="cpu",
-        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        plugins: Optional[List["SupervisedPlugin"]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -388,14 +388,14 @@ class PeriodicEval(SupervisedPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy)
 
-    def after_training_epoch(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_epoch(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
     def after_training_iteration(
-        self, strategy: "SupervisedTemplate", **kwargs
+        self, strategy: "BaseSGDTemplate", **kwargs
     ):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""

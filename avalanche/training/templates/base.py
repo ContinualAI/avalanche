@@ -1,5 +1,5 @@
 import warnings
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
@@ -33,7 +33,7 @@ class BaseTemplate:
         self,
         model: Module,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
+        plugins: Optional[List[BasePlugin]] = None,
     ):
         """Init."""
 
@@ -52,13 +52,14 @@ class BaseTemplate:
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
-        self.experience = None
+        self.experience: Optional[ClassificationExperience] = None
         """ Current experience. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream = None
+        self.current_eval_stream: \
+            Optional[Sequence[ClassificationExperience]] = None
         """ Current evaluation stream. """
 
     @property
@@ -111,7 +112,9 @@ class BaseTemplate:
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
+    def eval(self, exp_list: Union[ClassificationExperience,
+                                   Sequence[ClassificationExperience]],
+             **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
