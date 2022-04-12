@@ -43,7 +43,7 @@ class StreamTests(unittest.TestCase):
 
         # should be iterable
         for el in s:
-            pass
+            print(el)
 
     def test_stream_slicing(self):
         # streams should be sliceable

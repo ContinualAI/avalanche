@@ -14,7 +14,7 @@ import logging
 import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
-from avalanche.benchmarks.scenarios.generic_definitions import Experience
+from avalanche.benchmarks.scenarios.generic_definitions import ClassificationExperience
 from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
@@ -31,10 +31,10 @@ class TinyImagenetTest(unittest.TestCase):
 
         benchmark = SplitTinyImageNet()
         for task_info in benchmark.train_stream:
-            self.assertIsInstance(task_info, Experience)
+            self.assertIsInstance(task_info, ClassificationExperience)
 
         for task_info in benchmark.test_stream:
-            self.assertIsInstance(task_info, Experience)
+            self.assertIsInstance(task_info, ClassificationExperience)
 
 
 if __name__ == "__main__":

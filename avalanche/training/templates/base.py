@@ -4,7 +4,7 @@ from typing import Sequence, Optional, Union
 import torch
 from torch.nn import Module
 
-from avalanche.benchmarks import Experience
+from avalanche.benchmarks import ClassificationExperience
 from avalanche.core import BasePlugin
 from avalanche.training.utils import trigger_plugins
 
@@ -68,9 +68,9 @@ class BaseTemplate:
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
         ] = None,
         **kwargs,
     ):
@@ -107,11 +107,11 @@ class BaseTemplate:
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
 
-    def _train_exp(self, experience: Experience, eval_streams, **kwargs):
+    def _train_exp(self, experience: ClassificationExperience, eval_streams, **kwargs):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
+    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.

@@ -145,15 +145,12 @@ def split_online_stream(
     :return: A lazy online stream with experiences of size `experience_size`.
     """
     if experience_split_strategy is None:
-        experience_split_strategy = (
-            lambda exp, size: fixed_size_experience_split(
-                exp, size, shuffle, drop_last
-            )
-        )
+        def split_foo(exp: CLExperience, size: int):
+            return fixed_size_experience_split(exp, size, shuffle, drop_last)
 
     def exps_iter():
         for exp in original_stream:
-            for sub_exp in experience_split_strategy(exp, experience_size):
+            for sub_exp in split_foo(exp, experience_size):
                 yield exp
 
     return CLStream(

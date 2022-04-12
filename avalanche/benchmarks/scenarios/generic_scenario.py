@@ -10,7 +10,9 @@
 ################################################################################
 from copy import copy
 from enum import Enum
-from typing import List, Iterable
+from typing import List, Iterable, TypeVar, Union, Generic
+
+T = TypeVar('T')
 
 
 class MaskedAttributeError(ValueError):
@@ -37,7 +39,7 @@ class ExperienceMode(Enum):
     LOGGING = 3
 
 
-class ExperienceAttribute:
+class ExperienceAttribute(Generic[T]):
     """Experience attributes are used to define data belonging to an
     experience which may only be available at train or eval time.
 
@@ -46,7 +48,9 @@ class ExperienceAttribute:
     but should never be used by the strategy in the train/eval loops.
     """
 
-    def __init__(self, value, use_in_train=False, use_in_eval=False):
+    def __init__(self, value: T,
+                 use_in_train: bool = False,
+                 use_in_eval: bool = False):
         """Init.
 
         :param value: attribute value.
@@ -60,6 +64,12 @@ class ExperienceAttribute:
         self.use_in_eval = use_in_eval
 
 
+# experience attributes can be values of a generic type T
+# or they can be wrapped with an ExperienceAttribute object to handle
+# scope visibility
+TExperienceAttribute = Union[T, ExperienceAttribute[T]]
+
+
 class CLExperience(object):
     """Base Experience.
 
@@ -69,10 +79,12 @@ class CLExperience(object):
 
     def __init__(self, current_experience: int = None, origin_stream=None):
         super().__init__()
-        self.current_experience = ExperienceAttribute(current_experience)
+        self.current_experience: TExperienceAttribute \
+            = ExperienceAttribute(current_experience)
         """Experience identifier (the position in the origin_stream)."""
 
-        self.origin_stream = ExperienceAttribute(origin_stream)
+        self.origin_stream: TExperienceAttribute \
+            = ExperienceAttribute(origin_stream)
         """Stream containing the experience."""
 
         self._exp_mode: ExperienceMode = ExperienceMode.TRAIN
@@ -236,7 +248,7 @@ class CLScenario:
     provide access to past, current, and future data.
     """
 
-    def __init__(self, streams: List[EagerCLStream]):
+    def __init__(self, streams: List[CLStream]):
         """Creates an instance of a Continual Learning benchmark.
 
         :param streams: a list of streams.
@@ -251,3 +263,12 @@ class CLScenario:
     def streams(self):
         # we don't want in-place modifications so we return a copy
         return copy(self._streams)
+
+
+__all__ = [
+    'ExperienceAttribute',
+    'CLExperience',
+    'CLStream',
+    'EagerCLStream',
+    'CLScenario'
+]

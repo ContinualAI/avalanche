@@ -13,9 +13,9 @@ from typing import TypeVar, List, Callable
 
 from avalanche.benchmarks import (
     GenericClassificationExperience,
-    Experience,
-    TScenario,
-    TScenarioStream,
+    ClassificationExperience,
+    TCLScenario,
+    TCLStream,
     GenericCLScenario,
     TStreamsUserDict,
     ClassificationStream,
@@ -80,7 +80,7 @@ class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
         """
 
 
-class DetectionExperience(Experience[TScenario, TScenarioStream]):
+class DetectionExperience(ClassificationExperience[TCLScenario, TCLStream]):
     """
     Definition of a learning experience based on a :class:`DetectionScenario`
     instance.
@@ -92,7 +92,7 @@ class DetectionExperience(Experience[TScenario, TScenarioStream]):
 
     def __init__(
         self: TDetectionExperience,
-        origin_stream: TScenarioStream,
+        origin_stream: TCLStream,
         current_experience: int,
     ):
         """
@@ -103,8 +103,8 @@ class DetectionExperience(Experience[TScenario, TScenarioStream]):
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.origin_stream: TScenarioStream = origin_stream
-        self.benchmark: TScenario = origin_stream.benchmark
+        self.origin_stream: TCLStream = origin_stream
+        self.benchmark: TCLScenario = origin_stream.benchmark
         self.current_experience: int = current_experience
 
         self.dataset: AvalancheDataset = (

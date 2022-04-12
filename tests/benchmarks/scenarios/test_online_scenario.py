@@ -10,5 +10,5 @@ class OCLTests(unittest.TestCase):
         batch_streams = benchmark.streams.values()
         ocl_benchmark = OnlineCLScenario(batch_streams)
 
-        for s in ocl_benchmark.streams():
+        for s in ocl_benchmark.streams.values():
             print(s.name)

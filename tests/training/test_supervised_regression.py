@@ -25,7 +25,7 @@ from typing import Optional, Sequence, Union
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.scenarios import Experience
+from avalanche.benchmarks.scenarios import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule, SimpleMLP, MTSimpleMLP
@@ -130,9 +130,9 @@ class OldBaseStrategy:
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
         ] = None,
         **kwargs
     ):
@@ -156,7 +156,7 @@ class OldBaseStrategy:
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(self, experience: Experience, eval_streams=None, **kwargs):
+    def train_exp(self, experience: ClassificationExperience, eval_streams=None, **kwargs):
         self.experience = experience
         self.model.train()
 
@@ -231,7 +231,7 @@ class OldBaseStrategy:
         self.adapted_dataset = self.adapted_dataset.train()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
+    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.

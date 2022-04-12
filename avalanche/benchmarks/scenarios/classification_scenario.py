@@ -15,26 +15,17 @@ from typing import (
     Set,
     Tuple,
     NamedTuple,
-    Mapping,
+    Mapping, Protocol,
 )
 
 import warnings
 from torch.utils.data.dataset import Dataset
 
-try:
-    from gym import Env
-except ImportError:
-    # empty class to make sure everything below works without changes
-    class Env:
-        pass
-
-
 from avalanche.benchmarks.scenarios.generic_definitions import (
-    TExperience,
-    ScenarioStream,
-    TScenarioStream,
-    Experience,
-    TScenario,
+    TCLExperience,
+    TCLStream,
+    ClassificationExperience,
+    TCLScenario,
 )
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
@@ -43,21 +34,19 @@ from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(
-    "TGenericCLScenario", bound="GenericCLScenario"
+    "TGenericCLClassificationScenario", bound="GenericCLScenario"
 )
 TGenericClassificationExperience = TypeVar(
-    "TGenericExperience", bound="GenericExperience"
+    "TGenericClassificationExperience", bound="GenericClassificationExperience"
 )
 TGenericScenarioStream = TypeVar(
-    "TGenericScenarioStream", bound="GenericScenarioStream"
+    "TGenericScenarioStream", bound="ClassificationStream"
 )
 
-RLStreamDataOrigin = Union[Env, Sequence[Env]]
 TStreamDataOrigin = Union[
     AvalancheDataset,
     Sequence[AvalancheDataset],
     Tuple[Iterable[AvalancheDataset], int],
-    RLStreamDataOrigin,
 ]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
@@ -96,7 +85,7 @@ TStreamsDict = Dict[str, StreamDef]
 STREAM_NAME_REGEX = re.compile("^[A-Za-z][A-Za-z_\\d]*$")
 
 
-class GenericCLScenario(Generic[TExperience]):
+class GenericCLScenario(Generic[TCLExperience]):
     """
     Base implementation of a Continual Learning benchmark instance.
     A Continual Learning benchmark instance is defined by a set of streams of
@@ -123,7 +112,7 @@ class GenericCLScenario(Generic[TExperience]):
         stream_definitions: TStreamsUserDict,
         complete_test_set_only: bool = False,
         experience_factory: Callable[
-            ["ClassificationStream", int], TExperience
+            ["ClassificationStream", int], TCLExperience
         ] = None,
     ):
         """
@@ -194,7 +183,7 @@ class GenericCLScenario(Generic[TExperience]):
         """ The original test set. May be None. """
 
         self.train_stream: ClassificationStream[
-            TExperience, TGenericCLClassificationScenario
+            TCLExperience, TGenericCLClassificationScenario
         ] = ClassificationStream("train", self)
         """
         The stream used to obtain the training experiences. 
@@ -202,7 +191,7 @@ class GenericCLScenario(Generic[TExperience]):
         """
 
         self.test_stream: ClassificationStream[
-            TExperience, TGenericCLClassificationScenario
+            TCLExperience, TGenericCLClassificationScenario
         ] = ClassificationStream("test", self)
         """
         The stream used to obtain the test experiences. This stream can be 
@@ -233,7 +222,7 @@ class GenericCLScenario(Generic[TExperience]):
             experience_factory = GenericClassificationExperience
 
         self.experience_factory: Callable[
-            [TGenericScenarioStream, int], TExperience
+            [TGenericScenarioStream, int], TCLExperience
         ] = experience_factory
 
         # Create the original_<stream_name>_dataset fields for other streams
@@ -248,7 +237,7 @@ class GenericCLScenario(Generic[TExperience]):
     ) -> Dict[
         str,
         "ClassificationStream["
-        "TExperience, TGenericCLClassificationScenario]",
+        "TCLExperience, TGenericCLClassificationScenario]",
     ]:
         streams_dict = dict()
         for stream_name in self.stream_definitions.keys():
@@ -348,7 +337,7 @@ class GenericCLScenario(Generic[TExperience]):
         else:
             classes_in_this_exp = None
 
-        class_set_prev_exps = set()
+        class_set_prev_exps: Optional[Set] = set()
         for exp_id in range(0, current_experience):
             prev_exp_classes = self.classes_in_experience[stream][exp_id]
             if prev_exp_classes is None:
@@ -505,10 +494,6 @@ class GenericCLScenario(Generic[TExperience]):
             exp_data = [exp_data]
             is_lazy = False
             stream_length = 1
-        elif isinstance(exp_data, Env) or all(
-            [isinstance(e, Env) for e in exp_data]
-        ):
-            return StreamDef(exp_data, None, None, False)
         else:
             # Standard def
             stream_length = len(exp_data)
@@ -561,10 +546,64 @@ class GenericCLScenario(Generic[TExperience]):
         return StreamDef(lazy_sequence, task_labels, origin_dataset, is_lazy)
 
 
+class ClassificationScenarioStream(Protocol[TCLScenario, TCLExperience]):
+    """
+    A scenario stream describes a sequence of incremental experiences.
+    Experiences are described as :class:`IExperience` instances. They contain a
+    set of patterns which has become available at a particular time instant
+    along with any optional, scenario specific, metadata.
+
+    Most scenario expose two different streams: the training stream and the test
+    stream.
+    """
+
+    name: str
+    """
+    The name of the stream.
+    """
+
+    benchmark: TCLScenario
+    """
+    A reference to the scenario this stream belongs to.
+    """
+
+    @property
+    def scenario(self) -> TCLScenario:
+        """This property is DEPRECATED, use self.benchmark instead."""
+        warnings.warn(
+            "Using self.scenario is deprecated ScenarioStream. "
+            "Consider using self.benchmark instead.",
+            stacklevel=2,
+        )
+        return self.benchmark
+
+    def __getitem__(
+        self: TCLStream, experience_idx: Union[int, slice, Iterable[int]]
+    ) -> Union[TCLExperience, TCLStream]:
+        """
+        Gets an experience given its experience index (or a stream slice given
+        the experience order).
+
+        :param experience_idx: An int describing the experience index or an
+            iterable/slice object describing a slice of this stream.
+        :return: The Experience instance associated to the given experience
+            index or a sliced stream instance.
+        """
+        ...
+
+    def __len__(self) -> int:
+        """
+        Used to get the length of this stream (the amount of experiences).
+
+        :return: The amount of experiences in this stream.
+        """
+        ...
+
+
 class ClassificationStream(
-    Generic[TExperience, TGenericCLClassificationScenario],
-    ScenarioStream[TGenericCLClassificationScenario, TExperience],
-    Sequence[TExperience],
+    Generic[TCLExperience, TGenericCLClassificationScenario],
+    ClassificationScenarioStream[TGenericCLClassificationScenario, TCLExperience],
+    Sequence[TCLExperience],
 ):
     def __init__(
         self: TGenericScenarioStream,
@@ -601,7 +640,7 @@ class ClassificationStream(
 
     def __getitem__(
         self, exp_idx: Union[int, slice, Iterable[int]]
-    ) -> Union[TExperience, TScenarioStream]:
+    ) -> Union[TCLExperience, TCLStream]:
         """
         Gets a experience given its experience index (or a stream slice given
         the experience order).
@@ -629,7 +668,7 @@ class ClassificationStream(
     def _create_slice(
         self: TGenericScenarioStream,
         exps_slice: Union[int, slice, Iterable[int]],
-    ) -> TScenarioStream:
+    ) -> TCLStream:
         """
         Creates a sliced version of this stream.
 
@@ -778,7 +817,7 @@ def _get_slice_ids(
 
 
 class AbstractClassificationExperience(
-    Experience[TScenario, TScenarioStream], ABC
+    ClassificationExperience[TGenericCLClassificationScenario, TCLStream], ABC
 ):
     """
     Definition of a learning experience. A learning experience contains a set of
@@ -793,8 +832,8 @@ class AbstractClassificationExperience(
     """
 
     def __init__(
-        self: TExperience,
-        origin_stream: TScenarioStream,
+        self,
+        origin_stream: TCLStream,
         current_experience: int,
         classes_in_this_exp: Sequence[int],
         previous_classes: Sequence[int],
@@ -815,10 +854,10 @@ class AbstractClassificationExperience(
         :param future_classes: The list of classes of next experiences.
         """
 
-        self.origin_stream: TScenarioStream = origin_stream
+        self.origin_stream: TCLStream = origin_stream
 
         # benchmark keeps a reference to the base benchmark
-        self.benchmark: TScenario = origin_stream.benchmark
+        self.benchmark: TCLScenario = origin_stream.benchmark
 
         # current_experience is usually an incremental, 0-indexed, value used to
         # keep track of the current batch/task.

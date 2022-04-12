@@ -12,8 +12,6 @@
 https://arxiv.org/abs/2112.06511"""
 import urllib
 
-import setGPU
-
 import os
 
 import torch

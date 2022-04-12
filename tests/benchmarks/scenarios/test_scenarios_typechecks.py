@@ -8,7 +8,7 @@ from torchvision.datasets import MNIST
 from avalanche.benchmarks import tensors_benchmark
 from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
 
-from avalanche.benchmarks.scenarios.generic_definitions import Experience
+from avalanche.benchmarks.scenarios.generic_definitions import ClassificationExperience
 
 
 class ScenariosTypeChecksTests(unittest.TestCase):
@@ -32,10 +32,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         )
 
         for task_info in my_nc_benchmark.train_stream:
-            self.assertIsInstance(task_info, Experience)
+            self.assertIsInstance(task_info, ClassificationExperience)
 
         for task_info in my_nc_benchmark.test_stream:
-            self.assertIsInstance(task_info, Experience)
+            self.assertIsInstance(task_info, ClassificationExperience)
 
     def test_nc_sit_type(self):
         mnist_train = MNIST(
@@ -53,10 +53,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         )
 
         for batch_info in my_nc_benchmark.train_stream:
-            self.assertIsInstance(batch_info, Experience)
+            self.assertIsInstance(batch_info, ClassificationExperience)
 
         for batch_info in my_nc_benchmark.test_stream:
-            self.assertIsInstance(batch_info, Experience)
+            self.assertIsInstance(batch_info, ClassificationExperience)
 
     def test_ni_sit_type(self):
         mnist_train = MNIST(
@@ -72,10 +72,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         my_ni_benchmark = ni_benchmark(mnist_train, mnist_test, 5)
 
         for batch_info in my_ni_benchmark.train_stream:
-            self.assertIsInstance(batch_info, Experience)
+            self.assertIsInstance(batch_info, ClassificationExperience)
 
         for batch_info in my_ni_benchmark.test_stream:
-            self.assertIsInstance(batch_info, Experience)
+            self.assertIsInstance(batch_info, ClassificationExperience)
 
     def test_tensor_benchmark_type(self):
         n_experiences = 3

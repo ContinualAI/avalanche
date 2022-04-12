@@ -1,6 +1,6 @@
 import unittest
 
-from avalanche.benchmarks import Experience, SplitCIFAR10
+from avalanche.benchmarks import ClassificationExperience, SplitCIFAR10
 from tests.unit_tests_utils import (
     load_experience_train_eval,
     FAST_TEST,
@@ -44,7 +44,7 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
 
         train_sz = 0
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             train_sz += len(experience.dataset)
 
             # Regression test for 575
@@ -54,7 +54,7 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
 
         test_sz = 0
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             test_sz += len(experience.dataset)
 
             # Regression test for 575

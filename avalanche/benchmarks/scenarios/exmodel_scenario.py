@@ -56,7 +56,8 @@ class ExModelCLScenario(CLScenario):
             trained on the i-th experience of the train stream of
             `original_benchmark`.
         """
-        expert_stream = CLStream("expert_models", expert_models)
+        expert_models_l = [ExModelExperience(m) for m in expert_models]
+        expert_stream = CLStream("expert_models", expert_models_l)
         streams = [expert_stream]
 
         self.original_benchmark = original_benchmark

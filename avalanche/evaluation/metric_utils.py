@@ -19,7 +19,7 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
-    from avalanche.benchmarks.scenarios import Experience
+    from avalanche.benchmarks.scenarios import ClassificationExperience
     from avalanche.evaluation import PluginMetric
 
 
@@ -224,7 +224,7 @@ def default_history_repartition_image_creator(
     return fig
 
 
-def stream_type(experience: "Experience") -> str:
+def stream_type(experience: "ClassificationExperience") -> str:
     """
     Returns the stream name from which the experience belongs to.
     e.g. the experience can be part of train or test stream.

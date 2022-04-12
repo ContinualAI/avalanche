@@ -4,7 +4,7 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks import Experience
+from avalanche.benchmarks import ClassificationExperience
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -120,9 +120,9 @@ class BaseSGDTemplate(BaseTemplate):
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
         ] = None,
         **kwargs,
     ):
@@ -130,7 +130,7 @@ class BaseSGDTemplate(BaseTemplate):
         return self.evaluator.get_last_metrics()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
+    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -151,7 +151,7 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
-    def _train_exp(self, experience: Experience, eval_streams=None, **kwargs):
+    def _train_exp(self, experience: ClassificationExperience, eval_streams=None, **kwargs):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
