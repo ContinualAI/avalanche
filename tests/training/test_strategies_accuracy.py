@@ -10,6 +10,10 @@
 ################################################################################
 import unittest
 
+import random
+import torch
+import numpy as np
+
 from torch import nn
 
 from torch.optim import SGD
@@ -63,6 +67,18 @@ class StrategyTest(unittest.TestCase):
     def test_multihead_cumulative(self):
         # check that multi-head reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
+
+        # seeds (for reproducibility and determinism)
+        seed = 0
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = False
+            torch.backends.cudnn.deterministic = True
+
         model = MHTestMLP(input_size=6, hidden_size=100)
         criterion = CrossEntropyLoss()
         optimizer = SGD(model.parameters(), lr=1)
@@ -95,6 +111,18 @@ class StrategyTest(unittest.TestCase):
     def test_pnn(self):
         # check that pnn reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
+
+        # seeds (for reproducibility and determinism)
+        seed = 0
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.backends.cudnn.enabled = True
+            torch.backends.cudnn.benchmark = False
+            torch.backends.cudnn.deterministic = True
+
         main_metric = StreamAccuracy()
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
