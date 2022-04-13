@@ -418,7 +418,10 @@ def _one_dataset_per_exp_class_order(
 
 
 def fixed_size_experience_split_strategy(
-    experience_size: int, shuffle: bool, drop_last: bool, experience: ClassificationExperience
+    experience_size: int,
+    shuffle: bool,
+    drop_last: bool,
+    experience: ClassificationExperience,
 ):
     """
     The default splitting strategy used by :func:`data_incremental_benchmark`.
@@ -593,7 +596,9 @@ def data_incremental_benchmark(
 
 
 def random_validation_split_strategy(
-    validation_size: Union[int, float], shuffle: bool, experience: ClassificationExperience
+    validation_size: Union[int, float],
+    shuffle: bool,
+    experience: ClassificationExperience,
 ):
     """
     The default splitting strategy used by

@@ -23,8 +23,9 @@ try:
         Any,
         Union,
         Iterable,
-        Generic, TYPE_CHECKING,
-)
+        Generic,
+        TYPE_CHECKING,
+    )
 except ImportError:
     from typing import (
         TypeVar,

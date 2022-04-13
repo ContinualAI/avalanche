@@ -15,7 +15,8 @@ from typing import (
     Set,
     Tuple,
     NamedTuple,
-    Mapping, Protocol,
+    Mapping,
+    Protocol,
 )
 
 import warnings
@@ -602,7 +603,9 @@ class ClassificationScenarioStream(Protocol[TCLScenario, TCLExperience]):
 
 class ClassificationStream(
     Generic[TCLExperience, TGenericCLClassificationScenario],
-    ClassificationScenarioStream[TGenericCLClassificationScenario, TCLExperience],
+    ClassificationScenarioStream[
+        TGenericCLClassificationScenario, TCLExperience
+    ],
     Sequence[TCLExperience],
 ):
     def __init__(

@@ -24,7 +24,8 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     LwFPlugin,
     ReplayPlugin,
-    RWalkPlugin, EarlyStoppingPlugin,
+    RWalkPlugin,
+    EarlyStoppingPlugin,
 )
 from avalanche.training.supervised import (
     Naive,
@@ -136,10 +137,11 @@ class BaseStrategyTest(unittest.TestCase):
         criterion = CrossEntropyLoss()
 
         evalp = EvaluationPlugin(
-            loss_metrics(minibatch=True, epoch=True, experience=True,
-                         stream=True),
+            loss_metrics(
+                minibatch=True, epoch=True, experience=True, stream=True
+            ),
             loggers=[InteractiveLogger()],
-            strict_checks=None
+            strict_checks=None,
         )
 
         strategy = Naive(
@@ -149,7 +151,7 @@ class BaseStrategyTest(unittest.TestCase):
             train_epochs=2,
             eval_every=-1,
             evaluator=evalp,
-            plugins=[EarlyStoppingPlugin(patience=10, val_stream_name='train')]
+            plugins=[EarlyStoppingPlugin(patience=10, val_stream_name="train")],
         )
         strategy.train(benchmark.train_stream[0])
 

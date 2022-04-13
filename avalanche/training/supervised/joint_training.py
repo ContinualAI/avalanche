@@ -90,9 +90,15 @@ class JointTraining(SupervisedTemplate):
 
     def train(
         self,
-        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs
     ):

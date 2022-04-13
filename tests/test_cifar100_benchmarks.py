@@ -1,6 +1,10 @@
 import unittest
 
-from avalanche.benchmarks import ClassificationExperience, SplitCIFAR100, SplitCIFAR110
+from avalanche.benchmarks import (
+    ClassificationExperience,
+    SplitCIFAR100,
+    SplitCIFAR110,
+)
 from tests.unit_tests_utils import (
     load_experience_train_eval,
     FAST_TEST,

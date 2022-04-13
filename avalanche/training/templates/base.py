@@ -58,8 +58,9 @@ class BaseTemplate:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream: \
-            Optional[Sequence[ClassificationExperience]] = None
+        self.current_eval_stream: Optional[
+            Sequence[ClassificationExperience]
+        ] = None
         """ Current evaluation stream. """
 
     @property
@@ -69,9 +70,15 @@ class BaseTemplate:
 
     def train(
         self,
-        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs,
     ):
@@ -108,13 +115,19 @@ class BaseTemplate:
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
 
-    def _train_exp(self, experience: ClassificationExperience, eval_streams, **kwargs):
+    def _train_exp(
+        self, experience: ClassificationExperience, eval_streams, **kwargs
+    ):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[ClassificationExperience,
-                                   Sequence[ClassificationExperience]],
-             **kwargs):
+    def eval(
+        self,
+        exp_list: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
+        **kwargs,
+    ):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.

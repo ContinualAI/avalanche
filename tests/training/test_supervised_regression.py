@@ -130,9 +130,15 @@ class OldBaseStrategy:
 
     def train(
         self,
-        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs
     ):
@@ -156,7 +162,9 @@ class OldBaseStrategy:
         res = self.evaluator.get_last_metrics()
         return res
 
-    def train_exp(self, experience: ClassificationExperience, eval_streams=None, **kwargs):
+    def train_exp(
+        self, experience: ClassificationExperience, eval_streams=None, **kwargs
+    ):
         self.experience = experience
         self.model.train()
 
@@ -231,7 +239,13 @@ class OldBaseStrategy:
         self.adapted_dataset = self.adapted_dataset.train()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
+    def eval(
+        self,
+        exp_list: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
+        **kwargs
+    ):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.

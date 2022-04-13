@@ -289,12 +289,12 @@ class GenerativeReplay(SupervisedTemplate):
     and Generator as described in https://arxiv.org/abs/1705.08690.
 
     The model parameter should contain the solver. As an optional input
-    a generator can be wrapped in a trainable strategy 
+    a generator can be wrapped in a trainable strategy
     and passed to the generator_strategy parameter. By default a simple VAE will
     be used as generator.
 
     For the case where the Generator is the model itself that is to be trained,
-    please simply add the GenerativeReplayPlugin() when instantiating 
+    please simply add the GenerativeReplayPlugin() when instantiating
     your Generator's strategy.
 
     See GenerativeReplayPlugin for more details.
@@ -319,7 +319,7 @@ class GenerativeReplay(SupervisedTemplate):
         **base_kwargs
     ):
         """
-        Creates an instance of Generative Replay Strategy 
+        Creates an instance of Generative Replay Strategy
         for a solver-generator pair.
 
         :param model: The solver model.
@@ -343,8 +343,8 @@ class GenerativeReplay(SupervisedTemplate):
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
-        # Check if user inputs a generator model 
-        # (which is wrapped in a strategy that can be trained and 
+        # Check if user inputs a generator model
+        # (which is wrapped in a strategy that can be trained and
         # uses the GenerativeReplayPlugin;
         # see 'VAETraining" as an example below.)
         if generator_strategy is not None:
@@ -356,24 +356,34 @@ class GenerativeReplay(SupervisedTemplate):
             # optimzer:
             lr = 0.01
             from torch.optim import Adam
-            optimizer_generator = Adam(filter(
-                lambda p: p.requires_grad, generator.parameters()), lr=lr,
-                 weight_decay=0.0001)
+
+            optimizer_generator = Adam(
+                filter(lambda p: p.requires_grad, generator.parameters()),
+                lr=lr,
+                weight_decay=0.0001,
+            )
             # strategy (with plugin):
             self.generator_strategy = VAETraining(
-                model=generator, 
+                model=generator,
                 optimizer=optimizer_generator,
-                criterion=VAE_loss, train_mb_size=train_mb_size, 
+                criterion=VAE_loss,
+                train_mb_size=train_mb_size,
                 train_epochs=train_epochs,
-                eval_mb_size=eval_mb_size, device=device,
-                plugins=[GenerativeReplayPlugin(
-                    replay_size=replay_size,
-                    increasing_replay_size=increasing_replay_size)])
+                eval_mb_size=eval_mb_size,
+                device=device,
+                plugins=[
+                    GenerativeReplayPlugin(
+                        replay_size=replay_size,
+                        increasing_replay_size=increasing_replay_size,
+                    )
+                ],
+            )
 
         rp = GenerativeReplayPlugin(
             generator_strategy=self.generator_strategy,
             replay_size=replay_size,
-            increasing_replay_size=increasing_replay_size)
+            increasing_replay_size=increasing_replay_size,
+        )
 
         tgp = TrainGeneratorAfterExpPlugin()
 
@@ -406,8 +416,8 @@ class VAETraining(SupervisedTemplate):
     We make use of the SupervisedTemplate, even though technically this is not a
     supervised training. However, this reduces the modification to a minimum.
 
-    We only need to overwrite the criterion function in order to pass all 
-    necessary variables to the VAE loss function. 
+    We only need to overwrite the criterion function in order to pass all
+    necessary variables to the VAE loss function.
     Furthermore we remove all metrics from the evaluator.
     """
 
@@ -424,7 +434,7 @@ class VAETraining(SupervisedTemplate):
         evaluator: EvaluationPlugin = EvaluationPlugin(
             loggers=[InteractiveLogger()],
             suppress_warnings=True,
-            ),
+        ),
         eval_every=-1,
         **base_kwargs
     ):
@@ -465,7 +475,7 @@ class VAETraining(SupervisedTemplate):
         )
 
     def criterion(self):
-        """Adapt input to criterion as needed to compute reconstruction loss 
+        """Adapt input to criterion as needed to compute reconstruction loss
         and KL divergence. See default criterion VAELoss."""
         return self._criterion(self.mb_x, self.mb_output)
 

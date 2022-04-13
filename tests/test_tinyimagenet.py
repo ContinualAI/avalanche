@@ -14,7 +14,9 @@ import logging
 import unittest
 
 from avalanche.benchmarks.classic import SplitTinyImageNet
-from avalanche.benchmarks.scenarios.generic_definitions import ClassificationExperience
+from avalanche.benchmarks.scenarios.generic_definitions import (
+    ClassificationExperience,
+)
 from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 

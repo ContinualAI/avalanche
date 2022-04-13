@@ -12,7 +12,7 @@ from copy import copy
 from enum import Enum
 from typing import List, Iterable, TypeVar, Union, Generic
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class MaskedAttributeError(ValueError):
@@ -48,9 +48,9 @@ class ExperienceAttribute(Generic[T]):
     but should never be used by the strategy in the train/eval loops.
     """
 
-    def __init__(self, value: T,
-                 use_in_train: bool = False,
-                 use_in_eval: bool = False):
+    def __init__(
+        self, value: T, use_in_train: bool = False, use_in_eval: bool = False
+    ):
         """Init.
 
         :param value: attribute value.
@@ -79,12 +79,14 @@ class CLExperience(object):
 
     def __init__(self, current_experience: int = None, origin_stream=None):
         super().__init__()
-        self.current_experience: TExperienceAttribute \
-            = ExperienceAttribute(current_experience)
+        self.current_experience: TExperienceAttribute = ExperienceAttribute(
+            current_experience
+        )
         """Experience identifier (the position in the origin_stream)."""
 
-        self.origin_stream: TExperienceAttribute \
-            = ExperienceAttribute(origin_stream)
+        self.origin_stream: TExperienceAttribute = ExperienceAttribute(
+            origin_stream
+        )
         """Stream containing the experience."""
 
         self._exp_mode: ExperienceMode = ExperienceMode.TRAIN
@@ -266,9 +268,9 @@ class CLScenario:
 
 
 __all__ = [
-    'ExperienceAttribute',
-    'CLExperience',
-    'CLStream',
-    'EagerCLStream',
-    'CLScenario'
+    "ExperienceAttribute",
+    "CLExperience",
+    "CLStream",
+    "EagerCLStream",
+    "CLScenario",
 ]

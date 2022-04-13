@@ -35,6 +35,7 @@ class BaseSGDTemplate(BaseTemplate):
             eval_exp  # for each experience
 
     """
+
     PLUGIN_CLASS = BaseSGDPlugin
 
     def __init__(
@@ -122,9 +123,15 @@ class BaseSGDTemplate(BaseTemplate):
 
     def train(
         self,
-        experiences: Union[ClassificationExperience, Sequence[ClassificationExperience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[ClassificationExperience, Sequence[ClassificationExperience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs,
     ):
@@ -132,7 +139,13 @@ class BaseSGDTemplate(BaseTemplate):
         return self.evaluator.get_last_metrics()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]], **kwargs):
+    def eval(
+        self,
+        exp_list: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
+        **kwargs,
+    ):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -153,7 +166,9 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
-    def _train_exp(self, experience: ClassificationExperience, eval_streams=None, **kwargs):
+    def _train_exp(
+        self, experience: ClassificationExperience, eval_streams=None, **kwargs
+    ):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -396,9 +411,7 @@ class PeriodicEval(SupervisedPlugin):
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(
-        self, strategy: "BaseSGDTemplate", **kwargs
-    ):
+    def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":

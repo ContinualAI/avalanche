@@ -145,6 +145,7 @@ def split_online_stream(
     :return: A lazy online stream with experiences of size `experience_size`.
     """
     if experience_split_strategy is None:
+
         def split_foo(exp: CLExperience, size: int):
             return fixed_size_experience_split(exp, size, shuffle, drop_last)
 
@@ -167,8 +168,10 @@ class OnlineCLScenario(CLScenario):
     ):
 
         if stream_split_strategy == "fixed_size_split":
+
             def split_foo(s):
                 return split_online_stream(s, experience_size)
+
         else:
             raise ValueError("Unknown experience split strategy")
 
