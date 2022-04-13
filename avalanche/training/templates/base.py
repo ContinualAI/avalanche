@@ -47,7 +47,7 @@ class BaseTemplate:
         """ List of `SupervisedPlugin`s. """
 
         # check plugin compatibility
-        self.__check_plugin_compatibility()
+        self._check_plugin_compatibility()
 
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
@@ -195,7 +195,7 @@ class BaseTemplate:
                 # model's adaptation. We set it to train mode.
                 layer.train()
 
-    def __check_plugin_compatibility(self):
+    def _check_plugin_compatibility(self):
         """Check that the list of plugins is compatible with the template.
 
         This means checking that each plugin impements a subset of the
@@ -219,7 +219,8 @@ class BaseTemplate:
             if not cb_p.issubset(cb_supported):
                 warnings.warn(
                     f"Plugin {p} implements incompatible callbacks for template"
-                    f" {self}. This may result in errors."
+                    f" {self}. This may result in errors. Incompatible "
+                    f"callbacks: {cb_p - cb_supported}",
                 )
                 return
 

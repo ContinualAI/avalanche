@@ -26,6 +26,8 @@ try:
         Generic,
         TYPE_CHECKING,
     )
+    if TYPE_CHECKING:
+        from .generic_scenario import CLScenario, CLStream, CLExperience
 except ImportError:
     from typing import (
         TypeVar,
@@ -40,9 +42,6 @@ except ImportError:
     from typing_extensions import Protocol, runtime_checkable
 
 from avalanche.benchmarks.utils import AvalancheDataset
-
-if TYPE_CHECKING:
-    from .generic_scenario import CLScenario, CLStream, CLExperience
 
 
 TCLScenario = TypeVar("TCLScenario", bound="CLScenario")

@@ -255,5 +255,36 @@ class StreamingLDA(SupervisedTemplate):
         self.Sigma = d["Sigma"].to(self.device)
         self.num_updates = d["num_updates"]
 
+    def _check_plugin_compatibility(self):
+        """Check that the list of plugins is compatible with the template.
+
+        This means checking that each plugin impements a subset of the
+        supported callbacks.
+        """
+        # TODO: ideally we would like to check the argument's type to check
+        #  that it's a supertype of the template.
+        # I don't know if it's possible to do it in Python.
+        ps = self.plugins
+
+        def get_plugins_from_object(obj):
+            def is_callback(x):
+                return x.startswith("before") or x.startswith("after")
+
+            return filter(is_callback, dir(obj))
+
+        cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))
+        cb_supported.remove("before_backward")
+        cb_supported.remove("after_backward")
+        for p in ps:
+            cb_p = set(get_plugins_from_object(p))
+
+            if not cb_p.issubset(cb_supported):
+                warnings.warn(
+                    f"Plugin {p} implements incompatible callbacks for template"
+                    f" {self}. This may result in errors. Incompatible "
+                    f"callbacks: {cb_p - cb_supported}",
+                )
+                return
+
 
 __all__ = ["StreamingLDA"]
