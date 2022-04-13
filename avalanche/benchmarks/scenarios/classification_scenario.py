@@ -15,9 +15,10 @@ from typing import (
     Set,
     Tuple,
     NamedTuple,
-    Mapping,
-    Protocol,
+    Mapping
 )
+
+from typing_extensions import Protocol
 
 import warnings
 from torch.utils.data.dataset import Dataset
