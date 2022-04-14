@@ -2,7 +2,7 @@ import unittest
 
 from avalanche.benchmarks import (
     PermutedMNIST,
-    Experience,
+    ClassificationExperience,
     RotatedMNIST,
     SplitMNIST,
 )
@@ -49,7 +49,7 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
         train_sz = 0
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             train_sz += len(experience.dataset)
 
             # Regression test for 572
@@ -59,7 +59,7 @@ class MNISTBenchmarksTests(unittest.TestCase):
 
         test_sz = 0
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             test_sz += len(experience.dataset)
 
             # Regression test for 572
@@ -77,13 +77,13 @@ class MNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(3, len(benchmark.test_stream))
 
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             self.assertEqual(60000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             self.assertEqual(10000, len(experience.dataset))
 
             load_experience_train_eval(experience)
@@ -98,13 +98,13 @@ class MNISTBenchmarksTests(unittest.TestCase):
         self.assertEqual(3, len(benchmark.test_stream))
 
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             self.assertEqual(60000, len(experience.dataset))
 
             load_experience_train_eval(experience)
 
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             self.assertEqual(10000, len(experience.dataset))
 
             load_experience_train_eval(experience)

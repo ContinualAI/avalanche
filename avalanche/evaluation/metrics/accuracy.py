@@ -166,7 +166,7 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
 
     def update(self, strategy):
         # task labels defined for each experience
-        if hasattr(strategy.experience, 'task_labels'):
+        if hasattr(strategy.experience, "task_labels"):
             task_labels = strategy.experience.task_labels
         else:
             task_labels = [0]  # add fixed task label if not available.

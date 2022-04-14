@@ -359,9 +359,9 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
     @staticmethod
     def not_excluded_parameters(
         model: Module, excluded_parameters: Set[str]
-    ) -> List[Tuple[str, Tensor]]:
+    ) -> Sequence[Tuple[str, Tensor]]:
         # Add wildcards ".*" to all excluded parameter names
-        result = []
+        result: List[Tuple[str, Tensor]] = []
         excluded_parameters = (
             SynapticIntelligencePlugin.explode_excluded_parameters(
                 excluded_parameters

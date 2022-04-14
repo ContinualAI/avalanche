@@ -106,7 +106,9 @@ def _coco_remove_images_without_annotations(dataset, cat_list=None):
         return all(any(o <= 1 for o in obj["bbox"][2:]) for obj in anno)
 
     def _count_visible_keypoints(anno):
-        return sum(sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno)
+        return sum(
+            sum(1 for v in ann["keypoints"][2::3] if v > 0) for ann in anno
+        )
 
     min_keypoints_per_image = 10
 
@@ -222,8 +224,16 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 def get_coco(root, image_set, transforms, mode="instances"):
     anno_file_template = "{}_{}2017.json"
     PATHS = {
-        "train": ("train2017", os.path.join("annotations", anno_file_template.format(mode, "train"))),
-        "val": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val"))),
+        "train": (
+            "train2017",
+            os.path.join(
+                "annotations", anno_file_template.format(mode, "train")
+            ),
+        ),
+        "val": (
+            "val2017",
+            os.path.join("annotations", anno_file_template.format(mode, "val")),
+        ),
         # "train": ("val2017", os.path.join("annotations", anno_file_template.format(mode, "val")))
     }
 

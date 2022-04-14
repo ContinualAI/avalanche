@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import Resize, Compose, ToTensor
-from torchvision.utils import save_image
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.utils import AvalancheTensorDataset

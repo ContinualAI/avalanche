@@ -137,11 +137,14 @@ def get_layer_by_name(model: Module, layer_name: str) -> Optional[Module]:
     return None
 
 
-def get_last_fc_layer(model: Module) -> Optional[Tuple[str, Linear]]:
+def get_last_fc_layer(model: Module) -> Tuple[str, Linear]:
     last_fc = None
     for layer_name, layer in model.named_modules():
         if isinstance(layer, Linear):
             last_fc = (layer_name, layer)
+
+    if last_fc is None:
+        raise ValueError("No fc layer found.")
 
     return last_fc
 

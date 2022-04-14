@@ -29,9 +29,11 @@ from tqdm import tqdm
 import time
 
 from avalanche.benchmarks import SplitMNIST
+from avalanche.benchmarks.scenarios.online_scenario import \
+    fixed_size_experience_split
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies.strategy_wrappers_online import OnlineNaive
-from avalanche.training.strategies.strategy_wrappers import Naive
+from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
+from avalanche.training.supervised.strategy_wrappers import Naive
 from avalanche.benchmarks.utils.avalanche_dataset import AvalancheSubset
 from avalanche.evaluation.metrics import forgetting_metrics, \
     accuracy_metrics, loss_metrics
@@ -215,6 +217,37 @@ def run_base(
     return duration
 
 
+def run_ocl_lazy_stream(experience, device):
+    """
+    Runs simple naive strategy for one experience.
+    """
+
+    model = SimpleMLP(num_classes=10).to(device)
+    model.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    criterion = torch.nn.CrossEntropyLoss()
+
+
+    start = time.time()
+    print("Running ocl_lazy_stream ...")
+
+    for exp in tqdm(fixed_size_experience_split(experience, 1)):
+        x, y, _ = exp.dataset[:]
+        x, y = x.to(device), torch.tensor([y]).to(device)
+
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
+        pred = model(x)
+        loss = criterion(pred, y)
+        loss.backward()
+        optimizer.step()
+
+    end = time.time()
+    duration = end - start
+
+    return duration
+
+
 def main(args):
     # Compute device
     device = "cuda" if args.cuda >= 0 and torch.cuda.is_available() else "cpu"
@@ -231,22 +264,24 @@ def main(args):
 
     # Run tests
     dur_simple = run_simple_online(experience_0, device)
-    dur_base_online = run_base_online(experience_0, device,
-                                      use_interactive_logger=False)
-    dur_base_online_intlog = run_base_online(experience_0, device,
-                                             use_interactive_logger=True)
-    dur_base = run_base(experience_0, device,
-                        use_interactive_logger=False)
-    dur_base_intlog = run_base(experience_0, device,
-                               use_interactive_logger=True)
+    # dur_base_online = run_base_online(experience_0, device,
+    #                                   use_interactive_logger=False)
+    # dur_base_online_intlog = run_base_online(experience_0, device,
+    #                                          use_interactive_logger=True)
+    # dur_base = run_base(experience_0, device,
+    #                     use_interactive_logger=False)
+    # dur_base_intlog = run_base(experience_0, device,
+    #                            use_interactive_logger=True)
+    dur_ocl_lazy_stream = run_ocl_lazy_stream(experience_0, device)
 
     print(f"Duration for SimpleOnlineStrategy: ", dur_simple)
-    print(f"Duration for BaseOnlineStrategy: ", dur_base_online)
-    print(f"Duration for BaseOnlineStrategy+IntLogger: ",
-          dur_base_online_intlog)
-    print(f"Duration for BaseStrategy: ", dur_base)
-    print(f"Duration for BaseStrategy+IntLogger: ",
-          dur_base_intlog)
+    # print(f"Duration for BaseOnlineStrategy: ", dur_base_online)
+    # print(f"Duration for BaseOnlineStrategy+IntLogger: ",
+    #       dur_base_online_intlog)
+    # print(f"Duration for BaseStrategy: ", dur_base)
+    # print(f"Duration for BaseStrategy+IntLogger: ",
+    #       dur_base_intlog)
+    print(f"Duration for dur_ocl_lazy_stream: ", dur_ocl_lazy_stream)
 
 
 if __name__ == "__main__":

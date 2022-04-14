@@ -12,9 +12,6 @@
 import unittest
 
 import torch
-from torchvision.transforms import ToTensor, Compose, transforms, Resize
-import os
-import sys
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -22,28 +19,11 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.datasets import MNIST
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
-from avalanche.training.supervised import (
-    Naive,
-    Replay,
-    CWRStar,
-    GDumb,
-    LwF,
-    AGEM,
-    GEM,
-    EWC,
-    SynapticIntelligence,
-    JointTraining,
-)
-from avalanche.training.supervised.ar1 import AR1
-from avalanche.training.supervised.cumulative import Cumulative
-from avalanche.benchmarks import nc_benchmark, SplitCIFAR10
-from avalanche.training.utils import get_last_fc_layer
-from avalanche.evaluation.metrics import StreamAccuracy
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.supervised import Naive
+from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.utils.data_loader import (
     ReplayDataLoader,
     TaskBalancedDataLoader,
@@ -129,12 +109,13 @@ class DataLoaderTests(unittest.TestCase):
             adapted_dataset = step.dataset
             if len(replayPlugin.storage_policy.buffer) > 0:
                 dataloader = ReplayDataLoader(
-                        adapted_dataset,
-                        replayPlugin.storage_policy.buffer,
-                        oversample_small_tasks=True,
-                        num_workers=0,
-                        batch_size=batch_size,
-                        shuffle=True)
+                    adapted_dataset,
+                    replayPlugin.storage_policy.buffer,
+                    oversample_small_tasks=True,
+                    num_workers=0,
+                    batch_size=batch_size,
+                    shuffle=True,
+                )
             else:
                 dataloader = TaskBalancedDataLoader(adapted_dataset)
 

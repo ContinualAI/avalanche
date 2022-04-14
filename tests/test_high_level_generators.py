@@ -1,10 +1,9 @@
-import unittest
-
 import os
+import unittest
 from os.path import expanduser
 
 import torch
-from numpy.testing import assert_almost_equal, assert_allclose
+from numpy.testing import assert_almost_equal
 from torchvision.datasets import CIFAR10, MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor

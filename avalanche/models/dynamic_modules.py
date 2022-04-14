@@ -114,8 +114,9 @@ class MultiTaskModule(DynamicModule):
         :param dataset: data from the current experience.
         :return:
         """
-        self.max_class_label = max(self.max_class_label,
-                                   max(dataset.targets) + 1)
+        self.max_class_label = max(
+            self.max_class_label, max(dataset.targets) + 1
+        )
         if self.training:
             self.train_adaptation(dataset)
         else:
@@ -160,9 +161,10 @@ class MultiTaskModule(DynamicModule):
             task_mask = task_labels == task
             x_task = x[task_mask]
             out_task = self.forward_single_task(x_task, task.item())
-            assert len(out_task.shape) == 2,\
-                "multi-head assumes mini-batches of 2 dimensions " \
+            assert len(out_task.shape) == 2, (
+                "multi-head assumes mini-batches of 2 dimensions "
                 "<batch, classes>"
+            )
             n_labels_head = out_task.shape[1]
             out[task_mask, :n_labels_head] = out_task
         return out
@@ -281,8 +283,7 @@ class MultiHeadClassifier(MultiTaskModule):
             self.in_features, self.starting_out_features
         )
         self.classifiers["0"] = first_head
-        self.max_class_label = max(self.max_class_label,
-                                   initial_out_features)
+        self.max_class_label = max(self.max_class_label, initial_out_features)
 
     def adaptation(self, dataset: AvalancheDataset):
         """If `dataset` contains new tasks, a new head is initialized.

@@ -1,8 +1,19 @@
 import os
 import torch
 import json
-from typing import Any, List, Union, TypeVar, Tuple, Dict, TYPE_CHECKING, \
-    Type, Callable, Sequence, Optional
+from typing import (
+    Any,
+    List,
+    Union,
+    TypeVar,
+    Tuple,
+    Dict,
+    TYPE_CHECKING,
+    Type,
+    Callable,
+    Sequence,
+    Optional,
+)
 
 from lvis import LVIS
 from pycocotools.coco import COCO
@@ -13,23 +24,29 @@ from json import JSONEncoder
 from torch.utils.data import Subset, ConcatDataset
 from typing_extensions import Protocol
 
-from avalanche.benchmarks.utils import AvalancheSubset, \
-    AvalancheConcatDataset, AvalancheDataset
+from avalanche.benchmarks.utils import (
+    AvalancheSubset,
+    AvalancheConcatDataset,
+    AvalancheDataset,
+)
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name
-from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator import \
-    CocoEvaluator
-from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator import \
-    LvisEvaluator
+from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator import (
+    CocoEvaluator,
+)
+from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator import (
+    LvisEvaluator,
+)
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
-    from avalanche.training.supervised.naive_object_detection import \
-        ObjectDetectionTemplate
+    from avalanche.training.supervised.naive_object_detection import (
+        ObjectDetectionTemplate,
+    )
 
 
-TDetPredictions = TypeVar('TDetPredictions')
+TDetPredictions = TypeVar("TDetPredictions")
 
 
 class TensorEncoder(JSONEncoder):
@@ -44,14 +61,14 @@ class TensorEncoder(JSONEncoder):
 
 
 def tensor_decoder(dct):
-    for t_name in ['boxes', 'mask', 'scores', 'keypoints', 'labels']:
+    for t_name in ["boxes", "mask", "scores", "keypoints", "labels"]:
         if t_name in dct:
-            if t_name == 'labels':
+            if t_name == "labels":
                 dct[t_name] = torch.as_tensor(dct[t_name], dtype=torch.int64)
             else:
                 dct[t_name] = torch.as_tensor(dct[t_name])
 
-            if t_name == 'boxes':
+            if t_name == "boxes":
                 dct[t_name] = torch.reshape(dct[t_name], shape=(-1, 4))
             # TODO: implement mask shape
 
@@ -78,9 +95,11 @@ class DetectionEvaluator(Protocol[TDetPredictions]):
         """
         pass
 
-    def evaluate(self) -> \
-            Optional[Union[Dict[str, Any],
-                           Tuple[Dict[str, Any], TDetPredictions]]]:
+    def evaluate(
+        self,
+    ) -> Optional[
+        Union[Dict[str, Any], Tuple[Dict[str, Any], TDetPredictions]]
+    ]:
         """
         Computes the performance metrics on the outputs previously obtained
         through `update()`.
@@ -104,12 +123,12 @@ class DetectionEvaluator(Protocol[TDetPredictions]):
         pass
 
 
-SupportedDatasetApiDef = Tuple['str', Union[Tuple[Type], Type]]
+SupportedDatasetApiDef = Tuple["str", Union[Tuple[Type], Type]]
 
 
 DEFAULT_SUPPROTED_DETECTION_DATASETS: Sequence[SupportedDatasetApiDef] = (
-    ('coco', COCO),  # CocoDetection from torchvision
-    ('lvis_api', LVIS)  # LvisDataset from Avalanche
+    ("coco", COCO),  # CocoDetection from torchvision
+    ("lvis_api", LVIS),  # LvisDataset from Avalanche
 )
 
 
@@ -128,22 +147,25 @@ class DetectionMetrics(PluginMetric[dict]):
     """
 
     def __init__(
-            self,
-            *,
-            evaluator_factory:
-            Callable[[Any, List[str]], DetectionEvaluator] = CocoEvaluator,
-            gt_api_def: Sequence[SupportedDatasetApiDef] =
-            DEFAULT_SUPPROTED_DETECTION_DATASETS,
-            default_to_coco=False,
-            save_folder=None,
-            filename_prefix='model_output',
-            save_stream='test',
-            iou_types: Union[str, List[str]] = 'bbox',
-            summarize_to_stdout: bool = True):
+        self,
+        *,
+        evaluator_factory: Callable[
+            [Any, List[str]], DetectionEvaluator
+        ] = CocoEvaluator,
+        gt_api_def: Sequence[
+            SupportedDatasetApiDef
+        ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
+        default_to_coco=False,
+        save_folder=None,
+        filename_prefix="model_output",
+        save_stream="test",
+        iou_types: Union[str, List[str]] = "bbox",
+        summarize_to_stdout: bool = True,
+    ):
         """
         Creates an instance of DetectionMetrics.
 
-        :param evaluator_factory: The factory for the evaluator to use. By 
+        :param evaluator_factory: The factory for the evaluator to use. By
             default, the COCO evaluator will be used. The factory should accept
             2 parameters: the API object containing the test annotations and
             the list of IOU types to consider. It must return an instance
@@ -153,7 +175,7 @@ class DetectionMetrics(PluginMetric[dict]):
             while the Type must be the one the API object.
             For instance, for :class:`LvisDataset` is `('lvis_api', lvis.LVIS)`.
             Defaults to the datasets explicitly supported by Avalanche.
-        :param default_to_coco: If True, it will try to convert the dataset 
+        :param default_to_coco: If True, it will try to convert the dataset
             to the COCO format.
         :param save_folder: path to the folder where to write model output
             files. Defaults to None, which means that the model output of
@@ -272,7 +294,8 @@ class DetectionMetrics(PluginMetric[dict]):
         detection_api = get_detection_api_from_dataset(
             strategy.experience.dataset,
             supported_types=self.gt_api_def,
-            default_to_coco=self.default_to_coco)
+            default_to_coco=self.default_to_coco,
+        )
         self.evaluator = self.evaluator_factory(detection_api, self.iou_types)
         if self.save:
             self.current_filename = self._get_filename(strategy)
@@ -284,9 +307,11 @@ class DetectionMetrics(PluginMetric[dict]):
     def after_eval_exp(self, strategy: "SupervisedTemplate"):
         super().after_eval_exp(strategy)
 
-        if self.save and \
-                strategy.experience.origin_stream.name == self.save_stream:
-            with open(self.current_filename, 'w') as f:
+        if (
+            self.save
+            and strategy.experience.origin_stream.name == self.save_stream
+        ):
+            with open(self.current_filename, "w") as f:
                 json.dump(self.current_outputs, f, cls=TensorEncoder)
 
         packaged_results = self._package_result(strategy)
@@ -294,7 +319,8 @@ class DetectionMetrics(PluginMetric[dict]):
 
     def _package_result(self, strategy):
         base_metric_name = get_metric_name(
-            self, strategy, add_experience=True, add_task=False)
+            self, strategy, add_experience=True, add_task=False
+        )
         plot_x_position = strategy.clock.train_iterations
         result_dict = self.result()
 
@@ -304,13 +330,10 @@ class DetectionMetrics(PluginMetric[dict]):
         metric_values = []
         for iou, iou_dict in result_dict.items():
             for metric_key, metric_value in iou_dict.items():
-                metric_name = base_metric_name + f'/{iou}/{metric_key}'
+                metric_name = base_metric_name + f"/{iou}/{metric_key}"
                 metric_values.append(
                     MetricValue(
-                        self,
-                        metric_name,
-                        metric_value,
-                        plot_x_position
+                        self, metric_name, metric_value, plot_x_position
                     )
                 )
 
@@ -318,31 +341,35 @@ class DetectionMetrics(PluginMetric[dict]):
 
     def _get_filename(self, strategy):
         """e.g. prefix_eval_exp0.json"""
-        middle = '_eval_exp'
-        if self.filename_prefix == '':
+        middle = "_eval_exp"
+        if self.filename_prefix == "":
             middle = middle[1:]
         return os.path.join(
             self.save_folder,
             f"{self.filename_prefix}{middle}"
-            f"{strategy.experience.current_experience}.json")
+            f"{strategy.experience.current_experience}.json",
+        )
 
     def __str__(self):
         return "LvisMetrics"
 
 
 def make_lvis_metrics(
-        save_folder=None,
-        filename_prefix='model_output',
-        iou_types: Union[str, List[str]] = 'bbox',
-        summarize_to_stdout: bool = True,
-        evaluator_factory: Callable[[Any, List[str]], DetectionEvaluator] =
-        LvisEvaluator,
-        gt_api_def: Sequence[SupportedDatasetApiDef] =
-        DEFAULT_SUPPROTED_DETECTION_DATASETS):
+    save_folder=None,
+    filename_prefix="model_output",
+    iou_types: Union[str, List[str]] = "bbox",
+    summarize_to_stdout: bool = True,
+    evaluator_factory: Callable[
+        [Any, List[str]], DetectionEvaluator
+    ] = LvisEvaluator,
+    gt_api_def: Sequence[
+        SupportedDatasetApiDef
+    ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
+):
     """
     Returns an instance of :class:`DetectionMetrics` initialized for the LVIS
     dataset.
-    
+
     :param save_folder: path to the folder where to write model output
             files. Defaults to None, which means that the model output of
             test instances will not be stored.
@@ -365,14 +392,18 @@ def make_lvis_metrics(
         save_folder=save_folder,
         filename_prefix=filename_prefix,
         iou_types=iou_types,
-        summarize_to_stdout=summarize_to_stdout)
+        summarize_to_stdout=summarize_to_stdout,
+    )
 
 
 def get_detection_api_from_dataset(
-        dataset,
-        supported_types: Sequence[Tuple['str', Union[Type, Tuple[Type]]]] =
-        DEFAULT_SUPPROTED_DETECTION_DATASETS,
-        default_to_coco: bool = True, none_if_not_found=False):
+    dataset,
+    supported_types: Sequence[
+        Tuple["str", Union[Type, Tuple[Type]]]
+    ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
+    default_to_coco: bool = True,
+    none_if_not_found=False,
+):
     """
     Adapted from:
     https://github.com/pytorch/vision/blob/main/references/detection/engine.py
@@ -391,13 +422,16 @@ def get_detection_api_from_dataset(
     recursion_result = None
     if isinstance(dataset, Subset):
         recursion_result = get_detection_api_from_dataset(
-            dataset.dataset, supported_types, none_if_not_found=True)
+            dataset.dataset, supported_types, none_if_not_found=True
+        )
     elif isinstance(dataset, AvalancheSubset):
         recursion_result = get_detection_api_from_dataset(
-            dataset._original_dataset, supported_types, none_if_not_found=True)
+            dataset._original_dataset, supported_types, none_if_not_found=True
+        )
     elif isinstance(dataset, AvalancheDataset):
         recursion_result = get_detection_api_from_dataset(
-            dataset._dataset, supported_types, none_if_not_found=True)
+            dataset._dataset, supported_types, none_if_not_found=True
+        )
     elif isinstance(dataset, (AvalancheConcatDataset, ConcatDataset)):
         if isinstance(dataset, AvalancheConcatDataset):
             datasets_list = dataset._dataset_list
@@ -406,7 +440,8 @@ def get_detection_api_from_dataset(
 
         for dataset in datasets_list:
             res = get_detection_api_from_dataset(
-                dataset, supported_types, none_if_not_found=True)
+                dataset, supported_types, none_if_not_found=True
+            )
             if res is not None:
                 recursion_result = res
                 break
@@ -424,7 +459,7 @@ def get_detection_api_from_dataset(
     elif default_to_coco:
         return convert_to_coco_api(dataset)
     else:
-        raise ValueError('Could not find a valid dataset API object')
+        raise ValueError("Could not find a valid dataset API object")
 
 
 def convert_to_coco_api(ds):
@@ -489,5 +524,5 @@ __all__ = [
     "DetectionMetrics",
     "make_lvis_metrics",
     "get_detection_api_from_dataset",
-    "convert_to_coco_api"
+    "convert_to_coco_api",
 ]

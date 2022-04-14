@@ -44,14 +44,10 @@ class EvaluationPlugin:
         :param collect_all: if True, collect in a separate dictionary all
             metric curves values. This dictionary is accessible with
             `get_all_metrics` method.
-        :param benchmark: continual learning benchmark needed to check stream
-            completeness during evaluation or other kind of properties. If
-            None, no check will be conducted and the plugin will emit a
-            warning to signal this fact.
-        :param strict_checks: if True, `benchmark` has to be provided.
-            In this case, only full evaluation streams are admitted when
-            calling `eval`. An error will be raised otherwise. When False,
-            `benchmark` can be `None` and only warnings will be raised.
+        :param benchmark: DEPRECATED. Ignored argument.
+        :param strict_checks: if True, checks that the full evaluation streams
+            is used when calling `eval`. An error will be raised otherwise.
+            When False only warnings will be raised.
         :param suppress_warnings: if True, warnings and errors will never be
             raised from the plugin.
             If False, warnings and errors will be raised following
@@ -221,21 +217,15 @@ class EvaluationPlugin:
             "Stream provided to `eval` must be the same of the entire "
             "evaluation stream."
         )
-        if self.benchmark is not None:
-            for i, exp in enumerate(self.complete_test_stream):
-                try:
-                    current_exp = strategy.current_eval_stream[i]
-                    if exp.current_experience != current_exp.current_experience:
-                        if not self.suppress_warnings:
-                            if self.strict_checks:
-                                raise ValueError(msge)
-                            else:
-                                warnings.warn(msgw)
-                except IndexError:
-                    if self.strict_checks:
-                        raise ValueError(msge)
-                    else:
-                        warnings.warn(msgw)
+        curr_stream = strategy.current_eval_stream[0].origin_stream
+        benchmark = curr_stream[0].origin_stream.benchmark
+        full_stream = benchmark.streams[curr_stream.name]
+
+        if not self.suppress_warnings and len(curr_stream) != len(full_stream):
+            if self.strict_checks:
+                raise ValueError(msge)
+            else:
+                warnings.warn(msgw)
 
 
 default_evaluator = EvaluationPlugin(

@@ -177,7 +177,7 @@ class MinibatchTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_MB"
+        return "Topk_" + str(self.top_k) + "_Acc_MB"
 
 
 class EpochTopkAccuracy(TopkAccuracyPluginMetric):
@@ -201,7 +201,7 @@ class EpochTopkAccuracy(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_Epoch"
+        return "Topk_" + str(self.top_k) + "_Acc_Epoch"
 
 
 class RunningEpochTopkAccurac(TopkAccuracyPluginMetric):
@@ -226,7 +226,7 @@ class RunningEpochTopkAccurac(TopkAccuracyPluginMetric):
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_Epoch"
+        return "Topk_" + str(self.top_k) + "_Acc_Epoch"
 
 
 class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
@@ -241,13 +241,15 @@ class ExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of the ExperienceTopkAccuracy metric.
         """
         super(ExperienceTopkAccuracy, self).__init__(
-            reset_at="experience", emit_at="experience",
-            mode="eval", top_k=top_k
+            reset_at="experience",
+            emit_at="experience",
+            mode="eval",
+            top_k=top_k,
         )
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_Exp"
+        return "Topk_" + str(self.top_k) + "_Acc_Exp"
 
 
 class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
@@ -264,8 +266,7 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of the TrainedExperienceTopkAccuracy metric.
         """
         super(TrainedExperienceTopkAccuracy, self).__init__(
-            reset_at="stream", emit_at="stream",
-            mode="eval", top_k=top_k
+            reset_at="stream", emit_at="stream", mode="eval", top_k=top_k
         )
         self._current_experience = 0
         self.top_k = top_k
@@ -285,7 +286,7 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
             TopkAccuracyPluginMetric.update(self, strategy)
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_On_Trained_Experiences"
+        return "Topk_" + str(self.top_k) + "_Acc_On_Trained_Experiences"
 
 
 class StreamTopkAccuracy(TopkAccuracyPluginMetric):
@@ -300,13 +301,12 @@ class StreamTopkAccuracy(TopkAccuracyPluginMetric):
         Creates an instance of StreamTopkAccuracy metric
         """
         super(StreamTopkAccuracy, self).__init__(
-            reset_at="stream", emit_at="stream",
-            mode="eval", top_k=top_k
+            reset_at="stream", emit_at="stream", mode="eval", top_k=top_k
         )
         self.top_k = top_k
 
     def __str__(self):
-        return "Topk_"+str(self.top_k)+"_Acc_Stream"
+        return "Topk_" + str(self.top_k) + "_Acc_Stream"
 
 
 def topk_acc_metrics(
@@ -372,6 +372,6 @@ __all__ = [
 """
 UNIT TEST
 """
-if __name__ == '__main__':
+if __name__ == "__main__":
     metric = topk_acc_metrics(trained_experience=True, top_k=5)
     print(metric)

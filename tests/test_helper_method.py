@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-import torch
-import torch.nn as nn
-from torch.optim import SGD
-import unittest
 import copy
+import unittest
 
+import torch
+from torch.optim import SGD
+
+from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
 from avalanche.models.dynamic_modules import (
     MultiTaskModule,
     MultiHeadClassifier,
 )
-from avalanche.models import SimpleCNN, SimpleMLP, as_multitask
-from avalanche.training.supervised import Naive
 from avalanche.training.plugins import LwFPlugin, EWCPlugin
-
+from avalanche.training.supervised import Naive
 from tests.unit_tests_utils import common_setups, get_fast_benchmark, get_device
 
 

@@ -13,10 +13,10 @@ from typing import Sequence, List, Optional, Dict, Any, Set
 
 import torch
 
-from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+from avalanche.benchmarks.scenarios.classification_scenario import (
     GenericCLScenario,
-    GenericScenarioStream,
-    GenericExperience,
+    ClassificationStream,
+    GenericClassificationExperience,
 )
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
@@ -525,8 +525,8 @@ class NCScenario(GenericCLScenario["NCExperience"]):
 
 
 class NCExperience(
-    GenericExperience[
-        NCScenario, GenericScenarioStream["NCExperience", NCScenario]
+    GenericClassificationExperience[
+        NCScenario, ClassificationStream["NCExperience", NCScenario]
     ]
 ):
     """
@@ -537,7 +537,7 @@ class NCExperience(
 
     def __init__(
         self,
-        origin_stream: GenericScenarioStream["NCExperience", NCScenario],
+        origin_stream: ClassificationStream["NCExperience", NCScenario],
         current_experience: int,
     ):
         """

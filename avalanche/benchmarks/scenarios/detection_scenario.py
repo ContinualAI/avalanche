@@ -11,12 +11,20 @@
 
 from typing import TypeVar, List, Callable
 
-from avalanche.benchmarks import GenericExperience, Experience, TScenario, \
-    TScenarioStream, GenericCLScenario, TStreamsUserDict, GenericScenarioStream
+from avalanche.benchmarks import (
+    GenericClassificationExperience,
+    ClassificationExperience,
+    TCLScenario,
+    TCLStream,
+    GenericCLScenario,
+    TStreamsUserDict,
+    ClassificationStream,
+)
 from avalanche.benchmarks.utils import AvalancheDataset
 
-TDetectionExperience = TypeVar("TDetectionExperience",
-                               bound=GenericExperience)
+TDetectionExperience = TypeVar(
+    "TDetectionExperience", bound=GenericClassificationExperience
+)
 
 
 class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
@@ -28,14 +36,16 @@ class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
 
     It is recommended to refer to :class:`GenericCLScenario` for more details.
     """
+
     def __init__(
-            self,
-            stream_definitions: TStreamsUserDict,
-            n_classes: int = None,
-            complete_test_set_only: bool = False,
-            experience_factory: Callable[
-                ["GenericScenarioStream", int], TDetectionExperience
-            ] = None):
+        self,
+        stream_definitions: TStreamsUserDict,
+        n_classes: int = None,
+        complete_test_set_only: bool = False,
+        experience_factory: Callable[
+            ["ClassificationStream", int], TDetectionExperience
+        ] = None,
+    ):
         """
         Creates an instance a Continual Learning object detection benchmark.
 
@@ -61,7 +71,7 @@ class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
         super(DetectionCLScenario, self).__init__(
             stream_definitions=stream_definitions,
             complete_test_set_only=complete_test_set_only,
-            experience_factory=experience_factory
+            experience_factory=experience_factory,
         )
 
         self.n_classes = n_classes
@@ -70,20 +80,19 @@ class DetectionCLScenario(GenericCLScenario[TDetectionExperience]):
         """
 
 
-class DetectionExperience(
-    Experience[TScenario, TScenarioStream]
-):
+class DetectionExperience(ClassificationExperience[TCLScenario, TCLStream]):
     """
-   Definition of a learning experience based on a :class:`DetectionScenario`
-   instance.
+    Definition of a learning experience based on a :class:`DetectionScenario`
+    instance.
 
-   This experience implementation uses the generic experience-patterns
-   assignment defined in the :class:`DetectionScenario` instance. Instances of
-   this class are usually obtained from an object detection benchmark stream.
-   """
+    This experience implementation uses the generic experience-patterns
+    assignment defined in the :class:`DetectionScenario` instance. Instances of
+    this class are usually obtained from an object detection benchmark stream.
+    """
+
     def __init__(
         self: TDetectionExperience,
-        origin_stream: TScenarioStream,
+        origin_stream: TCLStream,
         current_experience: int,
     ):
         """
@@ -94,8 +103,8 @@ class DetectionExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.origin_stream: TScenarioStream = origin_stream
-        self.benchmark: TScenario = origin_stream.benchmark
+        self.origin_stream: TCLStream = origin_stream
+        self.benchmark: TCLScenario = origin_stream.benchmark
         self.current_experience: int = current_experience
 
         self.dataset: AvalancheDataset = (
@@ -123,8 +132,4 @@ class DetectionExperience(
         return self.task_labels[0]
 
 
-__all__ = [
-    "TDetectionExperience",
-    "DetectionCLScenario",
-    "DetectionExperience"
-]
+__all__ = ["TDetectionExperience", "DetectionCLScenario", "DetectionExperience"]

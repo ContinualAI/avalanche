@@ -34,14 +34,14 @@ from avalanche.benchmarks.datasets.clear import (
     CLEARImage,
     CLEARFeature,
     SEED_LIST,
-    CLEAR_FEATURE_TYPES
+    CLEAR_FEATURE_TYPES,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
     create_generic_benchmark_from_paths,
     create_generic_benchmark_from_tensor_lists,
 )
 
-EVALUATION_PROTOCOLS = ['iid', 'streaming']
+EVALUATION_PROTOCOLS = ["iid", "streaming"]
 
 
 def CLEAR(
@@ -51,10 +51,10 @@ def CLEAR(
     seed: int = None,
     train_transform: Optional[Any] = None,
     eval_transform: Optional[Any] = None,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Union[str, Path] = None,
 ):
     """
-    Creates a Domain-Incremental benchmark for CLEAR10 
+    Creates a Domain-Incremental benchmark for CLEAR10
     with 10 illustrative classes and an 11th background class.
 
     If the dataset is not present in the computer, **this method will be
@@ -62,36 +62,36 @@ def CLEAR(
 
     This generator supports benchmark construction of both 'iid' and 'streaming'
     evaluation_protocol. The main difference is:
-    
+
     'iid': Always sample testset from current task, which requires
-        splitting the data into 7:3 train:test with a given random seed.    
+        splitting the data into 7:3 train:test with a given random seed.
     'streaming': Use all data of next task as the testset for current task,
         which does not split the data and does not require random seed.
-        
+
 
     The generator supports both Image and Feature (Tensor) datasets.
     If feature_type == None, then images will be used.
     If feature_type is specified, then feature tensors will be used.
-    
+
     The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
-    
+
     Note that the train/test streams will still be data of current task,
     regardless of whether evaluation protocol is 'iid' or 'streaming'.
     For 'iid' protocol, train stream is 70% of current task data,
     and test stream is 30% of current task data.
     For 'streaming' protocol, train stream is 100% of current task data,
     and test stream is just a duplicate of train stream.
-    
+
     The task label "0" will be assigned to each experience.
 
     :param evaluation_protocol: Choose from ['iid', 'streaming']
         if chosen 'iid', then must specify a seed between [0,1,2,3,4];
         if chosen 'streaming', then the seed will be ignored.
     :param feature_type: Whether to return raw RGB images or feature tensors
-        extracted by pre-trained models. Can choose between 
+        extracted by pre-trained models. Can choose between
         [None, 'moco_b0', 'moco_imagenet', 'byol_imagenet', 'imagenet'].
         If feature_type is None, then images will be returned.
         Otherwise feature tensors will be returned.
@@ -111,30 +111,29 @@ def CLEAR(
 
     :returns: a properly initialized :class:`GenericCLScenario` instance.
     """
-    data_name = 'clear10'
+    data_name = "clear10"
     """
         We will support clear100 by May, 2022
     """
 
     assert evaluation_protocol in EVALUATION_PROTOCOLS, (
-        "Must specify a evaluation protocol from "
-        f"{EVALUATION_PROTOCOLS}"
+        "Must specify a evaluation protocol from " f"{EVALUATION_PROTOCOLS}"
     )
-    
+
     if evaluation_protocol == "streaming":
         assert seed is None, (
             "Seed for train/test split is not required "
             "under streaming protocol"
         )
-        train_split = 'all'
-        test_split = 'all'
-    elif evaluation_protocol == 'iid':
+        train_split = "all"
+        test_split = "all"
+    elif evaluation_protocol == "iid":
         assert seed in SEED_LIST, "No seed for train/test split"
-        train_split = 'train'
-        test_split = 'test'
+        train_split = "train"
+        test_split = "test"
     else:
         raise NotImplementedError()
-    
+
     if feature_type is None:
         clear_dataset_train = CLEARImage(
             root=dataset_root,
@@ -179,7 +178,7 @@ def CLEAR(
         train_samples = clear_dataset_train.tensors_and_targets
         test_samples = clear_dataset_test.tensors_and_targets
         benchmark_generator = create_generic_benchmark_from_tensor_lists
-    
+
     benchmark_obj = benchmark_generator(
         train_samples,
         test_samples,
@@ -188,7 +187,7 @@ def CLEAR(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-    
+
     return benchmark_obj
 
 
@@ -199,20 +198,23 @@ if __name__ == "__main__":
     from torchvision import transforms
     import torch
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-    transform = transforms.Compose([
-        transforms.Resize(224),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize,
-    ])
-    
-    data_name = 'clear10'
+    normalize = transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    )
+    transform = transforms.Compose(
+        [
+            transforms.Resize(224),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
+
+    data_name = "clear10"
     root = f"../avalanche_datasets/{data_name}"
-    
+
     for p in EVALUATION_PROTOCOLS:
-        seed_list = [None] if p == 'streaming' else SEED_LIST
+        seed_list = [None] if p == "streaming" else SEED_LIST
         for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:
@@ -222,7 +224,7 @@ if __name__ == "__main__":
                     seed=seed,
                     train_transform=t,
                     eval_transform=t,
-                    dataset_root=root
+                    dataset_root=root,
                 )
                 benchmark_instance.train_stream[0]
                 # check_vision_benchmark(benchmark_instance)

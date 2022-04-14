@@ -14,7 +14,7 @@ from typing import Optional, Sequence, TYPE_CHECKING, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios import Experience
+from avalanche.benchmarks.scenarios import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -90,9 +90,15 @@ class JointTraining(SupervisedTemplate):
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs
     ):
@@ -120,12 +126,12 @@ class JointTraining(SupervisedTemplate):
             )
 
         # Normalize training and eval data.
-        if isinstance(experiences, Experience):
+        if isinstance(experiences, ClassificationExperience):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
         for i, exp in enumerate(eval_streams):
-            if isinstance(exp, Experience):
+            if isinstance(exp, ClassificationExperience):
                 eval_streams[i] = [exp]
         self._eval_streams = eval_streams
 

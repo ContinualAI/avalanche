@@ -1,15 +1,21 @@
 import torch
 
 from avalanche.benchmarks import StreamUserDef
-from avalanche.benchmarks.scenarios.detection_scenario import \
-    DetectionCLScenario
+from avalanche.benchmarks.scenarios.detection_scenario import (
+    DetectionCLScenario,
+)
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
 
 
 def split_detection_benchmark(
-        n_experiences: int, train_dataset, test_dataset,
-        n_classes: int, train_transform=None, eval_transform=None,
-        shuffle=True):
+    n_experiences: int,
+    train_dataset,
+    test_dataset,
+    n_classes: int,
+    train_transform=None,
+    eval_transform=None,
+    shuffle=True,
+):
     """
     Creates an example object detection/segmentation benchmark.
 
@@ -38,11 +44,13 @@ def split_detection_benchmark(
     train_dataset_avl = AvalancheDataset(
         train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group='train')
+        initial_transform_group="train",
+    )
     test_dataset_avl = AvalancheDataset(
         test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group='eval')
+        initial_transform_group="eval",
+    )
 
     exp_sz = [exp_n_imgs for _ in range(n_experiences)]
     for exp_id in range(n_experiences):
@@ -62,37 +70,31 @@ def split_detection_benchmark(
     last_slice_idx = 0
     for exp_id in range(n_experiences):
         n_imgs = exp_sz[exp_id]
-        idx_range = train_indices[last_slice_idx:last_slice_idx+n_imgs]
+        idx_range = train_indices[last_slice_idx : last_slice_idx + n_imgs]
         train_exps_datasets.append(
-            AvalancheSubset(
-                train_dataset_avl,
-                indices=idx_range))
+            AvalancheSubset(train_dataset_avl, indices=idx_range)
+        )
         last_slice_idx += n_imgs
 
     train_def = StreamUserDef(
         exps_data=train_exps_datasets,
         exps_task_labels=[0 for _ in range(len(train_exps_datasets))],
         origin_dataset=train_dataset,
-        is_lazy=False
+        is_lazy=False,
     )
 
     test_def = StreamUserDef(
         exps_data=[test_dataset_avl],
         exps_task_labels=[0],
         origin_dataset=test_dataset,
-        is_lazy=False
+        is_lazy=False,
     )
 
     return DetectionCLScenario(
         n_classes=n_classes,
-        stream_definitions={
-            'train': train_def,
-            'test': test_def
-        },
-        complete_test_set_only=True
+        stream_definitions={"train": train_def, "test": test_def},
+        complete_test_set_only=True,
     )
 
 
-__all__ = [
-    'split_detection_benchmark'
-]
+__all__ = ["split_detection_benchmark"]
