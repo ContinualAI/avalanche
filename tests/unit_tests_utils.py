@@ -1,9 +1,11 @@
 from os.path import expanduser
 
 import os
+import random
 import torch
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
+import numpy as np
 from torch.utils.data import TensorDataset
 from torch.utils.data.dataloader import DataLoader
 
@@ -130,10 +132,22 @@ def get_device():
     return device
 
 
+def set_deterministic_run(seed=0):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+
 __all__ = [
     "common_setups",
     "load_benchmark",
     "get_fast_benchmark",
     "load_experience_train_eval",
     "get_device",
+    "set_deterministic_run",
 ]
