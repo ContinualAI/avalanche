@@ -26,7 +26,8 @@ from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 
-from tests.unit_tests_utils import get_fast_benchmark, get_device
+from tests.unit_tests_utils import get_fast_benchmark, get_device, \
+    set_deterministic_run
 
 
 class TestMLP(nn.Module):
@@ -68,16 +69,7 @@ class StrategyTest(unittest.TestCase):
         # check that multi-head reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
 
-        # seeds (for reproducibility and determinism)
-        seed = 0
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(seed)
-            torch.backends.cudnn.enabled = True
-            torch.backends.cudnn.benchmark = False
-            torch.backends.cudnn.deterministic = True
+        set_deterministic_run(seed=0)
 
         model = MHTestMLP(input_size=6, hidden_size=100)
         criterion = CrossEntropyLoss()
@@ -112,16 +104,7 @@ class StrategyTest(unittest.TestCase):
         # check that pnn reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
 
-        # seeds (for reproducibility and determinism)
-        seed = 0
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(seed)
-            torch.backends.cudnn.enabled = True
-            torch.backends.cudnn.benchmark = False
-            torch.backends.cudnn.deterministic = True
+        set_deterministic_run(seed=0)
 
         main_metric = StreamAccuracy()
         exp_acc = ExperienceAccuracy()
