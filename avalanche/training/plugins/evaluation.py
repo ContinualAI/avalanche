@@ -217,7 +217,7 @@ class EvaluationPlugin:
             "Stream provided to `eval` must be the same of the entire "
             "evaluation stream."
         )
-        curr_stream = strategy.current_eval_stream
+        curr_stream = strategy.current_eval_stream[0].origin_stream
         benchmark = curr_stream[0].origin_stream.benchmark
         full_stream = benchmark.streams[curr_stream.name]
 
