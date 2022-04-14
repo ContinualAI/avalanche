@@ -10,6 +10,10 @@
 ################################################################################
 import unittest
 
+import random
+import torch
+import numpy as np
+
 from torch import nn
 
 from torch.optim import SGD
@@ -22,7 +26,8 @@ from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 
-from tests.unit_tests_utils import get_fast_benchmark, get_device
+from tests.unit_tests_utils import get_fast_benchmark, get_device, \
+    set_deterministic_run
 
 
 class TestMLP(nn.Module):
@@ -63,6 +68,9 @@ class StrategyTest(unittest.TestCase):
     def test_multihead_cumulative(self):
         # check that multi-head reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
+
+        set_deterministic_run(seed=0)
+
         model = MHTestMLP(input_size=6, hidden_size=100)
         criterion = CrossEntropyLoss()
         optimizer = SGD(model.parameters(), lr=1)
@@ -95,6 +103,9 @@ class StrategyTest(unittest.TestCase):
     def test_pnn(self):
         # check that pnn reaches high enough accuracy.
         # Ensure nothing weird is happening with the multiple heads.
+
+        set_deterministic_run(seed=0)
+
         main_metric = StreamAccuracy()
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
