@@ -310,14 +310,18 @@ def get_metric_name(
     base_name = "{}/{}_phase/{}_stream".format(str(metric), phase_name, stream)
     exp_name = "/Exp{:03}".format(strategy.experience.current_experience)
 
-    if task_label is None and isinstance(add_task, bool):
+    # task label not present - do not print task
+    if task_label is None and type(add_task) == bool:
         add_task = False
     else:
-        if isinstance(add_task, bool) and add_task:
+        # task label is present and printed
+        if type(add_task) == bool and add_task is True:
             task_name = "/Task{:03}".format(task_label)
-        elif isinstance(add_task, int):
+        # print user-defined task label
+        elif type(add_task) == int:
             task_name = "/Task{:03}".format(add_task)
             add_task = True
+        # else case is add_task=False
 
     if add_experience and not add_task:
         return base_name + exp_name
