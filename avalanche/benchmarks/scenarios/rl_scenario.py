@@ -4,7 +4,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 12-04-2022                                                             #
-# Author(s): Antonio Carta                                                     #
+# Author(s): Nicolo' Lucchesi Antonio Carta                                    #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -21,11 +21,17 @@ except ImportError:
     # empty classes to make sure everything below works without changes
     class Env:
         pass
+
     class Wrapper:
         pass
 
 
 class RLExperience(CLExperience):
+    """Experience for Continual Reinforcement Learning purposes.
+
+    The experience provides access to a `gym.Env` environment.
+    Such environment can also be created lazily by providing a function. 
+    """
 
     def __init__(self, env: Union[Env, Callable[[], Env]], n_envs: int = 1, task_label: int = None, current_experience: int = None, origin_stream=None):
         # current experience and origin stream are set when iterating a CLStream by default
@@ -44,17 +50,44 @@ class RLExperience(CLExperience):
 
 
 class RLScenario(CLScenario):
+    """Scenario for Continual Reinforcement Learning (CRL) purposes.
+
+    It allows an agent to learn from a stream of environments, generating state
+    transitions from the active interaction within each experience.
+    This abstraction enables the representation of a continuous stream of tasks
+    as requested by CRL settings.
+
+    Reference: Lucchesi, N., Carta, A., Lomonaco, V., & Bacciu, D. (2022).
+    Avalanche RL: a Continual Reinforcement Learning Library
+    https://arxiv.org/abs/2202.13657
+    """
 
     def __init__(self, envs: List[Env],
-                 n_experiences: int,
                  n_parallel_envs: Union[int, List[int]],
                  eval_envs: Union[List[Env], List[Callable[[], Env]]],
                  wrappers_generators: Dict[str, List[Wrapper]] = None,
                  task_labels: bool = True,
-                 shuffle: bool = False, 
-                 seed: int = None):
+                 shuffle: bool = False):
+        """Init.
 
-        assert n_experiences > 0, "Number of experiences must be a positive integer"
+        Args:
+            :param envs: list of gym environments to be used for training the agent.
+                Each environment will be wrapped within a RLExperience.
+            :param n_parallel_envs: number of parallel agent-environment 
+                interactions to run for each experience. If an int is provided, the same
+                degree of parallelism will be used for every environment. 
+            :param eval_envs: list of gym environments 
+                to be used for evaluating the agent. Each environment will be wrapped 
+                within a RLExperience.
+            :param wrappers_generators: list of `gym.Wrapper` generator functions 
+                which are applied to some environment, each identified by its id. 
+                It represents behavior added as post-processing steps (e.g. reward scaling).
+            :param task_labels: whether to add task labels to RLExperience. A task label
+                is assigned to each different environment, in the order they're provided in `envs`.
+            :param shuffle: whether to randomly shuffle `envs`. Defaults to False.
+        """
+
+        n_experiences = len(envs)
         if type(n_parallel_envs) is int:
             n_parallel_envs = [n_parallel_envs] * n_experiences
         assert len(n_parallel_envs) == len(envs)
@@ -69,22 +102,6 @@ class RLScenario(CLScenario):
 
         # eval_task_labels = list(range(len(eval_envs)))
         self._wrappers_generators = wrappers_generators
-
-        if n_experiences < len(tr_envs):
-            tr_envs = tr_envs[:n_experiences]
-            tr_task_labels = tr_task_labels[:n_experiences]
-        elif n_experiences > len(tr_envs):
-            # cycle through envs sequentially, referencing same object to create a longer stream
-            for i in range(n_experiences - len(tr_envs)):
-                tr_envs.append(tr_envs[i % len(tr_envs)])
-                tr_task_labels.append(
-                    tr_task_labels[i % len(tr_task_labels)])
-
-        # move to template/strategy?
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
-            torch.manual_seed(seed)
 
         if shuffle:
             perm = np.random.permutation(tr_envs)
