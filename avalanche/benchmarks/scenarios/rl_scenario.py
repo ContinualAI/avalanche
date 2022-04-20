@@ -39,7 +39,8 @@ class RLExperience(CLExperience):
         self.env = env
         self.n_envs = n_envs
         # task label to be (optionally) used for training purposes
-        self.task_label = ExperienceAttribute(task_label, use_in_train=True)
+        self.task_label = ExperienceAttribute(
+            task_label, use_in_train=True, use_in_eval=True)
 
     @property
     def environment(self) -> Env:
