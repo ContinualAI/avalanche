@@ -46,9 +46,10 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
             early stopping should happen after `patience`
             epochs or iterations (Default='epoch').
-        :param margin: a minimal margin of improvements required to be considered 
-            best than a previous one. It should be an float, the default value is 0.
-            That means that any improvement is considered better.
+        :param margin: a minimal margin of improvements required to be 
+            considered best than a previous one. It should be an float, the 
+            default value is 0. That means that any improvement is considered 
+            better.
         """
         super().__init__()
         self.val_stream_name = val_stream_name
@@ -82,7 +83,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
     def before_training_iteration(self, strategy, **kwargs):
         if self.peval_mode == "iteration":
             ub = self._update_best(strategy)
-            if ub == None or self.best_step == None:
+            if ub is None or self.best_step is None:
                 return
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
@@ -92,7 +93,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
     def before_training_epoch(self, strategy, **kwargs):
         if self.peval_mode == "epoch":
             ub = self._update_best(strategy)
-            if ub == None or self.best_step == None:
+            if ub is None or self.best_step is None:
                 return
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
