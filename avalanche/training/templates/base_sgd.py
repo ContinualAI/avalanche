@@ -3,8 +3,12 @@ from typing import Sequence, Optional, Union
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import final
 
 from avalanche.benchmarks import Experience
+from avalanche.distributed import DistributedHelper
+from avalanche.distributed.strategies import \
+    DistributedMiniBatchStrategySupport, DistributedLossStrategySupport
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -18,7 +22,8 @@ if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
 
 
-class BaseSGDTemplate(BaseTemplate):
+class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
+                      DistributedLossStrategySupport):
     """Base class for continual learning skeletons.
 
     **Training loop**
@@ -148,6 +153,7 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_train_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+        self.model = self.wrap_distributed_model(self.model)
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
@@ -179,10 +185,17 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_eval_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
         self.model = self.model_adaptation()
+        self.model = self.wrap_distributed_model(self.model)
         super()._before_eval_exp(**kwargs)
 
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
+
+    def wrap_distributed_model(self, model):
+        """
+        Prepare a model for distributed training/eval.
+        """
+        return DistributedHelper.wrap_model(model)
 
     def make_train_dataloader(self, **kwargs):
         """Assign dataloader to self.dataloader."""
@@ -222,11 +235,10 @@ class BaseSGDTemplate(BaseTemplate):
             if self._stop_training:
                 break
 
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
 
             # Forward
             self._before_forward(**kwargs)
@@ -234,7 +246,7 @@ class BaseSGDTemplate(BaseTemplate):
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion()
+            self.loss = self.criterion()
 
             self._before_backward(**kwargs)
             self.backward()
@@ -247,8 +259,20 @@ class BaseSGDTemplate(BaseTemplate):
 
             self._after_training_iteration(**kwargs)
 
+    @final
     def backward(self):
-        """Run the backward pass."""
+        """
+        Run the backward pass.
+
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_backward` instead.
+        """
+        with self.use_local_loss():
+            self._backward()
+            self.reset_distributed_loss()
+
+    def _backward(self):
+        """ Implementation of the backward pass. """
         self.loss.backward()
 
     def optimizer_step(self):
@@ -258,7 +282,7 @@ class BaseSGDTemplate(BaseTemplate):
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""
         for self.mbatch in self.dataloader:
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_eval_iteration(**kwargs)
 
             self._before_eval_forward(**kwargs)
@@ -268,8 +292,21 @@ class BaseSGDTemplate(BaseTemplate):
 
             self._after_eval_iteration(**kwargs)
 
+    @final
+    def unpack_minibatch(self):
+        """
+        Move minibatch elements to device.
+
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_unpack_minibatch` instead.
+        """
+        with self.use_local_input_batch():
+            self._unpack_minibatch()
+            self.reset_distributed_mbatch()
+
     def _unpack_minibatch(self):
         """Move to device"""
+
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
 

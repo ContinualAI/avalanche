@@ -6,10 +6,11 @@ from torch.nn import Module
 
 from avalanche.benchmarks import Experience
 from avalanche.core import BasePlugin
+from avalanche.distributed.strategies import DistributedModelStrategySupport
 from avalanche.training.utils import trigger_plugins
 
 
-class BaseTemplate:
+class BaseTemplate(DistributedModelStrategySupport):
     """Base class for continual learning skeletons.
 
     **Training loop**
@@ -36,6 +37,8 @@ class BaseTemplate:
         plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
     ):
         """Init."""
+
+        super(BaseTemplate, self).__init__()
 
         self.model: Module = model
         """ PyTorch model. """

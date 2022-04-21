@@ -101,16 +101,17 @@ class StreamingLDA(SupervisedTemplate):
 
     def forward(self, return_features=False):
         """Compute the model's output given the current mini-batch."""
-        self.model.eval()
-        if isinstance(self.model, MultiTaskModule):
-            feat = self.model(self.mb_x, self.mb_task_id)
-        else:  # no task labels
-            feat = self.model(self.mb_x)
-        out = self.predict(feat)
-        if return_features:
-            return out, feat
-        else:
-            return out
+        with self.use_local_input_batch():
+            self.model.eval()
+            if isinstance(self.model, MultiTaskModule):
+                feat = self.model(self.mb_x, self.mb_task_id)
+            else:  # no task labels
+                feat = self.model(self.mb_x)
+            out = self.predict(feat)
+            if return_features:
+                return out, feat
+            else:
+                return out
 
     def training_epoch(self, **kwargs):
         """
@@ -119,7 +120,7 @@ class StreamingLDA(SupervisedTemplate):
         :return:
         """
         for _, self.mbatch in enumerate(self.dataloader):
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
             self.loss = 0
@@ -131,7 +132,7 @@ class StreamingLDA(SupervisedTemplate):
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion()
+            self.loss = self.criterion()
 
             # Optimization step
             self._before_update(**kwargs)

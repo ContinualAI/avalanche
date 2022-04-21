@@ -4,9 +4,12 @@ from pkg_resources import parse_version
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
+from typing_extensions import final
 
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.distributed import DistributedHelper
+from avalanche.distributed.distributed_helper import hash_tensor
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -143,9 +146,12 @@ class SupervisedTemplate(BaseSGDTemplate):
         assert len(self.mbatch) >= 3
         return self.mbatch[-1]
 
+    @final
     def criterion(self):
         """Loss function."""
-        return self._criterion(self.mb_output, self.mb_y)
+        with self.use_local_output_batch():
+            with self.use_local_input_batch():
+                return self._criterion(self.mb_output, self.mb_y)
 
     def _before_training_exp(self, **kwargs):
         """Setup to train on a single experience."""
@@ -214,6 +220,7 @@ class SupervisedTemplate(BaseSGDTemplate):
             batch_size=self.train_mb_size,
             shuffle=shuffle,
             pin_memory=pin_memory,
+            drop_last=True,
             **other_dataloader_args
         )
 
@@ -235,23 +242,51 @@ class SupervisedTemplate(BaseSGDTemplate):
         if parse_version(torch.__version__) >= parse_version('1.7.0'):
             other_dataloader_args['persistent_workers'] = persistent_workers
 
+        sampler = None
+        if DistributedHelper.is_distributed:
+            sampler = DistributedSampler(
+                self.adapted_dataset, shuffle=False, drop_last=False)
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
+            sampler=sampler,
+            shuffle=False,
+            drop_last=False,
             **other_dataloader_args
         )
 
+    @final
     def forward(self):
-        """Compute the model's output given the current mini-batch."""
+        """
+        Compute the model's output given the current mini-batch.
+
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_forward` instead.
+        """
+        with self.use_local_input_batch():
+            return self._forward()
+
+    def _forward(self):
+        """Implementation of the forward pass."""
+        # print('mbx hash:', hash_tensor(self.distributed_mbatch[0]))
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
+    @final
     def model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_model_adaptation` instead.
         """
+        with self.use_local_model():
+            return self._model_adaptation(model=model)
+
+    def _model_adaptation(self, model=None):
         if model is None:
             model = self.model
         avalanche_model_adaptation(model, self.experience.dataset)

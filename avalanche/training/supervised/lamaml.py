@@ -140,7 +140,7 @@ class LaMAML(SupervisedTemplate):
             if self._stop_training:
                 break
 
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_training_iteration(**kwargs)
             self.loss = 0
 

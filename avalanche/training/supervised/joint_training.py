@@ -154,7 +154,7 @@ class JointTraining(SupervisedTemplate):
             self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
-    def model_adaptation(self, model=None):
+    def _model_adaptation(self, model=None):
         """Adapts strategy's model for all experiences."""
         if model is None:
             model = self.model

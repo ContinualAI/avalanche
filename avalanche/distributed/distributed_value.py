@@ -3,6 +3,7 @@ from typing import TypeVar, Generic, Optional, Union, Generator, List, \
     Tuple
 from abc import ABC, abstractmethod
 
+from avalanche.distributed import DistributedHelper
 
 LocalT = TypeVar('LocalT')
 DistributedT = TypeVar('DistributedT')
@@ -51,7 +52,6 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
             representation.
         :param initial_local_value: The initial local value.
         """
-
         self.name: str = name
         self._local_value: LocalT = initial_local_value
         self._distributed_value: Optional[DistributedT] = None
@@ -65,7 +65,6 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
         When running a distributed training, this will be the value obtained
         by gathering and merging values coming from all processes.
         """
-
         return self._get_distributed_value()
 
     @value.setter
@@ -102,6 +101,9 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
         self._distributed_value_set = False
 
     def _get_distributed_value(self) -> DistributedT:
+        if not DistributedHelper.is_distributed:
+            return self._local_value
+
         if not self._distributed_value_set:
             self._distributed_value = self._synchronize_distributed_value()
             self._distributed_value_set = True
@@ -223,14 +225,14 @@ class SwitchableDistributedValue(SettableDistributedValue[LocalT, DistributedT],
         finally:
             self._behaviour_stack.pop()
 
-    @SettableDistributedValue.value.getter
+    @property
     def value(self) -> Union[LocalT, DistributedT]:
         if self._use_local_getter():
             return self.local_value
         else:
             return self.distributed_value
 
-    @SettableDistributedValue.value.setter
+    @value.setter
     def value(self, new_value):
         if self._use_local_setter():
             self.local_value = new_value

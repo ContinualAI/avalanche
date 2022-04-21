@@ -194,7 +194,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         self._after_training_epoch(**kwargs)
         self._after_training_exp(**kwargs)
 
-    def model_adaptation(self, model=None):
+    def _model_adaptation(self, model=None):
         """Adapts the model to the data from the current
            (full) experience.
 

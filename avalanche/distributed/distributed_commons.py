@@ -1,5 +1,6 @@
 import torch
 
+from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_tensor import DistributedMeanTensor
 
 
@@ -15,6 +16,11 @@ class DistributedLoss(DistributedMeanTensor):
     """
     def __init__(self, name: str = 'loss'):
         super(DistributedLoss, self).__init__(name, torch.zeros((1,)))
+
+    def _merge_tensors(self, tensors):
+        # with DistributedHelper.main_process_first():
+        #     print('Rank', DistributedHelper.rank, 'losses=', tensors, flush=True)
+        return super(DistributedLoss, self)._merge_tensors(tensors)
 
 
 __all__ = [

@@ -449,11 +449,12 @@ class VAETraining(SupervisedTemplate):
         :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
+        self._vae_criterion = criterion
 
         super().__init__(
             model,
             optimizer,
-            criterion,
+            self._vae_criterion_adapter,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -464,10 +465,10 @@ class VAETraining(SupervisedTemplate):
             **base_kwargs
         )
 
-    def criterion(self):
-        """Adapt input to criterion as needed to compute reconstruction loss 
+    def _vae_criterion_adapter(self, *ignored):
+        """Adapt input to criterion as needed to compute reconstruction loss
         and KL divergence. See default criterion VAELoss."""
-        return self._criterion(self.mb_x, self.mb_output)
+        return self._vae_criterion(self.mb_x, self.mb_output)
 
 
 class GSS_greedy(SupervisedTemplate):

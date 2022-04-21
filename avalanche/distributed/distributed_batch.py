@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import TypeVar, List, Optional
+from typing import TypeVar, List, Optional, Callable, Any
 
 import torch
 from torch import Tensor
@@ -40,19 +40,18 @@ class DistributedBatch(DistributedObject[LocalT, LocalT], ABC):
     This class can handle batches as either tuples of elements (as usual) or
     even single values.
 
-    The merge procedure of single elements must be implemented in child classes.
+    The merge procedure of tuples and single elements must be implemented in
+    child classes. By default, the tuples will be merged value by value.
 
     NOTE: In the future, this class may be replaced with a version in which only
     the accessed tuple elements are synchronized, instead of the whole batch.
-    The current design, in which child classes only have to implement
+    The current design, in which child classes have to implement
     `_merge_single_values`, allows for this change to happen without affecting
     child classes.
     """
 
     def __init__(self, name: str, initial_local_value: LocalT):
-        super(DistributedBatch, self).__init__(
-            name, initial_local_value
-        )
+        super().__init__(name, initial_local_value)
         self._value_is_tuple = False
 
     def _synchronize_distributed_value(self) -> LocalT:
@@ -63,13 +62,13 @@ class DistributedBatch(DistributedObject[LocalT, LocalT], ABC):
 
     def _set_local_value(self, new_local_value):
         self._value_is_tuple = isinstance(new_local_value, (tuple, list))
-        super(DistributedBatch, self)._set_local_value(new_local_value)
+        super()._set_local_value(new_local_value)
 
     def _merge_objects(self, objects: List[LocalT]) -> LocalT:
         if self._value_is_tuple:
             return self._merge_tuples(objects)
         else:
-            return self._merge_single_values(objects)
+            return self._merge_single_values(objects, 0)
 
     def _merge_tuples(self, tuples: List[LocalT]):
         merged_elements = []
@@ -80,27 +79,62 @@ class DistributedBatch(DistributedObject[LocalT, LocalT], ABC):
                 to_merge_elements.append(tp[element_idx])
 
             merged_elements.append(
-                self._merge_single_values(to_merge_elements)
+                self._merge_single_values(to_merge_elements, element_idx)
             )
 
         return tuple(merged_elements)
 
     @abstractmethod
-    def _merge_single_values(self, values: List):
+    def _merge_single_values(self, values: List, value_index: int):
         pass
 
 
-class ClassificationBatch(DistributedBatch[LocalT]):
+class CollateDistributedBatch(DistributedBatch[LocalT]):
     """
-    An implementation of :class:`DistributedBatch` that assumes that all values
-    are Tensors.
+    An implementation of :class:`DistributedBatch` in which the
+    `_merge_tuples` mechanism is given as a callable function.
     """
-    def _merge_single_values(self, values: List[Tensor]):
-        return torch.cat(values)
+
+    def __init__(self, name: str, initial_local_value: LocalT,
+                 tuples_collate_fn: Optional[Callable[[List], LocalT]],
+                 single_values_collate_fn: Callable[[Any, int], Any]):
+        super().__init__(name, initial_local_value)
+        self.tuples_collate_fn = tuples_collate_fn
+        self.single_values_collate_fn = single_values_collate_fn
+
+    def _merge_tuples(self, tuples: List[LocalT]):
+        if self.tuples_collate_fn is None:
+            return super()._merge_tuples(tuples)
+
+        return self.tuples_collate_fn(tuples)
+
+    def _merge_single_values(self, values: List, value_index: int):
+        # if DistributedHelper.is_main_process:
+        #     print('MERGING VALUES:')
+        #     for elem in values:
+        #         if isinstance(elem, Tensor):
+        #             print(elem.device)
+        #             print(elem.shape)
+        #         else:
+        #             print(type(elem))
+
+        return self.single_values_collate_fn(values, value_index)
+
+
+def make_classification_distributed_batch(name: str) -> \
+        CollateDistributedBatch[Optional[Tensor]]:
+    """
+    Return a :class:`CollateDistributedBatch` that assumes that all values
+    are Tensors. Values are obtained by concatenating these tensors.
+    """
+    return CollateDistributedBatch(
+        name, None, None, lambda x, y: torch.cat(x)
+    )
 
 
 __all__ = [
     'DistributedObject',
     'DistributedBatch',
-    'ClassificationBatch'
+    'CollateDistributedBatch',
+    'make_classification_distributed_batch'
 ]

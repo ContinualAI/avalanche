@@ -14,58 +14,31 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-import itertools
-from collections import defaultdict
+import math
 from itertools import chain
-from typing import Dict, Sequence, Union
+from typing import Dict, Sequence, Union, Iterator, Optional
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.sampler import T_co
 
 from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils.collate_functions import \
+    classification_collate_mbatches_fn
+
+from avalanche.benchmarks.utils.collate_functions import detection_collate_fn \
+    as _detection_collate_fn
+
+from avalanche.benchmarks.utils.collate_functions import \
+    detection_collate_mbatches_fn as _detection_collate_mbatches_fn
 from avalanche.distributed import DistributedHelper
 
+_default_collate_mbatches_fn = classification_collate_mbatches_fn
 
-def _default_collate_mbatches_fn(mbatches):
-    """Combines multiple mini-batches together.
+detection_collate_fn = _detection_collate_fn
 
-    Concatenates each tensor in the mini-batches along dimension 0 (usually this
-    is the batch size).
-
-    :param mbatches: sequence of mini-batches.
-    :return: a single mini-batch
-    """
-    batch = []
-    for i in range(len(mbatches[0])):
-        t = torch.cat([el[i] for el in mbatches], dim=0)
-        batch.append(t)
-    return batch
-
-
-def detection_collate_fn(batch):
-    """
-    Collate function used when loading detection datasets using a DataLoader.
-    """
-    return tuple(zip(*batch))
-
-
-def detection_collate_mbatches_fn(mbatches):
-    """
-    Collate function used when loading detection datasets using a DataLoader.
-    """
-    lists_dict = defaultdict(list)
-    for mb in mbatches:
-        for mb_elem_idx, mb_elem in enumerate(mb):
-            lists_dict[mb_elem_idx].append(mb_elem)
-
-    lists = []
-    for mb_elem_idx in range(max(lists_dict.keys()) + 1):
-        lists.append(list(itertools.chain.from_iterable(
-            lists_dict[mb_elem_idx]
-        )))
-
-    return lists
+detection_collate_mbatches_fn = _detection_collate_mbatches_fn
 
 
 class TaskBalancedDataLoader:

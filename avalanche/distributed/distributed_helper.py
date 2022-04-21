@@ -2,6 +2,7 @@ import os
 import random
 import warnings
 from collections import OrderedDict
+from io import BytesIO
 from typing import Optional, List, Tuple
 
 import numpy as np
@@ -13,6 +14,8 @@ from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Literal
 
 from avalanche.benchmarks import GenericCLScenario
+
+import pickle
 
 
 class _Singleton(type):
@@ -167,6 +170,8 @@ class _DistributedHelperCls(object):
             # https://github.com/pytorch/pytorch/issues/6351
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+
+        self.make_device()  # Force-init the default CUDA device (if any)
         return True
 
     def get_device_id(self):
@@ -187,8 +192,8 @@ class _DistributedHelperCls(object):
             device_id = 0
 
         if self.use_cuda and torch.cuda.is_available() and device_id >= 0:
-            torch.cuda.set_device(device_id)
             ref_device = torch.device(f'cuda:{device_id}')
+            torch.cuda.set_device(ref_device)
         else:
             ref_device = torch.device('cpu')
         return ref_device
@@ -501,7 +506,48 @@ def hash_tensor(tensor: Tensor) -> str:
     return hash_engine.hexdigest()
 
 
+def hash_model(model: Module) -> str:
+    import hashlib
+    import io
+
+    hash_engine = hashlib.sha256()
+    for name, param in model.named_parameters():
+        hash_engine.update(name.encode())
+        buff = io.BytesIO()
+        torch.save(param, buff)
+        buff.seek(0)
+        hash_engine.update(buff.read())
+    return hash_engine.hexdigest()
+
+
+
 DistributedHelper = _DistributedHelperCls()
+
+
+def fix():
+    return lambda b: torch.load(BytesIO(b),
+                                map_location=DistributedHelper.make_device())
+
+
+class MappedUnpickler(pickle.Unpickler):
+    # Based on:
+    # https://github.com/pytorch/pytorch/issues/16797#issuecomment-777059657
+
+    # In turn based on:
+    # https://github.com/pytorch/pytorch/issues/16797#issuecomment-633423219
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return fix()
+        else:
+            return super().find_class(module, name)
+
+
+torch.distributed.distributed_c10d._unpickler = MappedUnpickler
+
 
 __all__ = [
     'DistributedHelper',

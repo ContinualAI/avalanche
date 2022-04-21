@@ -15,7 +15,8 @@ from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Type
 
 from avalanche.distributed import OptionalDistributedValue
-from avalanche.distributed.distributed_value import DistributedT
+from avalanche.distributed.distributed_value import DistributedT, \
+    DistributedValue, SettableDistributedValue, SwitchableDistributedValue
 
 
 class DistributedModel(OptionalDistributedValue[Optional[Module]]):
@@ -43,20 +44,23 @@ class DistributedModel(OptionalDistributedValue[Optional[Module]]):
 
     def __init__(
             self,
+            *,
+            name: str = 'model',
             initial_model: Module = None,
             distributed_model_class: Union[Type, Tuple[Type]] =
-            DistributedDataParallel):
+            DistributedDataParallel,):
         """
         Creates a `ModelInstance`.
 
+        :param name: The name of this value. Defaults to 'model'.
         :param initial_model: The initial model to use. Defaults to None.
         :param distributed_model_class: The type(s) of the distributed model.
             Defaults to `DistributedDataParallel`.
         """
-        super().__init__('model', initial_local_value=initial_model)
+        super().__init__(name, initial_local_value=initial_model)
         self.distributed_model_class = distributed_model_class
 
-    @OptionalDistributedValue.value.setter
+    @SwitchableDistributedValue.value.setter
     def value(self, new_value: Module):
         """
         Sets the local or distributed model, depending on if the model is a
@@ -70,13 +74,13 @@ class DistributedModel(OptionalDistributedValue[Optional[Module]]):
         else:
             self.local_value = new_value
 
-    @OptionalDistributedValue.local_value.getter
+    @DistributedValue.local_value.getter
     def local_value(self) -> Module:
         if self._distributed_value is not None:
             return self._distributed_value.module
         return self._local_value
 
-    @OptionalDistributedValue.distributed_value.setter
+    @SettableDistributedValue.distributed_value.setter
     def distributed_value(self, new_distributed_value: Module):
         if new_distributed_value is None:
             self.reset_distributed_value()
