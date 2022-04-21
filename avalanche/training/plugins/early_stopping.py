@@ -31,6 +31,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         metric_name: str = "Top1_Acc_Stream",
         mode: str = "max",
         peval_mode: str = "epoch",
+        margin: float = .0,
     ):
         """Init.
 
@@ -45,6 +46,10 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
             early stopping should happen after `patience`
             epochs or iterations (Default='epoch').
+        :param margin: a minimal margin of improvements required to be 
+            considered best than a previous one. It should be an float, the 
+            default value is 0. That means that any improvement is considered 
+            better.
         """
         super().__init__()
         self.val_stream_name = val_stream_name
@@ -53,11 +58,14 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         assert peval_mode in {"epoch", "iteration"}
         self.peval_mode = peval_mode
 
+        assert type(margin) == float
+        self.margin = margin
+
         self.metric_name = metric_name
         self.metric_key = (
             f"{self.metric_name}/eval_phase/" f"{self.val_stream_name}"
         )
-        print(self.metric_key)
+
         if mode not in ("max", "min"):
             raise ValueError(f'Mode must be "max" or "min", got {mode}.')
         self.operator = operator.gt if mode == "max" else operator.lt
@@ -70,10 +78,13 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         self.best_state = None
         self.best_val = None
         self.best_step = None
+        self.best_step = None
 
     def before_training_iteration(self, strategy, **kwargs):
         if self.peval_mode == "iteration":
-            self._update_best(strategy)
+            ub = self._update_best(strategy)
+            if ub is None or self.best_step is None:
+                return
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
                 strategy.model.load_state_dict(self.best_state)
@@ -81,7 +92,9 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
     def before_training_epoch(self, strategy, **kwargs):
         if self.peval_mode == "epoch":
-            self._update_best(strategy)
+            ub = self._update_best(strategy)
+            if ub is None or self.best_step is None:
+                return
             curr_step = self._get_strategy_counter(strategy)
             if curr_step - self.best_step >= self.patience:
                 strategy.model.load_state_dict(self.best_state)
@@ -89,7 +102,12 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
     def _update_best(self, strategy):
         res = strategy.evaluator.get_last_metrics()
-        val_acc = res.get(self.metric_key)
+        names = [k for k in res.keys() if k.startswith(self.metric_key)]
+        if len(names) == 0:
+            return None
+
+        full_name = names[-1]
+        val_acc = res.get(full_name)
         if self.best_val is None:
             warnings.warn(
                 f"Metric {self.metric_name} used by the EarlyStopping plugin "
@@ -97,8 +115,16 @@ class EarlyStoppingPlugin(SupervisedPlugin):
             )
         if self.best_val is None or self.operator(val_acc, self.best_val):
             self.best_state = deepcopy(strategy.model.state_dict())
-            self.best_val = val_acc
-            self.best_step = self._get_strategy_counter(strategy)
+            if self.best_val is None:
+                self.best_val = val_acc
+                self.best_step = 0
+                return None
+
+            if self.operator(float(val_acc - self.best_val), self.margin):
+                self.best_step = self._get_strategy_counter(strategy)
+                self.best_val = val_acc
+        
+        return self.best_val
 
     def _get_strategy_counter(self, strategy):
         if self.peval_mode == "epoch":
