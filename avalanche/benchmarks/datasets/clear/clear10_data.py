@@ -14,10 +14,11 @@
 
 base_gdrive_url = "https://drive.google.com/u/0/uc?id="
 name_gdriveid_md5 = [
-    ("CLEAR-10-PUBLIC-AVALANCHE.zip",  # name
-     "1m9dAJtMynq1ayjx-R5vRNvN6tSuFgmll",  # Google file ID
-     "755799fbc7404c714c57d2c1c218ac0b",  # MD5
-     )
+    (
+        "CLEAR-10-PUBLIC-AVALANCHE.zip",  # name
+        "1m9dAJtMynq1ayjx-R5vRNvN6tSuFgmll",  # Google file ID
+        "755799fbc7404c714c57d2c1c218ac0b",  # MD5
+    )
 ]
 
 __all__ = ["base_gdrive_url", "name_gdriveid_md5"]

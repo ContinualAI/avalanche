@@ -66,6 +66,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     """
 
+    PLUGIN_CLASS = SupervisedPlugin
+
     def __init__(
         self,
         model: Module,
@@ -73,7 +75,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = 1,
+        eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator,
@@ -194,8 +196,12 @@ class SupervisedTemplate(BaseSGDTemplate):
         super()._before_eval_exp(**kwargs)
 
     def make_train_dataloader(
-        self, num_workers=0, shuffle=True, pin_memory=True,
-        persistent_workers=False, **kwargs
+        self,
+        num_workers=0,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=False,
+        **kwargs
     ):
         """Data loader initialization.
 
@@ -210,8 +216,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version('1.7.0'):
-            other_dataloader_args['persistent_workers'] = persistent_workers
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -220,13 +226,12 @@ class SupervisedTemplate(BaseSGDTemplate):
             batch_size=self.train_mb_size,
             shuffle=shuffle,
             pin_memory=pin_memory,
-            drop_last=True,
             **other_dataloader_args
         )
 
     def make_eval_dataloader(
-            self, num_workers=0, pin_memory=True, persistent_workers=False,
-            **kwargs):
+        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+    ):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
@@ -239,8 +244,8 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
         other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version('1.7.0'):
-            other_dataloader_args['persistent_workers'] = persistent_workers
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
 
         sampler = None
         if DistributedHelper.is_distributed:

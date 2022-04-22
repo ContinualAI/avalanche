@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates.base import BaseTemplate
 
 CallbackResult = TypeVar("CallbackResult")
-Template = TypeVar("Template", covariant=True)
+Template = TypeVar("Template", bound="BaseTemplate")
 
 
 class BasePlugin(Generic[Template], ABC):

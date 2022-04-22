@@ -43,7 +43,7 @@ def main(args):
         wandb_logger = WandBLogger(
             project_name=args.wandb_project,
             run_name="LaMAML_" + config["scenario"],
-            config=config
+            config=config,
         )
         loggers.append(wandb_logger)
 
@@ -63,7 +63,7 @@ def main(args):
         batch_size=10,
         batch_size_mem=10,
         task_balanced_dataloader=False,
-        storage_policy=rs_buffer
+        storage_policy=rs_buffer,
     )
 
     cl_strategy = LaMAML(
@@ -108,8 +108,10 @@ if __name__ == "__main__":
         help="Select zero-indexed cuda device. -1 to use CPU.",
     )
     parser.add_argument(
-        "--wandb_project", type=str, default="",
-        help="Define the name of the WandB project"
+        "--wandb_project",
+        type=str,
+        default="",
+        help="Define the name of the WandB project",
     )
     args = parser.parse_args()
     main(args)

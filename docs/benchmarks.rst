@@ -141,6 +141,15 @@ Benchmarks based on the `Stream-51, <https://github.com/tyler-hayes/Stream-51>`_
 
     CLStream51
 
+CLEAR-based benchmarks
+............................
+Benchmarks based on the `CLEAR <https://clear-benchmark.github.io>`_ dataset.
+
+.. autosummary::
+    :toctree: generated
+
+    CLEAR
+
 
 .. currentmodule:: avalanche.benchmarks.datasets
 
@@ -161,6 +170,7 @@ Datasets
     OpenLORIS
     Stream51
     TinyImagenet
+    CLEAR
 
 .. currentmodule:: avalanche.benchmarks.generators
 

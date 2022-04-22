@@ -1,27 +1,26 @@
 import unittest
 
-from os.path import expanduser
-
 import torch
 from torchvision.datasets import MNIST
 
-from avalanche.benchmarks.scenarios import NIExperience, GenericScenarioStream
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks import ni_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.scenarios import NIExperience, ClassificationStream
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
-from avalanche.benchmarks import ni_benchmark
+from avalanche.benchmarks.utils import AvalancheSubset
 
 
 class NISITTests(unittest.TestCase):
     def test_ni_sit_single_dataset(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -75,12 +74,12 @@ class NISITTests(unittest.TestCase):
 
     def test_ni_sit_single_dataset_fixed_assignment(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -116,12 +115,12 @@ class NISITTests(unittest.TestCase):
 
     def test_ni_sit_single_dataset_reproducibility_data(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -151,12 +150,12 @@ class NISITTests(unittest.TestCase):
     def test_ni_sit_multi_dataset_merge(self):
         split_mapping = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -203,12 +202,12 @@ class NISITTests(unittest.TestCase):
 
     def test_ni_sit_slicing(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -228,7 +227,7 @@ class NISITTests(unittest.TestCase):
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_ni_benchmark.train_stream[iterable_slice]
-        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertIsInstance(sliced_stream, ClassificationStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual("train", sliced_stream.name)
 
@@ -244,7 +243,7 @@ class NISITTests(unittest.TestCase):
 
         iterable_slice = [0, 0, 0]
         sliced_stream = my_ni_benchmark.test_stream[iterable_slice]
-        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertIsInstance(sliced_stream, ClassificationStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual("test", sliced_stream.name)
 

@@ -21,13 +21,13 @@ class RWalkPlugin(SupervisedPlugin):
 
     .. note::
         To reproduce the results of the paper in class-incremental scenarios,
-        this plug-in should be used in conjunction with a replay strategy 
+        this plug-in should be used in conjunction with a replay strategy
         (e.g., :class:`ReplayPlugin`).
     """
 
-    def __init__(self, ewc_lambda: float = 0.1,
-                 ewc_alpha: float = 0.9,
-                 delta_t: int = 10):
+    def __init__(
+        self, ewc_lambda: float = 0.1, ewc_alpha: float = 0.9, delta_t: int = 10
+    ):
         """
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
                loss. The larger the lambda, the larger the regularization.
@@ -102,16 +102,21 @@ class RWalkPlugin(SupervisedPlugin):
     # for a single iteration (Eq. 7 of the RWalk paper for a single t)
     @torch.no_grad()
     def _update_loss(self, strategy):
-        for (k1, old_p), (k2, new_p), (k3, p_grad), (k4, p_loss) in \
-                zip(self.iter_params, strategy.model.named_parameters(),
-                    self.iter_grad, self.checkpoint_loss):
+        for (k1, old_p), (k2, new_p), (k3, p_grad), (k4, p_loss) in zip(
+            self.iter_params,
+            strategy.model.named_parameters(),
+            self.iter_grad,
+            self.checkpoint_loss,
+        ):
             assert k1 == k2 == k3 == k4, "Error in delta-loss approximation."
-            p_loss -= p_grad*(new_p - old_p)
+            p_loss -= p_grad * (new_p - old_p)
 
     # Update parameter importance (EWC++, Eq. 6 of the RWalk paper)
     def _update_importance(self, strategy):
-        importance = [(k, p.grad.data.clone().pow(2))
-                      for k, p in strategy.model.named_parameters()]
+        importance = [
+            (k, p.grad.data.clone().pow(2))
+            for k, p in strategy.model.named_parameters()
+        ]
 
         if self.iter_importance is None:
             self.iter_importance = importance
@@ -119,25 +124,34 @@ class RWalkPlugin(SupervisedPlugin):
             old_importance = self.iter_importance
             self.iter_importance = []
 
-            for (k1, old_imp), (k2, new_imp) in \
-                    zip(old_importance, importance):
+            for (k1, old_imp), (k2, new_imp) in zip(old_importance, importance):
                 assert k1 == k2, "Error in importance computation."
                 self.iter_importance.append(
-                    (k1, (self.ewc_alpha * new_imp +
-                          (1 - self.ewc_alpha) * new_imp)))
+                    (
+                        k1,
+                        (
+                            self.ewc_alpha * new_imp
+                            + (1 - self.ewc_alpha) * new_imp
+                        ),
+                    )
+                )
 
     # Add scores for a single delta_t (referred to as s_t1^t2 in the paper)
     @torch.no_grad()
     def _update_score(self, strategy):
-        for (k1, score), (k2, loss), (k3, imp), (k4, old_p), (k5, new_p) in \
-                zip(self.checkpoint_scores, self.checkpoint_loss,
-                    self.iter_importance, self.checkpoint_params,
-                    strategy.model.named_parameters()):
-            assert k1 == k2 == k3 == k4 == k5, \
-                "Error in RWalk score computation."
+        for (k1, score), (k2, loss), (k3, imp), (k4, old_p), (k5, new_p) in zip(
+            self.checkpoint_scores,
+            self.checkpoint_loss,
+            self.iter_importance,
+            self.checkpoint_params,
+            strategy.model.named_parameters(),
+        ):
+            assert (
+                k1 == k2 == k3 == k4 == k5
+            ), "Error in RWalk score computation."
 
             eps = torch.finfo(loss.dtype).eps
-            score += loss/(0.5*imp*(new_p - old_p).pow(2) + eps)
+            score += loss / (0.5 * imp * (new_p - old_p).pow(2) + eps)
 
     # Initialize t_0 checkpoint information
     def before_training(self, strategy, *args, **kwargs):
@@ -157,9 +171,11 @@ class RWalkPlugin(SupervisedPlugin):
         if strategy.clock.train_exp_counter > 0:
             ewc_loss = 0
 
-            for (k1, penalty), (k2, param_exp), (k3, param) in \
-                    zip(self.exp_penalties, self.exp_params,
-                        strategy.model.named_parameters()):
+            for (k1, penalty), (k2, param_exp), (k3, param) in zip(
+                self.exp_penalties,
+                self.exp_params,
+                strategy.model.named_parameters(),
+            ):
                 assert k1 == k2 == k3, "Error in RWalk loss computation."
 
                 ewc_loss += (penalty * (param - param_exp).pow(2)).sum()
@@ -187,10 +203,11 @@ class RWalkPlugin(SupervisedPlugin):
         else:
             exp_scores = []
 
-            for (k1, p_score), (k2, p_cp_score) in \
-                    zip(self.exp_scores, self.checkpoint_scores):
+            for (k1, p_score), (k2, p_cp_score) in zip(
+                self.exp_scores, self.checkpoint_scores
+            ):
                 assert k1 == k2, "Error in RWalk score computation."
-                exp_scores.append((k1, 0.5*(p_score + p_cp_score)))
+                exp_scores.append((k1, 0.5 * (p_score + p_cp_score)))
 
             self.exp_scores = exp_scores
 
@@ -204,11 +221,11 @@ class RWalkPlugin(SupervisedPlugin):
         max_score = max(map(lambda x: x[1].max(), self.exp_scores))
         max_imp = max(map(lambda x: x[1].max(), self.exp_importance))
 
-        for (k1, imp), (k2, score) in \
-                zip(self.exp_importance, self.exp_scores):
+        for (k1, imp), (k2, score) in zip(self.exp_importance, self.exp_scores):
             assert k1 == k2, "Error in RWalk penalties computation."
 
             self.exp_penalties.append(
-                (k1, imp/max_imp + F.relu(score)/max_score))
+                (k1, imp / max_imp + F.relu(score) / max_score)
+            )
 
         self.checkpoint_scores = zerolike_params_dict(strategy.model)

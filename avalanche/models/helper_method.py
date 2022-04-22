@@ -63,8 +63,7 @@ class MultiTaskDecorator(MultiTaskModule):
         ):
             param.data = param_old
 
-        self.max_class_label = max(self.max_class_label,
-                                   out_size)
+        self.max_class_label = max(self.max_class_label, out_size)
         self._initialized = True
 
     def forward_single_task(self, x: torch.Tensor, task_label: int):

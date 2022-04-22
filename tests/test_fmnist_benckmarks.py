@@ -1,6 +1,6 @@
 import unittest
 
-from avalanche.benchmarks import Experience, SplitFMNIST
+from avalanche.benchmarks import ClassificationExperience, SplitFMNIST
 from tests.unit_tests_utils import load_experience_train_eval
 
 MNIST_DOWNLOADS = 0
@@ -36,7 +36,7 @@ class FMNISTBenchmarksTests(unittest.TestCase):
 
         train_sz = 0
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             train_sz += len(experience.dataset)
 
             load_experience_train_eval(experience)
@@ -45,7 +45,7 @@ class FMNISTBenchmarksTests(unittest.TestCase):
 
         test_sz = 0
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             test_sz += len(experience.dataset)
 
             load_experience_train_eval(experience)

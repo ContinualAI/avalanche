@@ -34,10 +34,10 @@ class Generator(BaseModel):
         """
         Lets the generator sample random samples.
         Output is either a single sample or, if provided,
-        a batch of samples of size "batch_size" 
+        a batch of samples of size "batch_size"
 
         :param batch_size: Number of samples to generate
-        :param condition: Possible condition for a condotional generator 
+        :param condition: Possible condition for a condotional generator
                           (e.g. a class label)
         """
 
@@ -48,12 +48,12 @@ class Generator(BaseModel):
 
 
 class VAEMLPEncoder(nn.Module):
-    '''
+    """
     Encoder part of the VAE, computer the latent represenations of the input.
 
     :param shape: Shape of the input to the network: (channels, height, width)
     :param latent_dim: Dimension of last hidden layer
-    '''
+    """
 
     def __init__(self, shape, latent_dim=128):
         super(VAEMLPEncoder, self).__init__()
@@ -63,8 +63,8 @@ class VAEMLPEncoder(nn.Module):
             nn.Linear(in_features=flattened_size, out_features=400),
             nn.BatchNorm1d(400),
             nn.LeakyReLU(),
-            MLP([400, latent_dim])
-                                   )
+            MLP([400, latent_dim]),
+        )
 
     def forward(self, x, y=None):
         x = self.encode(x)
@@ -72,12 +72,12 @@ class VAEMLPEncoder(nn.Module):
 
 
 class VAEMLPDecoder(nn.Module):
-    '''
+    """
     Decoder part of the VAE. Reverses Encoder.
 
     :param shape: Shape of output: (channels, height, width).
     :param nhid: Dimension of input.
-    '''
+    """
 
     def __init__(self, shape, nhid=16):
         super(VAEMLPDecoder, self).__init__()
@@ -85,37 +85,39 @@ class VAEMLPDecoder(nn.Module):
         self.shape = shape
         self.decode = nn.Sequential(
             MLP([nhid, 64, 128, 256, flattened_size], last_activation=False),
-            nn.Sigmoid())
-        self.invTrans = transforms.Compose([
-                                    transforms.Normalize((0.1307,), (0.3081,))
-                        ])
+            nn.Sigmoid(),
+        )
+        self.invTrans = transforms.Compose(
+            [transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
     def forward(self, z, y=None):
-        if (y is None):
+        if y is None:
             return self.invTrans(self.decode(z).view(-1, *self.shape))
         else:
-            return self.invTrans(self.decode(torch.cat((z, y), dim=1))
-                                 .view(-1, *self.shape))
+            return self.invTrans(
+                self.decode(torch.cat((z, y), dim=1)).view(-1, *self.shape)
+            )
 
 
 class MlpVAE(Generator, nn.Module):
-    '''
-    Variational autoencoder module: 
+    """
+    Variational autoencoder module:
     fully-connected and suited for any input shape and type.
 
     The encoder only computes the latent represenations
-    and we have then two possible output heads: 
+    and we have then two possible output heads:
     One for the usual output distribution and one for classification.
     The latter is an extension the conventional VAE and incorporates
     a classifier into the network.
     More details can be found in: https://arxiv.org/abs/1809.10635
-    '''
+    """
 
     def __init__(self, shape, nhid=16, n_classes=10, device="cpu"):
         """
         :param shape: Shape of each input sample
         :param nhid: Dimension of latent space of Encoder.
-        :param n_classes: Number of classes - 
+        :param n_classes: Number of classes -
                         defines classification head's dimension
         """
         super(MlpVAE, self).__init__()
@@ -137,11 +139,13 @@ class MlpVAE(Generator, nn.Module):
         """
         Generate random samples.
         Output is either a single sample if batch_size=None,
-        else it is a batch of samples of size "batch_size". 
+        else it is a batch of samples of size "batch_size".
         """
-        z = torch.randn((batch_size, self.dim)).to(
-            self.device) if batch_size else torch.randn((1, self.dim)).to(
-                self.device)
+        z = (
+            torch.randn((batch_size, self.dim)).to(self.device)
+            if batch_size
+            else torch.randn((1, self.dim)).to(self.device)
+        )
         res = self.decoder(z)
         if not batch_size:
             res = res.squeeze(0)
@@ -157,36 +161,37 @@ class MlpVAE(Generator, nn.Module):
 
     def forward(self, x):
         """
-        Forward. 
+        Forward.
         """
         represntations = self.encoder(x)
-        mean, logvar = self.calc_mean(
-            represntations), self.calc_logvar(represntations)
+        mean, logvar = self.calc_mean(represntations), self.calc_logvar(
+            represntations
+        )
         z = self.sampling(mean, logvar)
         return self.decoder(z), mean, logvar
 
 
-# Loss functions    
+# Loss functions
 BCE_loss = nn.BCELoss(reduction="sum")
 MSE_loss = nn.MSELoss(reduction="sum")
 CE_loss = nn.CrossEntropyLoss()
 
 
 def VAE_loss(X, forward_output):
-    '''
+    """
     Loss function of a VAE using mean squared error for reconstruction loss.
     This is the criterion for VAE training loop.
 
     :param X: Original input batch.
-    :param forward_output: Return value of a VAE.forward() call. 
+    :param forward_output: Return value of a VAE.forward() call.
                 Triplet consisting of (X_hat, mean. logvar), ie.
-                (Reconstructed input after subsequent Encoder and Decoder, 
-                mean of the VAE output distribution, 
+                (Reconstructed input after subsequent Encoder and Decoder,
+                mean of the VAE output distribution,
                 logvar of the VAE output distribution)
-    '''
+    """
     X_hat, mean, logvar = forward_output
     reconstruction_loss = MSE_loss(X_hat, X)
-    KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean**2)
+    KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean ** 2)
     return reconstruction_loss + KL_divergence
 
 

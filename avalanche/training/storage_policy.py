@@ -33,7 +33,7 @@ class ExemplarsBuffer(ABC):
         """
         self.max_size = max_size
         """ Maximum size of the buffer. """
-        self._buffer = AvalancheConcatDataset([])
+        self._buffer: AvalancheDataset = AvalancheConcatDataset([])
 
     @property
     def buffer(self) -> AvalancheDataset:

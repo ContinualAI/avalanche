@@ -30,27 +30,27 @@ def init_kaiming_normal(m):
 
 class LaMAML(SupervisedTemplate):
     def __init__(
-            self,
-            model: Module,
-            optimizer: Optimizer,
-            criterion=CrossEntropyLoss(),
-            n_inner_updates: int = 5,
-            second_order: bool = True,
-            grad_clip_norm: float = 1.0,
-            learn_lr: bool = True,
-            lr_alpha: float = 0.25,
-            sync_update: bool = False,
-            alpha_init: float = 0.1,
-            train_mb_size: int = 1,
-            train_epochs: int = 1,
-            eval_mb_size: int = 1,
-            device="cpu",
-            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-            evaluator: EvaluationPlugin = default_evaluator,
-            eval_every=-1,
-            peval_mode="epoch",
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        n_inner_updates: int = 5,
+        second_order: bool = True,
+        grad_clip_norm: float = 1.0,
+        learn_lr: bool = True,
+        lr_alpha: float = 0.25,
+        sync_update: bool = False,
+        alpha_init: float = 0.1,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
     ):
-        """ Implementation of Look-ahead MAML (LaMAML) algorithm in Avalanche
+        """Implementation of Look-ahead MAML (LaMAML) algorithm in Avalanche
             using Higher library for applying fast updates.
 
         :param model: PyTorch model.
@@ -70,17 +70,17 @@ class LaMAML(SupervisedTemplate):
 
         """
         super().__init__(
-                model,
-                optimizer,
-                criterion,
-                train_mb_size,
-                train_epochs,
-                eval_mb_size,
-                device,
-                plugins,
-                evaluator,
-                eval_every,
-                peval_mode,
+            model,
+            optimizer,
+            criterion,
+            train_mb_size,
+            train_epochs,
+            eval_mb_size,
+            device,
+            plugins,
+            evaluator,
+            eval_every,
+            peval_mode,
         )
         self.n_inner_updates = n_inner_updates
         self.second_order = second_order
@@ -109,8 +109,7 @@ class LaMAML(SupervisedTemplate):
 
             # Create optimizer for the alpha_lr parameters
             self.optimizer_alpha = torch.optim.SGD(
-                self.alpha_params.parameters(),
-                lr=self.lr_alpha
+                self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
         # For task-incremental heads:
@@ -123,16 +122,14 @@ class LaMAML(SupervisedTemplate):
                     continue
                 # Add new alpha_lr for the new parameter
                 alpha_param = nn.Parameter(
-                    torch.ones(p.shape) * self.alpha_init,
-                    requires_grad=True
+                    torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
                 self.alpha_params.append(alpha_param)
 
             self.alpha_params.to(self.device)
             # Re-init optimizer for the new set of alpha_lr parameters
             self.optimizer_alpha = torch.optim.SGD(
-                self.alpha_params.parameters(),
-                lr=self.lr_alpha
+                self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
     def training_epoch(self, **kwargs):
@@ -150,8 +147,8 @@ class LaMAML(SupervisedTemplate):
             self._after_training_iteration(**kwargs)
 
     def inner_update(self, fast_model, x, y, t):
-        """ Update fast weights using current samples and
-            return the updated fast model.
+        """Update fast weights using current samples and
+        return the updated fast model.
         """
         logits = avalanche_forward(fast_model, x, t)
         loss = self._criterion(logits, y)
@@ -163,21 +160,24 @@ class LaMAML(SupervisedTemplate):
                 fast_model.fast_params,
                 create_graph=self.second_order,
                 retain_graph=self.second_order,
-                allow_unused=True
+                allow_unused=True,
             )
         )
 
         # Clip grad norms
-        grads = [torch.clamp(g, min=-self.grad_clip_norm,
-                             max=self.grad_clip_norm)
-                 if g is not None else g for g in grads]
+        grads = [
+            torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
+            if g is not None
+            else g
+            for g in grads
+        ]
 
         # New fast parameters
         new_fast_params = [
-            param - alpha * grad if grad is not None
-            else param for (param, alpha, grad)
-            in zip(fast_model.fast_params,
-                   self.alpha_params.parameters(), grads)
+            param - alpha * grad if grad is not None else param
+            for (param, alpha, grad) in zip(
+                fast_model.fast_params, self.alpha_params.parameters(), grads
+            )
         ]
 
         # Update fast model's weights
@@ -199,12 +199,12 @@ class LaMAML(SupervisedTemplate):
         fast_model = higher.patch.monkeypatch(
             self.model,
             copy_initial_weights=True,
-            track_higher_grads=self.second_order
+            track_higher_grads=self.second_order,
         )
         if self.clock.train_exp_counter > 0:
-            batch_x = self.mb_x[:self.train_mb_size]
-            batch_y = self.mb_y[:self.train_mb_size]
-            batch_t = self.mb_task_id[:self.train_mb_size]
+            batch_x = self.mb_x[: self.train_mb_size]
+            batch_y = self.mb_y[: self.train_mb_size]
+            batch_t = self.mb_task_id[: self.train_mb_size]
         else:
             batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id
 
@@ -213,16 +213,17 @@ class LaMAML(SupervisedTemplate):
         meta_losses = [0 for _ in range(self.n_inner_updates)]
 
         for i in range(self.n_inner_updates):
-            batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
-            batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
-            batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
+            batch_x_i = batch_x[i * rough_sz : (i + 1) * rough_sz]
+            batch_y_i = batch_y[i * rough_sz : (i + 1) * rough_sz]
+            batch_t_i = batch_t[i * rough_sz : (i + 1) * rough_sz]
 
             # We assume that samples for inner update are from the same task
             self.inner_update(fast_model, batch_x_i, batch_y_i, batch_t_i)
 
             # Compute meta-loss with the combination of batch and buffer samples
-            logits_meta = avalanche_forward(fast_model, self.mb_x,
-                                            self.mb_task_id)
+            logits_meta = avalanche_forward(
+                fast_model, self.mb_x, self.mb_task_id
+            )
             meta_loss = self._criterion(logits_meta, self.mb_y)
             meta_losses[i] = meta_loss
 
@@ -232,27 +233,27 @@ class LaMAML(SupervisedTemplate):
             meta_loss,
             fast_model.parameters(time=0),
             retain_graph=True,
-            allow_unused=True
+            allow_unused=True,
         )
         self.model.zero_grad()
         self.apply_grad(self.model, meta_grad_model)
 
         # Clip gradients
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(),
-                                       self.grad_clip_norm)
+        torch.nn.utils.clip_grad_norm_(
+            self.model.parameters(), self.grad_clip_norm
+        )
 
         if self.learn_lr:
             # Compute meta-gradient for alpha-lr parameters
             meta_grad_alpha = torch.autograd.grad(
-                meta_loss,
-                self.alpha_params.parameters(),
-                allow_unused=True
+                meta_loss, self.alpha_params.parameters(), allow_unused=True
             )
             self.alpha_params.zero_grad()
             self.apply_grad(self.alpha_params, meta_grad_alpha)
 
-            torch.nn.utils.clip_grad_norm_(self.alpha_params.parameters(),
-                                           self.grad_clip_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.alpha_params.parameters(), self.grad_clip_norm
+            )
             self.optimizer_alpha.step()
 
         # If sync-update: update with self.optimizer
@@ -260,8 +261,9 @@ class LaMAML(SupervisedTemplate):
         if self.sync_update:
             self.optimizer.step()
         else:
-            for p, alpha in zip(self.model.parameters(),
-                                self.alpha_params.parameters()):
+            for p, alpha in zip(
+                self.model.parameters(), self.alpha_params.parameters()
+            ):
                 # Use relu on updated LRs to avoid negative values
                 p.data = p.data - p.grad * F.relu(alpha)
 

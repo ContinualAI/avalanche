@@ -34,7 +34,7 @@ from avalanche.benchmarks.utils import (
     PathsDataset,
     common_paths_root,
 )
-from .generic_cl_scenario import GenericCLScenario
+from .classification_scenario import GenericCLScenario
 from ..utils.avalanche_dataset import AvalancheDatasetType
 
 

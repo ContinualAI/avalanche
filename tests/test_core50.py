@@ -12,8 +12,6 @@
 """ CORe50 Tests"""
 
 import unittest
-import os
-
 
 from avalanche.benchmarks.classic import CORe50
 from tests.unit_tests_utils import FAST_TEST, is_github_action

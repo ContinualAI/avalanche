@@ -22,9 +22,14 @@ class LRSchedulerPlugin(SupervisedPlugin):
     """
 
     def __init__(
-            self, scheduler, reset_scheduler=True, reset_lr=True, metric=None,
-            step_granularity: Literal['epoch', 'iteration'] = 'epoch',
-            first_epoch_only=False, first_exp_only=False
+        self,
+        scheduler,
+        reset_scheduler=True,
+        reset_lr=True,
+        metric=None,
+        step_granularity: Literal["epoch", "iteration"] = "epoch",
+        first_epoch_only=False,
+        first_exp_only=False,
     ):
         """
         Creates a ``LRSchedulerPlugin`` instance.
@@ -96,16 +101,19 @@ class LRSchedulerPlugin(SupervisedPlugin):
                 f"is supported at the moment (got {metric}."
             )
 
-        if self.step_granularity not in ['iteration', 'epoch']:
+        if self.step_granularity not in ["iteration", "epoch"]:
             raise ValueError(
-                'Wrong value of step_granularity: valid values are '
-                '"iteration" and "epoch"')
+                "Wrong value of step_granularity: valid values are "
+                '"iteration" and "epoch"'
+            )
 
         LRSchedulerPlugin._patch_lr_on_plateau(self.scheduler)
 
     def after_training_epoch(self, strategy: "SupervisedTemplate", **kwargs):
-        if self.step_granularity == 'epoch' and \
-                self.metric in [None, 'train_loss']:
+        if self.step_granularity == "epoch" and self.metric in [
+            None,
+            "train_loss",
+        ]:
             self._step_scheduler(strategy, **kwargs)
 
     def before_training_iteration(self, strategy, **kwargs):
@@ -175,8 +183,10 @@ class LRSchedulerPlugin(SupervisedPlugin):
         if self.metric == "train_loss":
             self.rolling_metric.update(strategy.loss, weight=len(strategy.mb_x))
 
-        if self.step_granularity == 'iteration' and \
-                self.metric in [None, 'train_loss']:
+        if self.step_granularity == "iteration" and self.metric in [
+            None,
+            "train_loss",
+        ]:
             self._step_scheduler(strategy, **kwargs)
 
     def after_eval_iteration(self, strategy: "SupervisedTemplate", **kwargs):
@@ -234,6 +244,4 @@ class LRSchedulerPlugin(SupervisedPlugin):
                 self.scheduler.step(metrics=self.rolling_metric.result())
 
 
-__all__ = [
-    "LRSchedulerPlugin"
-]
+__all__ = ["LRSchedulerPlugin"]

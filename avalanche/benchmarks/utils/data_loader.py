@@ -14,22 +14,18 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-import math
 from itertools import chain
-from typing import Dict, Sequence, Union, Iterator, Optional
+from typing import Dict, Sequence, Union
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler, Dataset
+from torch.utils.data import RandomSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.sampler import T_co
 
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.collate_functions import \
     classification_collate_mbatches_fn
-
 from avalanche.benchmarks.utils.collate_functions import detection_collate_fn \
     as _detection_collate_fn
-
 from avalanche.benchmarks.utils.collate_functions import \
     detection_collate_mbatches_fn as _detection_collate_mbatches_fn
 from avalanche.distributed import DistributedHelper
@@ -338,10 +334,11 @@ class ReplayDataLoader:
 
         num_keys = len(self.memory.task_set)
         if task_balanced_dataloader:
-            assert batch_size_mem >= num_keys, \
-                "Batch size must be greator or equal " \
-                "to the number of tasks in the memory " \
+            assert batch_size_mem >= num_keys, (
+                "Batch size must be greator or equal "
+                "to the number of tasks in the memory "
                 "and current data."
+            )
 
         self.data_batch_sizes, _ = self._get_batch_sizes(
             data, batch_size, 0, False)

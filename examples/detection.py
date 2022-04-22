@@ -24,14 +24,20 @@ from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.datasets import LvisDataset, PennFudanDataset
-from avalanche.benchmarks.scenarios.detection_scenario import \
-    DetectionCLScenario
+from avalanche.benchmarks.scenarios.detection_scenario import (
+    DetectionCLScenario,
+)
 from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
-from avalanche.training.supervised.naive_object_detection import \
-    ObjectDetectionTemplate
+from avalanche.training.supervised.naive_object_detection import (
+    ObjectDetectionTemplate,
+)
 
-from avalanche.evaluation.metrics import make_lvis_metrics, timing_metrics, \
-    loss_metrics, DetectionMetrics
+from avalanche.evaluation.metrics import (
+    make_lvis_metrics,
+    timing_metrics,
+    loss_metrics,
+    DetectionMetrics,
+)
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 import argparse
@@ -68,7 +74,8 @@ def main(args):
     benchmark = split_penn_fudan(
         n_experiences=n_exps,
         train_transform=train_transform,
-        eval_transform=test_transform)
+        eval_transform=test_transform,
+    )
     # ---------
 
     # MODEL CREATION
@@ -78,39 +85,45 @@ def main(args):
         # Ingore the segmentation task
         # load a model pre-trained on COCO
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-            pretrained=True)
+            pretrained=True
+        )
 
         # Replace the classifier with a new one, that has "num_classes" outputs
         # 1) Get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # 2) Replace the pre-trained head with a new one
-        model.roi_heads.box_predictor = \
-            FastRCNNPredictor(in_features, num_classes)
+        model.roi_heads.box_predictor = FastRCNNPredictor(
+            in_features, num_classes
+        )
     else:
         # Detection + Segmentation
         model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-            pretrained=True)
+            pretrained=True
+        )
 
         # Replace the classifier with a new one, that has "num_classes" outputs
         # 1) Get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # 2) Replace the pre-trained head with a new one
-        model.roi_heads.box_predictor = \
-            FastRCNNPredictor(in_features, num_classes)
+        model.roi_heads.box_predictor = FastRCNNPredictor(
+            in_features, num_classes
+        )
 
         # now get the number of input features for the mask classifier
         in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
         hidden_layer = 256
         # and replace the mask predictor with a new one
-        model.roi_heads.mask_predictor = \
-            MaskRCNNPredictor(in_features_mask, hidden_layer, num_classes)
+        model.roi_heads.mask_predictor = MaskRCNNPredictor(
+            in_features_mask, hidden_layer, num_classes
+        )
 
     model = model.to(device)
 
     # Define the optimizer and the scheduler
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(
+        params, lr=0.005, momentum=0.9, weight_decay=0.0005
+    )
 
     train_mb_size = 5
     warmup_factor = 1.0 / 1000
@@ -130,32 +143,41 @@ def main(args):
         eval_mb_size=train_mb_size,
         device=device,
         plugins=[
-            LRSchedulerPlugin(lr_scheduler, step_granularity='iteration',
-                              first_exp_only=True, first_epoch_only=True)
+            LRSchedulerPlugin(
+                lr_scheduler,
+                step_granularity="iteration",
+                first_exp_only=True,
+                first_epoch_only=True,
+            )
         ],
         evaluator=EvaluationPlugin(
             timing_metrics(epoch=True),
             loss_metrics(epoch_running=True),
             make_penn_fudan_metrics(detection_only=args.detection_only),
-            loggers=[InteractiveLogger()])
+            loggers=[InteractiveLogger()],
+        ),
     )
 
     # TRAINING LOOP
     print("Starting experiment...")
     for i, experience in enumerate(benchmark.train_stream):
         print("Start of experience: ", experience.current_experience)
-        print('Train dataset contains', len(experience.dataset), 'instances')
+        print("Train dataset contains", len(experience.dataset), "instances")
 
         cl_strategy.train(experience, num_workers=4)
         print("Training completed")
 
         cl_strategy.eval(benchmark.test_stream, num_workers=4)
-        print('Evaluation completed')
+        print("Evaluation completed")
 
 
 def split_penn_fudan(
-        n_experiences: int, train_transform=None, eval_transform=None,
-        shuffle=True, root_path: Union[str, Path] = None):
+    n_experiences: int,
+    train_transform=None,
+    eval_transform=None,
+    shuffle=True,
+    root_path: Union[str, Path] = None,
+):
     """
     Creates an example benchmark based on the Penn-Fudan Pedestrian dataset.
 
@@ -177,8 +199,9 @@ def split_penn_fudan(
     test_size = 50
     train_size = len(dataset) - test_size
     if shuffle:
-        train_dataset, test_dataset = \
-            random_split(dataset, [train_size, test_size])
+        train_dataset, test_dataset = random_split(
+            dataset, [train_size, test_size]
+        )
     else:
         indices = list(range(len(dataset)))
         train_dataset = Subset(dataset, indices[:-test_size])
@@ -191,7 +214,7 @@ def split_penn_fudan(
         n_classes=1,  # There is only one class: pedestrian
         train_transform=train_transform,
         eval_transform=eval_transform,
-        shuffle=shuffle
+        shuffle=shuffle,
     )
 
 
@@ -207,14 +230,12 @@ def make_penn_fudan_metrics(detection_only=True):
     """
 
     if detection_only:
-        iou_types = ['bbox']
+        iou_types = ["bbox"]
     else:
-        iou_types = ['bbox', 'segm']
+        iou_types = ["bbox", "segm"]
 
     return DetectionMetrics(
-        iou_types=iou_types,
-        default_to_coco=True,
-        summarize_to_stdout=True
+        iou_types=iou_types, default_to_coco=True, summarize_to_stdout=True
     )
 
 
@@ -229,7 +250,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--detection_only",
-        action='store_true',
+        action="store_true",
         help="Set this flag to ignore the segmentation task",
     )
     args = parser.parse_args()

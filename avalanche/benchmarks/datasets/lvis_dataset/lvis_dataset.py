@@ -30,7 +30,7 @@ import torch
 
 
 class LvisDataset(DownloadableDataset):
-    """ LVIS PyTorch Object Detection Dataset """
+    """LVIS PyTorch Object Detection Dataset"""
 
     def __init__(
         self,
@@ -86,9 +86,7 @@ class LvisDataset(DownloadableDataset):
             if self.verbose:
                 print("Downloading " + name + "...")
 
-            result_file = self._download_file(
-                url, name, checksum
-            )
+            result_file = self._download_file(url, name, checksum)
             if self.verbose:
                 print("Download completed. Extracting...")
 
@@ -117,8 +115,9 @@ class LvisDataset(DownloadableDataset):
             # Try loading an image
             if len(self.img_ids) > 0:
                 img_id = self.img_ids[0]
-                img_dict: LVISImgEntry = \
-                    self.lvis_api.load_imgs(ids=[img_id])[0]
+                img_dict: LVISImgEntry = self.lvis_api.load_imgs(ids=[img_id])[
+                    0
+                ]
                 assert self._load_img(img_dict) is not None
         except BaseException:
             if must_load_api:
@@ -158,12 +157,12 @@ class LvisDataset(DownloadableDataset):
         boxes = []
         labels = []
         for i in range(num_objs):
-            xmin = annotation_dicts[i]['bbox'][0]
-            ymin = annotation_dicts[i]['bbox'][1]
-            xmax = xmin + annotation_dicts[i]['bbox'][2]
-            ymax = ymin + annotation_dicts[i]['bbox'][3]
+            xmin = annotation_dicts[i]["bbox"][0]
+            ymin = annotation_dicts[i]["bbox"][1]
+            xmax = xmin + annotation_dicts[i]["bbox"][2]
+            ymax = ymin + annotation_dicts[i]["bbox"][3]
             boxes.append([xmin, ymin, xmax, ymax])
-            labels.append(annotation_dicts[i]['category_id'])
+            labels.append(annotation_dicts[i]["category_id"])
 
         if len(boxes) > 0:
             boxes = torch.as_tensor(boxes, dtype=torch.float32)
@@ -174,7 +173,7 @@ class LvisDataset(DownloadableDataset):
         image_id = torch.tensor([img_id])
         areas = []
         for i in range(num_objs):
-            areas.append(annotation_dicts[i]['area'])
+            areas.append(annotation_dicts[i]["area"])
         areas = torch.as_tensor(areas, dtype=torch.float32)
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
@@ -196,9 +195,9 @@ class LvisDataset(DownloadableDataset):
         return len(self.img_ids)
 
     def _load_img(self, img_dict: "LVISImgEntry"):
-        coco_url = img_dict['coco_url']
-        splitted_url = coco_url.split('/')
-        img_path = splitted_url[-2] + '/' + splitted_url[-1]
+        coco_url = img_dict["coco_url"]
+        splitted_url = coco_url.split("/")
+        img_path = splitted_url[-2] + "/" + splitted_url[-1]
         final_path = self.root / img_path  # <root>/train2017/<img_id>.jpg
         return self.loader(str(final_path))
 
@@ -225,10 +224,7 @@ class LVISAnnotationEntry(TypedDict):
 
 
 class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
-    def __init__(
-            self,
-            lvis_api: LVIS,
-            img_ids: List[int] = None):
+    def __init__(self, lvis_api: LVIS, img_ids: List[int] = None):
         super(LVISDetectionTargets, self).__init__()
         self.lvis_api = lvis_api
         if img_ids is None:
@@ -242,8 +238,9 @@ class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
     def __getitem__(self, index):
         img_id = self.img_ids[index]
         annotation_ids = self.lvis_api.get_ann_ids(img_ids=[img_id])
-        annotation_dicts: List[LVISAnnotationEntry] = \
-            self.lvis_api.load_anns(annotation_ids)
+        annotation_dicts: List[LVISAnnotationEntry] = self.lvis_api.load_anns(
+            annotation_ids
+        )
         return annotation_dicts
 
 
@@ -258,15 +255,19 @@ def _detection_collate_fn(batch):
 def _plot_detection_sample(img: Image.Image, target):
     from matplotlib import patches
     import matplotlib.pyplot as plt
+
     plt.gca().imshow(img)
-    for box in target['boxes']:
+    for box in target["boxes"]:
         box = box.tolist()
 
         rect = patches.Rectangle(
-            (box[0], box[1]), box[2] - box[0], box[3] - box[1],
+            (box[0], box[1]),
+            box[2] - box[0],
+            box[3] - box[1],
             linewidth=1,
-            edgecolor='r',
-            facecolor='none')
+            edgecolor="r",
+            facecolor="none",
+        )
         plt.gca().add_patch(rect)
 
 
@@ -282,8 +283,9 @@ if __name__ == "__main__":
     test_data = LvisDataset(transform=_test_to_tensor, train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
-    dataloader = DataLoader(train_data, batch_size=1,
-                            collate_fn=_detection_collate_fn)
+    dataloader = DataLoader(
+        train_data, batch_size=1, collate_fn=_detection_collate_fn
+    )
 
     n_to_show = 5
     for instance_idx, batch_data in enumerate(dataloader):
@@ -292,8 +294,8 @@ if __name__ == "__main__":
         y = y[0]
         _plot_detection_sample(transforms.ToPILImage()(x), y)
         plt.show()
-        print('X image shape', x.shape)
-        print('N annotations:', len(y['boxes']))
+        print("X image shape", x.shape)
+        print("N annotations:", len(y["boxes"]))
         if (instance_idx + 1) >= n_to_show:
             break
 
@@ -301,5 +303,5 @@ __all__ = [
     "LvisDataset",
     "LVISImgEntry",
     "LVISAnnotationEntry",
-    "LVISDetectionTargets"
+    "LVISDetectionTargets",
 ]

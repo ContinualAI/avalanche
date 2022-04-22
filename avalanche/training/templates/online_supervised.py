@@ -6,7 +6,7 @@ import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.benchmarks import Experience
+from avalanche.benchmarks import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
@@ -80,9 +80,15 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs
     ):
@@ -142,7 +148,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
     def _train_exp(
         self,
-        experience: Experience,
+        experience: ClassificationExperience,
         eval_streams=None,
         is_first_sub_exp=False,
         is_last_sub_exp=False,

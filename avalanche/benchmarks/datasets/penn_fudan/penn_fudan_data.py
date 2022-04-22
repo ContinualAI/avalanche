@@ -12,11 +12,9 @@
 
 
 penn_fudan_data = (
-    'https://www.cis.upenn.edu/~jshi/ped_html/PennFudanPed.zip',
-    '5aaa3dee905cef73325923716e38fc6d',
+    "https://www.cis.upenn.edu/~jshi/ped_html/PennFudanPed.zip",
+    "5aaa3dee905cef73325923716e38fc6d",
 )
 
 
-__all__ = [
-    "penn_fudan_data"
-]
+__all__ = ["penn_fudan_data"]

@@ -116,7 +116,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertIsNotNone(ref_instance_idx)
 
         with self.assertWarns(
-                avalanche.benchmarks.utils.ComposeMaxParamsWarning):
+            avalanche.benchmarks.utils.ComposeMaxParamsWarning
+        ):
             dataset_transform = avalanche.benchmarks.utils.Compose(
                 [ToTensor(), zero_if_label_2]
             )
@@ -125,8 +126,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(2, dataset_transform.max_params)
 
         x, y = dataset_mnist[ref_instance_idx]
-        dataset = AvalancheDataset(
-            dataset_mnist, transform=dataset_transform)
+        dataset = AvalancheDataset(dataset_mnist, transform=dataset_transform)
         x2, y2, t2 = dataset[ref_instance_idx]
 
         self.assertIsInstance(x2, Tensor)

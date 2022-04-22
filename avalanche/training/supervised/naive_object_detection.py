@@ -16,8 +16,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.utils.data_loader import detection_collate_fn, \
-    TaskBalancedDataLoader, detection_collate_mbatches_fn
+from avalanche.benchmarks.utils.data_loader import (
+    detection_collate_fn,
+    TaskBalancedDataLoader,
+    detection_collate_mbatches_fn,
+)
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -45,18 +48,19 @@ class ObjectDetectionTemplate(SupervisedTemplate):
     """
 
     def __init__(
-            self,
-            model: Module,
-            optimizer: Optimizer,
-            train_mb_size: int = 1,
-            train_epochs: int = 1,
-            eval_mb_size: int = 1,
-            device="cpu",
-            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-            evaluator: EvaluationPlugin = default_evaluator,
-            eval_every=-1,
-            peval_mode="epoch",
-            scaler=None):
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        device="cpu",
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator: EvaluationPlugin = default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
+        scaler=None,
+    ):
         """
         Creates a naive detection strategy instance.
 
@@ -91,7 +95,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
-            peval_mode=peval_mode
+            peval_mode=peval_mode,
         )
         self.scaler = scaler  # torch.cuda.amp.autocast scaler
         """
@@ -120,8 +124,13 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         """
 
     def make_train_dataloader(
-            self, num_workers=0, shuffle=True, pin_memory=True,
-            persistent_workers=False, **kwargs):
+        self,
+        num_workers=0,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=False,
+        **kwargs
+    ):
         """Data loader initialization.
 
         Called at the start of each learning experience after the dataset
@@ -138,8 +147,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
 
         other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version('1.7.0'):
-            other_dataloader_args['persistent_workers'] = persistent_workers
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -169,7 +178,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
-            collate_fn=detection_collate_fn
+            collate_fn=detection_collate_fn,
         )
 
     def criterion(self):
@@ -212,14 +221,15 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
             outs = self.model(self.mb_x)
-            return [{k: v.to('cpu') for k, v in t.items()} for t in outs]
+            return [{k: v.to("cpu") for k, v in t.items()} for t in outs]
 
     def _unpack_minibatch(self):
         # Unpack minibatch mainly takes care of moving tensors to devices.
         # In addition, it will prepare the targets in the proper dict format.
         images = list(image.to(self.device) for image in self.mbatch[0])
-        targets = [{k: v.to(self.device) for k, v in t.items()}
-                   for t in self.mbatch[1]]
+        targets = [
+            {k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]
+        ]
         self.mbatch[0] = images
         self.mbatch[1] = targets
 
@@ -237,7 +247,4 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             self.optimizer.step()
 
 
-__all__ = [
-    'detection_collate_fn',
-    'ObjectDetectionTemplate'
-]
+__all__ = ["detection_collate_fn", "ObjectDetectionTemplate"]

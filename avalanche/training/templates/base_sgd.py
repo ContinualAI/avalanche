@@ -1,14 +1,15 @@
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import final
 
-from avalanche.benchmarks import Experience
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.strategies import \
     DistributedMiniBatchStrategySupport, DistributedLossStrategySupport
+from avalanche.benchmarks import ClassificationExperience
+from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -40,15 +41,17 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
     """
 
+    PLUGIN_CLASS = BaseSGDPlugin
+
     def __init__(
         self,
         model: Module,
         optimizer: Optimizer,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = 1,
+        eval_mb_size: Optional[int] = 1,
         device="cpu",
-        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        plugins: Optional[List["SupervisedPlugin"]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -125,9 +128,15 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs,
     ):
@@ -135,7 +144,13 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         return self.evaluator.get_last_metrics()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]], **kwargs):
+    def eval(
+        self,
+        exp_list: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
+        **kwargs,
+    ):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -157,7 +172,9 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
-    def _train_exp(self, experience: Experience, eval_streams=None, **kwargs):
+    def _train_exp(
+        self, experience: ClassificationExperience, eval_streams=None, **kwargs
+    ):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -231,7 +248,9 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         :param kwargs:
         :return:
         """
+        print('Pre-mbatch')
         for self.mbatch in self.dataloader:
+            print('mbatch', self.mbatch)
             if self._stop_training:
                 break
 
@@ -425,15 +444,13 @@ class PeriodicEval(SupervisedPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy)
 
-    def after_training_epoch(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_epoch(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
 
-    def after_training_iteration(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":

@@ -35,11 +35,11 @@ import torch
 
 from avalanche.benchmarks import (
     GenericCLScenario,
-    Experience,
-    GenericScenarioStream,
+    ClassificationExperience,
+    ClassificationStream,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.generic_cl_scenario import (
+from avalanche.benchmarks.scenarios.classification_scenario import (
     TStreamsUserDict,
     StreamUserDef,
 )
@@ -418,7 +418,10 @@ def _one_dataset_per_exp_class_order(
 
 
 def fixed_size_experience_split_strategy(
-    experience_size: int, shuffle: bool, drop_last: bool, experience: Experience
+    experience_size: int,
+    shuffle: bool,
+    drop_last: bool,
+    experience: ClassificationExperience,
 ):
     """
     The default splitting strategy used by :func:`data_incremental_benchmark`.
@@ -481,10 +484,10 @@ def data_incremental_benchmark(
     drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
     custom_split_strategy: Callable[
-        [Experience], Sequence[AvalancheDataset]
+        [ClassificationExperience], Sequence[AvalancheDataset]
     ] = None,
     experience_factory: Callable[
-        [GenericScenarioStream, int], Experience
+        [ClassificationStream, int], ClassificationExperience
     ] = None,
 ):
     """
@@ -564,7 +567,7 @@ def data_incremental_benchmark(
         split_datasets: List[AvalancheDataset] = []
         split_task_labels: List[Set[int]] = []
 
-        exp: Experience
+        exp: ClassificationExperience
         for exp in stream:
             experiences = split_strategy(exp)
             split_datasets += experiences
@@ -593,7 +596,9 @@ def data_incremental_benchmark(
 
 
 def random_validation_split_strategy(
-    validation_size: Union[int, float], shuffle: bool, experience: Experience
+    validation_size: Union[int, float],
+    shuffle: bool,
+    experience: ClassificationExperience,
 ):
     """
     The default splitting strategy used by
@@ -654,7 +659,7 @@ def random_validation_split_strategy(
 
 
 def class_balanced_split_strategy(
-    validation_size: Union[int, float], experience: Experience
+    validation_size: Union[int, float], experience: ClassificationExperience
 ):
     """Class-balanced train/validation splits.
 
@@ -729,9 +734,9 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [Experience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
     ],
-    experiences: Iterable[Experience],
+    experiences: Iterable[ClassificationExperience],
 ) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
     """
     Creates a generator operating around the split strategy and the
@@ -754,11 +759,11 @@ def benchmark_with_validation_stream(
     input_stream: str = "train",
     output_stream: str = "valid",
     custom_split_strategy: Callable[
-        [Experience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
     ] = None,
     *,
     experience_factory: Callable[
-        [GenericScenarioStream, int], Experience
+        [ClassificationStream, int], ClassificationExperience
     ] = None,
     lazy_splitting: bool = None,
 ):
@@ -855,7 +860,7 @@ def benchmark_with_validation_stream(
         train_exps_source = []
         valid_exps_source = []
 
-        exp: Experience
+        exp: ClassificationExperience
         for exp in stream:
             train_exp, valid_exp = split_strategy(exp)
             train_exps_source.append(train_exp)

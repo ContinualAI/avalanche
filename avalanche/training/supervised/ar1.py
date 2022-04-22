@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 
 import torch
 from torch import Tensor
@@ -59,7 +59,7 @@ class AR1(SupervisedTemplate):
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
         device=None,
-        plugins: Optional[Sequence[SupervisedPlugin]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):

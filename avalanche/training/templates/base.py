@@ -1,10 +1,10 @@
 import warnings
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
 
-from avalanche.benchmarks import Experience
+from avalanche.benchmarks import ClassificationExperience
 from avalanche.core import BasePlugin
 from avalanche.distributed.strategies import DistributedModelStrategySupport
 from avalanche.training.utils import trigger_plugins
@@ -34,7 +34,7 @@ class BaseTemplate(DistributedModelStrategySupport):
         self,
         model: Module,
         device="cpu",
-        plugins: Optional[Sequence[PLUGIN_CLASS]] = None,
+        plugins: Optional[List[BasePlugin]] = None,
     ):
         """Init."""
 
@@ -50,18 +50,20 @@ class BaseTemplate(DistributedModelStrategySupport):
         """ List of `SupervisedPlugin`s. """
 
         # check plugin compatibility
-        self.__check_plugin_compatibility()
+        self._check_plugin_compatibility()
 
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
-        self.experience = None
+        self.experience: Optional[ClassificationExperience] = None
         """ Current experience. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream = None
+        self.current_eval_stream: Optional[
+            Sequence[ClassificationExperience]
+        ] = None
         """ Current evaluation stream. """
 
     @property
@@ -71,9 +73,15 @@ class BaseTemplate(DistributedModelStrategySupport):
 
     def train(
         self,
-        experiences: Union[Experience, Sequence[Experience]],
+        experiences: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
         eval_streams: Optional[
-            Sequence[Union[Experience, Sequence[Experience]]]
+            Sequence[
+                Union[
+                    ClassificationExperience, Sequence[ClassificationExperience]
+                ]
+            ]
         ] = None,
         **kwargs,
     ):
@@ -110,12 +118,19 @@ class BaseTemplate(DistributedModelStrategySupport):
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
 
-    def _train_exp(self, experience: Experience, eval_streams, **kwargs):
+    def _train_exp(
+        self, experience: ClassificationExperience, eval_streams, **kwargs
+    ):
         raise NotImplementedError()
 
     @torch.no_grad()
-    def eval(self, exp_list: Union[Experience, Sequence[Experience]],
-             **kwargs):
+    def eval(
+        self,
+        exp_list: Union[
+            ClassificationExperience, Sequence[ClassificationExperience]
+        ],
+        **kwargs,
+    ):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -183,7 +198,7 @@ class BaseTemplate(DistributedModelStrategySupport):
                 # model's adaptation. We set it to train mode.
                 layer.train()
 
-    def __check_plugin_compatibility(self):
+    def _check_plugin_compatibility(self):
         """Check that the list of plugins is compatible with the template.
 
         This means checking that each plugin impements a subset of the
@@ -196,8 +211,8 @@ class BaseTemplate(DistributedModelStrategySupport):
 
         def get_plugins_from_object(obj):
             def is_callback(x):
-                return x.startswith("before") or \
-                       x.startswith("after")
+                return x.startswith("before") or x.startswith("after")
+
             return filter(is_callback, dir(obj))
 
         cb_supported = set(get_plugins_from_object(self.PLUGIN_CLASS))
@@ -207,7 +222,8 @@ class BaseTemplate(DistributedModelStrategySupport):
             if not cb_p.issubset(cb_supported):
                 warnings.warn(
                     f"Plugin {p} implements incompatible callbacks for template"
-                    f" {self}. This may result in errors."
+                    f" {self}. This may result in errors. Incompatible "
+                    f"callbacks: {cb_p - cb_supported}",
                 )
                 return
 

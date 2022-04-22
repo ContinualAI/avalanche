@@ -4,23 +4,24 @@ from os.path import expanduser
 
 from torchvision.datasets import MNIST
 
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
-from avalanche.benchmarks import nc_benchmark, GenericScenarioStream
+from avalanche.benchmarks import nc_benchmark, ClassificationStream
 
 
 class MultiTaskTests(unittest.TestCase):
     def test_mt_single_dataset(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -56,12 +57,12 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_mt_single_dataset_without_class_id_remap(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -93,12 +94,12 @@ class MultiTaskTests(unittest.TestCase):
     def test_mt_single_dataset_fixed_order(self):
         order = [2, 3, 5, 7, 8, 9, 0, 1, 4, 6]
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -122,12 +123,12 @@ class MultiTaskTests(unittest.TestCase):
     def test_sit_single_dataset_fixed_order_subset(self):
         order = [2, 5, 7, 8, 9, 0, 1, 4]
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -160,12 +161,12 @@ class MultiTaskTests(unittest.TestCase):
     def test_sit_single_dataset_fixed_subset_no_remap_idx(self):
         order = [2, 5, 7, 8, 9, 0, 1, 4]
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -197,12 +198,12 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_mt_single_dataset_reproducibility_data(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -235,12 +236,12 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_mt_single_dataset_task_size(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -368,12 +369,12 @@ class MultiTaskTests(unittest.TestCase):
 
     def test_nc_mt_slicing(self):
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
         )
@@ -397,7 +398,7 @@ class MultiTaskTests(unittest.TestCase):
 
         iterable_slice = [3, 4, 1]
         sliced_stream = my_nc_benchmark.train_stream[iterable_slice]
-        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertIsInstance(sliced_stream, ClassificationStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual("train", sliced_stream.name)
 
@@ -408,7 +409,7 @@ class MultiTaskTests(unittest.TestCase):
             self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_benchmark.test_stream[iterable_slice]
-        self.assertIsInstance(sliced_stream, GenericScenarioStream)
+        self.assertIsInstance(sliced_stream, ClassificationStream)
         self.assertEqual(len(iterable_slice), len(sliced_stream))
         self.assertEqual("test", sliced_stream.name)
 

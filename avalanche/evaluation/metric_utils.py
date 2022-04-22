@@ -19,7 +19,7 @@ from torch import Tensor
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
-    from avalanche.benchmarks.scenarios import Experience
+    from avalanche.benchmarks.scenarios import ClassificationExperience
     from avalanche.evaluation import PluginMetric
 
 
@@ -224,7 +224,7 @@ def default_history_repartition_image_creator(
     return fig
 
 
-def stream_type(experience: "Experience") -> str:
+def stream_type(experience: "ClassificationExperience") -> str:
     """
     Returns the stream name from which the experience belongs to.
     e.g. the experience can be part of train or test stream.
@@ -248,7 +248,7 @@ def phase_and_task(strategy: "SupervisedTemplate") -> Tuple[str, int]:
     :return: The current phase name as either "Train" or "Task" and the
         associated task label.
     """
-    if hasattr(strategy.experience, 'task_labels'):
+    if hasattr(strategy.experience, "task_labels"):
         task = strategy.experience.task_labels
         if len(task) > 1:
             task = None  # task labels per patterns
@@ -310,14 +310,18 @@ def get_metric_name(
     base_name = "{}/{}_phase/{}_stream".format(str(metric), phase_name, stream)
     exp_name = "/Exp{:03}".format(strategy.experience.current_experience)
 
-    if task_label is None and isinstance(add_task, bool):
+    # task label not present - do not print task
+    if task_label is None and type(add_task) == bool:
         add_task = False
     else:
-        if isinstance(add_task, bool) and add_task:
+        # task label is present and printed
+        if type(add_task) == bool and add_task is True:
             task_name = "/Task{:03}".format(task_label)
-        elif isinstance(add_task, int):
+        # print user-defined task label
+        elif type(add_task) == int:
             task_name = "/Task{:03}".format(add_task)
             add_task = True
+        # else case is add_task=False
 
     if add_experience and not add_task:
         return base_name + exp_name

@@ -26,7 +26,7 @@ from avalanche.benchmarks.utils import (
     AvalancheDataset,
 )
 from avalanche.benchmarks.utils import datasets_from_filelists
-from .generic_cl_scenario import GenericCLScenario
+from .classification_scenario import GenericCLScenario
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 from ..utils.avalanche_dataset import AvalancheDatasetType
 

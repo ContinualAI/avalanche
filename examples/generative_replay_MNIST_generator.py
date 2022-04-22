@@ -54,7 +54,7 @@ def main(args):
         train_mb_size=100,
         train_epochs=4,
         device=device,
-        plugins=[GenerativeReplayPlugin()]
+        plugins=[GenerativeReplayPlugin()],
     )
 
     # TRAINING LOOP
@@ -62,8 +62,7 @@ def main(args):
     f, axarr = plt.subplots(scenario.n_experiences, 10)
     k = 0
     for experience in scenario.train_stream:
-        print("Start of experience ",
-              experience.current_experience)
+        print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 
@@ -73,7 +72,7 @@ def main(args):
         for j in range(10):
             axarr[k, j].imshow(samples[j, 0], cmap="gray")
             axarr[k, 4].set_title("Generated images for experience " + str(k))
-        np.vectorize(lambda ax: ax.axis('off'))(axarr)
+        np.vectorize(lambda ax: ax.axis("off"))(axarr)
         k += 1
 
     f.subplots_adjust(hspace=1.2)

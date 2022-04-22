@@ -1,8 +1,10 @@
 import unittest
 
-from torch.utils.data.dataloader import DataLoader
-
-from avalanche.benchmarks import Experience, SplitCIFAR100, SplitCIFAR110
+from avalanche.benchmarks import (
+    ClassificationExperience,
+    SplitCIFAR100,
+    SplitCIFAR110,
+)
 from tests.unit_tests_utils import (
     load_experience_train_eval,
     FAST_TEST,
@@ -61,7 +63,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         train_sz = 0
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             train_sz += len(experience.dataset)
 
             # Regression test for 575
@@ -71,7 +73,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         test_sz = 0
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             test_sz += len(experience.dataset)
 
             # Regression test for 575
@@ -90,7 +92,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         train_sz = 0
         for experience in benchmark.train_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             train_sz += len(experience.dataset)
 
             load_experience_train_eval(experience)
@@ -99,7 +101,7 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
 
         test_sz = 0
         for experience in benchmark.test_stream:
-            self.assertIsInstance(experience, Experience)
+            self.assertIsInstance(experience, ClassificationExperience)
             test_sz += len(experience.dataset)
 
             load_experience_train_eval(experience)

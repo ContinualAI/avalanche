@@ -44,10 +44,14 @@ class ReplayPlugin(SupervisedPlugin):
                            in memory
     """
 
-    def __init__(self, mem_size: int = 200, batch_size: int = None,
-                 batch_size_mem: int = None,
-                 task_balanced_dataloader: bool = False,
-                 storage_policy: Optional["ExemplarsBuffer"] = None):
+    def __init__(
+        self,
+        mem_size: int = 200,
+        batch_size: int = None,
+        batch_size_mem: int = None,
+        task_balanced_dataloader: bool = False,
+        storage_policy: Optional["ExemplarsBuffer"] = None,
+    ):
         super().__init__()
         self.mem_size = mem_size
         self.batch_size = batch_size
@@ -59,16 +63,20 @@ class ReplayPlugin(SupervisedPlugin):
             assert storage_policy.max_size == self.mem_size
         else:  # Default
             self.storage_policy = ExperienceBalancedBuffer(
-                max_size=self.mem_size,
-                adaptive_size=True)
+                max_size=self.mem_size, adaptive_size=True
+            )
 
     @property
     def ext_mem(self):
         return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
-    def before_training_exp(self, strategy: "SupervisedTemplate",
-                            num_workers: int = 0, shuffle: bool = True,
-                            **kwargs):
+    def before_training_exp(
+        self,
+        strategy: "SupervisedTemplate",
+        num_workers: int = 0,
+        shuffle: bool = True,
+        **kwargs
+    ):
         """
         Dataloader to build batches containing examples from both memories and
         the training dataset
@@ -94,7 +102,8 @@ class ReplayPlugin(SupervisedPlugin):
             batch_size_mem=batch_size_mem,
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
-            shuffle=shuffle)
+            shuffle=shuffle,
+        )
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
