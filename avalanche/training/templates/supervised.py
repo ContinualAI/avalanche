@@ -276,7 +276,6 @@ class SupervisedTemplate(BaseSGDTemplate):
 
     def _forward(self):
         """Implementation of the forward pass."""
-        # print('mbx hash:', hash_tensor(self.distributed_mbatch[0]))
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     @final

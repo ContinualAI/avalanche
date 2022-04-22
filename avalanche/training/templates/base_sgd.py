@@ -248,9 +248,7 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         :param kwargs:
         :return:
         """
-        print('Pre-mbatch')
         for self.mbatch in self.dataloader:
-            print('mbatch', self.mbatch)
             if self._stop_training:
                 break
 
