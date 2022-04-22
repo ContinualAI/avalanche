@@ -34,7 +34,6 @@ from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.distributed import DistributedHelper
-from avalanche.distributed.distributed_helper import hash_benchmark, hash_model
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.logging import TensorboardLogger
 from avalanche.models import SimpleMLP
@@ -219,7 +218,6 @@ def main(args):
         results.append(cl_strategy.eval(scenario.test_stream, num_workers=4))
 
     print('Training+eval took', time.time() - start_time)
-
 
 
 if __name__ == '__main__':
