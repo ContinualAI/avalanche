@@ -3,32 +3,24 @@ import unittest
 from os.path import expanduser
 
 import torch
+from avalanche.benchmarks import (benchmark_with_validation_stream,
+                                  data_incremental_benchmark,
+                                  dataset_benchmark, filelist_benchmark,
+                                  gen_joint_training_benchmark,
+                                  paths_benchmark, tensors_benchmark)
+from avalanche.benchmarks.classic import PermutedMNIST
+from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.generators.benchmark_generators import \
+    class_balanced_split_strategy
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    LazyStreamDefinition, create_lazy_generic_benchmark)
+from avalanche.benchmarks.utils import (AvalancheDataset, AvalancheDatasetType,
+                                        AvalancheTensorDataset)
 from numpy.testing import assert_almost_equal
 from torchvision.datasets import CIFAR10, MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks import (
-    dataset_benchmark,
-    filelist_benchmark,
-    tensors_benchmark,
-    paths_benchmark,
-    data_incremental_benchmark,
-    benchmark_with_validation_stream,
-)
-from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators.benchmark_generators import (
-    class_balanced_split_strategy,
-)
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_lazy_generic_benchmark,
-    LazyStreamDefinition,
-)
-from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
-)
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
 
@@ -770,6 +762,63 @@ class HighLevelGeneratorTests(unittest.TestCase):
                     torch.equal(
                         test_y, valid_benchmark.test_stream[0].dataset[:][1]
                     )
+                )
+
+    def test_gen_joint_training_benchmark(self):
+        permutMnistBenchmark = PermutedMNIST(
+            n_experiences=2,
+            seed=1234,
+        )
+
+        permutMnistFullBenchmark = benchmark_with_validation_stream(
+            permutMnistBenchmark, 
+            validation_size=0.2
+        )
+
+        self.assertEqual(
+            len(permutMnistFullBenchmark.streams), 
+            3, 
+            'Should exist 3 streans: train, eval, and valid.'
+        )
+
+        total_data_for_streams = dict()
+        for stream in permutMnistFullBenchmark.streams:
+            total_data_for_streams[stream] = 0
+            current_stream = permutMnistFullBenchmark.streams[stream]
+
+            self.assertEqual(
+                len(current_stream), 
+                2, 
+                'Each stream should have 2 experiences'
+            )
+            for exp in current_stream:
+                total_data_for_streams[stream] += len(exp.dataset)
+
+        # Make the transformation and valid it
+        permutMnistFullJointBenchmark = gen_joint_training_benchmark(
+            permutMnistFullBenchmark
+        )
+
+        self.assertEqual(
+            len(permutMnistFullJointBenchmark.streams), 
+            3, 
+            'Should exist 3 streans: train, eval, and valid.'
+        )
+
+        for stream in permutMnistFullJointBenchmark.streams:
+            current_stream = permutMnistFullJointBenchmark.streams[stream]
+            
+            self.assertEqual(
+                len(current_stream), 
+                1, 
+                'Each stream should have 1 experience after the transformation'
+            )
+
+            for exp in current_stream:
+                self.assertEqual(
+                    len(exp.dataset), 
+                    total_data_for_streams[stream], 
+                    'The experience has to have data of all experiences.'
                 )
 
 

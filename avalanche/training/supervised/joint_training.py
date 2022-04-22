@@ -9,16 +9,15 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Optional, Sequence, TYPE_CHECKING, Union
-
-from torch.nn import Module
-from torch.optim import Optimizer
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.models import DynamicModule
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
-from avalanche.models import DynamicModule
+from torch.nn import Module
+from torch.optim import Optimizer
 
 if TYPE_CHECKING:
     from avalanche.training.plugins import SupervisedPlugin
@@ -153,11 +152,12 @@ class JointTraining(SupervisedTemplate):
     def train_dataset_adaptation(self, **kwargs):
         """Concatenates all the datastream."""
         self.adapted_dataset = self._experiences[0].dataset
-        for exp in self._experiences[1:]:
-            cat_data = AvalancheConcatDataset(
-                [self.adapted_dataset, exp.dataset]
-            )
-            self.adapted_dataset = cat_data
+        if len(self._experiences) > 1:
+            for exp in self._experiences[1:]:
+                cat_data = AvalancheConcatDataset(
+                    [self.adapted_dataset, exp.dataset]
+                )
+                self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
     def model_adaptation(self, model=None):

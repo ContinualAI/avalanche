@@ -17,41 +17,21 @@ and paths_benchmark.
 """
 from functools import partial
 from itertools import tee
-from typing import (
-    Sequence,
-    Optional,
-    Dict,
-    Union,
-    Any,
-    List,
-    Callable,
-    Set,
-    Tuple,
-    Iterable,
-    Generator,
-)
+from typing import (Any, Callable, Dict, Generator, Iterable, List, Optional,
+                    Sequence, Set, Tuple, Union)
 
 import torch
-
-from avalanche.benchmarks import (
-    GenericCLScenario,
-    ClassificationExperience,
-    ClassificationStream,
-)
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
+from avalanche.benchmarks import (ClassificationExperience,
+                                  ClassificationStream, GenericCLScenario)
 from avalanche.benchmarks.scenarios.classification_scenario import (
-    TStreamsUserDict,
-    StreamUserDef,
-)
+    StreamUserDef, TStreamsUserDict)
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import (
-    SupportedDataset,
-    AvalancheDataset,
-    AvalancheDatasetType,
-    AvalancheSubset,
-)
+    AvalancheConcatDataset, AvalancheDataset, AvalancheDatasetType,
+    AvalancheSubset, SupportedDataset)
 
 
 def nc_benchmark(
@@ -898,6 +878,76 @@ def benchmark_with_validation_stream(
     )
 
 
+def gen_joint_training_benchmark(
+    benchmark, 
+    experience_factory: Callable[
+        [ClassificationStream, int], ClassificationExperience
+    ] = None,
+):
+    """
+    Helper that can be used to obtain a benchmark with just one experience for 
+    each stream.
+
+    This generator accepts an existing benchmark instance and returns a version
+    of it in which the data set off all experiences are concatenated in a 
+    single experience for each stream. 
+    
+    It only works on not lazy experiences.
+
+    :param benchmark:
+    :param experience_factory: The experience factory. Defaults to
+        :class:`GenericExperience`.
+    :return: A benchmark instance with just one experience in all streams. 
+    These streams contains the data of all data sets received in incoming 
+    benchmark.
+    """
+    final_stream_definitions = dict()
+    for stream_name in benchmark.streams.keys():
+        stream = benchmark.streams[stream_name]
+        stream_definitions = benchmark.stream_definitions[stream_name]
+        complete_test_set_only = benchmark.complete_test_set_only
+        is_lazy = stream_definitions.is_lazy
+
+        exps_tasks_labels = list(stream_definitions.exps_task_labels)[0]
+
+        if not is_lazy:
+            exps_source = []
+
+            adapted_dataset = stream[0].dataset
+            for exp in stream[1:]:
+                cat_data = AvalancheConcatDataset(
+                    [adapted_dataset, exp.dataset]
+                )
+                adapted_dataset = cat_data
+
+            data_exp = AvalancheDataset(
+                adapted_dataset, 
+                transform_groups=adapted_dataset.transform_groups, 
+                task_labels=0,
+                targets=adapted_dataset.targets, 
+                dataset_type=adapted_dataset.dataset_type,
+            )
+            exps_source.append(data_exp)
+        else:
+            raise RuntimeError('Lazy experiences is not supported yet.')
+
+        stream_def = \
+            StreamUserDef(
+                exps_source,
+                exps_tasks_labels,
+                stream_definitions.origin_dataset,
+                is_lazy)
+
+        final_stream_definitions[stream_name] = stream_def
+    
+    scenario = GenericCLScenario(
+        stream_definitions=final_stream_definitions,
+        complete_test_set_only=complete_test_set_only,
+        experience_factory=experience_factory,
+    )
+    return scenario
+
+
 __all__ = [
     "nc_benchmark",
     "ni_benchmark",
@@ -907,4 +957,5 @@ __all__ = [
     "tensors_benchmark",
     "data_incremental_benchmark",
     "benchmark_with_validation_stream",
+    "gen_joint_training_benchmark",
 ]
