@@ -1,12 +1,12 @@
 import contextlib
 import os
 import unittest
-from typing import Tuple, Optional
 
 import torch
 from torch import Tensor
 
-from avalanche.distributed import DistributedHelper, ClassificationBatch
+from avalanche.distributed import DistributedHelper, \
+    make_classification_distributed_batch
 
 
 @contextlib.contextmanager
@@ -27,8 +27,7 @@ class DistributedBatchesTests(unittest.TestCase):
     @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
                      'Distributed tests ignored')
     def test_classification_batch(self):
-        dt: ClassificationBatch[Optional[Tuple[Tensor, Tensor]]] = \
-            ClassificationBatch('mb', None)
+        dt = make_classification_distributed_batch('mb')
 
         self.assertEqual(None, dt.local_value)
         self.assertEqual(None, dt.value)
@@ -54,8 +53,7 @@ class DistributedBatchesTests(unittest.TestCase):
     @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
                      'Distributed tests ignored')
     def test_unsupervised_classification_batch(self):
-        dt: ClassificationBatch[Optional[Tuple[Tensor, Tensor]]] = \
-            ClassificationBatch('mb', None)
+        dt = make_classification_distributed_batch('mb')
 
         self.assertEqual(None, dt.local_value)
         self.assertEqual(None, dt.value)

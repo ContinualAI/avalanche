@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import TypeVar, List, Optional, Callable, Any
+from typing import TypeVar, List, Optional, Callable, Any, Tuple
 
 import torch
 from torch import Tensor
@@ -7,8 +7,6 @@ from torch import Tensor
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_value import SwitchableDistributedValue
 
-TupleT = TypeVar('TupleT', bound='Tuple')
-OptTupleT = Optional[TupleT]
 LocalT = TypeVar('LocalT')
 DistributedT = TypeVar('DistributedT')
 
@@ -109,15 +107,6 @@ class CollateDistributedBatch(DistributedBatch[LocalT]):
         return self.tuples_collate_fn(tuples)
 
     def _merge_single_values(self, values: List, value_index: int):
-        # if DistributedHelper.is_main_process:
-        #     print('MERGING VALUES:')
-        #     for elem in values:
-        #         if isinstance(elem, Tensor):
-        #             print(elem.device)
-        #             print(elem.shape)
-        #         else:
-        #             print(type(elem))
-
         return self.single_values_collate_fn(values, value_index)
 
 
