@@ -1,47 +1,34 @@
+import random
 import unittest
-
 from os.path import expanduser
+from typing import List
 
 import avalanche
-from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.models import SimpleMLP
-from torch.optim import SGD
-from torch.nn import CrossEntropyLoss
-from avalanche.training.supervised import Naive
-from avalanche.benchmarks.generators import dataset_benchmark
+import numpy as np
 import PIL
 import torch
+from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.generators import dataset_benchmark
+from avalanche.benchmarks.scenarios.generic_benchmark_creation import \
+    create_generic_benchmark_from_tensor_lists
+from avalanche.benchmarks.utils import (AvalancheConcatDataset,
+                                        AvalancheDataset, AvalancheDatasetType,
+                                        AvalancheSubset,
+                                        AvalancheTensorDataset,
+                                        concat_datasets_sequentially)
+from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.models import SimpleMLP
+from avalanche.training.supervised import Naive
+from avalanche.training.utils import load_all_dataset
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
-from torch.utils.data import TensorDataset, Subset, ConcatDataset
+from torch.nn import CrossEntropyLoss
+from torch.optim import SGD
+from torch.utils.data import ConcatDataset, Subset, TensorDataset
 from torchvision.datasets import MNIST
-from torchvision.transforms import (
-    ToTensor,
-    RandomCrop,
-    ToPILImage,
-    Compose,
-    Lambda,
-    CenterCrop,
-)
-from typing import List
-
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_tensor_lists,
-)
-from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheSubset,
-    AvalancheConcatDataset,
-    AvalancheDatasetType,
-    AvalancheTensorDataset,
-    concat_datasets_sequentially,
-)
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from avalanche.training.utils import load_all_dataset
-import random
-
-import numpy as np
+from torchvision.transforms import (CenterCrop, Compose, Lambda, RandomCrop,
+                                    ToPILImage, ToTensor)
 
 
 def pil_images_equal(img_a, img_b):
@@ -161,6 +148,89 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y1, y2[1].item())
         self.assertEqual(0, t2[0].item())
         self.assertEqual(0, t2[1].item())
+
+    def test_avalanche_dataset_add_transforms_to_group_in_same_group(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
+        transform = ToTensor()
+        
+        def target_transform(label):
+            return label + 1
+
+        dataset = AvalancheDataset(dataset_mnist)
+
+        self.assertEqual(dataset.transform, None)
+        self.assertEqual(dataset.target_transform, None)
+
+        # Try to insert a transform in invalid group
+        with self.assertRaises(ValueError):
+            dataset = dataset.add_transforms_to_group(
+                group_name='valid', 
+                transform=transform, 
+                target_transform=target_transform,
+            )
+
+        self.assertEqual(dataset.transform, None)
+        self.assertEqual(dataset.target_transform, None)
+
+        dataset = dataset.add_transforms_to_group(
+            group_name='train', 
+            transform=transform,
+        )
+
+        self.assertEqual(dataset.transform, transform)
+        self.assertEqual(dataset.target_transform, None)
+        
+        dataset = dataset.add_transforms_to_group(
+            group_name='train', 
+            target_transform=target_transform,
+        )
+        self.assertEqual(dataset.transform, transform)
+        self.assertEqual(dataset.target_transform, target_transform)
+
+    def test_avalanche_dataset_add_transforms_to_group_in_different_group(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
+        transform = ToTensor()
+        
+        def target_transform(label):
+            return label + 1
+
+        dataset = AvalancheDataset(dataset_mnist)
+
+        self.assertEqual(dataset.transform, None)
+        self.assertEqual(dataset.target_transform, None)
+
+        # Try to insert a transform in invalid group
+        with self.assertRaises(ValueError):
+            dataset = dataset.add_transforms_to_group(
+                group_name='valid', 
+                transform=transform, 
+                target_transform=target_transform,
+            )
+
+        self.assertEqual(dataset.transform, None)
+        self.assertEqual(dataset.target_transform, None)
+
+        dataset = dataset.add_transforms_to_group(
+            group_name='eval', 
+            transform=transform,
+        )
+
+        dataset = dataset.eval()
+        self.assertEqual(dataset.transform, transform)
+        self.assertEqual(dataset.target_transform, None)
+        
+        dataset = dataset.train()
+        dataset = dataset.add_transforms_to_group(
+            group_name='eval', 
+            target_transform=target_transform,
+        )
+        dataset = dataset.eval()
+        self.assertEqual(dataset.transform, transform)
+        self.assertEqual(dataset.target_transform, target_transform)
 
     def test_avalanche_dataset_indexing(self):
         dataset_mnist = MNIST(

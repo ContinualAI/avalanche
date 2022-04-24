@@ -20,47 +20,23 @@ import copy
 import warnings
 from collections import OrderedDict, defaultdict, deque
 from enum import Enum, auto
+from typing import (Any, Callable, Collection, Dict, List, Optional, Sequence,
+                    SupportsInt, Tuple, TypeVar, Union)
 
 import torch
 from torch.utils.data.dataloader import default_collate
-from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
+from torch.utils.data.dataset import ConcatDataset, Dataset, Subset
+from typing_extensions import Protocol
 
 from .adaptive_transform import Compose, MultiParamTransform
-from .dataset_utils import (
-    manage_advanced_indexing,
-    SequenceDataset,
-    ClassificationSubset,
-    LazyConcatIntTargets,
-    find_list_from_index,
-    ConstantSequence,
-    LazyClassMapping,
-    optimize_sequence,
-    SubSequence,
-    LazyConcatTargets,
-    TupleTLabel,
-)
-from .dataset_definitions import (
-    ITensorDataset,
-    ClassificationDataset,
-    IDatasetWithTargets,
-    ISupportedClassificationDataset,
-)
-
-from typing import (
-    List,
-    Any,
-    Sequence,
-    Union,
-    Optional,
-    TypeVar,
-    SupportsInt,
-    Callable,
-    Dict,
-    Tuple,
-    Collection,
-)
-
-from typing_extensions import Protocol
+from .dataset_definitions import (ClassificationDataset, IDatasetWithTargets,
+                                  ISupportedClassificationDataset,
+                                  ITensorDataset)
+from .dataset_utils import (ClassificationSubset, ConstantSequence,
+                            LazyClassMapping, LazyConcatIntTargets,
+                            LazyConcatTargets, SequenceDataset, SubSequence,
+                            TupleTLabel, find_list_from_index,
+                            manage_advanced_indexing, optimize_sequence)
 
 T_co = TypeVar("T_co", covariant=True)
 TTargetType = TypeVar("TTargetType")
@@ -580,7 +556,7 @@ class AvalancheDataset(IDatasetWithTargets[T_co, TTargetType], Dataset[T_co]):
             if t_group[1] is not None:
                 t_group[1] = Compose([t_group[1], target_transform])
             else:
-                t_group[1] = transform
+                t_group[1] = target_transform
 
         # tuple(t_group) works too, but it triggers a type warning
         tuple_t_group: Tuple[XTransform, YTransform] = tuple(
