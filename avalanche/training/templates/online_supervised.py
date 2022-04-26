@@ -6,12 +6,13 @@ import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.benchmarks import ClassificationExperience
+from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates.base import ExpSequence
 
 
 class SupervisedOnlineTemplate(SupervisedTemplate):
@@ -48,7 +49,8 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
             "Some plugins may not work properly."
         )
 
-    def create_sub_experience_list(self, experience):
+    def create_sub_experience_list(
+            self, experience: CLExperience) -> List[CLExperience]:
         """Creates a list of sub-experiences from an experience.
         It returns a list of experiences, where each experience is
         a subset of the original experience.
@@ -78,20 +80,12 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
         return sub_experience_list
 
-    def train(
-        self,
-        experiences: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
-        eval_streams: Optional[
-            Sequence[
-                Union[
-                    ClassificationExperience, Sequence[ClassificationExperience]
-                ]
-            ]
-        ] = None,
-        **kwargs
-    ):
+    def train(self,
+              experiences: Union[CLExperience,
+                                 ExpSequence],
+              eval_streams: Optional[Sequence[Union[CLExperience,
+                                                    ExpSequence]]] = None,
+              **kwargs):
         """Training loop. if experiences is a single element trains on it.
         If it is a sequence, trains the model on each experience in order.
         This is different from joint training on the entire stream.
@@ -112,7 +106,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if not isinstance(experiences, Sequence):
+        if not isinstance(experiences, ExpSequence):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
@@ -148,7 +142,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
     def _train_exp(
         self,
-        experience: ClassificationExperience,
+        experience: CLExperience,
         eval_streams=None,
         is_first_sub_exp=False,
         is_last_sub_exp=False,
@@ -172,7 +166,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         if eval_streams is None:
             eval_streams = [experience]
         for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Sequence):
+            if not isinstance(exp, ExpSequence):
                 eval_streams[i] = [exp]
 
         # Data Adaptation (e.g. add new samples/data augmentation)
