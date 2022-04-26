@@ -1,4 +1,4 @@
-from typing import Sequence, Optional, Union, List
+from typing import Iterable, Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
@@ -166,7 +166,7 @@ class BaseSGDTemplate(BaseTemplate):
         if eval_streams is None:
             eval_streams = [experience]
         for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, ExpSequence):
+            if not isinstance(exp, Iterable):
                 eval_streams[i] = [exp]
         for _ in range(self.train_epochs):
             self._before_training_epoch(**kwargs)

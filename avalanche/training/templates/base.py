@@ -1,5 +1,5 @@
 import warnings
-from typing import Sequence, Optional, Union, List
+from typing import Iterable, Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
@@ -8,7 +8,7 @@ from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
 from avalanche.training.utils import trigger_plugins
 
-ExpSequence = Union[Sequence[CLExperience], CLStream]
+ExpSequence = Iterable[CLExperience]
 
 
 class BaseTemplate:
@@ -94,7 +94,7 @@ class BaseTemplate:
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if not isinstance(experiences, ExpSequence):
+        if not isinstance(experiences, Iterable):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
@@ -135,7 +135,7 @@ class BaseTemplate:
         self.is_training = False
         self.model.eval()
 
-        if not isinstance(exp_list, ExpSequence):
+        if not isinstance(exp_list, Iterable):
             exp_list = [exp_list]
         self.current_eval_stream = exp_list
 

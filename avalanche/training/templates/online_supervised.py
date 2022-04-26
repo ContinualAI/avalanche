@@ -1,12 +1,12 @@
 import copy
 import warnings
-from typing import Optional, List, Union, Sequence
+from typing import Optional, List, Union, Sequence, Iterable
 
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.benchmarks import CLExperience, CLStream
+from avalanche.benchmarks import CLExperience
 from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.models import DynamicModule
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
@@ -106,7 +106,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if not isinstance(experiences, ExpSequence):
+        if not isinstance(experiences, Iterable):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
@@ -166,7 +166,7 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
         if eval_streams is None:
             eval_streams = [experience]
         for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, ExpSequence):
+            if not isinstance(exp, Iterable):
                 eval_streams[i] = [exp]
 
         # Data Adaptation (e.g. add new samples/data augmentation)
