@@ -1,12 +1,14 @@
 import warnings
-from typing import Sequence, Optional, Union, List
+from typing import Iterable, Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
 
-from avalanche.benchmarks import ClassificationExperience
+from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
 from avalanche.training.utils import trigger_plugins
+
+ExpSequence = Iterable[CLExperience]
 
 
 class BaseTemplate:
@@ -52,15 +54,13 @@ class BaseTemplate:
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
-        self.experience: Optional[ClassificationExperience] = None
+        self.experience: Optional[CLExperience] = None
         """ Current experience. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream: Optional[
-            Sequence[ClassificationExperience]
-        ] = None
+        self.current_eval_stream: Optional[ExpSequence] = None
         """ Current evaluation stream. """
 
     @property
@@ -70,16 +70,9 @@ class BaseTemplate:
 
     def train(
         self,
-        experiences: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
-        eval_streams: Optional[
-            Sequence[
-                Union[
-                    ClassificationExperience, Sequence[ClassificationExperience]
-                ]
-            ]
-        ] = None,
+        experiences: Union[CLExperience, ExpSequence],
+        eval_streams: Optional[Sequence[Union[CLExperience,
+                                              ExpSequence]]] = None,
         **kwargs,
     ):
         """Training loop.
@@ -90,7 +83,7 @@ class BaseTemplate:
         It returns a dictionary with last recorded value for each metric.
 
         :param experiences: single Experience or sequence.
-        :param eval_streams: list of streams for evaluation.
+        :param eval_streams: sequence of streams for evaluation.
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
         """
@@ -101,7 +94,7 @@ class BaseTemplate:
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if not isinstance(experiences, Sequence):
+        if not isinstance(experiences, Iterable):
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
@@ -116,16 +109,14 @@ class BaseTemplate:
         self._after_training(**kwargs)
 
     def _train_exp(
-        self, experience: ClassificationExperience, eval_streams, **kwargs
+        self, experience: CLExperience, eval_streams, **kwargs
     ):
         raise NotImplementedError()
 
     @torch.no_grad()
     def eval(
         self,
-        exp_list: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
+        exp_list: Union[CLExperience, CLStream],
         **kwargs,
     ):
         """
@@ -144,7 +135,7 @@ class BaseTemplate:
         self.is_training = False
         self.model.eval()
 
-        if not isinstance(exp_list, Sequence):
+        if not isinstance(exp_list, Iterable):
             exp_list = [exp_list]
         self.current_eval_stream = exp_list
 
