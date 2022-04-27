@@ -60,7 +60,7 @@ class BaseTemplate:
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream: Optional[CLStream] = None
+        self.current_eval_stream: Optional[ExpSequence] = None
         """ Current evaluation stream. """
 
     @property
