@@ -60,7 +60,10 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         **kwargs
     ):
         super().before_training_epoch(strategy, metric_values, **kwargs)
-        self._progress.total = len(strategy.dataloader)
+        if hasattr(strategy.experience, "is_online_exp"):
+            self._progress.total = strategy.experience.online_exp_total
+        else:
+            self._progress.total = len(strategy.dataloader)
 
     def after_training_epoch(
         self,
@@ -68,8 +71,16 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        self._end_progress()
-        super().after_training_epoch(strategy, metric_values, **kwargs)
+        if not hasattr(strategy.experience, "is_online_exp"):
+            self._end_progress()
+            super().after_training_epoch(strategy, metric_values, **kwargs)
+        else:
+            is_last_online_exp = strategy.experience.online_exp_id == \
+                               strategy.experience.online_exp_total - 1
+            if is_last_online_exp:
+                self._end_progress()
+                super().after_training_epoch(strategy,
+                                             metric_values, **kwargs)
 
     def before_eval_exp(
         self,

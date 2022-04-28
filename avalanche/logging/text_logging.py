@@ -183,18 +183,28 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         exp_id = strategy.experience.current_experience
         task_id = phase_and_task(strategy)[1]
         stream = stream_type(strategy.experience)
-        if task_id is None:
-            print(
-                "-- Starting {} on experience {} from {} stream --".format(
-                    action_name, exp_id, stream
-                ),
-                file=self.file,
-                flush=True,
-            )
+
+        is_online_exp = not hasattr(strategy.experience, "is_online_exp")
+        if is_online_exp:
+            should_print = True
         else:
-            print(
-                "-- Starting {} on experience {} (Task {}) from {}"
-                " stream --".format(action_name, exp_id, task_id, stream),
-                file=self.file,
-                flush=True,
-            )
+            is_last_online_exp = strategy.experience.online_exp_id == \
+                               strategy.experience.online_exp_total - 1
+            should_print = is_last_online_exp
+
+        if should_print:
+            if task_id is None:
+                print(
+                    "-- Starting {} on experience {} from {} stream --".format(
+                        action_name, exp_id, stream
+                    ),
+                    file=self.file,
+                    flush=True,
+                )
+            else:
+                print(
+                    "-- Starting {} on experience {} (Task {}) from {}"
+                    " stream --".format(action_name, exp_id, task_id, stream),
+                    file=self.file,
+                    flush=True,
+                )
