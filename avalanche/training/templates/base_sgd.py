@@ -1,4 +1,4 @@
-from typing import Sequence, Optional, Union, List
+from typing import Iterable, Sequence, Optional, Union, List
 
 import torch
 from torch.nn import Module
@@ -9,11 +9,12 @@ from avalanche.distributed import DistributedHelper
 from avalanche.distributed.strategies import \
     DistributedMiniBatchStrategySupport, DistributedLossStrategySupport
 from avalanche.benchmarks import ClassificationExperience
+from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates.base import BaseTemplate
+from avalanche.training.templates.base import BaseTemplate, ExpSequence
 
 from typing import TYPE_CHECKING
 
@@ -126,31 +127,17 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
         self._stop_training = False
 
-    def train(
-        self,
-        experiences: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
-        eval_streams: Optional[
-            Sequence[
-                Union[
-                    ClassificationExperience, Sequence[ClassificationExperience]
-                ]
-            ]
-        ] = None,
-        **kwargs,
-    ):
+    def train(self,
+              experiences: Union[CLExperience,
+                                 ExpSequence],
+              eval_streams: Optional[Sequence[Union[CLExperience,
+                                                    ExpSequence]]] = None,
+              **kwargs):
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 
     @torch.no_grad()
-    def eval(
-        self,
-        exp_list: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
-        **kwargs,
-    ):
+    def eval(self, exp_list: Union[CLExperience, CLStream], **kwargs):
         """
         Evaluate the current model on a series of experiences and
         returns the last recorded value for each metric.
@@ -173,7 +160,7 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         super()._before_training_exp(**kwargs)
 
     def _train_exp(
-        self, experience: ClassificationExperience, eval_streams=None, **kwargs
+        self, experience: CLExperience, eval_streams=None, **kwargs
     ):
         """Training loop over a single Experience object.
 
@@ -186,7 +173,7 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         if eval_streams is None:
             eval_streams = [experience]
         for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Sequence):
+            if not isinstance(exp, Iterable):
                 eval_streams[i] = [exp]
         for _ in range(self.train_epochs):
             self._before_training_epoch(**kwargs)
