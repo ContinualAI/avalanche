@@ -13,26 +13,19 @@
 This is a simple example on how to enable distributed training in Avalanche.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import os
 import sys
 import time
 
-import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DistributedSampler, DataLoader
 from torchvision import transforms
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.utils import AvalancheSubset
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.distributed import DistributedHelper
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.logging import TensorboardLogger
@@ -41,75 +34,36 @@ from avalanche.training import Naive, ClassBalancedBuffer
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin, \
     LRSchedulerPlugin
 
-
 OVERALL_MB_SIZE = 192
 
 
-class AdaptedNaive(Naive):
-
-    def make_train_dataloader(
-        self, num_workers=0, shuffle=True, pin_memory=True,
-        persistent_workers=False, **kwargs
-    ):
-        dataset_len = len(self.adapted_dataset)
-        while (dataset_len % OVERALL_MB_SIZE) > 0:
-            # Note: when using OVERALL_MB_SIZE == 192,
-            # means that with N_GPUS = 1, 2, 3, 4, 6, 8 (any factor of 192)
-            # you will get the same number of iterations
-            # (due to how DistributedSampler works, which is slightly different
-            #  from the default sampler)
-            dataset_len -= 1
-
-        other_dataloader_args = {}
-        other_dataloader_args['persistent_workers'] = persistent_workers
-
-        self.dataloader = TaskBalancedDataLoader(
-            AvalancheSubset(
-                self.adapted_dataset, indices=list(range(dataset_len))),
-            oversample_small_groups=True,
-            num_workers=num_workers,
-            batch_size=self.train_mb_size,
-            shuffle=shuffle,
-            pin_memory=pin_memory,
-            drop_last=True,
-            **other_dataloader_args
-        )
-
-    def make_eval_dataloader(
-            self, num_workers=0, pin_memory=True, persistent_workers=False,
-            **kwargs):
-        dataset_len = len(self.adapted_dataset)
-        while (dataset_len % OVERALL_MB_SIZE) > 0:
-            # Note: when using OVERALL_MB_SIZE == 192,
-            # means that with N_GPUS = 1, 2, 3, 4, 6, 8 (any factor of 192)
-            # you will get the same number of iterations
-            # (due to how DistributedSampler works, which is slightly different
-            #  from the default sampler)
-            dataset_len -= 1
-
-        other_dataloader_args = {}
-        other_dataloader_args['persistent_workers'] = persistent_workers
-
-        d_set = AvalancheSubset(
-            self.adapted_dataset, indices=list(range(dataset_len)))
-        sampler = None
-        if DistributedHelper.is_distributed:
-            sampler = DistributedSampler(
-                d_set, shuffle=False, drop_last=False)
-
-        self.dataloader = DataLoader(
-            d_set,
-            num_workers=num_workers,
-            batch_size=self.eval_mb_size,
-            pin_memory=pin_memory,
-            sampler=sampler,
-            shuffle=False,
-            drop_last=False,
-            **other_dataloader_args
-        )
-
-
 def main(args):
+    # >> Notes on enabling distributed training support in Avalanche <<
+    #
+    # There are only a few changes to be made when enabling distributed
+    # training in Avalanche. These are all shown in this example. To recap:
+    #
+    # 1. Wrap the main code in a function. Call that function from
+    #    within a "if __name__ == '__main__':" section.
+    # 2. Add a call to `init_distributed` at the beginning of the main function.
+    #    Obtain the device object using `make_device`.
+    # 3. (Optional, recommended) Suppress the output for non-main processes.
+    # 4. (If needed) Avalanche classic benchmarks already have proper ways
+    #    to ensure that dataset files are not downloaded and written
+    #    concurrently. If you need to dynamically download a custom dataset or
+    #    create other working files, do it in the main process only (the one
+    #    with rank 0).
+    # 5. Loggers cannot be created in non-main processes. Make sure you create
+    #    them in the main process only. Metrics should be instantiated as usual.
+    # 6. IMPORTANT! Scale your minibatch size by the number of processes used.
+    #
+    # Notice that these changes do not impact your ability to run the same
+    # script in the classic single-process fashion.
+    #
+    # You can check how to run this script in a distributed way by looking at
+    # the `run_distributed_training_example.sh` script in the `examples` folder.
+    print('Starting experiment', args.exp_name)
+
     DistributedHelper.init_distributed(random_seed=4321, use_cuda=args.use_cuda)
     rank = DistributedHelper.rank
     world_size = DistributedHelper.world_size
@@ -118,12 +72,14 @@ def main(args):
           f'will use device: {device}')
 
     if not DistributedHelper.is_main_process:
+        # Suppress the output of non-main processes
+        # This prevents the output from being duplicated in the console
         sys.stdout = open(os.devnull, 'w')
         sys.stderr = open(os.devnull, 'w')
 
     # --- TRANSFORMATIONS
     train_transform = transforms.Compose([
-        # RandomCrop(28, padding=4),
+        RandomCrop(28, padding=4),
         ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
@@ -135,7 +91,7 @@ def main(args):
 
     # --- SCENARIO CREATION
     scenario = SplitMNIST(
-        5,
+        n_experiences=5,
         train_transform=train_transform,
         eval_transform=test_transform)
     # ---------
@@ -146,30 +102,14 @@ def main(args):
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
-
     loggers = []
     if DistributedHelper.is_main_process:
-        distr_str = 'single_process'
-        approach_str = 'naive'
-        sched_str = 'unsched'
-        cuda_str = 'cpu'
-
-        if DistributedHelper.is_distributed:
-            distr_str = 'distributed'
-
-        if args.use_replay:
-            approach_str = 'replay'
-
-        if args.use_scheduler:
-            sched_str = 'plateau'
-
-        if args.use_cuda:
-            cuda_str = 'cuda'
-
+        # Loggers should be created in the main process only
         loggers.append(TensorboardLogger(
-            tb_log_dir=f'./tb_data/{distr_str}_{approach_str}_{sched_str}_'
-                       f'{cuda_str}{args.exp_postfix}'))
+            tb_log_dir=f'./logs/{args.exp_name}'))
 
+    # Metrics should be created as usual, with no differences between main and
+    # non-main processes.
     my_evaluator = EvaluationPlugin(
         accuracy_metrics(epoch=True, experience=True, stream=True),
         loss_metrics(epoch=True, experience=True, stream=True),
@@ -195,7 +135,7 @@ def main(args):
             )
         )
 
-    cl_strategy = AdaptedNaive(
+    cl_strategy = Naive(
         model, optimizer,
         CrossEntropyLoss(), train_mb_size=mb_size, train_epochs=4,
         eval_mb_size=mb_size, plugins=plugins,
@@ -225,5 +165,5 @@ if __name__ == '__main__':
     parser.add_argument('--use_cuda', action='store_true')
     parser.add_argument('--use_replay', action='store_true')
     parser.add_argument('--use_scheduler', action='store_true')
-    parser.add_argument('--exp_postfix', default='')
+    parser.add_argument('--exp_name', default='dist_exp')
     main(parser.parse_args())

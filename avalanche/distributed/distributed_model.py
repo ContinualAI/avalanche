@@ -108,7 +108,7 @@ class DistributedModel(OptionalDistributedValue[Optional[Module]]):
         """
         return self.reset_distributed_value()
 
-    def _synchronize_distributed_value(self) -> DistributedT:
+    def _synchronize(self) -> DistributedT:
         raise RuntimeError(
             'The distributed model needs to be wrapped and set by using the '
             f'following class(es): {self.distributed_model_class}')

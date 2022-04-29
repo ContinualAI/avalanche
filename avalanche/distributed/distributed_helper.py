@@ -191,7 +191,7 @@ class _DistributedHelperCls(object):
         else:
             device_id = 0
 
-        if self.use_cuda and torch.cuda.is_available() and device_id >= 0:
+        if self.use_cuda and device_id >= 0 and torch.cuda.is_available():
             ref_device = torch.device(f'cuda:{device_id}')
             torch.cuda.set_device(ref_device)
         else:

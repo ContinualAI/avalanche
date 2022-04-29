@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import TypeVar, List, Optional, Callable, Any, Tuple
+from typing import TypeVar, List, Optional, Callable, Any
 
 import torch
 from torch import Tensor
@@ -17,7 +17,7 @@ class DistributedObject(SwitchableDistributedValue[LocalT, DistributedT], ABC):
 
     The merge procedure must be implemented in child classes.
     """
-    def _synchronize_distributed_value(self) -> DistributedT:
+    def _synchronize(self) -> DistributedT:
         objects = self._synchronize_objects()
         return self._merge_objects(objects)
 
@@ -52,15 +52,15 @@ class DistributedBatch(DistributedObject[LocalT, LocalT], ABC):
         super().__init__(name, initial_local_value)
         self._value_is_tuple = False
 
-    def _synchronize_distributed_value(self) -> LocalT:
+    def _synchronize(self) -> LocalT:
         if self._local_value is None:
             return None
         else:
-            return super()._synchronize_distributed_value()
+            return super()._synchronize()
 
-    def _set_local_value(self, new_local_value):
+    def _set_local(self, new_local_value):
         self._value_is_tuple = isinstance(new_local_value, (tuple, list))
-        super()._set_local_value(new_local_value)
+        super()._set_local(new_local_value)
 
     def _merge_objects(self, objects: List[LocalT]) -> LocalT:
         if self._value_is_tuple:

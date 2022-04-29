@@ -14,15 +14,15 @@ class DistributedTensor(SwitchableDistributedValue[Tensor, Tensor], ABC):
 
     This abstract class is in charge of synchronizing Tensors across processes.
 
-    Child classes must override `_merge_tensors` to define how those tensors
+    Child classes must override `_merge` to define how those tensors
     should be merged.
     """
-    def _synchronize_distributed_value(self) -> Tensor:
-        return self._merge_tensors(
+    def _synchronize(self) -> Tensor:
+        return self._merge(
             DistributedHelper.gather_all(self.local_value))
 
     @abstractmethod
-    def _merge_tensors(self, tensors: List[Tensor]) -> Tensor:
+    def _merge(self, tensors: List[Tensor]) -> Tensor:
         """
         Merge all tensors into one.
 
@@ -40,7 +40,7 @@ class ConcatDistributedTensor(DistributedTensor):
 
     This also correctly manages tensors with 0-length shapes (like losses).
     """
-    def _merge_tensors(self, tensors: List[Tensor]) -> Tensor:
+    def _merge(self, tensors: List[Tensor]) -> Tensor:
         # Manage tensors without shape (0-length shape)
         for i, t in enumerate(tensors):
             if len(t.shape) == 0:
@@ -55,8 +55,8 @@ class DistributedMeanTensor(ConcatDistributedTensor):
     A distributed 1-item tensor obtained by computing the mean of tensors
     from all processes.
     """
-    def _merge_tensors(self, tensors: List[Tensor]) -> Tensor:
-        concat_tensor = super()._merge_tensors(tensors)
+    def _merge(self, tensors: List[Tensor]) -> Tensor:
+        concat_tensor = super()._merge(tensors)
         return torch.mean(concat_tensor)
 
 

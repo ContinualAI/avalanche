@@ -16,8 +16,8 @@ class DistributedLoss(DistributedMeanTensor):
     def __init__(self, name: str = 'loss'):
         super(DistributedLoss, self).__init__(name, torch.zeros((1,)))
 
-    def _merge_tensors(self, tensors):
-        return super(DistributedLoss, self)._merge_tensors(tensors)
+    def _merge(self, tensors):
+        return super(DistributedLoss, self)._merge(tensors)
 
 
 __all__ = [

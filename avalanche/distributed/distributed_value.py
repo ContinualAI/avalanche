@@ -74,7 +74,7 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
 
         This will discard the current distributed value.
         """
-        self._set_local_value(new_value)
+        self._set_local(new_value)
 
     @property
     def local_value(self) -> LocalT:
@@ -93,9 +93,9 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
 
         This will discard the current distributed value.
         """
-        self._set_local_value(new_value)
+        self._set_local(new_value)
 
-    def _set_local_value(self, new_local_value: LocalT):
+    def _set_local(self, new_local_value: LocalT):
         self._local_value = new_local_value
         self._distributed_value = None
         self._distributed_value_set = False
@@ -105,13 +105,13 @@ class DistributedValue(Generic[LocalT, DistributedT], ABC):
             return self._local_value
 
         if not self._distributed_value_set:
-            self._distributed_value = self._synchronize_distributed_value()
+            self._distributed_value = self._synchronize()
             self._distributed_value_set = True
 
         return self._distributed_value
 
     @abstractmethod
-    def _synchronize_distributed_value(self) -> DistributedT:
+    def _synchronize(self) -> DistributedT:
         pass
 
     def __str__(self):
@@ -131,7 +131,7 @@ class SettableDistributedValue(DistributedValue[LocalT, DistributedT], ABC):
 
     If this class should only allow for distributed values to be set
     externally (that is, synchronization should be disabled), please
-    override `_synchronize_distributed_value` to raise an appropriate error.
+    override `_synchronize` to raise an appropriate error.
     In that case, this means this class is mainly used as a switch between a
     local and a distributed value based on whether the distributed value has
     been set or not.
