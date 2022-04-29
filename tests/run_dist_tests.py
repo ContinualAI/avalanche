@@ -1,9 +1,12 @@
+import os
 import signal
 import sys
 import unittest
 from subprocess import Popen
 from typing import Union, Set
 from unittest import TestSuite, TestCase
+
+os.environ['DISTRIBUTED_TESTS'] = '1'
 
 
 def get_distributed_test_cases(suite: Union[TestCase, TestSuite]) -> Set[str]:

@@ -1,13 +1,13 @@
 from typing import Callable, List, Any
 
-import torch
 
 from avalanche.benchmarks.utils.collate_functions import \
     classification_collate_mbatches_fn, classification_single_values_collate_fn
 from avalanche.distributed import CollateDistributedBatch
+from avalanche.distributed.strategies import DistributedStrategySupport
 
 
-class DistributedMiniBatchStrategySupport:
+class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
 
     def __init__(self):
         super().__init__()
@@ -24,6 +24,9 @@ class DistributedMiniBatchStrategySupport:
             classification_collate_mbatches_fn,
             classification_single_values_collate_fn
         )
+
+        self._use_local_contexts.append(self.use_local_input_batch)
+        self._use_local_contexts.append(self.use_local_output_batch)
 
     # --- START INPUT MINIBATCH PROPERTY ---
     @property

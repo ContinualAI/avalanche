@@ -1,13 +1,15 @@
 from torch import Tensor
 
 from avalanche.distributed import DistributedLoss
+from avalanche.distributed.strategies import DistributedStrategySupport
 
 
-class DistributedLossStrategySupport:
+class DistributedLossStrategySupport(DistributedStrategySupport):
 
     def __init__(self):
         super().__init__()
         self._loss = DistributedLoss()
+        self._use_local_contexts.append(self.use_local_loss)
 
     @property
     def loss(self) -> Tensor:

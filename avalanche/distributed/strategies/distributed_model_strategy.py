@@ -1,13 +1,15 @@
 from torch.nn import Module
 
 from avalanche.distributed import DistributedModel
+from avalanche.distributed.strategies import DistributedStrategySupport
 
 
-class DistributedModelStrategySupport:
+class DistributedModelStrategySupport(DistributedStrategySupport):
 
     def __init__(self):
         super().__init__()
         self._model = DistributedModel()
+        self._use_local_contexts.append(self.use_local_model)
 
     @property
     def model(self) -> Module:
