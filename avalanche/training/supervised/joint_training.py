@@ -153,11 +153,12 @@ class JointTraining(SupervisedTemplate):
     def train_dataset_adaptation(self, **kwargs):
         """Concatenates all the datastream."""
         self.adapted_dataset = self._experiences[0].dataset
-        for exp in self._experiences[1:]:
-            cat_data = AvalancheConcatDataset(
-                [self.adapted_dataset, exp.dataset]
-            )
-            self.adapted_dataset = cat_data
+        if len(self._experiences) > 1:
+            for exp in self._experiences[1:]:
+                cat_data = AvalancheConcatDataset(
+                    [self.adapted_dataset, exp.dataset]
+                )
+                self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
     def model_adaptation(self, model=None):
