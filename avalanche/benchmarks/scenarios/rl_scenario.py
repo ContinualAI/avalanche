@@ -142,21 +142,21 @@ class RLScenario(CLScenario):
 
         tr_exps = [RLExperience(tr_envs[i], n_parallel_envs[i], 
                                 tr_task_labels[i]) for i in range(len(tr_envs))]
-        tstream = EagerCLStream("train", tr_exps)
+        tstream = EagerCLStream[RLExperience]("train", tr_exps)
         # we're only supporting single process envs in evaluation atm
         print("EVAL ", eval_task_labels)
         eval_exps = [RLExperience(e, 1, l)
                      for e, l in zip(eval_envs, eval_task_labels)]
-        estream = EagerCLStream("eval", eval_exps)
+        estream = EagerCLStream[RLExperience]("eval", eval_exps)
 
         super().__init__([tstream, estream])
 
     @property
-    def train_stream(self):
+    def train_stream(self)->EagerCLStream[RLExperience]:
         return self.streams["train_stream"]
 
     @property
-    def eval_stream(self):
+    def eval_stream(self)->EagerCLStream[RLExperience]:
         return self.streams["eval_stream"]
 
 
