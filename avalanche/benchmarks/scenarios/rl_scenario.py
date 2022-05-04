@@ -69,7 +69,7 @@ class RLScenario(CLScenario):
 
     def __init__(self, envs: List[Env],
                  n_parallel_envs: Union[int, List[int]],
-                 eval_envs: Union[List[Env], List[Callable[[], Env]]]=None,
+                 eval_envs: Union[List[Env], List[Callable[[], Env]]] = None,
                  wrappers_generators: Dict[str, List[Wrapper]] = None,
                  task_labels: bool = True,
                  shuffle: bool = False):
@@ -96,7 +96,7 @@ class RLScenario(CLScenario):
         """
 
         n_experiences = len(envs)
-        if type(n_parallel_envs) is int:
+        if isinstance(n_parallel_envs, int):
             n_parallel_envs = [n_parallel_envs] * n_experiences
         assert len(n_parallel_envs) == len(envs)
         # this is so that we can infer the task labels
@@ -152,11 +152,11 @@ class RLScenario(CLScenario):
         super().__init__([tstream, estream])
 
     @property
-    def train_stream(self)->EagerCLStream[RLExperience]:
+    def train_stream(self) -> EagerCLStream[RLExperience]:
         return self.streams["train_stream"]
 
     @property
-    def eval_stream(self)->EagerCLStream[RLExperience]:
+    def eval_stream(self) -> EagerCLStream[RLExperience]:
         return self.streams["eval_stream"]
 
 

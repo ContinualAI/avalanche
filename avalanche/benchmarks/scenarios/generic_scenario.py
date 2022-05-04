@@ -151,6 +151,7 @@ class CLExperience(object):
         exp._exp_mode = ExperienceMode.LOGGING
         return exp
 
+
 class CLStream(Generic[E]):
     """A CL stream is a named iterator of experiences.
 
@@ -176,7 +177,7 @@ class CLStream(Generic[E]):
 
         self._iter = None
 
-    def __iter__(self)->Generator[E, None, None]:
+    def __iter__(self) -> Generator[E, None, None]:
         def foo(self):
             for i, exp in enumerate(self.exps_iter):
                 if self.set_stream_info:
@@ -223,7 +224,7 @@ class EagerCLStream(CLStream[E]):
                 e.origin_stream = self
                 e.current_experience = i
 
-    def __getitem__(self, item)->Union['EagerCLStream[E]',E]:
+    def __getitem__(self, item) -> Union['EagerCLStream[E]', E]:
         # This check allows CL streams slicing
         if isinstance(item, slice):
             return EagerCLStream(
