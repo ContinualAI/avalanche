@@ -359,7 +359,7 @@ class PeriodicEval(SupervisedPlugin):
         training.
         """
         if self.do_initial:
-            self._peval(strategy)
+            self._peval(strategy, **kwargs)
 
     def before_training_exp(self, strategy, **kwargs):
         # We evaluate at the start of each experience because train_epochs
@@ -381,24 +381,24 @@ class PeriodicEval(SupervisedPlugin):
     def after_training_exp(self, strategy, **kwargs):
         """Final eval after a learning experience."""
         if self.do_final:
-            self._peval(strategy)
+            self._peval(strategy, **kwargs)
 
-    def _peval(self, strategy):
+    def _peval(self, strategy, **kwargs):
         for el in strategy._eval_streams:
-            strategy.eval(el)
+            strategy.eval(el, **kwargs)
 
-    def _maybe_peval(self, strategy, counter):
+    def _maybe_peval(self, strategy, counter, **kwargs):
         if self.eval_every > 0 and counter % self.eval_every == 0:
-            self._peval(strategy)
+            self._peval(strategy, **kwargs)
 
     def after_training_epoch(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
-            self._maybe_peval(strategy, strategy.clock.train_exp_epochs)
+            self._maybe_peval(strategy, strategy.clock.train_exp_epochs, **kwargs)
 
     def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":
-            self._maybe_peval(strategy, strategy.clock.train_exp_iterations)
+            self._maybe_peval(strategy, strategy.clock.train_exp_iterations, **kwargs)
