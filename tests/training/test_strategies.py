@@ -325,6 +325,20 @@ class StrategyTest(unittest.TestCase):
         )
         self.run_strategy(my_nc_benchmark, strategy)
 
+        dict_past_j = {}
+        for cls in range(my_nc_benchmark.n_classes):
+            dict_past_j[cls] = 0
+
+        # Check past_j SIT
+        for exp in my_nc_benchmark.train_stream:
+            for cls in set(exp.dataset.targets):
+                dict_past_j[cls] += exp.dataset.targets.count(cls)
+        for cls in model.past_j.keys():
+            assert model.past_j[cls] == dict_past_j[cls]
+
+        for cls in model.past_j.keys():
+            model.past_j[cls] = 0
+
         # MT scenario
         strategy = CWRStar(
             model,
@@ -335,7 +349,18 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
         )
         benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        # self.run_strategy(benchmark, strategy)
+
+        # Check past_j MT
+        dict_past_j = {}
+        for cls in range(benchmark.n_classes):
+            dict_past_j[cls] = 0
+
+        for exp in benchmark.train_stream:
+            for cls in set(exp.dataset.targets):
+                dict_past_j[cls] += exp.dataset.targets.count(cls)
+        for cls in model.past_j.keys():
+            assert model.past_j[cls] == dict_past_j[cls]
 
     def test_replay(self):
         # SIT scenario
