@@ -8,7 +8,7 @@
 # E-mail: jiashi@andrew.cmu.edu, zl279@cornell.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
 ################################################################################
-'''Example: Training and evaluating on CLEAR benchmark (RGB images)
+'''Example: Training and evaluating on CLEAR benchmark (pre-trained features)
 '''
 import os
 import sys
@@ -37,6 +37,10 @@ from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 # For CLEAR dataset setup
 DATASET_NAME = "clear10"
 NUM_CLASSES = {"clear10": 11}
+CLEAR_FEATURE_TYPE = "moco_b0"  # MoCo V2 pretrained on bucket 0
+# CLEAR_FEATURE_TYPE = "moco_imagenet"  # MoCo V2 pretrained on imagenet
+# CLEAR_FEATURE_TYPE = "byol_imagenet"  # BYOL pretrained on imagenet
+# CLEAR_FEATURE_TYPE = "imagenet"  # Pretrained Imagenet model
 
 # please refer to paper for discussion on streaming v.s. iid protocol
 EVALUATION_PROTOCOL = "streaming"  # trainset = testset per timestamp
@@ -49,38 +53,28 @@ MODEL_ROOT = ROOT / "models"
 DATA_ROOT.mkdir(parents=True, exist_ok=True)
 MODEL_ROOT.mkdir(parents=True, exist_ok=True)
 
-# Define hyperparameters/scheduler/augmentation
+# Define hyperparameters/model/scheduler/augmentation
 HPARAM = {
-    "batch_size": 256,
-    'num_epoch' : 100,
-    "step_scheduler_decay": 30,
+    "batch_size": 512,
+    'num_epoch' : 10,
+    "step_scheduler_decay": 60,
     "scheduler_step": 0.1,
-    "start_lr": 0.01,
-    "weight_decay": 1e-5,
+    "start_lr": 1,
+    "weight_decay": 0,
     "momentum": 0.9,
 }
 
-model = torchvision.models.resnet18(pretrained=False)
+# feature size is 2048 for resnet50
+model = torch.nn.Linear(
+    2048, NUM_CLASSES[DATASET_NAME]
+)
 
-normalize = torchvision.transforms.Normalize(
-    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-)
-train_transform = torchvision.transforms.Compose(
-    [
-        torchvision.transforms.Resize(224),
-        torchvision.transforms.RandomCrop(224),
-        torchvision.transforms.ToTensor(),
-        normalize,
-    ]
-)
-test_transform = torchvision.transforms.Compose(
-    [
-        torchvision.transforms.Resize(224),
-        torchvision.transforms.CenterCrop(224),
-        torchvision.transforms.ToTensor(),
-        normalize,
-    ]
-)
+
+def make_scheduler(optimizer, step_size, gamma=0.1):
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=step_size, gamma=gamma
+    )
+    return scheduler
 
 
 # log to Tensorboard
@@ -112,13 +106,11 @@ if EVALUATION_PROTOCOL == "streaming":
     seed = None
 else:
     seed = 0
-    
+
 scenario = CLEAR(
     evaluation_protocol=EVALUATION_PROTOCOL,
-    feature_type=None,
+    feature_type=CLEAR_FEATURE_TYPE,
     seed=seed,
-    train_transform=train_transform,
-    eval_transform=test_transform,
     dataset_root=DATA_ROOT,
 )
 
@@ -184,6 +176,7 @@ metric_log = open(ROOT / "metric_log.txt", "w+")
 metric_log.write(
     f"Protocol: {EVALUATION_PROTOCOL} "
     f"Seed: {seed} "
+    f"Feature: {CLEAR_FEATURE_TYPE} \n"
 )
 json.dump(accuracy_matrix.tolist(), metric_log, indent=6)
 json.dump(metric, metric_log, indent=6)
