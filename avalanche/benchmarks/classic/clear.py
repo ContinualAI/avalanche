@@ -191,7 +191,85 @@ def CLEAR(
     return benchmark_obj
 
 
-__all__ = ["CLEAR"]
+class CLEARMetric():
+    '''All metrics used in CLEAR paper.
+    More information can be found at:
+    https://clear-benchmark.github.io/
+    '''
+    def __init__(self):
+        super(CLEARMetric, self).__init__()
+    
+    def get_metrics(self, matrix):
+        """Given an accuracy matrix, returns the 5 metrics used in CLEAR paper
+
+        These are:
+            'in_domain' : In-domain accuracy (avg of diagonal)
+            'next_domain' : In-domain accuracy (avg of superdiagonal)
+            'accuracy' : Accuracy (avg of diagonal + lower triangular)
+            'backward_transfer' : BwT (avg of lower triangular)
+            'forward_transfer' : FwT (avg of upper triangular)
+
+        :param matrix: Accuracy matrix, 
+            e.g., matrix[5][0] is the test accuracy on 0-th-task at timestamp 5
+        :return: A dictionary containing these 5 metrics
+        """
+        assert matrix.shape[0] == matrix.shape[1]
+        metrics_dict = {
+            'in_domain' : self.in_domain(matrix),
+            'next_domain' : self.next_domain(matrix),
+            'accuracy' : self.accuracy(matrix),
+            'forward_transfer' : self.forward_transfer(matrix),
+            'backward_transfer' : self.backward_transfer(matrix),
+        }
+        return metrics_dict
+
+    def accuracy(self, matrix):
+        '''
+        Average of lower triangle + diagonal
+        Evaluate accuracy on seen tasks
+        '''
+        r, _ = matrix.shape
+        res = [matrix[i, j] for i in range(r) for j in range(i+1)]
+        return sum(res) / len(res)
+
+    def in_domain(self, matrix):
+        '''
+        Diagonal average
+        Evaluate accuracy on the current task only
+        '''
+        r, _ = matrix.shape
+        res = [matrix[i, i] for i in range(r)]
+        return sum(res) / r
+
+    def next_domain(self, matrix):
+        '''
+        Superdiagonal average
+        Evaluate on the immediate next timestamp
+        '''
+        r, _ = matrix.shape
+        res = [matrix[i, i+1] for i in range(r-1)]
+        return sum(res) / (r-1)
+
+    def forward_transfer(self, matrix):
+        '''
+        Upper trianglar average
+        Evaluate generalization to all future task
+        '''
+        r, _ = matrix.shape
+        res = [matrix[i, j] for i in range(r) for j in range(i+1, r)]
+        return sum(res) / len(res)
+
+    def backward_transfer(self, matrix):
+        '''
+        Lower triangular average
+        Evaluate learning without forgetting
+        '''
+        r, _ = matrix.shape
+        res = [matrix[i, j] for i in range(r) for j in range(i)]
+        return sum(res) / len(res)
+
+
+__all__ = ["CLEAR", "CLEARMetric"]
 
 if __name__ == "__main__":
     import sys
