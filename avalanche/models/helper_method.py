@@ -96,8 +96,7 @@ class MultiTaskDecorator(MultiTaskModule):
 
 
 def as_multitask(model: nn.Module, classifier_name: str) -> MultiTaskModule:
-    """
-    Wraps around a model to make it a multitask model
+    """Wraps around a model to make it a multitask model.
 
     :param model: model to be converted into MultiTaskModule
     :param classifier_name: the name of the attribute containing
@@ -105,8 +104,8 @@ def as_multitask(model: nn.Module, classifier_name: str) -> MultiTaskModule:
                             be an instance of nn.Sequential containing multiple
                             layers as long as the classification layer is the
                             last layer.
-    :return the decorated model, now subclassing MultiTaskModule, and
-    accepting task_labels as forward() method argument
+    :return: the decorated model, now subclassing MultiTaskModule, and
+        accepting task_labels as forward() method argument
     """
     return MultiTaskDecorator(model, classifier_name)
 

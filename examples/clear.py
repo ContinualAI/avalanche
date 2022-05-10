@@ -34,8 +34,8 @@ import torch
 from avalanche.benchmarks.classic.clear import CLEAR
 from avalanche.benchmarks.datasets.clear import clear10_data
 from avalanche.benchmarks.datasets.clear import (
-    CLEARImage,
-    CLEARFeature,
+    _CLEARImage,
+    _CLEARFeature,
     SEED_LIST,
     CLEAR_FEATURE_TYPES,
 )

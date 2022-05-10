@@ -8,10 +8,9 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-"""
-    Dynamic Modules are Pytorch modules that can be incrementally expanded
-    to allow architectural modifications (multi-head classifiers, progressive
-    networks, ...).
+"""Dynamic Modules are Pytorch modules that can be incrementally expanded
+to allow architectural modifications (multi-head classifiers, progressive
+networks, ...).
 """
 import torch
 from torch.nn import Module
@@ -21,8 +20,7 @@ from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
 class DynamicModule(Module):
-    """
-    Dynamic Modules are Avalanche modules that can be incrementally
+    """Dynamic Modules are Avalanche modules that can be incrementally
     expanded to allow architectural modifications (multi-head
     classifiers, progressive networks, ...).
 
@@ -78,17 +76,16 @@ class DynamicModule(Module):
 
 
 class MultiTaskModule(DynamicModule):
-    """
-    Multi-task modules are `torch.nn.Modules`s for multi-task
-    scenarios. The `forward` method accepts task labels, one for
+    """Base pytorch Module with support for task labels.
+
+    Multi-task modules are ``torch.nn.Module`` for multi-task
+    scenarios. The ``forward`` method accepts task labels, one for
     each sample in the mini-batch.
 
-    By default the `forward` method splits the mini-batch by task
-    and calls `forward_single_task`. Subclasses must implement
-    `forward_single_task` or override `forward.
-
-    if `task_labels == None`, the output is computed in parallel
-    for each task.
+    By default the ``forward`` method splits the mini-batch by task
+    and calls ``forward_single_task``. Subclasses must implement
+    ``forward_single_task`` or override `forward. If ``task_labels == None``,
+    the output is computed in parallel for each task.
     """
 
     def __init__(self):
@@ -259,6 +256,7 @@ class MultiHeadClassifier(MultiTaskModule):
         concatenate the samples together.
 
         These can be easily ensured in two possible ways:
+
         - each minibatch contains a single task, which is the case in most
             common benchmarks in Avalanche. Some exceptions to this setting
             are multi-task replay or cumulative strategies.
@@ -267,7 +265,8 @@ class MultiHeadClassifier(MultiTaskModule):
     """
 
     def __init__(self, in_features, initial_out_features=2):
-        """
+        """Init.
+
         :param in_features: number of input features.
         :param initial_out_features: initial number of classes (can be
             dynamically expanded).

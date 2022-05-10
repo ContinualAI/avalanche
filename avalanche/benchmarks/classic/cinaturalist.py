@@ -55,8 +55,8 @@ def SplitInaturalist(
     eval_transform: Optional[Any] = _default_eval_transform,
     dataset_root: Union[str, Path] = None
 ):
-    """
-    Creates a CL benchmark using the iNaturalist2018 dataset.
+    """Creates a CL benchmark using the iNaturalist2018 dataset.
+
     A selection of supercategories (by default 10) define the experiences.
     Note that the supercategories are highly imbalanced in the number of classes
     and the amount of data available.
@@ -66,9 +66,8 @@ def SplitInaturalist(
     (120Gtrain/val).
 
     To parse the dataset jsons you need to install an additional dependency:
-    "pycocotools". You can install it like this:
-
-        "conda install -c conda-forge pycocotools"
+    "pycocotools". You can install it with the command
+    ``conda install -c conda-forge pycocotools``
 
     Implementation is based on the CL survey
     (https://ieeexplore.ieee.org/document/9349197) but differs slightly.
@@ -98,10 +97,10 @@ def SplitInaturalist(
     which contains usage examples ranging from "basic" to "advanced".
 
     :param super_categories: The list of supercategories which define the
-    tasks, i.e. each task consists of all classes in a super-category.
+        tasks, i.e. each task consists of all classes in a super-category.
     :param download: If true and the dataset is not present in the computer,
-    this method will automatically download and store it. This will take 120G
-    for the train/val set.
+        this method will automatically download and store it. This will take
+        120G for the train/val set.
     :param return_task_id: if True, a progressive task id is returned for every
         experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.

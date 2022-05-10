@@ -31,12 +31,18 @@ networks, ...).
 Models
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+| Neural network architectures that can be used as backbones for CL experiments.
+
 .. autosummary::
     :toctree: generated
 
     PNN
+    MLPAdapter
+    MLP
     make_icarl_net
+    IcarlNet
     SimpleMLP_TinyImageNet
+    VAEMLPDecoder
     SimpleCNN
     MTSimpleCNN
     SimpleMLP

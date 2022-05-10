@@ -96,12 +96,10 @@ class AR1(SupervisedTemplate):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
         """
 
         warnings.warn(

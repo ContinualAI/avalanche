@@ -37,12 +37,12 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
         :param patience: Number of epochs to wait before stopping the training.
         :param val_stream_name: Name of the validation stream to search in the
-        metrics. The corresponding stream will be used to keep track of the
-        evolution of the performance of a model.
+            metrics. The corresponding stream will be used to keep track of the
+            evolution of the performance of a model.
         :param metric_name: The name of the metric to watch as it will be
-        reported in the evaluator.
+            reported in the evaluator.
         :param mode: Must be "max" or "min". max (resp. min) means that the
-        given metric should me maximized (resp. minimized).
+            given metric should me maximized (resp. minimized).
         :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
             early stopping should happen after `patience`
             epochs or iterations (Default='epoch').
