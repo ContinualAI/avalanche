@@ -28,3 +28,25 @@ class Autoencoder(nn.Module):
         encoding = self.encoder(x)
         reconstruction = self.decoder(encoding)
         return reconstruction
+
+class ExpertGate(MultiTaskModule):
+    def __init__(
+        arch="alexnet",
+        pretrained_flag=True,
+        device="cpu",
+        output_layer_name=None,
+    ):
+        super().__init__()
+
+    
+        # Select the pre-trained backbone to extract features from (defaults to arch=AlexNet)
+        feature_extractor_model = (
+            models.__dict__[arch](pretrained=pretrained_flag)
+            .to(device)
+            .eval()
+        )
+
+        # Module to extract features from given backbone and layer
+        self.feature_extraction_wrapper = FeatureExtractorBackbone(
+            feature_extractor_model, output_layer_name
+        ).eval()
