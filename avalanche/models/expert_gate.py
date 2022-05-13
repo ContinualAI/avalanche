@@ -57,3 +57,13 @@ class ExpertGate(MultiTaskModule):
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
             feature_extractor_model, output_layer_name
         ).eval()
+
+    def adaptation(self, dataset):
+        super().adaptation(dataset)
+        # your adaptation goes here
+
+    def forward_single_task(self, x, task_label):
+        # your forward goes here.
+        # task_label is a single integer
+        # the mini-batch is split by task-id inside the forward method.
+        pass
