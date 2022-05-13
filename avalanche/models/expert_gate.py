@@ -7,10 +7,11 @@ from .utils import FeatureExtractorBackbone
 from avalanche.models import MultiTaskModule, DynamicModule
 from avalanche.models import MultiHeadClassifier
 
+
 class Autoencoder(nn.Module):
     def __init__(self, input_dim, latent_dim):
         super().__init__()
-        
+
         # Encoder Linear -> ReLU
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, latent_dim),
@@ -22,23 +23,40 @@ class Autoencoder(nn.Module):
             nn.Linear(latent_dim, input_dim), 
             nn.Sigmoid()
         )
-    
+
     def forward(self, x):
         # Reconstruct input
         encoding = self.encoder(x)
         reconstruction = self.decoder(encoding)
         return reconstruction
 
+
+class ExpertModel(nn.Module):
+    def __init__(self, arch, num_classes, pretrained_flag=True, ):
+        super().__init__()
+
+        # Select pretrained model
+        self.model = models.__dict__[arch](pretrained=pretrained_flag)
+
+        # Replace the final layer to work for the task
+        original_classifier_input_dim = self.model._modules['classifier'][-1].in_features
+        self.model._modules['classifier'][-1] = nn.Linear(
+            original_classifier_input_dim, num_classes)
+
+    def forward(self, x):
+        return self.model(x)
+
+
 class ExpertGate(MultiTaskModule):
     def __init__(
+        self,
         arch="alexnet",
         pretrained_flag=True,
         device="cpu",
-        output_layer_name=None,
+        output_layer_name="feature",
     ):
         super().__init__()
 
-    
         # Select the pre-trained backbone to extract features from (defaults to arch=AlexNet)
         feature_extractor_model = (
             models.__dict__[arch](pretrained=pretrained_flag)
@@ -50,10 +68,6 @@ class ExpertGate(MultiTaskModule):
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
             feature_extractor_model, output_layer_name
         ).eval()
-
-    def adaptation(self, dataset):
-        super().adaptation(dataset)
-        # your adaptation goes here
 
     def forward_single_task(self, x, task_label):
         # your forward goes here.
