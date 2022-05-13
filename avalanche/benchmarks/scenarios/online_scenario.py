@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 from copy import copy
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Union
 
 import torch
 
@@ -35,7 +35,9 @@ class OnlineCLExperience(CLExperience):
         current_experience: int = None,
         origin_stream=None,
         origin_experience=None,
+        subexp_size: int = 1,
         is_first_subexp: bool = False,
+        is_last_subexp: bool = False,
         sub_stream_length: int = None,
     ):
         """Init.
@@ -49,9 +51,16 @@ class OnlineCLExperience(CLExperience):
         """
         super().__init__(current_experience, origin_stream)
 
-        self.origin_experience = ExperienceAttribute(origin_experience)
-        self.is_first_subexp = ExperienceAttribute(is_first_subexp)
-        self.sub_stream_length = ExperienceAttribute(sub_stream_length)
+        self.origin_experience = ExperienceAttribute(origin_experience,
+                                                     use_in_train=True)
+        self.subexp_size = ExperienceAttribute(subexp_size,
+                                               use_in_train=True)
+        self.is_first_subexp = ExperienceAttribute(is_first_subexp,
+                                                   use_in_train=True)
+        self.is_last_subexp = ExperienceAttribute(is_last_subexp,
+                                                  use_in_train=True)
+        self.sub_stream_length = ExperienceAttribute(sub_stream_length,
+                                                     use_in_train=True)
 
 
 def fixed_size_experience_split(
@@ -82,9 +91,13 @@ def fixed_size_experience_split(
             exp_indices = torch.as_tensor(exp_indices)[
                 torch.randperm(len(exp_indices))
             ].tolist()
+        sub_stream_length = len(exp_indices) // experience_size
+        if not drop_last and len(exp_indices) % experience_size > 0:
+            sub_stream_length += 1
 
         init_idx = 0
         is_first = True
+        is_last = False
         while init_idx < len(exp_indices):
             final_idx = init_idx + experience_size  # Exclusive
             if final_idx > len(exp_indices):
@@ -92,9 +105,12 @@ def fixed_size_experience_split(
                     break
 
                 final_idx = len(exp_indices)
+                is_last = True
 
             exp = OnlineCLExperience(
-                origin_experience=experience, is_first_subexp=is_first
+                origin_experience=experience, subexp_size=experience_size,
+                is_first_subexp=is_first, is_last_subexp=is_last,
+                sub_stream_length=sub_stream_length
             )
             exp.dataset = AvalancheSubset(
                 exp_dataset, indices=exp_indices[init_idx:final_idx]
@@ -152,10 +168,12 @@ def split_online_stream(
     def exps_iter():
         for exp in original_stream:
             for sub_exp in split_foo(exp, experience_size):
-                yield exp
-
+                yield sub_exp
+    stream_name = original_stream.name if hasattr(original_stream, "name") \
+        else "train"
     return CLStream(
-        name=original_stream.name, exps_iter=exps_iter(), set_stream_info=True
+        name="online_" + stream_name,
+        exps_iter=exps_iter(), set_stream_info=True
     )
 
 
@@ -163,10 +181,27 @@ class OnlineCLScenario(CLScenario):
     def __init__(
         self,
         original_streams: List[EagerCLStream],
+        experiences: Union[CLExperience, Iterable[CLExperience]] = None,
         experience_size: int = 10,
         stream_split_strategy="fixed_size_split",
     ):
+        """Creates an online scenario from an existing CL scenario
 
+        :param original_streams: The streams from the original CL scenario.
+        :param experiences: If None, the online stream will be created
+            from the `train_stream` of the original CL scenario, otherwise it
+            will create an online stream from the given sequence of experiences.
+        :param experience_size: The size of each online experiences, as an int.
+            Ignored if `custom_split_strategy` is used.
+        :param experience_split_strategy: A function that implements a custom
+            splitting strategy. The function must accept an experience and
+            return an experience's iterator. Defaults to None, which means
+            that the standard splitting strategy will be used (which creates
+            experiences of size `experience_size`).
+            A good starting to understand the mechanism is to look at the
+            implementation of the standard splitting function
+            :func:`fixed_size_experience_split_strategy`.
+        """
         if stream_split_strategy == "fixed_size_split":
 
             def split_foo(s):
@@ -178,11 +213,15 @@ class OnlineCLScenario(CLScenario):
         streams_dict = {s.name: s for s in original_streams}
         if "train" not in streams_dict:
             raise ValueError("Missing train stream for `original_streams`.")
+        if experiences is None:
+            online_train_stream = split_foo(streams_dict["train"])
+        else:
+            if not isinstance(experiences, Iterable):
+                experiences = [experiences]
+            online_train_stream = split_foo(experiences)
 
-        online_train_stream = split_foo(streams_dict["train"])
         streams = [online_train_stream]
         for s in original_streams:
             s = copy(s)
-            s.name = "original_" + s.name
             streams.append(s)
         super().__init__(streams)

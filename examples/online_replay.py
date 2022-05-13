@@ -10,7 +10,7 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Naive strategy.
+This is a simple example on how to use the Replay strategy.
 """
 
 from __future__ import absolute_import
@@ -29,6 +29,8 @@ import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
@@ -95,7 +97,11 @@ def main(args):
         loggers=[interactive_logger],
     )
 
-    # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
+    # CREATE THE STRATEGY INSTANCE (ONLINE-REPLAY)
+    storage_policy = ReservoirSamplingBuffer(max_size=100)
+    replay_plugin = ReplayPlugin(mem_size=100, batch_size=1,
+                                 storage_policy=storage_policy)
+
     cl_strategy = OnlineNaive(
         model,
         torch.optim.Adam(model.parameters(), lr=0.1),
@@ -105,6 +111,7 @@ def main(args):
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
+        plugins=[replay_plugin]
     )
 
     # TRAINING LOOP
@@ -122,7 +129,7 @@ def main(args):
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.online_train_stream)
         results.append(cl_strategy.eval(scenario.test_stream))
-
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

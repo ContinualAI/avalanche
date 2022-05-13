@@ -1,209 +1,314 @@
-import copy
-import warnings
-from typing import Optional, List, Union, Sequence, Iterable
+from typing import Sequence, Optional
+from pkg_resources import parse_version
 
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
-from avalanche.benchmarks import CLExperience
-from avalanche.benchmarks.utils import AvalancheSubset
-from avalanche.models import DynamicModule
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.models import avalanche_forward
+from avalanche.models.dynamic_optimizers import reset_optimizer
+from avalanche.models.utils import avalanche_model_adaptation
+from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates.supervised import SupervisedTemplate
-from avalanche.training.templates.base import ExpSequence
+from avalanche.training.templates.base_online_sgd import BaseOnlineSGDTemplate
+from avalanche.training.utils import trigger_plugins
+from avalanche.benchmarks.scenarios import OnlineCLExperience
 
 
-class SupervisedOnlineTemplate(SupervisedTemplate):
+class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
+    """Base class for continual learning strategies.
+
+    BaseTemplate is the super class of all task-based continual learning
+    strategies. It implements a basic training loop and callback system
+    that allows to execute code at each experience of the training loop.
+    Plugins can be used to implement callbacks to augment the training
+    loop with additional behavior (e.g. a memory buffer for replay).
+
+    **Scenarios**
+    This strategy supports several continual learning scenarios:
+
+    * class-incremental scenarios (no task labels)
+    * multi-task scenarios, where task labels are provided)
+    * multi-incremental scenarios, where the same task may be revisited
+
+    The exact scenario depends on the data stream and whether it provides
+    the task labels.
+
+    **Training loop**
+    The training loop is organized as follows::
+
+        train
+            train_exp  # for each experience
+                adapt_train_dataset
+                train_dataset_adaptation
+                make_train_dataloader
+                train_pass  # for each pass
+                    # forward
+                    # backward
+                    # model update
+
+    **Evaluation loop**
+    The evaluation loop is organized as follows::
+
+        eval
+            eval_exp  # for each experience
+                adapt_eval_dataset
+                eval_dataset_adaptation
+                make_eval_dataloader
+                eval_epoch  # for each epoch
+                    # forward
+                    # backward
+                    # model update
+
+    """
+
+    PLUGIN_CLASS = SupervisedPlugin
+
     def __init__(
-        self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
-        num_passes: int = 1,
-        train_mb_size: int = 1,
-        eval_mb_size: int = None,
-        device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
-        eval_every=-1,
+            self,
+            model: Module,
+            optimizer: Optimizer,
+            criterion=CrossEntropyLoss(),
+            train_mb_size: int = 1,
+            train_passes: int = 1,
+            eval_mb_size: Optional[int] = 1,
+            device="cpu",
+            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+            evaluator=default_evaluator,
+            eval_every=-1,
+            peval_mode="experience",
     ):
+        """Init.
+
+        :param model: PyTorch model.
+        :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
+        :param train_mb_size: mini-batch size for training.
+        :param train_passes: number of training passes.
+        :param eval_mb_size: mini-batch size for eval.
+        :param device: PyTorch device where the model will be allocated.
+        :param plugins: (optional) list of StrategyPlugins.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations. None to remove logging.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` experiences and at the end of
+            the learning experience.
+        :param peval_mode: one of {'experience', 'iteration'}. Decides whether
+            the periodic evaluation during training should execute every
+            `eval_every` experience or iterations (Default='experience').
+        """
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
             train_mb_size=train_mb_size,
-            train_epochs=1,
+            train_passes=train_passes,
             eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            peval_mode=peval_mode,
         )
+        self._criterion = criterion
 
-        self.num_passes = num_passes
+        ###################################################################
+        # State variables. These are updated during the train/eval loops. #
+        ###################################################################
 
-        warnings.warn(
-            "This is an unstable experimental strategy."
-            "Some plugins may not work properly."
-        )
+        self.adapted_dataset = None
+        """ Data used to train. It may be modified by plugins. Plugins can 
+        append data to it (e.g. for replay). 
 
-    def create_sub_experience_list(
-            self, experience: CLExperience) -> List[CLExperience]:
-        """Creates a list of sub-experiences from an experience.
-        It returns a list of experiences, where each experience is
-        a subset of the original experience.
+        .. note::
 
-        :param experience: single Experience.
-
-        :return: list of Experience.
+            This dataset may contain samples from different experiences. If you 
+            want the original data for the current experience  
+            use :attr:`.BaseTemplate.experience`.
         """
 
-        # Shuffle the indices
-        indices = torch.randperm(len(experience.dataset))
-        num_sub_exps = len(indices) // self.train_mb_size
+    @property
+    def mb_x(self):
+        """Current mini-batch input."""
+        return self.mbatch[0]
 
-        sub_experience_list = []
-        for subexp_id in range(num_sub_exps):
-            subexp_indices = indices[
-                subexp_id
-                * self.train_mb_size : (subexp_id + 1)
-                * self.train_mb_size
-            ]
-            sub_experience = copy.copy(experience)
-            subexp_ds = AvalancheSubset(
-                sub_experience.dataset, indices=subexp_indices
-            )
-            sub_experience.dataset = subexp_ds
-            sub_experience_list.append(sub_experience)
+    @property
+    def mb_y(self):
+        """Current mini-batch target."""
+        return self.mbatch[1]
 
-        return sub_experience_list
+    @property
+    def mb_task_id(self):
+        """Current mini-batch task labels."""
+        assert len(self.mbatch) >= 3
+        return self.mbatch[-1]
 
-    def train(self,
-              experiences: Union[CLExperience,
-                                 ExpSequence],
-              eval_streams: Optional[Sequence[Union[CLExperience,
-                                                    ExpSequence]]] = None,
-              **kwargs):
-        """Training loop. if experiences is a single element trains on it.
-        If it is a sequence, trains the model on each experience in order.
-        This is different from joint training on the entire stream.
-        It returns a dictionary with last recorded value for each metric.
+    def criterion(self):
+        """Loss function."""
+        return self._criterion(self.mb_output, self.mb_y)
 
-        :param experiences: single Experience or sequence.
-        :param eval_streams: list of streams for evaluation.
-            If None: use training experiences for evaluation.
-            Use [] if you do not want to evaluate during training.
-
-        :return: dictionary containing last recorded value for
-            each metric name.
-        """
-        self.is_training = True
-        self._stop_training = False
-
-        self.model.train()
-        self.model.to(self.device)
-
-        # Normalize training and eval data.
-        if not isinstance(experiences, Iterable):
-            experiences = [experiences]
-        if eval_streams is None:
-            eval_streams = [experiences]
-        self._eval_streams = eval_streams
-
-        self.num_sub_exps = len(experiences[0].dataset) // self.train_mb_size
-        self._before_training(**kwargs)
-
-        # Keep the (full) experience in self.full_experience
-        # for model adaptation
-        for self.full_experience in experiences:
-            sub_experience_list = self.create_sub_experience_list(
-                self.full_experience
-            )
-
-            # Train for each sub-experience
-            for i, sub_experience in enumerate(sub_experience_list):
-                self.experience = sub_experience
-                is_first_sub_exp = i == 0
-                is_last_sub_exp = i == len(sub_experience_list) - 1
-                self._train_exp(
-                    self.experience,
-                    eval_streams,
-                    is_first_sub_exp=is_first_sub_exp,
-                    is_last_sub_exp=is_last_sub_exp,
-                    **kwargs
-                )
-
-        self._after_training(**kwargs)
-
-        res = self.evaluator.get_last_metrics()
-        return res
-
-    def _train_exp(
-        self,
-        experience: CLExperience,
-        eval_streams=None,
-        is_first_sub_exp=False,
-        is_last_sub_exp=False,
-        **kwargs
-    ):
-        """Training loop over a single Experience object.
-
-        :param experience: CL experience information.
-        :param eval_streams: list of streams for evaluation.
-            If None: use the training experience for evaluation.
-            Use [] if you do not want to evaluate during training.
-        :param is_first_sub_exp: whether the current sub-experience
-            is the first sub-experience.
-        :param is_last_sub_exp: whether the current sub-experience
-            is the last sub-experience.
-        :param kwargs: custom arguments.
-        """
-        self.experience = experience
-        self.model.train()
-
-        if eval_streams is None:
-            eval_streams = [experience]
-        for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Iterable):
-                eval_streams[i] = [exp]
-
+    def _before_training_exp(self, **kwargs):
+        """Setup to train on a single experience."""
         # Data Adaptation (e.g. add new samples/data augmentation)
         self._before_train_dataset_adaptation(**kwargs)
         self.train_dataset_adaptation(**kwargs)
         self._after_train_dataset_adaptation(**kwargs)
-        self.make_train_dataloader(**kwargs)
+        super()._before_training_exp(**kwargs)
 
-        # Model Adaptation (e.g. freeze/add new units) in the
-        # first sub-experience
-        if is_first_sub_exp:
-            self.model = self.model_adaptation()
-            self.make_optimizer()
-        self._before_training_exp(**kwargs)
-        self._before_training_epoch(**kwargs)
+    def _load_train_state(self, prev_state):
+        super()._load_train_state(prev_state)
+        self.adapted_dataset = prev_state["adapted_dataset"]
+        self.dataloader = prev_state["dataloader"]
 
-        # if self._stop_training:  # Early stopping
-        #     self._stop_training = False
-        # break
+    def _save_train_state(self):
+        """Save the training state which may be modified by the eval loop.
 
-        for self.n_pass in range(self.num_passes):
-            self.training_epoch(**kwargs)
+        This currently includes: experience, adapted_dataset, dataloader,
+        is_training, and train/eval modes for each module.
 
-        # if is_last_sub_exp:
-        self._after_training_epoch(**kwargs)
-        self._after_training_exp(**kwargs)
+        TODO: we probably need a better way to do this.
+        """
+        state = super()._save_train_state()
+        new_state = {
+            "adapted_dataset": self.adapted_dataset,
+            "dataloader": self.dataloader,
+        }
+        return {**state, **new_state}
+
+    def train_dataset_adaptation(self, **kwargs):
+        """Initialize `self.adapted_dataset`."""
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.train()
+
+    def _before_eval_exp(self, **kwargs):
+        # Data Adaptation
+        self._before_eval_dataset_adaptation(**kwargs)
+        self.eval_dataset_adaptation(**kwargs)
+        self._after_eval_dataset_adaptation(**kwargs)
+        super()._before_eval_exp(**kwargs)
+
+    def make_train_dataloader(
+            self,
+            num_workers=0,
+            shuffle=True,
+            pin_memory=True,
+            persistent_workers=False,
+            **kwargs
+    ):
+        """Data loader initialization.
+
+        Called at the start of each learning experience after the dataset
+        adaptation.
+
+        :param num_workers: number of thread workers for the data loading.
+        :param shuffle: True if the data should be shuffled, False otherwise.
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
+        """
+
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
+
+        self.dataloader = TaskBalancedDataLoader(
+            self.adapted_dataset,
+            oversample_small_groups=True,
+            num_workers=num_workers,
+            batch_size=self.train_mb_size,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            **other_dataloader_args
+        )
+
+    def make_eval_dataloader(
+            self, num_workers=0, pin_memory=True, persistent_workers=False,
+            **kwargs
+    ):
+        """
+        Initializes the eval data loader.
+        :param num_workers: How many subprocesses to use for data loading.
+            0 means that the data will be loaded in the main process.
+            (default: 0).
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
+        :param kwargs:
+        :return:
+        """
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
+
+        self.dataloader = DataLoader(
+            self.adapted_dataset,
+            num_workers=num_workers,
+            batch_size=self.eval_mb_size,
+            pin_memory=pin_memory,
+            **other_dataloader_args
+        )
+
+    def forward(self):
+        """Compute the model's output given the current mini-batch."""
+        return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def model_adaptation(self, model=None):
-        """Adapts the model to the data from the current
-           (full) experience.
+        """Adapts the model to the current data.
 
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
         """
         if model is None:
             model = self.model
 
-        for module in model.modules():
-            if isinstance(module, DynamicModule):
-                module.adaptation(self.full_experience.dataset)
+        # For evaluation, the experience is not necessarily an online
+        # experience.
+        if isinstance(self.experience, OnlineCLExperience):
+            avalanche_model_adaptation(
+                model, self.experience.origin_experience.dataset)
+        else:
+            avalanche_model_adaptation(model, self.experience.dataset)
+
         return model.to(self.device)
+
+    def _unpack_minibatch(self):
+        """We assume mini-batches have the form <x, y, ..., t>.
+        This allows for arbitrary tensors between y and t.
+        Keep in mind that in the most general case mb_task_id is a tensor
+        which may contain different labels for each sample.
+        """
+        assert len(self.mbatch) >= 3
+        super()._unpack_minibatch()
+
+    def eval_dataset_adaptation(self, **kwargs):
+        """Initialize `self.adapted_dataset`."""
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.eval()
+
+    def make_optimizer(self):
+        """Optimizer initialization.
+
+        Called before each training experiene to configure the optimizer.
+        """
+        # we reset the optimizer's state after each experience.
+        # This allows to add new parameters (new heads) and
+        # freezing old units during the model's adaptation phase.
+        reset_optimizer(self.optimizer, self.model)
+
+    #########################################################
+    # Plugin Triggers                                       #
+    #########################################################
+
+    def _before_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "before_train_dataset_adaptation", **kwargs)
+
+    def _after_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "after_train_dataset_adaptation", **kwargs)
+
+    def _before_eval_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "before_eval_dataset_adaptation", **kwargs)
+
+    def _after_eval_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
