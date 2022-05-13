@@ -18,6 +18,9 @@ def avalanche_model_adaptation(model: nn.Module, experience: CLExperience):
         if isinstance(module, DynamicModule):
             module.adaptation(experience)
 
+# TODO: Query a dictionary to retrieve appropriate layer name for the model
+def retrieve_feature_layer(arch):
+    pass 
 
 class FeatureExtractorBackbone(nn.Module):
     """

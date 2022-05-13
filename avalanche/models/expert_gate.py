@@ -38,6 +38,13 @@ class ExpertGate(MultiTaskModule):
     ):
         super().__init__()
 
+        # If output_layer_name not specified, query for a feature extraction layer
+        if output_layer_name is None:
+            retrieved_layer = retrieve_feature_layer(arch)
+            if (retrieved_layer is None):
+                output_layer_name = retrieved_layer
+            else:
+                exit("You must provide a valid layer to extract features from")
     
         # Select the pre-trained backbone to extract features from (defaults to arch=AlexNet)
         feature_extractor_model = (
