@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class WeightCheckpoint(PluginMetric[Tensor]):
     """
-    The WeightCheckpoint Metric. This is a standalone metric.
+    The WeightCheckpoint Metric.
 
     Instances of this metric keeps the weight checkpoint tensor of the
     model at each experience.
@@ -84,7 +84,8 @@ class WeightCheckpoint(PluginMetric[Tensor]):
             )
         ]
 
-    def after_eval_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
+    def after_training_exp(self, strategy: "SupervisedTemplate") -> \
+            "MetricResult":
         model_params = copy.deepcopy(strategy.model.parameters())
         self.update(model_params)
 

@@ -27,12 +27,9 @@ from pathlib import Path
 from typing import Union, Any, Optional
 from typing_extensions import Literal
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import (
-    check_vision_benchmark,
-)
 from avalanche.benchmarks.datasets.clear import (
-    CLEARImage,
-    CLEARFeature,
+    _CLEARImage,
+    _CLEARFeature,
     SEED_LIST,
     CLEAR_FEATURE_TYPES,
 )
@@ -135,7 +132,7 @@ def CLEAR(
         raise NotImplementedError()
 
     if feature_type is None:
-        clear_dataset_train = CLEARImage(
+        clear_dataset_train = _CLEARImage(
             root=dataset_root,
             data_name=data_name,
             download=True,
@@ -143,7 +140,7 @@ def CLEAR(
             seed=seed,
             transform=train_transform,
         )
-        clear_dataset_test = CLEARImage(
+        clear_dataset_test = _CLEARImage(
             root=dataset_root,
             data_name=data_name,
             download=True,
@@ -159,7 +156,7 @@ def CLEAR(
         )
         benchmark_generator = create_generic_benchmark_from_paths
     else:
-        clear_dataset_train = CLEARFeature(
+        clear_dataset_train = _CLEARFeature(
             root=dataset_root,
             data_name=data_name,
             download=True,
@@ -167,7 +164,7 @@ def CLEAR(
             split=train_split,
             seed=seed,
         )
-        clear_dataset_test = CLEARFeature(
+        clear_dataset_test = _CLEARFeature(
             root=dataset_root,
             data_name=data_name,
             download=True,

@@ -163,7 +163,7 @@ class CLEARDataset(DownloadableDataset):
         return len(self.samples)
 
 
-class CLEARImage(CLEARDataset):
+class _CLEARImage(CLEARDataset):
     """CLEAR Image Dataset (base class for CLEAR10Image)"""
 
     def __init__(
@@ -222,12 +222,12 @@ class CLEARImage(CLEARDataset):
         aligned with target index.
         """
 
-        super(CLEARImage, self).__init__(
+        super(_CLEARImage, self).__init__(
             root, data_name=data_name, download=download, verbose=True
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARImage, self)._load_metadata():
+        if not super(_CLEARImage, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -290,7 +290,7 @@ class CLEARImage(CLEARDataset):
         return len(self.targets)
 
 
-class CLEARFeature(CLEARDataset):
+class _CLEARFeature(CLEARDataset):
     """CLEAR Feature Dataset (base class for CLEAR10Feature)"""
 
     def __init__(
@@ -347,12 +347,12 @@ class CLEARFeature(CLEARDataset):
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
 
-        super(CLEARFeature, self).__init__(
+        super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARFeature, self)._load_metadata():
+        if not super(_CLEARFeature, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     root = f"../avalanche_datasets/{data_name}"
     if not os.path.exists(root):
         Path(root).mkdir(parents=True)
-    clear_dataset_all = CLEARImage(
+    clear_dataset_all = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -441,7 +441,7 @@ if __name__ == "__main__":
         seed=None,
         transform=transform,
     )
-    clear_dataset_train = CLEARImage(
+    clear_dataset_train = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -449,7 +449,7 @@ if __name__ == "__main__":
         seed=0,
         transform=transform,
     )
-    clear_dataset_test = CLEARImage(
+    clear_dataset_test = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -461,7 +461,7 @@ if __name__ == "__main__":
     print("clear10 size (train): ", len(clear_dataset_train))
     print("clear10 size (test): ", len(clear_dataset_test))
 
-    clear_dataset_all_feature = CLEARFeature(
+    clear_dataset_all_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -469,7 +469,7 @@ if __name__ == "__main__":
         split="all",
         seed=None,
     )
-    clear_dataset_train_feature = CLEARFeature(
+    clear_dataset_train_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -477,7 +477,7 @@ if __name__ == "__main__":
         split="train",
         seed=0,
     )
-    clear_dataset_test_feature = CLEARFeature(
+    clear_dataset_test_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -499,4 +499,5 @@ if __name__ == "__main__":
         print(len(y))
         break
 
-__all__ = ["CLEARFeature", "CLEARImage", "SEED_LIST", "CLEAR_FEATURE_TYPES"]
+__all__ = ["CLEARDataset", "_CLEARFeature", "_CLEARImage", "SEED_LIST",
+           "CLEAR_FEATURE_TYPES"]

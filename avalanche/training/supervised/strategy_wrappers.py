@@ -83,7 +83,7 @@ class Naive(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         super().__init__(
@@ -138,7 +138,7 @@ class PNNStrategy(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         # Check that the model has the correct architecture.
@@ -176,7 +176,7 @@ class CWRStar(SupervisedTemplate):
         eval_every=-1,
         **base_kwargs
     ):
-        """
+        """Init.
 
         :param model: The model.
         :param optimizer: The optimizer to use.
@@ -195,7 +195,7 @@ class CWRStar(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param \*\*base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
@@ -258,7 +258,7 @@ class Replay(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param \*\*base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -339,7 +339,7 @@ class GenerativeReplay(SupervisedTemplate):
             learning experience.
         :param generator_strategy: A trainable strategy with a generative model,
             which employs GenerativeReplayPlugin. Defaults to None.
-        :param **base_kwargs: any additional
+        :param \*\*base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -456,7 +456,7 @@ class VAETraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param \*\*base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -523,7 +523,7 @@ class GSS_greedy(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param \*\*base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         rp = GSS_greedyPlugin(
@@ -588,7 +588,7 @@ class GDumb(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -656,7 +656,7 @@ class LwF(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -724,7 +724,7 @@ class AGEM(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -792,7 +792,7 @@ class GEM(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -872,7 +872,7 @@ class EWC(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         ewc = EWCPlugin(ewc_lambda, mode, decay_factor, keep_importance_data)
@@ -952,7 +952,7 @@ class SynapticIntelligence(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         if plugins is None:
@@ -1008,15 +1008,15 @@ class CoPE(SupervisedTemplate):
         :param model: The model.
         :param optimizer: The optimizer to use.
         :param criterion: Loss criterion to use. Standard overwritten by
-        PPPloss (see CoPEPlugin).
+            PPPloss (see CoPEPlugin).
         :param mem_size: replay buffer size.
         :param n_classes: total number of classes that will be encountered. This
-        is used to output predictions for all classes, with zero probability
-        for unseen classes.
+            is used to output predictions for all classes, with zero probability
+            for unseen classes.
         :param p_size: The prototype size, which equals the feature size of the
-        last layer.
+            last layer.
         :param alpha: The momentum for the exponentially moving average of the
-        prototypes.
+            prototypes.
         :param T: The softmax temperature, used as a concentration parameter.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
@@ -1030,7 +1030,7 @@ class CoPE(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
+        :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         copep = CoPEPlugin(mem_size, n_classes, p_size, alpha, T)
@@ -1095,7 +1095,6 @@ class LFL(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 

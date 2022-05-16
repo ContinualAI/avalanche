@@ -34,6 +34,7 @@ from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
 from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
+
 # For CLEAR dataset setup
 DATASET_NAME = "clear10"
 NUM_CLASSES = {"clear10": 11}

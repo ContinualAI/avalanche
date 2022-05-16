@@ -18,12 +18,13 @@ class SLDAResNetModel(nn.Module):
         imagenet_pretrained=True,
         device="cpu",
     ):
-        """
-        :param arch: backbone architecture (default is resnet-18, but others
-        can be used by modifying layer for
-        feature extraction in `self.feature_extraction_wrapper'
+        """Init.
+
+        :param arch: backbone architecture. Default is resnet-18, but others
+            can be used by modifying layer for
+            feature extraction in ``self.feature_extraction_wrapper``.
         :param imagenet_pretrained: True if initializing backbone with imagenet
-        pre-trained weights else False
+            pre-trained weights else False
         :param output_layer_name: name of the layer from feature extractor
         :param device: cpu, gpu or other device
         """
