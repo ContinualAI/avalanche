@@ -260,7 +260,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         """
         if model is None:
             model = self.model
-        avalanche_model_adaptation(model, self.experience.dataset)
+        avalanche_model_adaptation(model, self.experience)
         return model.to(self.device)
 
     def _unpack_minibatch(self):

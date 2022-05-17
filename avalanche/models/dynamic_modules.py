@@ -16,8 +16,8 @@
 import torch
 from torch.nn import Module
 
-from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.benchmarks.scenarios import CLExperience
 
 
 class DynamicModule(Module):
@@ -27,11 +27,10 @@ class DynamicModule(Module):
     classifiers, progressive networks, ...).
 
     Compared to pytoch Modules, they provide an additional method,
-    `model_adaptation`, which adapts the model given data from the
-    current experience.
+    `model_adaptation`, which adapts the model given the current experience.
     """
 
-    def adaptation(self, dataset: AvalancheDataset = None):
+    def adaptation(self, experience: CLExperience = None):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -45,15 +44,15 @@ class DynamicModule(Module):
             require the model's adaptation, such as the discovery of new
             classes or tasks.
 
-        :param dataset: data from the current experience.
+        :param experience: the current experience.
         :return:
         """
         if self.training:
-            self.train_adaptation(dataset)
+            self.train_adaptation(experience)
         else:
-            self.eval_adaptation(dataset)
+            self.eval_adaptation(experience)
 
-    def train_adaptation(self, dataset: AvalancheDataset):
+    def train_adaptation(self, experience: CLExperience):
         """Module's adaptation at training time.
 
         Avalanche strategies automatically call this method *before* training
@@ -61,7 +60,7 @@ class DynamicModule(Module):
         """
         pass
 
-    def eval_adaptation(self, dataset: AvalancheDataset):
+    def eval_adaptation(self, experience: CLExperience):
         """Module's adaptation at evaluation time.
 
         Avalanche strategies automatically call this method *before* evaluating
@@ -97,7 +96,7 @@ class MultiTaskModule(DynamicModule):
         self.max_class_label = 0
         """ Set of task labels encountered up to now. """
 
-    def adaptation(self, dataset: AvalancheDataset = None):
+    def adaptation(self, experience: CLExperience = None):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -114,19 +113,21 @@ class MultiTaskModule(DynamicModule):
         :param dataset: data from the current experience.
         :return:
         """
+        dataset = experience.dataset
         self.max_class_label = max(
             self.max_class_label, max(dataset.targets) + 1
         )
         if self.training:
-            self.train_adaptation(dataset)
+            self.train_adaptation(experience)
         else:
-            self.eval_adaptation(dataset)
+            self.eval_adaptation(experience)
 
-    def eval_adaptation(self, dataset: AvalancheDataset):
+    def eval_adaptation(self, experience: CLExperience):
         pass
 
-    def train_adaptation(self, dataset: AvalancheDataset = None):
+    def train_adaptation(self, experience: CLExperience = None):
         """Update known task labels."""
+        dataset = experience.dataset
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -214,12 +215,13 @@ class IncrementalClassifier(DynamicModule):
         self.classifier = torch.nn.Linear(in_features, initial_out_features)
 
     @torch.no_grad()
-    def adaptation(self, dataset: AvalancheDataset):
+    def adaptation(self, experience: CLExperience):
         """If `dataset` contains unseen classes the classifier is expanded.
 
         :param dataset: data from the current experience.
         :return:
         """
+        dataset = experience.dataset
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
         new_nclasses = max(
@@ -285,13 +287,14 @@ class MultiHeadClassifier(MultiTaskModule):
         self.classifiers["0"] = first_head
         self.max_class_label = max(self.max_class_label, initial_out_features)
 
-    def adaptation(self, dataset: AvalancheDataset):
+    def adaptation(self, experience: CLExperience):
         """If `dataset` contains new tasks, a new head is initialized.
 
         :param dataset: data from the current experience.
         :return:
         """
-        super().adaptation(dataset)
+        super().adaptation(experience)
+        dataset = experience.dataset
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -303,7 +306,7 @@ class MultiHeadClassifier(MultiTaskModule):
                 new_head = IncrementalClassifier(
                     self.in_features, self.starting_out_features
                 )
-                new_head.adaptation(dataset)
+                new_head.adaptation(experience)
                 self.classifiers[tid] = new_head
 
     def forward_single_task(self, x, task_label):
@@ -345,10 +348,10 @@ class TrainEvalModel(DynamicModule):
         x = self.feature_extractor(x)
         return self.classifier(x)
 
-    def train_adaptation(self, dataset: AvalancheDataset = None):
+    def train_adaptation(self, experience: CLExperience = None):
         self.classifier = self.train_classifier
 
-    def eval_adaptation(self, dataset: AvalancheDataset = None):
+    def eval_adaptation(self, experience: CLExperience = None):
         self.classifier = self.eval_classifier
 
 

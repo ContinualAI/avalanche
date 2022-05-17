@@ -211,8 +211,11 @@ class DynamicModelsTests(unittest.TestCase):
         b_old = model.classifier.bias.clone()
 
         # adaptation. Increase number of classes
-        dataset = benchmark.train_stream[4].dataset
-        model.adaptation(dataset)
+        class Experience:
+            dataset = benchmark.train_stream[4].dataset
+        experience = Experience()
+
+        model.adaptation(experience)
         w_new = model.classifier.weight.clone()
         b_new = model.classifier.bias.clone()
 
@@ -221,8 +224,8 @@ class DynamicModelsTests(unittest.TestCase):
         assert torch.equal(b_old, b_new[: w_old.shape[0]])
 
         # shape should be correct.
-        assert w_new.shape[0] == max(dataset.targets) + 1
-        assert b_new.shape[0] == max(dataset.targets) + 1
+        assert w_new.shape[0] == max(experience.dataset.targets) + 1
+        assert b_new.shape[0] == max(experience.dataset.targets) + 1
 
     def test_multihead_head_creation(self):
         # Check if the optimizer is updated correctly
@@ -391,7 +394,7 @@ class PNNTest(unittest.TestCase):
         d1 = benchmark.train_stream[1].dataset
         mb1 = iter(DataLoader(d1)).__next__()
 
-        avalanche_model_adaptation(model, d0)
-        avalanche_model_adaptation(model, d1)
+        avalanche_model_adaptation(model, benchmark.train_stream[0])
+        avalanche_model_adaptation(model, benchmark.train_stream[1])
         model(mb0[0], task_labels=mb0[-1])
         model(mb1[0], task_labels=mb1[-1])
