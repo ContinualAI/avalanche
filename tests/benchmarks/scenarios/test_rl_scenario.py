@@ -57,5 +57,3 @@ def test_multiple_envs():
     for i, exp in enumerate(rl_scenario.eval_stream):
         assert exp.task_label == 0
         assert exp.environment.spec.id == envs[0].spec.id   
-    
-    

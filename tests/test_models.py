@@ -330,6 +330,65 @@ class DynamicModelsTests(unittest.TestCase):
             assert ((y_mh - y_t) ** 2).sum() < 1.0e-7
             break
 
+    def test_incremental_classifier_masking(self):
+        benchmark = get_fast_benchmark(
+            use_task_labels=False, shuffle=True
+        )
+        model = IncrementalClassifier(in_features=6)
+        autot = []
+        for exp in benchmark.train_stream:
+            curr_au = exp.classes_in_this_experience
+            autot.extend(curr_au)
+
+            model.adaptation(exp)
+            assert torch.all(model.active_units[autot] == 1)
+
+            # print(model.active_units)
+            mb = exp.dataset[:7][0]
+            out = model(mb)
+            assert torch.all(out[:, autot] != model.mask_value)
+            out_masked = out[:, model.active_units == 0]
+            assert torch.all(out_masked == model.mask_value)
+
+    def test_multi_head_classifier_masking(self):
+        benchmark = get_fast_benchmark(
+            use_task_labels=True, shuffle=True
+        )
+
+        # print("task order: ", [e.task_label for e in benchmark.train_stream])
+        # print("class order: ", [e.classes_in_this_experience for e in
+        # benchmark.train_stream])
+
+        model = MultiHeadClassifier(in_features=6)
+        for tid, exp in enumerate(benchmark.train_stream):
+            # exclusive task label for each experience
+            curr_au = exp.classes_in_this_experience
+
+            model.adaptation(exp)
+            curr_mask = model._buffers[f'active_units_T{tid}']
+            nunits = curr_mask.shape[0]
+            assert torch.all(curr_mask[curr_au] == 1)
+
+            # print(model._buffers)
+            mb, tmb = exp.dataset[:7][0], exp.dataset[:7][2]
+            out = model(mb, tmb)
+            assert torch.all(out[:, curr_au] != model.mask_value)
+            assert torch.all(out[:, :nunits]
+                             [:, curr_mask == 0] == model.mask_value)
+        # check masking after adaptation on the entire stream
+        for tid, exp in enumerate(benchmark.train_stream):
+            curr_au = exp.classes_in_this_experience
+            curr_mask = model._buffers[f'active_units_T{tid}']
+            nunits = curr_mask.shape[0]
+            assert torch.all(curr_mask[curr_au] == 1)
+
+            # print(model._buffers)
+            mb, tmb = exp.dataset[:7][0], exp.dataset[:7][2]
+            out = model(mb, tmb)
+            assert torch.all(out[:, curr_au] != model.mask_value)
+            assert torch.all(out[:, :nunits]
+                             [:, curr_mask == 0] == model.mask_value)
+
 
 class TrainEvalModelTests(unittest.TestCase):
     def test_classifier_selection(self):
