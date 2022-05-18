@@ -36,3 +36,4 @@ dependencies:
     - higher
     - gym
     - lvis
+    - wget
