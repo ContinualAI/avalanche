@@ -16,7 +16,6 @@ from typing import Union, List
 import json
 import os
 
-import wget
 import torch
 from torchvision.datasets.folder import default_loader
 
@@ -89,8 +88,7 @@ class CLEARDataset(DownloadableDataset):
                 print("Downloading " + name + "...")
             url = os.path.join(base_url, name)
             filepath = self.root / name
-            wget.download(url, out=str(filepath))
-
+            os.system(f"wget -P {str(self.root)} {url}")
             self._extract_archive(filepath, remove_archive=True)
 
     def _load_metadata(self) -> bool:
