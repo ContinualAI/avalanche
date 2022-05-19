@@ -180,7 +180,7 @@ Standalone Metrics
 evaluation.metrics.detection
 ----------------------------------------
 
-Metrics for Object Detection tasks
+| Metrics for Object Detection tasks. Please, take a look at the examples in the `examples` folder of Avalanche to better understand how to use these metrics.
 
 .. contents::
     :depth: 2
