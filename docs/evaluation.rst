@@ -234,4 +234,3 @@ Metric result types
 
     MetricValue
     LoggingType
-    TensorImage

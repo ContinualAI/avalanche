@@ -271,6 +271,7 @@ undocumented_classes_to_ignore = [
     'DetectionEvaluator',
 
     'TensorEncoder',
+    'TensorImage'
     'AlternativeValues',
     'LabelsRepartitionPlugin',
 
