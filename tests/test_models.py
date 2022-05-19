@@ -211,8 +211,10 @@ class DynamicModelsTests(unittest.TestCase):
         b_old = model.classifier.bias.clone()
 
         # adaptation. Increase number of classes
+        e = benchmark.train_stream[4]
         class Experience:
-            dataset = benchmark.train_stream[4].dataset
+            dataset = e.dataset
+            classes_in_this_experience = e.classes_in_this_experience
         experience = Experience()
 
         model.adaptation(experience)
@@ -317,6 +319,7 @@ class DynamicModelsTests(unittest.TestCase):
         model_t4 = model.classifiers["4"]
 
         # check head task0
+        model.masking = False  # disable masking to check output equality
         for x, y, t in DataLoader(benchmark.train_stream[0].dataset):
             y_mh = model(x, t)
             y_t = model_t0(x)

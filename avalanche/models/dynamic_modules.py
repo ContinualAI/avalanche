@@ -383,7 +383,14 @@ class MultiHeadClassifier(MultiTaskModule):
         """
         out = self.classifiers[str(task_label)](x)
         if self.masking:
-            curr_au = self._buffers[f'active_units_T{task_label}']
+            au_name = f'active_units_T{task_label}'
+            curr_au = self._buffers[au_name]
+            nunits, oldsize = out.shape[-1], curr_au.shape[0]
+            if oldsize < nunits:  # we have to update the mask
+                old_mask = self._buffers[au_name]
+                self._buffers[au_name] = torch.zeros(nunits, dtype=torch.bool)
+                self._buffers[au_name][:oldsize] = old_mask
+                curr_au = self._buffers[au_name]
             out[..., torch.logical_not(curr_au)] = self.mask_value
         return out
 
