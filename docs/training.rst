@@ -11,7 +11,6 @@ Ready-to-use continual learning strategies.
 .. autosummary::
     :toctree: generated
 
-    BaseStrategy
     Cumulative
     JointTraining
     Naive
@@ -30,7 +29,9 @@ Ready-to-use continual learning strategies.
     SynapticIntelligence
     CoPE
     LFL
-
+    GenerativeReplay
+    LaMAML
+    MAS
 
 Replay Buffers
 ----------------------------------------
@@ -82,7 +83,6 @@ Utilities
 .. autosummary::
     :toctree: generated
 
-    StrategyPlugin
     EarlyStoppingPlugin
     EvaluationPlugin
     LRSchedulerPlugin
@@ -107,3 +107,6 @@ Strategies
     LwFPlugin
     ReplayPlugin
     SynapticIntelligencePlugin
+    MASPlugin
+    TrainGeneratorAfterExpPlugin
+    RWalkPlugin

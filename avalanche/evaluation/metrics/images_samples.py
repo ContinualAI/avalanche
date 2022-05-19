@@ -141,7 +141,7 @@ class ImagesSamplePlugin(PluginMetric):
     ) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_transforms(
-                transform=MaybeToTensor(),
+                transform=_MaybeToTensor(),
                 target_transform=None,
             )
         return DataLoader(
@@ -151,7 +151,7 @@ class ImagesSamplePlugin(PluginMetric):
         )
 
 
-class MaybeToTensor(ToTensor):
+class _MaybeToTensor(ToTensor):
     """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor. Pytorch tensors
     are left as is.
     """

@@ -53,7 +53,7 @@ class ICaRL(SupervisedTemplate):
         :param memory_size: The nuber of patterns saved in the memory.
         :param buffer_transform: transform applied on buffer elements already
             modified by test_transform (if specified) before being used for
-             replay
+            replay
         :param fixed_memory: If True a memory of size memory_size is
             allocated and partitioned between samples from the observed
             experiences. If False every time a new class is observed

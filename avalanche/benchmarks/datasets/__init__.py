@@ -12,3 +12,4 @@ from .torchvision_wrapper import *
 from .inaturalist import *
 from .lvis_dataset import *
 from .penn_fudan import *
+from .clear import *

@@ -16,8 +16,7 @@ class StreamingLDA(SupervisedTemplate):
 
     This strategy does not use backpropagation.
     Minibatches are first passed to the pretrained feature extractor.
-    The result is processed one element at a time to fit the
-    LDA.
+    The result is processed one element at a time to fit the LDA.
     Original paper:
     "Hayes et. al., Lifelong Machine Learning with Deep Streaming Linear
     Discriminant Analysis, CVPR Workshop, 2020"
@@ -57,7 +56,7 @@ class StreamingLDA(SupervisedTemplate):
         :param eval_mb_size: batch size for inference
         :param shrinkage_param: value of the shrinkage parameter
         :param streaming_update_sigma: True if sigma is plastic else False
-        feature extraction in `self.feature_extraction_wrapper'
+            feature extraction in `self.feature_extraction_wrapper`.
         :param plugins: list of StrategyPlugins
         :param evaluator: Evaluation Plugin instance
         :param eval_every: run eval every `eval_every` epochs.

@@ -28,8 +28,7 @@ from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 
 
 class DownloadableDataset(Dataset[T_co], ABC):
-    """
-    Base class for a downloadable dataset.
+    """Base class for a downloadable dataset.
 
     It is recommended to extend this class if a dataset can be downloaded from
     the internet. This implementation codes the recommended behaviour for
@@ -71,8 +70,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
         download: bool = True,
         verbose: bool = False,
     ):
-        """
-        Creates an instance of a downloadable dataset.
+        """Creates an instance of a downloadable dataset.
 
         Consider looking at the class documentation for the precise details on
         how to extend this class.
