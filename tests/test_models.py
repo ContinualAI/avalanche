@@ -212,6 +212,7 @@ class DynamicModelsTests(unittest.TestCase):
 
         # adaptation. Increase number of classes
         e = benchmark.train_stream[4]
+        
         class Experience:
             dataset = e.dataset
             classes_in_this_experience = e.classes_in_this_experience
