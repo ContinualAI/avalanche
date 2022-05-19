@@ -374,7 +374,7 @@ class OldBaseStrategy:
 
         for module in model.modules():
             if isinstance(module, DynamicModule):
-                module.adaptation(self.experience.dataset)
+                module.adaptation(self.experience)
         return model.to(self.device)
 
     def forward(self):

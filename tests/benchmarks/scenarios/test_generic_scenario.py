@@ -21,7 +21,7 @@ class ExperienceTests(unittest.TestCase):
 
         self.assertRaises(
             MaskedAttributeError,
-            lambda: CLExperience(5).inference().current_experience,
+            lambda: CLExperience(5).eval().current_experience,
         )
 
         print(

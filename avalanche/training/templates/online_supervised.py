@@ -205,5 +205,5 @@ class SupervisedOnlineTemplate(SupervisedTemplate):
 
         for module in model.modules():
             if isinstance(module, DynamicModule):
-                module.adaptation(self.full_experience.dataset)
+                module.adaptation(self.full_experience)
         return model.to(self.device)

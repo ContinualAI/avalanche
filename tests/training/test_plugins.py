@@ -31,6 +31,7 @@ from avalanche.training.plugins import (
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
+from tests.unit_tests_utils import FAST_TEST
 
 
 class MockPlugin(SupervisedPlugin):
@@ -549,6 +550,10 @@ class PluginTests(unittest.TestCase):
         with self.assertRaises(Exception):
             LRSchedulerPlugin(scheduler, metric="cuteness")
 
+    @unittest.skipIf(
+        FAST_TEST,
+        "skip test because it is extremely slow "
+        "and should not be broken easily.")
     def test_scheduler_reduce_on_plateau_plugin_with_val_stream(self):
         # Regression test for issue #858 (part 2)
         n_epochs = 100
