@@ -24,6 +24,7 @@ Metrics helper functions
     :toctree: generated
 
     accuracy_metrics
+    topk_acc_metrics
     loss_metrics
     bwt_metrics
     forgetting_metrics
@@ -116,6 +117,7 @@ RunningEpoch Metrics
    :toctree: generated
 
     RunningEpochAccuracy
+    RunningEpochTopkAccuracy
     RunningEpochLoss
     RunningEpochCPUUsage
     RunningEpochTime
@@ -138,8 +140,12 @@ Minibatch Metrics
     MinibatchMaxGPU
     MinibatchTopkAccuracy
 
-Other
-```
+Other Plugin Metrics
+^^^^^^^^^^^^^^^^^^^^
+.. autosummary::
+   :toctree: generated
+
+    WeightCheckpoint
 
 Standalone Metrics
 ^^^^^^^^^^^^^^^^^^
@@ -152,15 +158,43 @@ Standalone Metrics
     MeanNewOldScores
     MaxRAM
     MAC
+    BWT
+    Mean
     DiskUsage
     CPUUsage
     Loss
     ConfusionMatrix
     ForwardTransfer
+    Forgetting
+    ElapsedTime
+    LabelsRepartition
     MaxGPU
     TopkAccuracy
+    TrainedExperienceTopkAccuracy
     Accuracy
     MeanScores
+    Sum
+
+
+
+evaluation.metrics.detection
+----------------------------------------
+
+Metrics for Object Detection tasks
+
+.. contents::
+    :depth: 2
+    :local:
+    :backlinks: top
+
+.. currentmodule:: avalanche.evaluation.metrics.detection
+
+.. autosummary::
+    :toctree: generated
+
+    make_lvis_metrics
+    get_detection_api_from_dataset
+    DetectionMetrics
 
 
 evaluation.metric_definitions
@@ -181,3 +215,23 @@ General interfaces on which metrics are built.
     Metric
     PluginMetric
     GenericPluginMetric
+
+
+evaluation.metric_results
+-------------------------------
+
+Metric result types
+
+.. contents:: avalanche.evaluation.metric_results
+    :depth: 2
+    :local:
+    :backlinks: top
+
+.. currentmodule:: avalanche.evaluation.metric_results
+
+.. autosummary::
+    :toctree: generated
+
+    MetricValue
+    LoggingType
+    TensorImage
