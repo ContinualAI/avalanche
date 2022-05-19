@@ -204,7 +204,7 @@ class EpochTopkAccuracy(TopkAccuracyPluginMetric):
         return "Topk_" + str(self.top_k) + "_Acc_Epoch"
 
 
-class RunningEpochTopkAccurac(TopkAccuracyPluginMetric):
+class RunningEpochTopkAccuracy(TopkAccuracyPluginMetric):
     """
     The average top-k accuracy across all minibatches up to the current
     epoch iteration.
@@ -217,10 +217,10 @@ class RunningEpochTopkAccurac(TopkAccuracyPluginMetric):
 
     def __init__(self, top_k):
         """
-        Creates an instance of the RunningEpochTopkAccurac metric.
+        Creates an instance of the RunningEpochTopkAccuracy metric.
         """
 
-        super(RunningEpochTopkAccurac, self).__init__(
+        super(RunningEpochTopkAccuracy, self).__init__(
             reset_at="epoch", emit_at="iteration", mode="train", top_k=top_k
         )
         self.top_k = top_k
@@ -346,7 +346,7 @@ def topk_acc_metrics(
     if epoch:
         metrics.append(EpochTopkAccuracy(top_k=top_k))
     if epoch_running:
-        metrics.append(RunningEpochTopkAccurac(top_k=top_k))
+        metrics.append(RunningEpochTopkAccuracy(top_k=top_k))
     if experience:
         metrics.append(ExperienceTopkAccuracy(top_k=top_k))
     if trained_experience:
@@ -361,7 +361,7 @@ __all__ = [
     "TopkAccuracy",
     "MinibatchTopkAccuracy",
     "EpochTopkAccuracy",
-    "RunningEpochTopkAccurac",
+    "RunningEpochTopkAccuracy",
     "ExperienceTopkAccuracy",
     "StreamTopkAccuracy",
     "TrainedExperienceTopkAccuracy",
