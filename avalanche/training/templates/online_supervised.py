@@ -263,13 +263,17 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
         if model is None:
             model = self.model
 
-        # For evaluation, the experience is not necessarily an online
-        # experience.
+        # For training:
         if isinstance(self.experience, OnlineCLExperience):
-            avalanche_model_adaptation(
-                model, self.experience.origin_experience.dataset)
+            if self.experience.access_task_boundaries:
+                avalanche_model_adaptation(model,
+                                           self.experience.origin_experience)
+            else:
+                avalanche_model_adaptation(model, self.experience)
+        # For evaluation, the experience is not necessarily an online
+        # experience:
         else:
-            avalanche_model_adaptation(model, self.experience.dataset)
+            avalanche_model_adaptation(model, self.experience)
 
         return model.to(self.device)
 

@@ -148,11 +148,19 @@ class BaseOnlineSGDTemplate(BaseTemplate):
     def _before_training_exp(self, **kwargs):
         self.make_train_dataloader(**kwargs)
         # Model Adaptation (e.g. freeze/add new units)
-        # If the current sub-experience is the first sub-experience in the
-        # online (sub-)stream, then adapt the model.
-        if self.experience.is_first_subexp:
+
+        # If strategy has access to the task boundaries, and the current
+        # sub-experience is the first sub-experience in the online (sub-)stream,
+        # then adapt the model with the full origin experience:
+        if self.experience.access_task_boundaries:
+            if self.experience.is_first_subexp:
+                self.model = self.model_adaptation()
+                self.make_optimizer()
+        # Otherwise, adapt to the current sub-experience:
+        else:
             self.model = self.model_adaptation()
             self.make_optimizer()
+
         super()._before_training_exp(**kwargs)
 
     def _train_exp(

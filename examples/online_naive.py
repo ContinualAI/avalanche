@@ -118,10 +118,11 @@ def main(args):
         # Create online scenario from experience exp
         ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
                                          experiences=exp,
-                                         experience_size=1)
+                                         experience_size=1,
+                                         access_task_boundaries=True)
         # Train on the online train stream of the scenario
-        cl_strategy.train(ocl_benchmark.online_train_stream)
-        results.append(cl_strategy.eval(scenario.test_stream))
+        cl_strategy.train(ocl_benchmark.train_stream)
+        results.append(cl_strategy.eval(scenario.original_test_stream))
 
 
 if __name__ == "__main__":

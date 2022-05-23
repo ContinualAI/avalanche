@@ -80,12 +80,13 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         **kwargs
     ):
         if isinstance(strategy.experience, OnlineCLExperience):
-            if strategy.experience.is_first_subexp:
+            experience = strategy.experience.logging()
+            if experience.is_first_subexp:
                 super().before_training_exp(strategy, metric_values, **kwargs)
                 self._progress.total = \
-                    strategy.experience.sub_stream_length * \
+                    experience.sub_stream_length * \
                     strategy.train_passes * \
-                    (strategy.experience.subexp_size // strategy.train_mb_size)
+                    (experience.subexp_size // strategy.train_mb_size)
                 self.last_length = self._progress.total
     
     def after_training_exp(
@@ -95,7 +96,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         **kwargs
     ):
         if isinstance(strategy.experience, OnlineCLExperience):
-            if strategy.experience.is_last_subexp:
+            experience = strategy.experience.logging()
+            if experience.is_last_subexp:
                 self._end_progress()
                 super().after_training_exp(strategy, metric_values, **kwargs)
 
