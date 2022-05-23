@@ -90,7 +90,7 @@ class Sum(Metric[float]):
     track of the sum of a sequence of values.
 
     Beware that this metric only supports summing numbers and the result is
-    always a float value, even when `update` is called by passing `int`s only.
+    always a float value, even when `update` is called by passing `int` only.
     """
 
     def __init__(self):

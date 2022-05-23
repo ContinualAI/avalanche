@@ -3,7 +3,7 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 05-06-2022                                                             #
+# Date: 05-17-2022                                                             #
 # Author: Jia Shi, Zhiqiu Lin                                                  #
 # E-mail: jiashi@andrew.cmu.edu, zl279@cornell.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
@@ -34,9 +34,11 @@ from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
 from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
+
 # For CLEAR dataset setup
-DATASET_NAME = "clear10"
-NUM_CLASSES = {"clear10": 11}
+DATASET_NAME = "clear100_cvpr2022"
+NUM_CLASSES = {"clear10": 11, "clear100_cvpr2022": 100}
+assert DATASET_NAME in NUM_CLASSES.keys()
 
 # please refer to paper for discussion on streaming v.s. iid protocol
 EVALUATION_PROTOCOL = "streaming"  # trainset = testset per timestamp
@@ -122,6 +124,7 @@ else:
     seed = 0
     
 scenario = CLEAR(
+    data_name=DATASET_NAME,
     evaluation_protocol=EVALUATION_PROTOCOL,
     feature_type=None,
     seed=seed,

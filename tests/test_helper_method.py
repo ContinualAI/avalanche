@@ -78,6 +78,8 @@ class ConversionMethodTests(unittest.TestCase):
         module_singletask.eval()
         module_multitask.eval()
 
+        # disable masking to check output equivalence
+        module_multitask.classifier.masking = False
         out_single_task = module_singletask(test_input)
         out_multi_task = module_multitask(test_input, task_labels=0)
         self.assertTrue(torch.equal(out_single_task, out_multi_task))

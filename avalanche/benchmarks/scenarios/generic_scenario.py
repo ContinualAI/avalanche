@@ -131,7 +131,7 @@ class CLExperience(object):
         exp._exp_mode = ExperienceMode.TRAIN
         return exp
 
-    def inference(self):
+    def eval(self):
         """Return inference experience.
 
         This is a copy of the experience itself where the inference data (e.g.

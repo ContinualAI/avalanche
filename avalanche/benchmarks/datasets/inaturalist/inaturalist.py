@@ -9,7 +9,8 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-""" INATURALIST2018 Pytorch Dataset
+"""INATURALIST2018 Pytorch Dataset
+
 Info: https://www.kaggle.com/c/inaturalist-2018/data
 Download: https://github.com/visipedia/inat_comp/tree/master/2018
 Based on survey in CL: https://ieeexplore.ieee.org/document/9349197
@@ -20,8 +21,8 @@ selected from the 14 available, based on at least having 100 categories (leaving
 out Chromista, Protozoa, Bacteria), and omitting a random super category from
 the remainder (Actinopterygii).
 
-Example filename from the JSON:
- "file_name": "train_val2018/Insecta/1455/994fa5...f1e360d34aae943.jpg"
+Example filename from the JSON: "file_name":
+"train_val2018/Insecta/1455/994fa5...f1e360d34aae943.jpg"
 """
 
 from typing import Any, List
@@ -54,20 +55,22 @@ class INATURALIST2018(Dataset):
     """INATURALIST Pytorch Dataset
 
     For default selection of 10 supercategories:
+
     - Training Images in total: 428,830
     - Validation Images in total:  23,229
     - Shape of images: torch.Size([1, 3, 600, 800])
     - Class counts per supercategory (both train/val):
-     { 'Amphibia': 144,
-      'Animalia': 178,
-      'Arachnida': 114,
-      'Aves': 1258,
-      'Fungi': 321,
-      'Insecta': 2031,
-      'Mammalia': 234,
-      'Mollusca': 262,
-      'Plantae': 2917,
-      'Reptilia': 284}
+
+        - 'Amphibia': 144,
+        - 'Animalia': 178,
+        - 'Arachnida': 114,
+        - 'Aves': 1258,
+        - 'Fungi': 321,
+        - 'Insecta': 2031,
+        - 'Mammalia': 234,
+        - 'Mollusca': 262,
+        - 'Plantae': 2917,
+        - 'Reptilia': 284}
     """
 
     splits = ["train", "val", "test"]
@@ -159,15 +162,6 @@ class INATURALIST2018(Dataset):
         return self.ds.loadAnns(self.ds.getAnnIds(img_id))
 
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (sample, target) where target is class_index of the target
-                class.
-        """
-
         id = self.img_ids[index]
         img = self._load_image(id)
         # target = self._load_target(id)

@@ -8,7 +8,7 @@ Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib
+!pip install avalanche-lib==0.2.0
 ```
 
 ## 📈 The Evaluation Module
@@ -93,7 +93,7 @@ confusion_matrix_metrics, disk_usage_metrics
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training import Naive
 
 benchmark = SplitMNIST(n_experiences=5)
 

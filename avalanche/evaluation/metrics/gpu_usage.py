@@ -27,7 +27,7 @@ class MaxGPU(Metric[float]):
     """
     The standalone GPU usage metric.
     Important: this metric approximates the real maximum GPU percentage
-     usage since it sample at discrete amount of time the GPU values.
+    usage since it sample at discrete amount of time the GPU values.
 
     Instances of this metric keeps the maximum GPU usage percentage detected.
     The `start_thread` method starts the usage tracking.
