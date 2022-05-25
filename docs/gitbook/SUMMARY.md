@@ -51,6 +51,7 @@
 * [Add Your Issue](questions-and-issues/add-your-issue.md)
 * [Request a Feature](questions-and-issues/request-a-feature.md)
 * [Give Feedback](questions-and-issues/give-feedback.md)
+* [FAQ](questions-and-issues/faq.md)
 
 ## 👪 About Us <a href="#contacts-and-links" id="contacts-and-links"></a>
 
