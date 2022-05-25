@@ -19,3 +19,4 @@ lvis
 higher
 lvis
 ctrl-benchmark
+sphinx_copybutton

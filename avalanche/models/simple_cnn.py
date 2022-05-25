@@ -20,6 +20,13 @@ from avalanche.models.dynamic_modules import (
 class SimpleCNN(nn.Module):
     """
     Convolutional Neural Network
+
+    **Example**::
+
+        >>> from avalanche.models import SimpleCNN
+        >>> n_classes = 10 # e.g. MNIST
+        >>> model = SimpleCNN(num_classes=n_classes)
+        >>> print(model) # View model details
     """
 
     def __init__(self, num_classes=10):
@@ -53,8 +60,10 @@ class SimpleCNN(nn.Module):
 
 
 class MTSimpleCNN(SimpleCNN, MultiTaskModule):
-    """Convolutional Neural Network
-    with multi-head classifier"""
+    """
+    Convolutional Neural Network
+    with multi-head classifier
+    """
 
     def __init__(self):
         super().__init__()
