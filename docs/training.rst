@@ -21,20 +21,6 @@ Templates
 
 Templates are defined in the `avalanche.training.templates` module.
 
-.. currentmodule:: avalanche.core
-
-.. autosummary::
-    :toctree: generated
-
-    BasePlugin
-    BaseSGDPlugin
-    SupervisedPlugin
-
-Plugins ABCs
-""""""""""""
-
-ABCs for plugins are available in `avalanche.core`.
-
 .. currentmodule:: avalanche.training.templates
 
 .. autosummary::
@@ -44,6 +30,21 @@ ABCs for plugins are available in `avalanche.core`.
     BaseSGDTemplate
     SupervisedTemplate
     SupervisedOnlineTemplate
+
+
+Plugins ABCs
+""""""""""""
+
+ABCs for plugins are available in `avalanche.core`.
+
+.. currentmodule:: avalanche.core
+
+.. autosummary::
+    :toctree: generated
+
+    BasePlugin
+    BaseSGDPlugin
+    SupervisedPlugin
 
 
 .. currentmodule:: avalanche.training
