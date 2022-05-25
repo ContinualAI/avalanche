@@ -16,19 +16,17 @@ pip install avalanche-lib
 
 That's it. Now you can start using Avalanche.
 
-## ⬆️ Install the Master Branch Using Pip
+## Install the Master Branch Using Pip
 
 If you want, you can install Avalanche directly from the master branch (latest version) in a single command. Make sure to have **pytorch** already installed in your environment, then execute
 
-```shell
-pip install git+https://github.com/ContinualAI/avalanche.git
-```
+`pip install git+https://github.com/ContinualAI/avalanche.git`
 
 To update avalanche to the latest version, uninstall the package with `pip uninstall avalanche-lib` and then execute again the pip install command.
 
-## 🐍 Install the Master Branch Using Anaconda
+## Install the Master Branch Using Anaconda
 
-We suggest you to use the _pip package_, but if you need some recent features you may want to install directly from the **master branch**. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. _Reproducibility is also easier if you use the pip package._
+We suggest you to use the pip package, but if you need some recent features you may want to install directly from the master branch. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. Reproducibility is also easier if you use the pip package.
 
 ```bash
 # choose your python version
