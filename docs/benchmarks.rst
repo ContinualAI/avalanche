@@ -24,24 +24,43 @@ Continual Learning Scenarios
 
 | Generic definitions for scenarios, streams and experiences. All the continual learning benchmarks are specific instantiations of these concepts.
 
+
+Scenarios
+"""""""""
+
 .. autosummary::
     :toctree: generated
 
-    GenericCLScenario
+    CLScenario
     OnlineCLScenario
     ExModelCLScenario
+
     NCScenario
     NIScenario
+
+Streams
+"""""""""
+
+.. autosummary::
+    :toctree: generated
 
     CLStream
     EagerCLStream
     ClassificationStream
 
-    GenericClassificationExperience
-    NCExperience
+Experiences
+"""""""""
+
+.. autosummary::
+    :toctree: generated
+
     CLExperience
+    ClassificationExperience
+    NCExperience
+    NIExperience
     OnlineCLExperience
     ExModelExperience
+    ExperienceAttribute
 
 .. currentmodule:: avalanche.benchmarks.classic
 
@@ -205,7 +224,7 @@ Datasets
     INATURALIST2018
     MiniImageNetDataset
     Omniglot
-    OpenLORISDataset
+    OpenLORIS
     Stream51
     TinyImagenet
     CLEARDataset
@@ -256,7 +275,7 @@ Misc (make data-incremental, add a validation stream, ...)
 
 Utils (Data Loading and AvalancheDataset)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-| The custom dataset and dataloader implementations contained in this sub-module are described in more detailed in the How-Tos `here <https://avalanche.continualai.org/how-tos/dataloading_buffers_replay>`_ and `here <https://avalanche.continualai.org/how-tos/avalanchedataset>`_.
+| The custom dataset and dataloader implementations contained in this sub-module are described in more detailed in the How-Tos about `"data loading and replay" <https://avalanche.continualai.org/how-tos/dataloading_buffers_replay>` and `"Avalanche Dataset" <https://avalanche.continualai.org/how-tos/avalanchedataset>`.
 
 
 .. currentmodule:: avalanche.benchmarks.utils.data_loader
