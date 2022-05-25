@@ -354,6 +354,36 @@ class DynamicModelsTests(unittest.TestCase):
             out_masked = out[:, model.active_units == 0]
             assert torch.all(out_masked == model.mask_value)
 
+    def test_incremental_classifier_update_masking_only_during_training(self):
+        benchmark = get_fast_benchmark(
+            use_task_labels=False, shuffle=True
+        )
+        model = IncrementalClassifier(in_features=6)
+        autot = []
+        for exp in benchmark.train_stream:
+            curr_au = exp.classes_in_this_experience
+            autot.extend(curr_au)
+
+            model.adaptation(exp)
+
+            # eval should NOT modify the mask
+            model.eval()
+            for ee in benchmark.train_stream:
+                model.adaptation(ee)
+            model.train()
+
+            assert torch.all(model.active_units[autot] == 1)
+            au_copy = torch.clone(model.active_units)
+            au_copy[autot] = False
+            assert torch.all(~au_copy)
+
+            # print(model.active_units)
+            mb = exp.dataset[:7][0]
+            out = model(mb)
+            assert torch.all(out[:, autot] != model.mask_value)
+            out_masked = out[:, model.active_units == 0]
+            assert torch.all(out_masked == model.mask_value)
+
     def test_multi_head_classifier_masking(self):
         benchmark = get_fast_benchmark(
             use_task_labels=True, shuffle=True

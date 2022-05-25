@@ -241,7 +241,8 @@ class IncrementalClassifier(DynamicModule):
                 self.active_units = torch.zeros(new_nclasses, dtype=torch.bool)
                 self.active_units[:old_act_units.shape[0]] = old_act_units
             # update with new active classes
-            self.active_units[curr_classes] = 1
+            if self.training:
+                self.active_units[curr_classes] = 1
 
         # update classifier weights
         if old_nclasses == new_nclasses:
@@ -371,7 +372,8 @@ class MultiHeadClassifier(MultiTaskModule):
                     self._buffers[au_name][:old_act_units.shape[0]] = \
                         old_act_units
                 # update with new active classes
-                self._buffers[au_name][curr_classes] = 1
+                if self.training:
+                    self._buffers[au_name][curr_classes] = 1
 
     def forward_single_task(self, x, task_label):
         """compute the output given the input `x`. This module uses the task
