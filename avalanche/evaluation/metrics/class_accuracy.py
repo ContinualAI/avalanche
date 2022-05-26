@@ -160,7 +160,8 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
             task_dict = self._class_accuracies[task_label]
             running_class_accuracies[task_label] = OrderedDict()
             for class_id in sorted(task_dict.keys()):
-                running_class_accuracies[class_id] = task_dict[class_id]
+                running_class_accuracies[task_label][class_id] = \
+                    task_dict[class_id]
 
         return running_class_accuracies
 
