@@ -281,7 +281,7 @@ def bytes2human(n):
 
 
 def get_metric_name(
-    metric: "PluginMetric",
+    metric: Union["PluginMetric", str],
     strategy: "SupervisedTemplate",
     add_experience=False,
     add_task=True,

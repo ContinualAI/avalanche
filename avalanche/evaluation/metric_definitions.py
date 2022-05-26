@@ -11,7 +11,7 @@
 
 from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING
-from typing_extensions import Protocol
+from typing_extensions import Protocol, Literal
 from .metric_results import MetricValue
 from .metric_utils import get_metric_name
 
@@ -332,4 +332,101 @@ class GenericPluginMetric(PluginMetric[TResult]):
             self.reset(strategy)
 
 
-__all__ = ["Metric", "PluginMetric", "GenericPluginMetric"]
+MultiValuesTypes = Literal['multi_groups', 'multi_values']
+
+
+class ExtendedGenericPluginMetric(GenericPluginMetric[TResult]):
+    """
+    A generified version of :class:`GenericPluginMetric` which supports emitting
+    multiple metrics from a single metric instance.
+    Child classes need to emit metrics via `result()` as a dictionary
+    "task_label -> dict(metric_partial_name -> value)".
+    This is in contrast with :class:`GenericPluginMetric`, that expects a
+    simpler dictionary "task_label -> value".
+
+    The resulting metric name will be: `str(self)metric_partial_name/...` or
+    `str(self)/.../metric_partial_name` (can be customized using a
+    constructor argument).
+    """
+
+    def __init__(
+            self, *args,
+            multi_values_method: MultiValuesTypes = 'multi_groups',
+            **kwargs):
+        """
+        Creates an instance of an extended :class:`GenericPluginMetric`.
+
+        The `multi_values_method` parameter can be used to customize the
+        final name of the metrics. A description is given, but it is
+        recommended to try the different values and then choose the style
+        that best suits your needs.
+
+        :param args: The positional arguments to be passed to the
+            :class:`GenericPluginMetric` constructor.
+        :param multi_values_method: How to handle the metric names. Valid
+            values are `multi_groups` and `multi_values`
+            Defaults to 'multi_groups', which means that metrics will be
+            named `str(self)_metric_partial_name/...`, where the `...` are
+            other identifiers (experience id, task id) usually inserted by
+            the :class:`GenericPluginMetric`. In TensorBoard, this will
+            create a different plot group for each metric. This is useful for
+            logging independent metrics.
+            When using `multi_values`, the metric will be named
+            `str(self)/.../metric_partial_name` instead. This will create
+            multiple plots inside a single group. Useful for logging the same
+            metric for different elements (for instance for logging the
+            per-class accuracy).
+        :param kwargs: The named arguments to be passed to the
+            :class:`GenericPluginMetric` constructor.
+        """
+        self.multi_values_method = multi_values_method
+        super().__init__(
+            *args, **kwargs
+        )
+
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        metric_value = self.result(strategy)
+        add_exp = self._emit_at == "experience"
+        plot_x_position = strategy.clock.train_iterations
+
+        if isinstance(metric_value, dict):
+            metrics = []
+            for k, v_d in metric_value.items():
+                if not isinstance(v_d, dict):
+                    v_d = {str(self): v_d}
+
+                for n, v in v_d.items():
+                    metric_group_name = str(self)
+
+                    if self.multi_values_method == 'multi_groups':
+                        metric_group_name += f'_{n}'
+
+                    metric_name = get_metric_name(
+                        metric_group_name,
+                        strategy,
+                        add_experience=add_exp,
+                        add_task=k
+                    )
+
+                    if self.multi_values_method == 'multi_values':
+                        metric_name += f'/{n}'
+
+                    metrics.append(
+                        MetricValue(self, metric_name, v, plot_x_position)
+                    )
+            return metrics
+        else:
+            metric_name = get_metric_name(
+                self, strategy, add_experience=add_exp, add_task=True
+            )
+            return [
+                MetricValue(self, metric_name, metric_value, plot_x_position)
+            ]
+
+
+__all__ = [
+    "Metric",
+    "PluginMetric",
+    "GenericPluginMetric",
+    "ExtendedGenericPluginMetric"
+]
