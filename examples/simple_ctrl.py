@@ -119,8 +119,8 @@ def main(args):
         for train_task, val_task in zip(train_stream, val_stream):
             t_stream = train_task
             v_stream = val_task
-        #cl_strategy.train(train_stream[-1])
-        #res = cl_strategy.eval([test_stream[-1]])
+        # cl_strategy.train(train_stream[-1])
+        # res = cl_strategy.eval([test_stream[-1]])
         cl_strategy.train(t_stream)
         res = cl_strategy.eval([v_stream])
 
@@ -139,6 +139,7 @@ def main(args):
             f"independently: {acc_last_only}"
         )
         print(f"T({args.stream})={transfer_value}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
