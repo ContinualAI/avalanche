@@ -1,5 +1,6 @@
 from .mean import *
 from .accuracy import *
+from .amca import *
 from .checkpoint import *
 from .class_accuracy import *
 from .confusion_matrix import *

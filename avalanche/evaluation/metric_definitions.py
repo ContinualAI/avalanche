@@ -215,10 +215,11 @@ class GenericPluginMetric(PluginMetric[TResult]):
         super(GenericPluginMetric, self).__init__()
         assert mode in {"train", "eval"}
         if mode == "train":
-            assert reset_at in {"iteration", "epoch", "experience", "stream"}
+            assert reset_at in {"iteration", "epoch", "experience", "stream",
+                                "never"}
             assert emit_at in {"iteration", "epoch", "experience", "stream"}
         else:
-            assert reset_at in {"iteration", "experience", "stream"}
+            assert reset_at in {"iteration", "experience", "stream", "never"}
             assert emit_at in {"iteration", "experience", "stream"}
         self._metric = metric
         self._reset_at = reset_at

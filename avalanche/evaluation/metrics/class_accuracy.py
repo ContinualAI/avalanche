@@ -39,7 +39,9 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
     constructor parameters).
 
     The reset method will bring the metric to its initial state. By default,
-    this metric in its initial state will return an empty dictionary.
+    this metric in its initial state will return a
+    `{task_id -> {class_id -> accuracy}}` dictionary in which all accuracies are
+    set to 0.
     """
 
     def __init__(self, classes=None):
@@ -190,7 +192,6 @@ class ClassAccuracyPluginMetric(ExtendedGenericPluginMetric[float]):
     """
     Base class for all class accuracy plugin metrics
     """
-
     def __init__(self, reset_at, emit_at, mode, classes=None):
         self._class_accuracy = ClassAccuracy(classes=classes)
         super(ClassAccuracyPluginMetric, self).__init__(
@@ -235,7 +236,6 @@ class MinibatchClassAccuracy(ClassAccuracyPluginMetric):
     If a more coarse-grained logging is needed, consider using
     :class:`EpochClassAccuracy` instead.
     """
-
     def __init__(self):
         """
         Creates an instance of the MinibatchClassAccuracy metric.
@@ -259,7 +259,6 @@ class EpochClassAccuracy(ClassAccuracyPluginMetric):
     the overall number of patterns encountered in that epoch (separately
     for each class).
     """
-
     def __init__(self):
         """
         Creates an instance of the EpochClassAccuracy metric.
