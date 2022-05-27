@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = u'Avalanche'
-copyright = u'2021, ContinualAI'
+copyright = u'2022, ContinualAI'
 author = u'ContinualAI'
 
 # The short X.Y version
@@ -60,6 +60,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.coverage',
     'sphinx_rtd_theme',
+    'sphinx_copybutton'
 ]
 
 autosummary_generate = True
@@ -246,9 +247,55 @@ import pkgutil
 #   sphinx-build -b coverage . _build
 undocumented_classes_to_ignore = [
     # benchmarks
-    'ExperienceMode',
     'IDataset',
-    'CLScenario',
+
+    'DictLVIS',
+    'LvisEvaluator',
+    'CocoEvaluator',
+    'DetectionEvaluator',
+
+    'ClassificationDataset',
+    'LazyClassMapping',
+    'TupleTLabel',
+    'YTransformDef',
+    'StreamDef',
+    'Flatten',
+    'XComposedTransformDef',
+    'SubSequence',
+    'SimpleDownloadableDataset',
+    'LazyDatasetSequence',
+    'AbstractClassificationExperience',
+    'INATURALIST_DATA',
+    'FilelistDataset',
+    'AvalancheDatasetType',
+    'ClassificationScenarioStream',
+    'LazySubsequence',
+
+    'MaskedAttributeError',
+    'MultiParamTransform',
+    'PixelsPermutation',
+    'SubsetWithTargets',
+    'IClassificationDataset',
+    'StreamUserDef',
+    'ClassificationSubSequence',
+    'ConstantSequence',
+    'SequenceDataset',
+    'DownloadableDataset',
+    'LazyConcatIntTargets',
+    'ClassificationSubset',
+    'PathsDataset',
+    'Compose',
+    'VideoSubSequence',
+    'LazyConcatTargets',
+    'PennFudanDataset',
+    'IDatasetWithTargets',
+    'ISupportedClassificationDataset',
+    'LazyStreamDefinition',
+    'ITensorDataset',
+    'XTransformDef',
+    'LazyClassesInExps',
+    'LazyStreamClassesInExps',
+
 
     # evaluation
     'MACPluginMetric',
@@ -264,11 +311,7 @@ undocumented_classes_to_ignore = [
     'GenericStreamForwardTransfer',
     'GenericExperienceForwardTransfer',
     'GenericExperienceForgetting',
-
-    'DictLVIS',
-    'LvisEvaluator',
-    'CocoEvaluator',
-    'DetectionEvaluator',
+    'LossPluginMetric',
 
     'TensorEncoder',
     'TensorImage',
@@ -276,87 +319,40 @@ undocumented_classes_to_ignore = [
     'LabelsRepartitionPlugin',
 
     # Training
-    'SupervisedOnlineTemplate',
     'AlreadyTrainedError',
+
+    'VAETraining',
+    'Clock',
+    'PeriodicEval',
 
     # Utils
     'LayerAndParameter',
     'ComposeMaxParamsWarning',
 
-    # Other
-    'VAETraining',
-    'FeatureExtractorBackbone',
+    # Models
     'IdentityShortcut',
-    'ClassificationDataset',
-    'MultiTaskDecorator',
-    'LazyClassMapping',
-    'BaseSGDTemplate',
-    'TupleTLabel',
-    'YTransformDef',
-
-    'StreamDef',
-
-    'Flatten',
-    'XComposedTransformDef',
-    'SupervisedPlugin',
-    'Generator',
-    'SubSequence',
-    'Clock',
-    'PNNLayer',
-    'SimpleDownloadableDataset',
     'ResidualBlock',
-    'LazyDatasetSequence',
-    'AbstractClassificationExperience',
-    'INATURALIST_DATA',
-    'ClassificationExperience',
-    'FilelistDataset',
-    'AvalancheDatasetType',
-    'ClassificationScenarioStream',
-    'DynamicModule',
-    'LazySubsequence',
-    'PeriodicEval',
-    'BatchRenorm2D',
-    'ExperienceAttribute',
-    'MultiParamTransform',
-    'SubsetWithTargets',
+    'Generator',
+
+    # Other
     'L2Normalization',
-    'PixelsPermutation',
-    'LossPluginMetric',
-    'PNNColumn',
-    'IClassificationDataset',
-    'StreamUserDef',
-    'BasePlugin',
-    'MlpVAE',
     'PPPloss',
-    'ClassificationSubSequence',
-    'ConstantSequence',
 
-    'BaseSGDPlugin',
-    'SequenceDataset',
-    'BaseTemplate',
-    'LinearAdapter',
-    'MaskedAttributeError',
-    'DownloadableDataset',
-    'LazyConcatIntTargets',
-    'NIExperience',
-    'ClassificationSubset',
-    'GenerativeReplayPlugin',
-    'PathsDataset',
-    'Compose',
-    'SupervisedTemplate',
-    'VideoSubSequence',
-    'LazyConcatTargets',
-    'PennFudanDataset',
-    'IDatasetWithTargets',
-    'ISupportedClassificationDataset',
-    'LazyStreamDefinition',
-    'ITensorDataset',
-    'XTransformDef',
-
-    'LazyClassesInExps',
-    'LazyStreamClassesInExps',
+    'COCO',
+    'GenericClassificationExperience',
+    'LVISAnnotationEntry',
+    'ExperienceMode',
+    'LVISImgEntry',
+    'VAEMLPDecoder',
+    'MultiTaskDecorator',
+    'CLEARMetric',
+    'LVISDetectionTargets',
+    'LVIS',
+    'GenericCLScenario',
+    'BatchRenorm2D',
+    'OpenLORISDataset',
     'VAEMLPEncoder',
-    'BaseModel',
+    'LvisDataset',
 ]
 undocumented_classes_to_ignore = set(undocumented_classes_to_ignore)
 

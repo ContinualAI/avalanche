@@ -279,3 +279,12 @@ class PNN(MultiTaskModule):
         for lay in self.layers:
             x = [F.relu(el) for el in lay(x, task_label)]
         return self.classifier(x[col_idx], task_label)
+
+
+__all__ = [
+    'PNN',
+    'PNNLayer',
+    'PNNColumn',
+    'MLPAdapter',
+    'LinearAdapter'
+]
