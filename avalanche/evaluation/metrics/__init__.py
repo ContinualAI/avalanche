@@ -1,6 +1,7 @@
 from .mean import *
 from .accuracy import *
 from .checkpoint import *
+from .class_accuracy import *
 from .confusion_matrix import *
 from .cpu_usage import *
 from .disk_usage import *
