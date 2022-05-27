@@ -43,13 +43,13 @@ print("Initial Accuracy: ", acc_metric.result())  # output 0
 # result method returns the current average accuracy
 real_y = torch.tensor([1, 2]).long()
 predicted_y = torch.tensor([1, 0]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels=0)
 acc = acc_metric.result()
 print("Average Accuracy: ", acc)  # output 0.5
 
 # you can continue to update the metric with new values
 predicted_y = torch.tensor([1, 2]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels=0)
 acc = acc_metric.result()
 print("Average Accuracy: ", acc)  # output 0.75
 

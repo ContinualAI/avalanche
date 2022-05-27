@@ -69,7 +69,7 @@ def main(args):
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
 
     my_logger = TensorboardLogger(
-        tb_log_dir="logs", tb_log_exp_name="logging_example"
+        tb_log_dir="logs_example_SynapticIntelligence"
     )
 
     # print to stdout
@@ -90,9 +90,9 @@ def main(args):
         Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
         si_lambda=0.0001,
-        train_mb_size=128,
-        train_epochs=4,
-        eval_mb_size=128,
+        train_mb_size=32,
+        train_epochs=2,
+        eval_mb_size=32,
         device=device,
         evaluator=evaluation_plugin,
     )

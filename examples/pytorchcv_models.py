@@ -56,7 +56,7 @@ def main(args):
         else "cpu"
     )
 
-    device = "cpu"
+    # device = "cpu"
 
     # --- TRANSFORMATIONS
     transform = transforms.Compose(
@@ -135,3 +135,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     main(args)
+    
