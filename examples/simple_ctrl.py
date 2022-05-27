@@ -73,7 +73,7 @@ def main(args):
         model,
         optimizer,
         criterion,
-        train_mb_size=128, #32,
+        train_mb_size=32,
         device=device,
         train_epochs=args.max_epochs,
         eval_mb_size=128,
@@ -95,7 +95,7 @@ def main(args):
             ][1]
         )
 
-    if args.stream == "s_long" or args.stream == "s_minus":
+    if args.stream == "s_long":
         res = []
         for tid in range(len(train_stream)):
             res.append(logger.last_metric_results[
@@ -108,7 +108,7 @@ def main(args):
             model_init,
             optimizer,
             criterion,
-            train_mb_size=128, #32,
+            train_mb_size=32,
             device=device,
             train_epochs=args.max_epochs,
             eval_mb_size=128,

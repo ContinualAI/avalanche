@@ -90,9 +90,9 @@ def main(args):
         Adam(model.parameters(), lr=0.001),
         CrossEntropyLoss(),
         si_lambda=0.0001,
-        train_mb_size=32,
-        train_epochs=2,
-        eval_mb_size=32,
+        train_mb_size=128,
+        train_epochs=4,
+        eval_mb_size=128,
         device=device,
         evaluator=evaluation_plugin,
     )
