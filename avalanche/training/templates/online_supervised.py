@@ -15,6 +15,7 @@ from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base_online_sgd import BaseOnlineSGDTemplate
 from avalanche.training.utils import trigger_plugins
 from avalanche.benchmarks.scenarios import OnlineCLExperience
+from avalanche.models.dynamic_optimizers import update_optimizer
 
 
 class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
@@ -265,11 +266,15 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
 
         # For training:
         if isinstance(self.experience, OnlineCLExperience):
+            # If the strategy has access to task boundaries, adapt the model
+            # for the whole origin experience to add the
             if self.experience.access_task_boundaries:
                 avalanche_model_adaptation(model,
                                            self.experience.origin_experience)
             else:
+                self.model_params_before_adaptation = list(model.parameters())
                 avalanche_model_adaptation(model, self.experience)
+
         # For evaluation, the experience is not necessarily an online
         # experience:
         else:
@@ -294,12 +299,21 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
     def make_optimizer(self):
         """Optimizer initialization.
 
-        Called before each training experiene to configure the optimizer.
+        Called before each training experience to configure the optimizer.
         """
-        # we reset the optimizer's state after each experience.
-        # This allows to add new parameters (new heads) and
-        # freezing old units during the model's adaptation phase.
-        reset_optimizer(self.optimizer, self.model)
+        # We reset the optimizer's state after each experience if task
+        # boundaries are given, otherwise it updates the optimizer only if
+        # new parameters are added to the model after each adaptation step.
+
+        # We assume the current experience is an OnlineCLExperience:
+        if self.experience.access_task_boundaries:
+            reset_optimizer(self.optimizer, self.model)
+
+        else:
+            update_optimizer(self.optimizer,
+                             self.model_params_before_adaptation,
+                             self.model.parameters(),
+                             reset_state=False)
 
     #########################################################
     # Plugin Triggers                                       #
