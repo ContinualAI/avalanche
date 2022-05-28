@@ -40,19 +40,11 @@ class StrategyTest(unittest.TestCase):
         return model, optimizer, criterion, ocl_benchmark
 
     def test_naive(self):
-        # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
-        strategy = OnlineNaive(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size=1,
-            device=self.device,
-            eval_mb_size=50,
-        )
-        self.run_strategy(my_nc_benchmark, strategy)
+        benchmark = self.load_benchmark(use_task_labels=False)
+        benchmark_streams = benchmark.streams.values()
 
-        # MT scenario
+        # With task boundaries
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = OnlineNaive(
             model,
             optimizer,
@@ -61,10 +53,23 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             eval_mb_size=50
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
-        benchmark_streams = benchmark.streams.values()
-        ocl_benchmark = OnlineCLScenario(benchmark_streams)
-        self.run_strategy(ocl_benchmark, strategy)
+        ocl_benchmark = OnlineCLScenario(benchmark_streams,
+                                         access_task_boundaries=True)
+        self.run_strategy_boundaries(ocl_benchmark, strategy)
+
+        # Without task boundaries
+        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        strategy = OnlineNaive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=1,
+            device=self.device,
+            eval_mb_size=50
+        )
+        ocl_benchmark = OnlineCLScenario(benchmark_streams,
+                                         access_task_boundaries=False)
+        self.run_strategy_no_boundaries(ocl_benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False):
         """
@@ -87,8 +92,8 @@ class StrategyTest(unittest.TestCase):
             #     model.classifier.in_features)
             return model
 
-    def run_strategy(self, benchmark, cl_strategy):
-        print("Starting experiment...")
+    def run_strategy_boundaries(self, benchmark, cl_strategy):
+        print("Starting experiment (with boundaries) ...")
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
         for train_batch_info in benchmark.train_stream:
@@ -99,6 +104,17 @@ class StrategyTest(unittest.TestCase):
 
             print("Computing accuracy on the current test set")
             results.append(cl_strategy.eval(benchmark.original_test_stream[:]))
+
+    def run_strategy_no_boundaries(self, benchmark, cl_strategy):
+        print("Starting experiment (without boundaries) ...")
+        cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
+        results = []
+
+        cl_strategy.train(benchmark.train_stream, num_workers=0)
+        print("Training completed")
+
+        print("Computing accuracy on the current test set")
+        results.append(cl_strategy.eval(benchmark.original_test_stream[:]))
 
 
 if __name__ == "__main__":
