@@ -9,7 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, List, Set, Union, TYPE_CHECKING
+from typing import Dict, List, Set, Union, TYPE_CHECKING, Iterable, Optional
 from collections import defaultdict, OrderedDict
 
 import torch
@@ -20,6 +20,9 @@ from avalanche.evaluation.metrics import Mean
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
+
+
+TrackedClassesType = Union[Dict[int, Iterable[int]], Iterable[int]]
 
 
 class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
@@ -44,7 +47,9 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
     set to 0.
     """
 
-    def __init__(self, classes=None):
+    def __init__(
+            self,
+            classes: Optional[TrackedClassesType] = None):
         """
         Creates an instance of the standalone Accuracy metric.
 
@@ -93,6 +98,8 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
                 self.classes = {0: self._ensure_int_classes(classes)}
         else:
             self.dynamic_classes = True
+
+        self.__init_accs_for_known_classes()
 
     @torch.no_grad()
     def update(self,
@@ -179,12 +186,15 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         :return: None.
         """
         self._class_accuracies = defaultdict(lambda: defaultdict(Mean))
+        self.__init_accs_for_known_classes()
+
+    def __init_accs_for_known_classes(self):
         for task_id, task_classes in self.classes.items():
             for c in task_classes:
                 self._class_accuracies[task_id][c].reset()
 
     @staticmethod
-    def _ensure_int_classes(classes_iterable):
+    def _ensure_int_classes(classes_iterable: Iterable[int]):
         return set(int(c) for c in classes_iterable)
 
 
@@ -379,6 +389,7 @@ def class_accuracy_metrics(*, minibatch=False, epoch=False, epoch_running=False,
 
 
 __all__ = [
+    'TrackedClassesType',
     'ClassAccuracy',
     'MinibatchClassAccuracy',
     'EpochClassAccuracy',

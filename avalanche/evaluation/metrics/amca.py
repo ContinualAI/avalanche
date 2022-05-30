@@ -9,14 +9,15 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from statistics import fmean
-from typing import Dict, List, Union, TYPE_CHECKING
+from typing import Dict, List, Union, TYPE_CHECKING, Optional
 from collections import defaultdict, OrderedDict
 
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, \
     GenericPluginMetric
-from avalanche.evaluation.metrics import ClassAccuracy
+from avalanche.evaluation.metrics.class_accuracy import ClassAccuracy, \
+    TrackedClassesType
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
@@ -52,7 +53,9 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
     (that is, the `reset` method will hardly be useful when using this metric).
     """
 
-    def __init__(self, classes=None):
+    def __init__(
+            self,
+            classes: Optional[TrackedClassesType] = None):
         """
         Creates an instance of the standalone AMCA metric.
 
@@ -135,7 +138,7 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
         return mean_accs
 
     def next_train_experience(self):
-        for task_id, mean_class_acc in self._get_curr_task_acc():
+        for task_id, mean_class_acc in self._get_curr_task_acc().items():
             self._prev_exps_accuracies[task_id].append(mean_class_acc)
         self._class_accuracies.reset()
 

@@ -6,6 +6,7 @@ import torch
 
 from avalanche.evaluation.metrics import (
     Accuracy,
+    AverageMeanClassAccuracy,
     ClassAccuracy,
     Loss,
     ConfusionMatrix,
@@ -136,7 +137,296 @@ class GeneralMetricTests(unittest.TestCase):
                 0: 0.0,
                 1: 0.0,
                 2: 0.0
+            }
+        })
+
+    def test_class_accuracy_static(self):
+        with self.assertRaises(Exception):
+            metric = ClassAccuracy(
+                classes={
+                    0: (0, 1, 2, 'aaa'),
+                    1: (0, 1, 2)
+                }
+            )
+
+        metric = ClassAccuracy(
+            classes={
+                0: (0, 1, 2),
+                1: (0, 1, 2)
+            }
+        )
+        self.assertDictEqual(metric.result(), {
+            0: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
             },
+            1: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+        }})
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {0: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            },
+            1: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+        }})
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        # 0: 50%, 1: 100%, 2: 0%
+        metric.update(my_out, my_y, 0)
+
+        self.assertDictEqual(metric.result(), {
+            0: {
+                0: 0.5,
+                1: 1.00,
+                2: 0.0
+            },
+            1: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            }
+        })
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            0: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            },
+            1: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            }
+        })
+
+        # Add a task
+        metric.update(my_out, my_y, 1)
+        self.assertDictEqual(metric.result(), {
+            0: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            },
+            1: {
+                0: 0.5,
+                1: 1.00,
+                2: 0.0
+            }
+        })
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            0: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            },
+            1: {
+                0: 0.0,
+                1: 0.0,
+                2: 0.0
+            },
+        })
+
+    def test_amca_single_task_dynamic(self):
+        metric = AverageMeanClassAccuracy()
+        self.assertDictEqual(metric.result(), {})
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        my_amca = (0.5 + 1.0 + 0.0) / 3
+        # 0: 50%, 1: 100%, 2: 0%
+
+        my_y2 = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out2 = torch.as_tensor([2, 2, 2, 2, 1, 2, 1])
+        my_amca2 = (0.0 + 0.0 + 0.5) / 3
+        # 0: 0%, 1: 0%, 2: 50%
+
+        my_amca_1_and_2 = (my_amca + my_amca2) / 2
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.reset()
+        # After reset, previously dynamically added tasks are remembered
+        self.assertDictEqual(metric.result(), {
+            0: 0.0
+        })
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.update(my_out2, my_y2, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca_1_and_2
+        })
+        metric.next_train_experience()
+        self.assertDictEqual(metric.result(), {
+            0: my_amca_1_and_2 / 2
+        })
+
+    def test_amca_two_task_dynamic(self):
+        metric = AverageMeanClassAccuracy()
+        self.assertEqual(metric.result(), {})
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        my_amca = (0.5 + 1.0 + 0.0) / 3
+        # 0: 50%, 1: 100%, 2: 0%
+
+        my_y2 = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out2 = torch.as_tensor([2, 2, 2, 2, 1, 2, 1])
+        my_amca2 = (0.0 + 0.0 + 0.5) / 3
+        # 0: 0%, 1: 0%, 2: 50%
+
+        my_amca_1_and_2 = (my_amca + my_amca2) / 2
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.reset()
+        # After reset, previously dynamically added tasks are remembered
+        self.assertDictEqual(metric.result(), {
+            0: 0.0
+        })
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.update(my_out2, my_y2, 1)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca,
+            1: my_amca2
+        })
+        metric.next_train_experience()
+        self.assertDictEqual(metric.result(), {
+            0: my_amca / 2,
+            1: my_amca2 / 2
+        })
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
+        })
+
+    def test_amca_two_task_static(self):
+        # Test AMCA by passing the classes parameter (non-dynamic)
+        with self.assertRaises(Exception):
+            metric = AverageMeanClassAccuracy(
+                classes={
+                    0: (0, 1, 2, 'aaa'),
+                    1: (0, 1, 2)
+                }
+            )
+
+        metric = AverageMeanClassAccuracy(
+            classes={
+                0: (0, 1, 2),
+                1: (0, 1, 2)
+            }
+        )
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
+        })
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
+        })
+
+        metric.next_train_experience()
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
+        })
+        metric.reset()
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        my_amca = (0.5 + 1.0 + 0.0) / 3
+        # 0: 50%, 1: 100%, 2: 0%
+
+        my_y2 = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out2 = torch.as_tensor([2, 2, 2, 2, 1, 2, 1])
+        my_amca2 = (0.0 + 0.0 + 0.5) / 3
+        # 0: 0%, 1: 0%, 2: 50%
+
+        my_amca_1_and_2 = (my_amca + my_amca2) / 2
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca,
+            1: 0.0
+        })
+
+        metric.reset()
+        # After reset, previously dynamically added tasks are remembered
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
+        })
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca,
+            1: 0.0
+        })
+
+        metric.update(my_out2, my_y2, 1)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca,
+            1: my_amca2
+        })
+        metric.next_train_experience()
+        self.assertDictEqual(metric.result(), {
+            0: my_amca / 2,
+            1: my_amca2 / 2
+        })
+
+        many_ts = [0] * len(my_out)
+        many_ts += [1] * len(my_out2)
+        metric.update(
+            torch.cat((my_out, my_out2)),
+            torch.cat((my_y, my_y2)),
+            torch.as_tensor(many_ts))
+
+        self.assertDictEqual(metric.result(), {
+            0: my_amca,
+            1: my_amca2
+        })
+
+        metric.next_train_experience()
+        self.assertDictEqual(metric.result(), {
+            0: my_amca * 2 / 3,
+            1: my_amca2 * 2 / 3
+        })
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            0: 0.0,
+            1: 0.0
         })
 
     def test_loss(self):
