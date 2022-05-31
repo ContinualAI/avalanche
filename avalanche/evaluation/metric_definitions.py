@@ -10,10 +10,11 @@
 ################################################################################
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Optional, TYPE_CHECKING
+from typing import TypeVar, Optional, TYPE_CHECKING, List, Union
 from typing_extensions import Protocol, Literal
-from .metric_results import MetricValue
-from .metric_utils import get_metric_name
+from .metric_results import MetricValue, MetricType, AlternativeValues
+from .metric_utils import get_metric_name, generic_get_metric_name, \
+    default_metric_name_template
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
@@ -336,93 +337,114 @@ class GenericPluginMetric(PluginMetric[TResult]):
 MultiValuesTypes = Literal['multi_groups', 'multi_values']
 
 
+class ExtendedPluginMetricValue:
+    def __init__(
+            self,
+            *,
+            metric_name: str,
+            metric_value: Union[MetricType, AlternativeValues],
+            phase_name: str,
+            stream_name: Optional[str],
+            experience_id: Optional[int],
+            task_label: Optional[int],
+            plot_position: Optional[int] = None,
+            **other_info):
+        super().__init__()
+        self.metric_name = metric_name
+        """
+        The name of metric, as a string (cannot be None).
+        """
+
+        self.metric_value = metric_value
+        """
+        The metric value name (cannot be None).
+        """
+
+        self.phase_name = phase_name
+        """
+        The phase name, as a str (cannot be None).
+        """
+
+        self.stream_name = stream_name
+        """
+        The stream name, as a str (can be None if stream-agnostic).
+        """
+
+        self.experience_id = experience_id
+        """
+        The experience id, as an int (can be None if experience-agnostic).
+        """
+
+        self.task_label = task_label
+        """
+        The task label, as an int (can be None if task-agnostic).
+        """
+
+        self.plot_position = plot_position
+        """
+        The x position of the value, as an int (cannot be None).
+        """
+        self.other_info = other_info
+        """
+        Additional info for this value, as a dictionary (may be empty).
+        """
+
+
 class ExtendedGenericPluginMetric(GenericPluginMetric[TResult]):
     """
     A generified version of :class:`GenericPluginMetric` which supports emitting
     multiple metrics from a single metric instance.
-    Child classes need to emit metrics via `result()` as a dictionary
-    "task_label -> dict(metric_partial_name -> value)".
+    Child classes need to emit metrics via `result()` as a list of
+    :class:`ExtendedPluginMetricValue`.
     This is in contrast with :class:`GenericPluginMetric`, that expects a
     simpler dictionary "task_label -> value".
 
-    The resulting metric name will be: `str(self)metric_partial_name/...` or
-    `str(self)/.../metric_partial_name` (can be customized using a
-    constructor argument).
+    The resulting metric name will be given by the implementation of the
+    :meth:`metric_value_name` method.
     """
 
-    def __init__(
-            self, *args,
-            multi_values_method: MultiValuesTypes = 'multi_groups',
-            **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Creates an instance of an extended :class:`GenericPluginMetric`.
 
-        The `multi_values_method` parameter can be used to customize the
-        final name of the metrics. A description is given, but it is
-        recommended to try the different values and then choose the style
-        that best suits your needs.
-
         :param args: The positional arguments to be passed to the
             :class:`GenericPluginMetric` constructor.
-        :param multi_values_method: How to handle the metric names. Valid
-            values are `multi_groups` and `multi_values`
-            Defaults to 'multi_groups', which means that metrics will be
-            named `str(self)_metric_partial_name/...`, where the `...` are
-            other identifiers (experience id, task id) usually inserted by
-            the :class:`GenericPluginMetric`. In TensorBoard, this will
-            create a different plot group for each metric. This is useful for
-            logging independent metrics.
-            When using `multi_values`, the metric will be named
-            `str(self)/.../metric_partial_name` instead. This will create
-            multiple plots inside a single group. Useful for logging the same
-            metric for different elements (for instance for logging the
-            per-class accuracy).
+
         :param kwargs: The named arguments to be passed to the
             :class:`GenericPluginMetric` constructor.
         """
-        self.multi_values_method = multi_values_method
-        super().__init__(
-            *args, **kwargs
-        )
+        super().__init__(*args, **kwargs)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        metric_value = self.result(strategy)
-        add_exp = self._emit_at == "experience"
-        plot_x_position = strategy.clock.train_iterations
+        emitted_values = self.result(strategy)
+        default_plot_x_position = strategy.clock.train_iterations
 
-        if isinstance(metric_value, dict):
-            metrics = []
-            for k, v_d in metric_value.items():
-                if not isinstance(v_d, dict):
-                    v_d = {str(self): v_d}
+        metrics = []
+        for m_value in emitted_values:
+            if not isinstance(m_value, ExtendedPluginMetricValue):
+                raise RuntimeError(
+                    'Emitted a value that is not of type '
+                    'ExtendedPluginMetricValue'
+                )
 
-                for n, v in v_d.items():
-                    metric_group_name = str(self)
-
-                    if self.multi_values_method == 'multi_groups':
-                        metric_group_name += f'_{n}'
-
-                    metric_name = get_metric_name(
-                        metric_group_name,
-                        strategy,
-                        add_experience=add_exp,
-                        add_task=k
-                    )
-
-                    if self.multi_values_method == 'multi_values':
-                        metric_name += f'/{n}'
-
-                    metrics.append(
-                        MetricValue(self, metric_name, v, plot_x_position)
-                    )
-            return metrics
-        else:
-            metric_name = get_metric_name(
-                self, strategy, add_experience=add_exp, add_task=True
+            m_name = self.metric_value_name(m_value)
+            x_pos = m_value.plot_position
+            if x_pos is None:
+                x_pos = default_plot_x_position
+            metrics.append(
+                MetricValue(self, m_name, m_value.metric_value, x_pos)
             )
-            return [
-                MetricValue(self, metric_name, metric_value, plot_x_position)
-            ]
+
+        return metrics
+
+    def result(self, strategy) -> List[ExtendedPluginMetricValue]:
+        return self._metric.result()
+
+    def metric_value_name(self, m_value: ExtendedPluginMetricValue) -> str:
+        return generic_get_metric_name(
+            default_metric_name_template,
+            vars(m_value)
+        )
 
 
 __all__ = [
