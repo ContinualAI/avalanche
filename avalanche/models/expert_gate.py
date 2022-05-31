@@ -50,6 +50,7 @@ class ExpertModel(nn.Module):
 class ExpertGate(MultiTaskModule):
     def __init__(
         self,
+        num_classes,
         arch="alexnet",
         pretrained_flag=True,
         device="cpu",
@@ -57,7 +58,12 @@ class ExpertGate(MultiTaskModule):
     ):
         super().__init__()
 
-        # Select the pre-trained backbone to extract features from (defaults to arch=AlexNet)
+        # Store variables
+        self.arch = arch
+        self.num_classes = num_classes
+
+        # Select the pre-trained backbone to extract features from 
+        # (defaults to arch=AlexNet)
         feature_extractor_model = (
             models.__dict__[arch](pretrained=pretrained_flag)
             .to(device)
@@ -68,6 +74,29 @@ class ExpertGate(MultiTaskModule):
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
             feature_extractor_model, output_layer_name
         ).eval()
+
+        # Dict for autoencoders
+        # {task, autoencoder}
+        self.autoencoder_dict = nn.ModuleDict()
+
+        # Dict for experts
+        # {task, expert}
+        self.expert_dict = nn.ModuleDict()
+
+    def add_autoencoder(self, task_num, input_dim, latent_dim=100):
+        # Build a new autoencoder
+        new_autoencoder = Autoencoder(
+            input_dim=input_dim, latent_dim=latent_dim)
+
+        # Store autoencoder with task number
+        self.autoencoder_dict.update({task_num, new_autoencoder})
+
+    def add_expert(self, task_num):
+        # Build a new expert
+        new_expert = ExpertModel(arch=self.arch, num_classes=self.num_classes)
+
+        # Store expert with task number
+        self.expert_dict.update({task_num, new_expert})
 
     def forward_single_task(self, x, task_label):
         # your forward goes here.
