@@ -16,8 +16,6 @@ All plugins related to Generative Replay.
 
 from copy import deepcopy
 from avalanche.core import SupervisedPlugin
-from avalanche.training.templates.base import BaseTemplate
-from avalanche.training.templates.supervised import SupervisedTemplate
 import torch
 
 
@@ -54,7 +52,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
 
     def __init__(
         self,
-        generator_strategy: "BaseTemplate" = None,
+        generator_strategy = None,
         untrained_solver: bool = True,
         replay_size: int = None,
         increasing_replay_size: bool = False,
@@ -73,7 +71,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.replay_size = replay_size
         self.increasing_replay_size = increasing_replay_size
 
-    def before_training(self, strategy: "SupervisedTemplate", *args, **kwargs):
+    def before_training(self, strategy, *args, **kwargs):
         """Checks whether we are using a user defined external generator
         or we use the strategy's model as the generator.
         If the generator is None after initialization
@@ -87,7 +85,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
 
     def before_training_exp(
         self,
-        strategy: "SupervisedTemplate",
+        strategy,
         num_workers: int = 0,
         shuffle: bool = True,
         **kwargs
@@ -107,7 +105,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
 
     def after_training_exp(
         self,
-        strategy: "SupervisedTemplate",
+        strategy,
         num_workers: int = 0,
         shuffle: bool = True,
         **kwargs
@@ -119,7 +117,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.untrained_solver = False
 
     def before_training_iteration(
-        self, strategy: "SupervisedTemplate", **kwargs
+        self, strategy, **kwargs
     ):
         """
         Generating and appending replay data to current minibatch before
@@ -172,7 +170,7 @@ class TrainGeneratorAfterExpPlugin(SupervisedPlugin):
     data of the current experience.
     """
 
-    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         """
         The training method expects an Experience object
         with a 'dataset' parameter.
