@@ -20,3 +20,4 @@ from .base_model import BaseModel
 from .helper_method import as_multitask
 from .pnn import *
 from .generator import *
+from .expert_gate import ExpertGate
