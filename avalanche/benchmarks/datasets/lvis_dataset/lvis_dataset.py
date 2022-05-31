@@ -25,8 +25,13 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.lvis_dataset.lvis_data import lvis_archives
-from lvis import LVIS
-import torch
+try:
+    from lvis import LVIS
+except ImportError:
+    raise ModuleNotFoundError("LVIS not found, if you want to use detection "
+                              "please install avalanche with the detection "
+                              "dependencies: "
+                              "pip install avalanche-lib[detection]")
 
 
 class LvisDataset(DownloadableDataset):

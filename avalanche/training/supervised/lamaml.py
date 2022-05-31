@@ -5,7 +5,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-import higher
+
+try:
+    import higher
+except ImportError:
+    raise ModuleNotFoundError("higher not found, if you want to use "
+                              "MAML please install avalanche with "
+                              "the extra dependencies: "
+                              "pip install avalanche-lib[extra]")
 import math
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
