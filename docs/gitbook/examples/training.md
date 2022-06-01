@@ -6,6 +6,7 @@ description: Baselines and Strategies Code Examples
 
 _Avalanche_ offers significant support for _training_ (with _templates_, _strategies_ and _plug-ins_). Here you can find a list of **examples** related to the training and some strategies available in Avalanche (each strategy reproduces original paper results in the [CL-Baselines](https://github.com/ContinualAI/continual-learning-baselines) repository:&#x20;
 
+* [Joint-Training](../../../examples/joint\_training.py): _this example shows how to take a stream of experiences and train simultaneously on all of them. This is useful to implement the "offline"  or "multi-task" upper bound._
 * [AR1 strategy](../../../examples/ar1.py): t_his is a simple example on how to use the AR1 strategy._
 * [CoPE Strategy](../../../examples/cope.py): _this is a simple example on how to use the CoPE plugin. It's an example in the online data incremental setting, where both learning and evaluation is completely task-agnostic._
 * [Cumulative Strategy](../../../examples/dataloader.py): h_ow to define your own cumulative strategy based on the different Data Loaders made available in Avalanche._&#x20;
@@ -18,3 +19,4 @@ _Avalanche_ offers significant support for _training_ (with _templates_, _strate
 * [Ex-Model Continual Learning](../../../examples/ex\_model\_cl.py)_: this example shows how to create a stream of pre-trained model from which to learn._
 * [Generative Replay](../../../examples/generative\_replay\_MNIST\_generator.py)_: this is a simple example on how to implement generative replay in Avalanche._
 * [iCARL strategy](../../../examples/icarl.py): _simple example to show how to use the iCARL strategy._
+* [LaMAML strategy](../../../examples/lamaml\_cifar100.py)_: example on how to use a meta continual learning in Avalanche._
