@@ -15,4 +15,4 @@ You can find **examples** related to the benchmarks here:&#x20;
 * [Detection Benchmark](../../../examples/detection\_examples\_utils.py)_: about the utils you can use create a detection benchmark._
 * [Endless CL Simulator](../../../examples/endless\_cl\_sim.py)_: this example makes use of the Endless-Continual-Learning-Simulator's derived dataset scenario._
 * [Simple CTRL benchmark](../../../examples/simple\_ctrl.py): _In this example we show a simple way to use the ctrl benchmark_.&#x20;
-* [Standalone Metrics](../../../examples/standalone\_metric.py): _how to use metrics as standalone objects._&#x20;
+* [Task-Incremental Learning](../../../examples/task\_incremental.py): _this example trains on Split CIFAR10 with Naive strategy. In this example each experience has a different task label._

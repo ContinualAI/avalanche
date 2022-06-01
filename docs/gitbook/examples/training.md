@@ -24,3 +24,4 @@ _Avalanche_ offers significant support for _training_ (with _templates_, _strate
 * [LaMAML strategy](../../../examples/lamaml\_cifar100.py)_: example on how to use a meta continual learning in Avalanche._
 * __[_RWalk strategy_](../../../examples/rwalk\_mnist.py)_: example of the RWalk strategy usage._
 * [Online Naive](https://github.com/ContinualAI/avalanche/blob/6dbabb2ab787a53b59b9cbcb245ad500e984f671/examples/online\_naive.py): _example to run a naive strategy in an online setting._
+* [Synaptic Intelligence](../../../examples/synaptic\_intelligence.py): _this is a simple example on how to use the Synaptic Intelligence Plugin._
