@@ -8,7 +8,9 @@ _Avalanche_ offers significant support for _defining your own benchmarks_ (insta
 
 You can find **examples** related to the benchmarks here:&#x20;
 
-* [Classic MNIST benchmarks](../../../examples/all\_mnist.py): i_n this simple example we show all the different ways you can use MNIST with Avalanche._
-* __[_SplitCifar100 benchmark_](../../../examples/lamaml\_cifar100.py)_: in this example a CIFAR100 is used with its canonical split in 10 experiences, 10 classes each._
-* __[_CLEAR benchmark_](../../../examples/clear.py)_:_ training and evaluating on CLEAR benchmark (RGB images)
-* [CLEAR Linear benchmark](../../../examples/clear\_linear.py): Training and evaluating on CLEAR benchmark (with pre-trained features)
+* [Classic MNIST benchmarks](../../../examples/all\_mnist.py): _in this simple example we show all the different ways you can use MNIST with Avalanche._
+* __[SplitCifar100 benchmark](../../../examples/lamaml\_cifar100.py): _in this example a CIFAR100 is used with its canonical split in 10 experiences, 10 classes each._
+* __[CLEAR benchmark](../../../examples/clear.py): _training and evaluating on CLEAR benchmark (RGB images)_
+* [CLEAR Linear benchmark](../../../examples/clear\_linear.py): _Training and evaluating on CLEAR benchmark (with pre-trained features)_
+* [Detection Benchmark](../../../examples/detection\_examples\_utils.py)_: about the utils you can use create a detection benchmark._
+* [Endless CL Simulator](../../../examples/endless\_cl\_sim.py)_: this example makes use of the Endless-Continual-Learning-Simulator's derived dataset scenario._
