@@ -6,10 +6,8 @@ description: A Short Guide for Researchers on the Run
 
 _Avalanche_ is mostly about making the life of a continual learning researcher easier.
 
-![Avalanche modules.](<../.gitbook/assets/avalanche (1).png>)
+![Avalanche modules.](<../.gitbook/assets/avalanche (1) (2).png>)
 
->
->
 > **What are the three pillars of any respectful continual learning research project?**
 
 * **`Benchmarks`**: Machine learning researchers need multiple benchmarks with efficient data handling utils to design and prototype new algorithms. Quantitative results on ever-changing benchmarks has been one of the driving forces of _Deep Learning_.
