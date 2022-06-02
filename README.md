@@ -16,7 +16,7 @@
 
 
 
-**Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within ContinualAI with the unique goal of providing a shared and collaborative 
+**Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within [ContinualAI](https://www.continualai.org/) with the unique goal of providing a shared and collaborative 
 open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
 Avalanche can help Continual Learning researchers in several ways:
 
@@ -82,7 +82,7 @@ for train_exp in train_stream:
 Current Release
 ----------------
 
-Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI]() community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
+Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
 A the moment, Avalanche is in [**Beta (v0.1.0)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.1.0). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
