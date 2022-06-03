@@ -52,7 +52,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
 
     def __init__(
         self,
-        generator_strategy = None,
+        generator_strategy=None,
         untrained_solver: bool = True,
         replay_size: int = None,
         increasing_replay_size: bool = False,
