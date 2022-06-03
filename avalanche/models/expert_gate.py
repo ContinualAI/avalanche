@@ -42,19 +42,41 @@ class Autoencoder(nn.Module):
 
 
 class ExpertModel(nn.Module):
-    def __init__(self, arch, num_classes, pretrained_flag=True, ):
+    def __init__(self, num_classes, arch, device, pretrained_flag, feature_template=None):
         super().__init__()
 
         # Select pretrained model
-        self.model = models.__dict__[arch](pretrained=pretrained_flag)
+        base_template = (models.__dict__[arch](
+            pretrained=pretrained_flag).to(device))
 
-        # Replace the final layer to work for the task
-        original_classifier_input_dim = self.model._modules['classifier'][-1].in_features
-        self.model._modules['classifier'][-1] = nn.Linear(
+        # Set the feature module
+        if (feature_template):
+            self.feature_module = feature_template.feature_module
+
+        else: 
+            self.feature_module = FeatureExtractorBackbone(
+                base_template, "features")
+
+        # Set avgpool layer
+        self.avg_pool = base_template._modules['avgpool']
+
+        # Flattener
+        self.flatten = Flatten()
+
+        # Set the classifier module
+        self.classifier_module = base_template._modules['classifier']
+
+        # Customize final layer for number of classes
+        original_classifier_input_dim = self.classifier_module[-1].in_features
+        self.classifier_module[-1] = nn.Linear(
             original_classifier_input_dim, num_classes)
 
     def forward(self, x):
-        return self.model(x)
+        x = self.feature_module(x)
+        x = self.avg_pool(x)
+        x = self.flatten(x)
+        x = self.classifier_module(x)
+        return x
 
 
 class ExpertGate(MultiTaskModule):
