@@ -131,11 +131,11 @@ class _ExpertGatePlugin(SupervisedPlugin):
             x = torch.tensor(-error/self.temp)
             probability_dict[str(autoencoder_id)] = softmax(x)
 
-        print()
-        print()
-        print(max(probability_dict, key=probability_dict.get))
-        print() 
-        print()
+        # Select an expert for this iteration
+        most_relevant_expert_key = max(
+                probability_dict, key=probability_dict.get)
+        strategy.model.expert = self._retrieve_expert(
+                strategy, most_relevant_expert_key)
 
     # ##############
     # EXPERT METHODS 
