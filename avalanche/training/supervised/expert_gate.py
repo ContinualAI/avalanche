@@ -56,7 +56,8 @@ class ExpertGateStrategy(SupervisedTemplate):
         """
         # Check that the model has the correct architecture.
         assert isinstance(
-            model, ExpertGate), "ExpertGateStrategy requires an ExpertGate model."
+            model, 
+            ExpertGate), "ExpertGateStrategy requires an ExpertGate model."
 
         expertgate = _ExpertGatePlugin()
 
@@ -85,7 +86,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
     def __init__(self):
         super().__init__()
 
-    def before_training_exp(self, strategy: "SupervisedTemplate", *args, **kwargs):
+    def before_training_exp(self, 
+                            strategy: "SupervisedTemplate", 
+                            *args, 
+                            **kwargs):
         super().before_training_exp(strategy, *args, **kwargs)
 
         task_label = strategy.experience.task_label
@@ -115,7 +119,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
             else:
                 strategy.plugins.append(lwf)
 
-    def before_eval_iteration(self, strategy: "SupervisedTemplate", *args, **kwargs):
+    def before_eval_iteration(self, 
+                              strategy: "SupervisedTemplate",
+                              *args, 
+                              **kwargs):
         super().before_eval_iteration(strategy, *args, **kwargs)
 
         # Build a probability dictionary
@@ -170,7 +177,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
             # Iterate through all autoencoders to get error values
             for autoencoder_id in strategy.model.autoencoder_dict:
                 error_dict[str(autoencoder_id)
-                           ] = self._get_average_reconstruction_error(strategy, autoencoder_id)
+                           ] = self._get_average_reconstruction_error(
+                               strategy, autoencoder_id)
 
             # Send error dictionary to get most relevant autoencoder
             relatedness_dict = self._task_relatedness(
@@ -195,7 +203,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
     # ########################
     # EXPERT SELECTION METHODS
     # ########################
-    def _task_relatedness(self, strategy: "SupervisedTemplate", error_dict, task_label):
+    def _task_relatedness(self, 
+                          strategy: "SupervisedTemplate", 
+                          error_dict, 
+                          task_label):
         # Build a task relatedness dictionary
         relatedness_dict = OrderedDict()
 
@@ -208,7 +219,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         return relatedness_dict
 
-    def _get_average_reconstruction_error(self, strategy: "SupervisedTemplate", task_label):
+    def _get_average_reconstruction_error(self, 
+                                          strategy: "SupervisedTemplate", 
+                                          task_label):
 
         autoencoder = self._retrieve_autoencoder(strategy, task_label)
 
@@ -238,7 +251,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
     # ##################
     # AUTENCODER METHODS 
     # ##################
-    def _add_autoencoder(self, strategy: "SupervisedTemplate", task_label, latent_dim=500):
+    def _add_autoencoder(self, 
+                         strategy: "SupervisedTemplate", 
+                         task_label, 
+                         latent_dim=500):
 
         # Build a new autoencoder
         new_autoencoder = Autoencoder(

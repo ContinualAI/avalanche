@@ -51,7 +51,12 @@ class Autoencoder(nn.Module):
 
 
 class ExpertModel(nn.Module):
-    def __init__(self, num_classes, arch, device, pretrained_flag, feature_template=None):
+    def __init__(self, 
+                 num_classes, 
+                 arch, 
+                 device, 
+                 pretrained_flag, 
+                 feature_template=None):
         super().__init__()
 
         # Select pretrained model
