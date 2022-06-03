@@ -1,9 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import MSELoss
 
+from torchvision import transforms
 import torchvision.models as models
+
 from .utils import FeatureExtractorBackbone
+
+from avalanche.models import MultiTaskModule
+from avalanche.models.utils import Flatten
+from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
+
+
 def AE_loss(input, reconstruction):
     loss_method = MSELoss(reduction="sum")
     reconstruction_loss = loss_method(input, reconstruction)
@@ -82,30 +91,23 @@ class ExpertModel(nn.Module):
 class ExpertGate(MultiTaskModule):
     def __init__(
         self,
+        shape,
         num_classes,
+        rel_thresh=0.85,
         arch="alexnet",
         pretrained_flag=True,
         device="cpu",
-        output_layer_name="feature",
+        output_layer_name="features"
     ):
         super().__init__()
 
         # Store variables
-        self.arch = arch
+        self.shape = shape
         self.num_classes = num_classes
-
-        # Select the pre-trained backbone to extract features from 
-        # (defaults to arch=AlexNet)
-        feature_extractor_model = (
-            models.__dict__[arch](pretrained=pretrained_flag)
-            .to(device)
-            .eval()
-        )
-
-        # Module to extract features from given backbone and layer
-        self.feature_extraction_wrapper = FeatureExtractorBackbone(
-            feature_extractor_model, output_layer_name
-        ).eval()
+        self.rel_thresh = rel_thresh
+        self.arch = arch
+        self.pretrained_flag = pretrained_flag
+        self.device = device
 
         # Dict for autoencoders
         # {task, autoencoder}
@@ -115,23 +117,14 @@ class ExpertGate(MultiTaskModule):
         # {task, expert}
         self.expert_dict = nn.ModuleDict()
 
-    def add_autoencoder(self, task_num, input_dim, latent_dim=100):
-        # Build a new autoencoder
-        new_autoencoder = Autoencoder(
-            input_dim=input_dim, latent_dim=latent_dim)
+        self.expert = (
+            models.__dict__[arch](pretrained=pretrained_flag)
+            .to(device)
+            .eval()
+        )
 
-        # Store autoencoder with task number
-        self.autoencoder_dict.update({task_num, new_autoencoder})
-
-    def add_expert(self, task_num):
-        # Build a new expert
-        new_expert = ExpertModel(arch=self.arch, num_classes=self.num_classes)
-
-        # Store expert with task number
-        self.expert_dict.update({task_num, new_expert})
+    def adaptation(self, experience: CLExperience = None):
+        return super().adaptation(experience)
 
     def forward_single_task(self, x, task_label):
-        # your forward goes here.
-        # task_label is a single integer
-        # the mini-batch is split by task-id inside the forward method.
-        pass
+        return self.expert(x)
