@@ -2,7 +2,8 @@ import unittest
 import numpy as np
 try:
     import gym
-    from avalanche.benchmarks.scenarios.rl_scenario import RLScenario, RLExperience
+    from avalanche.benchmarks.scenarios.rl_scenario import \
+        RLScenario, RLExperience
     skip = False
 except ImportError:
     skip = True
