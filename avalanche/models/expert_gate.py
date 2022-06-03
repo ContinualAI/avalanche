@@ -11,26 +11,34 @@ def AE_loss(input, reconstruction):
 
 
 class Autoencoder(nn.Module):
-    def __init__(self, input_dim, latent_dim):
+    def __init__(self, shape, latent_dim):
         super().__init__()
+        self.shape = shape
 
         # Encoder Linear -> ReLU
+        flattened_size = torch.Size(shape).numel()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, latent_dim),
+            Flatten(),
+            nn.Linear(flattened_size, latent_dim),
             nn.ReLU()
         )
 
         # Decoder Linear -> Sigmoid
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, input_dim), 
+            nn.Linear(latent_dim, flattened_size), 
             nn.Sigmoid()
         )
+
+        self.invTrans = transforms.Compose(
+                [transforms.Normalize((0.1307,), (0.3081,))]
+                )
 
     def forward(self, x):
         # Reconstruct input
         encoding = self.encoder(x)
         reconstruction = self.decoder(encoding)
-        return reconstruction
+
+        return self.invTrans(reconstruction.view(-1, *self.shape))
 
 
 class ExpertModel(nn.Module):
