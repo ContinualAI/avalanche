@@ -40,19 +40,19 @@ Also, before making your PR **make sure** that the following commands return wit
 
 ```bash
 pycodestyle avalanche tests examples
-python -m unittest discover -v
+python -m unittest discover tests -v
 ```
 
 Otherwise fix them and run again these commands until everything is working correctly. You should also check if everything is working on GPUs, using the env variable `USE_GPU=True`:
 
 ```bash
-USE_GPU=True python -m unittest discover -v
+USE_GPU=True python -m unittest discover tests -v
 ```
 
 Faster integrity checks can be run with the env variable `FAST_TEST=True` :
 
 ```bash
-USE_GPU=False FAST_TEST=True python -m unittest discover -v
+USE_GPU=False FAST_TEST=True python -m unittest discover tests -v
 ```
 
 **Contribute to the Avalanche documentation**
