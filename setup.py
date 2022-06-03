@@ -1,14 +1,17 @@
 import setuptools
 import codecs
 import os.path
+from collections import defaultdict
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
 
 def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
     with codecs.open(os.path.join(here, rel_path), 'r') as fp:
         return fp.read()
+
 
 def get_version(rel_path):
     for line in read(rel_path).splitlines():
@@ -18,8 +21,28 @@ def get_version(rel_path):
     else:
         raise RuntimeError("Unable to find version string.")
 
+
+def get_extra_requires(path, add_all=True):
+    with open(path) as fp:
+        extra_deps = defaultdict(set)
+        for line in fp:
+            if line.strip() and not line.startswith('#'):
+                tags = set()
+                if ':' in line:
+                    k, v = line.split(':')
+                    tags.update(vv.strip() for vv in v.split(','))
+                for t in tags:
+                    extra_deps[t].add(k)
+
+        # add tag `all` at the end
+        if add_all:
+            extra_deps['all'] = set(vv for v in extra_deps.values() for vv in v)
+
+    return extra_deps
+
+
 setuptools.setup(
-    name="avalanche-lib", # Replace with your own username
+    name="avalanche-lib",  # Replace with your own username
     version=get_version("avalanche/__init__.py"),
     author="ContinualAI",
     author_email="contact@continualai.org",
@@ -43,18 +66,16 @@ setuptools.setup(
         'matplotlib',
         'numpy',
         'pytorchcv',
-        'quadprog',
         'wandb',
         'tensorboard>=1.15',
-        'pycocotools',
         'tqdm',
         'torch',
         'torchvision',
         'torchmetrics',
-        'higher',
         'gdown',
-        'ctrl-benchmark',
-        'lvis',
+        'quadprog',
         'setuptools<=59.5.0'
-    ]
+    ],
+    extras_require=get_extra_requires('extra_dependencies.txt', add_all=True)
 )
+

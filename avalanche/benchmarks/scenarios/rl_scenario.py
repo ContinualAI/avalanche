@@ -20,12 +20,10 @@ import random
 try:
     from gym import Env, Wrapper
 except ImportError:
-    # empty classes to make sure everything below works without changes
-    class Env:
-        pass
-
-    class Wrapper:
-        pass
+    raise ModuleNotFoundError("gym not found, if you want to use "
+                              "RL please install avalanche with "
+                              "the rl dependencies: "
+                              "pip install avalanche-lib[rl]")
 
 
 class RLExperience(CLExperience):
