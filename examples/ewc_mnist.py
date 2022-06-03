@@ -80,6 +80,8 @@ def main(args):
         loggers=[interactive_logger, tensorboard_logger],
     )
 
+    if args.ewc_mode == 'separate':
+        args.decay_factor = None
     # create strategy
     strategy = EWC(
         model,

@@ -90,7 +90,7 @@ def SplitFMNIST(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a

@@ -14,7 +14,7 @@ You can use any model provided in the [Pytorch](https://pytorch.org/) official e
 
 
 ```python
-!pip install avalanche-lib
+!pip install avalanche-lib==0.2.0
 ```
 
 
@@ -43,7 +43,7 @@ model = IncrementalClassifier(in_features=784)
 
 print(model)
 for exp in benchmark.train_stream:
-    model.adaptation(exp.dataset)
+    model.adaptation(exp)
     print(model)
 ```
 
@@ -65,7 +65,7 @@ model = MultiHeadClassifier(in_features=784)
 
 print(model)
 for exp in benchmark.train_stream:
-    model.adaptation(exp.dataset)
+    model.adaptation(exp)
     print(model)
 ```
 

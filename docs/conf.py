@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = u'Avalanche'
-copyright = u'2021, ContinualAI'
+copyright = u'2022, ContinualAI'
 author = u'ContinualAI'
 
 # The short X.Y version
@@ -60,6 +60,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.coverage',
     'sphinx_rtd_theme',
+    'sphinx_copybutton'
 ]
 
 autosummary_generate = True

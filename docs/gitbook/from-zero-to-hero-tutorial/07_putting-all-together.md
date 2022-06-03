@@ -7,7 +7,7 @@ Welcome to the "_Putting All Together_" tutorial of the "_From Zero to Hero_" se
 
 
 ```python
-!pip install avalanche-lib
+!pip install avalanche-lib==0.2.0
 ```
 
 ## 🛴 A Comprehensive Example
@@ -24,7 +24,7 @@ from avalanche.evaluation.metrics import forgetting_metrics, accuracy_metrics, \
 from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 scenario = SplitMNIST(n_experiences=5)
 
