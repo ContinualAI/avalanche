@@ -49,6 +49,9 @@ Models
     NCMClassifier
     SLDAResNetModel  
     MlpVAE
+    LeNet5
+    SlimResNet18
+    MTSlimResNet18
 
 
 Progressive Neural Networks

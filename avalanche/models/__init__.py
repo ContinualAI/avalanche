@@ -21,3 +21,5 @@ from .helper_method import as_multitask
 from .pnn import *
 from .generator import *
 from .expert_gate import ExpertGate
+from .lenet5 import LeNet5
+from .slim_resnet18 import SlimResNet18, MTSlimResNet18

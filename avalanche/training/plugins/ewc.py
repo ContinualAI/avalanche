@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Dict, Tuple
 import warnings
+import itertools
 
 import torch
 from torch import Tensor
@@ -184,10 +185,16 @@ class EWCPlugin(SupervisedPlugin):
         if self.mode == "separate" or t == 0:
             self.importances[t] = importances
         elif self.mode == "online":
-            for (k1, old_imp), (k2, curr_imp) in zip(
-                self.importances[t - 1], importances
+            for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
+                self.importances[t - 1], importances, fillvalue=(None, None),
             ):
+                # Add new module importances to the importances value (New head)
+                if k1 is None:
+                    self.importances[t].append((k2, curr_imp))
+                    continue
+
                 assert k1 == k2, "Error in importance computation."
+
                 self.importances[t].append(
                     (k1, (self.decay_factor * old_imp + curr_imp))
                 )
