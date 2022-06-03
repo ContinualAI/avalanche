@@ -19,4 +19,3 @@ from .generative_replay import (
 )
 from .rwalk import RWalkPlugin
 from .mas import MASPlugin
-from .expert_gate import ExpertGatePlugin
