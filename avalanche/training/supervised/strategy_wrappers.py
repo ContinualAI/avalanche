@@ -9,7 +9,6 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 from typing import Optional, Sequence, List, Union
-from avalanche.models import expert_gate
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
