@@ -15,7 +15,6 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
 from avalanche.models.pnn import PNN
-from avalanche.models.expert_gate import ExpertGate
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
     SupervisedPlugin,
@@ -34,7 +33,6 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
     MASPlugin,
-    ExpertGatePlugin,
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -104,72 +102,6 @@ class Naive(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
-
-
-class ExpertGateStrategy(SupervisedTemplate):
-    """Expert Gate strategy.
-
-    To use this strategy you need to instantiate an ExpertGate model.
-    """
-
-    def __init__(
-        self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
-        train_mb_size: int = 1,
-        train_epochs: int = 1,
-        eval_mb_size: Optional[int] = None,
-        device=None,
-        plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
-        eval_every=-1,
-        **base_kwargs
-    ):
-        """Init.
-
-        :param model: PyTorch model.
-        :param optimizer: PyTorch optimizer.
-        :param criterion: loss function.
-        :param train_mb_size: mini-batch size for training.
-        :param train_epochs: number of training epochs.
-        :param eval_mb_size: mini-batch size for eval.
-        :param device: PyTorch device where the model will be allocated.
-        :param plugins: (optional) list of StrategyPlugins.
-        :param evaluator: (optional) instance of EvaluationPlugin for logging
-            and metric computations. None to remove logging.
-        :param eval_every: the frequency of the calls to `eval` inside the
-            training loop. -1 disables the evaluation. 0 means `eval` is called
-            only at the end of the learning experience. Values >0 mean that
-            `eval` is called every `eval_every` epochs and at the end of the
-            learning experience.
-        :param base_kwargs: any additional
-            :class:`~avalanche.training.BaseTemplate` constructor arguments.
-        """
-        # Check that the model has the correct architecture.
-        assert isinstance(
-            model, ExpertGate), "ExpertGateStrategy requires an ExpertGate model."
-
-        # Add ExpertGate plugin, if it doesn't eixst
-        expert_gate_plugin = ExpertGatePlugin()
-        if plugins is None:
-            plugins = [expert_gate_plugin]
-        else:
-            plugins.append(expert_gate_plugin)
-
-        super().__init__(
-                model=model,
-                optimizer=optimizer,
-                criterion=criterion,
-                train_mb_size=train_mb_size,
-                train_epochs=train_epochs,
-                eval_mb_size=eval_mb_size,
-                device=device,
-                plugins=plugins,
-                evaluator=evaluator,
-                eval_every=eval_every,
-                **base_kwargs
-                )
 
 
 class PNNStrategy(SupervisedTemplate):
