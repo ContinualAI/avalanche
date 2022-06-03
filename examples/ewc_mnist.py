@@ -5,7 +5,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 from avalanche.benchmarks import PermutedMNIST, nc_benchmark
 from avalanche.training.supervised import EWC
-from avalanche.models import SimpleMLP
+from avalanche.models import SimpleMLP, as_multitask
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -64,8 +64,32 @@ def main(args):
         scenario = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=False, seed=1234
         )
+    elif args.scenario == "multitask_smnist":
+        mnist_train = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+            transform=ToTensor(),
+        )
+        mnist_test = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False,
+            download=True,
+            transform=ToTensor(),
+        )
+        scenario = nc_benchmark(
+            mnist_train,
+            mnist_test,
+            5,
+            task_labels=True,
+            seed=1234,
+            class_ids_from_zero_in_each_exp=True,
+        )
+        model = SimpleMLP(1, hidden_size=args.hs)
+        model = as_multitask(model, "classifier")
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     else:
-        raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
+        raise ValueError("Wrong scenario name. Allowed pmnist, smnist, multitask_smnist.")
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -113,7 +137,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--scenario",
         type=str,
-        choices=["pmnist", "smnist"],
+        choices=["pmnist", "smnist", "multitask_smnist"],
         default="smnist",
         help="Choose between Permuted MNIST, Split MNIST.",
     )
