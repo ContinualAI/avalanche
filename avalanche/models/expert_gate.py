@@ -4,8 +4,10 @@ import torch.nn.functional as F
 
 import torchvision.models as models
 from .utils import FeatureExtractorBackbone
-from avalanche.models import MultiTaskModule, DynamicModule
-from avalanche.models import MultiHeadClassifier
+def AE_loss(input, reconstruction):
+    loss_method = MSELoss(reduction="sum")
+    reconstruction_loss = loss_method(input, reconstruction)
+    return reconstruction_loss
 
 
 class Autoencoder(nn.Module):
