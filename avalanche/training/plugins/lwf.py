@@ -42,6 +42,7 @@ class LwFPlugin(SupervisedPlugin):
         """
         # we compute the loss only on the previously active units.
         au = list(active_units)
+
         log_p = torch.log_softmax(out[:, au] / self.temperature, dim=1)
         q = torch.softmax(prev_out[:, au] / self.temperature, dim=1)
         res = torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
