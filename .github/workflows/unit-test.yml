@@ -50,4 +50,4 @@ jobs:
         id: unittest
         run: |
           conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False python -m unittest
+          FAST_TEST=True USE_GPU=False python -m unittest discover tests

@@ -4,7 +4,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import torch
 
-from avalanche.benchmarks.classic.ctrl import CTrL
+try:
+    from avalanche.benchmarks.classic.ctrl import CTrL
+    skip = False
+except ImportError:
+    skip = True
 from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
@@ -37,7 +41,7 @@ class CTrLTests(unittest.TestCase):
     long_stream_lengths = [8, 15]
 
     @unittest.skipIf(
-        FAST_TEST or is_github_action(),
+        FAST_TEST or is_github_action() or skip,
         "We don't want to download large datasets in github actions.",
     )
     def test_length(self):
@@ -47,7 +51,7 @@ class CTrLTests(unittest.TestCase):
                 self.assertEqual(length, bench.n_experiences)
 
     @unittest.skipIf(
-        FAST_TEST or is_github_action(),
+        FAST_TEST or is_github_action() or skip,
         "We don't want to download large datasets in github actions.",
     )
     def test_length_long(self):
@@ -59,7 +63,7 @@ class CTrLTests(unittest.TestCase):
                 self.assertEqual(n_tasks, bench.n_experiences)
 
     @unittest.skipIf(
-        FAST_TEST or is_github_action(),
+        FAST_TEST or is_github_action() or skip,
         "We don't want to download large datasets in github actions.",
     )
     def test_n_tasks_param(self):
@@ -72,7 +76,7 @@ class CTrLTests(unittest.TestCase):
             CTrL("s_long", n_tasks=3)
 
     @unittest.skipIf(
-        FAST_TEST or is_github_action(),
+        FAST_TEST or is_github_action() or skip,
         "We don't want to download large datasets in github actions.",
     )
     def test_determinism(self):
