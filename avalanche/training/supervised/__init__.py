@@ -9,3 +9,4 @@ from .strategy_wrappers import *
 from .deep_slda import *
 from .icarl import ICaRL
 from .lamaml import LaMAML
+from .expert_gate import ExpertGateStrategy
