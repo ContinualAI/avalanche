@@ -186,9 +186,10 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         label_cat2mean_score: Dict[LabelCat, float] = self.result()
+        num_it = strategy.clock.train_iterations
 
         for label_cat, m in label_cat2mean_score.items():
-            self.label_cat2step2mean[label_cat][self.global_it_counter] = m
+            self.label_cat2step2mean[label_cat][num_it] = m
 
         base_metric_name = get_metric_name(
             self, strategy, add_experience=False, add_task=False
@@ -199,7 +200,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
                 self,
                 name=base_metric_name + f"/{label_cat}_classes",
                 value=m,
-                x_plot=self.global_it_counter,
+                x_plot=num_it,
             )
             for label_cat, m in label_cat2mean_score.items()
         ]
@@ -210,7 +211,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
                     name=base_metric_name + f"/new_old_diff",
                     value=label_cat2mean_score["new"]
                     - label_cat2mean_score["old"],
-                    x_plot=self.global_it_counter,
+                    x_plot=num_it,
                 )
             )
         if self.image_creator is not None:
@@ -222,7 +223,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
                         self.image_creator(self.label_cat2step2mean),
                         self.label_cat2step2mean,
                     ),
-                    x_plot=self.global_it_counter,
+                    x_plot=num_it,
                 )
             )
 
