@@ -496,7 +496,7 @@ class GeneralMetricTests(unittest.TestCase):
             # Should call next_experience first
             metric.update(my_out, my_y, 0)
 
-        metric.next_experience('test')
+        metric.set_stream('test')
         metric.update(my_out, my_y, 0)
         self.assertDictEqual(metric.result(), {
             'test': {
@@ -516,7 +516,7 @@ class GeneralMetricTests(unittest.TestCase):
             # Again, should call next_experience first, even after reset
             metric.update(my_out, my_y, 0)
 
-        metric.next_experience('test')
+        metric.set_stream('test')
         metric.update(my_out, my_y, 0)
         self.assertDictEqual(metric.result(), {
             'test': {
@@ -524,7 +524,7 @@ class GeneralMetricTests(unittest.TestCase):
             }
         })
 
-        metric.next_experience('train')
+        metric.set_stream('train')
         self.assertDictEqual(metric.result(), {
             'test': {
                 0: my_amca
@@ -541,17 +541,19 @@ class GeneralMetricTests(unittest.TestCase):
                 1: my_amca2
             }
         })
-        metric.next_experience('test')
+
+        metric.set_stream('test')
         self.assertDictEqual(metric.result(), {
             'test': {
-                0: my_amca / 2
+                0: my_amca
             },
             'train': {
                 1: my_amca2
             }
         })
 
-        metric.next_experience('train')
+        metric.finish_phase()
+        metric.set_stream('train')
         self.assertDictEqual(metric.result(), {
             'test': {
                 0: my_amca / 2
