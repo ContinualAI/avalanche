@@ -355,19 +355,6 @@ def get_metric_name(
     if not add_experience:
         experience_id = None
 
-    # # task label not present - do not print task
-    # if task_label is None and type(add_task) == bool:
-    #     add_task = False
-    # else:
-    #     # task label is present and printed
-    #     if type(add_task) == bool and add_task is True:
-    #         task_name = "/Task{:03}".format(task_label)
-    #     # print user-defined task label
-    #     elif type(add_task) == int:
-    #         task_name = "/Task{:03}".format(add_task)
-    #         add_task = True
-    #     # else case is add_task=False
-
     return generic_get_metric_name(
         default_metric_name_template,
         {
@@ -378,15 +365,6 @@ def get_metric_name(
             'stream_name': stream
         }
     )
-    #
-    # if add_experience and not add_task:
-    #     return base_name + exp_name
-    # elif add_experience and add_task:
-    #     return base_name + task_name + exp_name
-    # elif not add_experience and not add_task:
-    #     return base_name
-    # elif not add_experience and add_task:
-    #     return base_name + task_name
 
 
 __all__ = [
