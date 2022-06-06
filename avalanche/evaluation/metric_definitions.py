@@ -390,7 +390,8 @@ class ExtendedPluginMetricValue:
         """
 
 
-class ExtendedGenericPluginMetric(GenericPluginMetric[TResult]):
+class ExtendedGenericPluginMetric(
+        GenericPluginMetric[List[ExtendedPluginMetricValue]]):
     """
     A generified version of :class:`GenericPluginMetric` which supports emitting
     multiple metrics from a single metric instance.
@@ -451,5 +452,6 @@ __all__ = [
     "Metric",
     "PluginMetric",
     "GenericPluginMetric",
+    "ExtendedPluginMetricValue",
     "ExtendedGenericPluginMetric"
 ]

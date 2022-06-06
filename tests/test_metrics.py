@@ -7,6 +7,7 @@ import torch
 from avalanche.evaluation.metrics import (
     Accuracy,
     AverageMeanClassAccuracy,
+    MultiStreamAMCA,
     ClassAccuracy,
     Loss,
     ConfusionMatrix,
@@ -165,10 +166,12 @@ class GeneralMetricTests(unittest.TestCase):
                 0: 0.0,
                 1: 0.0,
                 2: 0.0
-        }})
+            }
+        })
 
         metric.reset()
-        self.assertDictEqual(metric.result(), {0: {
+        self.assertDictEqual(metric.result(), {
+            0: {
                 0: 0.0,
                 1: 0.0,
                 2: 0.0
@@ -177,7 +180,8 @@ class GeneralMetricTests(unittest.TestCase):
                 0: 0.0,
                 1: 0.0,
                 2: 0.0
-        }})
+            }
+        })
 
         my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
         my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
@@ -240,6 +244,51 @@ class GeneralMetricTests(unittest.TestCase):
             },
         })
 
+    def test_amca_first_update(self):
+        metric = AverageMeanClassAccuracy()
+        self.assertDictEqual(metric.result(), {})
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        my_amca = (0.5 + 1.0 + 0.0) / 3
+        # 0: 50%, 1: 100%, 2: 0%
+
+        my_y2 = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out2 = torch.as_tensor([2, 2, 2, 2, 1, 2, 1])
+        my_amca2 = (0.0 + 0.0 + 0.5) / 3
+        # 0: 0%, 1: 0%, 2: 50%
+
+        my_amca_1_and_2 = (my_amca + my_amca2) / 2
+
+        metric.next_experience()
+        self.assertDictEqual(metric.result(), {})
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.reset()
+        metric.next_experience()
+        # After reset, previously dynamically added tasks are remembered
+        self.assertDictEqual(metric.result(), {
+            0: 0.0
+        })
+
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca
+        })
+
+        metric.update(my_out2, my_y2, 0)
+        self.assertDictEqual(metric.result(), {
+            0: my_amca_1_and_2
+        })
+        metric.next_experience()
+        self.assertDictEqual(metric.result(), {
+            0: my_amca_1_and_2 / 2
+        })
+
     def test_amca_single_task_dynamic(self):
         metric = AverageMeanClassAccuracy()
         self.assertDictEqual(metric.result(), {})
@@ -276,7 +325,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertDictEqual(metric.result(), {
             0: my_amca_1_and_2
         })
-        metric.next_train_experience()
+        metric.next_experience()
         self.assertDictEqual(metric.result(), {
             0: my_amca_1_and_2 / 2
         })
@@ -318,7 +367,7 @@ class GeneralMetricTests(unittest.TestCase):
             0: my_amca,
             1: my_amca2
         })
-        metric.next_train_experience()
+        metric.next_experience()
         self.assertDictEqual(metric.result(), {
             0: my_amca / 2,
             1: my_amca2 / 2
@@ -356,7 +405,7 @@ class GeneralMetricTests(unittest.TestCase):
             1: 0.0
         })
 
-        metric.next_train_experience()
+        metric.next_experience()
         self.assertDictEqual(metric.result(), {
             0: 0.0,
             1: 0.0
@@ -399,7 +448,7 @@ class GeneralMetricTests(unittest.TestCase):
             0: my_amca,
             1: my_amca2
         })
-        metric.next_train_experience()
+        metric.next_experience()
         self.assertDictEqual(metric.result(), {
             0: my_amca / 2,
             1: my_amca2 / 2
@@ -417,7 +466,7 @@ class GeneralMetricTests(unittest.TestCase):
             1: my_amca2
         })
 
-        metric.next_train_experience()
+        metric.next_experience()
         self.assertDictEqual(metric.result(), {
             0: my_amca * 2 / 3,
             1: my_amca2 * 2 / 3
@@ -427,6 +476,99 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertDictEqual(metric.result(), {
             0: 0.0,
             1: 0.0
+        })
+
+    def test_multistream_amca_two_task_dynamic(self):
+        metric = MultiStreamAMCA()
+        self.assertEqual(metric.result(), {})
+
+        my_y = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out = torch.as_tensor([0, 0, 1, 2, 1, 1, 1])
+        my_amca = (0.5 + 1.0 + 0.0) / 3
+        # 0: 50%, 1: 100%, 2: 0%
+
+        my_y2 = torch.as_tensor([0, 0, 1, 0, 2, 2, 0])
+        my_out2 = torch.as_tensor([2, 2, 2, 2, 1, 2, 1])
+        my_amca2 = (0.0 + 0.0 + 0.5) / 3
+        # 0: 0%, 1: 0%, 2: 50%
+
+        with self.assertRaises(RuntimeError):
+            # Should call next_experience first
+            metric.update(my_out, my_y, 0)
+
+        metric.next_experience('test')
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca
+            }
+        })
+
+        metric.reset()
+        # After reset, previously dynamically added tasks are remembered
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: 0.0
+            }
+        })
+
+        with self.assertRaises(RuntimeError):
+            # Again, should call next_experience first, even after reset
+            metric.update(my_out, my_y, 0)
+
+        metric.next_experience('test')
+        metric.update(my_out, my_y, 0)
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca
+            }
+        })
+
+        metric.next_experience('train')
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca
+            },
+            'train': {}
+        })
+
+        metric.update(my_out2, my_y2, 1)
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca
+            },
+            'train': {
+                1: my_amca2
+            }
+        })
+        metric.next_experience('test')
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca / 2
+            },
+            'train': {
+                1: my_amca2
+            }
+        })
+
+        metric.next_experience('train')
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: my_amca / 2
+            },
+            'train': {
+                1: my_amca2 / 2
+            }
+        })
+
+        metric.reset()
+        self.assertDictEqual(metric.result(), {
+            'test': {
+                0: 0.0
+            },
+            'train': {
+                1: 0.0
+            }
         })
 
     def test_loss(self):

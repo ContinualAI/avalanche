@@ -9,13 +9,15 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from statistics import fmean
-from typing import Dict, List, Union, TYPE_CHECKING, Optional
+from typing import Dict, List, Union, TYPE_CHECKING, Optional, Sequence, Set
 from collections import defaultdict, OrderedDict
 
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, \
-    GenericPluginMetric
+    ExtendedGenericPluginMetric
+from avalanche.evaluation.metric_definitions import ExtendedPluginMetricValue
+from avalanche.evaluation.metric_utils import generic_get_metric_name
 from avalanche.evaluation.metrics.class_accuracy import ClassAccuracy, \
     TrackedClassesType
 
@@ -24,7 +26,6 @@ if TYPE_CHECKING:
 
 
 class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
-    # TODO: unit tests
     """
     The Average Mean Class Accuracy (AMCA) metric. This is a standalone metric
     used to compute more specific ones.
@@ -32,6 +33,11 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
     Instances of this metric keeps the running average accuracy
     over multiple <prediction, target> pairs of Tensors,
     provided incrementally.
+
+    Beware that this class does not provide mechanisms to separate scores based
+    on the originating data stream. For this, please refer to
+    :class:`MultiStreamAMCA`.
+
     The "prediction" and "target" tensors may contain plain labels or
     one-hot/logit vectors.
 
@@ -95,6 +101,8 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
         `{task_id -> [accuracies]}`.
         """
 
+        self._updated_once = False
+
     @torch.no_grad()
     def update(self,
                predicted_y: Tensor,
@@ -113,6 +121,7 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
             for each pattern.
         :return: None.
         """
+        self._updated_once = True
         self._class_accuracies.update(predicted_y, true_y, task_labels)
 
     def result(self) -> Dict[int, float]:
@@ -137,7 +146,18 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
 
         return mean_accs
 
-    def next_train_experience(self):
+    def next_experience(self):
+        """
+        Moves to the next experience.
+
+        This will consolidate the class accuracies for the current experience.
+
+        This method can also be safely called before even calling the `update`
+        method for the first time. In that case, this call will be ignored.
+        """
+        if not self._updated_once:
+            return
+
         for task_id, mean_class_acc in self._get_curr_task_acc().items():
             self._prev_exps_accuracies[task_id].append(mean_class_acc)
         self._class_accuracies.reset()
@@ -148,6 +168,7 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
 
         :return: None.
         """
+        self._updated_once = False
         self._class_accuracies.reset()
         self._prev_exps_accuracies.clear()
 
@@ -162,89 +183,227 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
         return task_acc
 
 
-class AverageClassAccuracyPluginMetric(GenericPluginMetric[float]):
+class MultiStreamAMCA(Metric[Dict[str, Dict[int, float]]]):
+    """
+    An extension of the Average Mean Class Accuracy (AMCA) metric
+    (class:`AverageMeanClassAccuracy`) able to separate the computation of the
+    AMCA based on the current stream.
+    """
+    def __init__(self, classes=None, streams=None):
+        """
+        Creates an instance of a MultiStream AMCA.
+
+        :param classes: The list of classes to track. This has the same semantic
+            of the `classes` parameter of class
+            :class:`AverageMeanClassAccuracy`.
+        :param streams: The list of streams to track. Defaults to None, which
+            means that all stream will be tracked. This is not recommended, as
+            you usually will want to track the "test" stream only.
+        """
+
+        self._limit_streams = streams
+        if self._limit_streams is not None:
+            self._limit_streams = set(self._limit_streams)
+
+        self._limit_classes = classes
+        self._amcas: Dict[str, AverageMeanClassAccuracy] = dict()
+
+        self._current_stream: Optional[str] = None
+        self._streams_in_this_phase: Set[str] = set()
+
+    @torch.no_grad()
+    def update(self,
+               predicted_y: Tensor,
+               true_y: Tensor,
+               task_labels: Union[int, Tensor]) -> None:
+        """
+        Update the running accuracy given the true and predicted labels for each
+        class.
+
+        This will update the accuracies for the "current stream" (the one set
+        through `next_experience`). If `next_experience` has not been called,
+        then an error will be raised.
+
+        :param predicted_y: The model prediction. Both labels and logit vectors
+            are supported.
+        :param true_y: The ground truth. Both labels and one-hot vectors
+            are supported.
+        :param task_labels: the int task label associated to the current
+            experience or the task labels vector showing the task label
+            for each pattern.
+        :return: None.
+        """
+        if self._current_stream is None:
+            raise RuntimeError(
+                'No current stream set. '
+                'Call "set_stream" to set the current stream.')
+
+        if self._is_stream_tracked(self._current_stream):
+            self._amcas[self._current_stream].update(
+                predicted_y, true_y, task_labels)
+
+    def result(self) -> Dict[str, Dict[int, float]]:
+        """
+        Retrieves the running AMCA for each stream.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: A dictionary `{stream_name -> {task_id -> amca}}`. The
+            running AMCA of each task is a float value between 0 and 1.
+        """
+        all_streams_dict = OrderedDict()
+        for stream_name in sorted(self._amcas.keys()):
+            stream_metric = self._amcas[stream_name]
+            stream_result = stream_metric.result()
+            all_streams_dict[stream_name] = stream_result
+        return all_streams_dict
+
+    def set_stream(self, stream_name: str):
+        """
+        Switches to a specific stream.
+
+        :param stream_name: The name of the stream.
+        """
+        self._current_stream = stream_name
+        if not self._is_stream_tracked(stream_name):
+            return
+
+        if self._current_stream not in self._amcas:
+            self._amcas[stream_name] = AverageMeanClassAccuracy(
+                classes=self._limit_classes
+            )
+        self._streams_in_this_phase.add(stream_name)
+
+    def finish_phase(self):
+        """
+        Moves to the next phase.
+
+        This will consolidate the class accuracies recorded so far.
+        """
+        for stream_name in self._streams_in_this_phase:
+            self._amcas[stream_name].next_experience()
+
+        self._streams_in_this_phase.clear()
+
+    def reset(self) -> None:
+        """
+        Resets the metric.
+
+        :return: None.
+        """
+        for metric in self._amcas.values():
+            metric.reset()
+        self._current_stream = None
+        self._streams_in_this_phase.clear()
+
+    def _is_stream_tracked(self, stream_name):
+        return self._limit_streams is None or \
+               stream_name in self._limit_streams
+
+
+class AMCAPluginMetric(ExtendedGenericPluginMetric):
     """
     Base class for all class accuracy plugin metrics
     """
 
-    def __init__(self, emit_at, mode, classes=None):
-        self._amca= AverageMeanClassAccuracy(classes=classes)
+    VALUE_NAME = '{metric_name}/{stream_name}_stream/Task{task_label:03}'
+
+    def __init__(self, classes=None, streams=None, ignore_validation=True):
+        self._ms_amca = MultiStreamAMCA(classes=classes, streams=streams)
+        self._ignore_validation = ignore_validation
+
+        self._is_training = False
         super().__init__(
-            self._amca, reset_at='never', emit_at=emit_at,
-            mode=mode)
-
-    def update(self, strategy):
-        self._amca.update(
-            strategy.mb_output,
-            strategy.mb_y,
-            self._get_task_labels(strategy))
-
-    def before_training_exp(self, *args, **kwargs):
-        self._amca.next_train_experience()
-        return super().before_training_exp(*args, **kwargs)
-
-    @staticmethod
-    def _get_task_labels(strategy: "SupervisedTemplate"):
-        if hasattr(strategy, 'mb_task_id'):
-            # Common situation
-            return strategy.mb_task_id
-
-        if hasattr(strategy.experience, "task_labels"):
-            task_labels = strategy.experience.task_labels
-        else:
-            task_labels = [0]  # add fixed task label if not available.
-
-        if len(task_labels) > 1:
-            # task labels defined for each pattern
-            # fall back to single task case
-            task_label = 0
-        else:
-            task_label = task_labels[0]
-        return task_label
-
-
-class StreamAMCA(AverageClassAccuracyPluginMetric):
-    """
-    At the end of the entire stream of test experiences, this plugin metric
-    reports the AMCA so far.
-
-    This metric only works at eval time.
-    """
-    def __init__(self):
-        """
-        Creates an instance of StreamAMCA metric
-        """
-        super().__init__(
+            self._ms_amca,
+            reset_at='never',
             emit_at='stream',
             mode='eval')
+
+    def update(self, strategy: "SupervisedTemplate"):
+        if self._is_training and self._ignore_validation:
+            # Running a validation (eval phase inside a train phase), ignore it
+            return
+
+        self._ms_amca.update(
+            strategy.mb_output,
+            strategy.mb_y,
+            strategy.mb_task_id)
+
+    def before_training(self, strategy: "SupervisedTemplate"):
+        self._is_training = True
+        return super().before_training(strategy)
+
+    def after_training(self, strategy: "SupervisedTemplate"):
+        self._is_training = False
+        return super().after_training(strategy)
+
+    def before_eval(self, strategy: "SupervisedTemplate"):
+        # In the first eval phase, calling finish_phase will do nothing
+        # (as expected)
+        if not (self._is_training and self._ignore_validation):
+            # If not running a validation
+            self._ms_amca.finish_phase()
+        return super().before_eval(strategy)
+
+    def before_eval_exp(self, strategy: "SupervisedTemplate"):
+        if not (self._is_training and self._ignore_validation):
+            # If not running a validation
+            self._ms_amca.set_stream(strategy.experience.origin_stream.name)
+        return super().before_eval_exp(strategy)
+
+    def result(self, strategy) -> List[ExtendedPluginMetricValue]:
+        if self._is_training and self._ignore_validation:
+            # Running a validation, ignore it
+            return []
+
+        metric_values = []
+        stream_amca = self._ms_amca.result()
+
+        for stream_name, stream_accs in stream_amca.items():
+            for task_id, task_amca in stream_accs.items():
+                metric_values.append(
+                    ExtendedPluginMetricValue(
+                        metric_name=str(self),
+                        metric_value=task_amca,
+                        phase_name='eval',
+                        stream_name=stream_name,
+                        task_label=task_id,
+                        experience_id=None,
+                    )
+                )
+
+        return metric_values
+
+    def metric_value_name(self, m_value: ExtendedPluginMetricValue) -> str:
+        return generic_get_metric_name(
+            AMCAPluginMetric.VALUE_NAME,
+            vars(m_value)
+        )
 
     def __str__(self):
         return "Top1_AMCA_Stream"
 
 
-def amca_metrics(*, stream=True) \
-        -> List[PluginMetric]:
+def amca_metrics(streams: Sequence[str] = ('test',)) -> PluginMetric:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
 
-    :param stream: If True, will return a metric able to log
-        the Average Mean Class Accuracy (AMCA) after testing on the stream of
-        experiences of the evaluation stream.
+    The returned metric will not compute the AMCA when the
+    :class:`PeriodicEval` plugin is used. To change this behavior,
+    you can instantiate a :class:`AMCAPluginMetric` by setting
+    `ignore_validation` to False.
 
-    :return: A list of plugin metrics.
+    :param streams: The list of streams to track. Defaults to "test" only.
+
+    :return: The AMCA plugin metric.
     """
-    metrics = []
-
-    if stream:
-        metrics.append(StreamAMCA())
-
-    return metrics
+    return AMCAPluginMetric(streams=streams, ignore_validation=True)
 
 
 __all__ = [
     'AverageMeanClassAccuracy',
-    'AverageClassAccuracyPluginMetric',
-    'StreamAMCA',
+    'MultiStreamAMCA',
+    'AMCAPluginMetric',
     'amca_metrics'
 ]

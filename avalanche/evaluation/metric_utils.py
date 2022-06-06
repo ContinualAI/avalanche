@@ -9,8 +9,8 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING, List, \
-    Optional, Callable, Any
+from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING,\
+    List, Callable, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
