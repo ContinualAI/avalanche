@@ -5,7 +5,7 @@
 
 Below, you can see the main Avalanche modules and how they interact with each other.
 
-![avalanche.png](attachment:avalanche.png)
+![avalanche](https://raw.githubusercontent.com/ContinualAI/avalanche/master/docs/gitbook/.gitbook/assets/avalanche.png)
 
 **What are the three pillars of any respectful continual learning research project?**
 
@@ -30,8 +30,8 @@ Avalanche is organized in five main modules:
 1. **Logging**: It includes advanced logging and plotting features, including native stdout, file and [Tensorboard](https://www.tensorflow.org/tensorboard) support (How cool it is to have a complete, interactive dashboard, tracking your experiment metrics in real-time with a single line of code?)
 
 In the graphic below, you can see how Avalanche sub-modules are available and organized as well:
-Avalanche Main Modules and Sub-Modules
-
+{% code title="Avalanche Main Modules and Sub-Modules" %}
+```text
 Avalanche
 ├── Benchmarks
 │   ├── Classic
@@ -48,6 +48,9 @@ Avalanche
 |   └── Utils
 ├── Models
 └── Loggers
+
+```
+{% endcode %}
 We will learn more about each of them during this tutorial series, but keep in mind that the [Avalanche API documentation](https://avalanche-api.continualai.org/en/latest/) is your friend as well!
 
 All right, let's start with the benchmarks module right away 👇
@@ -374,3 +377,11 @@ for experience in benchmark.train_stream:
     # eval also returns a dictionary which contains all the metric values
     results.append(cl_strategy.eval(benchmark.test_stream, num_workers=4))
 ```
+
+## 🤝 Run it on Google Colab
+
+You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/getting-started/learn-avalanche-in-5-minutes.ipynb)
+
+## 🤝 Run it on Google Colab
+
+You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/getting-started/learn-avalanche-in-5-minutes.ipynb)
