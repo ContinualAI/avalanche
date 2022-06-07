@@ -3,7 +3,9 @@ description: Dealing with transformations (groups, appending, replacing, freezin
 ---
 
 # Advanced Transformations
-AvalancheDataset (and its subclasses like the Avalanche*Tensor/Subset/Concat*Dataset) allow for a finer control over transformations. While torchvision (and other) datasets allow for a minimal mechanism to apply transformations, with AvalancheDataset one can:
+
+AvalancheDataset (and its subclasses like the Avalanche_Tensor/Subset/Concat_Dataset) allow for a finer control over transformations. While torchvision (and other) datasets allow for a minimal mechanism to apply transformations, with AvalancheDataset one can:
+
 1. Have multiple **transformation "groups"** in the same dataset (like separated train and test transformations).
 2. **Append, replace and remove transformations**, even by using nested Subset/Concat Datasets.
 3. **Freeze transformations**, so that they can't be changed.
@@ -14,18 +16,17 @@ It is warmly recommended to **run this page as a notebook** using Colab (info at
 
 Let's start by installing Avalanche:
 
-
 ```python
 !pip install avalanche-lib
 ```
 
 ## Transformation groups
+
 AvalancheDatasets can contain multiple **transformation groups**. This can be useful to keep train and test transformations in the same dataset and to have different set of transformations. This may come in handy in many situations (for instance, to apply ad-hoc transformations to replay data).
 
 As in torchvision datasets, AvalancheDataset supports the two kind of transformations: the `transform`, which is applied to X values, and the `target_transform`, which is applied to Y values. The latter is rarely used. This means that **a transformation group is a pair of transformations to be applied to the X and Y values** of each instance returned by the dataset. In both torchvision and Avalanche implementations, **a transformation must be a function (or other callable object)** that accepts one input (the X or Y value) and outputs its transformed version. This pair of functions is stored in the `transform` and `target_transform` fields of the dataset. A comprehensive guide on transformations can be found in the [torchvision documentation](https://pytorch.org/vision/stable/transforms.html).
 
-In the following example, a MNIST dataset is created and then wrapped in an AvalancheDataset. When creating the AvalancheDataset, we can set *train* and *eval* transformations by passing a *transform\_groups* parameter. Train transformations usually include some form of random augmentation, while eval transformations usually include a sequence of deterministic transformations only. Here we define the sequence of train transformations as a random rotation followed by the ToTensor operation. The eval transformations only include the ToTensor operation.
-
+In the following example, a MNIST dataset is created and then wrapped in an AvalancheDataset. When creating the AvalancheDataset, we can set _train_ and _eval_ transformations by passing a _transform\_groups_ parameter. Train transformations usually include some form of random augmentation, while eval transformations usually include a sequence of deterministic transformations only. Here we define the sequence of train transformations as a random rotation followed by the ToTensor operation. The eval transformations only include the ToTensor operation.
 
 ```python
 from torchvision import transforms
@@ -55,8 +56,7 @@ transform_groups = {
 avl_mnist_transform = AvalancheDataset(mnist_dataset, transform_groups=transform_groups)
 ```
 
-Of course, one can also just use the `transform` and `target_transform` constructor parameters to set the transformations for both the *train* and the *eval* groups. However, it is recommended to use the approach based on *transform\_groups* (shown in the code above) as it is much more flexible.
-
+Of course, one can also just use the `transform` and `target_transform` constructor parameters to set the transformations for both the _train_ and the _eval_ groups. However, it is recommended to use the approach based on _transform\_groups_ (shown in the code above) as it is much more flexible.
 
 ```python
 # Not recommended: use transform_groups instead
@@ -65,16 +65,15 @@ avl_mnist_same_transforms =  AvalancheDataset(mnist_dataset, transform=train_tra
 
 ### Using `.train()` and `.eval()`
 
-**The default behaviour of the AvalancheDataset is to use transformations from the _train_ group.** However, one can easily obtain a version of the dataset where the *eval* group is used. Note: when obtaining the dataset of experiences from the test stream, those datasets will already be using the *eval* group of transformations so you don't need to switch to the eval group ;).
+**The default behaviour of the AvalancheDataset is to use transformations from the **_**train**_** group.** However, one can easily obtain a version of the dataset where the _eval_ group is used. Note: when obtaining the dataset of experiences from the test stream, those datasets will already be using the _eval_ group of transformations so you don't need to switch to the eval group ;).
 
-As noted before, transformations for the current group are loaded in the `transform` and `target_transform` fields. These fields can be changed directly, but this is *NOT* recommended, as this will not create a copy of the dataset and may probably affect other parts of the code in which the dataset is used.
+As noted before, transformations for the current group are loaded in the `transform` and `target_transform` fields. These fields can be changed directly, but this is _NOT_ recommended, as this will not create a copy of the dataset and may probably affect other parts of the code in which the dataset is used.
 
-The recommended way to switch between the *train* and *eval* groups is to use the `.train()` and `.eval()` methods to obtain a copy (view) of the dataset with the proper transformations enabled. This is another very handy feature of the AvalancheDataset: **methods that manipulate the AvalancheDataset fields (and transformations) always create a view of the dataset. The original dataset is never changed.**
+The recommended way to switch between the _train_ and _eval_ groups is to use the `.train()` and `.eval()` methods to obtain a copy (view) of the dataset with the proper transformations enabled. This is another very handy feature of the AvalancheDataset: **methods that manipulate the AvalancheDataset fields (and transformations) always create a view of the dataset. The original dataset is never changed.**
 
-In the following cell we use the *avl\_mnist\_transform* dataset created in the cells above. We first obtain a view of it in which *eval* transformations are enabled. Then, starting from this view, we obtain a version of it in which *train* transformations are enabled. We want to double-stress that `.train()` and `.eval()` never change the group of the dataset on which they are called: they always create a view.
+In the following cell we use the _avl\_mnist\_transform_ dataset created in the cells above. We first obtain a view of it in which _eval_ transformations are enabled. Then, starting from this view, we obtain a version of it in which _train_ transformations are enabled. We want to double-stress that `.train()` and `.eval()` never change the group of the dataset on which they are called: they always create a view.
 
-One can check that the correct transformation group is in use by looking at the content of the *transform/target_transform* fields.
-
+One can check that the correct transformation group is in use by looking at the content of the _transform/target\_transform_ fields.
 
 ```python
 # Obtain a view of the dataset in which eval transformations are enabled
@@ -104,10 +103,10 @@ print('Back to train transformations:', avl_mnist_train.transform)
 ```
 
 ### Custom transformation groups
-In *AvalancheDataset*s the **_train_ and _eval_ transformation groups are always available**. However, *AvalancheDataset* also supports **custom transformation groups**.
 
-The following example shows how to create an AvalancheDataset with an additional group named *replay*. We define the replay transformation as a random crop followed by the ToTensor operation.
+In _AvalancheDataset_s the _**train**_** and **_**eval**_** transformation groups are always available**. However, _AvalancheDataset_ also supports **custom transformation groups**.
 
+The following example shows how to create an AvalancheDataset with an additional group named _replay_. We define the replay transformation as a random crop followed by the ToTensor operation.
 
 ```python
 replay_transform = transforms.Compose([
@@ -126,14 +125,14 @@ transform_groups_with_replay = {
 AvalancheDataset(mnist_dataset, transform_groups=transform_groups_with_replay)
 ```
 
-However, once created the dataset will use the *train* group. There are two ways to **switch to our custom group**:
-- Set the group when creating the dataset using the `initial_transform_group` constructor parameter
-- Switch to the group using the `.with_transforms(group_name)` method
+However, once created the dataset will use the _train_ group. There are two ways to **switch to our custom group**:
+
+* Set the group when creating the dataset using the `initial_transform_group` constructor parameter
+* Switch to the group using the `.with_transforms(group_name)` method
 
 The `.with_transforms(group_name)` method behaves in the same way `.train()` and `.eval()` do by creating a view of the original dataset.
 
 The following example shows how to use both methods:
-
 
 ```python
 # Method 1: create the dataset with "replay" as the default group
@@ -161,8 +160,7 @@ print(avl_mnist_custom_transform_2.transform)
 
 ## Appending transformations
 
-In the standard torchvision datasets the only way to append (that is, add a new transformation step to the list of existing one) is to change the *transform* field directly by doing something like this:
-
+In the standard torchvision datasets the only way to append (that is, add a new transformation step to the list of existing one) is to change the _transform_ field directly by doing something like this:
 
 ```python
 # Append a transform by using torchvision datasets (>>> DON'T DO THIS! <<<)
@@ -184,14 +182,14 @@ print(mnist_dataset_w_totensor.transform)
 ```
 
 This solution has many huge drawbacks:
-- The transformation field of the dataset is changed directly. This will affect other parts of the code that use that dataset instance.
-- If the initial transform is `None`, then `Compose` will not complain, but the process will crash later (try it by yourself: replace the first element of Compose in cell above with `None`, then try obtaining a data point from the dataset).
-- If you need to change transformations only temporarly to do some specific things in a limited part of the code, then you need to store the previous set of transformations in some variable in order to switch back to them later.
+
+* The transformation field of the dataset is changed directly. This will affect other parts of the code that use that dataset instance.
+* If the initial transform is `None`, then `Compose` will not complain, but the process will crash later (try it by yourself: replace the first element of Compose in cell above with `None`, then try obtaining a data point from the dataset).
+* If you need to change transformations only temporarly to do some specific things in a limited part of the code, then you need to store the previous set of transformations in some variable in order to switch back to them later.
 
 AvalancheDataset offers a very simple method to append transformations without incurring in those issues. The `.add_transforms(transform=None, target_transform=None)` method will append the given transform(s) **to the currently enabled transform group** and will return a new (a view actually) dataset with given transformations appended to the existing ones. The original dataset is not affected. One can also use `.add_transforms_to_group(group_name, transform, target_transform)` to change transformations for a different group.
 
-The next cell shows how to use `.add_transforms(...)` to append the *to\_append\_transform* transform defined in the cell above.
-
+The next cell shows how to use `.add_transforms(...)` to append the _to\_append\_transform_ transform defined in the cell above.
 
 ```python
 # Create the dataset
@@ -214,18 +212,17 @@ print('Original dataset:', avl_mnist.transform)
 
 Note that by using `.add_transforms(...)`:
 
-- The original dataset is not changed, which means that other parts of the code that use that dataset instance are not affected.
-- You don't need to worry about *None* transformations.
-- In order to revert to the original transformations you don't need to keep a copy of them: the original dataset is not affected!
+* The original dataset is not changed, which means that other parts of the code that use that dataset instance are not affected.
+* You don't need to worry about _None_ transformations.
+* In order to revert to the original transformations you don't need to keep a copy of them: the original dataset is not affected!
 
 ## Replacing transformations
 
-The replacement operation follows the same idea (and benefits) of the append one. By using `.replace_transforms(transform, target_transform)` one can obtain a view of the original dataset in which the **transformaations for the current group** are replaced with the given ones. One may also change tranformations for other groups by passing the name of the group as the optional parameter `group`. As with any transform-related operation, the original dataset is not affected. 
+The replacement operation follows the same idea (and benefits) of the append one. By using `.replace_transforms(transform, target_transform)` one can obtain a view of the original dataset in which the **transformaations for the current group** are replaced with the given ones. One may also change tranformations for other groups by passing the name of the group as the optional parameter `group`. As with any transform-related operation, the original dataset is not affected.
 
 Note: one can use `.replace_transforms(...)` to remove previous transformations (by passing `None` as the new transform).
 
 The following cell shows how to use `.replace_transforms(...)` to replace the transformations of the current group:
-
 
 ```python
 new_transform = transforms.RandomCrop(size=(28, 28), padding=4)
@@ -249,8 +246,7 @@ One may wonder when this may come in handy... in fact, you will probably rarely 
 
 Transformations for all transform groups can be frozen at once by using `.freeze_transforms()`. Transformations can be frozen for a single group by using `.freeze_group_transforms(group_name)`. As always, those methods return a view of the original dataset.
 
-The cell below shows a simplified excerpt from the [PermutedMNIST benchmark implementation](https://github.com/ContinualAI/avalanche/blob/master/avalanche/benchmarks/classic/cmnist.py). First, a *PixelsPermutation* instance is created. That instance is a transformation that will permute the pixels of the input image. We then create the train end test sets. Once created, transformations for those datasets are frozen using `.freeze_transforms()`.
-
+The cell below shows a simplified excerpt from the [PermutedMNIST benchmark implementation](../../../../avalanche/benchmarks/classic/cmnist.py). First, a _PixelsPermutation_ instance is created. That instance is a transformation that will permute the pixels of the input image. We then create the train end test sets. Once created, transformations for those datasets are frozen using `.freeze_transforms()`.
 
 ```python
 from avalanche.benchmarks.classic.cmnist import PixelsPermutation
@@ -294,7 +290,6 @@ In this way, that transform can't be removed. However, remember that one can alw
 
 The cell below shows that `replace_transforms` can't remove frozen transformations:
 
-
 ```python
 # First, show that the image pixels are permuted
 print('Before replace_transforms:')
@@ -309,11 +304,12 @@ display(with_removed_transforms[0][0].resize((192, 192), 0))
 ```
 
 ## Transformations wrap-up
-This completes the *Mini How-To* for the functionalities of the *AvalancheDataset* related to **transformations**. 
+
+This completes the _Mini How-To_ for the functionalities of the _AvalancheDataset_ related to **transformations**.
 
 Here you learned how to use **transformation groups** and how to **append/replace/freeze transformations** in a simple way.
 
-Other *Mini How-To*s will guide you through the other functionalities offered by the *AvalancheDataset* class. The list of *Mini How-To*s can be found [here](https://avalanche.continualai.org/how-tos/avalanchedataset).
+Other _Mini How-To_s will guide you through the other functionalities offered by the _AvalancheDataset_ class. The list of _Mini How-To_s can be found [here](https://avalanche.continualai.org/how-tos/avalanchedataset).
 
 ## 🤝 Run it on Google Colab
 
