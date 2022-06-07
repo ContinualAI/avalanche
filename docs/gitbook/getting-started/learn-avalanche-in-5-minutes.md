@@ -17,7 +17,12 @@ Below, you can see the main Avalanche modules and how they interact with each ot
 
 Let's take a quick tour on how you can use Avalanche for your research projects with a **5-minutes guide**, for *researchers on the run*!
 
-In this short guide we assume **you have already installed** Avalanche. If you haven't yet, check out how you can do it following our [How to Install](https://avalanche.continualai.org/getting-started/how-to-install) guide.
+Let's first **install Avalanche**. Please, check out our [How to Install](https://avalanche.continualai.org/getting-started/how-to-install) guide for further details.
+
+
+```python
+!pip install avalanche-lib==0.2.0
+```
 
 ## 🏛️ General Architecture
 
