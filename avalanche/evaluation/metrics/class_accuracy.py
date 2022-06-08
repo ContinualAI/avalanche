@@ -15,8 +15,7 @@ from collections import defaultdict, OrderedDict
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, \
-    ExtendedGenericPluginMetric
-from avalanche.evaluation.metric_definitions import ExtendedPluginMetricValue
+    _ExtendedGenericPluginMetric, _ExtendedPluginMetricValue
 from avalanche.evaluation.metric_utils import default_metric_name_template, \
     generic_get_metric_name
 from avalanche.evaluation.metrics import Mean
@@ -201,7 +200,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         return set(int(c) for c in classes_iterable)
 
 
-class ClassAccuracyPluginMetric(ExtendedGenericPluginMetric):
+class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
     """
     Base class for all class accuracy plugin metrics
     """
@@ -219,7 +218,7 @@ class ClassAccuracyPluginMetric(ExtendedGenericPluginMetric):
             strategy.mb_task_id)
 
     def result(self, strategy: "SupervisedTemplate") -> \
-            List[ExtendedPluginMetricValue]:
+            List[_ExtendedPluginMetricValue]:
         metric_values = []
         task_accuracies = self._class_accuracy.result()
         phase_name = "train" if strategy.is_training else 'eval'
@@ -229,7 +228,7 @@ class ClassAccuracyPluginMetric(ExtendedGenericPluginMetric):
         for task_id, task_classes in task_accuracies.items():
             for class_id, class_accuracy in task_classes.items():
                 metric_values.append(
-                    ExtendedPluginMetricValue(
+                    _ExtendedPluginMetricValue(
                         metric_name=str(self),
                         metric_value=class_accuracy,
                         phase_name=phase_name,
@@ -242,7 +241,7 @@ class ClassAccuracyPluginMetric(ExtendedGenericPluginMetric):
 
         return metric_values
 
-    def metric_value_name(self, m_value: ExtendedPluginMetricValue) -> str:
+    def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
         m_value_values = vars(m_value)
         add_exp = self._emit_at == "experience"
         if not add_exp:

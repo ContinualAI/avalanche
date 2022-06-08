@@ -15,8 +15,7 @@ from collections import defaultdict, OrderedDict
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, \
-    ExtendedGenericPluginMetric
-from avalanche.evaluation.metric_definitions import ExtendedPluginMetricValue
+    _ExtendedGenericPluginMetric, _ExtendedPluginMetricValue
 from avalanche.evaluation.metric_utils import generic_get_metric_name
 from avalanche.evaluation.metrics.class_accuracy import ClassAccuracy, \
     TrackedClassesType
@@ -301,7 +300,7 @@ class MultiStreamAMCA(Metric[Dict[str, Dict[int, float]]]):
                stream_name in self._limit_streams
 
 
-class AMCAPluginMetric(ExtendedGenericPluginMetric):
+class AMCAPluginMetric(_ExtendedGenericPluginMetric):
     """
     Base class for all class accuracy plugin metrics
     """
@@ -351,7 +350,7 @@ class AMCAPluginMetric(ExtendedGenericPluginMetric):
             self._ms_amca.set_stream(strategy.experience.origin_stream.name)
         return super().before_eval_exp(strategy)
 
-    def result(self, strategy) -> List[ExtendedPluginMetricValue]:
+    def result(self, strategy) -> List[_ExtendedPluginMetricValue]:
         if self._is_training and self._ignore_validation:
             # Running a validation, ignore it
             return []
@@ -362,7 +361,7 @@ class AMCAPluginMetric(ExtendedGenericPluginMetric):
         for stream_name, stream_accs in stream_amca.items():
             for task_id, task_amca in stream_accs.items():
                 metric_values.append(
-                    ExtendedPluginMetricValue(
+                    _ExtendedPluginMetricValue(
                         metric_name=str(self),
                         metric_value=task_amca,
                         phase_name='eval',
@@ -374,7 +373,7 @@ class AMCAPluginMetric(ExtendedGenericPluginMetric):
 
         return metric_values
 
-    def metric_value_name(self, m_value: ExtendedPluginMetricValue) -> str:
+    def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
         return generic_get_metric_name(
             AMCAPluginMetric.VALUE_NAME,
             vars(m_value)

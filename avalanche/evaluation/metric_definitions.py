@@ -334,10 +334,16 @@ class GenericPluginMetric(PluginMetric[TResult]):
             self.reset(strategy)
 
 
-MultiValuesTypes = Literal['multi_groups', 'multi_values']
+class _ExtendedPluginMetricValue:
+    """
+    A data structure used to describe a metric value.
 
+    Mainly used to compose the final "name" or "path" of a metric.
 
-class ExtendedPluginMetricValue:
+    For the moment, this class should be considered an internal utility. Use it
+    at your own risk!
+    """
+
     def __init__(
             self,
             *,
@@ -390,8 +396,8 @@ class ExtendedPluginMetricValue:
         """
 
 
-class ExtendedGenericPluginMetric(
-        GenericPluginMetric[List[ExtendedPluginMetricValue]]):
+class _ExtendedGenericPluginMetric(
+        GenericPluginMetric[List[_ExtendedPluginMetricValue]]):
     """
     A generified version of :class:`GenericPluginMetric` which supports emitting
     multiple metrics from a single metric instance.
@@ -402,6 +408,9 @@ class ExtendedGenericPluginMetric(
 
     The resulting metric name will be given by the implementation of the
     :meth:`metric_value_name` method.
+
+    For the moment, this class should be considered an internal utility. Use it
+    at your own risk!
     """
 
     def __init__(self, *args, **kwargs):
@@ -422,7 +431,7 @@ class ExtendedGenericPluginMetric(
 
         metrics = []
         for m_value in emitted_values:
-            if not isinstance(m_value, ExtendedPluginMetricValue):
+            if not isinstance(m_value, _ExtendedPluginMetricValue):
                 raise RuntimeError(
                     'Emitted a value that is not of type '
                     'ExtendedPluginMetricValue'
@@ -438,10 +447,10 @@ class ExtendedGenericPluginMetric(
 
         return metrics
 
-    def result(self, strategy) -> List[ExtendedPluginMetricValue]:
+    def result(self, strategy) -> List[_ExtendedPluginMetricValue]:
         return self._metric.result()
 
-    def metric_value_name(self, m_value: ExtendedPluginMetricValue) -> str:
+    def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
         return generic_get_metric_name(
             default_metric_name_template,
             vars(m_value)
@@ -452,6 +461,6 @@ __all__ = [
     "Metric",
     "PluginMetric",
     "GenericPluginMetric",
-    "ExtendedPluginMetricValue",
-    "ExtendedGenericPluginMetric"
+    "_ExtendedPluginMetricValue",
+    "_ExtendedGenericPluginMetric"
 ]
