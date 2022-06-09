@@ -8,7 +8,10 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-from statistics import fmean
+try:
+    from statistics import fmean
+except ImportError:
+    from statistics import mean as fmean
 from typing import Dict, List, Union, TYPE_CHECKING, Optional, Sequence, Set
 from collections import defaultdict, OrderedDict
 
