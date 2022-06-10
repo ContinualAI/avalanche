@@ -24,6 +24,8 @@ Metrics helper functions
     :toctree: generated
 
     accuracy_metrics
+    class_accuracy_metrics
+    amca_metrics
     topk_acc_metrics
     loss_metrics
     bwt_metrics
@@ -51,6 +53,8 @@ Stream Metrics
    :toctree: generated
 
     StreamAccuracy
+    StreamClassAccuracy
+    AMCAPluginMetric
     TrainedExperienceAccuracy
     StreamLoss
     StreamBWT
@@ -75,6 +79,7 @@ Experience Metrics
    :toctree: generated
 
     ExperienceAccuracy
+    ExperienceClassAccuracy
     ExperienceLoss
     ExperienceBWT
     ExperienceForgetting
@@ -98,6 +103,7 @@ Epoch Metrics
    :toctree: generated
 
     EpochAccuracy
+    EpochClassAccuracy
     EpochLoss
     EpochCPUUsage
     EpochDiskUsage
@@ -117,6 +123,7 @@ RunningEpoch Metrics
    :toctree: generated
 
     RunningEpochAccuracy
+    RunningEpochClassAccuracy
     RunningEpochTopkAccuracy
     RunningEpochLoss
     RunningEpochCPUUsage
@@ -131,6 +138,7 @@ Minibatch Metrics
    :toctree: generated
 
     MinibatchAccuracy
+    MinibatchClassAccuracy
     MinibatchLoss
     MinibatchCPUUsage
     MinibatchDiskUsage
@@ -155,25 +163,28 @@ Standalone Metrics
 .. autosummary::
    :toctree: generated
 
-    MeanNewOldScores
-    MaxRAM
-    MAC
+    Accuracy
+    AverageMeanClassAccuracy
     BWT
-    Mean
-    DiskUsage
     CPUUsage
-    Loss
+    ClassAccuracy
     ConfusionMatrix
-    ForwardTransfer
-    Forgetting
+    DiskUsage
     ElapsedTime
+    Forgetting
+    ForwardTransfer
     LabelsRepartition
+    Loss
+    MAC
     MaxGPU
+    MaxRAM
+    Mean
+    MeanNewOldScores
+    MeanScores
+    MultiStreamAMCA
+    Sum
     TopkAccuracy
     TrainedExperienceTopkAccuracy
-    Accuracy
-    MeanScores
-    Sum
 
 
 
