@@ -46,11 +46,13 @@ class AverageMeanClassAccuracy(Metric[Dict[int, float]]):
     Each time `result` is called, this metric emits the average mean accuracy
     as the average accuracy of all previous experiences (also considering the
     accuracy in the current experience).
-    The metric expects that the `next_train_experience()` method will be called
+    The metric expects that the :meth:`next_experience` method will be called
     after each experience. This is needed to consolidate the current mean
-    accuracy. After calling `next_train_experience()`, a new experience with
+    accuracy. After calling :meth:`next_experience`, a new experience with
     accuracy 0.0 is immediately started. If you need to obtain the AMCA up to
-    experience `t-1`, obtain the `result()` before calling `next_experience()`.
+    experience `t-1`, obtain the :meth:`result` before calling
+    :meth:`next_experience`.
+
 
     The set of classes to be tracked can be reduced (please refer to the
     constructor parameters).
@@ -305,12 +307,29 @@ class MultiStreamAMCA(Metric[Dict[str, Dict[int, float]]]):
 
 class AMCAPluginMetric(_ExtendedGenericPluginMetric):
     """
-    Base class for all class accuracy plugin metrics
+    Plugin metric for the Average Mean Class Accuracy (AMCA).
+
+    The AMCA is tracked for the classes and streams defined in the constructor.
+
+    In addition, by default, the results obtained through the periodic
+    evaluation (mid-training validation) mechanism are ignored.
     """
 
     VALUE_NAME = '{metric_name}/{stream_name}_stream/Task{task_label:03}'
 
     def __init__(self, classes=None, streams=None, ignore_validation=True):
+        """
+        Instantiates the AMCA plugin metric.
+
+        :param classes: The classes to track. Refer to :class:`MultiStreamAMCA`
+            for more details.
+        :param streams: The streams to track. Defaults to None, which means that
+            all streams will be considered. Beware that, when creating instances
+            of this class using the :func:`amca_metrics` helper, the resulting
+            metric will only track the "test" stream by default.
+        :param ignore_validation: Defaults to True, which means that periodic
+            evaluations will be ignored (recommended).
+        """
         self._ms_amca = MultiStreamAMCA(classes=classes, streams=streams)
         self._ignore_validation = ignore_validation
 
