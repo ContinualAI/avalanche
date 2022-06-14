@@ -31,26 +31,28 @@ def test_expertgate():
 
     # scenario = get_custom_benchmark(
     #     use_task_labels=True, train_transform=AlexTransform, eval_transform=AlexTransform)
+
     scenario = SplitMNIST(n_experiences=10, seed=1,
                           return_task_id=True,
                           train_transform=AlexTransform, eval_transform=AlexTransform)
-    # 227 227                     
+
+    # # 227 227
     model = ExpertGate(num_classes=scenario.n_classes, shape=(3, 227, 227)) 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
     strategy = ExpertGateStrategy(
         model,
         optimizer,
         train_mb_size=200,
         device="cpu",
-        eval_mb_size=100,
         train_epochs=1, 
         eval_every=-1, 
-        ae_mb_size=1,
-        ae_train_epochs=2
+        ae_train_mb_size=200,
+        ae_train_epochs=1, 
+        ae_lr=2e-2,
     )
 
     # train and test loop
-    for experience in (scenario.train_stream)[:1]:
+    for experience in (scenario.train_stream)[:5]:
         t = experience.task_label
         exp_id = experience.current_experience
         training_dataset = experience.dataset
