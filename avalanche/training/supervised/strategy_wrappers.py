@@ -10,6 +10,7 @@
 ################################################################################
 from typing import Optional, Sequence, List, Union
 
+from torch import sigmoid
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
@@ -468,6 +469,13 @@ class AETraining(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+    def _before_forward(self, **kwargs):
+        super()._before_forward(**kwargs)
+
+        # Preprocessing Steps
+        self.mbatch[0] = self.model.feature_module(self.mb_x)
+        self.mbatch[0] = sigmoid(self.mb_x)
 
     def criterion(self):
         return self._criterion(self.mb_x, self.mb_output)

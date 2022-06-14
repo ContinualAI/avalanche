@@ -13,15 +13,29 @@ from avalanche.models.utils import Flatten
 from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 
-def AE_loss(input, reconstruction):
+def AE_loss(target, reconstruction):
     loss_method = MSELoss(reduction="sum")
-    reconstruction_loss = loss_method(reconstruction, input)
+    reconstruction_loss = loss_method(reconstruction, target)
     return reconstruction_loss
 
 
 class Autoencoder(nn.Module):
-    def __init__(self, shape, latent_dim):
+    def __init__(self, shape, 
+                 latent_dim, 
+                 arch="alexnet",
+                 pretrained_flag=True,
+                 device="cpu",
+                 output_layer_name="features"):
+
         super().__init__()
+
+        # Select pretrained model
+        base_template = (models.__dict__[arch](
+            pretrained=pretrained_flag).to(device))
+
+        self.feature_module = FeatureExtractorBackbone(
+                base_template, "features")
+
         self.shape = shape
 
         # Encoder Linear -> ReLU
@@ -39,11 +53,14 @@ class Autoencoder(nn.Module):
         )
 
     def forward(self, x):
-        # Reconstruct input
-        encoding = self.encoder(x)
-        reconstruction = self.decoder(encoding)
 
-        return reconstruction.view(-1, *self.shape)
+        # Encode input
+        x = self.encoder(x)
+
+        # Reconstruction
+        x = self.decoder(x)
+
+        return x.view(-1, *self.shape)
 
 
 class ExpertModel(nn.Module):
