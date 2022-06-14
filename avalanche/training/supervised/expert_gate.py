@@ -32,8 +32,9 @@ class ExpertGateStrategy(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
-        ae_mb_size=1,
+        ae_train_mb_size=1,
         ae_train_epochs=2,
+        ae_lr=1e-3,
         **base_kwargs
     ):
         """Init.
@@ -68,8 +69,9 @@ class ExpertGateStrategy(SupervisedTemplate):
         else:
             plugins += [expertgate]
 
-        self.ae_mb_size = ae_mb_size
+        self.ae_train_mb_size = ae_train_mb_size
         self.ae_train_epochs = ae_train_epochs
+        self.ae_lr = ae_lr
 
         super().__init__(
                 model=model,
@@ -129,11 +131,6 @@ class _ExpertGatePlugin(SupervisedPlugin):
             else:
                 strategy.plugins.append(self.lwf_plugin)
 
-        print("Relatedness: ", relatedness)
-        print("Dictionary of Experts: ", strategy.model.expert_dict)
-        print("")
-        print()
-
     def before_eval_iteration(self, 
                               strategy: "SupervisedTemplate",
                               *args, 
@@ -172,12 +169,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
     def _select_expert(self, strategy: "SupervisedTemplate", task_label):
 
-        num_classes = len(strategy.experience.classes_in_this_experience)
-
         # If the expert dictionary is empty, 
         # build the first expert
         if (len(strategy.model.expert_dict) == 0):
-            expert = ExpertModel(num_classes=num_classes, 
+            expert = ExpertModel(num_classes=strategy.model.num_classes, 
                                  arch=strategy.model.arch,
                                  device=strategy.model.device, 
                                  pretrained_flag=strategy.model.pretrained_flag)
@@ -205,7 +200,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                 strategy, most_relevant_expert_key)
 
             # Build expert
-            expert = ExpertModel(num_classes=num_classes,
+            expert = ExpertModel(num_classes=strategy.model.num_classes,
                                  arch=strategy.model.arch,
                                  device=strategy.model.device, 
                                  pretrained_flag=strategy.model.pretrained_flag,
@@ -272,8 +267,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
                          latent_dim=50):
 
         # Build a new autoencoder
+        # This shape is equivalent to the output shape of 
+        # the Alexnet features module
         new_autoencoder = Autoencoder(
-            shape=strategy.model.shape, latent_dim=latent_dim)
+            shape=(256, 6, 6), latent_dim=latent_dim)
 
         # Store autoencoder with task number
         strategy.model.autoencoder_dict[str(task_label)] = new_autoencoder
@@ -286,8 +283,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Setup autoencoder strategy
         ae_strategy = AETraining(model=autoencoder, 
                                  optimizer=Adam(
-                                     autoencoder.parameters(), lr=1e-4),
-                                 train_mb_size=strategy.ae_mb_size, 
+                                            autoencoder.parameters(), lr=strategy.ae_lr
+                                            ),
+                                 train_mb_size=strategy.ae_train_mb_size, 
                                  train_epochs=strategy.ae_train_epochs,
                                  eval_every=-1)
 
