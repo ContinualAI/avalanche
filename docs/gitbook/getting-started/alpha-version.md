@@ -6,7 +6,7 @@ description: 'Avalnche Features: Benchmarks, Strategies & Metrics'
 
 _Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org) community and its active members we plan to **extend its features** and **improve its usability** based on the demands of our research community!\
 \
-A the moment, _Avalanche_ is in **Beta (v0.1.0).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
+A the moment, _Avalanche_ is in **Beta (v0.2.0).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
 
 You can find the full list of available features on the [API documentation](https://avalanche-api.continualai.org).
 
@@ -48,7 +48,7 @@ Avalanche provides _Continual Learning_ algorithms (_strategies_). We are contin
 
 ## Models
 
-Avalanche uses and extends pytorch `nn.Module`s to define continual learning models:
+Avalanche uses and extends pytorch `nn.Module` to define continual learning models:
 
 * support for `nn.Module`s and `torchvision` models.
 * Dynamic output heads for class-incremental scenarios and multi heads for task-incremental scenarios.
@@ -62,4 +62,4 @@ Avalanche provides continuous evaluation of CL strategies with a large set of **
 * **CL-Metrics**: backward/forward transfer, forgetting.
 * **Computational Resources**: CPU and RAM usage, MAC, execution times.
 
-and [many more](https://avalanche-api.continualai.org/en/latest/evaluation.html#).
+and [many more](https://avalanche-api.continualai.org/en/latest/evaluation.html).

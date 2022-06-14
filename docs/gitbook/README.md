@@ -221,20 +221,20 @@ We know that learning a new tool _may be tough at first_. This is why we made _A
 
 For example, you may start with our _**5-minutes**_ **guide** that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
-{% content-ref url="getting-started/learn-avalanche-in-5-minutes.md" %}
-[learn-avalanche-in-5-minutes.md](getting-started/learn-avalanche-in-5-minutes.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
-We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
+We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:&#x20;
 
-{% content-ref url="broken-reference/" %}
-[broken-reference](broken-reference/)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
 
-{% content-ref url="broken-reference/" %}
-[broken-reference](broken-reference/)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
 ## 📑 Cite Avalanche

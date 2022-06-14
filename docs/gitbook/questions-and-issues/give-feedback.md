@@ -17,4 +17,3 @@ Click Above to Join ContinualAI Slack
 {% embed url="https://github.com/ContinualAI/avalanche/discussions" %}
 Click Above to Join the Discussion!
 {% endembed %}
-
