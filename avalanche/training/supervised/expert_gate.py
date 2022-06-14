@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import torch
 from torch.nn import Module, CrossEntropyLoss, MSELoss, Softmax
-from torch.optim import Optimizer, SGD
+from torch.optim import Optimizer, SGD, Adam
 
 from typing import Optional, List
 
@@ -32,6 +32,8 @@ class ExpertGateStrategy(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
+        ae_mb_size=1,
+        ae_train_epochs=2,
         **base_kwargs
     ):
         """Init.
@@ -66,6 +68,9 @@ class ExpertGateStrategy(SupervisedTemplate):
         else:
             plugins += [expertgate]
 
+        self.ae_mb_size = ae_mb_size
+        self.ae_train_epochs = ae_train_epochs
+
         super().__init__(
                 model=model,
                 optimizer=optimizer,
@@ -85,6 +90,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
     def __init__(self):
         super().__init__()
+        self.alpha = 0.01
+        self.temp = 2
+        self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
 
     def before_training_exp(self, 
                             strategy: "SupervisedTemplate", 
@@ -93,6 +101,11 @@ class _ExpertGatePlugin(SupervisedPlugin):
         super().before_training_exp(strategy, *args, **kwargs)
 
         task_label = strategy.experience.task_label
+
+        # Always remove the LWF plugin before every experience
+        # If needed, it will be appended later
+        if (self.lwf_plugin in strategy.plugins):
+            strategy.plugins.remove(self.lwf_plugin)
 
         # Build an autoencoder for this experience and store it in a dictionary
         self._add_autoencoder(strategy, task_label, latent_dim=100)
@@ -110,14 +123,16 @@ class _ExpertGatePlugin(SupervisedPlugin):
         self._add_expert(strategy, task_label, expert)
 
         # Pick training method based on relatedness
-        self.alpha = 0.01
-        self.temp = 2
         if (relatedness > strategy.model.rel_thresh):
-            lwf = LwFPlugin(self.alpha, self.temp)
             if strategy.plugins is None:
-                strategy.plugins = [lwf]
+                strategy.plugins = [self.lwf_plugin]
             else:
-                strategy.plugins.append(lwf)
+                strategy.plugins.append(self.lwf_plugin)
+
+        print("Relatedness: ", relatedness)
+        print("Dictionary of Experts: ", strategy.model.expert_dict)
+        print("")
+        print()
 
     def before_eval_iteration(self, 
                               strategy: "SupervisedTemplate",
@@ -254,7 +269,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
     def _add_autoencoder(self, 
                          strategy: "SupervisedTemplate", 
                          task_label, 
-                         latent_dim=500):
+                         latent_dim=50):
 
         # Build a new autoencoder
         new_autoencoder = Autoencoder(
@@ -270,10 +285,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         # Setup autoencoder strategy
         ae_strategy = AETraining(model=autoencoder, 
-                                 optimizer=SGD(
-                                     autoencoder.parameters(), lr=0.01),
-                                 train_mb_size=100, 
-                                 train_epochs=50,
+                                 optimizer=Adam(
+                                     autoencoder.parameters(), lr=1e-4),
+                                 train_mb_size=strategy.ae_mb_size, 
+                                 train_epochs=strategy.ae_train_epochs,
                                  eval_every=-1)
 
         # Train with autoencoder strategy
