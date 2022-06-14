@@ -15,7 +15,7 @@ from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 def AE_loss(input, reconstruction):
     loss_method = MSELoss(reduction="sum")
-    reconstruction_loss = loss_method(input, reconstruction)
+    reconstruction_loss = loss_method(reconstruction, input)
     return reconstruction_loss
 
 
@@ -38,16 +38,12 @@ class Autoencoder(nn.Module):
             nn.Sigmoid()
         )
 
-        self.invTrans = transforms.Compose(
-                [transforms.Normalize((0.1307,), (0.3081,))]
-                )
-
     def forward(self, x):
         # Reconstruct input
         encoding = self.encoder(x)
         reconstruction = self.decoder(encoding)
 
-        return self.invTrans(reconstruction.view(-1, *self.shape))
+        return reconstruction.view(-1, *self.shape)
 
 
 class ExpertModel(nn.Module):

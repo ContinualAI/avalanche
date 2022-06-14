@@ -413,7 +413,7 @@ class GenerativeReplay(SupervisedTemplate):
 class AETraining(SupervisedTemplate):
 
     ae_evaluator = EvaluationPlugin(
-        loss_metrics(minibatch=False, epoch=False,
+        loss_metrics(minibatch=False, epoch=True,
                      experience=False, stream=True),
         loggers=[InteractiveLogger()],
         suppress_warnings=True,
