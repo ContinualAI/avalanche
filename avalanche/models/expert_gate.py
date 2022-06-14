@@ -72,6 +72,8 @@ class ExpertModel(nn.Module):
                  feature_template=None):
         super().__init__()
 
+        self.num_classes = num_classes
+
         # Select pretrained model
         base_template = (models.__dict__[arch](
             pretrained=pretrained_flag).to(device))
@@ -96,7 +98,7 @@ class ExpertModel(nn.Module):
         # Customize final layer for number of classes
         original_classifier_input_dim = self.classifier_module[-1].in_features
         self.classifier_module[-1] = nn.Linear(
-            original_classifier_input_dim, num_classes)
+            original_classifier_input_dim, self.num_classes)
 
     def forward(self, x):
         x = self.feature_module(x)
@@ -141,8 +143,5 @@ class ExpertGate(MultiTaskModule):
             .eval()
         )
 
-    def adaptation(self, experience: CLExperience = None):
-        return super().adaptation(experience)
-
-    def forward_single_task(self, x, task_label):
+    def forward(self, x, task_labels):
         return self.expert(x)
