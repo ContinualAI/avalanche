@@ -477,6 +477,13 @@ class AETraining(SupervisedTemplate):
         self.mbatch[0] = self.model.feature_module(self.mb_x)
         self.mbatch[0] = sigmoid(self.mb_x)
 
+    def _before_eval_forward(self, **kwargs):
+        super()._before_eval_forward(**kwargs)
+
+        # Preprocessing Steps
+        self.mbatch[0] = self.model.feature_module(self.mb_x)
+        self.mbatch[0] = sigmoid(self.mb_x)
+
     def criterion(self):
         return self._criterion(self.mb_x, self.mb_output)
 
