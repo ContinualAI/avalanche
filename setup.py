@@ -23,9 +23,6 @@ def get_version(rel_path):
 
 
 def get_extra_requires(path, add_all=True):
-    """Currently not used. Dependencies are
-    hard-coded below. We currently have a problem
-    with setuptools and external extra dependency file"""
     with open(path) as fp:
         extra_deps = defaultdict(set)
         for line in fp:
