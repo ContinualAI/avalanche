@@ -23,9 +23,6 @@ def get_version(rel_path):
 
 
 def get_extra_requires(path, add_all=True):
-    """Currently not used. Dependencies are
-    hard-coded below. We currently have a problem
-    with setuptools and external extra dependency file"""
     with open(path) as fp:
         extra_deps = defaultdict(set)
         for line in fp:
@@ -79,11 +76,7 @@ setuptools.setup(
         'quadprog',
         'setuptools<=59.5.0'
     ],
-    # extras_require=get_extra_requires('extra_dependencies.txt',
-    #                                   add_all=True)
-    extras_require={'extra': ['higher', 'ctrl-benchmark'], 'rl': ['gym'],
-                    'detection': ['pycocotools', 'lvis'],
-                    'all': ['higher', 'ctrl-benchmark', 'gym',
-                            'pycocotools', 'lvis']}
+    extras_require=get_extra_requires('extra_dependencies.txt',
+                                      add_all=True)
 )
 
