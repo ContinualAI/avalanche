@@ -41,7 +41,7 @@ from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
