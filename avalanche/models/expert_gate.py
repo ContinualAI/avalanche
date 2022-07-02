@@ -108,7 +108,7 @@ class ExpertModel(nn.Module):
         return x
 
 
-class ExpertGate(MultiTaskModule):
+class ExpertGate(nn.Module):
     def __init__(
         self,
         shape,
@@ -143,5 +143,5 @@ class ExpertGate(MultiTaskModule):
             .eval()
         )
 
-    def forward(self, x, task_labels):
+    def forward(self, x):
         return self.expert(x)
