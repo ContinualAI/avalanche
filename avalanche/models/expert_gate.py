@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import MSELoss
+from torch.nn.functional import mse_loss
 
 from torchvision import transforms
 import torchvision.models as models
@@ -14,8 +14,8 @@ from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 
 def AE_loss(target, reconstruction):
-    loss_method = MSELoss(reduction="sum")
-    reconstruction_loss = loss_method(reconstruction, target)
+    reconstruction_loss = mse_loss(
+        input=reconstruction, target=target, reduction="sum")
     return reconstruction_loss
 
 
