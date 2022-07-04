@@ -17,7 +17,7 @@ First of all, [install _Avalanche_ in "_Developer Mode"_](https://avalanche.cont
 1. You can start working on a [open issue](https://avalanche.continualai.org/questions-and-issues/add-your-issue) (we have dozen of them!)
 2. You can [submit a feature-request](https://avalanche.continualai.org/questions-and-issues/request-a-feature) and propose yourself to work on it.
 
-![Examples of Avalanche Issues available on GitHub](../../../.gitbook/assets/issues.png)
+![Examples of Avalanche Issues available on GitHub](../.gitbook/assets/issues.png)
 
 **In any of the two cases you'd need to follow the steps below**:
 
