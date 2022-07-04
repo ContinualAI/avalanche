@@ -1,7 +1,8 @@
 from collections import OrderedDict
 import torch
-from torch.nn import Module, CrossEntropyLoss, MSELoss, Softmax
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD, Adam
+from torch.nn.functional import log_softmax
 
 from typing import Optional, List
 
@@ -110,10 +111,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
             strategy.plugins.remove(self.lwf_plugin)
 
         # Build an autoencoder for this experience and store it in a dictionary
-        self._add_autoencoder(strategy, task_label, latent_dim=100)
-
-        # Retrieve the autoencoder from the dictionary
-        autoencoder = self._retrieve_autoencoder(strategy, task_label)
+        autoencoder = self._add_autoencoder(
+            strategy, task_label, latent_dim=100)
 
         # Train the autoencoder on current experience with custom loss
         self._train_autoencoder(strategy, autoencoder)
@@ -121,15 +120,28 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Build new expert with feature extraction from relevant existing expert
         expert, relatedness = self._select_expert(strategy, task_label)
 
-        # Store expert
+        # Store expert in dictionary
         self._add_expert(strategy, task_label, expert)
 
-        # Pick training method based on relatedness
-        if (relatedness > strategy.model.rel_thresh):
-            if strategy.plugins is None:
-                strategy.plugins = [self.lwf_plugin]
-            else:
-                strategy.plugins.append(self.lwf_plugin)
+        # Set the correct expert to be trained
+        strategy.model.expert = expert
+
+        # # Pick training method based on relatedness
+        # if (relatedness > strategy.model.rel_thresh):
+        #     if strategy.plugins is None:
+        #         strategy.plugins = [self.lwf_plugin]
+        #     else:
+        #         strategy.plugins.append(self.lwf_plugin)
+        print("\nTRAINING EXPERT")
+
+    def after_training_epoch(self, strategy: "SupervisedTemplate", *args, **kwargs):
+        super().after_training_epoch(strategy, *args, **kwargs)
+        print("Target: ", strategy.mb_y)
+        print("Output: ", torch.argmax(strategy.mb_output, dim=1))
+
+    def after_training_exp(self, strategy: "SupervisedTemplate", *args, **kwargs):
+        super().after_training_exp(strategy, *args, **kwargs)
+        print("FINISHED TRAINING EXPERT\n")
 
     def before_eval_iteration(self, 
                               strategy: "SupervisedTemplate",
@@ -140,21 +152,18 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Build a probability dictionary
         probability_dict = OrderedDict()
 
-        # Softmax layer
-        softmax = Softmax(dim=0)
-
         # Iterate through all autoencoders to get error values
         for autoencoder_id in strategy.model.autoencoder_dict:
             error = self._get_average_reconstruction_error(
                 strategy, autoencoder_id)
             x = torch.tensor(-error/self.temp)
-            probability_dict[str(autoencoder_id)] = softmax(x)
+            probability_dict[str(autoencoder_id)] = log_softmax(x, dim=0)
 
         # Select an expert for this iteration
         most_relevant_expert_key = max(
                 probability_dict, key=probability_dict.get)
         strategy.model.expert = self._retrieve_expert(
-                strategy, most_relevant_expert_key)
+            strategy, most_relevant_expert_key)
 
     # ##############
     # EXPERT METHODS 
@@ -162,13 +171,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
     def _add_expert(self, strategy: "SupervisedTemplate", task_label, expert):
         strategy.model.expert_dict[str(task_label)] = expert
-        strategy.model.expert = expert
 
     def _retrieve_expert(self, strategy: "SupervisedTemplate", key):
         return strategy.model.expert_dict[str(key)]
 
     def _select_expert(self, strategy: "SupervisedTemplate", task_label):
-
+        print("\nSELECTING EXPERT")
         # If the expert dictionary is empty, 
         # build the first expert
         if (len(strategy.model.expert_dict) == 0):
@@ -196,10 +204,11 @@ class _ExpertGatePlugin(SupervisedPlugin):
             # Retrieve best expert
             most_relevant_expert_key = max(
                 relatedness_dict, key=relatedness_dict.get)
+
             most_relevant_expert = self._retrieve_expert(
                 strategy, most_relevant_expert_key)
 
-            # Build expert
+            # Build expert with feature template
             expert = ExpertModel(num_classes=strategy.model.num_classes,
                                  arch=strategy.model.arch,
                                  device=strategy.model.device, 
@@ -207,7 +216,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
                                  feature_template=most_relevant_expert)
 
             relatedness = relatedness_dict[most_relevant_expert_key]
+            print("SELECTED EXPERT FROM TASK ", most_relevant_expert_key)
 
+        print("FINISHED EXPERT SELECTION\n")
         return expert, relatedness
 
     # ########################
@@ -275,6 +286,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Store autoencoder with task number
         strategy.model.autoencoder_dict[str(task_label)] = new_autoencoder
 
+        return new_autoencoder
+
     def _retrieve_autoencoder(self, strategy: "SupervisedTemplate", task_label):
         return strategy.model.autoencoder_dict[str(task_label)]
 
@@ -289,5 +302,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                                  train_epochs=strategy.ae_train_epochs,
                                  eval_every=-1)
 
+        print("\nTRAINING NEW AUTOENCODER")
         # Train with autoencoder strategy
         ae_strategy.train(strategy.experience)
+        print("FINISHED TRAINING NEW AUTOENCODER\n")

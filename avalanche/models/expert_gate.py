@@ -1,7 +1,9 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.functional import mse_loss
+from torch.nn.functional import mse_loss, log_softmax
 
 from torchvision import transforms
 import torchvision.models as models
@@ -144,4 +146,5 @@ class ExpertGate(nn.Module):
         )
 
     def forward(self, x):
-        return self.expert(x)
+        out = self.expert(x)
+        return out

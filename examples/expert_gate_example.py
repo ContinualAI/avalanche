@@ -27,7 +27,7 @@ def test_expertgate():
         transforms.Resize((227, 227)),
         transforms.ToTensor(), 
         transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
-        ])
+    ])
 
     # scenario = get_custom_benchmark(
     #     use_task_labels=True, train_transform=AlexTransform, eval_transform=AlexTransform)
@@ -38,31 +38,35 @@ def test_expertgate():
 
     # # 227 227
     model = ExpertGate(num_classes=scenario.n_classes, shape=(3, 227, 227)) 
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     strategy = ExpertGateStrategy(
         model,
         optimizer,
-        train_mb_size=200,
+        train_mb_size=50,
         device="cpu",
-        train_epochs=1, 
+        train_epochs=50,
         eval_every=-1, 
-        ae_train_mb_size=200,
+        ae_train_mb_size=500,
         ae_train_epochs=1, 
         ae_lr=2e-2,
     )
 
     # train and test loop
-    for experience in (scenario.train_stream)[:5]:
+    for experience in (scenario.train_stream)[:1]:
         t = experience.task_label
         exp_id = experience.current_experience
         training_dataset = experience.dataset
         print('Task {} batch {} -> train'.format(t, exp_id))
         print('This batch contains', len(training_dataset), 'patterns')
+        print(model.parameters())
+        print(model.expert.parameters())
+        # print("Targets: ", experience.dataset.targets)
         strategy.train(experience)
-    # strategy.eval(scenario.test_stream[:3])
+    # print((scenario.test_stream)[:1].task_label)
+    # strategy.eval(scenario.test_stream[:1])
 
 
-def get_custom_benchmark(use_task_labels=False, shuffle=True, n_samples_per_class=100, train_transform=None, eval_transform=None):
+def get_custom_benchmark(use_task_labels=False, shuffle=False, n_samples_per_class=100, train_transform=None, eval_transform=None):
 
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
