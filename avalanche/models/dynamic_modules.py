@@ -90,8 +90,8 @@ class MultiTaskModule(DynamicModule):
 
     def __init__(self):
         super().__init__()
-        self.known_train_tasks_labels = set()
         self.max_class_label = 0
+        self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
     def adaptation(self, experience: CLExperience = None):
@@ -111,9 +111,9 @@ class MultiTaskModule(DynamicModule):
         :param experience: the current experience.
         :return:
         """
-        dataset = experience.dataset
+        curr_classes = experience.classes_in_this_experience
         self.max_class_label = max(
-            self.max_class_label, max(dataset.targets) + 1
+            self.max_class_label, max(curr_classes) + 1
         )
         if self.training:
             self.train_adaptation(experience)
@@ -125,11 +125,7 @@ class MultiTaskModule(DynamicModule):
 
     def train_adaptation(self, experience: CLExperience = None):
         """Update known task labels."""
-        dataset = experience.dataset
-        task_labels = dataset.targets_task_labels
-        if isinstance(task_labels, ConstantSequence):
-            # task label is unique. Don't check duplicates.
-            task_labels = [task_labels[0]]
+        task_labels = experience.task_labels
         self.known_train_tasks_labels = self.known_train_tasks_labels.union(
             set(task_labels)
         )
