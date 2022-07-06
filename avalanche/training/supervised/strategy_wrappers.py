@@ -470,19 +470,19 @@ class AETraining(SupervisedTemplate):
             **base_kwargs
         )
 
-    def _before_forward(self, **kwargs):
-        super()._before_forward(**kwargs)
+    # def _before_forward(self, **kwargs):
+    #     super()._before_forward(**kwargs)
 
-        # Preprocessing Steps
-        self.mbatch[0] = self.model.feature_module(self.mb_x)
-        self.mbatch[0] = sigmoid(self.mb_x)
+    #     # Preprocessing Steps
+    #     self.mbatch[0] = self.model.feature_module(self.mb_x)
+    #     self.mbatch[0] = sigmoid(self.mb_x)
 
-    def _before_eval_forward(self, **kwargs):
-        super()._before_eval_forward(**kwargs)
+    # def _before_eval_forward(self, **kwargs):
+    #     super()._before_eval_forward(**kwargs)
 
-        # Preprocessing Steps
-        self.mbatch[0] = self.model.feature_module(self.mb_x)
-        self.mbatch[0] = sigmoid(self.mb_x)
+    #     # Preprocessing Steps
+    #     self.mbatch[0] = self.model.feature_module(self.mb_x)
+    #     self.mbatch[0] = sigmoid(self.mb_x)
 
     def criterion(self):
         modified_mb_x = sigmoid(self.model.feature_module(self.mb_x))
