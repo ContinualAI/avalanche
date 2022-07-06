@@ -25,7 +25,7 @@ def AE_loss(target, reconstruction):
 
 
 class ExpertAutoencoder(nn.Module):
-    """The expert autoencoder that determines which expert classifier to select for the incoming data
+    """The expert autoencoder that determines which expert classifier to select for the incoming data.
     """
 
     def __init__(self, shape, 
