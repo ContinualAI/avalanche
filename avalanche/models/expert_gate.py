@@ -41,10 +41,15 @@ class ExpertAutoencoder(nn.Module):
             pretrained=pretrained_flag).to(device))
 
         self.feature_module = FeatureExtractorBackbone(
-                base_template, "features")
+                base_template, output_layer_name)
 
         self.shape = shape
 
+        # Freeze the feature module
+        for param in self.feature_module.parameters():
+            param.requires_grad = False
+
+        # Flatten input
         # Encoder Linear -> ReLU
         flattened_size = torch.Size(shape).numel()
         self.encoder = nn.Sequential(
@@ -60,6 +65,10 @@ class ExpertAutoencoder(nn.Module):
         )
 
     def forward(self, x):
+
+        # Preprocessing step
+        x = self.feature_module(x)
+        x = sigmoid(x)
 
         # Encode input
         x = self.encoder(x)
