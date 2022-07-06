@@ -7,7 +7,7 @@ from torch.nn.functional import log_softmax
 from typing import Optional, List
 
 from avalanche.models.expert_gate import Autoencoder, ExpertModel, ExpertGate
-
+from avalanche.models.dynamic_optimizers import update_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.plugins import (
