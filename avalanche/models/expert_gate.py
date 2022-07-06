@@ -154,6 +154,42 @@ class ExpertGate(nn.Module):
             .eval()
         )
 
+    def _get_average_reconstruction_error(self, autoencoder_id, x):
+
+        # Select autoencoder with the given ID
+        autoencoder = self.autoencoder_dict[str(autoencoder_id)]
+
+        # Run input through autoencoder to get reconstruction
+        reconstruction = autoencoder(x)
+
+        # Process input for target
+        target = sigmoid(autoencoder.feature_module(x))
+
+        # Error between reconstruction and input
+        error = AE_loss(target=target, reconstruction=reconstruction)
+
+        return error
+
     def forward(self, x):
-        out = self.expert(x)
-        return out
+
+        # If not in training mode, select the best expert for the input data
+        if (not self.training):
+
+            # Build an error tensor to hold errors for all autoencoders
+            all_errors = [None]*len(self.autoencoder_dict)
+
+            # Iterate through all autoencoders to populate error tensor
+            for autoencoder_id in self.autoencoder_dict:
+                error = self._get_average_reconstruction_error(
+                    autoencoder_id, x)
+                error = -error/self.temp
+                all_errors[int(autoencoder_id)] = torch.tensor(error)
+
+            # Softmax to get probabilites
+            probabilities = softmax(torch.Tensor(all_errors), dim=-1)
+
+            # Select an expert for this input using the most likely autoencoder
+            most_relevant_expert_key = torch.argmax(probabilities)
+            self.expert = self.expert_dict[str(most_relevant_expert_key.item())]
+
+        return self.expert(x)
