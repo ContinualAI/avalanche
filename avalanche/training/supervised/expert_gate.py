@@ -144,7 +144,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                          )
 
         # Set the correct expert to be trained
-        strategy.model.expert = expert
+        strategy.model.expert = new_expert
 
         # # Pick training method based on relatedness
         # if (relatedness > strategy.model.rel_thresh):
