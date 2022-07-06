@@ -23,7 +23,8 @@ def AE_loss(target, reconstruction):
     return reconstruction_loss
 
 
-    """The expert autoencoder that determines which expert classifier to select for the incoming data.
+class ExpertAutoencoder(nn.Module):
+    """The expert autoencoder that determines which expert classifier to select for the incoming data
     """
 
     def __init__(self, shape, 
@@ -72,6 +73,7 @@ def AE_loss(target, reconstruction):
 class ExpertModel(nn.Module):
     """The expert classifier behind the autoencoder that is trained for a specific task.
     """
+
     def __init__(self, 
                  num_classes, 
                  arch, 
@@ -119,6 +121,8 @@ class ExpertModel(nn.Module):
 
 class ExpertGate(nn.Module):
     """Overall parent module that holds the dictionary of expert autoencoders and expert classifiers. 
+    """
+
     def __init__(
         self,
         shape,
