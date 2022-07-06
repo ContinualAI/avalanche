@@ -250,6 +250,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         ae_strategy = AETraining(model=autoencoder, 
                                  optimizer=SGD(
+                                     autoencoder.parameters(), 
                                      lr=strategy.ae_lr),
                                  eval_mb_size=100, 
                                  eval_every=-1)
