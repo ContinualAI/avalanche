@@ -113,16 +113,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
                             strategy: "SupervisedTemplate", 
                             *args, 
                             **kwargs):
-        # Store task label for easy access
         super().before_training_exp(strategy, *args, **kwargs)
 
         # Store task label for easy access
         task_label = strategy.experience.task_label
-
-        # Always remove the LWF plugin before every experience
-        # If needed, it will be appended later
-        if (self.lwf_plugin in strategy.plugins):
-            strategy.plugins.remove(self.lwf_plugin)
 
         # Build an autoencoder for this experience and store it in a dictionary
         autoencoder = self._add_autoencoder(
