@@ -58,6 +58,9 @@ class ExpertGateStrategy(SupervisedTemplate):
             learning experience.
         :param base_kwargs: any additional
         :param ae_train_mb_size: mini-batch size for training of the autoencoder
+        :param ae_train_epochs: number of training epochs for the autoencoder
+        :param ae_lr: the learning rate for the autoencoder training using vanilla SGD
+        :param temp: the temperature hyperparameter when selecting the expert during the forward method
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         # Check that the model has the correct architecture.
