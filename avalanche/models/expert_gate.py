@@ -3,7 +3,8 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.functional import mse_loss, log_softmax
+from torch import sigmoid
+from torch.nn.functional import mse_loss, softmax
 
 from torchvision import transforms
 import torchvision.models as models
