@@ -17,7 +17,8 @@ from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 
 def AE_loss(target, reconstruction):
-    """Calculates the MSE loss for the autoencoder by comparing the reconstruction to the pre-processed input. 
+    """Calculates the MSE loss for the autoencoder by comparing the 
+    reconstruction to the pre-processed input. 
     """
     reconstruction_loss = mse_loss(
         input=reconstruction, target=target, reduction="sum")
@@ -25,7 +26,8 @@ def AE_loss(target, reconstruction):
 
 
 class ExpertAutoencoder(nn.Module):
-    """The expert autoencoder that determines which expert classifier to select for the incoming data.
+    """The expert autoencoder that determines which expert classifier to select
+    for the incoming data.
     """
 
     def __init__(self, shape, 
@@ -81,7 +83,8 @@ class ExpertAutoencoder(nn.Module):
 
 
 class ExpertModel(nn.Module):
-    """The expert classifier behind the autoencoder that is trained for a specific task.
+    """The expert classifier behind the autoencoder that is trained for a
+    specific task.
     """
 
     def __init__(self, 
@@ -130,7 +133,8 @@ class ExpertModel(nn.Module):
 
 
 class ExpertGate(nn.Module):
-    """Overall parent module that holds the dictionary of expert autoencoders and expert classifiers. 
+    """Overall parent module that holds the dictionary of expert autoencoders 
+    and expert classifiers. 
     """
 
     def __init__(

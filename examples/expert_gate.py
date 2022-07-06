@@ -27,7 +27,8 @@ def test_expertgate():
 
     # Set up dummy data scenario
     scenario = get_custom_benchmark(
-        use_task_labels=True, train_transform=AlexTransform, eval_transform=AlexTransform, shuffle=True)
+        use_task_labels=True, train_transform=AlexTransform, 
+        eval_transform=AlexTransform, shuffle=True)
 
     # Initialize model and specify shape
     model = ExpertGate(num_classes=scenario.n_classes, shape=(3, 227, 227)) 
@@ -63,7 +64,8 @@ def test_expertgate():
         strategy.eval(experience)
 
 
-def get_custom_benchmark(use_task_labels=False, shuffle=False, n_samples_per_class=100, train_transform=None, eval_transform=None):
+def get_custom_benchmark(use_task_labels=False, shuffle=False,
+n_samples_per_class=100, train_transform=None, eval_transform=None):
 
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,

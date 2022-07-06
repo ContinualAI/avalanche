@@ -6,7 +6,8 @@ from torch.nn.functional import log_softmax
 
 from typing import Optional, List
 
-from avalanche.models.expert_gate import ExpertAutoencoder, ExpertModel, ExpertGate
+from avalanche.models.expert_gate import (
+    ExpertAutoencoder, ExpertModel, ExpertGate)
 from avalanche.models.dynamic_optimizers import update_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -18,7 +19,8 @@ from avalanche.training.plugins.evaluation import default_evaluator
 class ExpertGateStrategy(SupervisedTemplate):
     """Expert Gate strategy.
 
-    To use this strategy you need to instantiate an ExpertGate model. See the ExpertGate plugin for more details.
+    To use this strategy you need to instantiate an ExpertGate model. 
+    See the ExpertGate plugin for more details.
     """
 
     def __init__(
@@ -59,8 +61,10 @@ class ExpertGateStrategy(SupervisedTemplate):
         :param base_kwargs: any additional
         :param ae_train_mb_size: mini-batch size for training of the autoencoder
         :param ae_train_epochs: number of training epochs for the autoencoder
-        :param ae_lr: the learning rate for the autoencoder training using vanilla SGD
-        :param temp: the temperature hyperparameter when selecting the expert during the forward method
+        :param ae_lr: the learning rate for the autoencoder training 
+        using vanilla SGD
+        :param temp: the temperature hyperparameter when selecting the 
+        expert during the forward method
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         # Check that the model has the correct architecture.
@@ -96,7 +100,13 @@ class ExpertGateStrategy(SupervisedTemplate):
 
 
 class _ExpertGatePlugin(SupervisedPlugin):
-    """The ExpertGate algorithm is a dynamic architecture algorithm. For every new task, it trains an autoencoder to reconstruct input data and then trains an AlexNet classifier. Prior to AlexNet training, the algorithm searches through existing autoencoders, if there are any, to find the most related autoencoder and select the expert associated to that autoencoder. The new expert is then fine-tuned or trained using Learning without Forgetting (LwF) based on the most related previous expert.
+    """The ExpertGate algorithm is a dynamic architecture algorithm.
+    For every new task, it trains an autoencoder to reconstruct input data 
+    and then trains an AlexNet classifier. Prior to AlexNet training, 
+    the algorithm searches through existing autoencoders, if there are any, 
+    to find the most related autoencoder and select the expert associated 
+    to that autoencoder. The new expert is then fine-tuned or trained using
+    Learning without Forgetting (LwF) based on the most related previous expert.
     """
 
     def __init__(self):
@@ -125,7 +135,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Train the autoencoder on current experience
         self._train_autoencoder(strategy, autoencoder)
 
-        # If experts exist, build new expert with feature extraction from the most related existing expert
+        # If experts exist, build new expert with feature extraction 
+        # from the most related existing expert
         new_expert, relatedness = self._select_expert(strategy, task_label)
 
         # Store the new expert in dictionary
@@ -156,18 +167,21 @@ class _ExpertGatePlugin(SupervisedPlugin):
     # ##############
 
     def _add_expert(self, strategy: "SupervisedTemplate", task_label, expert):
-        """Adds expert to ExpertGate expert dictionary using the task_label as a key.
+        """Adds expert to ExpertGate expert dictionary using the task_label 
+        as a key.
         """
         strategy.model.expert_dict[str(task_label)] = expert
 
     def _get_expert(self, strategy: "SupervisedTemplate", key):
-        """Retrieves expert Alex model from the ExpertGate expert dictionary using the task_label as a key.
+        """Retrieves expert Alex model from the ExpertGate expert 
+        dictionary using the task_label as a key.
         """
         return strategy.model.expert_dict[str(key)]
 
     def _select_expert(self, strategy: "SupervisedTemplate", task_label):
-        """Given a task label, calculates the relatedness between the autoencoder for this task and all other autoencoders. Returns the most
-        related expert and the relatedness value.
+        """Given a task label, calculates the relatedness between 
+        the autoencoder for this task and all other autoencoders. 
+        Returns the most related expert and the relatedness value.
         """
         print("\nSELECTING EXPERT")
         # If the expert dictionary is empty, 
@@ -222,7 +236,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
                           strategy: "SupervisedTemplate", 
                           error_dict, 
                           task_label):
-        """Given a task label and error dictionary, returns a dictionary of relatedness between the autoencoder of the current task and all other tasks. 
+        """Given a task label and error dictionary, returns a dictionary 
+        of relatedness between the autoencoder of the current task 
+        and all other tasks. 
         """
         # Build a task relatedness dictionary
         relatedness_dict = OrderedDict()
@@ -239,7 +255,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
     def _get_average_reconstruction_error(self, 
                                           strategy: "SupervisedTemplate", 
                                           task_label):
-        """Given a task label, retrieves an autoencoder and evaluates the reconstruction error on the current batch of data.
+        """Given a task label, retrieves an autoencoder and 
+        evaluates the reconstruction error on the current batch of data.
         """
         autoencoder = self._get_autoencoder(strategy, task_label)
 
@@ -274,7 +291,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
                          strategy: "SupervisedTemplate", 
                          task_label, 
                          latent_dim=50):
-        """Builds a new autoencoder and stores it in the ExpertGate autoencoder dictionary. Returns the new autoencoder.
+        """Builds a new autoencoder and stores it in the ExpertGate 
+        autoencoder dictionary. Returns the new autoencoder.
         """
         # Build a new autoencoder
         # This shape is equivalent to the output shape of 
@@ -288,7 +306,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
         return new_autoencoder
 
     def _get_autoencoder(self, strategy: "SupervisedTemplate", task_label):
-        """Retrieves autoencoder from the ExpertGate autoencoder dictionary using the task_label as a key.
+        """Retrieves autoencoder from the ExpertGate autoencoder 
+        dictionary using the task_label as a key.
         """
         return strategy.model.autoencoder_dict[str(task_label)]
 
@@ -298,7 +317,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Setup autoencoder strategy
         ae_strategy = AETraining(model=autoencoder, 
                                  optimizer=Adam(
-                                            autoencoder.parameters(), lr=strategy.ae_lr
+                                            autoencoder.parameters(), 
+                                            lr=strategy.ae_lr
                                             ),
                                  train_mb_size=strategy.ae_train_mb_size, 
                                  train_epochs=strategy.ae_train_epochs,
