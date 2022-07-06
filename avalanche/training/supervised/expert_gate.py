@@ -146,44 +146,16 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Set the correct expert to be trained
         strategy.model.expert = new_expert
 
-        # # Pick training method based on relatedness
-        # if (relatedness > strategy.model.rel_thresh):
-        #     if strategy.plugins is None:
-        #         strategy.plugins = [self.lwf_plugin]
-        #     else:
-        #         strategy.plugins.append(self.lwf_plugin)
+        # Remove LwF plugin in case it is not needed
+        if (self.lwf_plugin in strategy.plugins):
+            strategy.plugins.remove(self.lwf_plugin)
+
         print("\nTRAINING EXPERT")
-
-    def after_training_epoch(self, strategy: "SupervisedTemplate", *args, **kwargs):
-        super().after_training_epoch(strategy, *args, **kwargs)
-        print("Target: ", strategy.mb_y)
-        print("Output: ", torch.argmax(strategy.mb_output, dim=1))
-
-    def after_training_exp(self, strategy: "SupervisedTemplate", *args, **kwargs):
-        super().after_training_exp(strategy, *args, **kwargs)
-        print("FINISHED TRAINING EXPERT\n")
-
-    def before_eval_iteration(self, 
-                              strategy: "SupervisedTemplate",
-                              *args, 
-                              **kwargs):
-        super().before_eval_iteration(strategy, *args, **kwargs)
-
-        # Build a probability dictionary
-        probability_dict = OrderedDict()
-
-        # Iterate through all autoencoders to get error values
-        for autoencoder_id in strategy.model.autoencoder_dict:
-            error = self._get_average_reconstruction_error(
-                strategy, autoencoder_id)
-            x = torch.tensor(-error/self.temp)
-            probability_dict[str(autoencoder_id)] = log_softmax(x, dim=0)
-
-        # Select an expert for this iteration
-        most_relevant_expert_key = max(
-                probability_dict, key=probability_dict.get)
-        strategy.model.expert = self._retrieve_expert(
-            strategy, most_relevant_expert_key)
+        # If needed, add a new instance of LwF plugin back 
+        if (relatedness > strategy.model.rel_thresh):
+            print("WITH LWF")
+            self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
+            strategy.plugins.append(self.lwf_plugin)
 
     # ##############
     # EXPERT METHODS 
