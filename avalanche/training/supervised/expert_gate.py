@@ -6,7 +6,7 @@ from torch.nn.functional import log_softmax
 
 from typing import Optional, List
 
-from avalanche.models.expert_gate import Autoencoder, ExpertModel, ExpertGate
+from avalanche.models.expert_gate import ExpertAutoencoder, ExpertModel, ExpertGate
 from avalanche.models.dynamic_optimizers import update_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -194,11 +194,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
             # Send error dictionary to get most relevant autoencoder
             relatedness_dict = self._task_relatedness(
                 strategy, error_dict, task_label)
+
             # Retrieve best expert
             most_relevant_expert_key = max(
                 relatedness_dict, key=relatedness_dict.get)
 
-            most_relevant_expert = self._retrieve_expert(
+            most_relevant_expert = self._get_expert(
                 strategy, most_relevant_expert_key)
 
             # Build expert with feature template
@@ -240,7 +241,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                                           task_label):
         """Given a task label, retrieves an autoencoder and evaluates the reconstruction error on the current batch of data.
         """
-        autoencoder = self._retrieve_autoencoder(strategy, task_label)
+        autoencoder = self._get_autoencoder(strategy, task_label)
 
         ae_strategy = AETraining(model=autoencoder, 
                                  optimizer=SGD(
@@ -278,7 +279,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Build a new autoencoder
         # This shape is equivalent to the output shape of 
         # the Alexnet features module
-        new_autoencoder = Autoencoder(
+        new_autoencoder = ExpertAutoencoder(
             shape=(256, 6, 6), latent_dim=latent_dim)
 
         # Store autoencoder with task number
