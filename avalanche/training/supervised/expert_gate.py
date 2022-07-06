@@ -36,6 +36,7 @@ class ExpertGateStrategy(SupervisedTemplate):
         ae_train_mb_size=1,
         ae_train_epochs=2,
         ae_lr=1e-3,
+        temp=2,
         **base_kwargs
     ):
         """Init.
@@ -73,6 +74,7 @@ class ExpertGateStrategy(SupervisedTemplate):
         self.ae_train_mb_size = ae_train_mb_size
         self.ae_train_epochs = ae_train_epochs
         self.ae_lr = ae_lr
+        model.temp = temp
 
         super().__init__(
                 model=model,
@@ -248,7 +250,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         ae_strategy = AETraining(model=autoencoder, 
                                  optimizer=SGD(
-                                     autoencoder.parameters(), lr=0.01),
+                                     lr=strategy.ae_lr),
                                  eval_mb_size=100, 
                                  eval_every=-1)
 
