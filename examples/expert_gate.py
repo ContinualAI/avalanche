@@ -64,8 +64,12 @@ def test_expertgate():
         strategy.eval(experience)
 
 
-def get_custom_benchmark(use_task_labels=False, shuffle=False,
-n_samples_per_class=100, train_transform=None, eval_transform=None):
+def get_custom_benchmark(use_task_labels=False, 
+                         shuffle=False, 
+                         n_samples_per_class=100, 
+                         train_transform=None, 
+                         eval_transform=None
+                         ):
 
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
