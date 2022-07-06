@@ -16,29 +16,26 @@ from avalanche.benchmarks import nc_benchmark
 
 
 def test_expertgate():
-    # only on mulit-task scenarios
-    # eval on future tasks is not allowed
-
-    # mnist shape is (1,28,28)
-    # fake benchmark is (1,1,6)
-    # scenario = SplitMNIST(n_experiences=5, seed=1234, return_task_id=True)
-
+    # Fake benchmark is (1,1,6)
+    # Data needs to be transformed for AlexNet
+    # Repeat the "channel" as AlexNet expects 3 channel input
+    # Resize as the AlexNet convolution will reduce the data shape 
     AlexTransform = transforms.Compose([
         transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
         transforms.Resize((227, 227)),
-        # transforms.ToTensor(), 
     ])
 
+    # Set up dummy data scenario
     scenario = get_custom_benchmark(
         use_task_labels=True, train_transform=AlexTransform, eval_transform=AlexTransform, shuffle=True)
 
-    # scenario = SplitMNIST(n_experiences=10, seed=1,
-    #                       return_task_id=True,
-    #                       train_transform=AlexTransform, eval_transform=AlexTransform)
-
-    # # 227 227
+    # Initialize model and specify shape
     model = ExpertGate(num_classes=scenario.n_classes, shape=(3, 227, 227)) 
+
+    # Vanilla optimization
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+
+    # Set up strategy
     strategy = ExpertGateStrategy(
         model,
         optimizer,
@@ -51,7 +48,7 @@ def test_expertgate():
         ae_lr=2e-2,
     )
 
-    # train and test loop
+    # Train loop
     for experience in (scenario.train_stream):
         t = experience.task_label
         exp_id = experience.current_experience
@@ -59,6 +56,8 @@ def test_expertgate():
         print('Task {} batch {} -> train'.format(t, exp_id))
         print('This batch contains', len(training_dataset), 'patterns')
         strategy.train(experience)
+
+    # Evaluation loop
     print("\nEVALUATION")
     for experience in (scenario.train_stream):
         strategy.eval(experience)
