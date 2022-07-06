@@ -485,7 +485,8 @@ class AETraining(SupervisedTemplate):
         self.mbatch[0] = sigmoid(self.mb_x)
 
     def criterion(self):
-        return self._criterion(self.mb_x, self.mb_output)
+        modified_mb_x = sigmoid(self.model.feature_module(self.mb_x))
+        return self._criterion(modified_mb_x, self.mb_output)
 
 
 class VAETraining(SupervisedTemplate):
