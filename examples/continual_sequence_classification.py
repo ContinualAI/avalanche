@@ -7,7 +7,7 @@ except ImportError:
         "`pip install avalanche-lib[extra]`")
 import torch
 import avalanche as avl
-from avalanche.benchmarks.datasets import SpeechCommands
+from avalanche.benchmarks.datasets.torchaudio_wrapper import SpeechCommands
 from avalanche.benchmarks import nc_benchmark
 
 
