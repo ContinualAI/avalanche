@@ -6,7 +6,8 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+    collate_from_data_or_kwargs
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -245,12 +246,16 @@ class SupervisedTemplate(BaseSGDTemplate):
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
 
+        collate_fn = collate_from_data_or_kwargs(self.adapted_dataset,
+                                                 other_dataloader_args)
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
-            **other_dataloader_args
+            collate_fn=collate_fn,
+            **{k: v for k, v in other_dataloader_args.items()
+               if k != "collate_fn"}
         )
 
     def forward(self):

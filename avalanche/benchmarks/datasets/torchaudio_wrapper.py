@@ -46,10 +46,11 @@ class SpeechCommandsData(SPEECHCOMMANDS):
         super().__init__(root=root, download=download,
                          subset=subset, url=url)
         self.labels_names = ['backward', 'bed', 'bird', 'cat', 'dog', 'down',
-                             'eight', 'five', 'follow', 'forward', 'four', 'go',
-                             'happy', 'house', 'learn', 'left', 'marvin', 'nine',
-                             'no', 'off', 'on', 'one', 'right', 'seven', 'sheila',
-                             'six', 'stop', 'three', 'tree', 'two', 'up', 'visual',
+                             'eight', 'five', 'follow', 'forward', 'four',
+                             'go', 'happy', 'house', 'learn', 'left',
+                             'marvin', 'nine', 'no', 'off', 'on', 'one',
+                             'right', 'seven', 'sheila', 'six', 'stop',
+                             'three', 'tree', 'two', 'up', 'visual',
                              'wow', 'yes', 'zero']
         self.mfcc_preprocessing = mfcc_preprocessing
 
@@ -75,8 +76,8 @@ def SpeechCommands(root=default_dataset_location(''),
     subset: one of 'training', 'validation', 'testing'
     mfcc_preprocessing: an optional torchaudio.transforms.MFCC instance
         to preprocess each audio. Warning: this may slow down the execution
-        since preprocessing is applied on-the-fly each time a sample is retrieved
-        from the dataset.
+        since preprocessing is applied on-the-fly each time a sample is
+        retrieved from the dataset.
     """
     dataset = SpeechCommandsData(root=root, download=download,
                                  subset=subset, url=url,

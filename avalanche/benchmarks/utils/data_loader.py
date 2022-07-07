@@ -68,11 +68,10 @@ def detection_collate_mbatches_fn(mbatches):
 
 
 def collate_from_data_or_kwargs(data, kwargs, otherwise=None):
-    if hasattr(data, "collate_fn") and "collate_fn" not in kwargs:
-        return data.collate_fn
-    elif "collate_fn" in kwargs:
-        del kwargs["collate_fn"]
+    if "collate_fn" in kwargs:
         return kwargs["collate_fn"]
+    elif hasattr(data, "collate_fn"):
+        return data.collate_fn
     else:
         return otherwise
 
@@ -186,8 +185,9 @@ class GroupBalancedDataLoader:
                 bs += 1
                 remaining -= 1
             collate_fn = collate_from_data_or_kwargs(data, kwargs)
-            self.dataloaders.append(DataLoader(data, batch_size=bs,
-                                               collate_fn=collate_fn, **kwargs))
+            self.dataloaders.append(DataLoader(
+                data, batch_size=bs, collate_fn=collate_fn,
+                **{k: v for k, v in kwargs.items() if k != "collate_fn"}))
         self.max_len = max([len(d) for d in self.dataloaders])
 
     def __iter__(self):
@@ -262,7 +262,9 @@ class GroupBalancedInfiniteDataLoader:
             )
             collate_fn = collate_from_data_or_kwargs(data, kwargs)
             dl = DataLoader(data, sampler=infinite_sampler,
-                            collate_fn=collate_fn, **kwargs)
+                            collate_fn=collate_fn,
+                            **{k: v for k, v in kwargs.items()
+                               if k != "collate_fn"})
             self.dataloaders.append(dl)
         self.max_len = 10 ** 10
 
@@ -453,13 +455,16 @@ class ReplayDataLoader:
                 collate_fn = collate_from_data_or_kwargs(data, kwargs)
                 loaders_dict[task_id] = DataLoader(
                     data, batch_size=current_batch_size,
-                    collate_fn=collate_fn, **kwargs
+                    collate_fn=collate_fn,
+                    **{k: v for k, v in kwargs.items() if k != "collate_fn"}
                 )
         else:
             collate_fn = collate_from_data_or_kwargs(data_dict, kwargs)
             loaders_dict[0] = DataLoader(
                 data_dict, batch_size=single_exp_batch_size,
-                collate_fn=collate_fn, **kwargs
+                collate_fn=collate_fn,
+                **{k: v for k, v in kwargs.items()
+                   if k != "collate_fn"}
             )
 
         return loaders_dict, remaining_example
@@ -468,6 +473,7 @@ class ReplayDataLoader:
 __all__ = [
     "detection_collate_fn",
     "detection_collate_mbatches_fn",
+    "collate_from_data_or_kwargs",
     "TaskBalancedDataLoader",
     "GroupBalancedDataLoader",
     "ReplayDataLoader",

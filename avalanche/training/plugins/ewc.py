@@ -189,7 +189,8 @@ class EWCPlugin(SupervisedPlugin):
             self.importances[t] = importances
         elif self.mode == "online":
             for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
-                    self.importances[t - 1], importances, fillvalue=(None, None),
+                    self.importances[t - 1], importances,
+                    fillvalue=(None, None),
             ):
                 # Add new module importances to the importances value (New head)
                 if k1 is None:

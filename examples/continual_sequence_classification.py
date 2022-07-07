@@ -9,16 +9,19 @@ import torch
 import avalanche as avl
 from avalanche.benchmarks.datasets import SpeechCommands
 from avalanche.benchmarks import nc_benchmark
-from avalanche.benchmarks.datasets.torchaudio_wrapper import speech_commands_collate
 
 
 n_exp = 7  # 7 experiences -> 5 classes per experience
 hidden_rnn_size = 32
+lr = 1e-3
+mfcc = False  # WARNING: Enabling MFCC greatly slows down the runtime execution
 
-mfcc_preprocess = None
-# Enabling MFCC greatly slows down the runtime execution
-# mfcc_preprocess = torchaudio.transforms.MFCC(sample_rate=16000, n_mfcc=40,
-#                                              melkwargs={"n_mels": 50, "hop_length": 10})
+if mfcc:
+    fcc_preprocess = torchaudio.transforms.MFCC(sample_rate=16000, n_mfcc=40,
+                                                melkwargs={"n_mels": 50, "hop_length": 10})
+else:
+    mfcc_preprocess = None
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -41,7 +44,7 @@ model = avl.models.SimpleSequenceClassifier(input_size=input_size,
                                             hidden_size=hidden_rnn_size,
                                             n_classes=benchmark.n_classes)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
 eval_plugin = avl.training.plugins.EvaluationPlugin(
     avl.evaluation.metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
@@ -50,12 +53,10 @@ eval_plugin = avl.training.plugins.EvaluationPlugin(
 )
 
 strategy = avl.training.Naive(model, optimizer, criterion,
-                              train_mb_size=64, train_epochs=5,
+                              train_mb_size=64, train_epochs=1,
                               eval_mb_size=256, device=device,
                               evaluator=eval_plugin)
 
 for exp in benchmark.train_stream:
-    # strategy.train(exp, collate_fn=speech_commands_collate)
-    # strategy.eval(benchmark.test_stream, collate_fn=speech_commands_collate)
     strategy.train(exp)
     strategy.eval(benchmark.test_stream)
