@@ -4,7 +4,7 @@ description: All the People that Made Avalanche Great
 
 # The People
 
-![Avalanche: Coming soon to your computer screens! 😂](../../../.gitbook/assets/avalanche\_maintaners.png)
+![Avalanche: Coming soon to your computer screens! 😂](../.gitbook/assets/avalanche\_maintaners.png)
 
 ## 🗂️ Maintainers
 
