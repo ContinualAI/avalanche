@@ -19,7 +19,7 @@ except ImportError:
         "You can install it as extra dependency with "
         "`pip install avalanche-lib[extra]`")
 from torchaudio.datasets import SPEECHCOMMANDS
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType
+from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.datasets import default_dataset_location
 import torch
 
@@ -52,7 +52,6 @@ class SpeechCommandsData(SPEECHCOMMANDS):
                              'six', 'stop', 'three', 'tree', 'two', 'up', 'visual',
                              'wow', 'yes', 'zero']
         self.mfcc_preprocessing = mfcc_preprocessing
-        self.resampling = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
 
     def __getitem__(self, item):
         wave, rate, label, speaker_id, ut_number = super().__getitem__(item)
@@ -62,9 +61,6 @@ class SpeechCommandsData(SPEECHCOMMANDS):
             assert rate == self.mfcc_preprocessing.sample_rate
             # (T, MFCC)
             wave = self.mfcc_preprocessing(wave).permute(1, 0)
-        else:
-            assert rate == self.resampling.orig_freq
-            # wave = self.resampling(wave)
         return wave, label, rate, speaker_id, ut_number
 
 
@@ -72,12 +68,21 @@ def SpeechCommands(root=default_dataset_location(''),
                    url='speech_commands_v0.02',
                    download=True, subset=None,
                    mfcc_preprocessing=None):
+    """
+    root: dataset root location
+    url: version name of the dataset
+    download: automatically download the dataset, if not present
+    subset: one of 'training', 'validation', 'testing'
+    mfcc_preprocessing: an optional torchaudio.transforms.MFCC instance
+        to preprocess each audio. Warning: this may slow down the execution
+        since preprocessing is applied on-the-fly each time a sample is retrieved
+        from the dataset.
+    """
     dataset = SpeechCommandsData(root=root, download=download,
                                  subset=subset, url=url,
                                  mfcc_preprocessing=mfcc_preprocessing)
     labels = [datapoint[1] for datapoint in dataset]
     return AvalancheDataset(dataset,
-                            dataset_type=AvalancheDatasetType.UNDEFINED,
                             collate_fn=speech_commands_collate,
                             targets=labels)
 

@@ -51,8 +51,10 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
         batch_size = max(1, len(dataset) // num_workers)
     else:
         batch_size = len(dataset)
+    collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
     loader = DataLoader(
-        dataset, batch_size=batch_size, drop_last=False, num_workers=num_workers
+        dataset, batch_size=batch_size, drop_last=False,
+        num_workers=num_workers, collate_fn=collate_fn
     )
     has_task_labels = False
     batches_x = []

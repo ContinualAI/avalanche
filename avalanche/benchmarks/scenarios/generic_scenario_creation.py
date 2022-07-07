@@ -28,7 +28,6 @@ from avalanche.benchmarks.utils import (
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .classification_scenario import GenericCLScenario
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from ..utils.avalanche_dataset import AvalancheDatasetType
 
 
 def create_multi_dataset_generic_scenario(
@@ -39,8 +38,7 @@ def create_multi_dataset_generic_scenario(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None,
-    dataset_type: AvalancheDatasetType = None,
+    eval_target_transform=None
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -89,10 +87,6 @@ def create_multi_dataset_generic_scenario(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
-    :param dataset_type: The type of the dataset. Defaults to None, which
-        means that the type will be obtained from the input datasets. If input
-        datasets are not instances of :class:`AvalancheDataset`, the type
-        UNDEFINED will be used.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -132,8 +126,7 @@ def create_multi_dataset_generic_scenario(
                 task_labels[dataset_idx], len(dataset)
             ),
             transform_groups=transform_groups,
-            initial_transform_group="train",
-            dataset_type=dataset_type,
+            initial_transform_group="train"
         )
 
     test_t_labels = []
@@ -151,8 +144,7 @@ def create_multi_dataset_generic_scenario(
             dataset,
             task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
-            initial_transform_group="eval",
-            dataset_type=dataset_type,
+            initial_transform_group="eval"
         )
 
     return GenericCLScenario(
@@ -250,8 +242,7 @@ def create_generic_scenario_from_filelists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        complete_test_set_only=complete_test_set_only
     )
 
 
@@ -268,8 +259,7 @@ def create_generic_scenario_from_paths(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None,
-    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
+    eval_target_transform=None
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -332,7 +322,6 @@ def create_generic_scenario_from_paths(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
-    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -357,8 +346,7 @@ def create_generic_scenario_from_paths(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only,
-        dataset_type=dataset_type,
+        complete_test_set_only=complete_test_set_only
     )
 
 
@@ -371,8 +359,7 @@ def create_generic_scenario_from_tensor_lists(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None,
-    dataset_type: AvalancheDatasetType = None
+    eval_target_transform=None
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -431,10 +418,6 @@ def create_generic_scenario_from_tensor_lists(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
-    :param dataset_type: The type of the dataset. Defaults to None, which
-        means that the type will be obtained from the input datasets. If input
-        datasets are not instances of :class:`AvalancheDataset`, the type
-        UNDEFINED will be used.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -446,12 +429,12 @@ def create_generic_scenario_from_tensor_lists(
     )
 
     train_datasets = [
-        AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
+        AvalancheTensorDataset(*exp_tensors)
         for exp_tensors in train_tensors
     ]
 
     test_datasets = [
-        AvalancheTensorDataset(*exp_tensors, dataset_type=dataset_type)
+        AvalancheTensorDataset(*exp_tensors)
         for exp_tensors in test_tensors
     ]
 
@@ -463,8 +446,7 @@ def create_generic_scenario_from_tensor_lists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only,
-        dataset_type=dataset_type,
+        complete_test_set_only=complete_test_set_only
     )
 
 
@@ -478,8 +460,7 @@ def create_generic_scenario_from_tensors(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None,
-    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED,
+    eval_target_transform=None
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -540,7 +521,6 @@ def create_generic_scenario_from_tensors(
         comprehensive list of possible transformations). Defaults to None.
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
-    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -594,8 +574,7 @@ def create_generic_scenario_from_tensors(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform,
-        dataset_type=dataset_type,
+        eval_target_transform=eval_target_transform
     )
 
 
