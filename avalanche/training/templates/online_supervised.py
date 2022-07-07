@@ -214,6 +214,8 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -243,6 +245,13 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        kwnames = ["collate_mbatches", "collate_fn"]
+        for kwname in kwnames:
+            if kwname in kwargs:
+                other_dataloader_args[kwname] = kwargs[kwname]
 
         self.dataloader = DataLoader(
             self.adapted_dataset,

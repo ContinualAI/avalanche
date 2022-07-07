@@ -212,6 +212,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -240,6 +242,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
         self.dataloader = DataLoader(
             self.adapted_dataset,

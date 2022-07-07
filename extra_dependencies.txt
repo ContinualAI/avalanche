@@ -5,6 +5,7 @@
 
 higher:               extra
 ctrl-benchmark:       extra
+torchaudio:           extra
 gym:                  rl
 pycocotools:          detection
 lvis:                 detection

@@ -10,10 +10,11 @@
 ################################################################################
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Optional, TYPE_CHECKING
-from typing_extensions import Protocol
-from .metric_results import MetricValue
-from .metric_utils import get_metric_name
+from typing import TypeVar, Optional, TYPE_CHECKING, List, Union
+from typing_extensions import Protocol, Literal
+from .metric_results import MetricValue, MetricType, AlternativeValues
+from .metric_utils import get_metric_name, generic_get_metric_name, \
+    default_metric_name_template
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
@@ -215,10 +216,11 @@ class GenericPluginMetric(PluginMetric[TResult]):
         super(GenericPluginMetric, self).__init__()
         assert mode in {"train", "eval"}
         if mode == "train":
-            assert reset_at in {"iteration", "epoch", "experience", "stream"}
+            assert reset_at in {"iteration", "epoch", "experience", "stream",
+                                "never"}
             assert emit_at in {"iteration", "epoch", "experience", "stream"}
         else:
-            assert reset_at in {"iteration", "experience", "stream"}
+            assert reset_at in {"iteration", "experience", "stream", "never"}
             assert emit_at in {"iteration", "experience", "stream"}
         self._metric = metric
         self._reset_at = reset_at
@@ -332,4 +334,133 @@ class GenericPluginMetric(PluginMetric[TResult]):
             self.reset(strategy)
 
 
-__all__ = ["Metric", "PluginMetric", "GenericPluginMetric"]
+class _ExtendedPluginMetricValue:
+    """
+    A data structure used to describe a metric value.
+
+    Mainly used to compose the final "name" or "path" of a metric.
+
+    For the moment, this class should be considered an internal utility. Use it
+    at your own risk!
+    """
+
+    def __init__(
+            self,
+            *,
+            metric_name: str,
+            metric_value: Union[MetricType, AlternativeValues],
+            phase_name: str,
+            stream_name: Optional[str],
+            experience_id: Optional[int],
+            task_label: Optional[int],
+            plot_position: Optional[int] = None,
+            **other_info):
+        super().__init__()
+        self.metric_name = metric_name
+        """
+        The name of metric, as a string (cannot be None).
+        """
+
+        self.metric_value = metric_value
+        """
+        The metric value name (cannot be None).
+        """
+
+        self.phase_name = phase_name
+        """
+        The phase name, as a str (cannot be None).
+        """
+
+        self.stream_name = stream_name
+        """
+        The stream name, as a str (can be None if stream-agnostic).
+        """
+
+        self.experience_id = experience_id
+        """
+        The experience id, as an int (can be None if experience-agnostic).
+        """
+
+        self.task_label = task_label
+        """
+        The task label, as an int (can be None if task-agnostic).
+        """
+
+        self.plot_position = plot_position
+        """
+        The x position of the value, as an int (cannot be None).
+        """
+        self.other_info = other_info
+        """
+        Additional info for this value, as a dictionary (may be empty).
+        """
+
+
+class _ExtendedGenericPluginMetric(
+        GenericPluginMetric[List[_ExtendedPluginMetricValue]]):
+    """
+    A generified version of :class:`GenericPluginMetric` which supports emitting
+    multiple metrics from a single metric instance.
+    Child classes need to emit metrics via `result()` as a list of
+    :class:`ExtendedPluginMetricValue`.
+    This is in contrast with :class:`GenericPluginMetric`, that expects a
+    simpler dictionary "task_label -> value".
+
+    The resulting metric name will be given by the implementation of the
+    :meth:`metric_value_name` method.
+
+    For the moment, this class should be considered an internal utility. Use it
+    at your own risk!
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Creates an instance of an extended :class:`GenericPluginMetric`.
+
+        :param args: The positional arguments to be passed to the
+            :class:`GenericPluginMetric` constructor.
+
+        :param kwargs: The named arguments to be passed to the
+            :class:`GenericPluginMetric` constructor.
+        """
+        super().__init__(*args, **kwargs)
+
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        emitted_values = self.result(strategy)
+        default_plot_x_position = strategy.clock.train_iterations
+
+        metrics = []
+        for m_value in emitted_values:
+            if not isinstance(m_value, _ExtendedPluginMetricValue):
+                raise RuntimeError(
+                    'Emitted a value that is not of type '
+                    'ExtendedPluginMetricValue'
+                )
+
+            m_name = self.metric_value_name(m_value)
+            x_pos = m_value.plot_position
+            if x_pos is None:
+                x_pos = default_plot_x_position
+            metrics.append(
+                MetricValue(self, m_name, m_value.metric_value, x_pos)
+            )
+
+        return metrics
+
+    def result(self, strategy) -> List[_ExtendedPluginMetricValue]:
+        return self._metric.result()
+
+    def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
+        return generic_get_metric_name(
+            default_metric_name_template,
+            vars(m_value)
+        )
+
+
+__all__ = [
+    "Metric",
+    "PluginMetric",
+    "GenericPluginMetric",
+    "_ExtendedPluginMetricValue",
+    "_ExtendedGenericPluginMetric"
+]
