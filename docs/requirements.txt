@@ -13,6 +13,7 @@ pycocotools
 tqdm
 torch
 torchvision
+torchaudio
 torchmetrics
 gdown
 lvis
