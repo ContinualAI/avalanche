@@ -17,27 +17,32 @@ lr = 1e-3
 mfcc = False  # WARNING: Enabling MFCC greatly slows down the runtime execution
 
 if mfcc:
-    fcc_preprocess = torchaudio.transforms.MFCC(sample_rate=16000, n_mfcc=40,
-                                                melkwargs={"n_mels": 50, "hop_length": 10})
+    fcc_preprocess = torchaudio.transforms.MFCC(
+        sample_rate=16000, n_mfcc=40,
+        melkwargs={"n_mels": 50, "hop_length": 10})
 else:
     mfcc_preprocess = None
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-train_ds = SpeechCommands(subset='training', mfcc_preprocessing=mfcc_preprocess)
-test_ds = SpeechCommands(subset='testing', mfcc_preprocessing=mfcc_preprocess)  # you may also use "validation"
+train_ds = SpeechCommands(subset='training',
+                          mfcc_preprocessing=mfcc_preprocess)
+test_ds = SpeechCommands(subset='testing',  # you may also use "validation"
+                         mfcc_preprocessing=mfcc_preprocess)
 
 benchmark = nc_benchmark(train_dataset=train_ds, test_dataset=test_ds,
                          shuffle=True,
                          train_transform=None, eval_transform=None,
                          n_experiences=n_exp, task_labels=False)
 
+classes_in_experience = [benchmark.classes_in_experience['train'][i]
+                         for i in range(benchmark.n_experiences)]
 print(f"Number of training experiences: {len(benchmark.train_stream)}")
 print(f"Number of test experiences: {len(benchmark.test_stream)}")
 print(f"Number of classes: {benchmark.n_classes}")
 print(f"Classes per experience: "
-      f"{[benchmark.classes_in_experience['train'][i] for i in range(benchmark.n_experiences)]}")
+      f"{classes_in_experience}")
 
 input_size = 1 if mfcc_preprocess is None else mfcc_preprocess.n_mfcc
 model = avl.models.SimpleSequenceClassifier(input_size=input_size,
@@ -47,8 +52,10 @@ criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
 eval_plugin = avl.training.plugins.EvaluationPlugin(
-    avl.evaluation.metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
-    avl.evaluation.metrics.loss_metrics(epoch=True, experience=True, stream=True),
+    avl.evaluation.metrics.accuracy_metrics(epoch=True,
+                                            experience=True, stream=True),
+    avl.evaluation.metrics.loss_metrics(epoch=True,
+                                        experience=True, stream=True),
     loggers=[avl.logging.InteractiveLogger()], benchmark=benchmark
 )
 
