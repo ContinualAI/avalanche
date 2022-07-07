@@ -67,13 +67,11 @@ def detection_collate_mbatches_fn(mbatches):
     return lists
 
 
-def collate_from_data_or_kwargs(data, kwargs, otherwise=None):
+def collate_from_data_or_kwargs(data, kwargs):
     if "collate_fn" in kwargs:
-        return kwargs["collate_fn"]
+        return
     elif hasattr(data, "collate_fn"):
-        return data.collate_fn
-    else:
-        return otherwise
+        kwargs["collate_fn"] = data.collate_fn
 
 
 class TaskBalancedDataLoader:
@@ -184,10 +182,9 @@ class GroupBalancedDataLoader:
             if remaining > 0:
                 bs += 1
                 remaining -= 1
-            collate_fn = collate_from_data_or_kwargs(data, kwargs)
+            collate_from_data_or_kwargs(data, kwargs)
             self.dataloaders.append(DataLoader(
-                data, batch_size=bs, collate_fn=collate_fn,
-                **{k: v for k, v in kwargs.items() if k != "collate_fn"}))
+                data, batch_size=bs, **kwargs))
         self.max_len = max([len(d) for d in self.dataloaders])
 
     def __iter__(self):
@@ -260,11 +257,9 @@ class GroupBalancedInfiniteDataLoader:
             infinite_sampler = RandomSampler(
                 data, replacement=True, num_samples=10 ** 10
             )
-            collate_fn = collate_from_data_or_kwargs(data, kwargs)
+            collate_from_data_or_kwargs(data, kwargs)
             dl = DataLoader(data, sampler=infinite_sampler,
-                            collate_fn=collate_fn,
-                            **{k: v for k, v in kwargs.items()
-                               if k != "collate_fn"})
+                            **kwargs)
             self.dataloaders.append(dl)
         self.max_len = 10 ** 10
 
@@ -452,19 +447,16 @@ class ReplayDataLoader:
                 if remaining_example > 0:
                     current_batch_size += 1
                     remaining_example -= 1
-                collate_fn = collate_from_data_or_kwargs(data, kwargs)
+                collate_from_data_or_kwargs(data, kwargs)
                 loaders_dict[task_id] = DataLoader(
                     data, batch_size=current_batch_size,
-                    collate_fn=collate_fn,
-                    **{k: v for k, v in kwargs.items() if k != "collate_fn"}
+                    **kwargs
                 )
         else:
-            collate_fn = collate_from_data_or_kwargs(data_dict, kwargs)
+            collate_from_data_or_kwargs(data_dict, kwargs)
             loaders_dict[0] = DataLoader(
                 data_dict, batch_size=single_exp_batch_size,
-                collate_fn=collate_fn,
-                **{k: v for k, v in kwargs.items()
-                   if k != "collate_fn"}
+                **kwargs
             )
 
         return loaders_dict, remaining_example

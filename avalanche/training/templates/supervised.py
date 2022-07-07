@@ -246,16 +246,14 @@ class SupervisedTemplate(BaseSGDTemplate):
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
 
-        collate_fn = collate_from_data_or_kwargs(self.adapted_dataset,
-                                                 other_dataloader_args)
+        collate_from_data_or_kwargs(self.adapted_dataset,
+                                    other_dataloader_args)
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
-            collate_fn=collate_fn,
-            **{k: v for k, v in other_dataloader_args.items()
-               if k != "collate_fn"}
+            **other_dataloader_args
         )
 
     def forward(self):

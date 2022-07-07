@@ -1663,7 +1663,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co, TTargetType]):
 
         for dataset in datasets:
             if first_collate_fn is None and hasattr(dataset, "collate_fn"):
-                first_collate_fn = getattr(dataset, "collate_fn", None)
+                first_collate_fn = getattr(dataset, "collate_fn")
 
         if collate_fn is None:
             collate_fn = first_collate_fn
