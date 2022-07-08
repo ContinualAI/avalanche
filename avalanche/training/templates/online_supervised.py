@@ -11,7 +11,7 @@ from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.plugins import SupervisedPlugin
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base_online_sgd import BaseOnlineSGDTemplate
 from avalanche.training.utils import trigger_plugins
 from avalanche.benchmarks.scenarios import OnlineCLExperience

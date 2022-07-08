@@ -25,7 +25,7 @@ from avalanche.training.utils import (
     examples_per_class,
     LayerAndParameter,
 )
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 
 
 class AR1(SupervisedTemplate):

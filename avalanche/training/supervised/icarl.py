@@ -13,7 +13,7 @@ from math import ceil
 
 from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module

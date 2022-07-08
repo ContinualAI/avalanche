@@ -23,7 +23,7 @@ from avalanche.benchmarks.utils.data_loader import (
 )
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 
 

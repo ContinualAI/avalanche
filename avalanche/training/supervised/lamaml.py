@@ -16,7 +16,7 @@ except ImportError:
 import math
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.models.utils import avalanche_forward
 

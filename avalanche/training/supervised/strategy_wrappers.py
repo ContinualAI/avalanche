@@ -14,7 +14,7 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
 from avalanche.models.pnn import PNN
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
     SupervisedPlugin,
     CWRStarPlugin,

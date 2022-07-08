@@ -5,7 +5,7 @@ from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
 

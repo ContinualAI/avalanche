@@ -16,7 +16,7 @@ from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_evaluator()
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
