@@ -20,9 +20,64 @@ from avalanche.evaluation.metric_utils import phase_and_task
 from collections import defaultdict
 
 
-class Loss(Metric[float]):
+class LossMetric(Metric[float]):
+    """Loss Metric.
+
+    Instances of this metric keep the running average loss
+    over multiple <prediction, target> pairs of Tensors,
+    provided incrementally.
+
+    Each time `result` is called, this metric emits the average loss
+    across all predictions made since the last `reset`.
+
+    The reset method will bring the metric to its initial state. By default
+    this metric in its initial state will return a loss value of 0.
     """
-    The standalone Loss metric. This is a general metric
+
+    def __init__(self):
+        """
+        Creates an instance of the loss metric.
+
+        By default this metric in its initial state will return a loss
+        value of 0. The metric can be updated by using the `update` method
+        while the running loss can be retrieved using the `result` method.
+        """
+        self._mean_loss = Mean()
+        """
+        The mean utility that will be used to store the running accuracy
+        for each task label.
+        """
+
+    @torch.no_grad()
+    def update(self, loss: Tensor, patterns: int) -> None:
+        """Update the running loss.
+
+        :param loss: The loss Tensor. Different reduction types don't affect
+            the result.
+        :param patterns: The number of patterns in the minibatch.
+        :return: None.
+        """
+        self._mean_loss.update(torch.mean(loss), weight=patterns)
+
+    def result(self) -> float:
+        """Retuns the running average loss per pattern.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: The running loss, as a float.
+        """
+        return self._mean_loss.result()
+
+    def reset(self) -> None:
+        """Resets the metric.
+
+        :return: None.
+        """
+        self._mean_loss.reset()
+
+
+class TaskAwareLoss(Metric[float]):
+    """The standalone Loss metric. This is a general metric
     used to compute more specific ones.
 
     Instances of this metric keeps the running average loss
@@ -96,40 +151,29 @@ class Loss(Metric[float]):
 
 
 class LossPluginMetric(GenericPluginMetric[float]):
-    def __init__(self, reset_at, emit_at, mode):
-        self._loss = Loss()
+    def __init__(self, reset_at, emit_at, mode, split_by_task=False):
+        self.split_by_task = split_by_task
+        if self.split_by_task:
+            self._loss = TaskAwareLoss()
+        else:
+            self._loss = LossMetric()
         super(LossPluginMetric, self).__init__(
             self._loss, reset_at, emit_at, mode
         )
 
     def reset(self, strategy=None) -> None:
-        if self._reset_at == "stream" or strategy is None:
-            self._metric.reset()
-        else:
-            self._metric.reset(phase_and_task(strategy)[1])
+        self._metric.reset()
 
     def result(self, strategy=None) -> float:
-        if self._emit_at == "stream" or strategy is None:
-            return self._metric.result()
-        else:
-            return self._metric.result(phase_and_task(strategy)[1])
+        return self._metric.result()
 
     def update(self, strategy):
-        # task labels defined for each experience
-        if hasattr(strategy.experience, "task_labels"):
-            task_labels = strategy.experience.task_labels
+        if self.split_by_task:
+            self._loss.update(loss=strategy.loss,
+                              patterns=len(strategy.mb_y),
+                              task_label=strategy.mb_task_id)
         else:
-            task_labels = [0]  # add fixed task label if not available.
-
-        if len(task_labels) > 1:
-            # task labels defined for each pattern
-            # fall back to single task case
-            task_label = 0
-        else:
-            task_label = task_labels[0]
-        self._loss.update(
-            strategy.loss, patterns=len(strategy.mb_y), task_label=task_label
-        )
+            self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
 
 
 class MinibatchLoss(LossPluginMetric):
@@ -288,7 +332,7 @@ def loss_metrics(
 
 
 __all__ = [
-    "Loss",
+    "TaskAwareLoss",
     "MinibatchLoss",
     "EpochLoss",
     "RunningEpochLoss",

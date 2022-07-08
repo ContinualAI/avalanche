@@ -215,26 +215,27 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
         :param mode:
         :param split_by_task: whether to compute task-aware accuracy or not.
         """
-        self._accuracy = TaskAwareAccuracy()
+        self.split_by_task = split_by_task
+        if self.split_by_task:
+            self._accuracy = TaskAwareAccuracy()
+        else:
+            self._accuracy = Accuracy()
         super(AccuracyPluginMetric, self).__init__(
             self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def reset(self, strategy=None) -> None:
-        if self._reset_at == "stream" or strategy is None:
-            self._metric.reset()
-        else:
-            self._metric.reset(phase_and_task(strategy)[1])
+        self._metric.reset()
 
     def result(self, strategy=None) -> float:
-        if self._emit_at == "stream" or strategy is None:
-            return self._metric.result()
-        else:
-            return self._metric.result(phase_and_task(strategy)[1])
+        return self._metric.result()
 
     def update(self, strategy):
         if isinstance(self._accuracy, Accuracy):
-            pass
+            self._accuracy.update(
+                strategy.mb_output,
+                strategy.mb_y
+            )
         elif isinstance(self._accuracy, TaskAwareAccuracy):
             self._accuracy.update(
                 strategy.mb_output,

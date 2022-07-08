@@ -408,6 +408,10 @@ class GenerativeReplay(SupervisedTemplate):
         )
 
 
+def get_default_vae_logger():
+    return EvaluationPlugin(loggers=[InteractiveLogger()])
+
+
 class VAETraining(SupervisedTemplate):
     """VAETraining class
 
@@ -431,10 +435,7 @@ class VAETraining(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = EvaluationPlugin(
-            loggers=[InteractiveLogger()],
-            suppress_warnings=True,
-        ),
+        evaluator: EvaluationPlugin = get_default_vae_logger(),
         eval_every=-1,
         **base_kwargs
     ):

@@ -9,7 +9,7 @@ from avalanche.evaluation.metrics import (
     AverageMeanClassAccuracy,
     MultiStreamAMCA,
     ClassAccuracy,
-    Loss,
+    TaskAwareLoss,
     ConfusionMatrix,
     DiskUsage,
     MAC,
@@ -574,7 +574,7 @@ class GeneralMetricTests(unittest.TestCase):
         })
 
     def test_loss(self):
-        metric = Loss()
+        metric = TaskAwareLoss()
         self.assertEqual(metric.result(0)[0], 0)
         metric.update(torch.tensor(1.0), self.batch_size, 0)
         self.assertGreaterEqual(metric.result(0)[0], 0)
@@ -582,7 +582,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertEqual(metric.result(), {})
 
     def test_loss_multi_task(self):
-        metric = Loss()
+        metric = TaskAwareLoss()
         self.assertEqual(metric.result(), {})
         metric.update(torch.tensor(1.0), 1, 0)
         metric.update(torch.tensor(2.0), 1, 1)
