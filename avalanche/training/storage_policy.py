@@ -489,10 +489,12 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
         self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         self.feature_extractor.eval()
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         features = cat(
             [
                 self.feature_extractor(x.to(strategy.device))
-                for x, *_ in DataLoader(data, batch_size=strategy.eval_mb_size)
+                for x, *_ in DataLoader(data, collate_fn=collate_fn,
+                                        batch_size=strategy.eval_mb_size)
             ]
         )
         return self.make_sorted_indices_from_features(features)
