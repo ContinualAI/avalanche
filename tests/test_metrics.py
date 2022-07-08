@@ -5,7 +5,7 @@ import unittest
 import torch
 
 from avalanche.evaluation.metrics import (
-    Accuracy,
+    TaskAwareAccuracy,
     AverageMeanClassAccuracy,
     MultiStreamAMCA,
     ClassAccuracy,
@@ -42,7 +42,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.task_labels = torch.randint(0, self.n_tasks, (self.batch_size,))
 
     def test_accuracy(self):
-        metric = Accuracy()
+        metric = TaskAwareAccuracy()
         self.assertEqual(metric.result(), {})
         metric.update(self.out, self.y, 0)
         self.assertLessEqual(metric.result(0)[0], 1)
@@ -51,7 +51,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertEqual(metric.result(), {})
 
     def test_accuracy_task_per_pattern(self):
-        metric = Accuracy()
+        metric = TaskAwareAccuracy()
         self.assertEqual(metric.result(), {})
         metric.update(self.out, self.y, self.task_labels)
         out = metric.result()

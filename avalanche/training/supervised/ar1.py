@@ -283,7 +283,9 @@ class AR1(SupervisedTemplate):
                     * self.replay_mb_size
                 ]
                 lat_mb_y = lat_mb_y.to(self.device)
+                lat_task_id = torch.zeros(lat_mb_y.shape[0]).to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
+                self.mbatch[2] = torch.cat((self.mb_task_id, lat_task_id), 0)
             else:
                 lat_mb_x = None
 

@@ -31,7 +31,7 @@ from torchvision.transforms import (
 from avalanche.models import LeNet5, SlimResNet18
 from ..datasets import default_dataset_location
 from ..utils import Compose, AvalancheConcatDataset
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 from . import SplitCIFAR10, CORe50, SplitMNIST
 from avalanche.benchmarks import ExModelCLScenario, nc_benchmark
 import copy
@@ -85,7 +85,7 @@ def check_experts_accuracy(exml_benchmark):
     for i, exp in enumerate(exml_benchmark.expert_models_stream):
         model = exp.expert_model
         model.to("cuda")
-        acc = Accuracy()
+        acc = TaskAwareAccuracy()
 
         train_data = exml_benchmark.original_benchmark.train_stream[i].dataset
         for x, y, t in DataLoader(

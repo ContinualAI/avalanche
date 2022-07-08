@@ -13,7 +13,7 @@ arXiv preprint arXiv:2112.06511.
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks import ExMLMNIST
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 
 if __name__ == "__main__":
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         # overfitted their own experience.
 
         model.to("cuda")
-        acc = Accuracy()
+        acc = TaskAwareAccuracy()
 
         train_data = exml_benchmark.original_benchmark.train_stream[i].dataset
         for x, y, t in DataLoader(
