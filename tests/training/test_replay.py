@@ -9,7 +9,6 @@ from torch.optim import SGD
 
 from avalanche.benchmarks.utils import (
     AvalancheDataset,
-    AvalancheDatasetType,
     AvalancheTensorDataset,
 )
 from avalanche.models import SimpleMLP
@@ -137,8 +136,7 @@ class SelectionStrategyTest(unittest.TestCase):
         # Center is [3]
         dataset = AvalancheTensorDataset(
             tensor([0, -4, 5]).float(),
-            zeros(3),
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            zeros(3)
         )
         strategy = MagicMock(device="cpu", eval_mb_size=8)
 

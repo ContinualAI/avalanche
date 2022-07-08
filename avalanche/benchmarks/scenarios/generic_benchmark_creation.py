@@ -35,7 +35,6 @@ from avalanche.benchmarks.utils import (
     common_paths_root,
 )
 from .classification_scenario import GenericCLScenario
-from ..utils.avalanche_dataset import AvalancheDatasetType
 
 
 def create_multi_dataset_generic_benchmark(
@@ -48,8 +47,7 @@ def create_multi_dataset_generic_benchmark(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-    dataset_type: AvalancheDatasetType = None
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None
 ) -> GenericCLScenario:
     """
     Creates a benchmark instance given a list of datasets. Each dataset will be
@@ -100,10 +98,6 @@ def create_multi_dataset_generic_benchmark(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
-    :param dataset_type: The type of the dataset. Defaults to None, which
-        means that the type will be obtained from the input datasets. If input
-        datasets are not instances of :class:`AvalancheDataset`, the type
-        UNDEFINED will be used.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -151,8 +145,7 @@ def create_multi_dataset_generic_benchmark(
                 AvalancheDataset(
                     dataset,
                     transform_groups=transform_groups,
-                    initial_transform_group=initial_transform_group,
-                    dataset_type=dataset_type,
+                    initial_transform_group=initial_transform_group
                 )
             )
         stream_definitions[stream_name] = (stream_datasets,)
@@ -164,7 +157,7 @@ def create_multi_dataset_generic_benchmark(
 
 
 def _adapt_lazy_stream(
-    generator, transform_groups, initial_transform_group, dataset_type
+    generator, transform_groups, initial_transform_group
 ):
     """
     A simple internal utility to apply transforms and dataset type to all lazily
@@ -179,8 +172,7 @@ def _adapt_lazy_stream(
         dataset = AvalancheDataset(
             dataset,
             transform_groups=transform_groups,
-            initial_transform_group=initial_transform_group,
-            dataset_type=dataset_type,
+            initial_transform_group=initial_transform_group
         )
         yield dataset
 
@@ -236,8 +228,7 @@ def create_lazy_generic_benchmark(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-    dataset_type: AvalancheDatasetType = None
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None
 ) -> GenericCLScenario:
     """
     Creates a lazily-defined benchmark instance given a dataset generator for
@@ -251,8 +242,7 @@ def create_lazy_generic_benchmark(
     stream, it is recommended to use the `train_transform`, `eval_transform`
     and `other_streams_transforms` parameters, so that transformations groups
     can be correctly applied (transformations are lazily added atop the datasets
-    returned by the generators). The same reasoning applies to the
-    `dataset_type` parameter.
+    returned by the generators).
 
     This function allows for the creation of custom streams as well.
     While "train" and "test" streams must be always set, the generators
@@ -298,9 +288,6 @@ def create_lazy_generic_benchmark(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
-    :param dataset_type: The type of the datasets. Defaults to None, which
-        means that the type will be obtained from the input datasets. This
-        type will be applied to all the datasets returned by the generators.
 
     :returns: A lazily-initialized :class:`GenericCLScenario` instance.
     """
@@ -348,8 +335,7 @@ def create_lazy_generic_benchmark(
         adapted_stream_generator = _adapt_lazy_stream(
             generator,
             transform_groups,
-            initial_transform_group=initial_transform_group,
-            dataset_type=dataset_type,
+            initial_transform_group=initial_transform_group
         )
 
         stream_definitions[stream_name] = (
@@ -482,8 +468,7 @@ def create_generic_benchmark_from_filelists(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        other_streams_transforms=other_streams_transforms
     )
 
 
@@ -507,8 +492,7 @@ def create_generic_benchmark_from_paths(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-    dataset_type: AvalancheDatasetType = AvalancheDatasetType.UNDEFINED
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None
 ) -> GenericCLScenario:
     """
     Creates a benchmark instance given a sequence of lists of files. A separate
@@ -580,7 +564,6 @@ def create_generic_benchmark_from_paths(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
-    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -612,8 +595,7 @@ def create_generic_benchmark_from_paths(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms,
-        dataset_type=dataset_type,
+        other_streams_transforms=other_streams_transforms
     )
 
 
@@ -628,8 +610,7 @@ def create_generic_benchmark_from_tensor_lists(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None,
-    dataset_type: AvalancheDatasetType = None
+    other_streams_transforms: Dict[str, Tuple[Any, Any]] = None
 ) -> GenericCLScenario:
     """
     Creates a benchmark instance given lists of Tensors. A separate dataset will
@@ -702,7 +683,6 @@ def create_generic_benchmark_from_tensor_lists(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
-    :param dataset_type: The type of the dataset. Defaults to UNDEFINED.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -720,7 +700,6 @@ def create_generic_benchmark_from_tensor_lists(
             stream_datasets.append(
                 AvalancheTensorDataset(
                     *exp_tensors,
-                    dataset_type=dataset_type,
                     task_labels=task_labels[exp_id]
                 )
             )
@@ -736,8 +715,7 @@ def create_generic_benchmark_from_tensor_lists(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms,
-        dataset_type=dataset_type,
+        other_streams_transforms=other_streams_transforms
     )
 
 

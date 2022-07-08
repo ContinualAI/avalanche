@@ -49,7 +49,6 @@ from avalanche.benchmarks.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.avalanche_dataset import (
     SupportedDataset,
     AvalancheDataset,
-    AvalancheDatasetType,
     AvalancheSubset,
 )
 
@@ -224,14 +223,14 @@ def nc_benchmark(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        targets_adapter=int
     )
 
     test_dataset = AvalancheDataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        targets_adapter=int
     )
 
     return NCScenario(
@@ -348,14 +347,14 @@ def ni_benchmark(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        targets_adapter=int
     )
 
     seq_test_dataset = AvalancheDataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        targets_adapter=int
     )
 
     return NIScenario(

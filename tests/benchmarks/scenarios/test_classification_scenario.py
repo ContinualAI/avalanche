@@ -10,8 +10,7 @@ from avalanche.benchmarks import (
     GenericCLScenario,
 )
 from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
+    AvalancheTensorDataset
 )
 
 
@@ -515,8 +514,7 @@ class GenericCLScenarioTests(unittest.TestCase):
             AvalancheTensorDataset(
                 tensor_x,
                 tensor_y,
-                task_labels=tensor_t,
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=tensor_t
             )
         )
 
@@ -527,8 +525,7 @@ class GenericCLScenarioTests(unittest.TestCase):
             AvalancheTensorDataset(
                 tensor_x,
                 tensor_y,
-                task_labels=tensor_t,
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=tensor_t
             )
         )
 
@@ -540,8 +537,7 @@ class GenericCLScenarioTests(unittest.TestCase):
             AvalancheTensorDataset(
                 test_x,
                 test_y,
-                task_labels=test_t,
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=test_t
             )
         )
 
@@ -553,8 +549,7 @@ class GenericCLScenarioTests(unittest.TestCase):
             AvalancheTensorDataset(
                 other_x,
                 other_y,
-                task_labels=other_t,
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                task_labels=other_t
             )
         )
 
