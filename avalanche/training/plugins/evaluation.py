@@ -211,10 +211,12 @@ class EvaluationPlugin:
 
 def default_evaluator():
     return EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        accuracy_metrics(minibatch=False, epoch=True,
+                         experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True,
+                     experience=True, stream=True),
         loggers=[InteractiveLogger()]
-)
+    )
 
 
 __all__ = ["EvaluationPlugin", "default_evaluator"]
