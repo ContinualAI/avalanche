@@ -8,7 +8,7 @@ from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 from avalanche.training.templates.base import BaseTemplate, ExpSequence
 
 from typing import TYPE_CHECKING
@@ -47,7 +47,7 @@ class BaseSGDTemplate(BaseTemplate):
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):

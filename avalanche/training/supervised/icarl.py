@@ -13,7 +13,7 @@ from math import ceil
 
 from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module
@@ -41,7 +41,7 @@ class ICaRL(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """Init.

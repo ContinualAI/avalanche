@@ -209,10 +209,11 @@ class EvaluationPlugin:
                 warnings.warn(msgw)
 
 
-default_evaluator = EvaluationPlugin(
-    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loggers=[InteractiveLogger()]
+def default_evaluator():
+    return EvaluationPlugin(
+        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loggers=[InteractiveLogger()]
 )
 
 

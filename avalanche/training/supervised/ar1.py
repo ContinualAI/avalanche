@@ -25,7 +25,7 @@ from avalanche.training.utils import (
     examples_per_class,
     LayerAndParameter,
 )
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 
 
 class AR1(SupervisedTemplate):
@@ -60,7 +60,7 @@ class AR1(SupervisedTemplate):
         eval_mb_size: int = 128,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """

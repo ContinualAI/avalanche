@@ -13,7 +13,7 @@ from typing import Optional, Sequence, List, Union
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates.online_supervised import (
     OnlineSupervisedTemplate,
@@ -42,7 +42,7 @@ class OnlineNaive(OnlineSupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """

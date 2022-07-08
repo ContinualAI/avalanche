@@ -11,7 +11,7 @@ from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.plugins import SupervisedPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 from avalanche.training.templates.base_sgd import BaseSGDTemplate
 from avalanche.training.utils import trigger_plugins
 
@@ -75,7 +75,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):

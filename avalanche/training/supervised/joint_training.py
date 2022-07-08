@@ -16,7 +16,7 @@ from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
 from avalanche.benchmarks.utils import AvalancheConcatDataset
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import default_evaluator()
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
 
@@ -53,7 +53,7 @@ class JointTraining(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
     ):
         """Init.
