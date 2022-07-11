@@ -21,6 +21,7 @@ from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
+from .data_attribute import DataAttribute
 from .dataset_utils import (
     find_list_from_index,
 )
@@ -80,6 +81,7 @@ class AvalancheDataset(Dataset[T_co]):
         self,
         dataset: IDataset,
         *,
+        data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
@@ -94,6 +96,13 @@ class AvalancheDataset(Dataset[T_co]):
         """
         The original dataset.
         """
+
+        if data_attributes is None:
+            self._data_attributes = []
+        else:
+            self._data_attributes = data_attributes
+        for el in self._data_attributes:
+            setattr(self, el.name, el)
 
         self.transform_groups = transform_groups
         self.collate_fn = collate_fn
@@ -116,7 +125,8 @@ class AvalancheDataset(Dataset[T_co]):
         element = self._dataset[idx]
         if self.transform_groups is not None:
             element = self.transform_groups(element)
-        return element
+        atrs = [at[idx] for at in self._data_attributes]
+        return *element, *atrs
 
     def __len__(self):
         return len(self._dataset)
@@ -268,7 +278,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
     def __getitem__(self, idx: int):
         # same logic as pytorch's ConcatDataset to get item's index
         element = ConcatDataset.__getitem__(self, idx)
-        element = self.transform_groups(element)
+        if self.transform_groups is not None:
+            element = self.transform_groups(element)
         return element
 
     def _clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:

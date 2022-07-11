@@ -43,7 +43,8 @@ import random
 import numpy as np
 
 from avalanche.benchmarks.utils import FrozenTransformGroups
-from tests.unit_tests_utils import load_image_benchmark
+from avalanche.benchmarks.utils.data_attribute import DataAttribute, TaskLabels
+from tests.unit_tests_utils import load_image_benchmark, load_tensor_benchmark
 
 
 def pil_images_equal(img_a, img_b):
@@ -56,6 +57,10 @@ def zero_if_label_2(img_tensor: Tensor, class_label):
         torch.full(img_tensor.shape, 0.0, out=img_tensor)
 
     return img_tensor, class_label
+
+
+class FrozenTransformGroupsCenterCrop:
+    pass
 
 
 class AvalancheDatasetTests(unittest.TestCase):
@@ -105,18 +110,25 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_add(self):
         dataset_mnist = load_image_benchmark()
+        tgs = FrozenTransformGroups((CenterCrop(16), None))
+        dataset_mnist = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
+        taskl = TaskLabels(ConstantSequence(0, len(dataset_mnist)))
         tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
-        dataset1 = AvalancheDataset(dataset_mnist, transform_groups=tgs)
-
-        dataset2 = AvalancheClassificationDataset(
+        dataset1 = AvalancheDataset(
             dataset_mnist,
-            target_transform=lambda target: -2,
-            task_labels=ConstantSequence(2, len(dataset_mnist)),
-        )
-        # TODO: add task labels
-        dataset3 = dataset1 + dataset2
+            data_attributes=[taskl],
+            transform_groups=tgs)
 
+        taskl = TaskLabels(ConstantSequence(2, len(dataset_mnist)))
+        tgs = FrozenTransformGroups((None, lambda target: -2))
+        dataset2 = AvalancheDataset(
+            dataset_mnist,
+            data_attributes=[taskl],
+            transform_groups=tgs
+        )
+
+        dataset3 = dataset1 + dataset2
         self.assertEqual(len(dataset_mnist) * 2, len(dataset3))
 
         x1, y1, t1 = dataset1[0]
@@ -141,62 +153,43 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual((y2, t2), (y3_2, t3_2))
         self.assertTrue(pil_images_equal(x2, x3_2))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_radd(self):
-        dataset_mnist = MNIST(
-            expanduser("~") + "/.avalanche/data/mnist/",
-            download=True,
-            transform=CenterCrop(16),
-        )
+        dataset_mnist = load_image_benchmark()
+        tgs = FrozenTransformGroups((CenterCrop(16), None))
+        dataset_mnist = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
-        dataset1 = AvalancheClassificationDataset(
-            dataset_mnist,
-            transform=ToTensor(),
-            target_transform=lambda target: -1,
-        )
+        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
+        dataset1 = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
         dataset2 = dataset_mnist + dataset1
-        self.assertIsInstance(dataset2, AvalancheClassificationDataset)
+        self.assertIsInstance(dataset2, AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 2, len(dataset2))
 
         dataset3 = dataset_mnist + dataset1 + dataset_mnist
-        self.assertIsInstance(dataset3, AvalancheClassificationDataset)
+        self.assertIsInstance(dataset3, AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 3, len(dataset3))
 
         dataset4 = dataset_mnist + dataset_mnist + dataset1
-        self.assertIsInstance(dataset4, AvalancheClassificationDataset)
+        self.assertIsInstance(dataset4, AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
-        dataset_mnist = MNIST(
-            expanduser("~") + "/.avalanche/data/mnist/",
-            download=True,
-            transform=CenterCrop(16),
-        )
-
-        dataset_mnist2 = MNIST(
-            expanduser("~") + "/.avalanche/data/mnist/",
-            download=True,
-            transform=CenterCrop(16),
-        )
-
-        dataset = dataset_mnist + dataset_mnist2
+        dataset_mnist = load_image_benchmark()
+        dataset = dataset_mnist + dataset_mnist
 
         self.assertIsInstance(dataset, ConcatDataset)
-
         self.assertEqual(len(dataset_mnist) * 2, len(dataset))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels(self):
-        dataset_mnist = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
-        )
+        dataset_mnist = load_image_benchmark()
         x, y = dataset_mnist[0]
-        dataset = AvalancheClassificationDataset(
+
+        tgs = FrozenTransformGroups((ToTensor(), None))
+        taskl = TaskLabels([1] * len(dataset_mnist))
+        dataset = AvalancheDataset(
             dataset_mnist,
-            transform=ToTensor(),
-            task_labels=[1] * len(dataset_mnist),
+            transform_groups=tgs,
+            data_attributes=[taskl]
         )
         x2, y2, t2 = dataset[0]
 
@@ -207,54 +200,52 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
-        self.assertListEqual(
-            [1] * len(dataset_mnist), list(dataset.targets_task_labels)
-        )
+        self.assertEqual(len(taskl.uniques), 1)
+        subset_task1 = taskl.task_set[1]
 
-        subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
-        self.assertEqual(len(dataset), len(subset_task1))
+        # TODO
+        # self.assertIsInstance(subset_task1, AvalancheDataset)
+        # self.assertEqual(len(dataset), len(subset_task1))
 
-        with self.assertRaises(KeyError):
-            subset_task0 = dataset.task_set[0]
+        # with self.assertRaises(KeyError):
+        #     subset_task0 = dataset.task_set[0]
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_tensor_task_labels(self):
-        x = torch.rand(32, 10)
-        y = torch.rand(32, 10)
-        t = torch.ones(32)  # Single task
-        dataset = AvalancheTensorClassificationDataset(x, y, targets=1, task_labels=t)
+        data = load_tensor_benchmark()
+        taskl = TaskLabels(torch.ones(32))  # Single task
+        dataset = AvalancheDataset(data, data_attributes=[taskl])
 
-        x2, y2, t2 = dataset[:]
-
-        self.assertIsInstance(x2, Tensor)
-        self.assertIsInstance(y2, Tensor)
-        self.assertIsInstance(t2, Tensor)
-        self.assertTrue(torch.equal(x, x2))
-        self.assertTrue(torch.equal(y, y2))
-        self.assertTrue(torch.equal(t.to(int), t2))
-
-        self.assertListEqual([1] * 32, list(dataset.targets_task_labels))
-
-        # Regression test for #654
-        self.assertEqual(1, len(dataset.task_set))
-
-        subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
-        self.assertEqual(len(dataset), len(subset_task1))
-
-        with self.assertRaises(KeyError):
-            subset_task0 = dataset.task_set[0]
-
-        with self.assertRaises(KeyError):
-            subset_task0 = dataset.task_set[2]
-
-        # Check single instance types
         x2, y2, t2 = dataset[0]
 
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, Tensor)
-        self.assertIsInstance(t2, int)
+        self.assertIsInstance(t2, Tensor)
+        self.assertTrue(torch.equal(data[0][0], x2))
+        self.assertTrue(torch.equal(data[0][1], y2))
+        self.assertTrue(torch.equal(taskl[0].to(int), t2))
+
+        # TODO: check task set
+        # self.assertListEqual([1] * 32, list(dataset.targets_task_labels))
+        #
+        # # Regression test for #654
+        # self.assertEqual(1, len(dataset.task_set))
+        #
+        # subset_task1 = dataset.task_set[1]
+        # self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
+        # self.assertEqual(len(dataset), len(subset_task1))
+        #
+        # with self.assertRaises(KeyError):
+        #     subset_task0 = dataset.task_set[0]
+        #
+        # with self.assertRaises(KeyError):
+        #     subset_task0 = dataset.task_set[2]
+        #
+        # # Check single instance types
+        # x2, y2, t2 = dataset[0]
+        #
+        # self.assertIsInstance(x2, Tensor)
+        # self.assertIsInstance(y2, Tensor)
+        # self.assertIsInstance(t2, int)
 
     @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels_simple_def(self):

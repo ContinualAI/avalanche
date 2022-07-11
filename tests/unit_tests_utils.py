@@ -104,6 +104,13 @@ def load_image_benchmark():
     return image_data
 
 
+def load_tensor_benchmark():
+    """Returns a PyTorch image dataset of 10 classes."""
+    x = torch.rand(32, 10)
+    y = torch.rand(32, 10)
+    return TensorDataset(x, y)
+
+
 def get_fast_benchmark(
     use_task_labels=False, shuffle=True, n_samples_per_class=100
 ):

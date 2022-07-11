@@ -2,14 +2,15 @@ from typing import Union
 
 from torch import Tensor
 
-from benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
 class DataAttribute:
     """Data attributes manage sample-wise information such as task or
     class labels.
     """
-    def __init__(self, info: Union[Tensor, ConstantSequence]):
+    def __init__(self, name: str, info: Union[Tensor, ConstantSequence]):
+        self.name = name
         self.info = info
         self._optimize_sequence()
         self.uniques = set()
@@ -40,3 +41,11 @@ class DataAttribute:
         if isinstance(self.info, list):
             return
         return list(self.info)
+
+    def __getitem__(self, item):
+        return self.info[item]
+
+
+class TaskLabels(DataAttribute):
+    def __init__(self, task_labels):
+        super().__init__('task_labels', task_labels)
