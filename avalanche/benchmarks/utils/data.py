@@ -38,7 +38,7 @@ from typing import (
     Collection,
 )
 
-from .transforms import AvalancheTransform, EmptyTransform
+from .transforms import TransformGroups, EmptyTransformGroups
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -80,7 +80,7 @@ class AvalancheDataset(Dataset[T_co]):
         self,
         dataset: IDataset,
         *,
-        transform_groups: AvalancheTransform = None,
+        transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
         """Creates a ``AvalancheDataset`` instance.
@@ -114,7 +114,8 @@ class AvalancheDataset(Dataset[T_co]):
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
         element = self._dataset[idx]
-        element = self.transform_groups(element)
+        if self.transform_groups is not None:
+            element = self.transform_groups(element)
         return element
 
     def __len__(self):
@@ -189,7 +190,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         dataset: IDataset,
         indices: Sequence[int],
         *,
-        transform_groups: AvalancheTransform = None,
+        transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
         """Creates an ``AvalancheSubset`` instance.
@@ -240,7 +241,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self,
         datasets: Collection[IDataset],
         *,
-        transform_groups: AvalancheTransform = None,
+        transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
         """Creates a ``AvalancheConcatDataset`` instance.
@@ -283,7 +284,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         flattened_list = []
         for dataset in self.datasets:
             if isinstance(dataset, AvalancheConcatDataset):
-                if isinstance(dataset.transform_groups, EmptyTransform):
+                if isinstance(dataset.transform_groups, EmptyTransformGroups):
                     flattened_list.extend(dataset.datasets)
                 else:
                     # Can't flatten as the dataset has custom transformations
@@ -310,7 +311,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
 
         if not isinstance(concat_dataset, AvalancheConcatDataset):
             return [dataset]
-        if not isinstance(concat_dataset.transform_groups, EmptyTransform):
+        if not isinstance(concat_dataset.transform_groups, EmptyTransformGroups):
             return [dataset]
 
         result: List[AvalancheSubset] = []

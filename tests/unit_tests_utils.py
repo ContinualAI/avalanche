@@ -73,6 +73,37 @@ def load_benchmark(use_task_labels=False, fast_test=True):
     return my_nc_benchmark
 
 
+def load_image_data():
+    mnist_train = MNIST(
+        root=expanduser("~") + "/.avalanche/data/mnist/",
+        train=True,
+        download=True,
+        transform=Compose([ToTensor()]),
+    )
+    mnist_test = MNIST(
+        root=expanduser("~") + "/.avalanche/data/mnist/",
+        train=False,
+        download=True,
+        transform=Compose([ToTensor()]),
+    )
+    return mnist_train, mnist_test
+
+
+image_data = None
+
+def load_image_benchmark():
+    """Returns a PyTorch image dataset of 10 classes."""
+    global image_data
+
+    if image_data is None:
+        image_data = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+        )
+    return image_data
+
+
 def get_fast_benchmark(
     use_task_labels=False, shuffle=True, n_samples_per_class=100
 ):

@@ -1,9 +1,9 @@
 from collections import defaultdict
 
-from benchmarks.utils import MultiParamTransform
+from avalanche.benchmarks.utils import MultiParamTransform
 
 
-class AvalancheTransform:
+class TransformGroups:
     """Transformation groups for Avalanche datasets.
 
     AvalancheTransform supports preprocessing and augmentation pipelines for
@@ -33,13 +33,13 @@ class AvalancheTransform:
         self.current_group = group_name
 
 
-class EmptyTransform(AvalancheTransform):
+class EmptyTransformGroups(TransformGroups):
     def __init__(self):
         transform_groups = defaultdict(lambda: None, None)
         super().__init__(transform_groups)
 
 
-class FrozenTransform(AvalancheTransform):
+class FrozenTransformGroups(TransformGroups):
     def __init__(self, transforms):
         transform_groups = defaultdict(lambda: transforms)
         super().__init__(transform_groups)

@@ -1,33 +1,42 @@
-from typing import Union, Dict
+from typing import Union
 
 from torch import Tensor
 
-from benchmarks.utils.data import AvalancheDataset
 from benchmarks.utils.dataset_utils import ConstantSequence
 
 
 class DataAttribute:
     """Data attributes manage sample-wise information such as task or
     class labels.
-
     """
     def __init__(self, info: Union[Tensor, ConstantSequence]):
         self.info = info
         self._optimize_sequence()
-        self._make_task_set_dict()
+        self.uniques = set()
+        self.task_set = dict()
+
+        if len(self.info) == 0:
+            pass
+
+        # init. uniques
+        if isinstance(self.info, ConstantSequence):
+            self.uniques.add(self.info[0])
+        else:
+            for el in self.info:
+                self.uniques.add(el)
+
+        # init. val-to-idx
+        if isinstance(self.info, ConstantSequence):
+            self.task_set = {self.info[0]: range(len(self.info))}
+        else:
+            for i, x in enumerate(self.info):
+                if x not in self.task_set:
+                    self.task_set[x] = []
+                self.task_set[x].append(i)
 
     def _optimize_sequence(self):
         if len(self.info) == 0 or isinstance(self.info, ConstantSequence):
             return
         if isinstance(self.info, list):
             return
-
         return list(self.info)
-
-    def _make_task_set_dict(self) -> Dict[int, "AvalancheDataset"]:
-        task_dict = _TaskSubsetDict()
-        for task_id in sorted(self.tasks_pattern_indices.keys()):
-            task_indices = self.tasks_pattern_indices[task_id]
-            task_dict[task_id] = (self, task_indices)
-
-        return task_dict

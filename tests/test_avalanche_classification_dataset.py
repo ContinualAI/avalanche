@@ -34,7 +34,7 @@ from avalanche.benchmarks.utils import (
     AvalancheClassificationSubset,
     AvalancheConcatClassificationDataset,
     AvalancheTensorClassificationDataset,
-    concat_datasets_sequentially, AvalancheDataset,
+    concat_datasets_sequentially,
 )
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 from avalanche.training.utils import load_all_dataset
@@ -42,12 +42,10 @@ import random
 
 import numpy as np
 
-from avalanche.benchmarks.utils import FrozenTransformGroups
-from tests.unit_tests_utils import load_image_benchmark
-
 
 def pil_images_equal(img_a, img_b):
     diff = ImageChops.difference(img_a, img_b)
+
     return not diff.getbbox()
 
 
@@ -59,62 +57,77 @@ def zero_if_label_2(img_tensor: Tensor, class_label):
 
 
 class AvalancheDatasetTests(unittest.TestCase):
-    def test_mnist_no_transforms(self):
-        """check properties we need from the data for testing."""
-        dataset = load_image_benchmark()
-        x, y = dataset[0]
-        self.assertIsInstance(x, Image)
-        self.assertEqual([x.width, x.height], [28, 28])
-        self.assertIsInstance(y, int)
 
-    def test_avalanche_dataset_transform(self):
-        dataset = load_image_benchmark()
-        x, y = dataset[0]
+    def test_avalanche_dataset_multi_param_transform(self):
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+        )
 
-        dataset = AvalancheDataset(
-            dataset,
-            transform_groups=FrozenTransformGroups((ToTensor(), None)))
-        x2, y2 = dataset[0][0], dataset[0][1]
-        # TODO: check __getitem__ task label
+        ref_instance2_idx = None
+
+        for instance_idx, (_, instance_y) in enumerate(dataset_mnist):
+            if instance_y == 2:
+                ref_instance2_idx = instance_idx
+                break
+
+        self.assertIsNotNone(ref_instance2_idx)
+
+        ref_instance_idx = None
+        for instance_idx, (_, instance_y) in enumerate(dataset_mnist):
+            if instance_y != 2:
+                ref_instance_idx = instance_idx
+                break
+
+        self.assertIsNotNone(ref_instance_idx)
+
+        with self.assertWarns(
+            avalanche.benchmarks.utils.ComposeMaxParamsWarning
+        ):
+            dataset_transform = avalanche.benchmarks.utils.Compose(
+                [ToTensor(), zero_if_label_2]
+            )
+
+        self.assertEqual(1, dataset_transform.min_params)
+        self.assertEqual(2, dataset_transform.max_params)
+
+        x, y = dataset_mnist[ref_instance_idx]
+        dataset = AvalancheClassificationDataset(dataset_mnist, transform=dataset_transform)
+        x2, y2, t2 = dataset[ref_instance_idx]
 
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, int)
-        # TODO: self.assertIsInstance(t2, int)
-        # TODO: self.assertEqual(0, t2)
+        self.assertIsInstance(t2, int)
+        self.assertEqual(0, t2)
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
-    def test_avalanche_dataset_composition(self):
-        dataset_mnist = load_image_benchmark()
-        tgs = FrozenTransformGroups((RandomCrop(16), None))
-        dataset = AvalancheDataset(dataset_mnist, transform_groups=tgs)
+        # Check that the multi-param transform was correctly called
+        x3, y3, _ = dataset[ref_instance2_idx]
 
-        x, y = dataset[0]
-        self.assertIsInstance(x, Image)
-        self.assertEqual([x.width, x.height], [16, 16])
-        self.assertIsInstance(y, int)
-
-        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
-        dataset = AvalancheDataset(dataset, transform_groups=tgs)
-
-        x2, y2 = dataset[0]
-        self.assertIsInstance(x2, Tensor)
-        self.assertEqual(x2.shape, (1, 16, 16))
-        self.assertIsInstance(y2, int)
-        self.assertEqual(y2, -1)
+        self.assertEqual(2, y3)
+        self.assertIsInstance(x3, Tensor)
+        self.assertEqual(0.0, torch.min(x3))
+        self.assertEqual(0.0, torch.max(x3))
 
     def test_avalanche_dataset_add(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            download=True,
+            transform=CenterCrop(16),
+        )
 
-        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
-        dataset1 = AvalancheDataset(dataset_mnist, transform_groups=tgs)
+        dataset1 = AvalancheClassificationDataset(
+            dataset_mnist,
+            transform=ToTensor(),
+            target_transform=lambda target: -1,
+        )
 
         dataset2 = AvalancheClassificationDataset(
             dataset_mnist,
             target_transform=lambda target: -2,
             task_labels=ConstantSequence(2, len(dataset_mnist)),
         )
-        # TODO: add task labels
+
         dataset3 = dataset1 + dataset2
 
         self.assertEqual(len(dataset_mnist) * 2, len(dataset3))
@@ -141,7 +154,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual((y2, t2), (y3_2, t3_2))
         self.assertTrue(pil_images_equal(x2, x3_2))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_radd(self):
         dataset_mnist = MNIST(
             expanduser("~") + "/.avalanche/data/mnist/",
@@ -167,7 +179,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertIsInstance(dataset4, AvalancheClassificationDataset)
         self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
         dataset_mnist = MNIST(
             expanduser("~") + "/.avalanche/data/mnist/",
@@ -187,7 +198,6 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         self.assertEqual(len(dataset_mnist) * 2, len(dataset))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -218,7 +228,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             subset_task0 = dataset.task_set[0]
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_tensor_task_labels(self):
         x = torch.rand(32, 10)
         y = torch.rand(32, 10)
@@ -256,7 +265,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertIsInstance(y2, Tensor)
         self.assertIsInstance(t2, int)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels_simple_def(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -280,7 +288,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             subset_task0 = dataset.task_set[0]
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_mixed_task_labels(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -320,7 +327,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             subset_task11 = dataset.task_set[11]
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_tensor_dataset_task_labels_train(self):
         tr_ds = [
             AvalancheTensorClassificationDataset(
@@ -356,7 +362,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             cl_strategy.train(experience)
         self.assertEqual(len(exp), 3)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_task_labels_inheritance(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -386,7 +391,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             random_task_labels, list(dataset_child.targets_task_labels)
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_tensor_dataset_input(self):
         train_x = torch.rand(500, 3, 28, 28)
         train_y = torch.zeros(500)
@@ -411,7 +415,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(1, y2)
         self.assertEqual(0, t2)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_multiple_outputs_and_float_y(self):
         train_x = torch.rand(500, 3, 28, 28)
         train_y = torch.zeros(500)
@@ -440,7 +443,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(5, z2)
         self.assertEqual(0, t2)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_pytorch_subset(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))
@@ -476,7 +478,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             torch.equal(torch.as_tensor(test_dataset.targets), tensor_y[400:])
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_pytorch_concat_dataset(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_x2 = torch.rand(300, 3, 28, 28)
@@ -512,7 +513,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             )
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_chained_pytorch_concat_dataset(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_x2 = torch.rand(300, 3, 28, 28)
@@ -558,7 +558,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             )
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_chained_pytorch_subsets(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))
@@ -585,7 +584,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             )
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_chained_pytorch_concat_subset_dataset(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_x2 = torch.rand(100, 3, 28, 28)
@@ -620,7 +618,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(0, t)
             self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_chained_pytorch_datasets(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_x2 = torch.rand(100, 3, 28, 28)
@@ -657,7 +654,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(0, t)
             self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_from_chained_pytorch_datasets_task_labels(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_x2 = torch.rand(100, 3, 28, 28)
@@ -706,7 +702,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(int(expected_t), int(t))
             self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_collate_fn(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))
@@ -744,7 +739,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.full((5,), -1, dtype=torch.long), z3))
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
@@ -781,7 +775,6 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         ok_inherited_classification = AvalancheClassificationDataset(classification_dataset)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_concat_dataset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
@@ -849,7 +842,6 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         ok_concat_classification2 = dataset2 + dataset1_classification
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_concat_dataset_recursion(self):
         def gen_random_tensors(n):
             return (
@@ -963,7 +955,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(z7, tensor_z7[0]))
         self.assertEqual(0, t7)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_pytorch_subset_recursion(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -1015,7 +1006,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x6))
         self.assertFalse(pil_images_equal(x2, x5))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_pytorch_subset_recursion_no_indices(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -1039,7 +1029,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_no_indices_transform(self):
         dataset_mnist = MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/", download=True
@@ -1078,7 +1067,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(torch.equal(ToTensor()(x), x4))
         self.assertFalse(torch.equal(ToTensor()(x2), x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_transform(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1117,7 +1105,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_frozen_transform(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1174,7 +1161,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x6))
         self.assertFalse(pil_images_equal(x2, x5))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_modified_transforms(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1217,7 +1203,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_sub_class_mapping(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1251,7 +1236,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_up_class_mapping(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1283,7 +1267,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_recursion_mix_class_mapping(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1321,7 +1304,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_avalanche_subset_concat_stack_overflow(self):
         d_sz = 25
         tensor_x = torch.rand(d_sz, 3, 28, 28)
@@ -1410,7 +1392,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             torch.equal(tensor_t, leaf[d_sz * dataset_hierarchy_depth :][2])
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_concat_datasets_sequentially(self):
         # create list of training datasets
         train = [
@@ -1460,7 +1441,6 @@ class AvalancheDatasetTests(unittest.TestCase):
 
 
 class TransformationSubsetTests(unittest.TestCase):
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_transform(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1475,7 +1455,6 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y, y2)
         self.assertEqual(0, t2)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_composition(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"),
@@ -1501,7 +1480,6 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y2, -1)
         self.assertEqual(0, t2)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_indices(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1520,7 +1498,6 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_mapping(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1541,7 +1518,6 @@ class TransformationSubsetTests(unittest.TestCase):
         _, y2, _ = dataset[1000]
         self.assertEqual(y2, swap_y)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_uniform_task_labels(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1575,7 +1551,6 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y2, y4)
         self.assertEqual(1, t4)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_mixed_task_labels(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1609,7 +1584,6 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(y2, y4)
         self.assertEqual(5, t4)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_task_labels_inheritance(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1641,7 +1615,6 @@ class TransformationSubsetTests(unittest.TestCase):
             list(dataset_child.targets_task_labels),
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_subset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
@@ -1684,7 +1657,6 @@ class TransformationSubsetTests(unittest.TestCase):
 
 
 class TransformationTensorDatasetTests(unittest.TestCase):
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_tensor_dataset_helper_tensor_y(self):
 
         train_exps = [
@@ -1738,7 +1710,6 @@ class TransformationTensorDatasetTests(unittest.TestCase):
             )
             self.assertEqual(0, cl_benchmark.test_stream[exp_id].task_label)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_tensor_dataset_helper_list_y(self):
         train_exps = [
             (torch.rand(50, 32, 32), torch.randint(0, 100, (50,)).tolist())
@@ -1793,7 +1764,6 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
 
 class AvalancheDatasetTransformOpsTests(unittest.TestCase):
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_inherit_groups(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1858,7 +1828,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(y7, int)
         self.assertEqual(y, y7)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_freeze_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1881,7 +1850,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x2, y2, _ = dataset_frozen[0]
         self.assertIsInstance(x2, Tensor)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_freeze_transforms_chain(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"),
@@ -1924,7 +1892,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x2, *_ = dataset_frozen[0]
         self.assertIsInstance(x2, Image)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_add_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1938,7 +1905,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_add_transforms_chain(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1952,7 +1918,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_freeze_add_mix(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1978,7 +1943,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x4, Image)
         self.assertIsInstance(x5, Tensor)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_replace_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2009,7 +1973,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         _, y6, _ = dataset_other[0]
         self.assertEqual(y + 1, y6)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_replace_freeze_mix(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2034,7 +1997,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x5, *_ = dataset_frozen_reset[0]
         self.assertIsInstance(x5, Tensor)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_groups_base_usage(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2070,7 +2032,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x5, Image)
         self.assertIsInstance(y5, int)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_groups_constructor_error(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2109,7 +2070,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
                 original_dataset, transform_groups="Hello world!"
             )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_groups_alternative_default_group(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2130,7 +2090,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Image)
         self.assertIsInstance(x3, Image)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_groups_partial_constructor(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2146,7 +2105,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x2, *_ = dataset[0]
         self.assertIsInstance(x2, Tensor)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_groups_multiple_groups(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2176,7 +2134,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x3, *_ = dataset[0]
         self.assertIsInstance(x3, np.ndarray)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transforms_add_group(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2216,7 +2173,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_other2[0]
         self.assertIsInstance(x4, Tensor)
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transformation_concat_dataset(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -2231,7 +2187,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             len(original_dataset) + len(original_dataset2), len(dataset)
         )
 
-    @unittest.skipIf(True, "Test needs refactoring")
     def test_transformation_concat_dataset_groups(self):
         original_dataset = AvalancheClassificationDataset(
             MNIST(root=default_dataset_location("mnist"), download=True),
