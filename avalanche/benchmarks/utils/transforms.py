@@ -4,6 +4,13 @@ from benchmarks.utils import MultiParamTransform
 
 
 class AvalancheTransform:
+    """Transformation groups for Avalanche datasets.
+
+    AvalancheTransform supports preprocessing and augmentation pipelines for
+    Avalanche datasets. Transfomations are separated into groups (e.g. `train`
+    transforms and `test` transforms), that can be easily switched using the
+    `with_transform` method.
+    """
     def __init__(self,
                  transform_groups,
                  current_group="eval"):

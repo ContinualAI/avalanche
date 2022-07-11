@@ -20,7 +20,7 @@ from avalanche.benchmarks import (
     TStreamsUserDict,
     ClassificationStream,
 )
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 
 TDetectionExperience = TypeVar(
     "TDetectionExperience", bound=GenericClassificationExperience
@@ -107,7 +107,7 @@ class DetectionExperience(ClassificationExperience[TCLScenario, TCLStream]):
         self.benchmark: TCLScenario = origin_stream.benchmark
         self.current_experience: int = current_experience
 
-        self.dataset: AvalancheDataset = (
+        self.dataset: AvalancheClassificationDataset = (
             origin_stream.benchmark.stream_definitions[
                 origin_stream.name
             ].exps_data[current_experience]

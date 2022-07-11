@@ -5,9 +5,9 @@ import torch
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import (
-    AvalancheConcatDataset,
-    AvalancheTensorDataset,
-    AvalancheSubset,
+    AvalancheConcatClassificationDataset,
+    AvalancheTensorClassificationDataset,
+    AvalancheClassificationSubset,
 )
 from math import ceil
 
@@ -143,14 +143,14 @@ class _ICaRLPlugin(SupervisedPlugin):
         self, strategy: "SupervisedTemplate", **kwargs
     ):
         if strategy.clock.train_exp_counter != 0:
-            memory = AvalancheTensorDataset(
+            memory = AvalancheTensorClassificationDataset(
                 torch.cat(self.x_memory).cpu(),
                 list(itertools.chain.from_iterable(self.y_memory)),
                 transform=self.buffer_transform,
                 target_transform=None,
             )
 
-            strategy.adapted_dataset = AvalancheConcatDataset(
+            strategy.adapted_dataset = AvalancheConcatClassificationDataset(
                 (strategy.adapted_dataset, memory)
             )
 
@@ -240,7 +240,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
         for iter_dico in range(nb_cl):
-            cd = AvalancheSubset(
+            cd = AvalancheClassificationSubset(
                 dataset, torch.where(targets == new_classes[iter_dico])[0]
             )
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None

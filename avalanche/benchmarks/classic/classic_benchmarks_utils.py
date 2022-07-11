@@ -1,13 +1,13 @@
 from torchvision.transforms import ToPILImage, ToTensor
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 
 
 def check_vision_benchmark(benchmark_instance, show_without_transforms=True):
     from matplotlib import pyplot as plt
     from torch.utils.data.dataloader import DataLoader
 
-    dataset: AvalancheDataset
+    dataset: AvalancheClassificationDataset
 
     print(
         "The benchmark instance contains",

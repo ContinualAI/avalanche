@@ -19,7 +19,7 @@ except ImportError:
         "You can install it as extra dependency with "
         "`pip install avalanche-lib[extra]`")
 from torchaudio.datasets import SPEECHCOMMANDS
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 from avalanche.benchmarks.datasets import default_dataset_location
 import torch
 
@@ -83,9 +83,9 @@ def SpeechCommands(root=default_dataset_location(''),
                                  subset=subset, url=url,
                                  mfcc_preprocessing=mfcc_preprocessing)
     labels = [datapoint[1] for datapoint in dataset]
-    return AvalancheDataset(dataset,
-                            collate_fn=speech_commands_collate,
-                            targets=labels)
+    return AvalancheClassificationDataset(dataset,
+                                          collate_fn=speech_commands_collate,
+                                          targets=labels)
 
 
 __all__ = ['SpeechCommands']

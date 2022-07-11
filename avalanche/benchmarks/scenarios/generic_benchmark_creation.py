@@ -27,9 +27,9 @@ from typing import (
 )
 
 from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
+    AvalancheTensorClassificationDataset,
     SupportedDataset,
-    AvalancheDataset,
+    AvalancheClassificationDataset,
     FilelistDataset,
     PathsDataset,
     common_paths_root,
@@ -142,7 +142,7 @@ def create_multi_dataset_generic_benchmark(
         for dataset_idx in range(len(dataset_list)):
             dataset = dataset_list[dataset_idx]
             stream_datasets.append(
-                AvalancheDataset(
+                AvalancheClassificationDataset(
                     dataset,
                     transform_groups=transform_groups,
                     initial_transform_group=initial_transform_group
@@ -169,7 +169,7 @@ def _adapt_lazy_stream(
     """
 
     for dataset in generator:
-        dataset = AvalancheDataset(
+        dataset = AvalancheClassificationDataset(
             dataset,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group
@@ -195,7 +195,7 @@ class LazyStreamDefinition(NamedTuple):
       can be used.
     """
 
-    exps_generator: Iterable[AvalancheDataset]
+    exps_generator: Iterable[AvalancheClassificationDataset]
     """
     The experiences generator. Can be a "yield"-based generator, a custom
     sequence, a standard list or any kind of iterable returning
@@ -452,7 +452,7 @@ def create_generic_benchmark_from_filelists(
 
             f_list_dataset = FilelistDataset(root, f_list)
             stream_datasets.append(
-                AvalancheDataset(
+                AvalancheClassificationDataset(
                     f_list_dataset, task_labels=task_labels[exp_id]
                 )
             )
@@ -581,7 +581,7 @@ def create_generic_benchmark_from_paths(
             common_root, exp_paths_list = common_paths_root(list_of_files)
             paths_dataset = PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
-                AvalancheDataset(paths_dataset, task_labels=task_labels[exp_id])
+                AvalancheClassificationDataset(paths_dataset, task_labels=task_labels[exp_id])
             )
 
         stream_definitions[stream_name] = stream_datasets
@@ -698,7 +698,7 @@ def create_generic_benchmark_from_tensor_lists(
         stream_datasets = []
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
-                AvalancheTensorDataset(
+                AvalancheTensorClassificationDataset(
                     *exp_tensors,
                     task_labels=task_labels[exp_id]
                 )

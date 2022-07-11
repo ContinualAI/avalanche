@@ -25,8 +25,8 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
     LazyStreamDefinition,
 )
 from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheTensorDataset
+    AvalancheClassificationDataset,
+    AvalancheTensorClassificationDataset
 )
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
@@ -55,7 +55,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         )
 
     def test_dataset_benchmark_avalanche_dataset(self):
-        train_MNIST = AvalancheDataset(
+        train_MNIST = AvalancheClassificationDataset(
             MNIST(
                 root=default_dataset_location("mnist"),
                 train=True,
@@ -64,7 +64,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=0,
         )
 
-        test_MNIST = AvalancheDataset(
+        test_MNIST = AvalancheClassificationDataset(
             MNIST(
                 root=default_dataset_location("mnist"),
                 train=False,
@@ -73,7 +73,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=0,
         )
 
-        train_cifar10 = AvalancheDataset(
+        train_cifar10 = AvalancheClassificationDataset(
             CIFAR10(
                 root=default_dataset_location("cifar10"),
                 train=True,
@@ -82,7 +82,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=1,
         )
 
-        test_cifar10 = AvalancheDataset(
+        test_cifar10 = AvalancheClassificationDataset(
             CIFAR10(
                 root=default_dataset_location("cifar10"),
                 train=False,
@@ -285,21 +285,21 @@ class HighLevelGeneratorTests(unittest.TestCase):
         # Experience 1
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
-        experience_1_dataset = AvalancheTensorDataset(
+        experience_1_dataset = AvalancheTensorClassificationDataset(
             experience_1_x, experience_1_y
         )
 
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
-        experience_2_dataset = AvalancheTensorDataset(
+        experience_2_dataset = AvalancheTensorClassificationDataset(
             experience_2_x, experience_2_y
         )
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
-        experience_test = AvalancheTensorDataset(test_x, test_y)
+        experience_test = AvalancheTensorClassificationDataset(test_x, test_y)
 
         def train_gen():
             # Lazy generator of the training stream
@@ -588,21 +588,21 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 # Experience 1
                 experience_1_x = torch.zeros(100, *pattern_shape)
                 experience_1_y = torch.zeros(100, dtype=torch.long)
-                experience_1_dataset = AvalancheTensorDataset(
+                experience_1_dataset = AvalancheTensorClassificationDataset(
                     experience_1_x, experience_1_y
                 )
 
                 # Experience 2
                 experience_2_x = torch.zeros(80, *pattern_shape)
                 experience_2_y = torch.ones(80, dtype=torch.long)
-                experience_2_dataset = AvalancheTensorDataset(
+                experience_2_dataset = AvalancheTensorClassificationDataset(
                     experience_2_x, experience_2_y
                 )
 
                 # Test experience
                 test_x = torch.zeros(50, *pattern_shape)
                 test_y = torch.zeros(50, dtype=torch.long)
-                experience_test = AvalancheTensorDataset(test_x, test_y)
+                experience_test = AvalancheTensorClassificationDataset(test_x, test_y)
 
                 def train_gen():
                     # Lazy generator of the training stream

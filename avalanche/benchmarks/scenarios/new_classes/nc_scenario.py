@@ -18,7 +18,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationStream,
     GenericClassificationExperience,
 )
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationSubset, AvalancheClassificationDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 
 
@@ -34,8 +34,8 @@ class NCScenario(GenericCLScenario["NCExperience"]):
 
     def __init__(
         self,
-        train_dataset: AvalancheDataset,
-        test_dataset: AvalancheDataset,
+        train_dataset: AvalancheClassificationDataset,
+        test_dataset: AvalancheClassificationDataset,
         n_experiences: int,
         task_labels: bool,
         shuffle: bool = True,
@@ -415,12 +415,12 @@ class NCScenario(GenericCLScenario["NCExperience"]):
         #     .replace_transforms(*transform_groups['train'], group='train') \
         #     .replace_transforms(*transform_groups['eval'], group='eval')
 
-        train_dataset = AvalancheSubset(
+        train_dataset = AvalancheClassificationSubset(
             train_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="train",
         )
-        test_dataset = AvalancheSubset(
+        test_dataset = AvalancheClassificationSubset(
             test_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="eval",
@@ -447,7 +447,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
-                AvalancheSubset(
+                AvalancheClassificationSubset(
                     train_dataset, indices=exp_def, task_labels=task_labels
                 )
             )
@@ -463,7 +463,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 test_task_labels[-1], len(test_dataset)
             )
             test_experiences.append(
-                AvalancheSubset(
+                AvalancheClassificationSubset(
                     test_dataset, indices=exp_def, task_labels=task_labels
                 )
             )

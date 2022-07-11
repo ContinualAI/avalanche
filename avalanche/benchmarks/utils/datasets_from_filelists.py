@@ -24,7 +24,7 @@ import os.path
 from torch import Tensor
 from torchvision.transforms.functional import crop
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 
 
 def default_image_loader(path):
@@ -253,7 +253,7 @@ def datasets_from_filelists(
         eval=(test_transform, test_target_transform),
     )
     train_inc_datasets = [
-        AvalancheDataset(
+        AvalancheClassificationDataset(
             FilelistDataset(root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
@@ -261,7 +261,7 @@ def datasets_from_filelists(
         for tr_flist in train_filelists
     ]
     test_inc_datasets = [
-        AvalancheDataset(
+        AvalancheClassificationDataset(
             FilelistDataset(root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",
@@ -414,7 +414,7 @@ def datasets_from_paths(
             common_root = None
 
     train_inc_datasets = [
-        AvalancheDataset(
+        AvalancheClassificationDataset(
             PathsDataset(common_root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
@@ -422,7 +422,7 @@ def datasets_from_paths(
         for tr_flist in train_list
     ]
     test_inc_datasets = [
-        AvalancheDataset(
+        AvalancheClassificationDataset(
             PathsDataset(common_root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",

@@ -25,7 +25,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.omniglot import Omniglot
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 import numpy as np
 
 _default_omniglot_train_transform = Compose(
@@ -224,13 +224,13 @@ def PermutedOmniglot(
         )
 
         # Freeze the permutation
-        permuted_train = AvalancheDataset(
+        permuted_train = AvalancheClassificationDataset(
             omniglot_train,
             transform_groups=permutation_transforms,
             initial_transform_group="train",
         ).freeze_transforms()
 
-        permuted_test = AvalancheDataset(
+        permuted_test = AvalancheClassificationDataset(
             omniglot_test,
             transform_groups=permutation_transforms,
             initial_transform_group="eval",
@@ -344,13 +344,13 @@ def RotatedOmniglot(
         )
 
         # Freeze the rotation
-        rotated_train = AvalancheDataset(
+        rotated_train = AvalancheClassificationDataset(
             omniglot_train,
             transform_groups=rotation_transforms,
             initial_transform_group="train",
         ).freeze_transforms()
 
-        rotated_test = AvalancheDataset(
+        rotated_test = AvalancheClassificationDataset(
             omniglot_test,
             transform_groups=rotation_transforms,
             initial_transform_group="eval",

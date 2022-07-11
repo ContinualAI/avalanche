@@ -40,16 +40,15 @@ Avalanche exposes 4 classes of *AvalancheDataset*s which map exactly the 4 *Data
 ## 🛠️ Create an AvalancheDataset
 Given a dataset (like MNIST), an *AvalancheDataset* can be instantiated as follows:
 
-
 ```python
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 from torchvision.datasets import MNIST
 
 # Instantiate the MNIST train dataset from torchvision
 mnist_dataset = MNIST('mnist_data', download=True)
 
 # Create the AvalancheDataset
-mnist_avalanche_dataset = AvalancheDataset(mnist_dataset)
+mnist_avalanche_dataset = AvalancheClassificationDataset(mnist_dataset)
 ```
 
 Just like any other Dataset, a data point can be obtained using the `x, y = dataset[idx]` syntax. **When obtaining a data point from an AvalancheDataset, an additional third value (the task label) will be returned**:
@@ -107,12 +106,11 @@ print(f'x={x}, y={y}, t={t}')
 
 **Instead, it is recommended to use the AvalancheTensorDataset** class to get the same result. In this way, you can just skip one intermediate step.
 
-
 ```python
-from avalanche.benchmarks.utils import AvalancheTensorDataset
+from avalanche.benchmarks.utils import AvalancheTensorClassificationDataset
 
 # Create the tensor dataset
-avl_tensor_dataset = AvalancheTensorDataset(x_data, y_data)
+avl_tensor_dataset = AvalancheTensorClassificationDataset(x_data, y_data)
 
 # Obtain the first instance from the AvalancheTensorDataset
 x, y, t = avl_tensor_dataset[0]
@@ -142,9 +140,8 @@ Regarding the subsetting operation, `AvalancheSubset` behaves in the same way th
 
 Here we create a toy dataset in which each X and Y values are *int*s. We then obtain a subset of it by creating an **AvalancheSubset**:
 
-
 ```python
-from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.benchmarks.utils import AvalancheClassificationSubset
 
 # Define the X values of 10 instances (each instance is an int)
 x_data_toy = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
@@ -156,7 +153,7 @@ y_data_toy = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 # Note: AvalancheSubset can also be applied to PyTorch TensorDataset directly!
 # However, note that PyTorch TensorDataset doesn't support Python lists...
 # ... (it only supports Tensors) while AvalancheTensorDataset does.
-toy_dataset = AvalancheTensorDataset(x_data_toy, y_data_toy) 
+toy_dataset = AvalancheTensorDataset(x_data_toy, y_data_toy)
 
 # Define the indices for the subset
 # Here we want to obtain a subset containing only the data points...
@@ -164,7 +161,7 @@ toy_dataset = AvalancheTensorDataset(x_data_toy, y_data_toy)
 subset_indices = [0, 5, 8, 2]
 
 # Create the subset
-avl_subset = AvalancheSubset(toy_dataset, indices=subset_indices)
+avl_subset = AvalancheClassificationSubset(toy_dataset, indices=subset_indices)
 print('The subset contains', len(avl_subset), 'instances.')
 # Output: "The subset contains 4 instances."
 
@@ -182,9 +179,8 @@ Concatenation is even simpler. Just like with PyTorch *ConcatDataset*, one can e
 
 Both *AvalancheConcatDataset* and PyTorch *ConcatDataset* accept a list of datasets to concatenate.
 
-
 ```python
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
 
 # Define the 2 datasets to be concatenated
 x_data_toy_1 = [50, 51, 52, 53, 54]
@@ -193,11 +189,11 @@ x_data_toy_2 = [60, 61, 62, 63, 64]
 y_data_toy_2 = [20, 21, 22, 23, 24]
 
 # Create the datasets
-toy_dataset_1 = AvalancheTensorDataset(x_data_toy_1, y_data_toy_1) 
-toy_dataset_2 = AvalancheTensorDataset(x_data_toy_2, y_data_toy_2) 
+toy_dataset_1 = AvalancheTensorDataset(x_data_toy_1, y_data_toy_1)
+toy_dataset_2 = AvalancheTensorDataset(x_data_toy_2, y_data_toy_2)
 
 # Create the concat dataset
-avl_concat = AvalancheConcatDataset([toy_dataset_1, toy_dataset_2])
+avl_concat = AvalancheConcatClassificationDataset([toy_dataset_1, toy_dataset_2])
 print('The concat dataset contains', len(avl_concat), 'instances.')
 # Output: "The concat dataset contains 10 instances."
 

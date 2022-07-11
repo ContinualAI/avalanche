@@ -33,9 +33,9 @@ from torch.utils.data import Subset, ConcatDataset
 from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils import (
-    AvalancheSubset,
-    AvalancheConcatDataset,
-    AvalancheDataset,
+    AvalancheClassificationSubset,
+    AvalancheConcatClassificationDataset,
+    AvalancheClassificationDataset,
 )
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
@@ -432,16 +432,16 @@ def get_detection_api_from_dataset(
         recursion_result = get_detection_api_from_dataset(
             dataset.dataset, supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, AvalancheSubset):
+    elif isinstance(dataset, AvalancheClassificationSubset):
         recursion_result = get_detection_api_from_dataset(
             dataset._original_dataset, supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, AvalancheDataset):
+    elif isinstance(dataset, AvalancheClassificationDataset):
         recursion_result = get_detection_api_from_dataset(
             dataset._dataset, supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, (AvalancheConcatDataset, ConcatDataset)):
-        if isinstance(dataset, AvalancheConcatDataset):
+    elif isinstance(dataset, (AvalancheConcatClassificationDataset, ConcatDataset)):
+        if isinstance(dataset, AvalancheConcatClassificationDataset):
             datasets_list = dataset._dataset_list
         else:
             datasets_list = dataset.datasets

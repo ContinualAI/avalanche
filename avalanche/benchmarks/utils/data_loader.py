@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 
 
 def _default_collate_mbatches_fn(mbatches):
@@ -79,7 +79,7 @@ class TaskBalancedDataLoader:
 
     def __init__(
         self,
-        data: AvalancheDataset,
+        data: AvalancheClassificationDataset,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
@@ -138,7 +138,7 @@ class GroupBalancedDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[AvalancheDataset],
+        datasets: Sequence[AvalancheClassificationDataset],
         oversample_small_groups: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
@@ -231,7 +231,7 @@ class GroupBalancedInfiniteDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[AvalancheDataset],
+        datasets: Sequence[AvalancheClassificationDataset],
         collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
     ):
@@ -284,8 +284,8 @@ class ReplayDataLoader:
 
     def __init__(
         self,
-        data: AvalancheDataset,
-        memory: AvalancheDataset = None,
+        data: AvalancheClassificationDataset,
+        memory: AvalancheClassificationDataset = None,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,

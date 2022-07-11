@@ -8,8 +8,8 @@ from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
 
 from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheTensorDataset,
+    AvalancheClassificationDataset,
+    AvalancheTensorClassificationDataset,
 )
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
@@ -134,7 +134,7 @@ class SelectionStrategyTest(unittest.TestCase):
         # When
         # Features are [[0], [4], [5]]
         # Center is [3]
-        dataset = AvalancheTensorDataset(
+        dataset = AvalancheTensorClassificationDataset(
             tensor([0, -4, 5]).float(),
             zeros(3)
         )
@@ -188,6 +188,6 @@ class FixedSelectionStrategy(ExemplarsSelectionStrategy):
         self.indices = indices
 
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheClassificationDataset
     ) -> List[int]:
         return self.indices

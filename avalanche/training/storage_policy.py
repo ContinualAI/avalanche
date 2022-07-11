@@ -9,9 +9,9 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheSubset,
-    AvalancheConcatDataset,
+    AvalancheClassificationDataset,
+    AvalancheClassificationSubset,
+    AvalancheConcatClassificationDataset,
 )
 from avalanche.models import FeatureExtractorBackbone
 
@@ -33,15 +33,15 @@ class ExemplarsBuffer(ABC):
         """
         self.max_size = max_size
         """ Maximum size of the buffer. """
-        self._buffer: AvalancheDataset = AvalancheConcatDataset([])
+        self._buffer: AvalancheClassificationDataset = AvalancheConcatClassificationDataset([])
 
     @property
-    def buffer(self) -> AvalancheDataset:
+    def buffer(self) -> AvalancheClassificationDataset:
         """Buffer of samples."""
         return self._buffer
 
     @buffer.setter
-    def buffer(self, new_buffer: AvalancheDataset):
+    def buffer(self, new_buffer: AvalancheClassificationDataset):
         self._buffer = new_buffer
 
     @abstractmethod
@@ -86,7 +86,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         """Update buffer."""
         self.update_from_dataset(strategy.experience.dataset)
 
-    def update_from_dataset(self, new_data: AvalancheDataset):
+    def update_from_dataset(self, new_data: AvalancheClassificationDataset):
         """Update the buffer using the given dataset.
 
         :param new_data:
@@ -95,11 +95,11 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         new_weights = torch.rand(len(new_data))
 
         cat_weights = torch.cat([new_weights, self._buffer_weights])
-        cat_data = AvalancheConcatDataset([new_data, self.buffer])
+        cat_data = AvalancheConcatClassificationDataset([new_data, self.buffer])
         sorted_weights, sorted_idxs = cat_weights.sort(descending=True)
 
         buffer_idxs = sorted_idxs[: self.max_size]
-        self.buffer = AvalancheSubset(cat_data, buffer_idxs)
+        self.buffer = AvalancheClassificationSubset(cat_data, buffer_idxs)
         self._buffer_weights = sorted_weights[: self.max_size]
 
     def resize(self, strategy, new_size):
@@ -107,7 +107,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         self.max_size = new_size
         if len(self.buffer) <= self.max_size:
             return
-        self.buffer = AvalancheSubset(self.buffer, torch.arange(self.max_size))
+        self.buffer = AvalancheClassificationSubset(self.buffer, torch.arange(self.max_size))
         self._buffer_weights = self._buffer_weights[: self.max_size]
 
 
@@ -172,7 +172,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
 
     @property
     def buffer(self):
-        return AvalancheConcatDataset(
+        return AvalancheConcatClassificationDataset(
             [g.buffer for g in self.buffer_groups.values()]
         )
 
@@ -283,7 +283,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         # Make AvalancheSubset per class
         cl_datasets = {}
         for c, c_idxs in cl_idxs.items():
-            cl_datasets[c] = AvalancheSubset(new_data, indices=c_idxs)
+            cl_datasets[c] = AvalancheClassificationSubset(new_data, indices=c_idxs)
 
         # Update seen classes
         self.seen_classes.update(cl_datasets.keys())
@@ -397,7 +397,7 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         # Make AvalancheSubset per class
         new_groups = {}
         for c, c_idxs in class_idxs.items():
-            new_groups[c] = AvalancheSubset(data, indices=c_idxs)
+            new_groups[c] = AvalancheClassificationSubset(data, indices=c_idxs)
         return new_groups
 
     def _split_by_experience(self, strategy, data):
@@ -439,7 +439,7 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         self.update_from_dataset(strategy, new_data)
 
     def update_from_dataset(self, strategy, new_data):
-        self.buffer = AvalancheConcatDataset([self.buffer, new_data])
+        self.buffer = AvalancheConcatClassificationDataset([self.buffer, new_data])
         self.resize(strategy, self.max_size)
 
     def resize(self, strategy, new_size: int):
@@ -447,7 +447,7 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         idxs = self.selection_strategy.make_sorted_indices(
             strategy=strategy, data=self.buffer
         )
-        self.buffer = AvalancheSubset(self.buffer, idxs[: self.max_size])
+        self.buffer = AvalancheClassificationSubset(self.buffer, idxs[: self.max_size])
 
 
 class ExemplarsSelectionStrategy(ABC):
@@ -457,7 +457,7 @@ class ExemplarsSelectionStrategy(ABC):
 
     @abstractmethod
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheClassificationDataset
     ) -> List[int]:
         """
         Should return the sorted list of indices to keep as exemplars.
@@ -471,7 +471,7 @@ class RandomExemplarsSelectionStrategy(ExemplarsSelectionStrategy):
     """Select the exemplars at random in the dataset"""
 
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheClassificationDataset
     ) -> List[int]:
         indices = list(range(len(data)))
         random.shuffle(indices)
@@ -486,7 +486,7 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
 
     @torch.no_grad()
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: AvalancheDataset
+        self, strategy: "SupervisedTemplate", data: AvalancheClassificationDataset
     ) -> List[int]:
         self.feature_extractor.eval()
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None

@@ -19,7 +19,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.supervised import Naive
@@ -60,7 +60,7 @@ class DataLoaderTests(unittest.TestCase):
     def test_basic(self):
         benchmark = get_fast_benchmark()
         ds = [el.dataset for el in benchmark.train_stream]
-        data = AvalancheConcatDataset(ds)
+        data = AvalancheConcatClassificationDataset(ds)
         dl = TaskBalancedDataLoader(data)
         for el in dl:
             pass

@@ -20,10 +20,10 @@ from typing import Sequence, Union, SupportsInt, Any, Tuple
 from torch import Tensor
 
 from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
+    AvalancheTensorClassificationDataset,
     SupportedDataset,
     datasets_from_paths,
-    AvalancheDataset,
+    AvalancheClassificationDataset,
 )
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .classification_scenario import GenericCLScenario
@@ -120,7 +120,7 @@ def create_multi_dataset_generic_scenario(
     for dataset_idx in range(len(train_dataset_list)):
         dataset = train_dataset_list[dataset_idx]
         train_t_labels.append(task_labels[dataset_idx])
-        train_dataset_list[dataset_idx] = AvalancheDataset(
+        train_dataset_list[dataset_idx] = AvalancheClassificationDataset(
             dataset,
             task_labels=ConstantSequence(
                 task_labels[dataset_idx], len(dataset)
@@ -140,7 +140,7 @@ def create_multi_dataset_generic_scenario(
 
         test_t_labels.append(test_t_label)
 
-        test_dataset_list[dataset_idx] = AvalancheDataset(
+        test_dataset_list[dataset_idx] = AvalancheClassificationDataset(
             dataset,
             task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
@@ -429,12 +429,12 @@ def create_generic_scenario_from_tensor_lists(
     )
 
     train_datasets = [
-        AvalancheTensorDataset(*exp_tensors)
+        AvalancheTensorClassificationDataset(*exp_tensors)
         for exp_tensors in train_tensors
     ]
 
     test_datasets = [
-        AvalancheTensorDataset(*exp_tensors)
+        AvalancheTensorClassificationDataset(*exp_tensors)
         for exp_tensors in test_tensors
     ]
 

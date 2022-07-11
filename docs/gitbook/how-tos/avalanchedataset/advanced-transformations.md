@@ -26,11 +26,10 @@ As in torchvision datasets, AvalancheDataset supports the two kind of transforma
 
 In the following example, a MNIST dataset is created and then wrapped in an AvalancheDataset. When creating the AvalancheDataset, we can set *train* and *eval* transformations by passing a *transform\_groups* parameter. Train transformations usually include some form of random augmentation, while eval transformations usually include a sequence of deterministic transformations only. Here we define the sequence of train transformations as a random rotation followed by the ToTensor operation. The eval transformations only include the ToTensor operation.
 
-
 ```python
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import AvalancheClassificationDataset
 
 mnist_dataset = MNIST('mnist_data', download=True)
 
@@ -52,7 +51,7 @@ transform_groups = {
     'eval': (eval_transformation, eval_target_transformation)
 }
 
-avl_mnist_transform = AvalancheDataset(mnist_dataset, transform_groups=transform_groups)
+avl_mnist_transform = AvalancheClassificationDataset(mnist_dataset, transform_groups=transform_groups)
 ```
 
 Of course, one can also just use the `transform` and `target_transform` constructor parameters to set the transformations for both the *train* and the *eval* groups. However, it is recommended to use the approach based on *transform\_groups* (shown in the code above) as it is much more flexible.
