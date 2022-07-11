@@ -406,8 +406,8 @@ class ParametricBuffer(BalancedExemplarsBuffer):
 
     def _split_by_task(self, data):
         new_groups = {}
-        for task_id in data.task_set:
-            new_groups[task_id] = data.task_set[task_id]
+        for task_id in data.val_to_idx:
+            new_groups[task_id] = data.val_to_idx[task_id]
         return new_groups
 
 

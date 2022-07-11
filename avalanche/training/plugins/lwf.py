@@ -98,9 +98,9 @@ class LwFPlugin(SupervisedPlugin):
         update self.prev_classes to include the newly learned classes.
         """
         self.prev_model = copy.deepcopy(strategy.model)
-        task_ids = strategy.experience.dataset.task_set
+        task_ids = strategy.experience.dataset.val_to_idx
         for task_id in task_ids:
-            task_data = strategy.experience.dataset.task_set[task_id]
+            task_data = strategy.experience.dataset.val_to_idx[task_id]
             pc = set(task_data.targets)
 
             if task_id not in self.prev_classes:

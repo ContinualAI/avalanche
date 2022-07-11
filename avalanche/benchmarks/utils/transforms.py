@@ -11,9 +11,10 @@ class TransformGroups:
     transforms and `test` transforms), that can be easily switched using the
     `with_transform` method.
     """
+
     def __init__(self,
                  transform_groups,
-                 current_group="eval"):
+                 current_group="train"):
         self.transform_groups = transform_groups
         self.current_group = current_group
 
@@ -21,11 +22,13 @@ class TransformGroups:
         """Apply current transformation group to element."""
         element = list(*args)
 
-        Xt, Yt = self.transform_groups[self.current_group]
-        if Xt is not None:
-            element = MultiParamTransform(Xt)(*element)
-        if Yt is not None:
-            element[1] = Yt(element[1])
+        curr_t = self.transform_groups[self.current_group]
+        if curr_t is None:
+            return element
+        if curr_t[0] is not None:
+            element = MultiParamTransform(curr_t[0])(*element)
+        if curr_t[1] is not None:
+            element[1] = curr_t[1](element[1])
         return element
 
     def with_transform(self, group_name):
@@ -35,7 +38,7 @@ class TransformGroups:
 
 class EmptyTransformGroups(TransformGroups):
     def __init__(self):
-        transform_groups = defaultdict(lambda: None, None)
+        transform_groups = defaultdict(lambda: None)
         super().__init__(transform_groups)
 
 

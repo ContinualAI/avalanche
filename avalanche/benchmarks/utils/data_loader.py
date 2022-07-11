@@ -441,8 +441,8 @@ class ReplayDataLoader:
     ):
         loaders_dict: Dict[int, DataLoader] = {}
         if task_balanced_dataloader:
-            for task_id in data_dict.task_set:
-                data = data_dict.task_set[task_id]
+            for task_id in data_dict.val_to_idx:
+                data = data_dict.val_to_idx[task_id]
                 current_batch_size = single_exp_batch_size
                 if remaining_example > 0:
                     current_batch_size += 1

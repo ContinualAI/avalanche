@@ -70,6 +70,10 @@ class AvalancheDataset(Dataset[T_co]):
 
     Moreover, arbitrary transformation groups can be added and used. For more
     info see the constructor and the :func:`with_transforms` method.
+    AvalancheDataset can switch between the 'train' and
+    'eval' groups by calling the ``train()`` and ``eval()`` methods. When
+    using custom groups one can use the ``with_transforms(group_name)``
+    method instead.
 
     This dataset will try to inherit the task labels from the input
     dataset. If none are available and none are given via the `task_labels`
@@ -92,22 +96,32 @@ class AvalancheDataset(Dataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        self._dataset = dataset
-        """
-        The original dataset.
-        """
+        self._dataset = dataset  # original dataset
 
-        if data_attributes is None:
-            self._data_attributes = []
+        if isinstance(dataset, AvalancheDataset):
+            # inherit data attributes from original dataset
+            self._data_attributes = {**dataset._data_attributes}
         else:
-            self._data_attributes = data_attributes
-        for el in self._data_attributes:
+            self._data_attributes = {}
+
+        self._mbatch_dattributes = []  # attributes to append to mbatch
+        if data_attributes is not None:
+            da_dict = {da.name: da for da in data_attributes}
+            self._data_attributes.update(da_dict)
+
+        for el in self._data_attributes.values():
+            if el.append_to_mbatch:
+                self._mbatch_dattributes.append(el)
+
+        for el in self._data_attributes.values():
             setattr(self, el.name, el)
 
+        if transform_groups is None:
+            transform_groups = EmptyTransformGroups()
         self.transform_groups = transform_groups
         self.collate_fn = collate_fn
 
-        self.collate_fn = self._initialize_collate_fn(
+        self.collate_fn = self._init_collate_fn(
             dataset, collate_fn
         )
         """
@@ -125,7 +139,7 @@ class AvalancheDataset(Dataset[T_co]):
         element = self._dataset[idx]
         if self.transform_groups is not None:
             element = self.transform_groups(element)
-        atrs = [at[idx] for at in self._data_attributes]
+        atrs = [at[idx] for at in self._mbatch_dattributes]
         return *element, *atrs
 
     def __len__(self):
@@ -179,7 +193,7 @@ class AvalancheDataset(Dataset[T_co]):
         dataset_copy.transform_groups = copy.copy(dataset_copy.transform_groups)
         return dataset_copy
 
-    def _initialize_collate_fn(self, dataset, collate_fn):
+    def _init_collate_fn(self, dataset, collate_fn):
         if collate_fn is not None:
             return collate_fn
 
@@ -200,6 +214,7 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         dataset: IDataset,
         indices: Sequence[int],
         *,
+        data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
@@ -209,29 +224,37 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         :param indices: Indices in the whole set selected for subset. Can
             be None, which means that the whole dataset will be returned.
         """
-        subset = Subset(dataset, indices=indices)
-        super().__init__(subset, transform_groups, collate_fn)
-        self._original_dataset = dataset
         self._indices = indices
+
+        super().__init__(
+            dataset,
+            data_attributes=data_attributes,
+            transform_groups=transform_groups,
+            collate_fn=collate_fn)
+
         self._flatten_dataset()
+        for da in self._data_attributes:  # subset for attributes
+            setattr(self, da.name, da.subset(self._indices))
+
+    def __getitem__(self, idx):
+        if isinstance(idx, list):
+            return super().__getitem__([[self._indices[i] for i in idx]])
+        return super().__getitem__(self._indices[idx])
+
+    def __len__(self):
+        return len(self._indices)
 
     def _flatten_dataset(self):
         """Flattens this subset by borrowing indices from the original dataset
         (if it's an AvalancheSubset or PyTorch Subset)"""
 
-        if isinstance(self._original_dataset, AvalancheSubset):
+        if isinstance(self._dataset, AvalancheSubset):
             # we need to take trasnforms and indices from parent
-            self.transform_groups = copy.copy(self._original_dataset.transform_groups)
+            self.transform_groups = copy.copy(self._dataset.transform_groups)
             # TODO: merge transform groups.
-            # TODO: update data attributes
 
-            grandparent_data = self._original_dataset._original_dataset
-            self._original_dataset = grandparent_data
-
-            parent_idxs = self._original_dataset._indices
-            new_indices = [parent_idxs[x] for x in self._indices]
-            self._indices = new_indices
-            self._dataset = Subset(grandparent_data, indices=new_indices)
+            parent_idxs = self._dataset._indices
+            self._indices = [parent_idxs[x] for x in self._indices]
 
 
 class AvalancheConcatDataset(AvalancheDataset[T_co]):
@@ -251,6 +274,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self,
         datasets: Collection[IDataset],
         *,
+        data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
@@ -266,11 +290,34 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self.cumulative_sizes = ConcatDataset.cumsum(dataset_list)
         self._total_length = sum(self._datasets_lengths)
 
-        super().__init__(
-            ClassificationDataset(),  # not used
-            transform_groups=transform_groups,
-            collate_fn=collate_fn
-        )
+        self._data_attributes = {}
+        for dd in self.datasets:
+            if isinstance(dd, AvalancheDataset):
+                # inherit data attributes from original dataset
+                self._data_attributes.update(dd._data_attributes)
+
+        self._mbatch_dattributes = []  # attributes to append to mbatch
+        if data_attributes is not None:
+            da_dict = {da.name: da for da in data_attributes}
+            self._data_attributes.update(da_dict)
+
+        for el in self._data_attributes.values():
+            if el.append_to_mbatch:
+                self._mbatch_dattributes.append(el)
+
+        for el in self._data_attributes.values():
+            setattr(self, el.name, el)
+
+        if transform_groups is None:
+            transform_groups = EmptyTransformGroups()
+        self.transform_groups = transform_groups
+        self.collate_fn = collate_fn
+
+        self.collate_fn = self._init_collate_fn(dataset_list[0], collate_fn)
+        """
+        The collate function to use when creating mini-batches from this
+        dataset.
+        """
 
     def __len__(self) -> int:
         return self._total_length

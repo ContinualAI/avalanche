@@ -201,7 +201,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y, y2)
 
         self.assertEqual(len(taskl.uniques), 1)
-        subset_task1 = taskl.task_set[1]
+        subset_task1 = taskl.val_to_idx[1]
 
         # TODO
         # self.assertIsInstance(subset_task1, AvalancheDataset)
@@ -212,7 +212,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_tensor_task_labels(self):
         data = load_tensor_benchmark()
-        taskl = TaskLabels(torch.ones(32))  # Single task
+        taskl = TaskLabels(torch.ones(32).int())  # Single task
         dataset = AvalancheDataset(data, data_attributes=[taskl])
 
         x2, y2, t2 = dataset[0]
@@ -222,30 +222,29 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertIsInstance(t2, Tensor)
         self.assertTrue(torch.equal(data[0][0], x2))
         self.assertTrue(torch.equal(data[0][1], y2))
-        self.assertTrue(torch.equal(taskl[0].to(int), t2))
+        self.assertTrue(taskl[0].item() == t2.item())
 
-        # TODO: check task set
-        # self.assertListEqual([1] * 32, list(dataset.targets_task_labels))
-        #
-        # # Regression test for #654
-        # self.assertEqual(1, len(dataset.task_set))
-        #
-        # subset_task1 = dataset.task_set[1]
-        # self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
-        # self.assertEqual(len(dataset), len(subset_task1))
-        #
-        # with self.assertRaises(KeyError):
-        #     subset_task0 = dataset.task_set[0]
-        #
-        # with self.assertRaises(KeyError):
-        #     subset_task0 = dataset.task_set[2]
-        #
-        # # Check single instance types
-        # x2, y2, t2 = dataset[0]
-        #
-        # self.assertIsInstance(x2, Tensor)
-        # self.assertIsInstance(y2, Tensor)
-        # self.assertIsInstance(t2, int)
+        self.assertListEqual([1] * 32, list(dataset.targets_task_labels))
+
+        # Regression test for #654
+        self.assertEqual(1, len(dataset.task_set))
+
+        subset_task1 = dataset.task_set[1]
+        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
+        self.assertEqual(len(dataset), len(subset_task1))
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[0]
+
+        with self.assertRaises(KeyError):
+            subset_task0 = dataset.task_set[2]
+
+        # Check single instance types
+        x2, y2, t2 = dataset[0]
+
+        self.assertIsInstance(x2, Tensor)
+        self.assertIsInstance(y2, Tensor)
+        self.assertIsInstance(t2, int)
 
     @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels_simple_def(self):

@@ -1593,11 +1593,11 @@ class TransformationTensorDatasetTests(unittest.TestCase):
 
     def test_tensor_dataset_helper_list_y(self):
         train_exps = [
-            (torch.rand(50, 32, 32), torch.randint(0, 100, (50,)).tolist())
+            (torch.rand(50, 32, 32), torch.randint(0, 100, (50,)))
             for _ in range(5)
         ]
         test_exps = [
-            (torch.rand(23, 32, 32), torch.randint(0, 100, (23,)).tolist())
+            (torch.rand(23, 32, 32), torch.randint(0, 100, (23,)))
             for _ in range(5)
         ]
 
