@@ -193,8 +193,8 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             dataset,
             data_attributes=[targets, task_labels],
             transform_groups=transform_gs,
+            collate_fn=collate_fn
         )
-        self.collate_fn = collate_fn
 
     @property
     def task_pattern_indices(self):
@@ -223,7 +223,10 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
                 initial_transform_group = "train"
 
         if transform_groups is None:
-            tgs = EmptyTransformGroups()
+            tgs = TransformGroups({
+                'train': (transform, target_transform),
+                'eval': (transform, target_transform)
+            }, current_group=initial_transform_group)
         else:
             tgs = TransformGroups(transform_groups,
                                   current_group=initial_transform_group)
@@ -295,7 +298,11 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             tls = SubSequence(task_labels, converter=int)
         else:
             tls = _make_task_labels_from_supported_dataset(dataset)
-        return DataAttribute("targets_task_labels", tls, append_to_mbatch=True)
+        return DataAttribute("targets_task_labels", tls)
+
+    def __getitem__(self, idx: int):
+        elem = self._getitem_recursive_call(idx)
+        return *elem, self.targets_task_labels[idx]
 
 
 class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
@@ -384,19 +391,29 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
         """
         self.class_mapping = class_mapping
 
+        targets = AvalancheClassificationDataset._init_targets(
+            dataset, targets, targets_adapter)
+
+        if indices is None:
+            data = dataset
+        else:
+            data = AvalancheSubset(
+                dataset,
+                indices=indices,
+                data_attributes=[targets]
+            )
+
         super().__init__(
-            AvalancheSubset(dataset, indices=indices),
+            data,
             transform=transform,
             target_transform=target_transform,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
             task_labels=task_labels,
-            targets=targets,
-            collate_fn=collate_fn,
-            targets_adapter=targets_adapter)
+            collate_fn=collate_fn)
 
-    def __getitem__(self, idx):
-        mbatch = super().__getitem__(idx)
+    def _getitem_recursive_call(self, idx):
+        mbatch = super()._getitem_recursive_call(idx)
         if self.class_mapping is not None:
             return (mbatch[0], self.class_mapping[mbatch[1]], *mbatch[2:])
         else:
@@ -571,6 +588,7 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
                 dds.append(AvalancheClassificationDataset(d))
             else:
                 dds.append(d)
+
         super().__init__(
             AvalancheConcatDataset(dds),
             transform=transform,

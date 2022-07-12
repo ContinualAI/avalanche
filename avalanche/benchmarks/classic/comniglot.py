@@ -25,8 +25,11 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.omniglot import Omniglot
-from avalanche.benchmarks.utils import AvalancheClassificationDataset
 import numpy as np
+
+from ..utils.data import FrozenTransformDataset
+from ..utils.avalanche_dataset import AvalancheClassificationDataset
+
 
 _default_omniglot_train_transform = Compose(
     [ToTensor(), Normalize((0.9221,), (0.2681,))]
@@ -38,8 +41,7 @@ _default_omniglot_eval_transform = Compose(
 
 
 class PixelsPermutation(object):
-    """
-    Apply a fixed permutation to the pixels of the given image.
+    """Apply a fixed permutation to the pixels of the given image.
 
     Works with both Tensors and PIL images. Returns an object of the same type
     of the input element.
@@ -219,22 +221,14 @@ def PermutedOmniglot(
 
         permutation = PixelsPermutation(idx_permute)
 
-        permutation_transforms = dict(
-            train=(permutation, None), eval=(permutation, None)
-        )
-
         # Freeze the permutation
-        permuted_train = AvalancheClassificationDataset(
-            omniglot_train,
-            transform_groups=permutation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
+        permuted_train = FrozenTransformDataset(
+            AvalancheClassificationDataset(omniglot_train),
+            frozen_transforms=(permutation, None))
 
-        permuted_test = AvalancheClassificationDataset(
-            omniglot_test,
-            transform_groups=permutation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        permuted_test = FrozenTransformDataset(
+            AvalancheClassificationDataset(omniglot_test),
+            frozen_transforms=(permutation, None))
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -344,17 +338,13 @@ def RotatedOmniglot(
         )
 
         # Freeze the rotation
-        rotated_train = AvalancheClassificationDataset(
-            omniglot_train,
-            transform_groups=rotation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
+        rotated_train = FrozenTransformDataset(
+            AvalancheClassificationDataset(omniglot_train),
+            frozen_transforms=(rotation, None))
 
-        rotated_test = AvalancheClassificationDataset(
-            omniglot_test,
-            transform_groups=rotation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        rotated_test = FrozenTransformDataset(
+            AvalancheClassificationDataset(omniglot_test),
+            frozen_transforms=(rotation, None))
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)

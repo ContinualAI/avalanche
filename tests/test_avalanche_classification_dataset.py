@@ -1042,48 +1042,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x6))
         self.assertFalse(pil_images_equal(x2, x5))
 
-    def test_avalanche_avalanche_subset_recursion_modified_transforms(self):
-        dataset_mnist = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        x, y = dataset_mnist[3000]
-        x2, y2 = dataset_mnist[1010]
-
-        def transform_target_to_constant(ignored_target_value):
-            return 101
-
-        def transform_target_to_constant2(ignored_target_value):
-            return 102
-
-        def transform_target_plus_two(target_value):
-            return target_value + 2
-
-        subset = AvalancheClassificationSubset(
-            dataset_mnist,
-            indices=[3000, 8, 4, 1010, 12],
-            target_transform=transform_target_to_constant,
-        )
-        subset.target_transform = transform_target_to_constant2
-
-        dataset = AvalancheClassificationSubset(
-            subset,
-            indices=[0, 3, 1],
-            target_transform=transform_target_plus_two,
-        )
-
-        self.assertEqual(5, len(subset))
-        self.assertEqual(3, len(dataset))
-
-        x3, y3, t3 = dataset[0]
-        x4, y4, t4 = dataset[1]
-
-        self.assertTrue(pil_images_equal(x, x3))
-        self.assertEqual(104, y3)
-        self.assertTrue(pil_images_equal(x2, x4))
-        self.assertEqual(104, y4)
-        self.assertFalse(pil_images_equal(x, x4))
-        self.assertFalse(pil_images_equal(x2, x3))
-
     def test_avalanche_avalanche_subset_recursion_sub_class_mapping(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True

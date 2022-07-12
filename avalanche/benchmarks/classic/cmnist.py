@@ -28,7 +28,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import AvalancheClassificationDataset
+from ..utils import TransformGroups, AvalancheClassificationDataset
+from ..utils.data import FrozenTransformDataset
 
 _default_mnist_train_transform = Compose(
     [ToTensor(), Normalize((0.1307,), (0.3081,))]
@@ -224,22 +225,15 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        permutation_transforms = dict(
-            train=(permutation, None), eval=(permutation, None)
+        # Freeze the permutation
+        permuted_train = FrozenTransformDataset(
+            AvalancheClassificationDataset(mnist_train),
+            frozen_transforms=(permutation, None)
         )
 
-        # Freeze the permutation
-        permuted_train = AvalancheClassificationDataset(
-            mnist_train,
-            transform_groups=permutation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        permuted_test = AvalancheClassificationDataset(
-            mnist_test,
-            transform_groups=permutation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        permuted_test = FrozenTransformDataset(
+            AvalancheClassificationDataset(mnist_test),
+            frozen_transforms=(permutation, None))
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -347,22 +341,15 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        rotation_transforms = dict(
-            train=(rotation, None), eval=(rotation, None)
-        )
-
         # Freeze the rotation
-        rotated_train = AvalancheClassificationDataset(
-            mnist_train,
-            transform_groups=rotation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
+        rotated_train = FrozenTransformDataset(
+            AvalancheClassificationDataset(mnist_train),
+            frozen_transforms=(rotation, None))
 
-        rotated_test = AvalancheClassificationDataset(
-            mnist_test,
-            transform_groups=rotation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        rotated_test = FrozenTransformDataset(
+            AvalancheClassificationDataset(mnist_test),
+            frozen_transforms=(rotation, None)
+        )
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)

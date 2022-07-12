@@ -25,9 +25,6 @@ from .data_attribute import DataAttribute
 from .dataset_utils import (
     find_list_from_index,
 )
-from .dataset_definitions import (
-    ClassificationDataset,
-)
 
 from typing import (
     List,
@@ -36,10 +33,10 @@ from typing import (
     Union,
     TypeVar,
     Callable,
-    Collection,
+    Collection, Tuple,
 )
 
-from .transforms import TransformGroups, EmptyTransformGroups
+from .transforms import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -104,14 +101,9 @@ class AvalancheDataset(Dataset[T_co]):
         else:
             self._data_attributes = {}
 
-        self._mbatch_dattributes = []  # attributes to append to mbatch
         if data_attributes is not None:
             da_dict = {da.name: da for da in data_attributes}
             self._data_attributes.update(da_dict)
-
-        for el in self._data_attributes.values():
-            if el.append_to_mbatch:
-                self._mbatch_dattributes.append(el)
 
         for el in self._data_attributes.values():
             setattr(self, el.name, el)
@@ -129,18 +121,31 @@ class AvalancheDataset(Dataset[T_co]):
         dataset.
         """
 
+        self.is_frozen_transforms = True
+
     def __add__(self, other: Dataset) -> "AvalancheDataset":
         return AvalancheConcatDataset([self, other])
 
     def __radd__(self, other: Dataset) -> "AvalancheDataset":
         return AvalancheConcatDataset([other, self])
 
+    def _getitem_recursive_call(self, idx):
+        """We need this recursive call to avoid appending task
+        label multiple times inside the __getitem__."""
+        if isinstance(self._dataset, AvalancheDataset):
+            element = self._dataset._getitem_recursive_call(idx)
+        else:
+            element = self._dataset[idx]
+
+        if self.transform_groups is not None:
+            element = self.transform_groups(element)
+        return element
+
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
         element = self._dataset[idx]
         if self.transform_groups is not None:
             element = self.transform_groups(element)
-        atrs = [at[idx] for at in self._mbatch_dattributes]
-        return *element, *atrs
+        return element
 
     def __len__(self):
         return len(self._dataset)
@@ -184,9 +189,43 @@ class AvalancheDataset(Dataset[T_co]):
         """
         datacopy = self._clone_dataset()
         datacopy.transform_groups.with_transform(group_name)
-        if isinstance(self._dataset, AvalancheDataset):
-            datacopy._dataset = datacopy._dataset.with_transform_group(group_name)
+        if isinstance(datacopy._dataset, AvalancheDataset):
+            datacopy._dataset = datacopy._dataset.with_transforms(group_name)
         return datacopy
+
+    def get_transform_groups(self):
+        """Recursively collects transform groups across the entire data tree.
+        Warning: assumes transforms are the same across all concat
+        branches."""
+        if isinstance(self._dataset, AvalancheDataset):
+            return self._dataset.get_transform_groups() + self.transform_groups
+        else:
+            return self.transform_groups
+
+    def freeze_transforms(self):
+        tgroups = self.get_transform_groups()
+        dataset_copy = self.remove_transform_groups()
+        return FrozenTransformDataset(
+            dataset_copy,
+            frozen_transforms=tgroups
+        )
+
+    def remove_transform_groups(self):
+        """Recursively remove transformation groups from dataset tree."""
+        dataset_copy = self._clone_dataset()
+        if isinstance(dataset_copy._dataset, AvalancheDataset):
+            dataset_copy._dataset = dataset_copy._dataset.remove_transform_groups()
+        dataset_copy.transform_groups = None
+        return dataset_copy
+
+    def replace_transforms(self, transform, target_transform):
+        """Recursively remove transformation groups from dataset tree."""
+        dataset_copy = self.remove_transform_groups()
+        dataset_copy.transform_groups = \
+            TransformGroups(transform_groups={
+                'train': (transform, target_transform),
+                'eval': (transform, target_transform)})
+        return dataset_copy
 
     def _clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
         dataset_copy = copy.copy(self)
@@ -201,6 +240,26 @@ class AvalancheDataset(Dataset[T_co]):
             return getattr(dataset, "collate_fn")
 
         return default_collate
+
+
+class FrozenTransformDataset(AvalancheDataset[T_co]):
+    def __init__(self, data: AvalancheDataset,
+                 frozen_transforms: Union[TransformGroups, Tuple[Callable]]):
+        if isinstance(frozen_transforms, TransformGroups):
+            self.frozen_transforms = frozen_transforms
+        else:
+            self.frozen_transforms = FrozenTransformGroups(frozen_transforms)
+        super().__init__(dataset=data)
+
+    def _getitem_recursive_call(self, idx):
+        """We need this recursive call to avoid appending task
+        label multiple times inside the __getitem__."""
+        elem = super()._getitem_recursive_call(idx)
+        return self.frozen_transforms(elem)
+
+    def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
+        elem = super().__getitem__(idx)
+        return self.frozen_transforms(elem)
 
 
 class AvalancheSubset(AvalancheDataset[T_co]):
@@ -233,8 +292,20 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             collate_fn=collate_fn)
 
         self._flatten_dataset()
-        for da in self._data_attributes:  # subset for attributes
+        for da in self._data_attributes.values():  # subset for attributes
             setattr(self, da.name, da.subset(self._indices))
+
+    def _getitem_recursive_call(self, idx):
+        """We need this recursive call to avoid appending task
+        label multiple times inside the __getitem__."""
+        if isinstance(self._dataset, AvalancheDataset):
+            element = self._dataset._getitem_recursive_call(self._indices[idx])
+        else:
+            element = self._dataset[self._indices[idx]]
+
+        if self.transform_groups is not None:
+            element = self.transform_groups(element)
+        return element
 
     def __getitem__(self, idx):
         if isinstance(idx, list):
@@ -274,7 +345,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self,
         datasets: Collection[IDataset],
         *,
-        data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
@@ -290,20 +360,23 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self.cumulative_sizes = ConcatDataset.cumsum(dataset_list)
         self._total_length = sum(self._datasets_lengths)
 
+        # TODO: flatten dataset
+
         self._data_attributes = {}
         for dd in self.datasets:
             if isinstance(dd, AvalancheDataset):
-                # inherit data attributes from original dataset
-                self._data_attributes.update(dd._data_attributes)
+                # inherit data attributes from all the original datasets
+                # and concatenate them
+                for k, v in dd._data_attributes.items():
+                    if k not in self._data_attributes:
+                        self._data_attributes[k] = v
+                    else:
+                        attr_cat = self._data_attributes[k].concat(v)
+                        self._data_attributes[k] = attr_cat
 
-        self._mbatch_dattributes = []  # attributes to append to mbatch
-        if data_attributes is not None:
-            da_dict = {da.name: da for da in data_attributes}
-            self._data_attributes.update(da_dict)
-
-        for el in self._data_attributes.values():
-            if el.append_to_mbatch:
-                self._mbatch_dattributes.append(el)
+        for dd in self._data_attributes.values():
+            if len(dd) != len(self):
+                raise ValueError(f"Wrong size for attribute {dd.name}")
 
         for el in self._data_attributes.values():
             setattr(self, el.name, el)
@@ -311,7 +384,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         if transform_groups is None:
             transform_groups = EmptyTransformGroups()
         self.transform_groups = transform_groups
-        self.collate_fn = collate_fn
 
         self.collate_fn = self._init_collate_fn(dataset_list[0], collate_fn)
         """
@@ -319,8 +391,46 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         dataset.
         """
 
+        self.is_frozen_transforms = True
+
     def __len__(self) -> int:
         return self._total_length
+
+    def get_transform_groups(self):
+        """Recursively collects transform groups across the entire data tree.
+        Warning: assumes transforms are the same across all concat
+        branches."""
+        if isinstance(self.datasets[0], AvalancheDataset):
+            return self.datasets[0].get_transform_groups() + self.transform_groups
+        else:
+            return self.transform_groups
+
+    def remove_transform_groups(self):
+        """Recursively remove transformation groups from dataset tree."""
+        if self.is_frozen_transforms:
+            return
+        dataset_copy = self._clone_dataset()
+        dds = []
+        for el in dataset_copy.datasets:
+            if isinstance(el, AvalancheDataset):
+                dds.append(el.remove_transform_groups())
+            else:
+                dds.append(el)
+        dataset_copy.datasets = dds
+        dataset_copy.transform_groups = None
+        return dataset_copy
+
+    def _getitem_recursive_call(self, idx):
+        """We need this recursive call to avoid appending task
+        label multiple times inside the __getitem__."""
+        if isinstance(self._dataset, AvalancheDataset):
+            element = self._dataset._getitem_recursive_call(idx)
+        else:
+            element = self._dataset[idx]
+
+        if self.transform_groups is not None:
+            element = self.transform_groups(element)
+        return element
 
     def __getitem__(self, idx: int):
         # same logic as pytorch's ConcatDataset to get item's index
@@ -328,11 +438,6 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         if self.transform_groups is not None:
             element = self.transform_groups(element)
         return element
-
-    def _clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
-        dataset_copy = super()._clone_dataset()
-        dataset_copy.datasets = list(dataset_copy.datasets)
-        return dataset_copy
 
     def _flatten_dataset(self):
         # Flattens this subset by borrowing the list of concatenated datasets

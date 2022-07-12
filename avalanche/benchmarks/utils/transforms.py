@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from avalanche.benchmarks.utils import MultiParamTransform
+from avalanche.benchmarks.utils import MultiParamTransform, Compose
 
 
 class TransformGroups:
@@ -30,6 +30,15 @@ class TransformGroups:
         if curr_t[1] is not None:
             element[1] = curr_t[1](element[1])
         return element
+
+    def __add__(self, other):
+        tgroups = {**self.transform_groups}
+        for gname, gtrans in other.transform_groups.items():
+            if gname not in tgroups:
+                tgroups[gname] = gtrans
+            else:
+                tgroups[gname] = Compose([tgroups[gname], other[gname]])
+        return TransformGroups(tgroups, self.current_group)
 
     def with_transform(self, group_name):
         assert group_name in self.transform_groups
