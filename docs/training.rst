@@ -29,7 +29,7 @@ Templates are defined in the `avalanche.training.templates` module.
     BaseTemplate
     BaseSGDTemplate
     SupervisedTemplate
-    SupervisedOnlineTemplate
+    OnlineSupervisedTemplate
 
 
 Plugins ABCs

@@ -67,6 +67,13 @@ def detection_collate_mbatches_fn(mbatches):
     return lists
 
 
+def collate_from_data_or_kwargs(data, kwargs):
+    if "collate_fn" in kwargs:
+        return
+    elif hasattr(data, "collate_fn"):
+        kwargs["collate_fn"] = data.collate_fn
+
+
 class TaskBalancedDataLoader:
     """Task-balanced data loader for Avalanche's datasets."""
 
@@ -175,7 +182,9 @@ class GroupBalancedDataLoader:
             if remaining > 0:
                 bs += 1
                 remaining -= 1
-            self.dataloaders.append(DataLoader(data, batch_size=bs, **kwargs))
+            collate_from_data_or_kwargs(data, kwargs)
+            self.dataloaders.append(DataLoader(
+                data, batch_size=bs, **kwargs))
         self.max_len = max([len(d) for d in self.dataloaders])
 
     def __iter__(self):
@@ -248,7 +257,9 @@ class GroupBalancedInfiniteDataLoader:
             infinite_sampler = RandomSampler(
                 data, replacement=True, num_samples=10 ** 10
             )
-            dl = DataLoader(data, sampler=infinite_sampler, **kwargs)
+            collate_from_data_or_kwargs(data, kwargs)
+            dl = DataLoader(data, sampler=infinite_sampler,
+                            **kwargs)
             self.dataloaders.append(dl)
         self.max_len = 10 ** 10
 
@@ -436,12 +447,16 @@ class ReplayDataLoader:
                 if remaining_example > 0:
                     current_batch_size += 1
                     remaining_example -= 1
+                collate_from_data_or_kwargs(data, kwargs)
                 loaders_dict[task_id] = DataLoader(
-                    data, batch_size=current_batch_size, **kwargs
+                    data, batch_size=current_batch_size,
+                    **kwargs
                 )
         else:
+            collate_from_data_or_kwargs(data_dict, kwargs)
             loaders_dict[0] = DataLoader(
-                data_dict, batch_size=single_exp_batch_size, **kwargs
+                data_dict, batch_size=single_exp_batch_size,
+                **kwargs
             )
 
         return loaders_dict, remaining_example
@@ -450,6 +465,7 @@ class ReplayDataLoader:
 __all__ = [
     "detection_collate_fn",
     "detection_collate_mbatches_fn",
+    "collate_from_data_or_kwargs",
     "TaskBalancedDataLoader",
     "GroupBalancedDataLoader",
     "ReplayDataLoader",

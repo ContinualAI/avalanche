@@ -26,8 +26,7 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 )
 from avalanche.benchmarks.utils import (
     AvalancheDataset,
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
+    AvalancheTensorDataset
 )
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
@@ -315,8 +314,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         initial_benchmark_instance = create_lazy_generic_benchmark(
             train_generator=LazyStreamDefinition(train_gen(), 2, [0, 0]),
             test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-            complete_test_set_only=True,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            complete_test_set_only=True
         )
 
         data_incremental_instance = data_incremental_benchmark(
@@ -621,8 +619,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         train_gen(), 2, [0, 0]
                     ),
                     test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-                    complete_test_set_only=True,
-                    dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                    complete_test_set_only=True
                 )
 
                 valid_benchmark = benchmark_with_validation_stream(

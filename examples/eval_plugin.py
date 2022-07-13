@@ -39,10 +39,11 @@ from avalanche.evaluation.metrics import (
     disk_usage_metrics,
     MAC_metrics,
     bwt_metrics,
-    forward_transfer_metrics,
+    forward_transfer_metrics, class_accuracy_metrics, amca_metrics,
 )
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger
+from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger, \
+    TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.supervised import Naive
 
@@ -104,6 +105,8 @@ def main(args):
 
     csv_logger = CSVLogger()
 
+    tb_logger = TensorboardLogger()
+
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True,
@@ -119,6 +122,12 @@ def main(args):
             experience=True,
             stream=True,
         ),
+        class_accuracy_metrics(
+            epoch=True,
+            stream=True,
+            classes=list(range(scenario.n_classes))
+        ),
+        amca_metrics(),
         forgetting_metrics(experience=True, stream=True),
         bwt_metrics(experience=True, stream=True),
         forward_transfer_metrics(experience=True, stream=True),
@@ -151,7 +160,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True
         ),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
-        loggers=[interactive_logger, text_logger, csv_logger],
+        loggers=[interactive_logger, text_logger, csv_logger, tb_logger],
         collect_all=True,
     )  # collect all metrics (set to True by default)
 

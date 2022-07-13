@@ -333,7 +333,7 @@ from torch.nn import CrossEntropyLoss
 benchmark = SplitMNIST(n_experiences=5)
 
 # MODEL CREATION
-model = SimpleMLP(num_classes=scenario.n_classes)
+model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN and LOGGERS
 # The evaluation plugin manages the metrics computation.
@@ -355,7 +355,7 @@ eval_plugin = EvaluationPlugin(
     timing_metrics(epoch=True),
     cpu_usage_metrics(experience=True),
     forgetting_metrics(experience=True, stream=True),
-    StreamConfusionMatrix(num_classes=scenario.n_classes, save_image=False),
+    StreamConfusionMatrix(num_classes=benchmark.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[interactive_logger, text_logger, tb_logger],
     benchmark=benchmark
@@ -382,10 +382,6 @@ for experience in benchmark.train_stream:
     # eval also returns a dictionary which contains all the metric values
     results.append(cl_strategy.eval(benchmark.test_stream, num_workers=4))
 ```
-
-## 🤝 Run it on Google Colab
-
-You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/getting-started/learn-avalanche-in-5-minutes.ipynb)
 
 ## 🤝 Run it on Google Colab
 

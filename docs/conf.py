@@ -267,7 +267,6 @@ undocumented_classes_to_ignore = [
     'AbstractClassificationExperience',
     'INATURALIST_DATA',
     'FilelistDataset',
-    'AvalancheDatasetType',
     'ClassificationScenarioStream',
     'LazySubsequence',
 
