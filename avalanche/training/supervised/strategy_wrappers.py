@@ -14,7 +14,7 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
 from avalanche.models.pnn import PNN
-from avalanche.models.bic_model import BiCAdapter
+from avalanche.models.bic_model import BiCAdapter, BiCAdapterMH
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import (
     SupervisedPlugin,
@@ -1220,6 +1220,7 @@ class BiC(SupervisedTemplate):
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
+        multihead: bool = False,
         **base_kwargs
     ):
         """Init.
@@ -1260,7 +1261,10 @@ class BiC(SupervisedTemplate):
         else:
             plugins.append(bic)
 
-        model = BiCAdapter(model)
+        if multihead:
+            model = BiCAdapterMH(model)
+        else:
+            model = BiCAdapter(model)
 
         super().__init__(
             model,

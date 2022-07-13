@@ -2,6 +2,7 @@ import random
 from copy import deepcopy
 
 from torch.utils.data import DataLoader
+from avalanche.models.dynamic_modules import MultiTaskModule
 import torch
 
 from avalanche.models.utils import avalanche_forward
@@ -26,7 +27,7 @@ class BiCPlugin(SupervisedPlugin):
     def __init__(
         self, val_percentage: float = 0.1, T: int = 2, 
         mem_size: int = 200, stage_2_epochs: int = 200, lamb: float = -1, 
-        verbose: bool = False, lr: float = 0.001
+        verbose: bool = False, lr: float = 0.1
     ):
         """
         :param val_percentage: hyperparameter used to set the 
@@ -38,7 +39,6 @@ class BiCPlugin(SupervisedPlugin):
         :param lamb: hyperparameter used to balance the distilling 
                 loss and the classification loss.
         :param verbose: when True, the computation of the influence
-               shows a progress bar using tqdm.
         """
 
         # Init super class
@@ -78,7 +78,7 @@ class BiCPlugin(SupervisedPlugin):
             if target not in cl_idxs:
                 cl_idxs[target] = []
             cl_idxs[target].append(idx)
-        
+
         for c in cl_idxs.keys():
             self.class_to_tasks[c] = task_id
 
@@ -131,17 +131,41 @@ class BiCPlugin(SupervisedPlugin):
     def before_backward(self, strategy, **kwargs):
         t = strategy.experience.current_experience
         if self.model_old is not None:
-            out_old = self.model_old(strategy.mb_x.to(strategy.device))
-            out_new = strategy.mb_output
+            if isinstance(self.model_old, MultiTaskModule):
+                out_old = []
+                out_new = []
+                for i in strategy.mb_task_id.unique():
+                    if i != t:
+                        mask = (strategy.mb_task_id == i)
+                        out_old.append(self.model_old.forward_single_task(
+                                    strategy.mb_x[mask].to(strategy.device), 
+                                    int(i)))
+                        out_new.append(strategy.model.forward_single_task(
+                                    strategy.mb_x[mask].to(strategy.device), 
+                                    int(i)))
+
+                if len(out_old) == 0:
+                    return strategy.loss
+                out_old = torch.cat(out_old, dim=0)
+                out_new = torch.cat(out_new, dim=0)
+                
+            else:
+                out_old = self.model_old(strategy.mb_x.to(strategy.device))
+                out_new = strategy.mb_output
 
             old_clss = []
             for c in self.class_to_tasks.keys():
                 if self.class_to_tasks[c] < t:
                     old_clss.append(c)
 
-            loss_dist = self.cross_entropy(out_new[:, old_clss],
-                                           out_old[:, old_clss], 
-                                           exp=1.0 / self.T)
+            if isinstance(self.model_old, MultiTaskModule):
+                loss_dist = self.cross_entropy(out_new,
+                                               out_old, 
+                                               exp=1.0 / self.T)
+            else:
+                loss_dist = self.cross_entropy(out_new[:, old_clss],
+                                               out_old[:, old_clss], 
+                                               exp=1.0 / self.T)
 
             if self.lamb == -1:
                 lamb = len(old_clss) / len(self.seen_classes)
@@ -157,7 +181,8 @@ class BiCPlugin(SupervisedPlugin):
             list_dataset = []
             for k in self.exemplar_stage_2.keys():
                 list_dataset.append(AvalancheSubset(self.examplars_data[k],
-                                                    self.exemplar_stage_2[k]))
+                                                    self.exemplar_stage_2[k],
+                                                    task_labels=k))
             
             stage_set = AvalancheConcatDataset(list_dataset)
             stage_loader = DataLoader(
@@ -176,18 +201,35 @@ class BiCPlugin(SupervisedPlugin):
                 for inputs in stage_loader:
                     x = inputs[0].to(strategy.device)
                     y_real = inputs[1].to(strategy.device)
+                    task_id = inputs[2].to(strategy.device)
+                    
+                    loss = 0
+                    if isinstance(self.model_old, MultiTaskModule):
+                        mask = (task_id == t)
+                        if mask.sum() > 0:
+                            out = strategy.model.forward_single_task(
+                                            x[mask], t)
+                            loss += torch.nn.functional.cross_entropy(
+                                                                out, 
+                                                                y_real[mask])
+                            _, preds = torch.max(out, 1)
+                            t_acc += torch.sum(preds == y_real[mask].data)
+                            t_loss += loss.item() * mask.sum()
+                            total += mask.sum()
 
-                    outputs = strategy.model(x)  # bs x c
-                    # outputs = self.bias_forward(outputs)
+                    else:
+                        outputs = strategy.model(x)
+                        loss = torch.nn.functional.cross_entropy(
+                                                            outputs, 
+                                                            y_real)
+                        
+                        _, preds = torch.max(outputs, 1)
+                        t_acc += torch.sum(preds == y_real.data)
+                        t_loss += loss.item() * x.size(0)
+                        total += x.size(0)
 
-                    loss = torch.nn.functional.cross_entropy(outputs, y_real)
                     loss += 0.1 * ((strategy.model.bias_layers[t].beta[0] 
                                     ** 2) / 2)
-
-                    _, preds = torch.max(outputs, 1)
-                    t_acc += torch.sum(preds == y_real.data)
-                    t_loss += loss.item() * x.size(0)
-                    total += x.size(0)
 
                     bic_optimizer.zero_grad()
                     loss.backward()
