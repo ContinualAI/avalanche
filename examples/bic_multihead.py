@@ -1,21 +1,27 @@
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import argparse
-from avalanche.benchmarks import SplitMNIST
+from avalanche.models.resnet32 import resnet32
+from avalanche.benchmarks.classic import SplitCIFAR100
 from avalanche.training.supervised import BiC
-from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
     loss_metrics,
 )
 from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin, LRSchedulerPlugin
 
 
 def main(args):
-    model = SimpleMLP(hidden_size=args.hs)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    model = resnet32(num_classes=100)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, 
+                                momentum=0.9, weight_decay=0.0002)
     criterion = torch.nn.CrossEntropyLoss()
+
+    schedule_plugins = LRSchedulerPlugin(
+                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-4),
+                        metric="train_loss")
 
     # check if selected GPU is available or use CPU
     assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
@@ -27,7 +33,7 @@ def main(args):
     print(f"Using device: {device}")
 
     # create split scenario
-    scenario = SplitMNIST(n_experiences=5, return_task_id=False)
+    scenario = SplitCIFAR100(n_experiences=10, return_task_id=False)
 
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
@@ -54,12 +60,14 @@ def main(args):
         train_mb_size=args.minibatch_size,
         eval_mb_size=args.minibatch_size,
         evaluator=eval_plugin,
+        plugins=[schedule_plugins],
+        # multihead=True,
     )
 
     # train on the selected scenario with the chosen strategy
     print("Starting experiment...")
     results = []
-    for train_batch_info in scenario.train_stream:
+    for t, train_batch_info in enumerate(scenario.train_stream):
         print(
             "Start training on experience ", train_batch_info.current_experience
         )
@@ -69,7 +77,7 @@ def main(args):
             "End training on experience ", train_batch_info.current_experience
         )
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(strategy.eval(scenario.test_stream[:t+1]))
 
 
 if __name__ == "__main__":
@@ -89,8 +97,7 @@ if __name__ == "__main__":
                         required=False,
                         help='Number of epochs for training bias \
                                     (default=%(default)s)')
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
-    parser.add_argument("--hs", type=int, default=256, help="MLP hidden size.")
+    parser.add_argument("--lr", type=float, default=1e-2, help="Learning rate.")
     parser.add_argument(
         "--epochs", type=int, default=10, help="Number of training epochs."
     )
