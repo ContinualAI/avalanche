@@ -47,7 +47,7 @@ class BaseSGDTemplate(BaseTemplate):
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):
