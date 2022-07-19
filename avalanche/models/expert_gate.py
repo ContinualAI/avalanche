@@ -153,7 +153,6 @@ class ExpertGate(nn.Module):
         shape,
         num_classes,
         device,
-        rel_thresh=0.85,
         arch="alexnet",
         pretrained_flag=True,
         output_layer_name="features"
@@ -163,7 +162,6 @@ class ExpertGate(nn.Module):
         # Store variables
         self.shape = shape
         self.num_classes = num_classes
-        self.rel_thresh = rel_thresh
         self.arch = arch
         self.pretrained_flag = pretrained_flag
         self.device = device

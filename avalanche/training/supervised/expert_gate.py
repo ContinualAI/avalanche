@@ -37,8 +37,10 @@ class ExpertGateStrategy(SupervisedTemplate):
         eval_every=-1,
         ae_train_mb_size=1,
         ae_train_epochs=2,
+        ae_latent_dim=100,
         ae_lr=1e-3,
         temp=2,
+        rel_thresh=0.85,
         **base_kwargs
     ):
         """Init.
@@ -82,6 +84,8 @@ class ExpertGateStrategy(SupervisedTemplate):
         self.ae_train_mb_size = ae_train_mb_size
         self.ae_train_epochs = ae_train_epochs
         self.ae_lr = ae_lr
+        self.ae_latent_dim = ae_latent_dim
+        self.rel_thresh = rel_thresh
         model.temp = temp
 
         super().__init__(
@@ -129,8 +133,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         task_label = strategy.experience.task_label
 
         # Build an autoencoder for this experience and store it in a dictionary
-        autoencoder = self._add_autoencoder(
-            strategy, task_label, latent_dim=100)
+            autoencoder = self._add_autoencoder(strategy, task_label)
 
         # Train the autoencoder on current experience
         self._train_autoencoder(strategy, autoencoder)
@@ -157,7 +160,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         print("\nTRAINING EXPERT")
         # If needed, add a new instance of LwF plugin back 
-        if (relatedness > strategy.model.rel_thresh):
+            if (relatedness > strategy.rel_thresh):
             print("WITH LWF")
             self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
             strategy.plugins.append(self.lwf_plugin)
@@ -290,8 +293,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
     # ##################
     def _add_autoencoder(self, 
                          strategy: "SupervisedTemplate", 
-                         task_label, 
-                         latent_dim=50):
+                         task_label):
         """Builds a new autoencoder and stores it in the ExpertGate 
         autoencoder dictionary. Returns the new autoencoder.
         """
@@ -299,7 +301,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # This shape is equivalent to the output shape of 
         # the Alexnet features module
         new_autoencoder = ExpertAutoencoder(
-            shape=(256, 6, 6), latent_dim=latent_dim, device=strategy.device)
+            shape=(256, 6, 6), latent_dim=strategy.ae_latent_dim, device=strategy.device)
 
         # Store autoencoder with task number
         strategy.model.autoencoder_dict[str(task_label)] = new_autoencoder
