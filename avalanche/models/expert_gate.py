@@ -32,21 +32,27 @@ class ExpertAutoencoder(nn.Module):
 
     def __init__(self, shape, 
                  latent_dim, 
+                 device,
                  arch="alexnet",
                  pretrained_flag=True,
-                 device="cpu",
                  output_layer_name="features"):
 
         super().__init__()
 
         # Select pretrained AlexNet for preprocessing input 
         base_template = (models.__dict__[arch](
-            pretrained=pretrained_flag).to(device))
+            weights=('AlexNet_Weights.DEFAULT' 
+                     if pretrained_flag 
+                     else 'AlexNet_Weights.NONE'))
+            .to(device))
 
         self.feature_module = FeatureExtractorBackbone(
                 base_template, output_layer_name)
 
+        self.feature_module.to(device)
+
         self.shape = shape
+        self.device = device
 
         # Freeze the feature module
         for param in self.feature_module.parameters():
@@ -59,17 +65,18 @@ class ExpertAutoencoder(nn.Module):
             Flatten(),
             nn.Linear(flattened_size, latent_dim),
             nn.ReLU()
-        )
+        ).to(device)
 
         # Decoder Linear -> Sigmoid
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, flattened_size), 
             nn.Sigmoid()
-        )
+        ).to(device)
 
     def forward(self, x):
 
         # Preprocessing step
+        x = x.to(self.device)
         x = self.feature_module(x)
         x = sigmoid(x)
 
@@ -95,11 +102,15 @@ class ExpertModel(nn.Module):
                  feature_template=None):
         super().__init__()
 
+        self.device = device
         self.num_classes = num_classes
 
         # Select pretrained AlexNet for feature backbone
         base_template = (models.__dict__[arch](
-            pretrained=pretrained_flag).to(device))
+            weights=('AlexNet_Weights.DEFAULT' 
+                     if pretrained_flag 
+                     else 'AlexNet_Weights.NONE'))
+            .to(device))
 
         # Set the feature module from provided template 
         if (feature_template):
@@ -141,10 +152,10 @@ class ExpertGate(nn.Module):
         self,
         shape,
         num_classes,
+        device,
         rel_thresh=0.85,
         arch="alexnet",
         pretrained_flag=True,
-        device="cpu",
         output_layer_name="features"
     ):
         super().__init__()
@@ -167,7 +178,10 @@ class ExpertGate(nn.Module):
 
         # Initialize an expert with pretrained AlexNet
         self.expert = (
-            models.__dict__[arch](pretrained=pretrained_flag)
+            models.__dict__[arch](
+                weights=('AlexNet_Weights.DEFAULT' 
+                         if pretrained_flag 
+                         else 'AlexNet_Weights.NONE'))
             .to(device)
             .eval()
         )
@@ -209,5 +223,8 @@ class ExpertGate(nn.Module):
             # Select an expert for this input using the most likely autoencoder
             most_relevant_expert_key = torch.argmax(probabilities)
             self.expert = self.expert_dict[str(most_relevant_expert_key.item())]
+
+        x = x.to(self.device)
+        self.expert = self.expert.to(self.device)
 
         return self.expert(x)

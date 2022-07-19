@@ -16,22 +16,39 @@ from avalanche.benchmarks import nc_benchmark
 
 
 def test_expertgate():
-    # Fake benchmark is (1,1,6)
-    # Data needs to be transformed for AlexNet
-    # Repeat the "channel" as AlexNet expects 3 channel input
-    # Resize as the AlexNet convolution will reduce the data shape 
-    AlexTransform = transforms.Compose([
-        transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
+
+    # Set device
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    # # Uncomment for simpler data
+    # # Fake benchmark is (1,1,6)
+    # # Data needs to be transformed for AlexNet
+    # # Repeat the "channel" as AlexNet expects 3 channel input
+    # # Resize as the AlexNet convolution will reduce the data shape 
+
+    # CustomDataAlexTransform = transforms.Compose([
+    #     transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
+    #     transforms.Resize((227, 227)),
+    # ])
+
+    # scenario = get_custom_benchmark(
+    #     use_task_labels=True, train_transform=CustomDataAlexTransform, 
+    #     eval_transform=CustomDataAlexTransform, shuffle=True)
+
+    # More resource intensive example
+    MNISTAlexTransform = transforms.Compose([
         transforms.Resize((227, 227)),
+        transforms.ToTensor(), 
+        transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
     ])
 
-    # Set up dummy data scenario
-    scenario = get_custom_benchmark(
-        use_task_labels=True, train_transform=AlexTransform, 
-        eval_transform=AlexTransform, shuffle=True)
+    scenario = SplitMNIST(n_experiences=10, seed=3,
+                          return_task_id=True,
+                          train_transform=MNISTAlexTransform, eval_transform=MNISTAlexTransform)
 
     # Initialize model and specify shape
-    model = ExpertGate(num_classes=scenario.n_classes, shape=(3, 227, 227)) 
+    model = ExpertGate(num_classes=scenario.n_classes,
+                       shape=(3, 227, 227), device=device) 
 
     # Vanilla optimization
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
@@ -40,9 +57,9 @@ def test_expertgate():
     strategy = ExpertGateStrategy(
         model,
         optimizer,
-        device="cpu",
+        device=device,
         train_mb_size=200,
-        train_epochs=3,
+        train_epochs=5,
         eval_every=-1, 
         ae_train_mb_size=10,
         ae_train_epochs=5, 

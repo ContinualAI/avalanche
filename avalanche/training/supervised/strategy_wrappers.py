@@ -424,11 +424,11 @@ class AETraining(SupervisedTemplate):
         self,
         model: Module,
         optimizer: Optimizer,
+        device,
         criterion=AE_loss,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = ae_evaluator,
         eval_every=0,
@@ -471,7 +471,7 @@ class AETraining(SupervisedTemplate):
         )
 
     def criterion(self):
-        modified_mb_x = sigmoid(self.model.feature_module(self.mb_x))
+        modified_mb_x = sigmoid(self.model.feature_module(self.mb_x).to(self.device))
         return self._criterion(modified_mb_x, self.mb_output)
 
 

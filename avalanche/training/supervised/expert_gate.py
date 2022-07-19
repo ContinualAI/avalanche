@@ -189,7 +189,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         if (len(strategy.model.expert_dict) == 0):
             expert = ExpertModel(num_classes=strategy.model.num_classes, 
                                  arch=strategy.model.arch,
-                                 device=strategy.model.device, 
+                                 device=strategy.device, 
                                  pretrained_flag=strategy.model.pretrained_flag)
             relatedness = 0
 
@@ -219,7 +219,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
             # Build expert with feature template
             expert = ExpertModel(num_classes=strategy.model.num_classes,
                                  arch=strategy.model.arch,
-                                 device=strategy.model.device, 
+                                 device=strategy.device, 
                                  pretrained_flag=strategy.model.pretrained_flag,
                                  feature_template=most_relevant_expert)
 
@@ -264,6 +264,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                                  optimizer=SGD(
                                      autoencoder.parameters(), 
                                      lr=strategy.ae_lr),
+                                 device=strategy.device,
                                  eval_mb_size=100, 
                                  eval_every=-1)
 
@@ -298,7 +299,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # This shape is equivalent to the output shape of 
         # the Alexnet features module
         new_autoencoder = ExpertAutoencoder(
-            shape=(256, 6, 6), latent_dim=latent_dim)
+            shape=(256, 6, 6), latent_dim=latent_dim, device=strategy.device)
 
         # Store autoencoder with task number
         strategy.model.autoencoder_dict[str(task_label)] = new_autoencoder
@@ -315,11 +316,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
         """Trains an autoencoder for the ExpertGate plugin.
         """
         # Setup autoencoder strategy
-        ae_strategy = AETraining(model=autoencoder, 
+        ae_strategy = AETraining(model=autoencoder,
                                  optimizer=Adam(
                                             autoencoder.parameters(), 
                                             lr=strategy.ae_lr
                                             ),
+                                 device=strategy.device, 
                                  train_mb_size=strategy.ae_train_mb_size, 
                                  train_epochs=strategy.ae_train_epochs,
                                  eval_every=-1)
