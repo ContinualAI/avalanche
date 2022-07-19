@@ -41,7 +41,7 @@ class ExpertAutoencoder(nn.Module):
 
         # Select pretrained AlexNet for preprocessing input 
         base_template = (models.__dict__[arch](
-            weights=('AlexNet_Weights.DEFAULT' 
+            weights=('AlexNet_Weights.IMAGENET1K_V1' 
                      if pretrained_flag 
                      else 'AlexNet_Weights.NONE'))
             .to(device))
@@ -107,7 +107,7 @@ class ExpertModel(nn.Module):
 
         # Select pretrained AlexNet for feature backbone
         base_template = (models.__dict__[arch](
-            weights=('AlexNet_Weights.DEFAULT' 
+            weights=('AlexNet_Weights.IMAGENET1K_V1' 
                      if pretrained_flag 
                      else 'AlexNet_Weights.NONE'))
             .to(device))
@@ -179,7 +179,7 @@ class ExpertGate(nn.Module):
         # Initialize an expert with pretrained AlexNet
         self.expert = (
             models.__dict__[arch](
-                weights=('AlexNet_Weights.DEFAULT' 
+                weights=('AlexNet_Weights.IMAGENET1K_V1' 
                          if pretrained_flag 
                          else 'AlexNet_Weights.NONE'))
             .to(device)
