@@ -1,10 +1,10 @@
 ################################################################################
-# Copyright (c) 2021 ContinualAI.                                              #
+# Copyright (c) 2022 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 12-05-2020                                                             #
-# Author(s): Lorenzo Pellegrini, Antonio Carta                                 #
+# Date: 19-07-2022                                                             #
+# Author(s): Antonio Carta                                                     #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -94,6 +94,7 @@ class AvalancheDataset(Dataset[T_co]):
         :param transform_groups: Avalanche transform groups.
         """
         self._dataset = dataset  # original dataset
+        self._data_attributes = data_attributes
 
         if isinstance(dataset, AvalancheDataset):
             # inherit data attributes from original dataset
@@ -128,6 +129,12 @@ class AvalancheDataset(Dataset[T_co]):
 
     def __radd__(self, other: Dataset) -> "AvalancheDataset":
         return AvalancheConcatDataset([other, self])
+
+    def __eq__(self, other: "AvalancheDataset"):
+        return self._dataset == other._dataset and \
+            self.transform_groups == other.transform_groups and \
+            self._data_attributes == other._data_attributes and \
+            self.collate_fn == other.collate_fn
 
     def _getitem_recursive_call(self, idx):
         """We need this recursive call to avoid appending task
@@ -291,9 +298,9 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             transform_groups=transform_groups,
             collate_fn=collate_fn)
 
-        self._flatten_dataset()
         for da in self._data_attributes.values():  # subset for attributes
             setattr(self, da.name, da.subset(self._indices))
+        self._flatten_dataset()
 
     def _getitem_recursive_call(self, idx):
         """We need this recursive call to avoid appending task
@@ -320,9 +327,10 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         (if it's an AvalancheSubset or PyTorch Subset)"""
 
         if isinstance(self._dataset, AvalancheSubset):
-            # we need to take trasnforms and indices from parent
-            self.transform_groups = copy.copy(self._dataset.transform_groups)
-            # TODO: merge transform groups.
+            # we need to take transforms and indices from parent
+            old_tgroups = copy.copy(self._dataset.transform_groups)
+            new_tgroups = self.transform_groups
+            self.transform_groups = old_tgroups + new_tgroups
 
             parent_idxs = self._dataset._indices
             self._indices = [parent_idxs[x] for x in self._indices]
@@ -352,15 +360,15 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
 
         :param datasets: A collection of datasets.
         """
+        self._dataset = None
+
         dataset_list = list(datasets)
         self.datasets = dataset_list
-        self._flatten_dataset()
+        self._flatten_datasets_list()
 
         self._datasets_lengths = [len(dataset) for dataset in dataset_list]
         self.cumulative_sizes = ConcatDataset.cumsum(dataset_list)
         self._total_length = sum(self._datasets_lengths)
-
-        # TODO: flatten dataset
 
         self._data_attributes = {}
         for dd in self.datasets:
@@ -390,11 +398,33 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         The collate function to use when creating mini-batches from this
         dataset.
         """
-
-        self.is_frozen_transforms = True
+        self._flatten_datasets_list()
 
     def __len__(self) -> int:
         return self._total_length
+
+    def with_transforms(
+        self: TAvalancheDataset, group_name: str
+    ) -> TAvalancheDataset:
+        """
+        Returns a new dataset with the transformations of a different group
+        loaded.
+
+        The current dataset will not be affected.
+
+        :param group_name: The name of the transformations group to use.
+        :return: A new dataset with the new transformations.
+        """
+        datacopy = self._clone_dataset()
+        datacopy.transform_groups.with_transform(group_name)
+        dds = []
+        for d in self.datasets:
+            if isinstance(d, AvalancheDataset):
+                dds.append(d.with_transforms(group_name))
+            else:
+                dds.append(d)
+        datacopy.datasets = dds
+        return datacopy
 
     def get_transform_groups(self):
         """Recursively collects transform groups across the entire data tree.
@@ -423,14 +453,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
     def _getitem_recursive_call(self, idx):
         """We need this recursive call to avoid appending task
         label multiple times inside the __getitem__."""
-        if isinstance(self._dataset, AvalancheDataset):
-            element = self._dataset._getitem_recursive_call(idx)
-        else:
-            element = self._dataset[idx]
-
-        if self.transform_groups is not None:
-            element = self.transform_groups(element)
-        return element
+        return self.__getitem__(idx)[:-1]
 
     def __getitem__(self, idx: int):
         # same logic as pytorch's ConcatDataset to get item's index
@@ -439,120 +462,23 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             element = self.transform_groups(element)
         return element
 
-    def _flatten_dataset(self):
+    def _flatten_datasets_list(self):
         # Flattens this subset by borrowing the list of concatenated datasets
-        # from the original datasets (if they're 'AvalancheConcatSubset's or
-        # PyTorch 'ConcatDataset's)
+        # from the original datasets.
 
         flattened_list = []
         for dataset in self.datasets:
             if isinstance(dataset, AvalancheConcatDataset):
-                if isinstance(dataset.transform_groups, EmptyTransformGroups):
+                if isinstance(dataset.transform_groups,
+                              EmptyTransformGroups) or \
+                        dataset.transform_groups is None:
                     flattened_list.extend(dataset.datasets)
                 else:
                     # Can't flatten as the dataset has custom transformations
                     flattened_list.append(dataset)
-            elif isinstance(dataset, AvalancheSubset):
-                flattened_list += self._flatten_subset_concat_branch(dataset)
             else:
                 flattened_list.append(dataset)
         self.datasets = flattened_list
-
-    def _flatten_subset_concat_branch(
-        self, dataset: AvalancheSubset
-    ) -> List[Dataset]:
-        """Optimizes the dataset hierarchy in the corner case:
-
-        self -> [Subset, Subset, ] -> ConcatDataset -> [Dataset]
-
-        :param dataset: The dataset. This function returns [dataset] if the
-            dataset is not a subset containing a concat dataset (or if other
-            corner cases are encountered).
-        :return: The flattened list of datasets to be concatenated.
-        """
-        concat_dataset: AvalancheConcatDataset = dataset._original_dataset
-
-        if not isinstance(concat_dataset, AvalancheConcatDataset):
-            return [dataset]
-        if not isinstance(concat_dataset.transform_groups, EmptyTransformGroups):
-            return [dataset]
-
-        result: List[AvalancheSubset] = []
-        last_c_dataset = None
-        last_c_idxs = []
-        last_c_targets = []
-        last_c_tasks = []
-
-        for subset_idx, idx in enumerate(dataset._indices):
-            dataset_idx, internal_idx = find_list_from_index(
-                idx,
-                concat_dataset._datasets_lengths,
-                concat_dataset._total_length,
-                cumulative_sizes=concat_dataset.cumulative_sizes,
-            )
-
-            if last_c_dataset is None:
-                last_c_dataset = dataset_idx
-            elif last_c_dataset != dataset_idx:
-                # Consolidate current subset
-                result.append(
-                    AvalancheConcatDataset._make_similar_subset(
-                        dataset,
-                        concat_dataset.datasets[last_c_dataset],
-                        last_c_idxs,
-                        last_c_targets,
-                        last_c_tasks,
-                    )
-                )
-
-                # Switch to next dataset
-                last_c_dataset = dataset_idx
-                last_c_idxs = []
-                last_c_targets = []
-                last_c_tasks = []
-
-            last_c_idxs.append(internal_idx)
-            # TODO: merge transforms
-            # TODO: merge data attributes
-            last_c_targets.append(dataset.targets[subset_idx])
-            last_c_tasks.append(dataset.targets_task_labels[subset_idx])
-
-        if last_c_dataset is not None:
-            result.append(
-                AvalancheConcatDataset._make_similar_subset(
-                    dataset,
-                    concat_dataset.datasets[last_c_dataset],
-                    last_c_idxs,
-                    last_c_targets,
-                    last_c_tasks,
-                )
-            )
-
-        return result
-
-    @staticmethod
-    def _make_similar_subset(subset, ref_dataset, indices, targets, tasks):
-        t_groups = dict()
-        f_groups = dict()
-        AvalancheDataset._borrow_transformations(subset, t_groups, f_groups)
-
-        collate_fn = None
-        if hasattr(subset, "collate_fn"):
-            collate_fn = subset.collate_fn
-
-        result = AvalancheSubset(
-            ref_dataset,
-            indices=indices,
-            class_mapping=subset._class_mapping,
-            transform_groups=t_groups,
-            initial_transform_group=subset.current_transform_group,
-            task_labels=tasks,
-            targets=targets,
-            collate_fn=collate_fn,
-        )
-
-        result._frozen_transforms = f_groups
-        return result
 
 
 __all__ = [

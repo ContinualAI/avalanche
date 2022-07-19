@@ -32,6 +32,7 @@ from avalanche.models.pytorchcv_wrapper import (
     pyramidnet,
     get_model,
 )
+from tests.test_avalanche_classification_dataset import get_mbatch
 from tests.unit_tests_utils import (
     common_setups,
     get_fast_benchmark,
@@ -348,7 +349,7 @@ class DynamicModelsTests(unittest.TestCase):
             assert torch.all(model.active_units[autot] == 1)
 
             # print(model.active_units)
-            mb = exp.dataset[:7][0]
+            mb = get_mbatch(exp.dataset)[0]
             out = model(mb)
             assert torch.all(out[:, autot] != model.mask_value)
             out_masked = out[:, model.active_units == 0]
@@ -378,7 +379,7 @@ class DynamicModelsTests(unittest.TestCase):
             assert torch.all(~au_copy)
 
             # print(model.active_units)
-            mb = exp.dataset[:7][0]
+            mb = get_mbatch(exp.dataset)[0]
             out = model(mb)
             assert torch.all(out[:, autot] != model.mask_value)
             out_masked = out[:, model.active_units == 0]
@@ -417,7 +418,7 @@ class DynamicModelsTests(unittest.TestCase):
             assert torch.all(curr_mask[curr_au] == 1)
 
             # print(model._buffers)
-            mb, tmb = exp.dataset[:7][0], exp.dataset[:7][2]
+            mb, _, tmb = get_mbatch(exp.dataset)
             out = model(mb, tmb)
             assert torch.all(out[:, curr_au] != model.mask_value)
             assert torch.all(out[:, :nunits]

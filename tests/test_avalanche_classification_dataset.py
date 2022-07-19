@@ -14,7 +14,7 @@ import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
-from torch.utils.data import TensorDataset, Subset, ConcatDataset
+from torch.utils.data import TensorDataset, Subset, ConcatDataset, DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import (
     ToTensor,
@@ -54,6 +54,13 @@ def zero_if_label_2(img_tensor: Tensor, class_label):
         torch.full(img_tensor.shape, 0.0, out=img_tensor)
 
     return img_tensor, class_label
+
+
+def get_mbatch(data, batch_size=5):
+    dl = DataLoader(data, shuffle=False,
+                    batch_size=batch_size,
+                    collate_fn=data.collate_fn)
+    return next(iter(dl))
 
 
 class AvalancheDatasetTests(unittest.TestCase):
@@ -115,7 +122,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         t = torch.ones(32)  # Single task
         dataset = AvalancheTensorClassificationDataset(x, y, targets=1, task_labels=t)
 
-        x2, y2, t2 = dataset[:]
+        x2, y2, t2 = get_mbatch(dataset, batch_size=32)
 
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, Tensor)
@@ -604,7 +611,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(tensor_y[0], y))
         self.assertEqual(0, t)
 
-        x2, y2, z2, t2 = dataset[0:5]
+        x2, y2, z2, t2 = get_mbatch(dataset)
         self.assertIsInstance(x2, Tensor)
         self.assertTrue(torch.equal(tensor_x[0:5], x2))
         self.assertTrue(torch.equal(tensor_y[0:5] + 1, y2))
@@ -613,7 +620,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         inherited = AvalancheClassificationDataset(dataset)
 
-        x3, y3, z3, t3 = inherited[0:5]
+        x3, y3, z3, t3 = get_mbatch(inherited)
         self.assertIsInstance(x3, Tensor)
         self.assertTrue(torch.equal(tensor_x[0:5], x3))
         self.assertTrue(torch.equal(tensor_y[0:5] + 1, y3))
@@ -643,7 +650,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset = AvalancheClassificationDataset(whole_dataset, collate_fn=my_collate_fn)
         inherited = AvalancheClassificationDataset(dataset, collate_fn=my_collate_fn2)  # Ok
 
-        x, y, z, t = inherited[0:5]
+        x, y, z, t = get_mbatch(inherited)
         self.assertIsInstance(x, Tensor)
         self.assertTrue(torch.equal(tensor_x[0:5], x))
         self.assertTrue(torch.equal(tensor_y[0:5] + 2, y))
@@ -687,14 +694,14 @@ class AvalancheDatasetTests(unittest.TestCase):
             [dataset1, dataset2], collate_fn=my_collate_fn2
         )  # Ok
 
-        x, y, z, t = dataset2[0:5]
+        x, y, z, t = get_mbatch(dataset2)
         self.assertIsInstance(x, Tensor)
         self.assertTrue(torch.equal(tensor_x2[0:5], x))
         self.assertTrue(torch.equal(tensor_y2[0:5] + 1, y))
         self.assertTrue(torch.equal(torch.full((5,), -1, dtype=torch.long), z))
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t))
 
-        x2, y2, z2, t2 = concat[0:5]
+        x2, y2, z2, t2 = get_mbatch(concat)
         self.assertIsInstance(x2, Tensor)
         self.assertTrue(torch.equal(tensor_x[0:5], x2))
         self.assertTrue(torch.equal(tensor_y[0:5] + 2, y2))
@@ -732,17 +739,11 @@ class AvalancheDatasetTests(unittest.TestCase):
             )
 
         tensor_x, tensor_y, tensor_z = gen_random_tensors(200)
-
         tensor_x2, tensor_y2, tensor_z2 = gen_random_tensors(200)
-
         tensor_x3, tensor_y3, tensor_z3 = gen_random_tensors(200)
-
         tensor_x4, tensor_y4, tensor_z4 = gen_random_tensors(200)
-
         tensor_x5, tensor_y5, tensor_z5 = gen_random_tensors(200)
-
         tensor_x6, tensor_y6, tensor_z6 = gen_random_tensors(200)
-
         tensor_x7, tensor_y7, tensor_z7 = gen_random_tensors(200)
 
         dataset1 = TensorDataset(tensor_x, tensor_y, tensor_z)
@@ -1179,7 +1180,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
             all_targets = []
-            for c_dataset in leaf._dataset_list:
+            for c_dataset in leaf.datasets:
                 all_targets += c_dataset.targets
 
             all_targets = torch.tensor(all_targets)

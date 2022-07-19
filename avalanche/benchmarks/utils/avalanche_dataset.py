@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
 from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset
-from .transforms import TransformGroups, EmptyTransformGroups
+from .transforms import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
     ClassificationSubset,
@@ -49,7 +49,7 @@ from typing import (
     Callable,
     Dict,
     Tuple,
-    Collection,
+    Collection, Mapping,
 )
 
 from typing_extensions import Protocol
@@ -189,6 +189,9 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
         task_labels = AvalancheClassificationDataset._init_task_labels(
             dataset, task_labels)
 
+        if initial_transform_group is not None and \
+                isinstance(dataset, AvalancheDataset):
+            dataset = dataset.with_transforms(initial_transform_group)
         super().__init__(
             dataset,
             data_attributes=[targets, task_labels],
@@ -300,9 +303,36 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             tls = _make_task_labels_from_supported_dataset(dataset)
         return DataAttribute("targets_task_labels", tls)
 
+    @property
+    def task_set(self):
+        class TaskSet(Mapping):
+            """A lazy mapping for <task-label -> task dataset>"""
+            def __init__(self, data):
+                super().__init__()
+                self.data = data
+
+            def __iter__(self):
+                return iter(self.data.targets_task_labels.uniques)
+
+            def __getitem__(self, task_label):
+                tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
+                return AvalancheClassificationSubset(self.data, tl_idx)
+
+            def __len__(self):
+                return len(self.data.targets_task_labels.uniques)
+
+        return TaskSet(self)
+
     def __getitem__(self, idx: int):
         elem = self._getitem_recursive_call(idx)
         return *elem, self.targets_task_labels[idx]
+
+    def add_transforms(self, x_transform):
+        # TODO: to remove
+        return AvalancheClassificationDataset(
+            self, transform=x_transform,
+            initial_transform_group=self.transform_groups.current_group)
+
 
 
 class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
@@ -390,18 +420,33 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
             The adapter is used to adapt the values of the targets field only.
         """
         self.class_mapping = class_mapping
+        tgroups = None
+        if self.class_mapping is not None:
+            tgroups = FrozenTransformGroups(
+                (None, lambda x: self.class_mapping[x]))
 
         targets = AvalancheClassificationDataset._init_targets(
             dataset, targets, targets_adapter)
 
+        task_labels = AvalancheClassificationDataset._init_task_labels(
+            dataset, task_labels)
+
+        if self.class_mapping is not None:
+            # update targets
+            l = [self.class_mapping[el] for el in targets]
+            targets = DataAttribute('targets', l)
+
         if indices is None:
-            data = dataset
+            data = AvalancheDataset(
+                dataset,
+                data_attributes=[targets, task_labels],
+                transform_groups=tgroups)
         else:
             data = AvalancheSubset(
                 dataset,
                 indices=indices,
-                data_attributes=[targets]
-            )
+                data_attributes=[targets, task_labels],
+                transform_groups=tgroups)
 
         super().__init__(
             data,
@@ -409,15 +454,7 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
             target_transform=target_transform,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
-            task_labels=task_labels,
             collate_fn=collate_fn)
-
-    def _getitem_recursive_call(self, idx):
-        mbatch = super()._getitem_recursive_call(idx)
-        if self.class_mapping is not None:
-            return (mbatch[0], self.class_mapping[mbatch[1]], *mbatch[2:])
-        else:
-            return mbatch
 
 
 class AvalancheTensorClassificationDataset(AvalancheClassificationDataset[T_co]):
@@ -486,6 +523,8 @@ class AvalancheTensorClassificationDataset(AvalancheClassificationDataset[T_co])
 
         if targets is None:
             targets = dataset_tensors[1]
+        elif isinstance(targets, int):
+            targets = dataset_tensors[targets]
         base_dataset = TensorDataset(*dataset_tensors)
 
         super().__init__(
@@ -581,6 +620,10 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
             the value of the second element returned by `__getitem__`.
             The adapter is used to adapt the values of the targets field only.
         """
+        if len(datasets) == 0:
+            AvalancheDataset.__init__(self, [])
+            return
+
         dds = []
         for d in datasets:
             if not isinstance(d, AvalancheDataset):
@@ -589,8 +632,25 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
             else:
                 dds.append(d)
 
+        if initial_transform_group is None:
+            uniform_group = None
+            for d_set in dds:
+                if uniform_group is None:
+                    uniform_group = d_set.transform_groups.current_group
+                else:
+                    if uniform_group != d_set.transform_groups.current_group:
+                        uniform_group = None
+                        break
+
+            data = AvalancheConcatDataset(dds)
+            if uniform_group is None:
+                initial_transform_group = "train"
+                data = data.with_transforms(initial_transform_group)
+            else:
+                initial_transform_group = uniform_group
+
         super().__init__(
-            AvalancheConcatDataset(dds),
+            data,
             transform=transform,
             target_transform=target_transform,
             transform_groups=transform_groups,

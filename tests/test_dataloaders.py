@@ -122,7 +122,7 @@ class DataLoaderTests(unittest.TestCase):
             for mini_batch in dataloader:
                 mb_task_labels = mini_batch[-1]
                 lengths = []
-                for task_id in adapted_dataset.val_to_idx:
+                for task_id in adapted_dataset.targets_task_labels.val_to_idx:
                     len_task = (mb_task_labels == task_id).sum()
                     lengths.append(len_task)
                 if sum(lengths) == batch_size:

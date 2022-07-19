@@ -31,27 +31,34 @@ class TransformGroups:
             element[1] = curr_t[1](element[1])
         return element
 
-    def __add__(self, other):
+    def __add__(self, other: "TransformGroups"):
         tgroups = {**self.transform_groups}
         for gname, gtrans in other.transform_groups.items():
             if gname not in tgroups:
                 tgroups[gname] = gtrans
             else:
-                tgroups[gname] = Compose([tgroups[gname], other[gname]])
+                tgroups[gname] = Compose([gtrans, tgroups[gname]])
         return TransformGroups(tgroups, self.current_group)
+
+    def __eq__(self, other: "TransformGroups"):
+        return self.transform_groups == other.transform_groups and \
+            self.current_group == other.current_group
 
     def with_transform(self, group_name):
         assert group_name in self.transform_groups
         self.current_group = group_name
 
 
-class EmptyTransformGroups(TransformGroups):
-    def __init__(self):
-        transform_groups = defaultdict(lambda: None)
-        super().__init__(transform_groups)
-
-
 class FrozenTransformGroups(TransformGroups):
     def __init__(self, transforms):
         transform_groups = defaultdict(lambda: transforms)
+        super().__init__(transform_groups)
+
+    def with_transform(self, group_name):
+        pass
+
+
+class EmptyTransformGroups(FrozenTransformGroups):
+    def __init__(self):
+        transform_groups = defaultdict(lambda: None)
         super().__init__(transform_groups)

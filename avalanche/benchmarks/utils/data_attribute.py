@@ -55,7 +55,7 @@ class DataAttribute(FlatData):
                                         "with different names."
         ta = torch.tensor(self.data)
         tb = torch.tensor(other.data)
-        return DataAttribute(ta.name, torch.cat([ta, tb], dim=0))
+        return DataAttribute(self.name, torch.cat([ta, tb], dim=0))
 
     @staticmethod
     def _optimize_sequence(seq):
