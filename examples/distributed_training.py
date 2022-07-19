@@ -113,8 +113,7 @@ def main(args):
     my_evaluator = EvaluationPlugin(
         accuracy_metrics(epoch=True, experience=True, stream=True),
         loss_metrics(epoch=True, experience=True, stream=True),
-        loggers=loggers,
-        suppress_warnings=True
+        loggers=loggers
     )
 
     # Adapt the minibatch size

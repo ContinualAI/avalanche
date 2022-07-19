@@ -15,10 +15,10 @@
     between the current data and the replay memory.
 """
 from itertools import chain
-from typing import Dict, Sequence, Union
+from typing import Dict, Sequence, Union, Any
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils import AvalancheDataset
@@ -527,8 +527,11 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-        dataset, distributed_sampling, data_loader_args,
-        batch_size, force_no_workers=False):
+        dataset: Dataset,
+        distributed_sampling: bool,
+        data_loader_args: Dict[str, Any],
+        batch_size: int,
+        force_no_workers=False):
     data_loader_args = data_loader_args.copy()
 
     collate_from_data_or_kwargs(dataset, data_loader_args)
