@@ -26,11 +26,11 @@ Loggers
     TextLogger
     CSVLogger
 
-All the loggers inherit from the base class :py:class:`StrategyLogger`.
+All the loggers inherit from the base class :py:class:`BaseLogger`.
 
 .. autosummary::
     :toctree: generated
 
-    StrategyLogger
+    BaseLogger
 
 

@@ -56,7 +56,7 @@ def main(args):
         else "cpu"
     )
 
-    device = "cpu"
+    # device = "cpu"
 
     # --- TRANSFORMATIONS
     transform = transforms.Compose(

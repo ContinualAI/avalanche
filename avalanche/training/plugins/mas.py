@@ -6,7 +6,6 @@ import torch
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.templates.base_sgd import BaseSGDTemplate
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 
 
@@ -56,7 +55,7 @@ class MASPlugin(SupervisedPlugin):
         # Progress bar
         self.verbose = verbose
 
-    def _get_importance(self, strategy: BaseSGDTemplate):
+    def _get_importance(self, strategy):
 
         # Initialize importance matrix
         importance = dict(zerolike_params_dict(strategy.model))
@@ -69,9 +68,12 @@ class MASPlugin(SupervisedPlugin):
 
         # Do forward and backward pass to accumulate L2-loss gradients
         strategy.model.train()
+        collate_fn = strategy.experience.dataset.collate_fn \
+            if hasattr(strategy.experience.dataset, "collate_fn") else None
         dataloader = DataLoader(
             strategy.experience.dataset,
             batch_size=strategy.train_mb_size,
+            collate_fn=collate_fn
         )  # type: ignore
 
         # Progress bar
@@ -114,7 +116,7 @@ class MASPlugin(SupervisedPlugin):
 
         return importance
 
-    def before_backward(self, strategy: BaseSGDTemplate, **kwargs):
+    def before_backward(self, strategy, **kwargs):
         # Check if the task is not the first
         exp_counter = strategy.clock.train_exp_counter
         if exp_counter == 0:
@@ -140,7 +142,7 @@ class MASPlugin(SupervisedPlugin):
         # Update loss
         strategy.loss += self._lambda * loss_reg
 
-    def before_training(self, strategy: BaseSGDTemplate, **kwargs):
+    def before_training(self, strategy, **kwargs):
         # Parameters before the first task starts
         if not self.params:
             self.params = dict(copy_params_dict(strategy.model))
@@ -149,7 +151,7 @@ class MASPlugin(SupervisedPlugin):
         if not self.importance:
             self.importance = dict(zerolike_params_dict(strategy.model))
 
-    def after_training_exp(self, strategy: BaseSGDTemplate, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         self.params = dict(copy_params_dict(strategy.model))
 
         # Check if previous importance is available

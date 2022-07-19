@@ -15,7 +15,9 @@ import urllib
 import os
 
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
+from torchvision.models import mobilenet_v2
 from torchvision.transforms import (
     RandomHorizontalFlip,
     RandomCrop,
@@ -26,11 +28,13 @@ from torchvision.transforms import (
     Resize,
 )
 
+from avalanche.models import LeNet5, SlimResNet18
 from ..datasets import default_dataset_location
 from ..utils import Compose, AvalancheConcatDataset
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 from . import SplitCIFAR10, CORe50, SplitMNIST
 from avalanche.benchmarks import ExModelCLScenario, nc_benchmark
+import copy
 
 import urllib.request
 
@@ -39,7 +43,7 @@ import urllib.request
 SEED_BENCHMARK_RUNS = [1234, 2345, 3456, 5678, 6789]
 
 
-def _load_expert_models(scenario_name, run_id, len_stream):
+def _load_expert_models(scenario_name, base_model, run_id, len_stream):
     """Load ExML experts.
 
     If necessary, the model are automatically downloaded.
@@ -56,16 +60,18 @@ def _load_expert_models(scenario_name, run_id, len_stream):
 
     experts_stream = []
     for i in range(len_stream):
-        fname_i = f"{base_dir}/model_e{i}.pt"
-        weburl_i = f"{weburl}/model_e{i}.pt"
+        fname_i = f"{base_dir}/model_e{i}.pth"
+        weburl_i = f"{weburl}/model_e{i}.pth"
 
         if not os.path.exists(fname_i):
             os.makedirs(base_dir, exist_ok=True)
             print(f"Downloading expert model {i}")
             urllib.request.urlretrieve(weburl_i, fname_i)
 
-        model = torch.load(fname_i).to("cpu")
-        model.eval()
+        model = copy.deepcopy(base_model)
+        state_d = torch.load(fname_i)
+        model.load_state_dict(state_d)
+        model.to("cpu").eval()
         experts_stream.append(model)
     return experts_stream
 
@@ -76,9 +82,10 @@ def check_experts_accuracy(exml_benchmark):
         type(exml_benchmark).__name__,
         "testing expert models on the original train stream",
     )
-    for i, model in enumerate(exml_benchmark.expert_models_stream):
+    for i, exp in enumerate(exml_benchmark.expert_models_stream):
+        model = exp.expert_model
         model.to("cuda")
-        acc = Accuracy()
+        acc = TaskAwareAccuracy()
 
         train_data = exml_benchmark.original_benchmark.train_stream[i].dataset
         for x, y, t in DataLoader(
@@ -138,7 +145,9 @@ class ExMLMNIST(ExModelCLScenario):
             assert False, "Should never get here."
 
         ll = len(benchmark.train_stream)
-        experts = _load_expert_models(f"{scenario}_mnist", run_id, ll)
+        base_model = LeNet5(10, 1)
+        experts = _load_expert_models(f"{scenario}_mnist", base_model,
+                                      run_id, ll)
         super().__init__(benchmark, experts)
 
 
@@ -209,7 +218,13 @@ class ExMLCoRE50(ExModelCLScenario):
             assert False, "Should never get here."
 
         ll = len(benchmark.train_stream)
-        experts = _load_expert_models(f"{scenario}_core50", run_id, ll)
+        base_model = mobilenet_v2()
+        base_model.classifier = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(base_model.last_channel, 50),
+        )
+        experts = _load_expert_models(f"{scenario}_core50", base_model,
+                                      run_id, ll)
         super().__init__(benchmark, experts)
 
 
@@ -250,7 +265,9 @@ class ExMLCIFAR10(ExModelCLScenario):
             assert False, "Should never get here."
 
         ll = len(benchmark.train_stream)
-        experts = _load_expert_models(f"{scenario}_cifar10", run_id, ll)
+        base_model = SlimResNet18(10)
+        experts = _load_expert_models(f"{scenario}_cifar10", base_model,
+                                      run_id, ll)
         super().__init__(benchmark, experts)
 
 

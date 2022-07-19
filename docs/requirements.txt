@@ -13,9 +13,11 @@ pycocotools
 tqdm
 torch
 torchvision
+torchaudio
 torchmetrics
 gdown
 lvis
 higher
 lvis
 ctrl-benchmark
+sphinx_copybutton

@@ -20,12 +20,12 @@ from collections import defaultdict
 
 
 class Accuracy(Metric[float]):
-    """
-    The Accuracy metric. This is a standalone metric.
+    """Accuracy metric. This is a standalone metric.
 
-    The metric keeps a dictionary of <task_label, accuracy value> pairs.
-    and update the values through a running average over multiple
-    <prediction, target> pairs of Tensors, provided incrementally.
+    The update method computes the accuracy incrementally
+    by keeping a running average of the <prediction, target> pairs
+    of Tensors provided over time.
+
     The "prediction" and "target" tensors may contain plain labels or
     one-hot/logit vectors.
 
@@ -37,14 +37,84 @@ class Accuracy(Metric[float]):
     """
 
     def __init__(self):
-        """
-        Creates an instance of the standalone Accuracy metric.
+        """Creates an instance of the standalone Accuracy metric.
 
         By default this metric in its initial state will return an accuracy
         value of 0. The metric can be updated by using the `update` method
         while the running accuracy can be retrieved using the `result` method.
         """
-        self._mean_accuracy = defaultdict(Mean)
+        self._mean_accuracy = Mean()
+        """The mean utility that will be used to store the running accuracy."""
+
+    @torch.no_grad()
+    def update(
+        self,
+        predicted_y: Tensor,
+        true_y: Tensor,
+    ) -> None:
+        """Update the running accuracy given the true and predicted labels.
+
+        :param predicted_y: The model prediction. Both labels and logit vectors
+            are supported.
+        :param true_y: The ground truth. Both labels and one-hot vectors
+            are supported.
+
+        :return: None.
+        """
+        true_y = torch.as_tensor(true_y)
+        predicted_y = torch.as_tensor(predicted_y)
+
+        if len(true_y) != len(predicted_y):
+            raise ValueError("Size mismatch for true_y and predicted_y tensors")
+
+        # Check if logits or labels
+        if len(predicted_y.shape) > 1:
+            # Logits -> transform to labels
+            predicted_y = torch.max(predicted_y, 1)[1]
+
+        if len(true_y.shape) > 1:
+            # Logits -> transform to labels
+            true_y = torch.max(true_y, 1)[1]
+
+        true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
+        total_patterns = len(true_y)
+        self._mean_accuracy.update(
+            true_positives / total_patterns, total_patterns
+        )
+
+    def result(self) -> float:
+        """Retrieves the running accuracy.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: The current running accuracy, which is a float value
+            between 0 and 1.
+        """
+        return self._mean_accuracy.result()
+
+    def reset(self) -> None:
+        """Resets the metric.
+
+        :return: None.
+        """
+        self._mean_accuracy.reset()
+
+
+class TaskAwareAccuracy(Metric[float]):
+    """The task-aware Accuracy metric.
+
+    The metric computes a dictionary of <task_label, accuracy value> pairs.
+    update/result/reset methods are all task-aware.
+
+    See :class:`avalanche.evaluation.Accuracy` for the documentation about
+    the `Accuracy` metric.
+    """
+
+    def __init__(self):
+        """Creates an instance of the task-aware Accuracy metric.
+
+        """
+        self._mean_accuracy = defaultdict(Accuracy)
         """
         The mean utility that will be used to store the running accuracy
         for each task label.
@@ -57,8 +127,8 @@ class Accuracy(Metric[float]):
         true_y: Tensor,
         task_labels: Union[float, Tensor],
     ) -> None:
-        """
-        Update the running accuracy given the true and predicted labels.
+        """Update the running accuracy given the true and predicted labels.
+
         Parameter `task_labels` is used to decide how to update the inner
         dictionary: if Float, only the dictionary value related to that task
         is updated. If Tensor, all the dictionary elements belonging to the
@@ -80,28 +150,14 @@ class Accuracy(Metric[float]):
         if isinstance(task_labels, Tensor) and len(task_labels) != len(true_y):
             raise ValueError("Size mismatch for true_y and task_labels tensors")
 
-        true_y = torch.as_tensor(true_y)
-        predicted_y = torch.as_tensor(predicted_y)
-
-        # Check if logits or labels
-        if len(predicted_y.shape) > 1:
-            # Logits -> transform to labels
-            predicted_y = torch.max(predicted_y, 1)[1]
-
-        if len(true_y.shape) > 1:
-            # Logits -> transform to labels
-            true_y = torch.max(true_y, 1)[1]
-
         if isinstance(task_labels, int):
-            true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
-            total_patterns = len(true_y)
-            self._mean_accuracy[task_labels].update(
-                true_positives / total_patterns, total_patterns
-            )
+            self._mean_accuracy[task_labels].update(predicted_y, true_y)
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
-                true_positives = (pred == true).float().item()
-                self._mean_accuracy[t.item()].update(true_positives, 1)
+                if isinstance(t, Tensor):
+                    t = t.item()
+                self._mean_accuracy[t].update(pred.unsqueeze(0),
+                                              true.unsqueeze(0))
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
@@ -114,6 +170,8 @@ class Accuracy(Metric[float]):
 
         Calling this method will not change the internal state of the metric.
 
+        task label is ignored if `self.split_by_task=False`.
+
         :param task_label: if None, return the entire dictionary of accuracies
             for each task. Otherwise return the dictionary
             `{task_label: accuracy}`.
@@ -121,6 +179,7 @@ class Accuracy(Metric[float]):
             where each value is a float value between 0 and 1.
         """
         assert task_label is None or isinstance(task_label, int)
+
         if task_label is None:
             return {k: v.result() for k, v in self._mean_accuracy.items()}
         else:
@@ -129,6 +188,8 @@ class Accuracy(Metric[float]):
     def reset(self, task_label=None) -> None:
         """
         Resets the metric.
+        task label is ignored if `self.split_by_task=False`.
+
         :param task_label: if None, reset the entire dictionary.
             Otherwise, reset the value associated to `task_label`.
 
@@ -136,7 +197,7 @@ class Accuracy(Metric[float]):
         """
         assert task_label is None or isinstance(task_label, int)
         if task_label is None:
-            self._mean_accuracy = defaultdict(Mean)
+            self._mean_accuracy = defaultdict(Accuracy)
         else:
             self._mean_accuracy[task_label].reset()
 
@@ -146,37 +207,42 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
     Base class for all accuracies plugin metrics
     """
 
-    def __init__(self, reset_at, emit_at, mode):
-        self._accuracy = Accuracy()
+    def __init__(self, reset_at, emit_at, mode, split_by_task=False):
+        """Creates the Accuracy plugin
+
+        :param reset_at:
+        :param emit_at:
+        :param mode:
+        :param split_by_task: whether to compute task-aware accuracy or not.
+        """
+        self.split_by_task = split_by_task
+        if self.split_by_task:
+            self._accuracy = TaskAwareAccuracy()
+        else:
+            self._accuracy = Accuracy()
         super(AccuracyPluginMetric, self).__init__(
             self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def reset(self, strategy=None) -> None:
-        if self._reset_at == "stream" or strategy is None:
-            self._metric.reset()
-        else:
-            self._metric.reset(phase_and_task(strategy)[1])
+        self._metric.reset()
 
     def result(self, strategy=None) -> float:
-        if self._emit_at == "stream" or strategy is None:
-            return self._metric.result()
-        else:
-            return self._metric.result(phase_and_task(strategy)[1])
+        return self._metric.result()
 
     def update(self, strategy):
-        # task labels defined for each experience
-        if hasattr(strategy.experience, "task_labels"):
-            task_labels = strategy.experience.task_labels
+        if isinstance(self._accuracy, Accuracy):
+            self._accuracy.update(
+                strategy.mb_output,
+                strategy.mb_y
+            )
+        elif isinstance(self._accuracy, TaskAwareAccuracy):
+            self._accuracy.update(
+                strategy.mb_output,
+                strategy.mb_y,
+                strategy.mb_task_id)
         else:
-            task_labels = [0]  # add fixed task label if not available.
-
-        if len(task_labels) > 1:
-            # task labels defined for each pattern
-            task_labels = strategy.mb_task_id
-        else:
-            task_labels = task_labels[0]
-        self._accuracy.update(strategy.mb_output, strategy.mb_y, task_labels)
+            assert False, "should never get here."
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):
@@ -379,6 +445,7 @@ def accuracy_metrics(
 
 __all__ = [
     "Accuracy",
+    "TaskAwareAccuracy",
     "MinibatchAccuracy",
     "EpochAccuracy",
     "RunningEpochAccuracy",

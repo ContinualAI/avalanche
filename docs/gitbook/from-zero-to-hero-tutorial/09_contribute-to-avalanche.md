@@ -12,10 +12,10 @@ There are no _superheroes_ that are not altruistic!
 In order to contribute to _Avalanche_, first of all you need to become familiar with all its features and the codebase structure, so if you have not followed the _"From Zero to Hero Tutorial"_ from the beginning we suggest to do it before starting to make changes.
 {% endhint %}
 
-First of all, [install _Avalanche_ in "_Developer Mode"_](../getting-started/how-to-install.md#developer-mode-install) _if you haven't already._ After you've familiarized with the _Avalanche_ codebase you have two roads ahead of you:
+First of all, [install _Avalanche_ in "_Developer Mode"_](https://avalanche.continualai.org/getting-started/how-to-install#developer-mode-install) _if you haven't already._ After you've familiarized with the _Avalanche_ codebase you have two roads ahead of you:
 
-1. You can start working on a [open issue](../questions-and-issues/add-your-issue.md) \(we have dozen of them!\)
-2. You can [submit a feature-request](../questions-and-issues/request-a-feature.md) and propose yourself to work on it.
+1. You can start working on a [open issue](https://avalanche.continualai.org/questions-and-issues/add-your-issue) \(we have dozen of them!\)
+2. You can [submit a feature-request](https://avalanche.continualai.org/questions-and-issues/request-a-feature) and propose yourself to work on it.
 
 ![Examples of Avalanche Issues available on GitHub](../.gitbook/assets/issues.png)
 
@@ -40,19 +40,19 @@ Also, before making your PR **make sure** that the following commands return wit
 
 ```bash
 pycodestyle avalanche tests examples
-python -m unittest discover -v
+python -m unittest discover tests -v
 ```
 
 Otherwise fix them and run again these commands until everything is working correctly. You should also check if everything is working on GPUs, using the env variable `USE_GPU=True`:
 
 ```bash
-USE_GPU=True python -m unittest discover -v
+USE_GPU=True python -m unittest discover tests -v
 ```
 
 Faster integrity checks can be run with the env variable `FAST_TEST=True` :
 
 ```bash
-USE_GPU=False FAST_TEST=True python -m unittest discover -v
+USE_GPU=False FAST_TEST=True python -m unittest discover tests -v
 ```
 
 **Contribute to the Avalanche documentation**

@@ -37,6 +37,13 @@ detection_collate_fn = _detection_collate_fn
 detection_collate_mbatches_fn = _detection_collate_mbatches_fn
 
 
+def collate_from_data_or_kwargs(data, kwargs):
+    if "collate_fn" in kwargs:
+        return
+    elif hasattr(data, "collate_fn"):
+        kwargs["collate_fn"] = data.collate_fn
+
+
 class TaskBalancedDataLoader:
     """Task-balanced data loader for Avalanche's datasets."""
 
@@ -262,6 +269,7 @@ class GroupBalancedInfiniteDataLoader:
                 data, replacement=True, num_samples=10 ** 10,
                 generator=generator
             )
+            collate_from_data_or_kwargs(data, kwargs)
             dl = DataLoader(data, sampler=infinite_sampler, **kwargs)
             self.dataloaders.append(dl)
         self.max_len = 10 ** 10
@@ -285,14 +293,18 @@ class GroupBalancedInfiniteDataLoader:
 class ReplayDataLoader:
     """Custom data loader for rehearsal/replay strategies."""
 
-    def __init__(self, data: AvalancheDataset, memory: AvalancheDataset = None,
-                 oversample_small_tasks: bool = False,
-                 collate_mbatches=_default_collate_mbatches_fn,
-                 batch_size: int = 32,
-                 batch_size_mem: int = 32,
-                 task_balanced_dataloader: bool = False,
-                 distributed_sampling: bool = True,
-                 **kwargs):
+    def __init__(
+        self,
+        data: AvalancheDataset,
+        memory: AvalancheDataset = None,
+        oversample_small_tasks: bool = False,
+        collate_mbatches=_default_collate_mbatches_fn,
+        batch_size: int = 32,
+        batch_size_mem: int = 32,
+        task_balanced_dataloader: bool = False,
+        distributed_sampling: bool = True,
+        **kwargs
+    ):
         """ Custom data loader for rehearsal strategies.
 
         This dataloader iterates in parallel two datasets, the current `data`
@@ -418,7 +430,7 @@ class ReplayDataLoader:
         try:
             for it in range(max_len):
                 mb_curr = []
-                self._get_mini_batch_from_data_dict(
+                ReplayDataLoader._get_mini_batch_from_data_dict(
                     iter_data_dataloaders,
                     sampler_data,
                     loader_data,
@@ -426,7 +438,7 @@ class ReplayDataLoader:
                     mb_curr,
                 )
 
-                self._get_mini_batch_from_data_dict(
+                ReplayDataLoader._get_mini_batch_from_data_dict(
                     iter_buffer_dataloaders,
                     sampler_memory,
                     loader_memory,
@@ -441,8 +453,8 @@ class ReplayDataLoader:
     def __len__(self):
         return self.max_len
 
+    @staticmethod
     def _get_mini_batch_from_data_dict(
-        self,
         iter_dataloaders,
         iter_samplers,
         loaders_dict,
@@ -518,6 +530,9 @@ def _make_data_loader(
         dataset, distributed_sampling, data_loader_args,
         batch_size, force_no_workers=False):
     data_loader_args = data_loader_args.copy()
+
+    collate_from_data_or_kwargs(dataset, data_loader_args)
+
     if force_no_workers:
         data_loader_args['num_workers'] = 0
 
@@ -539,6 +554,9 @@ def _make_data_loader(
 
 
 __all__ = [
+    "detection_collate_fn",
+    "detection_collate_mbatches_fn",
+    "collate_from_data_or_kwargs",
     "TaskBalancedDataLoader",
     "GroupBalancedDataLoader",
     "ReplayDataLoader",

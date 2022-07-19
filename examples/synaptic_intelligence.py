@@ -69,7 +69,7 @@ def main(args):
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
 
     my_logger = TensorboardLogger(
-        tb_log_dir="logs", tb_log_exp_name="logging_example"
+        tb_log_dir="logs_example_SynapticIntelligence"
     )
 
     # print to stdout

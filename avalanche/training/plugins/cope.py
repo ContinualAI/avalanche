@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict
 
 import torch
@@ -37,12 +38,12 @@ class CoPEPlugin(SupervisedPlugin):
         """
         :param mem_size: max number of input samples in the replay memory.
         :param n_classes: total number of classes that will be encountered. This
-        is used to output predictions for all classes, with zero probability
-        for unseen classes.
+            is used to output predictions for all classes, with zero probability
+            for unseen classes.
         :param p_size: The prototype size, which equals the feature size of the
-        last layer.
+            last layer.
         :param alpha: The momentum for the exponentially moving average of the
-        prototypes.
+            prototypes.
         :param T: The softmax temperature, used as a concentration parameter.
         :param max_it_cnt: How many processing iterations per batch (experience)
         """
@@ -70,6 +71,10 @@ class CoPEPlugin(SupervisedPlugin):
         self.ppp_loss = PPPloss(self.p_mem, T=self.T)
 
         self.initialized = False
+
+        warnings.warn("The current version of COPE is not working properly."
+                      "Please, use it carefully. The performance may not"
+                      "be aligned with the actual COPE performance.")
 
     def before_training(self, strategy, **kwargs):
         """Enforce using the PPP-loss and add a NN-classifier."""

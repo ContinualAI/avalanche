@@ -6,7 +6,7 @@ description: 'Make it Custom, Make it Yours'
 
 
 ```python
-!pip install avalanche-lib
+!pip install avalanche-lib==0.2.0
 ```
 
 
@@ -14,9 +14,9 @@ Having learned how to use all the _Avalanche_ main features, you may end up will
 
 Hence, now is the time to get your hands dirty! 🙌
 
-Take you time to explore the [Avalanche API](https://continualai.github.io/avalanche) in great detail. We made sure everything is well documented \(even if improvable\), but try to take a look at the code as well to resolve any uncertainties \(of course if you have any question [don't hesitate to ask](../questions-and-issues/ask-your-question.md)\)
+Take you time to explore the [Avalanche API](https://avalanche-api.continualai.org) in great detail. We made sure everything is well documented \(even if improvable\), but try to take a look at the code as well to resolve any uncertainties \(of course if you have any question [don't hesitate to ask](https://avalanche.continualai.org/questions-and-issues/add-your-issue)\)
 
-You can start by [cloning the repo and installing Avalanche in "Developer Mode"](../getting-started/how-to-install.md#developer-mode-install).
+You can start by [cloning the repo and installing Avalanche in "Developer Mode"](https://avalanche.continualai.org/getting-started/how-to-install#developer-mode-install).
 
 We suggest to delve into the code using an appropriate IDE, such as [PyCharm](https://www.jetbrains.com/pycharm/). This will help you navigate the code better and with tons of cool discovery features. Once you have a clear understanding of the entire codebase \(or at least the module you'd like to extend/customize\) you can start making changes.
 

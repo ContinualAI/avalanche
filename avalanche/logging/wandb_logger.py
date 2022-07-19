@@ -38,7 +38,8 @@ if TYPE_CHECKING:
 
 
 class WandBLogger(BaseLogger, SupervisedPlugin):
-    """
+    """Weights and Biases logger.
+
     The `WandBLogger` provides an easy integration with
     Weights & Biases logging. Each monitored metric is automatically
     logged to a dedicated Weights & Biases project dashboard.
@@ -49,6 +50,7 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
     The wandb log files are placed by default in "./wandb/" unless specified.
 
     .. note::
+
         TensorBoard can be synced on to the W&B dedicated dashboard.
     """
 
@@ -65,8 +67,8 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         dir: Union[str, Path] = None,
         params: dict = None,
     ):
-        """
-        Creates an instance of the `WandBLogger`.
+        """Creates an instance of the `WandBLogger`.
+
         :param project_name: Name of the W&B project.
         :param run_name: Name of the W&B run.
         :param log_artifacts: Option to log model weights as W&B Artifacts.
@@ -76,9 +78,9 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         :param save_code: Saves the main training script to W&B.
         :param config: Syncs hyper-parameters and config values used to W&B.
         :param dir: Path to the local log directory for W&B logs to be saved at.
-        :param params: All arguments for wandb.init() function call.
-         Visit https://docs.wandb.ai/ref/python/init to learn about all
-         wand.init() parameters.
+        :param params: All arguments for wandb.init() function call. Visit
+            https://docs.wandb.ai/ref/python/init to learn about all
+            wand.init() parameters.
         """
         super().__init__()
         self.import_wandb()

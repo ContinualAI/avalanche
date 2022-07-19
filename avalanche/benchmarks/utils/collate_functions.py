@@ -33,12 +33,27 @@ def classification_collate_mbatches_fn(mbatches):
 
 
 def classification_single_values_collate_fn(values_list, index):
+    """
+    Collate function used to merge the single elements (x or y or t,
+    etcetera) of a minibatch of data from a classification dataset.
+
+    This function assumes that all values are tensors of the same shape
+    (excluding the first dimension).
+
+    :param values_list: The list of values to merge.
+    :param index: The index of the element. 0 for x values, 1 for y values,
+        etcetera. In this implementation, this parameter is ignored.
+    :return: The merged values.
+    """
     return torch.cat(values_list, dim=0)
 
 
 def detection_collate_fn(batch):
     """
     Collate function used when loading detection datasets using a DataLoader.
+
+    This will merge the single samples of a batch to create a minibatch.
+    This collate function follows the torchvision format for detection tasks.
     """
     return tuple(zip(*batch))
 
@@ -46,6 +61,12 @@ def detection_collate_fn(batch):
 def detection_collate_mbatches_fn(mbatches):
     """
     Collate function used when loading detection datasets using a DataLoader.
+
+    This will merge multiple batches to create a concatenated batch.
+
+    Beware that merging multiple batches is different from creating a batch
+    from single dataset elements: Batches can be created from a
+    list of single dataset elements by using :func:`detection_collate_fn`.
     """
     lists_dict = defaultdict(list)
     for mb in mbatches:

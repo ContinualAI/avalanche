@@ -3,16 +3,22 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 04-06-2022                                                             #
-# Author: Jia Shi                                                              #
-# E-mail: jiashi@andrew.cmu.edu                                                #
+# Date: 05-17-2022                                                             #
+# Author: Jia Shi, Zhiqiu Lin                                                  #
+# E-mail: jiashi@andrew.cmu.edu, zl279@cornell.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
 ################################################################################
+'''Example: Training and evaluating on CLEAR benchmark (RGB images)
+'''
+import os
+import sys
+import json
+from pathlib import Path
 
+import numpy as np
+import torch
+import torchvision
 
-from torch.optim import SGD
-from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
-from torch.nn import CrossEntropyLoss
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -22,23 +28,39 @@ from avalanche.evaluation.metrics import (
     confusion_matrix_metrics,
     disk_usage_metrics,
 )
-from avalanche.models import SimpleMLP
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
-import sys
-import torchvision
-import torch.nn as nn
-from torchvision import transforms
-import torch
-from avalanche.benchmarks.classic.clear import CLEAR
-from avalanche.benchmarks.datasets.clear import clear10_data
-from avalanche.benchmarks.datasets.clear import (
-    CLEARImage,
-    CLEARFeature,
-    SEED_LIST,
-    CLEAR_FEATURE_TYPES,
-)
+from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
+
+
+# For CLEAR dataset setup
+DATASET_NAME = "clear100_cvpr2022"
+NUM_CLASSES = {"clear10": 11, "clear100_cvpr2022": 100}
+assert DATASET_NAME in NUM_CLASSES.keys()
+
+# please refer to paper for discussion on streaming v.s. iid protocol
+EVALUATION_PROTOCOL = "streaming"  # trainset = testset per timestamp
+# EVALUATION_PROTOCOL = "iid"  # 7:3 trainset_size:testset_size
+
+# For saving the datasets/models/results/log files
+ROOT = Path("..")
+DATA_ROOT = ROOT / DATASET_NAME
+MODEL_ROOT = ROOT / "models"
+DATA_ROOT.mkdir(parents=True, exist_ok=True)
+MODEL_ROOT.mkdir(parents=True, exist_ok=True)
+
+# Define hyperparameters/scheduler/augmentation
+HPARAM = {
+    "batch_size": 256,
+    'num_epoch' : 100,
+    "step_scheduler_decay": 30,
+    "scheduler_step": 0.1,
+    "start_lr": 0.01,
+    "weight_decay": 1e-5,
+    "momentum": 0.9,
+}
 
 
 def make_scheduler(optimizer, step_size, gamma=0.1):
@@ -48,72 +70,34 @@ def make_scheduler(optimizer, step_size, gamma=0.1):
     return scheduler
 
 
-_CLEAR_DATA_MODULE = {"clear10": clear10_data}
+model = torchvision.models.resnet18(pretrained=False)
 
-NUM_CLASSES = {"clear10": 11}
-CLEAR_FEATURE_TYPES = {
-    "clear10": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"]
-}
-
-CLEAR_FEATURE_SHAPE = {"imagenet": 2048}
-
-
-SPLIT_OPTIONS = ["all", "train", "test"]
-
-SEED_LIST = [0, 1, 2, 3, 4]  # Available seeds for train:test split
-
-EVALUATION_PROTOCOLS = ["iid", "streaming"]
-
-
-HYPER_PARAMETER = {
-    "image": {
-        "batch_size": 256,
-        "step_schedular_decay": 30,
-        "schedular_step": 0.1,
-        "start_lr": 0.01,
-        "weight_decay": 1e-5,
-        "momentum": 0.9,
-    },
-    "feature": {
-        "batch_size": 512,
-        "step_schedular_decay": 60,
-        "schedular_step": 0.1,
-        "start_lr": 1,
-        "weight_decay": 0,
-        "momentum": 0.9,
-    },
-}
-
-
-data_name = "clear10"
-
-normalize = transforms.Normalize(
+normalize = torchvision.transforms.Normalize(
     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
 )
-train_transform = transforms.Compose(
+train_transform = torchvision.transforms.Compose(
     [
-        transforms.Resize(224),
-        transforms.RandomCrop(224),
-        transforms.ToTensor(),
+        torchvision.transforms.Resize(224),
+        torchvision.transforms.RandomCrop(224),
+        torchvision.transforms.ToTensor(),
         normalize,
     ]
 )
-test_transform = transforms.Compose(
+test_transform = torchvision.transforms.Compose(
     [
-        transforms.Resize(224),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
+        torchvision.transforms.Resize(224),
+        torchvision.transforms.CenterCrop(224),
+        torchvision.transforms.ToTensor(),
         normalize,
     ]
 )
 
-root = ".."
 
 # log to Tensorboard
-tb_logger = TensorboardLogger(root)
+tb_logger = TensorboardLogger(ROOT)
 
 # log to text file
-text_logger = TextLogger(open(f"{root}/log.txt", "w"))
+text_logger = TextLogger(open(ROOT / "log.txt", "w+"))
 
 # print to stdout
 interactive_logger = InteractiveLogger()
@@ -125,7 +109,7 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     cpu_usage_metrics(experience=True),
     confusion_matrix_metrics(
-        num_classes=NUM_CLASSES[data_name], save_image=False, stream=True
+        num_classes=NUM_CLASSES[DATASET_NAME], save_image=False, stream=True
     ),
     disk_usage_metrics(
         minibatch=True, epoch=True, experience=True, stream=True
@@ -133,78 +117,85 @@ eval_plugin = EvaluationPlugin(
     loggers=[interactive_logger, text_logger, tb_logger],
 )
 
-num_epoch = 70
-for eval_mode in EVALUATION_PROTOCOLS:
-    for mode in ["feature", "image"]:
-        if eval_mode == "streaming":
-            seed = None
-        else:
-            seed = 0
-        if mode == "image":
-            scenario = CLEAR(
-                evaluation_protocol=eval_mode,
-                feature_type=None,
-                seed=seed,
-                train_transform=train_transform,
-                eval_transform=test_transform,
-                dataset_root=f"{root}/avalanche_datasets/clear10",
-            )
-            model = torchvision.models.__dict__["resnet18"](pretrained=True)
-        elif mode == "feature":
-            scenario = CLEAR(
-                evaluation_protocol=eval_mode,
-                feature_type=CLEAR_FEATURE_TYPES[data_name][-1],
-                seed=seed,
-                dataset_root=f"{root}/avalanche_datasets/clear10",
-            )
-            # feature size for imagenet is 2048
-            model = nn.Linear(
-                CLEAR_FEATURE_SHAPE["imagenet"], NUM_CLASSES[data_name]
-            )
 
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
-        if torch.cuda.is_available():
-            model = model.cuda()
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if EVALUATION_PROTOCOL == "streaming":
+    seed = None
+else:
+    seed = 0
+    
+scenario = CLEAR(
+    data_name=DATASET_NAME,
+    evaluation_protocol=EVALUATION_PROTOCOL,
+    feature_type=None,
+    seed=seed,
+    train_transform=train_transform,
+    eval_transform=test_transform,
+    dataset_root=DATA_ROOT,
+)
 
-        optimizer = SGD(
-            model.parameters(),
-            lr=HYPER_PARAMETER[mode]["start_lr"],
-            weight_decay=HYPER_PARAMETER[mode]["weight_decay"],
-            momentum=HYPER_PARAMETER[mode]["momentum"],
-        )
-        scheduler = make_scheduler(
-            optimizer,
-            HYPER_PARAMETER[mode]["step_schedular_decay"],
-            HYPER_PARAMETER[mode]["schedular_step"],
-        )
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
 
-        plugin_list = [LRSchedulerPlugin(scheduler)]
-        cl_strategy = Naive(
-            model,
-            optimizer,
-            CrossEntropyLoss(),
-            train_mb_size=HYPER_PARAMETER[mode]["batch_size"],
-            train_epochs=num_epoch,
-            eval_mb_size=HYPER_PARAMETER[mode]["batch_size"],
-            evaluator=eval_plugin,
-            device=device,
-            plugins=plugin_list,
-        )
+optimizer = torch.optim.SGD(
+    model.parameters(),
+    lr=HPARAM["start_lr"],
+    weight_decay=HPARAM["weight_decay"],
+    momentum=HPARAM["momentum"],
+)
+scheduler = make_scheduler(
+    optimizer,
+    HPARAM["step_scheduler_decay"],
+    HPARAM["scheduler_step"],
+)
 
-        # TRAINING LOOP
-        print("Starting experiment...")
-        results = []
-        print("Current input mode : ", mode)
-        print("Current eval mode : ", eval_mode)
-        for experience in scenario.train_stream:
-            print("Start of experience: ", experience.current_experience)
-            print("Current Classes: ", experience.classes_in_this_experience)
-            res = cl_strategy.train(experience)
-            print("Training completed")
-            print(
-                "Computing accuracy on the whole test set with"
-                f" {eval_mode} evaluation protocols"
-            )
-            results.append(cl_strategy.eval(scenario.test_stream))
+plugin_list = [LRSchedulerPlugin(scheduler)]
+cl_strategy = Naive(
+    model,
+    optimizer,
+    torch.nn.CrossEntropyLoss(),
+    train_mb_size=HPARAM["batch_size"],
+    train_epochs=HPARAM["num_epoch"],
+    eval_mb_size=HPARAM["batch_size"],
+    evaluator=eval_plugin,
+    device=device,
+    plugins=plugin_list,
+)
+
+# TRAINING LOOP
+print("Starting experiment...")
+results = []
+print("Current protocol : ", EVALUATION_PROTOCOL)
+for index, experience in enumerate(scenario.train_stream):
+    print("Start of experience: ", experience.current_experience)
+    print("Current Classes: ", experience.classes_in_this_experience)
+    res = cl_strategy.train(experience)
+    torch.save(
+        model.state_dict(),
+        str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
+    )
+    print("Training completed")
+    print(
+        "Computing accuracy on the whole test set with"
+        f" {EVALUATION_PROTOCOL} evaluation protocol"
+    )
+    results.append(cl_strategy.eval(scenario.test_stream))
+# generate accuracy matrix
+num_timestamp = len(results)
+accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
+for train_idx in range(num_timestamp):
+    for test_idx in range(num_timestamp):
+        accuracy_matrix[train_idx][test_idx] = results[train_idx][
+            f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"]
+print('Accuracy_matrix : ')
+print(accuracy_matrix)
+metric = CLEARMetric().get_metrics(accuracy_matrix)
+print(metric)
+
+metric_log = open(ROOT / "metric_log.txt", "w+")
+metric_log.write(
+    f"Protocol: {EVALUATION_PROTOCOL} "
+    f"Seed: {seed} "
+)
+json.dump(accuracy_matrix.tolist(), metric_log, indent=6)
+json.dump(metric, metric_log, indent=6)
+metric_log.close()

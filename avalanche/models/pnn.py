@@ -2,10 +2,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from avalanche.models import MultiTaskModule, DynamicModule
+from avalanche.models import MultiTaskModule
 from avalanche.models import MultiHeadClassifier
+from avalanche.benchmarks.scenarios import CLExperience
 
 
 class LinearAdapter(nn.Module):
@@ -161,7 +161,7 @@ class PNNLayer(MultiTaskModule):
     def num_columns(self):
         return len(self.columns)
 
-    def adaptation(self, dataset: AvalancheDataset):
+    def adaptation(self, experience: CLExperience):
         """Training adaptation for PNN layer.
 
         Adds an additional column to the layer.
@@ -169,7 +169,8 @@ class PNNLayer(MultiTaskModule):
         :param dataset:
         :return:
         """
-        super().train_adaptation(dataset)
+        dataset = experience.dataset
+        super().train_adaptation(experience)
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.
@@ -278,3 +279,12 @@ class PNN(MultiTaskModule):
         for lay in self.layers:
             x = [F.relu(el) for el in lay(x, task_label)]
         return self.classifier(x[col_idx], task_label)
+
+
+__all__ = [
+    'PNN',
+    'PNNLayer',
+    'PNNColumn',
+    'MLPAdapter',
+    'LinearAdapter'
+]

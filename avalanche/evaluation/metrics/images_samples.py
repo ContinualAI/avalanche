@@ -141,17 +141,19 @@ class ImagesSamplePlugin(PluginMetric):
     ) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_transforms(
-                transform=MaybeToTensor(),
+                transform=_MaybeToTensor(),
                 target_transform=None,
             )
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(
             dataset=data,
             batch_size=min(mb_size, self.n_wanted_images),
             shuffle=True,
+            collate_fn=collate_fn
         )
 
 
-class MaybeToTensor(ToTensor):
+class _MaybeToTensor(ToTensor):
     """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor. Pytorch tensors
     are left as is.
     """

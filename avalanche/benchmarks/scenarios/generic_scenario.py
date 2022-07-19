@@ -10,9 +10,10 @@
 ################################################################################
 from copy import copy
 from enum import Enum
-from typing import List, Iterable, TypeVar, Union, Generic
+from typing import Generator, List, Iterable, TypeVar, Union, Generic
 
 T = TypeVar("T")
+E = TypeVar("E")
 
 
 class MaskedAttributeError(ValueError):
@@ -130,7 +131,7 @@ class CLExperience(object):
         exp._exp_mode = ExperienceMode.TRAIN
         return exp
 
-    def inference(self):
+    def eval(self):
         """Return inference experience.
 
         This is a copy of the experience itself where the inference data (e.g.
@@ -151,7 +152,7 @@ class CLExperience(object):
         return exp
 
 
-class CLStream:
+class CLStream(Generic[E]):
     """A CL stream is a named iterator of experiences.
 
     In general, many streams may be generator and not explicit lists to avoid
@@ -176,7 +177,7 @@ class CLStream:
 
         self._iter = None
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[E, None, None]:
         def foo(self):
             for i, exp in enumerate(self.exps_iter):
                 if self.set_stream_info:
@@ -187,7 +188,7 @@ class CLStream:
         return foo(self)
 
 
-class EagerCLStream(CLStream):
+class EagerCLStream(CLStream[E]):
     """A CL stream which is a named list of experiences.
 
     Eager streams are indexable and sliceable, like python lists.
@@ -223,7 +224,7 @@ class EagerCLStream(CLStream):
                 e.origin_stream = self
                 e.current_experience = i
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Union['EagerCLStream[E]', E]:
         # This check allows CL streams slicing
         if isinstance(item, slice):
             return EagerCLStream(

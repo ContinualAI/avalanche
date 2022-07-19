@@ -238,8 +238,7 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
 class ClassBalancedBuffer(BalancedExemplarsBuffer):
     """Stores samples for replay, equally divided over classes.
 
-    There is a separate buffer updated by reservoir sampling for each
-        class.
+    There is a separate buffer updated by reservoir sampling for each class.
     It should be called in the 'after_training_exp' phase (see
     ExperienceBalancedStoragePolicy).
     The number of classes can be fixed up front or adaptive, based on
@@ -253,7 +252,8 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         adaptive_size: bool = True,
         total_num_classes: int = None,
     ):
-        """
+        """Init.
+
         :param max_size: The max capacity of the replay memory.
         :param adaptive_size: True if mem_size is divided equally over all
                             observed experiences (keys in replay_mem).
@@ -323,12 +323,13 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         groupby=None,
         selection_strategy: Optional["ExemplarsSelectionStrategy"] = None,
     ):
-        """
+        """Init.
+
         :param max_size: The max capacity of the replay memory.
         :param groupby: Grouping mechanism. One of {None, 'class', 'task',
-        'experience'}.
+            'experience'}.
         :param selection_strategy: The strategy used to select exemplars to
-                                   keep in memory when cutting it off.
+            keep in memory when cutting it off.
         """
         super().__init__(max_size)
         assert groupby in {None, "task", "class", "experience"}, (
@@ -488,10 +489,12 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
         self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         self.feature_extractor.eval()
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         features = cat(
             [
                 self.feature_extractor(x.to(strategy.device))
-                for x, *_ in DataLoader(data, batch_size=strategy.eval_mb_size)
+                for x, *_ in DataLoader(data, collate_fn=collate_fn,
+                                        batch_size=strategy.eval_mb_size)
             ]
         )
         return self.make_sorted_indices_from_features(features)

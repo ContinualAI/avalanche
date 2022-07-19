@@ -117,7 +117,7 @@ def SplitOmniglot(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -137,32 +137,18 @@ def SplitOmniglot(
     """
 
     omniglot_train, omniglot_test = _get_omniglot_dataset(dataset_root)
-
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=omniglot_train,
-            test_dataset=omniglot_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=omniglot_train,
-            test_dataset=omniglot_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=omniglot_train,
+        test_dataset=omniglot_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        class_ids_from_zero_in_each_exp=False,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def PermutedOmniglot(
@@ -259,7 +245,7 @@ def PermutedOmniglot(
         n_experiences=len(list_train_dataset),
         task_labels=True,
         shuffle=False,
-        class_ids_from_zero_in_each_exp=True,
+        class_ids_from_zero_in_each_exp=False,
         one_dataset_per_exp=True,
         train_transform=train_transform,
         eval_transform=eval_transform,
@@ -379,7 +365,7 @@ def RotatedOmniglot(
         n_experiences=len(list_train_dataset),
         task_labels=True,
         shuffle=False,
-        class_ids_from_zero_in_each_exp=True,
+        class_ids_from_zero_in_each_exp=False,
         one_dataset_per_exp=True,
         train_transform=train_transform,
         eval_transform=eval_transform,

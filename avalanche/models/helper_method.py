@@ -27,6 +27,9 @@ class MultiTaskDecorator(MultiTaskModule):
         :param classifier_name: attribute name of the existing classification
                                 layer inside the module
         """
+        for m in model.modules():
+            assert not isinstance(m, MultiTaskModule)
+
         self.__dict__["_initialized"] = False
         super().__init__()
         self.model = model
@@ -72,6 +75,20 @@ class MultiTaskDecorator(MultiTaskModule):
             out.view(out.size(0), -1), task_labels=task_label
         )
 
+    def forward_all_tasks(self, x: torch.Tensor):
+        """compute the output given the input `x` and task label.
+        By default, it considers only tasks seen at training time.
+
+        :param x:
+        :return: all the possible outputs are returned as a dictionary
+            with task IDs as keys and the output of the corresponding
+            task as output.
+        """
+        out = self.model(x)
+        return getattr(self, self.classifier_name)(
+            out.view(out.size(0), -1), task_labels=None
+        )
+
     def __getattr__(self, name):
         # Override pytorch impl from nn.Module
 
@@ -96,8 +113,7 @@ class MultiTaskDecorator(MultiTaskModule):
 
 
 def as_multitask(model: nn.Module, classifier_name: str) -> MultiTaskModule:
-    """
-    Wraps around a model to make it a multitask model
+    """Wraps around a model to make it a multitask model.
 
     :param model: model to be converted into MultiTaskModule
     :param classifier_name: the name of the attribute containing
@@ -105,8 +121,8 @@ def as_multitask(model: nn.Module, classifier_name: str) -> MultiTaskModule:
                             be an instance of nn.Sequential containing multiple
                             layers as long as the classification layer is the
                             last layer.
-    :return the decorated model, now subclassing MultiTaskModule, and
-    accepting task_labels as forward() method argument
+    :return: the decorated model, now subclassing MultiTaskModule, and
+        accepting task_labels as forward() method argument
     """
     return MultiTaskDecorator(model, classifier_name)
 

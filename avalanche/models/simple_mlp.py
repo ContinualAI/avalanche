@@ -22,6 +22,13 @@ class SimpleMLP(nn.Module, BaseModel):
     """
     Multi-Layer Perceptron with custom parameters.
     It can be configured to have multiple layers and dropout.
+
+    **Example**::
+
+        >>> from avalanche.models import SimpleMLP
+        >>> n_classes = 10 # e.g. MNIST
+        >>> model = SimpleMLP(num_classes=n_classes)
+        >>> print(model) # View model details
     """
 
     def __init__(

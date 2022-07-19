@@ -10,6 +10,8 @@ from typing_extensions import final
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_helper import hash_tensor
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+    collate_from_data_or_kwargs
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -78,7 +80,7 @@ class SupervisedTemplate(BaseSGDTemplate):
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -218,6 +220,8 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -246,7 +250,11 @@ class SupervisedTemplate(BaseSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
+        collate_from_data_or_kwargs(self.adapted_dataset,
+                                    other_dataloader_args)
         sampler = None
         if DistributedHelper.is_distributed:
             sampler = DistributedSampler(
@@ -293,7 +301,7 @@ class SupervisedTemplate(BaseSGDTemplate):
     def _model_adaptation(self, model=None):
         if model is None:
             model = self.model
-        avalanche_model_adaptation(model, self.experience.dataset)
+        avalanche_model_adaptation(model, self.experience)
         return model.to(self.device)
 
     def _unpack_minibatch(self):

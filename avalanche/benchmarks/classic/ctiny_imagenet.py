@@ -87,7 +87,7 @@ def SplitTinyImageNet(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -109,31 +109,18 @@ def SplitTinyImageNet(
 
     train_set, test_set = _get_tiny_imagenet_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=train_set,
+        test_dataset=test_set,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        class_ids_from_zero_in_each_exp=False,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def _get_tiny_imagenet_dataset(dataset_root):

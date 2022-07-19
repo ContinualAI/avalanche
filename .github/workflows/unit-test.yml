@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.6", "3.7", "3.8", "3.9"]
+        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
         shell: bash -l {0}
@@ -50,4 +50,4 @@ jobs:
         id: unittest
         run: |
           conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False python -m unittest
+          FAST_TEST=True USE_GPU=False python -m unittest discover tests

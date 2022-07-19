@@ -9,6 +9,7 @@ the near future.
 
 from .simple_cnn import *
 from .simple_mlp import *
+from .simple_sequence_classifier import *
 from .mlp_tiny_imagenet import SimpleMLP_TinyImageNet
 from .mobilenetv1 import MobilenetV1
 from .dynamic_modules import *
@@ -18,5 +19,7 @@ from .icarl_resnet import *
 from .ncm_classifier import NCMClassifier
 from .base_model import BaseModel
 from .helper_method import as_multitask
-from .pnn import PNN
+from .pnn import *
 from .generator import *
+from .lenet5 import LeNet5
+from .slim_resnet18 import SlimResNet18, MTSlimResNet18

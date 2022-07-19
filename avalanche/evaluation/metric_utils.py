@@ -9,7 +9,8 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING, List
+from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING,\
+    List, Callable, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -280,8 +281,46 @@ def bytes2human(n):
     return "%sB" % n
 
 
+def default_metric_name_template(metric_info: Dict[str, Any]):
+    add_task = metric_info.get('task_label', None) is not None
+    add_phase = metric_info.get('phase_name', None) is not None
+    add_experience = metric_info.get('experience_id', None) is not None
+    add_stream = metric_info.get('stream_name', None) is not None
+
+    if 'metric_name' not in metric_info:
+        raise RuntimeError('Key metric_name missing from value dictionary.')
+
+    result_template = '{metric_name}/'
+    if add_phase:
+        result_template += '{phase_name}_phase/'
+
+    if add_stream:
+        result_template += '{stream_name}_stream/'
+
+    if add_task:
+        result_template += 'Task{task_label:03}/'
+
+    if add_experience:
+        result_template += 'Exp{experience_id:03}/'
+
+    return result_template[:-1]
+
+
+def generic_get_metric_name(
+        value_name_template: Union[str, Callable[[Dict[str, Any]], str]],
+        metric_info: Dict[str, Any]):
+
+    if isinstance(value_name_template, str):
+        name_template = value_name_template
+    else:
+        name_template = value_name_template(metric_info)
+
+    # https://stackoverflow.com/a/17895844
+    return name_template.format(**metric_info)
+
+
 def get_metric_name(
-    metric: "PluginMetric",
+    metric: Union["PluginMetric", str],
     strategy: "SupervisedTemplate",
     add_experience=False,
     add_task=True,
@@ -307,35 +346,32 @@ def get_metric_name(
 
     phase_name, task_label = phase_and_task(strategy)
     stream = stream_type(strategy.experience)
-    base_name = "{}/{}_phase/{}_stream".format(str(metric), phase_name, stream)
-    exp_name = "/Exp{:03}".format(strategy.experience.current_experience)
+    experience_id = strategy.experience.current_experience
+    if type(add_task) == bool and add_task is False:
+        task_label = None
+    elif type(add_task) == int:
+        task_label = add_task
 
-    # task label not present - do not print task
-    if task_label is None and type(add_task) == bool:
-        add_task = False
-    else:
-        # task label is present and printed
-        if type(add_task) == bool and add_task is True:
-            task_name = "/Task{:03}".format(task_label)
-        # print user-defined task label
-        elif type(add_task) == int:
-            task_name = "/Task{:03}".format(add_task)
-            add_task = True
-        # else case is add_task=False
+    if not add_experience:
+        experience_id = None
 
-    if add_experience and not add_task:
-        return base_name + exp_name
-    elif add_experience and add_task:
-        return base_name + task_name + exp_name
-    elif not add_experience and not add_task:
-        return base_name
-    elif not add_experience and add_task:
-        return base_name + task_name
+    return generic_get_metric_name(
+        default_metric_name_template,
+        {
+            'metric_name': str(metric),
+            'task_label': task_label,
+            'phase_name': phase_name,
+            'experience_id': experience_id,
+            'stream_name': stream
+        }
+    )
 
 
 __all__ = [
     "default_cm_image_creator",
     "phase_and_task",
+    "default_metric_name_template",
+    "generic_get_metric_name",
     "get_metric_name",
     "stream_type",
     "bytes2human",

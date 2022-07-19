@@ -118,7 +118,7 @@ def SplitMNIST(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -139,36 +139,24 @@ def SplitMNIST(
 
     mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=mnist_train,
+        test_dataset=mnist_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        class_ids_from_zero_in_each_exp=False,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def PermutedMNIST(
     n_experiences: int,
     *,
+    return_task_id=False,
     seed: Optional[int] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
@@ -196,6 +184,8 @@ def PermutedMNIST(
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param n_experiences: The number of experiences (tasks) in the current
         benchmark. It indicates how many different permutations of the MNIST
         dataset have to be created.
@@ -259,9 +249,9 @@ def PermutedMNIST(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),
-        task_labels=True,
+        task_labels=return_task_id,
         shuffle=False,
-        class_ids_from_zero_in_each_exp=True,
+        class_ids_from_zero_in_each_exp=False,
         one_dataset_per_exp=True,
         train_transform=train_transform,
         eval_transform=eval_transform,
@@ -271,14 +261,14 @@ def PermutedMNIST(
 def RotatedMNIST(
     n_experiences: int,
     *,
+    return_task_id: bool = False,
     seed: Optional[int] = None,
     rotations_list: Optional[Sequence[int]] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
     dataset_root: Union[str, Path] = None
 ) -> NCScenario:
-    """
-    Creates a Rotated MNIST benchmark.
+    """Creates a Rotated MNIST benchmark.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -382,9 +372,9 @@ def RotatedMNIST(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),
-        task_labels=True,
+        task_labels=return_task_id,
         shuffle=False,
-        class_ids_from_zero_in_each_exp=True,
+        class_ids_from_zero_in_each_exp=False,
         one_dataset_per_exp=True,
         train_transform=train_transform,
         eval_transform=eval_transform,

@@ -60,7 +60,7 @@ class AR1(SupervisedTemplate):
         eval_mb_size: int = 128,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """
@@ -96,12 +96,10 @@ class AR1(SupervisedTemplate):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
         """
 
         warnings.warn(
@@ -258,16 +256,20 @@ class AR1(SupervisedTemplate):
         current_batch_mb_size = max(1, current_batch_mb_size)
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
+        collate_fn = self.adapted_dataset.collate_fn \
+            if hasattr(self.adapted_dataset, "collate_fn") else None
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=current_batch_mb_size,
             shuffle=shuffle,
+            collate_fn=collate_fn
         )
 
     def training_epoch(self, **kwargs):
         for mb_it, self.mbatch in enumerate(self.dataloader):
+            self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
@@ -284,7 +286,9 @@ class AR1(SupervisedTemplate):
                     * self.replay_mb_size
                 ]
                 lat_mb_y = lat_mb_y.to(self.device)
+                lat_task_id = torch.zeros(lat_mb_y.shape[0]).to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
+                self.mbatch[2] = torch.cat((self.mb_task_id, lat_task_id), 0)
             else:
                 lat_mb_x = None
 

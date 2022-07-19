@@ -96,7 +96,7 @@ def SplitCIFAR10(
         order. If not None, the ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -116,33 +116,19 @@ def SplitCIFAR10(
     """
     cifar_train, cifar_test = _get_cifar10_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_exp_with_half_classes else None,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_exp_with_half_classes else None,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=cifar_train,
+        test_dataset=cifar_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        per_exp_classes={0: 5} if first_exp_with_half_classes else None,
+        class_ids_from_zero_in_each_exp=False,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def _get_cifar10_dataset(dataset_root):

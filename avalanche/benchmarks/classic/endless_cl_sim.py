@@ -48,15 +48,14 @@ def EndlessCLSim(
     dataset_root: Union[str, Path] = None,
     semseg=False
 ):
-    """
-    Creates a CL scenario for the Endless-Continual-Learning Simulator's
-    derived datasets, which are available at:
-    https://zenodo.org/record/4899267, or custom datasets created from
-    the Endless-Continual-Learning-Simulator's standalone application,
-    available at: https://zenodo.org/record/4899294.
+    """Creates a CL scenario for the Endless-Continual-Learning Simulator's
+    derived `datasets <https://zenodo.org/record/4899267>`__, or custom
+    datasets created from
+    the Endless-Continual-Learning-Simulator's `standalone application <
+    https://zenodo.org/record/4899294>`__.
     Both are part of the publication of `A Procedural World Generation
     Framework for Systematic Evaluation of Continual Learning
-    (https://arxiv.org/abs/2106.02585).
+    <https://arxiv.org/abs/2106.02585>`__.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.

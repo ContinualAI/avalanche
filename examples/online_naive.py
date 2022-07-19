@@ -10,7 +10,7 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Replay strategy.
+This is a simple example on how to use the Naive strategy.
 """
 
 from __future__ import absolute_import
@@ -29,8 +29,7 @@ import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
-from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -99,9 +98,9 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
     cl_strategy = OnlineNaive(
         model,
-        torch.optim.Adam(model.parameters(), lr=0.001),
+        torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
-        num_passes=1,
+        train_passes=1,
         train_mb_size=1,
         eval_mb_size=32,
         device=device,
@@ -111,13 +110,19 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
-        print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
-        print("Training completed")
 
-        print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+    # Create online benchmark
+    batch_streams = scenario.streams.values()
+    # ocl_benchmark = OnlineCLScenario(batch_streams)
+    for i, exp in enumerate(scenario.train_stream):
+        # Create online scenario from experience exp
+        ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
+                                         experiences=exp,
+                                         experience_size=1,
+                                         access_task_boundaries=True)
+        # Train on the online train stream of the scenario
+        cl_strategy.train(ocl_benchmark.train_stream)
+        results.append(cl_strategy.eval(scenario.original_test_stream))
 
 
 if __name__ == "__main__":

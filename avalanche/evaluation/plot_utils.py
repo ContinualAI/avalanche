@@ -11,7 +11,7 @@
 import matplotlib.pyplot as plt
 
 
-def learning_curves_plot(all_metrics):
+def learning_curves_plot(all_metrics: dict):
     """Creates a plot with separate learning curves for each experience.
 
     :param all_metrics: Dictionary of metrics as returned by

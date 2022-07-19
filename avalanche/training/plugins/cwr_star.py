@@ -70,25 +70,29 @@ class CWRStarPlugin(SupervisedPlugin):
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
+            # calculate the average of the current classes
             globavg = np.average(
                 cwr_layer.weight.detach().cpu().numpy()[self.cur_class]
             )
             for c in self.cur_class:
                 w = cwr_layer.weight.detach().cpu().numpy()[c]
-
-                if c in self.cur_class:
-                    new_w = w - globavg
-                    if c in self.model.saved_weights.keys():
-                        wpast_j = np.sqrt(
-                            self.model.past_j[c] / self.model.cur_j[c]
-                        )
-                        # wpast_j = model.past_j[c] / model.cur_j[c]
-                        self.model.saved_weights[c] = (
-                            self.model.saved_weights[c] * wpast_j + new_w
-                        ) / (wpast_j + 1)
-                        self.model.past_j[c] += self.model.cur_j[c]
-                    else:
-                        self.model.saved_weights[c] = new_w
+                # subtract the weight average to the weights
+                # to obtain zero mean
+                new_w = w - globavg
+                # if the class has been already seen
+                if c in self.model.saved_weights.keys():
+                    wpast_j = np.sqrt(
+                        self.model.past_j[c] / self.model.cur_j[c]
+                    )
+                    # consolidation
+                    self.model.saved_weights[c] = (
+                        self.model.saved_weights[c] * wpast_j + new_w
+                    ) / (wpast_j + 1)
+                    self.model.past_j[c] += self.model.cur_j[c]
+                else:
+                    # new class
+                    self.model.saved_weights[c] = new_w
+                    self.model.past_j[c] = self.model.cur_j[c]
 
     def set_consolidate_weights(self):
         """set trained weights"""

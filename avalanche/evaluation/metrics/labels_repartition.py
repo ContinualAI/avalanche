@@ -40,7 +40,7 @@ class LabelsRepartition(Metric):
         self.class_order = None
         self.reset()
 
-    def reset(self) -> None:
+    def reset(self, **kargs) -> None:
         self.task2label2count = defaultdict(Counter)
 
     def update(
@@ -112,9 +112,9 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
             dict
         )
 
-    def reset(self) -> None:
-        self.steps.append(self.global_it_counter)
-        return super().reset()
+    def reset(self, strategy) -> None:
+        self.steps.append(strategy.clock.train_iterations)
+        return super().reset(strategy)
 
     def update(self, strategy: "SupervisedTemplate"):
         if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
@@ -128,7 +128,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         )
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        self.steps.append(self.global_it_counter)
+        self.steps.append(strategy.clock.train_iterations)
         task2label2count = self.labels_repartition.result()
         for task, label2count in task2label2count.items():
             for label, count in label2count.items():
