@@ -185,13 +185,11 @@ class AvalancheDatasetTests(unittest.TestCase):
         x, y = dataset_mnist[0]
 
         tgs = FrozenTransformGroups((ToTensor(), None))
-        taskl = TaskLabels([1] * len(dataset_mnist))
         dataset = AvalancheDataset(
             dataset_mnist,
-            transform_groups=tgs,
-            data_attributes=[taskl]
+            transform_groups=tgs
         )
-        x2, y2, t2 = dataset[0]
+        x2, y2 = dataset[0]
 
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, int)
@@ -200,8 +198,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
-        self.assertEqual(len(taskl.uniques), 1)
-        subset_task1 = taskl.val_to_idx[1]
+        # self.assertEqual(len(taskl.uniques), 1)
+        # subset_task1 = taskl.val_to_idx[1]
 
         # TODO
         # self.assertIsInstance(subset_task1, AvalancheDataset)

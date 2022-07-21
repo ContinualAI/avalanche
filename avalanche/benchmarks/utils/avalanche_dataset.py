@@ -271,11 +271,11 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             )
 
     @staticmethod
-    def _init_targets(dataset, targets, targets_adapter):
+    def _init_targets(dataset, targets, targets_adapter, check_shape=True):
         if targets is not None:
             # User defined targets always take precedence
             # Note: no adapter is applied!
-            if len(targets) != len(dataset):
+            if len(targets) != len(dataset) and check_shape:
                 raise ValueError(
                     "Invalid amount of target labels. It must be equal to the "
                     "number of patterns in the dataset. Got {}, expected "
@@ -286,13 +286,13 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
         return DataAttribute("targets", targets)
 
     @staticmethod
-    def _init_task_labels(dataset, task_labels):
+    def _init_task_labels(dataset, task_labels, check_shape=True):
         """A task label for each pattern in the dataset."""
         if task_labels is not None:
             # task_labels has priority over the dataset fields
             if isinstance(task_labels, int):
                 task_labels = ConstantSequence(task_labels, len(dataset))
-            elif len(task_labels) != len(dataset):
+            elif len(task_labels) != len(dataset) and check_shape:
                 raise ValueError(
                     "Invalid amount of task labels. It must be equal to the "
                     "number of patterns in the dataset. Got {}, expected "
@@ -426,13 +426,11 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
                 (None, lambda x: self.class_mapping[x]))
 
         targets = AvalancheClassificationDataset._init_targets(
-            dataset, targets, targets_adapter)
-
+            dataset, targets, targets_adapter, check_shape=False)
         task_labels = AvalancheClassificationDataset._init_task_labels(
-            dataset, task_labels)
+            dataset, task_labels, check_shape=False)
 
-        if self.class_mapping is not None:
-            # update targets
+        if self.class_mapping is not None:  # update targets
             l = [self.class_mapping[el] for el in targets]
             targets = DataAttribute('targets', l)
 

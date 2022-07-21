@@ -38,6 +38,7 @@ from tests.unit_tests_utils import (
     get_fast_benchmark,
     load_benchmark,
 )
+from tests.test_avalanche_classification_dataset import get_mbatch
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -405,7 +406,7 @@ class DynamicModelsTests(unittest.TestCase):
             assert torch.all(curr_mask[curr_au] == 1)
 
             # print(model._buffers)
-            mb, tmb = exp.dataset[:7][0], exp.dataset[:7][2]
+            mb, _, tmb = get_mbatch(exp.dataset, batch_size=7)
             out = model(mb, tmb)
             assert torch.all(out[:, curr_au] != model.mask_value)
             assert torch.all(out[:, :nunits]

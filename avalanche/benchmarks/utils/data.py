@@ -292,14 +292,18 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         """
         self._indices = indices
 
+        ll = []
+        for da in data_attributes:  # subset attributes if needed
+            if len(da) != len(indices):
+                ll.append(da.subset(self._indices))
+            else:
+                ll.append(da)
+
         super().__init__(
             dataset,
-            data_attributes=data_attributes,
+            data_attributes=ll,
             transform_groups=transform_groups,
             collate_fn=collate_fn)
-
-        for da in self._data_attributes.values():  # subset for attributes
-            setattr(self, da.name, da.subset(self._indices))
         self._flatten_dataset()
 
     def _getitem_recursive_call(self, idx):

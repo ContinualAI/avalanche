@@ -4,10 +4,9 @@ from inspect import signature, Parameter
 
 
 class Compose:
-    """
-    A replacement for torchvision's Compose transformation.
+    """Compose transformation for multi-argument transformations.
 
-    Differently from the original Compose, this transformation can handle both
+    Differently from torchvision Compose, this transformation can handle both
     single-element and multi-elements transformations.
 
     For instance, single-element transformations are commonly used in
@@ -71,6 +70,8 @@ class Compose:
 
 
 class MultiParamTransform:
+    """Generic multi-argument transformation."""
+
     def __init__(self, transform: Callable):
         self.transform = transform
 

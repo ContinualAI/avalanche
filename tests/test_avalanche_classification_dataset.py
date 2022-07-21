@@ -1480,7 +1480,7 @@ class TransformationSubsetTests(unittest.TestCase):
             dataset, indices=list(range(5, 150)), collate_fn=my_collate_fn2
         )  # Ok
 
-        x, y, z, t = inherited[0:5]
+        x, y, z, t = get_mbatch(inherited, batch_size=5)
         self.assertIsInstance(x, Tensor)
         self.assertTrue(torch.equal(tensor_x[5:10], x))
         self.assertTrue(torch.equal(tensor_y[5:10] + 2, y))

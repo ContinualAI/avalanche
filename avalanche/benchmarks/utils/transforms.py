@@ -18,6 +18,16 @@ class TransformGroups:
         self.transform_groups = transform_groups
         self.current_group = current_group
 
+        if "train" in transform_groups:
+            if "eval" not in transform_groups:
+                transform_groups["eval"] = transform_groups["train"]
+
+        if "train" not in transform_groups:
+            transform_groups["train"] = None
+
+        if "eval" not in transform_groups:
+            transform_groups["eval"] = None
+
     def __call__(self, *args, **kwargs):
         """Apply current transformation group to element."""
         element = list(*args)
@@ -36,7 +46,7 @@ class TransformGroups:
         for gname, gtrans in other.transform_groups.items():
             if gname not in tgroups:
                 tgroups[gname] = gtrans
-            else:
+            elif gtrans is not None:
                 tgroups[gname] = Compose([gtrans, tgroups[gname]])
         return TransformGroups(tgroups, self.current_group)
 
