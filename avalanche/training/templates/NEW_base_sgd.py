@@ -489,7 +489,7 @@ class PeriodicEval(SupervisedPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy, **kwargs)
 
-    def after_training_epoch(self, strategy: "BaseGeneralSGDTemplate",
+    def after_training_epoch(self, strategy: "BaseSGDTemplate",
                              **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
@@ -497,7 +497,7 @@ class PeriodicEval(SupervisedPlugin):
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs,
                               **kwargs)
 
-    def after_training_iteration(self, strategy: "BaseGeneralSGDTemplate",
+    def after_training_iteration(self, strategy: "BaseSGDTemplate",
                                  **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
