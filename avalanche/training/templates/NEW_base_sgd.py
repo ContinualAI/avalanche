@@ -18,7 +18,7 @@ from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
 from avalanche.training.utils import trigger_plugins
 
 
-class BaseGeneralSGDTemplate(BaseTemplate):
+class BaseSGDTemplate(BaseTemplate):
     """Base SGD class for continual learning skeletons.
 
     **Training loop**
@@ -142,6 +142,7 @@ class BaseGeneralSGDTemplate(BaseTemplate):
               eval_streams: Optional[Sequence[Union[CLExperience,
                                                     ExpSequence]]] = None,
               **kwargs):
+
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 

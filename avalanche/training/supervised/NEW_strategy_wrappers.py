@@ -3,7 +3,7 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.training.templates.common_templates import (
+from avalanche.training.templates.NEW_common_templates import (
     SupervisedTemplate,
     OnlineSupervisedTemplate
 )

@@ -1,3 +1,5 @@
+from avalanche.training.utils import trigger_plugins
+
 
 class MetaUpdate:
     def training_epoch(self, **kwargs):
@@ -16,12 +18,34 @@ class MetaUpdate:
             self.optimizer.zero_grad()
             self.loss = 0
 
-            # Fast updates
-            self._before_fast_update(**kwargs)
-            self._after_fast_updates(**kwargs)
+            # Inner updates
+            self._before_inner_updates(**kwargs)
+            self._inner_updates(**kwargs)
+            self._after_inner_updates(**kwargs)
 
-            # Slow updates
-            self._before_slow_update(**kwargs)
-            self._after_slow_updates(**kwargs)
+            # Outer update
+            self._before_outer_update(**kwargs)
+            self._outer_update(**kwargs)
+            self._after_outer_update(**kwargs)
+
+            self.mb_output = self.forward()
 
             self._after_training_iteration(**kwargs)
+
+    def _before_inner_updates(self, **kwargs):
+        trigger_plugins(self, "before_inner_updates", **kwargs)
+
+    def _inner_updates(self, **kwargs):
+        trigger_plugins(self, "inner_updates", **kwargs)
+
+    def _after_inner_updates(self, **kwargs):
+        trigger_plugins(self, "after_inner_updates", **kwargs)
+
+    def _before_outer_update(self, **kwargs):
+        trigger_plugins(self, "before_outer_update", **kwargs)
+
+    def _outer_update(self, **kwargs):
+        trigger_plugins(self, "outer_update", **kwargs)
+
+    def _after_outer_update(self, **kwargs):
+        trigger_plugins(self, "after_outer_update", **kwargs)
