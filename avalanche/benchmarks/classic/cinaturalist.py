@@ -144,31 +144,18 @@ def SplitInaturalist(
     )
     per_exp_classes, fixed_class_order = _get_split(super_categories, train_set)
 
-    if return_task_id:
-        return nc_benchmark(
-            fixed_class_order=fixed_class_order,
-            per_exp_classes=per_exp_classes,
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=len(super_categories),
-            task_labels=True,
-            seed=seed,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            fixed_class_order=fixed_class_order,
-            per_exp_classes=per_exp_classes,
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=len(super_categories),
-            task_labels=False,
-            seed=seed,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        fixed_class_order=fixed_class_order,
+        per_exp_classes=per_exp_classes,
+        train_dataset=train_set,
+        test_dataset=test_set,
+        n_experiences=len(super_categories),
+        task_labels=return_task_id,
+        seed=seed,
+        class_ids_from_zero_in_each_exp=False,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def _get_inaturalist_dataset(dataset_root, super_categories, download):

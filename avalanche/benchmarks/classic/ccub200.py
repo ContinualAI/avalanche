@@ -120,33 +120,19 @@ def SplitCUB200(
     else:
         per_exp_classes = None
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=n_experiences,
-            task_labels=True,
-            per_exp_classes=per_exp_classes,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            one_dataset_per_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=train_set,
-            test_dataset=test_set,
-            n_experiences=n_experiences,
-            task_labels=False,
-            per_exp_classes=per_exp_classes,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=train_set,
+        test_dataset=test_set,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        per_exp_classes=per_exp_classes,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        one_dataset_per_exp=True,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def _get_cub200_dataset(root):

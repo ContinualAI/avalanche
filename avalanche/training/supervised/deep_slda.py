@@ -37,7 +37,7 @@ class StreamingLDA(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
     ):
         """Init function for the SLDA model.
