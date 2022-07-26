@@ -151,7 +151,6 @@ class ExpertGate(nn.Module):
     def __init__(
         self,
         shape,
-        num_classes,
         device,
         arch="alexnet",
         pretrained_flag=True,
@@ -161,7 +160,6 @@ class ExpertGate(nn.Module):
 
         # Store variables
         self.shape = shape
-        self.num_classes = num_classes
         self.arch = arch
         self.pretrained_flag = pretrained_flag
         self.device = device

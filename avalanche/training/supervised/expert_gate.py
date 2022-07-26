@@ -136,7 +136,8 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Expert autoencoder for this task does not exist
         if (str(task_label) not in strategy.model.autoencoder_dict):
 
-            # Build an autoencoder for this experience and store it in a dictionary
+            # Build an autoencoder for this experience and 
+            # store it in a dictionary
             autoencoder = self._add_autoencoder(strategy, task_label)
 
             # Train the autoencoder on current experience
@@ -194,10 +195,11 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # If the expert dictionary is empty, 
         # build the first expert
         if (len(strategy.model.expert_dict) == 0):
-            expert = ExpertModel(num_classes=strategy.model.num_classes, 
-                                 arch=strategy.model.arch,
-                                 device=strategy.device, 
-                                 pretrained_flag=strategy.model.pretrained_flag)
+            expert = ExpertModel(
+                num_classes=strategy.experience.classes_in_this_experience, 
+                arch=strategy.model.arch,
+                device=strategy.device, 
+                pretrained_flag=strategy.model.pretrained_flag)
             relatedness = 0
 
         # If experts exist, 
@@ -224,11 +226,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
                 strategy, most_relevant_expert_key)
 
             # Build expert with feature template
-            expert = ExpertModel(num_classes=strategy.model.num_classes,
-                                 arch=strategy.model.arch,
-                                 device=strategy.device, 
-                                 pretrained_flag=strategy.model.pretrained_flag,
-                                 feature_template=most_relevant_expert)
+            expert = ExpertModel(
+                num_classes=strategy.experience.classes_in_this_experience,
+                arch=strategy.model.arch,
+                device=strategy.device, 
+                pretrained_flag=strategy.model.pretrained_flag,
+                feature_template=most_relevant_expert)
 
             relatedness = relatedness_dict[most_relevant_expert_key]
             print("SELECTED EXPERT FROM TASK ", most_relevant_expert_key)
@@ -305,7 +308,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # This shape is equivalent to the output shape of 
         # the Alexnet features module
         new_autoencoder = ExpertAutoencoder(
-            shape=(256, 6, 6), latent_dim=strategy.ae_latent_dim, device=strategy.device)
+            shape=(256, 6, 6), 
+            latent_dim=strategy.ae_latent_dim, 
+            device=strategy.device)
 
         # Store autoencoder with task number
         strategy.model.autoencoder_dict[str(task_label)] = new_autoencoder
