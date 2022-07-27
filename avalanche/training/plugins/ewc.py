@@ -89,7 +89,7 @@ class EWCPlugin(SupervisedPlugin):
                     # dynamic models may add new units
                     # new units are ignored by the regularization
                     n_units = saved_param.shape[0]
-                    cur_param = saved_param[:n_units]
+                    cur_param = cur_param[:n_units]
                     penalty += (imp * (cur_param - saved_param).pow(2)).sum()
         elif self.mode == "online":
             prev_exp = exp_counter - 1
