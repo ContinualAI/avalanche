@@ -10,6 +10,8 @@
 ################################################################################
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
+
+import dill
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
@@ -139,6 +141,18 @@ def _get_cifar10_dataset(dataset_root):
     test_set = CIFAR10(dataset_root, train=False, download=True)
 
     return train_set, test_set
+
+
+def recreate_CIFAR10(root, train, transform, target_transform):
+    return CIFAR10(root=root, train=train, transform=transform,
+                   target_transform=target_transform)
+
+
+@dill.register(CIFAR10)
+def save_CIFAR10(pickler, obj: CIFAR10):
+    pickler.save_reduce(recreate_CIFAR10,
+                        (obj.root, obj.train, obj.transform,
+                         obj.target_transform), obj=obj)
 
 
 if __name__ == "__main__":
