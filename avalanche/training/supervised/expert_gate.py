@@ -135,40 +135,36 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Store task label for easy access
         task_label = strategy.experience.task_label
 
-        # If this is a new task
-        # Expert autoencoder for this task does not exist
-        if (str(task_label) not in strategy.model.autoencoder_dict):
+        # Build an autoencoder for this experience and 
+        # store it in a dictionary
+        autoencoder = self._add_autoencoder(strategy, task_label)
 
-            # Build an autoencoder for this experience and 
-            # store it in a dictionary
-            autoencoder = self._add_autoencoder(strategy, task_label)
+        # Train the autoencoder on current experience
+        self._train_autoencoder(strategy, autoencoder)
 
-            # Train the autoencoder on current experience
-            self._train_autoencoder(strategy, autoencoder)
+        # If experts exist, build new expert with feature extraction 
+        # from the most related existing expert
+        new_expert, relatedness = self._select_expert(strategy, task_label)
 
-            # If experts exist, build new expert with feature extraction 
-            # from the most related existing expert
-            new_expert, relatedness = self._select_expert(strategy, task_label)
+        # Store the new expert in dictionary
+        self._add_expert(strategy, task_label, new_expert)
 
-            # Store the new expert in dictionary
-            self._add_expert(strategy, task_label, new_expert)
-
-            # Set the correct expert to be trained
-            strategy.model.expert = new_expert
+        # Set the correct expert to be trained
+        strategy.model.expert = new_expert
 
         # Reset the optimizer for the new expert model
         reset_optimizer(strategy.optimizer, strategy.model.expert)
 
-            # Remove LwF plugin in case it is not needed
-            if (self.lwf_plugin in strategy.plugins):
-                strategy.plugins.remove(self.lwf_plugin)
+        # Remove LwF plugin in case it is not needed
+        if (self.lwf_plugin in strategy.plugins):
+            strategy.plugins.remove(self.lwf_plugin)
 
-            print("\nTRAINING EXPERT")
-            # If needed, add a new instance of LwF plugin back 
-            if (relatedness > strategy.rel_thresh):
-                print("WITH LWF")
-                self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
-                strategy.plugins.append(self.lwf_plugin)
+        print("\nTRAINING EXPERT")
+        # If needed, add a new instance of LwF plugin back 
+        if (relatedness > strategy.rel_thresh):
+            print("WITH LWF")
+            self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
+            strategy.plugins.append(self.lwf_plugin)
 
     # ##############
     # EXPERT METHODS 
