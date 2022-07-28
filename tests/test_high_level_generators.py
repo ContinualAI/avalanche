@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 from os.path import expanduser
 
@@ -119,26 +120,30 @@ class HighLevelGeneratorTests(unittest.TestCase):
             expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
         )
 
-        for filelist, dir, label in zip(
-            ["train_filelist_00.txt", "train_filelist_01.txt"],
-            ["cats", "dogs"],
-            [0, 1],
-        ):
-            # First, obtain the list of files
-            filenames_list = os.listdir(os.path.join(dirpath, dir))
-            with open(filelist, "w") as wf:
-                for name in filenames_list:
-                    wf.write("{} {}\n".format(os.path.join(dir, name), label))
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            list_paths = []
+            for filelist, rel_dir, label in zip(
+                ["train_filelist_00.txt", "train_filelist_01.txt"],
+                ["cats", "dogs"],
+                [0, 1],
+            ):
+                # First, obtain the list of files
+                filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
+                filelist_path = os.path.join(tmpdirname, filelist)
+                list_paths.append(filelist_path)
+                with open(filelist_path, "w") as wf:
+                    for name in filenames_list:
+                        wf.write("{} {}\n".format(os.path.join(rel_dir, name), label))
 
-        generic_benchmark = filelist_benchmark(
-            dirpath,
-            ["train_filelist_00.txt", "train_filelist_01.txt"],
-            ["train_filelist_00.txt"],
-            task_labels=[0, 0],
-            complete_test_set_only=True,
-            train_transform=ToTensor(),
-            eval_transform=ToTensor(),
-        )
+            generic_benchmark = filelist_benchmark(
+                dirpath,
+                list_paths,
+                [list_paths[0]],
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
