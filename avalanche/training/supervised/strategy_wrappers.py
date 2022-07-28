@@ -471,7 +471,8 @@ class AETraining(SupervisedTemplate):
         )
 
     def criterion(self):
-        modified_mb_x = sigmoid(self.model.feature_module(self.mb_x).to(self.device))
+        modified_mb_x = sigmoid(
+            self.model.feature_module(self.mb_x).to(self.device))
         return self._criterion(modified_mb_x, self.mb_output)
 
 

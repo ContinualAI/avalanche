@@ -30,7 +30,8 @@ class ExpertAutoencoder(nn.Module):
     for the incoming data.
     """
 
-    def __init__(self, shape, 
+    def __init__(self, 
+                 shape, 
                  latent_dim, 
                  device,
                  arch="alexnet",
