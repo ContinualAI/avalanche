@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from copy import deepcopy
 
 import torch
 import torch.nn as nn
@@ -100,7 +101,7 @@ class ExpertModel(nn.Module):
                  arch, 
                  device, 
                  pretrained_flag, 
-                 feature_template=None):
+                 provided_template=None):
         super().__init__()
 
         self.device = device
@@ -114,27 +115,29 @@ class ExpertModel(nn.Module):
             .to(device))
 
         # Set the feature module from provided template 
-        if (feature_template):
-            self.feature_module = feature_template.feature_module
+        if (provided_template is None):
+            self.feature_module = deepcopy(base_template._modules['features'])
 
         # Use base template if nothing provided
         else: 
-            self.feature_module = FeatureExtractorBackbone(
-                base_template, "features")
+            self.feature_module = deepcopy(provided_template.feature_module)
 
         # Set avgpool layer
-        self.avg_pool = base_template._modules['avgpool']
+        self.avg_pool = deepcopy(base_template._modules['avgpool'])
 
         # Flattener
         self.flatten = Flatten()
 
         # Classifier module
-        self.classifier_module = base_template._modules['classifier']
+        self.classifier_module = deepcopy(base_template._modules['classifier'])
 
         # Customize final layer for  the number of classes in the data
         original_classifier_input_dim = self.classifier_module[-1].in_features
         self.classifier_module[-1] = nn.Linear(
             original_classifier_input_dim, self.num_classes)
+
+        for param in self.parameters():
+            param.requires_grad = True
 
     def forward(self, x):
         x = self.feature_module(x)
