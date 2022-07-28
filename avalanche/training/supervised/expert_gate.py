@@ -153,14 +153,11 @@ class _ExpertGatePlugin(SupervisedPlugin):
             # Store the new expert in dictionary
             self._add_expert(strategy, task_label, new_expert)
 
-            # Update the optimizer's parameters to the new expert
-            update_optimizer(strategy.optimizer,
-                             strategy.model.expert.parameters(),  # Old 
-                             new_expert.parameters()              # New
-                             )
-
             # Set the correct expert to be trained
             strategy.model.expert = new_expert
+
+        # Reset the optimizer for the new expert model
+        reset_optimizer(strategy.optimizer, strategy.model.expert)
 
             # Remove LwF plugin in case it is not needed
             if (self.lwf_plugin in strategy.plugins):
