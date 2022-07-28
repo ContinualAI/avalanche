@@ -231,7 +231,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
                 arch=strategy.model.arch,
                 device=strategy.device, 
                 pretrained_flag=strategy.model.pretrained_flag,
-                feature_template=most_relevant_expert)
+                provided_template=most_relevant_expert)
 
             relatedness = relatedness_dict[most_relevant_expert_key]
             print("SELECTED EXPERT FROM TASK ", most_relevant_expert_key)
