@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 from torchvision import transforms
+from torch.optim import SGD
 
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
@@ -15,10 +16,10 @@ from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.benchmarks import nc_benchmark
 
 
-def test_expertgate():
+def main():
 
     # Set device
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # # Uncomment for simpler data
     # # Fake benchmark is (1,1,6)
@@ -42,28 +43,30 @@ def test_expertgate():
         transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
     ])
 
-    scenario = SplitMNIST(n_experiences=10, seed=3,
+    # Note: Must provide task ID for training
+    scenario = SplitMNIST(n_experiences=5,
                           return_task_id=True,
-                          train_transform=MNISTAlexTransform, eval_transform=MNISTAlexTransform)
+                          train_transform=MNISTAlexTransform, 
+                          eval_transform=MNISTAlexTransform)
 
     # Initialize model and specify shape
-    model = ExpertGate(num_classes=scenario.n_classes,
-                       shape=(3, 227, 227), device=device) 
+    model = ExpertGate(shape=(3, 227, 227), device=device) 
 
     # Vanilla optimization
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = SGD(model.expert.parameters(), lr=0.001,
+                    momentum=0.9, weight_decay=0.0005)
 
     # Set up strategy
     strategy = ExpertGateStrategy(
         model,
         optimizer,
         device=device,
-        train_mb_size=200,
-        train_epochs=5,
+        train_mb_size=32,
+        train_epochs=2,
         eval_every=-1, 
-        ae_train_mb_size=10,
-        ae_train_epochs=5, 
-        ae_lr=2e-2,
+        ae_train_mb_size=32,
+        ae_train_epochs=1, 
+        ae_lr=1e-4,
     )
 
     # Train loop
@@ -71,6 +74,7 @@ def test_expertgate():
         t = experience.task_label
         exp_id = experience.current_experience
         training_dataset = experience.dataset
+        print()
         print('Task {} batch {} -> train'.format(t, exp_id))
         print('This batch contains', len(training_dataset), 'patterns')
         strategy.train(experience)
@@ -117,4 +121,4 @@ def get_custom_benchmark(use_task_labels=False,
     return my_nc_benchmark
 
 
-test_expertgate()
+main()
