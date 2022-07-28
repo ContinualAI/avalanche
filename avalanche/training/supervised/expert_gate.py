@@ -196,7 +196,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # build the first expert
         if (len(strategy.model.expert_dict) == 0):
             expert = ExpertModel(
-                num_classes=strategy.experience.classes_in_this_experience, 
+                num_classes=len(strategy.experience.classes_in_this_experience), 
                 arch=strategy.model.arch,
                 device=strategy.device, 
                 pretrained_flag=strategy.model.pretrained_flag)
@@ -227,7 +227,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
             # Build expert with feature template
             expert = ExpertModel(
-                num_classes=strategy.experience.classes_in_this_experience,
+                num_classes=len(strategy.experience.classes_in_this_experience),
                 arch=strategy.model.arch,
                 device=strategy.device, 
                 pretrained_flag=strategy.model.pretrained_flag,
