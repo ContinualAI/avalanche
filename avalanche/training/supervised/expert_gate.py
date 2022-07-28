@@ -328,10 +328,10 @@ class _ExpertGatePlugin(SupervisedPlugin):
         """
         # Setup autoencoder strategy
         ae_strategy = AETraining(model=autoencoder,
-                                 optimizer=Adam(
-                                            autoencoder.parameters(), 
-                                            lr=strategy.ae_lr
-                                            ),
+                                 optimizer=SGD(autoencoder.parameters(), 
+                                               lr=strategy.ae_lr,
+                                               momentum=0.9, 
+                                               weight_decay=0.0005),
                                  device=strategy.device, 
                                  train_mb_size=strategy.ae_train_mb_size, 
                                  train_epochs=strategy.ae_train_epochs,
