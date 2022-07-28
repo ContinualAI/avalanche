@@ -15,11 +15,13 @@ We use a multi-head model with a separate classifier for each task.
 """
 
 import argparse
+from collections import defaultdict
+from functools import partial
 from typing import Sequence
 
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
+from torch.optim import Adam, SGD
 
 from avalanche.benchmarks import CLExperience
 from avalanche.benchmarks.classic import SplitCIFAR10
@@ -41,6 +43,8 @@ def main(args):
         if torch.cuda.is_available() and args.cuda >= 0
         else "cpu"
     )
+    print('Using device', device)
+
     # model
     model = SimpleMLP(input_size=32 * 32 * 3, num_classes=10)
     model = as_multitask(model, 'classifier')
@@ -51,13 +55,18 @@ def main(args):
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Prepare for training & testing
-    optimizer = Adam(model.parameters(), lr=0.01)
+    optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     criterion = CrossEntropyLoss()
 
+    smart_map_dict = defaultdict(lambda: str(device))
+    smart_map_dict['cpu'] = 'cpu'
+    smart_map_dict['cuda:0'] = str(device)
+    smart_map_dict['cuda:1'] = str(device)
+    smart_map_dict['cuda:2'] = str(device)
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(
             directory='./checkpoints/task_incremental',
-            device=device
+            map_location=smart_map_dict
         )
     )
     

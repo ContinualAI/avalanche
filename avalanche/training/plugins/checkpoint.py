@@ -2,9 +2,12 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union
 import dill
+import torch
 
 from avalanche.core import BaseSGDPlugin
 from avalanche.training.templates import BaseSGDTemplate
+
+from avalanche.training.plugins.checkpoint_common_recipes import *
 
 
 class CheckpointStorage(ABC):
@@ -61,10 +64,10 @@ class FileSystemCheckpointStorage(CheckpointStorage):
     def __init__(
             self,
             directory: Union[str, Path],
-            device=None):
+            map_location=None):
         super(FileSystemCheckpointStorage, self).__init__()
         self.directory = Path(directory)
-        self.device = device
+        self.map_location = map_location
 
     def store_checkpoint(self, checkpoint_name: str, checkpoint):
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
@@ -78,11 +81,11 @@ class FileSystemCheckpointStorage(CheckpointStorage):
             # import dill.detect
             # dill.detect.trace(True)
             with open(checkpoint_file, 'wb') as f:
-                dill.dump(checkpoint, f)
+                torch.save(checkpoint, f, pickle_module=dill)
         except:
             try:
                 checkpoint_file.unlink()
-            except:
+            except OSError:
                 pass
             raise
 
@@ -102,10 +105,18 @@ class FileSystemCheckpointStorage(CheckpointStorage):
         return (self.directory / checkpoint_name / 'checkpoint.pth').exists()
 
     def load_checkpoint(self, checkpoint_name: str):
+        try:
+            _set_checkpoint_device_map(self.map_location)
+            return self._mapped_load_checkpoint(checkpoint_name)
+        finally:
+            _set_checkpoint_device_map(None)
+
+    def _mapped_load_checkpoint(self, checkpoint_name: str):
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
 
         with open(checkpoint_file, 'rb') as f:
-            loaded_checkpoint = dill.load(f)
+            loaded_checkpoint = torch.load(f, pickle_module=dill,
+                                           map_location=self.map_location)
 
         return loaded_checkpoint
 
@@ -123,9 +134,8 @@ class FileSystemCheckpointStorage(CheckpointStorage):
                f']'
 
 
-
-
-
 __all__ = [
-    'CheckpointPlugin'
+    'CheckpointStorage',
+    'CheckpointPlugin',
+    'FileSystemCheckpointStorage'
 ]
