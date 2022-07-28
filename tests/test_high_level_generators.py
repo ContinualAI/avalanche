@@ -133,7 +133,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 list_paths.append(filelist_path)
                 with open(filelist_path, "w") as wf:
                     for name in filenames_list:
-                        wf.write("{} {}\n".format(os.path.join(rel_dir, name), label))
+                        wf.write("{} {}\n".format(
+                            os.path.join(rel_dir, name), label))
 
             generic_benchmark = filelist_benchmark(
                 dirpath,
