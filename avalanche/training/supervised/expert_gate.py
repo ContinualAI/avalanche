@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import warnings
 
 import torch
 from torch.nn import Module, CrossEntropyLoss
@@ -90,6 +91,12 @@ class ExpertGateStrategy(SupervisedTemplate):
         self.ae_latent_dim = ae_latent_dim
         self.rel_thresh = rel_thresh
         model.temp = temp
+
+        warnings.warn(
+            "This strategy is currently in the alpha stage and we are still "
+            "working to reproduce the original paper's results. You can find "
+            "the code to reproduce the experiments at "
+            "github.com/continualAI/continual-learning-baselines")
 
         super().__init__(
                 model=model,
