@@ -32,7 +32,6 @@ class TestStreamCompleteness(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(stream=True),
             loggers=None,
-            benchmark=self.benchmark,
             strict_checks=True,
         )
         strategy = Naive(
@@ -53,7 +52,6 @@ class TestStreamCompleteness(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(stream=True),
             loggers=None,
-            benchmark=self.benchmark,
             strict_checks=False,
         )
         strategy = Naive(
@@ -74,7 +72,6 @@ class TestStreamCompleteness(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(stream=True),
             loggers=None,
-            benchmark=self.benchmark,
             strict_checks=True,
         )
         strategy = Naive(

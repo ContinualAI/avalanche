@@ -26,31 +26,30 @@ Each metric comes with a standalone class and a set of plugin classes aimed at e
 As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.  
 The `Accuracy` metric requires the `task_labels` parameter, which specifies which task is associated with the current patterns. The metric returns a dictionary mapping task labels to accuracy values.
 
-
 ```python
 import torch
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 task_labels = 0  # we will work with a single task
 # create an instance of the standalone Accuracy metric
 # initial accuracy is 0 for each task
-acc_metric = Accuracy()
-print("Initial Accuracy: ", acc_metric.result()) #  output {}
+acc_metric = TaskAwareAccuracy()
+print("Initial Accuracy: ", acc_metric.result())  # output {}
 
 # two consecutive metric updates
 real_y = torch.tensor([1, 2]).long()
 predicted_y = torch.tensor([1, 0]).float()
 acc_metric.update(real_y, predicted_y, task_labels)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.5 on task 0
-predicted_y = torch.tensor([1,2]).float()
+print("Average Accuracy: ", acc)  # output 0.5 on task 0
+predicted_y = torch.tensor([1, 2]).float()
 acc_metric.update(real_y, predicted_y, task_labels)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.75 on task 0
+print("Average Accuracy: ", acc)  # output 0.75 on task 0
 
 # reset accuracy
 acc_metric.reset()
-print("After reset: ", acc_metric.result()) # output {}
+print("After reset: ", acc_metric.result())  # output {}
 ```
 
 #### Plugin metric
@@ -182,7 +181,7 @@ class MyStandaloneMetric(Metric[float]):
 
 ```python
 from avalanche.evaluation import PluginMetric
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name
 
@@ -199,7 +198,7 @@ class MyPluginMetric(PluginMetric[float]):
         """
         super().__init__()
 
-        self._accuracy_metric = Accuracy()
+        self._accuracy_metric = TaskAwareAccuracy()
 
     def reset(self) -> None:
         """
@@ -225,8 +224,8 @@ class MyPluginMetric(PluginMetric[float]):
             task_labels = strategy.mb_task_id
         else:
             task_labels = task_labels[0]
-            
-        self._accuracy_metric.update(strategy.mb_output, strategy.mb_y, 
+
+        self._accuracy_metric.update(strategy.mb_output, strategy.mb_y,
                                      task_labels)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
@@ -240,8 +239,7 @@ class MyPluginMetric(PluginMetric[float]):
         Emit the result
         """
         return self._package_result(strategy)
-        
-        
+
     def _package_result(self, strategy):
         """Taken from `GenericPluginMetric`, check that class out!"""
         metric_value = self.accuracy_metric.result()
