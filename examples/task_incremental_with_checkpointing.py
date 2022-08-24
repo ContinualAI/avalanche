@@ -15,20 +15,23 @@ We use a multi-head model with a separate classifier for each task.
 """
 
 import argparse
+import random
 from collections import defaultdict
-from functools import partial
 from typing import Sequence
 
+import dill
+import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam, SGD
+from torch.optim import SGD
 
 from avalanche.benchmarks import CLExperience
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
-from avalanche.logging import InteractiveLogger, TextLogger
+from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.models import SimpleMLP, as_multitask
+from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
@@ -36,6 +39,8 @@ from avalanche.training.supervised import Naive
 
 
 def main(args):
+    RNGManager.set_random_seeds(1234)
+    torch.use_deterministic_algorithms(True)
 
     # Config
     device = torch.device(
@@ -66,8 +71,8 @@ def main(args):
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(
             directory='./checkpoints/task_incremental',
-            map_location=smart_map_dict
-        )
+        ),
+        map_location=smart_map_dict
     )
     
     plugins = [
@@ -75,7 +80,6 @@ def main(args):
     ]
 
     strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
-    first_pass = strategy is None
 
     # Choose a CL strategy
     if strategy is None:
@@ -88,8 +92,9 @@ def main(args):
                 stream=True
             ),
             loggers=[
-                TextLogger(open('text_logger_test_out.txt', 'w')),
-                InteractiveLogger()
+                # TextLogger(open('text_logger_test_out.txt', 'w')),
+                InteractiveLogger(),
+                TensorboardLogger(f'./logs/checkpointing{args.checkpoint_at}')
             ]
         )
 
@@ -104,13 +109,35 @@ def main(args):
             plugins=plugins,
             evaluator=evaluation_plugin
         )
+    else:
+        print('Next rng torch', torch.randint(0, 2**32 - 1, (1,)))
+        print('Next rng np', np.random.randint(0, 2**32 - 1, 1))
+        print('Next rng py', random.randint(0, 2**32 - 1))
 
     # train and test loop
     for train_task in train_stream[initial_exp:]:
+        if train_task.current_experience > 0:
+            print('Next rng torch', torch.randint(0, 2**32 - 1, (1,)))
+            print('Next rng np', np.random.randint(0, 2**32 - 1, 1))
+            print('Next rng py', random.randint(0, 2**32 - 1))
         strategy.train(train_task, num_workers=0)
         strategy.eval(test_stream)
-        if first_pass and train_task.current_experience == 0:
+        if train_task.current_experience == args.checkpoint_at:
+            print('Before exit rng torch', torch.randint(0, 2 ** 32 - 1, (1,)))
+            print('Before exit rng np', np.random.randint(0, 2 ** 32 - 1, 1))
+            print('Before exit rng py', random.randint(0, 2 ** 32 - 1))
+            print('Pass 2')
+            print('Before exit rng torch', torch.randint(0, 2 ** 32 - 1, (1,)))
+            print('Before exit rng np', np.random.randint(0, 2 ** 32 - 1, 1))
+            print('Before exit rng py', random.randint(0, 2 ** 32 - 1))
             break
+
+        # with open('wellwellwell', 'wb') as f:
+        #     dill.dump(RNGManager, f)
+        # RNGManager.set_random_seeds(8888)
+        # with open('wellwellwell', 'rb') as f:
+        #     set_rng_manager(dill.load(f))
+
 
 
 if __name__ == "__main__":
@@ -120,6 +147,11 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="Select zero-indexed cuda device. -1 to use CPU.",
+    )
+    parser.add_argument(
+        "--checkpoint_at",
+        type=int,
+        default=-1
     )
     args = parser.parse_args()
     main(args)

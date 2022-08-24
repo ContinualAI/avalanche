@@ -1,11 +1,15 @@
+import random
 from abc import ABC, abstractmethod
+from functools import partial
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable, IO, Any
 import dill
+import numpy as np
 import torch
 
 from avalanche.core import BaseSGDPlugin
-from avalanche.training.templates import BaseSGDTemplate
+from avalanche.training.determinism.rng_manager import RNGManager
+from avalanche.training.templates import BaseSGDTemplate, BaseTemplate
 
 from avalanche.training.plugins.checkpoint_common_recipes import *
 
@@ -15,7 +19,10 @@ class CheckpointStorage(ABC):
         super(CheckpointStorage, self).__init__()
 
     @abstractmethod
-    def store_checkpoint(self, checkpoint_name: str, checkpoint):
+    def store_checkpoint(
+            self,
+            checkpoint_name: str,
+            checkpoint_writer: Callable[[IO[bytes]], None]):
         pass
 
     @abstractmethod
@@ -27,7 +34,10 @@ class CheckpointStorage(ABC):
         pass
 
     @abstractmethod
-    def load_checkpoint(self, checkpoint_name: str):
+    def load_checkpoint(
+            self,
+            checkpoint_name: str,
+            checkpoint_loader: Callable[[IO[bytes]], Any]):
         pass
 
 
@@ -35,11 +45,14 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
 
     def __init__(
             self,
-            storage: CheckpointStorage):
+            storage: CheckpointStorage,
+            map_location=None):
         super(CheckpointPlugin, self).__init__()
+        self.map_location = map_location
         self.storage = storage
 
-    def load_checkpoint_if_exists(self):
+    def load_checkpoint_if_exists(self,
+                                  update_checkpoint_plugin=True):
         existing_checkpoints = self.storage.list_checkpoints()
         if len(existing_checkpoints) == 0:
             return None, 0
@@ -48,28 +61,71 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             [int(checkpoint_name) for checkpoint_name in existing_checkpoints]
         )
 
-        loaded_checkpoint = self.storage.load_checkpoint(str(last_exp))
+        loaded_checkpoint = self.storage.load_checkpoint(
+            str(last_exp), self.load_checkpoint)
 
-        return loaded_checkpoint, last_exp
+        strategy: BaseTemplate = loaded_checkpoint['strategy']
+        exp_counter = loaded_checkpoint['exp_counter']
 
-    def after_training(self, strategy: BaseSGDTemplate, *args, **kwargs):
-        """Called after `train` by the `BaseTemplate`."""
+        if update_checkpoint_plugin:
+            # Replace the previous CheckpointPlugin with "self" in strategy.
+            # Useful if the save/load path (or even the storage object class)
+            # has changed.
+            checkpoint_plugin_indices = set(
+                idx for idx, plugin in enumerate(strategy.plugins)
+                if isinstance(plugin, CheckpointPlugin)
+            )
+
+            if len(checkpoint_plugin_indices) > 1:
+                raise RuntimeError(
+                    'Cannot update the strategy CheckpointPlugin: more than '
+                    'one found.')
+            elif len(checkpoint_plugin_indices) == 1:
+                to_replace_idx = list(checkpoint_plugin_indices)[0]
+                strategy.plugins[to_replace_idx] = self
+
+        return strategy, exp_counter
+
+    def after_eval(self, strategy: BaseSGDTemplate, *args, **kwargs):
         ended_experience_counter = strategy.clock.train_exp_counter
 
-        self.storage.store_checkpoint(str(ended_experience_counter), strategy)
+        checkpoint_data = {
+            'strategy': strategy,
+            'rng_manager': RNGManager,
+            'exp_counter': ended_experience_counter
+        }
+
+        self.storage.store_checkpoint(
+            str(ended_experience_counter),
+            partial(self.save_checkpoint, checkpoint_data))
         print('Checkpoint', ended_experience_counter, 'saved!')
+
+    def save_checkpoint(self, checkpoint_data, fobj):
+        # import dill.detect
+        # dill.detect.trace(True)
+        torch.save(checkpoint_data, fobj, pickle_module=dill)
+
+    def load_checkpoint(self, fobj):
+        try:
+            _set_checkpoint_device_map(self.map_location)
+
+            return torch.load(fobj, pickle_module=dill,
+                              map_location=self.map_location)
+        finally:
+            _set_checkpoint_device_map(None)
 
 
 class FileSystemCheckpointStorage(CheckpointStorage):
     def __init__(
             self,
-            directory: Union[str, Path],
-            map_location=None):
+            directory: Union[str, Path]):
         super(FileSystemCheckpointStorage, self).__init__()
         self.directory = Path(directory)
-        self.map_location = map_location
 
-    def store_checkpoint(self, checkpoint_name: str, checkpoint):
+    def store_checkpoint(
+            self,
+            checkpoint_name: str,
+            checkpoint_writer: Callable[[IO[bytes]], None]):
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
         if checkpoint_file.exists():
             raise RuntimeError(
@@ -78,10 +134,8 @@ class FileSystemCheckpointStorage(CheckpointStorage):
         checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
 
         try:
-            # import dill.detect
-            # dill.detect.trace(True)
             with open(checkpoint_file, 'wb') as f:
-                torch.save(checkpoint, f, pickle_module=dill)
+                checkpoint_writer(f)
         except:
             try:
                 checkpoint_file.unlink()
@@ -104,21 +158,14 @@ class FileSystemCheckpointStorage(CheckpointStorage):
     def checkpoint_exists(self, checkpoint_name: str):
         return (self.directory / checkpoint_name / 'checkpoint.pth').exists()
 
-    def load_checkpoint(self, checkpoint_name: str):
-        try:
-            _set_checkpoint_device_map(self.map_location)
-            return self._mapped_load_checkpoint(checkpoint_name)
-        finally:
-            _set_checkpoint_device_map(None)
-
-    def _mapped_load_checkpoint(self, checkpoint_name: str):
+    def load_checkpoint(
+            self,
+            checkpoint_name: str,
+            checkpoint_loader: Callable[[IO[bytes]], Any]):
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
 
         with open(checkpoint_file, 'rb') as f:
-            loaded_checkpoint = torch.load(f, pickle_module=dill,
-                                           map_location=self.map_location)
-
-        return loaded_checkpoint
+            return checkpoint_loader(f)
 
     def _make_checkpoint_dir(self, checkpoint_name: str) -> Path:
         return self.directory / checkpoint_name

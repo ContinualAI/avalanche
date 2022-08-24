@@ -63,13 +63,7 @@ class TensorboardLogger(BaseLogger):
 
         super().__init__()
         tb_log_dir = _make_path_if_local(tb_log_dir)
-        self.writer = SummaryWriter(tb_log_dir, filename_suffix=filename_suffix)
-
-        # Shuts down the writer gracefully on process exit
-        # or when this logger gets GCed. Fixes issue #864.
-        # For more info see:
-        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
-        weakref.finalize(self, SummaryWriter.close, self.writer)
+        self.writer = self._make_writer(tb_log_dir, filename_suffix)
 
     def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
@@ -91,6 +85,22 @@ class TensorboardLogger(BaseLogger):
 
         elif isinstance(value, TensorImage):
             self.writer.add_image(name, value.image, global_step=x_plot)
+
+    def _make_writer(self, tb_log_dir, filename_suffix):
+        writer = SummaryWriter(tb_log_dir, filename_suffix=filename_suffix)
+
+        # Shuts down the writer gracefully on process exit
+        # or when this logger gets GCed. Fixes issue #864.
+        # For more info see:
+        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+        weakref.finalize(self, SummaryWriter.close, writer)
+        return writer
+
+    def __getstate__(self):
+        return self.writer.log_dir, self.writer.filename_suffix
+
+    def __setstate__(self, state):
+        self.writer = self._make_writer(*state)
 
 
 def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:
