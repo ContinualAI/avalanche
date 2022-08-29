@@ -28,7 +28,7 @@ from avalanche.benchmarks.datasets.omniglot import Omniglot
 import numpy as np
 
 from ..utils.data import FrozenTransformDataset
-from ..utils.avalanche_dataset import AvalancheClassificationDataset
+from ..utils.classification_dataset import AvalancheClassificationDataset
 
 
 _default_omniglot_train_transform = Compose(

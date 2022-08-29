@@ -1,69 +1,71 @@
-import bisect
-from typing import Union, Sequence
-
 import torch
-from torch import Tensor
-from torch.utils.data import ConcatDataset
 
+from .dataset_definitions import IDataset
 from .dataset_utils import ConstantSequence
-from .flattened_data import FlatData
 
 
-class DataAttribute(FlatData):
+class DataAttribute:
     """Data attributes manage sample-wise information such as task or
-    class labels."""
+    class labels.
 
-    def __init__(self, name: str, data: Union[Sequence, ConstantSequence]):
+    provides access to unique values (`self.uniques`) and their indices (`self.val_to_idx`).
+    Both fields are initialized lazily.
+    """
+
+    def __init__(self, name: str, data: IDataset):
         self.name = name
+        self._data = self._optimize_sequence(data)
 
-        data = self._optimize_sequence(data)
-        super().__init__(data)
+        self._uniques = None  # set()
+        self._val_to_idx = None  # dict()
 
-        self.uniques = set()
-        self.val_to_idx = dict()
-
-        if len(self) == 0:
+        if len(data) == 0:
             return
 
-        # init. uniques
-        if isinstance(self.data, ConstantSequence):
-            self.uniques.add(self.data[0])
-        else:
-            for el in self:
-                self.uniques.add(el)
+    @property
+    def uniques(self):
+        """Set of unique values in the attribute."""
+        if self._uniques is None:
+            self._uniques = set()
+            # init. uniques with fast paths for special cases
+            if isinstance(self._data, ConstantSequence):
+                self.uniques.add(self._data[0])
+            elif isinstance(self._data, DataAttribute):
+                self.uniques.update(self._data.uniques)
+            else:
+                for el in self._data:
+                    self.uniques.add(el)
+        return self._uniques
 
-        # init. val-to-idx
-        if isinstance(self.data, ConstantSequence):
-            self.val_to_idx = {self.data[0]: range(len(self.data))}
-        else:
-            for i, x in enumerate(self):
-                if x not in self.val_to_idx:
-                    self.val_to_idx[x] = []
-                self.val_to_idx[x].append(i)
+    @property
+    def val_to_idx(self):
+        """Dictionary mapping unique values to indices."""
+        if self._val_to_idx is None:
+            # init. val-to-idx
+            self._val_to_idx = dict()
+            if isinstance(self._data, ConstantSequence):
+                self._val_to_idx = {self._data[0]: range(len(self._data))}
+            else:
+                for i, x in enumerate(self._data):
+                    if x not in self.val_to_idx:
+                        self._val_to_idx[x] = []
+                    self._val_to_idx[x].append(i)
+        return self._val_to_idx
 
     def subset(self, indices):
-        if isinstance(self.data, ConstantSequence):
-            new_info = ConstantSequence(self.data[0], len(indices))
-        elif isinstance(self.data, list):
-            new_info = [self.data[idx] for idx in indices]
-        else:
-            new_info = self.data[indices]
-        return DataAttribute(self.name, new_info)
+        return DataAttribute(self.name, self._data.subset(indices))
 
     def concat(self, other: "DataAttribute"):
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
-        ta = torch.tensor(self.data)
-        tb = torch.tensor(other.data)
-        return DataAttribute(self.name, torch.cat([ta, tb], dim=0))
+        return DataAttribute(self.name, self._data.concat(other._data))
 
     @staticmethod
     def _optimize_sequence(seq):
-        if len(seq) == 0 or isinstance(seq, ConstantSequence):
-            return seq
-        if isinstance(seq, list):
-            return seq
-        return list(seq)
+        if isinstance(seq, torch.Tensor):
+            # equality doesn't work for tensors
+            return list(seq)
+        return seq
 
 
 class TaskLabels(DataAttribute):

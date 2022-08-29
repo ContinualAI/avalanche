@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
 from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset
-from .transforms import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
+from .transform_groups import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
     ClassificationSubset,
@@ -221,7 +221,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             # Detect from the input dataset. If not an AvalancheDataset then
             # use 'train' as the initial transform group
             if isinstance(dataset, AvalancheClassificationDataset):
-                initial_transform_group = dataset.transform_groups.current_group
+                initial_transform_group = dataset._transform_groups.current_group
             else:
                 initial_transform_group = "train"
 
@@ -331,8 +331,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
         # TODO: to remove
         return AvalancheClassificationDataset(
             self, transform=x_transform,
-            initial_transform_group=self.transform_groups.current_group)
-
+            initial_transform_group=self._transform_groups.current_group)
 
 
 class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
@@ -634,9 +633,9 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
             uniform_group = None
             for d_set in dds:
                 if uniform_group is None:
-                    uniform_group = d_set.transform_groups.current_group
+                    uniform_group = d_set._transform_groups.current_group
                 else:
-                    if uniform_group != d_set.transform_groups.current_group:
+                    if uniform_group != d_set._transform_groups.current_group:
                         uniform_group = None
                         break
 

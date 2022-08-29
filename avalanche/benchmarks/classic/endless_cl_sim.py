@@ -15,7 +15,7 @@ generator. It returns an iterable scenario object
 ``GenericCLScenario`` given a number of configuration parameters.
 """
 
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import AvalancheClassificationDataset
 from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim import (
     EndlessCLSimDataset,
 )
