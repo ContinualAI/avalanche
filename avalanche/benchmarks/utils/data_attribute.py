@@ -2,6 +2,7 @@ import torch
 
 from .dataset_definitions import IDataset
 from .dataset_utils import ConstantSequence
+from .flattened_data import _FlatDataSubset, _FlatDataConcat
 
 
 class DataAttribute:
@@ -21,6 +22,12 @@ class DataAttribute:
 
         if len(data) == 0:
             return
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    def __len__(self):
+        return len(self._data)
 
     @property
     def uniques(self):
@@ -53,12 +60,12 @@ class DataAttribute:
         return self._val_to_idx
 
     def subset(self, indices):
-        return DataAttribute(self.name, self._data.subset(indices))
+        return DataAttribute(self.name, _FlatDataSubset(self._data, indices))
 
     def concat(self, other: "DataAttribute"):
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
-        return DataAttribute(self.name, self._data.concat(other._data))
+        return DataAttribute(self.name, _FlatDataConcat([self._data, other._data]))
 
     @staticmethod
     def _optimize_sequence(seq):

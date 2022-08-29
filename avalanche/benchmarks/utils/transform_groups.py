@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Dict, Union, Callable, Tuple, Sequence
 
 from avalanche.benchmarks.utils import MultiParamTransform, Compose
 
@@ -13,7 +14,7 @@ class TransformGroups:
     """
 
     def __init__(self,
-                 transform_groups,
+                 transform_groups: Dict[str, Union[Callable, Tuple[Callable, Callable]]],
                  current_group="train"):
         self.transform_groups = transform_groups
         self.current_group = current_group
@@ -28,6 +29,12 @@ class TransformGroups:
         if "eval" not in transform_groups:
             transform_groups["eval"] = None
 
+    def __getitem__(self, item):
+        return self.transform_groups[item]
+
+    def __setitem__(self, key, value):
+        self.transform_groups[key] = value
+
     def __call__(self, *args, **kwargs):
         """Apply current transformation group to element."""
         element = list(*args)
@@ -35,10 +42,13 @@ class TransformGroups:
         curr_t = self.transform_groups[self.current_group]
         if curr_t is None:
             return element
-        if curr_t[0] is not None:
-            element = MultiParamTransform(curr_t[0])(*element)
-        if curr_t[1] is not None:
-            element[1] = curr_t[1](element[1])
+        if not isinstance(curr_t, Sequence):
+            element[0] = curr_t(element[0])
+        else:
+            if curr_t[0] is not None:
+                element = MultiParamTransform(curr_t[0])(*element)
+            if curr_t[1] is not None:
+                element[1] = curr_t[1](element[1])
         return element
 
     def __add__(self, other: "TransformGroups"):
@@ -59,16 +69,18 @@ class TransformGroups:
         self.current_group = group_name
 
 
-class FrozenTransformGroups(TransformGroups):
+class DefaultTransformGroups(TransformGroups):
+    """A transformation groups that is equal for all groups."""
+
     def __init__(self, transforms):
-        transform_groups = defaultdict(lambda: transforms)
-        super().__init__(transform_groups)
+        super().__init__({})
+        self.transform_groups = defaultdict(lambda: transforms)
 
     def with_transform(self, group_name):
         pass
 
 
-class EmptyTransformGroups(FrozenTransformGroups):
+class EmptyTransformGroups(DefaultTransformGroups):
     def __init__(self):
-        transform_groups = defaultdict(lambda: None)
-        super().__init__(transform_groups)
+        super().__init__({})
+        self.transform_groups = defaultdict(lambda: None)

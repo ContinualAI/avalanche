@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
 from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset
-from .transform_groups import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
+from .transform_groups import TransformGroups, EmptyTransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
     ClassificationSubset,
@@ -420,9 +420,6 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
         """
         self.class_mapping = class_mapping
         tgroups = None
-        if self.class_mapping is not None:
-            tgroups = FrozenTransformGroups(
-                (None, lambda x: self.class_mapping[x]))
 
         targets = AvalancheClassificationDataset._init_targets(
             dataset, targets, targets_adapter, check_shape=False)
@@ -452,6 +449,9 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
             collate_fn=collate_fn)
+        if self.class_mapping is not None:
+            self._frozen_transform_groups = DefaultTransformGroups(
+                (None, lambda x: self.class_mapping[x]))
 
 
 class AvalancheTensorClassificationDataset(AvalancheClassificationDataset[T_co]):

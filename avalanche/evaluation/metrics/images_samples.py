@@ -13,6 +13,7 @@ from avalanche.evaluation.metric_results import (
     MetricValue,
 )
 from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.benchmarks.utils import DefaultTransformGroups
 
 try:
     from typing import Literal
@@ -140,9 +141,8 @@ class ImagesSamplePlugin(PluginMetric):
         self, data: "AvalancheClassificationDataset", mb_size: int
     ) -> DataLoader:
         if self.disable_augmentations:
-            data = data.replace_transforms(
-                transform=_MaybeToTensor(),
-                target_transform=None,
+            data = data.replace_current_transform_group(
+                DefaultTransformGroups(_MaybeToTensor())
             )
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(

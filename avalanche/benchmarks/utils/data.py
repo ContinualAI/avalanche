@@ -19,13 +19,10 @@ import bisect
 import copy
 
 from torch.utils.data.dataloader import default_collate
-from torch.utils.data.dataset import Dataset, Subset, ConcatDataset
+from torch.utils.data.dataset import Dataset, ConcatDataset
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
-from .dataset_utils import (
-    find_list_from_index,
-)
 
 from typing import (
     List,
@@ -34,10 +31,10 @@ from typing import (
     Union,
     TypeVar,
     Callable,
-    Collection, Tuple,
+    Collection
 )
 
-from .transform_groups import TransformGroups, EmptyTransformGroups, FrozenTransformGroups
+from .transform_groups import TransformGroups, EmptyTransformGroups
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -85,6 +82,7 @@ class AvalancheDataset(Dataset[T_co]):
         *,
         data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
+        frozen_transform_groups: TransformGroups = None,
         collate_fn: Callable[[List], Any] = None
     ):
         """Creates a ``AvalancheDataset`` instance.
@@ -126,12 +124,20 @@ class AvalancheDataset(Dataset[T_co]):
         ####################################
         # Init transformations
         ####################################
-        self._frozen_transform_groups = EmptyTransformGroups()
+        if frozen_transform_groups is None:
+            frozen_transform_groups = EmptyTransformGroups()
+        self._frozen_transform_groups = frozen_transform_groups
         if transform_groups is None:
-            self._transform_groups = EmptyTransformGroups()
-        self._transform_groups = transform_groups
-        self.collate_fn = collate_fn
+            transform_groups = EmptyTransformGroups()
+        self._transform_groups: TransformGroups = transform_groups
 
+        if isinstance(dataset, AvalancheDataset):
+            # inherit transformations from original dataset
+            cgroup = dataset._transform_groups.current_group
+            self._frozen_transform_groups.current_group = cgroup
+            self._transform_groups.current_group = cgroup
+
+        self.collate_fn = collate_fn
         self.collate_fn = self._init_collate_fn(
             dataset, collate_fn
         )
@@ -235,10 +241,11 @@ class AvalancheDataset(Dataset[T_co]):
         return datacopy
 
     def freeze_transforms(self):
-        """Returns a new dataset with the transformations frozen."""
+        """Returns a new dataset with the transformation groups frozen."""
         tgroups = copy.copy(self._transform_groups)
-        datacopy = self.remove_transform_groups()
+        datacopy = self._shallow_clone_dataset()
         datacopy._frozen_transform_groups = tgroups
+        datacopy._transform_groups = EmptyTransformGroups()
         dds = []
         for dd in datacopy.data_list:
             if isinstance(dd, AvalancheDataset):
@@ -248,28 +255,30 @@ class AvalancheDataset(Dataset[T_co]):
         datacopy.data_list = dds
         return datacopy
 
-    def remove_transform_groups(self):
+    def remove_current_transform_group(self):
         """Recursively remove transformation groups from dataset tree."""
         dataset_copy = self._shallow_clone_dataset()
-        dataset_copy._transform_groups = EmptyTransformGroups()
+        cgroup = dataset_copy._transform_groups.current_group
+        dataset_copy._transform_groups[cgroup] = None
         dds = []
         for dd in dataset_copy.data_list:
             if isinstance(dd, AvalancheDataset):
-                dds.append(dd.remove_transform_groups())
+                dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
         dataset_copy.data_list = dds
         return dataset_copy
 
-    def replace_transforms(self, tgroups: TransformGroups):
-        """Recursively remove transformation groups from dataset tree and replace
-        them."""
-        dataset_copy = self.remove_transform_groups()
-        dataset_copy._transform_groups = tgroups
+    def replace_current_transform_group(self, transform):
+        """Recursively remove the current transformation group from the dataset tree and replaces
+        it."""
+        dataset_copy = self.remove_current_transform_group()
+        cgroup = dataset_copy._transform_groups.current_group
+        dataset_copy._transform_groups[cgroup] = transform
         dds = []
         for dd in dataset_copy.data_list:
             if isinstance(dd, AvalancheDataset):
-                dds.append(dd.remove_transform_groups())
+                dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
         dataset_copy.data_list = dds
@@ -396,7 +405,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         self._data_attributes = {}
         if len(self.datasets) > 0 and \
                 isinstance(self.datasets[0], AvalancheDataset):
-            for attr in self.datasets[0]._data_attributes:
+            for attr in self.datasets[0]._data_attributes.values():
                 acat = attr
                 found_all = True
                 for d2 in self.datasets[1:]:
@@ -413,10 +422,26 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         for el in self._data_attributes.values():
             setattr(self, el.name, el)
 
+        ################################
+        # Init transform groups
+        ################################
         if transform_groups is None:
             transform_groups = EmptyTransformGroups()
         self._transform_groups = transform_groups
-        self._frozen_transform_groups = transform_groups
+        self._frozen_transform_groups = EmptyTransformGroups()
+
+        dds = []
+        cgroup = None
+        for dd in self.data_list:
+            if isinstance(dd, AvalancheDataset):
+                if cgroup is None:  # inherit transformations from original dataset
+                    cgroup = dd._transform_groups.current_group
+                # all datasets must have the same transformation group
+                dds.append(dd.with_transforms(cgroup))
+
+        if cgroup is not None:
+            self._frozen_transform_groups.current_group = cgroup
+            self._transform_groups.current_group = cgroup
 
         self.collate_fn = self._init_collate_fn(self.datasets[0], collate_fn)
         """
@@ -425,15 +450,24 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         """
 
     @property
-    def _data_list(self):
+    def data_list(self):
         """Internal list of datasets."""
         return self._datasets
 
-    @_data_list.setter
-    def _data_list(self, value):
+    @data_list.setter
+    def data_list(self, value):
         """setter for internal list of datasets."""
         assert len(value) == len(self._datasets)
+        assert all([len(d1) == len(d2) for d1, d2 in zip(value, self._datasets)])
         self._datasets = value
+
+    def __getattr__(self, item):
+        if item.startswith('__') and item.endswith('__'):  # check needed for copy/pickling
+            raise AttributeError(f"Attribute {item} not found")
+        if item in self._data_attributes:
+            return self._data_attributes[item]
+        else:
+            raise AttributeError(f"Attribute {item} not found")
 
     def _getitem_recursive_call(self, idx):
         """We need this recursive call to avoid appending task

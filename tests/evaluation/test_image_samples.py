@@ -53,8 +53,8 @@ class ImageSamplesTests(unittest.TestCase):
 
         # we use a ReSize transform because it's easy to detect if it's been
         # applied without looking at the image.
-        curr_dataset = curr_exp.dataset.replace_transforms(
-            transform=Compose([Resize(8), ToTensor()]), target_transform=None
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            transform=Compose([Resize(8), ToTensor()])
         )
 
         ##########################################

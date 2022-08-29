@@ -225,12 +225,11 @@ Note: one can use `.replace_transforms(...)` to remove previous transformations 
 
 The following cell shows how to use `.replace_transforms(...)` to replace the transformations of the current group:
 
-
 ```python
 new_transform = transforms.RandomCrop(size=(28, 28), padding=4)
 
 # Append a transformation. Simple as:
-avl_mnist_replaced_transform = avl_mnist.replace_transforms(new_transform, None)
+avl_mnist_replaced_transform = avl_mnist.replace_current_transform_group(new_transform, None)
 
 print('With replaced transform:', avl_mnist_replaced_transform.transform)
 # Prints: "With replaces transforms: RandomCrop(size=(28, 28), padding=4)"
@@ -293,14 +292,13 @@ In this way, that transform can't be removed. However, remember that one can alw
 
 The cell below shows that `replace_transforms` can't remove frozen transformations:
 
-
 ```python
 # First, show that the image pixels are permuted
 print('Before replace_transforms:')
 display(permuted_train_set[0][0].resize((192, 192), 0))
 
 # Try to remove the permutation
-with_removed_transforms = permuted_train_set.replace_transforms(None, None)
+with_removed_transforms = permuted_train_set.replace_current_transform_group(None, None)
 
 print('After replace_transforms:')
 display(permuted_train_set[0][0].resize((192, 192), 0))

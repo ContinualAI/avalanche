@@ -25,6 +25,8 @@ import os
 import sys
 
 import pkgutil
+from jinja2.filters import FILTERS
+
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -421,3 +423,17 @@ def coverage_post_process(app, exception):
 # Called automatically by Sphinx, making this `conf.py` an "extension".
 def setup(app):
     app.connect("build-finished", coverage_post_process)
+
+
+def get_attributes(item, obj, modulename):
+    """Filters attributes to be used in autosummary.
+    Fixes import errors when documenting inherited attributes with autosummary.
+    """
+    module = import_module(modulename)
+    if hasattr(getattr(module, obj), item):
+        return f"~{obj}.{item}"
+    else:
+        return ""
+
+
+FILTERS["get_attributes"] = get_attributes

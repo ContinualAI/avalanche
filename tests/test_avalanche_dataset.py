@@ -42,7 +42,7 @@ import random
 
 import numpy as np
 
-from avalanche.benchmarks.utils import FrozenTransformGroups
+from avalanche.benchmarks.utils import DefaultTransformGroups
 from avalanche.benchmarks.utils.data_attribute import DataAttribute, TaskLabels
 from tests.unit_tests_utils import load_image_benchmark, load_tensor_benchmark
 
@@ -78,7 +78,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         dataset = AvalancheDataset(
             dataset,
-            transform_groups=FrozenTransformGroups((ToTensor(), None)))
+            transform_groups=DefaultTransformGroups((ToTensor(), None)))
         x2, y2 = dataset[0][0], dataset[0][1]
         # TODO: check __getitem__ task label
 
@@ -91,7 +91,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_composition(self):
         dataset_mnist = load_image_benchmark()
-        tgs = FrozenTransformGroups((RandomCrop(16), None))
+        tgs = DefaultTransformGroups((RandomCrop(16), None))
         dataset = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
         x, y = dataset[0]
@@ -99,7 +99,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual([x.width, x.height], [16, 16])
         self.assertIsInstance(y, int)
 
-        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
+        tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset = AvalancheDataset(dataset, transform_groups=tgs)
 
         x2, y2 = dataset[0]
@@ -110,18 +110,18 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_add(self):
         dataset_mnist = load_image_benchmark()
-        tgs = FrozenTransformGroups((CenterCrop(16), None))
+        tgs = DefaultTransformGroups((CenterCrop(16), None))
         dataset_mnist = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
         taskl = TaskLabels(ConstantSequence(0, len(dataset_mnist)))
-        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
+        tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = AvalancheDataset(
             dataset_mnist,
             data_attributes=[taskl],
             transform_groups=tgs)
 
         taskl = TaskLabels(ConstantSequence(2, len(dataset_mnist)))
-        tgs = FrozenTransformGroups((None, lambda target: -2))
+        tgs = DefaultTransformGroups((None, lambda target: -2))
         dataset2 = AvalancheDataset(
             dataset_mnist,
             data_attributes=[taskl],
@@ -155,10 +155,10 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_radd(self):
         dataset_mnist = load_image_benchmark()
-        tgs = FrozenTransformGroups((CenterCrop(16), None))
+        tgs = DefaultTransformGroups((CenterCrop(16), None))
         dataset_mnist = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
-        tgs = FrozenTransformGroups((ToTensor(), lambda target: -1))
+        tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
         dataset2 = dataset_mnist + dataset1
@@ -184,7 +184,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset_mnist = load_image_benchmark()
         x, y = dataset_mnist[0]
 
-        tgs = FrozenTransformGroups((ToTensor(), None))
+        tgs = DefaultTransformGroups((ToTensor(), None))
         dataset = AvalancheDataset(
             dataset_mnist,
             transform_groups=tgs
@@ -1150,7 +1150,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             indices=[0, 3, 1],
             target_transform=transform_target_plus_two,
         )
-        dataset = dataset.replace_transforms(None, None)
+        dataset = dataset.replace_current_transform_group(None, None)
 
         x5, y5, t5 = dataset[0]
         x6, y6, t6 = dataset[1]
@@ -1974,7 +1974,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, y = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_transforms(None, None)
+        dataset_reset = dataset.replace_current_transform_group(None, None)
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
@@ -1986,13 +1986,13 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_reset[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_reset.replace_transforms(None, None)
+        dataset_reset.replace_current_transform_group(None, None)
 
         x5, *_ = dataset_reset[0]
         self.assertIsInstance(x5, Tensor)
 
         dataset_other = AvalancheClassificationDataset(dataset_reset)
-        dataset_other = dataset_other.replace_transforms(None, lambda l: l + 1)
+        dataset_other = dataset_other.replace_current_transform_group(None, lambda l: l + 1)
 
         _, y6, _ = dataset_other[0]
         self.assertEqual(y + 1, y6)
@@ -2005,7 +2005,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, _ = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_transforms(None, None)
+        dataset_reset = dataset.replace_current_transform_group(None, None)
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
@@ -2017,7 +2017,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_frozen[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_frozen_reset = dataset_frozen.replace_transforms(None, None)
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(None, None)
 
         x5, *_ = dataset_frozen_reset[0]
         self.assertIsInstance(x5, Tensor)

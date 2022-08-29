@@ -28,8 +28,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from ..utils import TransformGroups, AvalancheClassificationDataset
-from ..utils.data import FrozenTransformDataset
+from ..utils import AvalancheClassificationDataset, DefaultTransformGroups
+from ..utils.data import AvalancheDataset
 
 _default_mnist_train_transform = Compose(
     [ToTensor(), Normalize((0.1307,), (0.3081,))]
@@ -226,14 +226,15 @@ def PermutedMNIST(
         permutation = PixelsPermutation(idx_permute)
 
         # Freeze the permutation
-        permuted_train = FrozenTransformDataset(
+        permuted_train = AvalancheDataset(
             AvalancheClassificationDataset(mnist_train),
-            frozen_transforms=(permutation, None)
+            frozen_transform_groups=DefaultTransformGroups((permutation, None))
         )
 
-        permuted_test = FrozenTransformDataset(
+        permuted_test = AvalancheDataset(
             AvalancheClassificationDataset(mnist_test),
-            frozen_transforms=(permutation, None))
+            frozen_transform_groups=DefaultTransformGroups((permutation, None))
+        )
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -342,13 +343,14 @@ def RotatedMNIST(
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
         # Freeze the rotation
-        rotated_train = FrozenTransformDataset(
+        rotated_train = AvalancheDataset(
             AvalancheClassificationDataset(mnist_train),
-            frozen_transforms=(rotation, None))
+            frozen_transform_groups=DefaultTransformGroups((rotation, None))
+        )
 
-        rotated_test = FrozenTransformDataset(
+        rotated_test = AvalancheDataset(
             AvalancheClassificationDataset(mnist_test),
-            frozen_transforms=(rotation, None)
+            frozen_transform_groups=DefaultTransformGroups((rotation, None))
         )
 
         list_train_dataset.append(rotated_train)

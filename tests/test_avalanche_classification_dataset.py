@@ -34,9 +34,9 @@ from avalanche.benchmarks.utils import (
     AvalancheClassificationSubset,
     AvalancheConcatClassificationDataset,
     AvalancheTensorClassificationDataset,
+    AvalancheConcatDataset,
     concat_datasets_sequentially,
 )
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
 from avalanche.training.utils import load_all_dataset
 import random
 
@@ -506,90 +506,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(0, t)
             self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
 
-    def test_avalanche_dataset_from_chained_pytorch_datasets(self):
-        tensor_x = torch.rand(200, 3, 28, 28)
-        tensor_x2 = torch.rand(100, 3, 28, 28)
-        tensor_y = torch.randint(0, 100, (200,))
-        tensor_y2 = torch.randint(0, 100, (100,))
-
-        dataset1 = TensorDataset(tensor_x, tensor_y)
-        dataset1_sub = Subset(dataset1, range(199, -1, -1))
-        dataset2 = TensorDataset(tensor_x2, tensor_y2)
-
-        indices = [random.randint(0, 299) for _ in range(1000)]
-
-        concat_dataset = ConcatDataset((dataset1_sub, dataset2))
-        subset = Subset(concat_dataset, indices)
-
-        av_dataset = AvalancheClassificationDataset(subset)
-
-        self.assertEqual(200, len(dataset1_sub))
-        self.assertEqual(100, len(dataset2))
-        self.assertEqual(1000, len(av_dataset))
-
-        for idx in range(1000):
-            orig_idx = indices[idx]
-            if orig_idx < 200:
-                orig_idx = range(199, -1, -1)[orig_idx]
-                expected_x, expected_y = dataset1[orig_idx]
-            else:
-                expected_x, expected_y = dataset2[orig_idx - 200]
-
-            x, y, t = av_dataset[idx]
-            self.assertIsInstance(x, Tensor)
-            self.assertTrue(torch.equal(expected_x, x))
-            self.assertTrue(torch.equal(expected_y, y))
-            self.assertEqual(0, t)
-            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
-
-    def test_avalanche_dataset_from_chained_pytorch_datasets_task_labels(self):
-        tensor_x = torch.rand(200, 3, 28, 28)
-        tensor_x2 = torch.rand(100, 3, 28, 28)
-        tensor_y = torch.randint(0, 100, (200,))
-        tensor_y2 = torch.randint(0, 100, (100,))
-        tensor_t = torch.randint(0, 100, (200,))
-        tensor_t2 = torch.randint(0, 100, (100,))
-
-        dataset1 = AvalancheTensorClassificationDataset(
-            tensor_x, tensor_y, task_labels=tensor_t
-        )
-        dataset1_sub = Subset(dataset1, range(199, -1, -1))
-        dataset2 = AvalancheClassificationDataset(
-            TensorDataset(tensor_x2, tensor_y2), task_labels=tensor_t2
-        )
-
-        indices = [random.randint(0, 299) for _ in range(1000)]
-
-        concat_dataset = ConcatDataset((dataset1_sub, dataset2))
-        subset = Subset(concat_dataset, indices)
-
-        av_dataset = AvalancheClassificationDataset(subset)
-
-        self.assertEqual(200, len(dataset1_sub))
-        self.assertEqual(100, len(dataset2))
-        self.assertEqual(1000, len(av_dataset))
-
-        for idx in range(1000):
-            orig_idx = indices[idx]
-            if orig_idx < 200:
-                orig_idx = range(199, -1, -1)[orig_idx]
-                expected_x = tensor_x[orig_idx]
-                expected_y = tensor_y[orig_idx]
-                expected_t = tensor_t[orig_idx]
-            else:
-                orig_idx -= 200
-                expected_x = tensor_x2[orig_idx]
-                expected_y = tensor_y2[orig_idx]
-                expected_t = tensor_t2[orig_idx]
-
-            x, y, t = av_dataset[idx]
-            self.assertIsInstance(x, Tensor)
-            self.assertTrue(torch.equal(expected_x, x))
-            self.assertTrue(torch.equal(expected_y, y))
-            self.assertIsInstance(t, int)
-            self.assertEqual(int(expected_t), int(t))
-            self.assertEqual(int(expected_y), int(av_dataset.targets[idx]))
-
     def test_avalanche_dataset_collate_fn(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))
@@ -765,7 +681,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         # This will test recursion on both PyTorch ConcatDataset and
         # AvalancheConcatDataset
-        concat = ConcatDataset([dataset1, dataset2])
+        concat = AvalancheConcatClassificationDataset([dataset1, dataset2])
 
         # Beware of the explicit task_labels=5 that *must* override the
         # task labels set in dataset4 and dataset5
@@ -1031,7 +947,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             indices=[0, 3, 1],
             target_transform=transform_target_plus_two,
         )
-        dataset = dataset.replace_transforms(None, None)
+        dataset = dataset.replace_current_transform_group(None, None)
 
         x5, y5, t5 = dataset[0]
         x6, y6, t6 = dataset[1]
@@ -1180,7 +1096,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
             all_targets = []
-            for c_dataset in leaf.datasets:
+            for c_dataset in leaf.data_list:
                 all_targets += c_dataset.targets
 
             all_targets = torch.tensor(all_targets)
@@ -1675,20 +1591,12 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, y = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         dataset_frozen = dataset.freeze_transforms()
-        dataset_frozen.transform = None
 
         x2, y2, _ = dataset_frozen[0]
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, int)
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
-
-        dataset.transform = None
-        x2, y2, _ = dataset[0]
-        self.assertIsInstance(x2, Image)
-
-        x2, y2, _ = dataset_frozen[0]
-        self.assertIsInstance(x2, Tensor)
 
     def test_freeze_transforms_chain(self):
         original_dataset = MNIST(
@@ -1790,7 +1698,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, y = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_transforms(None, None)
+        dataset_reset = dataset.replace_current_transform_group(None, None)
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
@@ -1802,13 +1710,13 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_reset[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_reset.replace_transforms(None, None)
+        dataset_reset.replace_current_transform_group(None, None)
 
         x5, *_ = dataset_reset[0]
         self.assertIsInstance(x5, Tensor)
 
         dataset_other = AvalancheClassificationDataset(dataset_reset)
-        dataset_other = dataset_other.replace_transforms(None, lambda l: l + 1)
+        dataset_other = dataset_other.replace_current_transform_group(None, lambda l: l + 1)
 
         _, y6, _ = dataset_other[0]
         self.assertEqual(y + 1, y6)
@@ -1820,7 +1728,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, _ = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_transforms(None, None)
+        dataset_reset = dataset.replace_current_transform_group(None, None)
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
@@ -1832,7 +1740,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_frozen[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_frozen_reset = dataset_frozen.replace_transforms(None, None)
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(None, None)
 
         x5, *_ = dataset_frozen_reset[0]
         self.assertIsInstance(x5, Tensor)
