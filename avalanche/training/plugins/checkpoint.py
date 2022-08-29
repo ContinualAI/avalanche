@@ -49,14 +49,48 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             map_location: Optional[Union[str,
                                          torch.device,
                                          Dict[str, str]]] = None):
+        """
+        Creates an instance of the checkpoint plugin.
+
+        :param storage: The checkpoint storage to use. The most common one is
+            :class:`FileSystemCheckpointStorage`.
+        :param map_location: This parameter can change where the cuda tensors
+            (including the model ones) are put when loading checkpoints.
+            This works similar to the `map_location` parameter of `torch.load`,
+            except that you can also pass a device object or a string (a proper
+            map will be created accordingly). The recommended way to use this
+            parameter is to pass the used reference device.
+            In addition, all `torch.device` objects will be un-pickled using
+            that map (this is not usually done by `torch.load`,
+            but it is needed to properly manage things in Avalanche).
+            Defaults to None, which means that no mapping will take place.
+        """
         super(CheckpointPlugin, self).__init__()
         self.map_location = CheckpointPlugin._make_map(map_location)
         self.storage = storage
 
-    def load_checkpoint_if_exists(self,
-                                  update_checkpoint_plugin=True):
+    def load_checkpoint_if_exists(
+            self, update_checkpoint_plugin=True):
+        """
+        Loads the latest checkpoint if it exists.
+
+        This will load the strategy (including the model weights, all the
+        plugins, metrics, and loggers), load and set the state of the
+        global random number generators (torch, torch cuda, numpy, and Python's
+        random), and the number of training experiences so far.
+
+        The loaded checkpoint refers to the last successful evaluation.
+
+        :param update_checkpoint_plugin: Defaults to True, which means that the
+            CheckpointPlugin in the un-pickled strategy will be replaced with
+            self (this plugin instance).
+        :return: The loaded strategy and the number experiences so far (this
+            number can also be interpreted as the index of the next training
+            experience).
+        """
         existing_checkpoints = self.storage.list_checkpoints()
         if len(existing_checkpoints) == 0:
+            # No checkpoints exist
             return None, 0
 
         last_exp = max(
@@ -108,6 +142,16 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
         torch.save(checkpoint_data, fobj, pickle_module=dill)
 
     def load_checkpoint(self, fobj):
+        """
+        Loads the checkpoint given the file-like object coming from the storage.
+
+        This function is mostly an internal mechanism. Do not use if you are
+        not 100% sure of what it does (and does not).
+
+        :param fobj: A file-like object, usually provided by the
+            :class:`CheckpointStorage` object.
+        :return: The loaded checkpoint.
+        """
         try:
             _set_checkpoint_device_map(self.map_location)
 
