@@ -5,6 +5,9 @@ from collections import OrderedDict
 import numpy as np
 import torch
 
+from avalanche.training.determinism.cuda_rng import cuda_rng_seed, \
+    cuda_rng_save_state, cuda_rng_load_state, cuda_rng_step, cpu_rng_seed
+
 
 class _Singleton(type):
     _instances = {}
@@ -72,10 +75,17 @@ class _RNGManager:
 
     def _register_default_generators(self):
         self.register_random_generator('torch', {
-            'seed': torch.random.manual_seed,
+            'seed': cpu_rng_seed,
             'save_state': torch.random.get_rng_state,
             'load_state': torch.random.set_rng_state,
             'step': lambda: torch.rand(1)
+        })
+
+        self.register_random_generator('torch.cuda', {
+            'seed': cuda_rng_seed,
+            'save_state': cuda_rng_save_state,
+            'load_state': cuda_rng_load_state,
+            'step': cuda_rng_step
         })
 
         self.register_random_generator('numpy', {

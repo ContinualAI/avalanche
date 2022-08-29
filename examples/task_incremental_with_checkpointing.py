@@ -63,16 +63,11 @@ def main(args):
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     criterion = CrossEntropyLoss()
 
-    smart_map_dict = defaultdict(lambda: str(device))
-    smart_map_dict['cpu'] = 'cpu'
-    smart_map_dict['cuda:0'] = str(device)
-    smart_map_dict['cuda:1'] = str(device)
-    smart_map_dict['cuda:2'] = str(device)
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(
             directory='./checkpoints/task_incremental',
         ),
-        map_location=smart_map_dict
+        map_location=device
     )
     
     plugins = [
@@ -109,35 +104,13 @@ def main(args):
             plugins=plugins,
             evaluator=evaluation_plugin
         )
-    else:
-        print('Next rng torch', torch.randint(0, 2**32 - 1, (1,)))
-        print('Next rng np', np.random.randint(0, 2**32 - 1, 1))
-        print('Next rng py', random.randint(0, 2**32 - 1))
 
     # train and test loop
     for train_task in train_stream[initial_exp:]:
-        if train_task.current_experience > 0:
-            print('Next rng torch', torch.randint(0, 2**32 - 1, (1,)))
-            print('Next rng np', np.random.randint(0, 2**32 - 1, 1))
-            print('Next rng py', random.randint(0, 2**32 - 1))
         strategy.train(train_task, num_workers=0)
         strategy.eval(test_stream)
         if train_task.current_experience == args.checkpoint_at:
-            print('Before exit rng torch', torch.randint(0, 2 ** 32 - 1, (1,)))
-            print('Before exit rng np', np.random.randint(0, 2 ** 32 - 1, 1))
-            print('Before exit rng py', random.randint(0, 2 ** 32 - 1))
-            print('Pass 2')
-            print('Before exit rng torch', torch.randint(0, 2 ** 32 - 1, (1,)))
-            print('Before exit rng np', np.random.randint(0, 2 ** 32 - 1, 1))
-            print('Before exit rng py', random.randint(0, 2 ** 32 - 1))
             break
-
-        # with open('wellwellwell', 'wb') as f:
-        #     dill.dump(RNGManager, f)
-        # RNGManager.set_random_seeds(8888)
-        # with open('wellwellwell', 'rb') as f:
-        #     set_rng_manager(dill.load(f))
-
 
 
 if __name__ == "__main__":

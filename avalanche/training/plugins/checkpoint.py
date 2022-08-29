@@ -2,7 +2,7 @@ import random
 from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
-from typing import Union, Callable, IO, Any
+from typing import Union, Callable, IO, Any, Dict, Optional
 import dill
 import numpy as np
 import torch
@@ -46,9 +46,11 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
     def __init__(
             self,
             storage: CheckpointStorage,
-            map_location=None):
+            map_location: Optional[Union[str,
+                                         torch.device,
+                                         Dict[str, str]]] = None):
         super(CheckpointPlugin, self).__init__()
-        self.map_location = map_location
+        self.map_location = CheckpointPlugin._make_map(map_location)
         self.storage = storage
 
     def load_checkpoint_if_exists(self,
@@ -113,6 +115,19 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
                               map_location=self.map_location)
         finally:
             _set_checkpoint_device_map(None)
+
+    @staticmethod
+    def _make_map(device_or_map) -> Optional[Dict[str, str]]:
+        if not isinstance(device_or_map, (torch.device, str)):
+            return device_or_map
+
+        device = torch.device(device_or_map)
+        map_location = dict()
+
+        map_location['cpu'] = 'cpu'
+        for cuda_idx in range(100):
+            map_location[f'cuda:{cuda_idx}'] = str(device)
+        return map_location
 
 
 class FileSystemCheckpointStorage(CheckpointStorage):
