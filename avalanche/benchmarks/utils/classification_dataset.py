@@ -248,21 +248,6 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
                     'Wrong key was: "' + str(map_key) + '"'
                 )
 
-            map_value = groups_dict[map_key]
-            if not isinstance(map_value, tuple):
-                raise ValueError(
-                    'Transformations for group "'
-                    + str(map_key)
-                    + '" must be contained in a tuple'
-                )
-
-            if not len(map_value) == 2:
-                raise ValueError(
-                    'Transformations for group "' + str(map_key) + '" must be '
-                    "a tuple containing 2 elements: a transformation for the X "
-                    "values and a transformation for the Y values"
-                )
-
         if "test" in groups_dict:
             warnings.warn(
                 'A transformation group named "test" has been found. Beware '
@@ -617,9 +602,11 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
             the value of the second element returned by `__getitem__`.
             The adapter is used to adapt the values of the targets field only.
         """
+        # remove empty datasets because they may not have all the attributes
+        datasets = list(filter(lambda d: len(d) > 0, datasets))
         if len(datasets) == 0:
-            AvalancheDataset.__init__(self, [])
-            return
+            task_labels = []
+            targets = []
 
         dds = []
         for d in datasets:

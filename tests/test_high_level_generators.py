@@ -482,8 +482,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         dd = valid_benchmark.train_stream[0].dataset
         mb = get_mbatch(dd, len(dd))
+        self.assertTrue(torch.equal(experience_1_x[:true_rel_1_train], mb[0]))
         self.assertTrue(torch.equal(experience_1_y[:true_rel_1_train], mb[1]))
-        self.assertTrue(torch.equal(experience_1_x[true_rel_1_train:], mb[0]))
 
         dd = valid_benchmark.valid_stream[1].dataset
         mb = get_mbatch(dd, len(dd))

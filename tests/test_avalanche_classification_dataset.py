@@ -42,6 +42,8 @@ import random
 
 import numpy as np
 
+from tests.unit_tests_utils import load_image_data
+
 
 def pil_images_equal(img_a, img_b):
     diff = ImageChops.difference(img_a, img_b)
@@ -67,16 +69,14 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_avalanche_dataset_multi_param_transform(self):
         dataset_mnist = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/", download=True
+            root=default_dataset_location("mnist"), download=True
         )
 
         ref_instance2_idx = None
-
         for instance_idx, (_, instance_y) in enumerate(dataset_mnist):
             if instance_y == 2:
                 ref_instance2_idx = instance_idx
                 break
-
         self.assertIsNotNone(ref_instance2_idx)
 
         ref_instance_idx = None
@@ -84,7 +84,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             if instance_y != 2:
                 ref_instance_idx = instance_idx
                 break
-
         self.assertIsNotNone(ref_instance_idx)
 
         with self.assertWarns(
@@ -1061,92 +1060,88 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x2, x3))
 
     def test_avalanche_avalanche_subset_concat_stack_overflow(self):
-        d_sz = 25
-        tensor_x = torch.rand(d_sz, 3, 28, 28)
-        tensor_y = torch.randint(0, 10, (d_sz,))
-        tensor_t = torch.randint(0, 10, (d_sz,))
+        d_sz = 3
+        tensor_x = torch.rand(d_sz, 2)
+        tensor_y = torch.randint(0, 7, (d_sz,))
+        tensor_t = torch.randint(0, 7, (d_sz,))
         dataset = AvalancheTensorClassificationDataset(
             tensor_x, tensor_y, task_labels=tensor_t
         )
-        dataset_hierarchy_depth = 500
+        assert False, "set depth to 500"
+        dataset_hierarchy_depth = 5
 
-        rolling_indices: List[List[int]] = []
-        expect_indices: List[List[int]] = []
-
+        # prepare random permutations for each step
+        random_permutations: List[List[int]] = []
         for _ in range(dataset_hierarchy_depth):
             idx_permuted = list(range(d_sz))
             random.shuffle(idx_permuted)
-            rolling_indices.append(idx_permuted)
+            random_permutations.append(idx_permuted)
 
-        forward_indices = range(d_sz)
-        expect_indices.append(list(forward_indices))
+        # compute expected indices after all permutations
+        current_indices = range(d_sz)
+        true_indices: List[List[int]] = []
+        true_indices.append(list(current_indices))
         for idx in range(dataset_hierarchy_depth):
-            forward_indices = [forward_indices[x] for x in rolling_indices[idx]]
-            expect_indices.append(forward_indices)
+            current_indices = [current_indices[x] for x in random_permutations[idx]]
+            true_indices.append(current_indices)
+        true_indices = list(reversed(true_indices))  # ??? why is this reversed?
 
-        expect_indices = list(reversed(expect_indices))
-
-        leaf = dataset
-
+        # apply permutations and concatenations iteratively
+        curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
+            print(idx)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
-            subset = AvalancheClassificationSubset(leaf, indices=rolling_indices[idx])
-            leaf = AvalancheConcatClassificationDataset((subset, leaf))
+            subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
+            curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))
 
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
-            all_targets = []
-            for c_dataset in leaf.data_list:
-                all_targets += c_dataset.targets
-
-            all_targets = torch.tensor(all_targets)
-
+            curr_targets = torch.tensor(curr_dataset.targets)
+            # self.assertTrue(torch.equal(tensor_y[true_indices[-idx]], curr_targets))
             for idx_internal in range(idx + 1):
+                # curr_dataset is the concat of idx+1 datasets.
+                # Check all of them are permuted correctly
                 leaf_range = range(
                     idx_internal * d_sz, (idx_internal + 1) * d_sz
                 )
-                permuted = expect_indices[idx_internal + intermediate_idx_test]
+                permuted = true_indices[idx_internal + intermediate_idx_test]
                 self.assertTrue(
-                    torch.equal(tensor_y[permuted], all_targets[leaf_range])
+                    torch.equal(tensor_y[permuted], curr_targets[leaf_range])
                 )
 
-            self.assertTrue(torch.equal(tensor_y, all_targets[-d_sz:]))
+            self.assertTrue(torch.equal(tensor_y, curr_targets[-d_sz:]))
 
-        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(leaf))
+        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset))
+
+        def collect_permuted_data(dataset, indices):
+            x, y, t = [], [], []
+            for idx in indices:
+                x_, y_, t_ = dataset[idx]
+                x.append(x_)
+                y.append(y_)
+                t.append(t_)
+            return torch.stack(x, dim=0), torch.stack(y, dim=0), torch.tensor(t)
 
         for idx in range(dataset_hierarchy_depth):
             leaf_range = range(idx * d_sz, (idx + 1) * d_sz)
-            permuted = expect_indices[idx]
-            self.assertTrue(
-                torch.equal(tensor_x[permuted], leaf[leaf_range][0])
-            )
-            self.assertTrue(
-                torch.equal(tensor_y[permuted], leaf[leaf_range][1])
-            )
-            self.assertTrue(
-                torch.equal(
-                    tensor_y[permuted], torch.tensor(leaf.targets)[leaf_range]
-                )
-            )
-            self.assertTrue(
-                torch.equal(tensor_t[permuted], leaf[leaf_range][2])
-            )
+            permuted = true_indices[idx]
 
-        self.assertTrue(
-            torch.equal(tensor_x, leaf[d_sz * dataset_hierarchy_depth :][0])
-        )
-        self.assertTrue(
-            torch.equal(tensor_y, leaf[d_sz * dataset_hierarchy_depth :][1])
-        )
-        self.assertTrue(
-            torch.equal(
-                tensor_y,
-                torch.tensor(leaf.targets)[d_sz * dataset_hierarchy_depth :],
-            )
-        )
-        self.assertTrue(
-            torch.equal(tensor_t, leaf[d_sz * dataset_hierarchy_depth :][2])
-        )
+            x_leaf, y_leaf, t_leaf = collect_permuted_data(curr_dataset, leaf_range)
+            self.assertTrue(torch.equal(tensor_x[permuted], x_leaf))
+            self.assertTrue(torch.equal(tensor_y[permuted], y_leaf))
+            self.assertTrue(torch.equal(tensor_t[permuted], t_leaf))
+
+            trg_leaf = torch.tensor(curr_dataset.targets)[leaf_range]
+            self.assertTrue(torch.equal(tensor_y[permuted], trg_leaf))
+
+        slice_idxs = list(range(d_sz * dataset_hierarchy_depth, len(curr_dataset)))
+        x_slice, y_slice, t_slice = collect_permuted_data(curr_dataset, slice_idxs)
+        self.assertTrue(torch.equal(tensor_x, x_slice))
+        self.assertTrue(torch.equal(tensor_y, y_slice))
+        self.assertTrue(torch.equal(tensor_t, t_slice))
+
+        trg_slice = torch.tensor(curr_dataset.targets)[d_sz * dataset_hierarchy_depth :]
+        self.assertTrue(torch.equal(tensor_y, trg_slice))
 
     def test_avalanche_concat_datasets_sequentially(self):
         # create list of training datasets
@@ -1673,44 +1668,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-    def test_add_transforms_chain(self):
-        original_dataset = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        x, _ = original_dataset[0]
-        dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
-        dataset_added = AvalancheClassificationDataset(dataset, transform=ToPILImage())
-        x2, *_ = dataset[0]
-        x3, *_ = dataset_added[0]
-        self.assertIsInstance(x, Image)
-        self.assertIsInstance(x2, Tensor)
-        self.assertIsInstance(x3, Image)
-
-    def test_transforms_freeze_add_mix(self):
-        original_dataset = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        x, _ = original_dataset[0]
-        dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
-        dataset_frozen = dataset.freeze_transforms()
-        dataset_added = dataset_frozen.add_transforms(ToPILImage())
-
-        self.assertEqual(None, dataset_frozen.transform)
-
-        x2, *_ = dataset[0]
-        x3, *_ = dataset_added[0]
-        self.assertIsInstance(x, Image)
-        self.assertIsInstance(x2, Tensor)
-        self.assertIsInstance(x3, Image)
-
-        dataset_frozen = dataset_added.freeze_transforms()
-        dataset_added.transform = None
-
-        x4, *_ = dataset_frozen[0]
-        x5, *_ = dataset_added[0]
-        self.assertIsInstance(x4, Image)
-        self.assertIsInstance(x5, Tensor)
-
     def test_replace_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1718,25 +1675,24 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, y = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_current_transform_group(None, None)
+        dataset_reset = dataset.replace_current_transform_group(None)
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-        dataset_reset.transform = ToTensor()
-
+        dataset_reset = dataset_reset.replace_current_transform_group(ToTensor())
         x4, *_ = dataset_reset[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_reset.replace_current_transform_group(None, None)
+        dataset_reset.replace_current_transform_group(None)
 
         x5, *_ = dataset_reset[0]
         self.assertIsInstance(x5, Tensor)
 
         dataset_other = AvalancheClassificationDataset(dataset_reset)
-        dataset_other = dataset_other.replace_current_transform_group(None, lambda l: l + 1)
+        dataset_other = dataset_other.replace_current_transform_group((None, lambda l: l + 1))
 
         _, y6, _ = dataset_other[0]
         self.assertEqual(y + 1, y6)
@@ -1791,7 +1747,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(y3, int)
 
         dataset_train = dataset.train()
-        dataset.transform = None
+        dataset = dataset.replace_current_transform_group(None)
 
         x4, y4, _ = dataset_train[0]
         x5, y5, _ = dataset[0]
@@ -1801,17 +1757,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(y5, int)
 
     def test_transforms_groups_constructor_error(self):
-        original_dataset = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        with self.assertRaises(Exception):
-            # Test tuple has only one element
-            dataset = AvalancheClassificationDataset(
-                original_dataset,
-                transform_groups=dict(
-                    train=(ToTensor(), None), eval=(Lambda(lambda t: float(t)))
-                ),
-            )
+        original_dataset = load_image_data()
 
         with self.assertRaises(Exception):
             # Test is not a tuple has only one element
@@ -1901,45 +1847,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset = dataset.with_transforms("other")
         x3, *_ = dataset[0]
         self.assertIsInstance(x3, np.ndarray)
-
-    def test_transforms_add_group(self):
-        original_dataset = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        dataset = AvalancheClassificationDataset(original_dataset)
-
-        with self.assertRaises(Exception):
-            # Can't add existing groups
-            dataset = dataset.add_transforms_group("train", ToTensor(), None)
-
-        with self.assertRaises(Exception):
-            # Can't add group with bad names (must be str)
-            dataset = dataset.add_transforms_group(123, ToTensor(), None)
-
-        # Can't add group with bad names (must be str)
-        dataset = dataset.add_transforms_group("other", ToTensor(), None)
-        dataset_other = dataset.with_transforms("other")
-
-        x, *_ = dataset[0]
-        x2, *_ = dataset_other[0]
-        self.assertIsInstance(x, Image)
-        self.assertIsInstance(x2, Tensor)
-
-        dataset_other2 = AvalancheClassificationDataset(dataset_other)
-
-        # Checks that the other group is used on dataset_other2
-        x3, *_ = dataset_other2[0]
-        self.assertIsInstance(x3, Tensor)
-
-        with self.assertRaises(Exception):
-            # Can't add group if it already exists
-            dataset_other2 = dataset_other2.add_transforms_group(
-                "other", ToTensor(), None
-            )
-
-        # Check that the above failed method didn't change the 'other' group
-        x4, *_ = dataset_other2[0]
-        self.assertIsInstance(x4, Tensor)
 
     def test_transformation_concat_dataset(self):
         original_dataset = MNIST(

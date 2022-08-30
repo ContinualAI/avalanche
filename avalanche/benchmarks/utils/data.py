@@ -298,7 +298,7 @@ class AvalancheDataset(Dataset[T_co]):
         dataset_copy.data_list = dds
         return dataset_copy
 
-    def replace_current_transform_group(self, transform):
+    def replace_current_transform_group(self, *transform):
         """Recursively remove the current transformation group from the dataset tree and replaces
         it."""
         dataset_copy = self.remove_current_transform_group()
@@ -357,11 +357,10 @@ class AvalancheSubset(AvalancheDataset[T_co]):
 
         ll = []
         for da in data_attributes:  # subset attributes if needed
-            if len(da) != len(indices):
-                assert len(da) == len(dataset)
-                ll.append(da.subset(self._indices))
-            else:
+            if len(da) != len(dataset):
                 ll.append(da)
+            else:
+                ll.append(da.subset(self._indices))
 
         super().__init__(
             dataset,
@@ -426,18 +425,18 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         """
         self._datasets = list(datasets)
         self._flatten_datasets_list()
-        self._cumulative_sizes = ConcatDataset.cumsum(self.datasets)
+        self._cumulative_sizes = ConcatDataset.cumsum(self.data_list)
 
         # update rule for each attribute:
         # 1. if all datasets have the attribute, it is propagated
         # 2. if not, the attribute is ignored
         self._data_attributes = {}
-        if len(self.datasets) > 0 and \
-                isinstance(self.datasets[0], AvalancheDataset):
-            for attr in self.datasets[0]._data_attributes.values():
+        if len(self.data_list) > 0 and \
+                isinstance(self.data_list[0], AvalancheDataset):
+            for attr in self.data_list[0]._data_attributes.values():
                 acat = attr
                 found_all = True
-                for d2 in self.datasets[1:]:
+                for d2 in self.data_list[1:]:
                     if hasattr(d2, attr.name):
                         acat = acat.concat(getattr(d2, attr.name))
                     else:
@@ -472,7 +471,10 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             self._frozen_transform_groups.current_group = cgroup
             self._transform_groups.current_group = cgroup
 
-        self.collate_fn = self._init_collate_fn(self.datasets[0], collate_fn)
+        if len(self.data_list) > 0 and collate_fn is None:
+            self.collate_fn = self._init_collate_fn(self.data_list[0], collate_fn)
+        else:
+            self.collate_fn = collate_fn
         """
         The collate function to use when creating mini-batches from this
         dataset.
@@ -522,6 +524,8 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         return element
 
     def __len__(self) -> int:
+        if len(self._cumulative_sizes) == 0:
+            return 0
         return self._cumulative_sizes[-1]
 
     def get_transform_groups(self):
@@ -534,6 +538,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             return self._transform_groups
 
     def _flatten_datasets_list(self):
+        """Flatten dataset tree if possible."""
         # Flattens this subset by borrowing the list of concatenated datasets
         # from the original datasets.
 
@@ -547,7 +552,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
                     flattened_list.append(dataset)
             else:
                 flattened_list.append(dataset)
-        self.datasets = flattened_list
+        self._datasets = flattened_list
 
 
 __all__ = [

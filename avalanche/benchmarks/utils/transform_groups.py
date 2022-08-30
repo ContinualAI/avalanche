@@ -1,15 +1,21 @@
+"""
+    Transformation groups manage transformations that are in different
+    phases of the optimization process, such as different train/eval transformations.
+
+    They support multi-argument transforms as defined in
+    `avalanche.benchmarks.utils.transforms`.
+"""
 from collections import defaultdict
-from typing import Dict, Union, Callable, Tuple, Sequence
+from typing import Dict, Union, Callable, Sequence
 
 from avalanche.benchmarks.utils.transforms import \
-    MultiParamTransformCallable, MultiParamCompose, \
-    TupleTransform, MultiParamTranform
+    MultiParamCompose, TupleTransform, MultiParamTranform
 
 
 class TransformGroups:
     """Transformation groups for Avalanche datasets.
 
-    AvalancheTransform supports preprocessing and augmentation pipelines for
+    TransformGroups supports preprocessing and augmentation pipelines for
     Avalanche datasets. Transfomations are separated into groups (e.g. `train`
     transforms and `test` transforms), that can be easily switched using the
     `with_transform` method.
@@ -19,11 +25,8 @@ class TransformGroups:
                  transform_groups: Dict[str, Union[Callable, Sequence[Callable]]],
                  current_group="train"):
         for group, transform in transform_groups.items():
-            if not isinstance(transform, MultiParamTranform):
-                if isinstance(transform, Sequence):
-                    transform_groups[group] = TupleTransform(transform)
-                else:
-                    transform_groups[group] = TupleTransform([transform])
+            transform = _normalize_transform(transform)
+            transform_groups[group] = transform
         self.transform_groups = transform_groups
         self.current_group = current_group
 
@@ -41,10 +44,7 @@ class TransformGroups:
         return self.transform_groups[item]
 
     def __setitem__(self, key, value):
-        if value is not None:
-            if isinstance(value, Sequence):
-                value = TupleTransform(value)
-        self.transform_groups[key] = value
+        self.transform_groups[key] = _normalize_transform(value)
 
     def __call__(self, *args, **kwargs):
         """Apply current transformation group to element."""
@@ -98,9 +98,10 @@ class TransformGroups:
 class DefaultTransformGroups(TransformGroups):
     """A transformation groups that is equal for all groups."""
 
-    def __init__(self, transforms):
+    def __init__(self, transform):
         super().__init__({})
-        self.transform_groups = defaultdict(lambda: transforms)
+        transform = _normalize_transform(transform)
+        self.transform_groups = defaultdict(lambda: transform)
 
     def with_transform(self, group_name):
         pass
@@ -110,3 +111,13 @@ class EmptyTransformGroups(DefaultTransformGroups):
     def __init__(self):
         super().__init__({})
         self.transform_groups = defaultdict(lambda: None)
+
+
+def _normalize_transform(transforms):
+    """Normalize transform to MultiParamTransform."""
+    if not isinstance(transforms, MultiParamTranform):
+        if isinstance(transforms, Sequence):
+            return TupleTransform(transforms)
+        else:
+            return TupleTransform([transforms])
+    return transforms

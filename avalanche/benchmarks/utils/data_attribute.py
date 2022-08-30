@@ -71,7 +71,7 @@ class DataAttribute:
     def _optimize_sequence(seq):
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
-            return list(seq)
+            return seq.tolist()
         return seq
 
 
