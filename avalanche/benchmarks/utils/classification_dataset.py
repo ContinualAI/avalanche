@@ -286,7 +286,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             tls = SubSequence(task_labels, converter=int)
         else:
             tls = _make_task_labels_from_supported_dataset(dataset)
-        return DataAttribute("targets_task_labels", tls)
+        return DataAttribute("targets_task_labels", tls, append_to_minibatch=True)
 
     @property
     def task_set(self):
@@ -319,16 +319,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             initial_transform_group=self._transform_groups.current_group)
 
 
-class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
-    """
-    A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
-    This Dataset also supports transformations, slicing, advanced indexing,
-    the targets field, class mapping and all the other goodies listed in
-    :class:`AvalancheDataset`.
-    """
-
-    def __init__(
-        self,
+def AvalancheClassificationSubset(
         dataset: SupportedDataset,
         indices: Sequence[int] = None,
         *,
@@ -340,116 +331,132 @@ class AvalancheClassificationSubset(AvalancheClassificationDataset[T_co]):
         task_labels: Union[int, Sequence[int]] = None,
         targets: Sequence[TTargetType] = None,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None,
-    ):
-        """Creates an ``AvalancheSubset`` instance.
+        targets_adapter: Callable[[Any], TTargetType] = None):
+    """Creates an ``AvalancheSubset`` instance.
 
-        :param dataset: The whole dataset.
-        :param indices: Indices in the whole set selected for subset. Can
-            be None, which means that the whole dataset will be returned.
-        :param class_mapping: A list that, for each possible target (Y) value,
-            contains its corresponding remapped value. Can be None.
-            Beware that setting this parameter will force the final
-            dataset type to be CLASSIFICATION or UNDEFINED.
-        :param transform: A function/transform that takes the X value of a
-            pattern from the original dataset and returns a transformed version.
-        :param target_transform: A function/transform that takes in the target
-            and transforms it.
-        :param transform_groups: A dictionary containing the transform groups.
-            Transform groups are used to quickly switch between training and
-            eval (test) transformations. This becomes useful when in need to
-            test on the training dataset as test transformations usually don't
-            contain random augmentations. ``AvalancheDataset`` natively supports
-            the 'train' and 'eval' groups by calling the ``train()`` and
-            ``eval()`` methods. When using custom groups one can use the
-            ``with_transforms(group_name)`` method instead. Defaults to None,
-            which means that the current transforms will be used to
-            handle both 'train' and 'eval' groups (just like in standard
-            ``torchvision`` datasets).
-        :param initial_transform_group: The name of the initial transform group
-            to be used. Defaults to None, which means that the current group of
-            the input dataset will be used (if an AvalancheDataset). If the
-            input dataset is not an AvalancheDataset, then 'train' will be
-            used.
-        :param task_labels: The task label for each instance. Must be a sequence
-            of ints, one for each instance in the dataset. This can either be a
-            list of task labels for the original dataset or the list of task
-            labels for the instances of the subset (an automatic detection will
-            be made). In the unfortunate case in which the original dataset and
-            the subset contain the same amount of instances, then this parameter
-            is considered to contain the task labels of the subset.
-            Alternatively can be a single int value, in which case
-            that value will be used as the task label for all the instances.
-            Defaults to None, which means that the dataset will try to
-            obtain the task labels from the original dataset. If no task labels
-            could be found, a default task label "0" will be applied to all
-            instances.
-        :param targets: The label of each pattern. Defaults to None, which
-            means that the targets will be retrieved from the dataset (if
-            possible). This can either be a list of target labels for the
-            original dataset or the list of target labels for the instances of
-            the subset (an automatic detection will be made). In the unfortunate
-            case in which the original dataset and the subset contain the same
-            amount of instances, then this parameter is considered to contain
-            the target labels of the subset.
-        :param collate_fn: The function to use when slicing to merge single
-            patterns. This function is the function
-            used in the data loading process, too. If None,
-            the constructor will check if a
-            `collate_fn` field exists in the dataset. If no such field exists,
-            the default collate function will be used.
-        :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to None. Note: the adapter will not change
-            the value of the second element returned by `__getitem__`.
-            The adapter is used to adapt the values of the targets field only.
-        """
-        self.class_mapping = class_mapping
-        tgroups = None
-
-        targets = AvalancheClassificationDataset._init_targets(
-            dataset, targets, targets_adapter, check_shape=False)
-        task_labels = AvalancheClassificationDataset._init_task_labels(
-            dataset, task_labels, check_shape=False)
-
-        if self.class_mapping is not None:  # update targets
-            l = [self.class_mapping[el] for el in targets]
-            targets = DataAttribute('targets', l)
-
-        if indices is None:
-            data = AvalancheDataset(
-                dataset,
-                data_attributes=[targets, task_labels],
-                transform_groups=tgroups)
-        else:
-            data = AvalancheSubset(
-                dataset,
-                indices=indices,
-                data_attributes=[targets, task_labels],
-                transform_groups=tgroups)
-
-        super().__init__(
-            data,
-            transform=transform,
-            target_transform=target_transform,
-            transform_groups=transform_groups,
-            initial_transform_group=initial_transform_group,
-            collate_fn=collate_fn)
-        if self.class_mapping is not None:
-            self._frozen_transform_groups = DefaultTransformGroups(
-                (None, lambda x: self.class_mapping[x]))
-
-
-class AvalancheTensorClassificationDataset(AvalancheClassificationDataset[T_co]):
-    """
-    A Dataset that wraps existing ndarrays, Tensors, lists... to provide
-    basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
-    this Dataset also supports transformations, slicing, advanced indexing,
-    the targets field and all the other goodies listed in
+    A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
+    This Dataset also supports transformations, slicing, advanced indexing,
+    the targets field, class mapping and all the other goodies listed in
     :class:`AvalancheDataset`.
+
+    :param dataset: The whole dataset.
+    :param indices: Indices in the whole set selected for subset. Can
+        be None, which means that the whole dataset will be returned.
+    :param class_mapping: A list that, for each possible target (Y) value,
+        contains its corresponding remapped value. Can be None.
+        Beware that setting this parameter will force the final
+        dataset type to be CLASSIFICATION or UNDEFINED.
+    :param transform: A function/transform that takes the X value of a
+        pattern from the original dataset and returns a transformed version.
+    :param target_transform: A function/transform that takes in the target
+        and transforms it.
+    :param transform_groups: A dictionary containing the transform groups.
+        Transform groups are used to quickly switch between training and
+        eval (test) transformations. This becomes useful when in need to
+        test on the training dataset as test transformations usually don't
+        contain random augmentations. ``AvalancheDataset`` natively supports
+        the 'train' and 'eval' groups by calling the ``train()`` and
+        ``eval()`` methods. When using custom groups one can use the
+        ``with_transforms(group_name)`` method instead. Defaults to None,
+        which means that the current transforms will be used to
+        handle both 'train' and 'eval' groups (just like in standard
+        ``torchvision`` datasets).
+    :param initial_transform_group: The name of the initial transform group
+        to be used. Defaults to None, which means that the current group of
+        the input dataset will be used (if an AvalancheDataset). If the
+        input dataset is not an AvalancheDataset, then 'train' will be
+        used.
+    :param task_labels: The task label for each instance. Must be a sequence
+        of ints, one for each instance in the dataset. This can either be a
+        list of task labels for the original dataset or the list of task
+        labels for the instances of the subset (an automatic detection will
+        be made). In the unfortunate case in which the original dataset and
+        the subset contain the same amount of instances, then this parameter
+        is considered to contain the task labels of the subset.
+        Alternatively can be a single int value, in which case
+        that value will be used as the task label for all the instances.
+        Defaults to None, which means that the dataset will try to
+        obtain the task labels from the original dataset. If no task labels
+        could be found, a default task label "0" will be applied to all
+        instances.
+    :param targets: The label of each pattern. Defaults to None, which
+        means that the targets will be retrieved from the dataset (if
+        possible). This can either be a list of target labels for the
+        original dataset or the list of target labels for the instances of
+        the subset (an automatic detection will be made). In the unfortunate
+        case in which the original dataset and the subset contain the same
+        amount of instances, then this parameter is considered to contain
+        the target labels of the subset.
+    :param collate_fn: The function to use when slicing to merge single
+        patterns. This function is the function
+        used in the data loading process, too. If None,
+        the constructor will check if a
+        `collate_fn` field exists in the dataset. If no such field exists,
+        the default collate function will be used.
+    :param targets_adapter: A function used to convert the values of the
+        targets field. Defaults to None. Note: the adapter will not change
+        the value of the second element returned by `__getitem__`.
+        The adapter is used to adapt the values of the targets field only.
     """
 
-    def __init__(
-        self,
+    if class_mapping is None and \
+            transform is None and \
+            target_transform is None and \
+            transform_groups is None and \
+            initial_transform_group is None and \
+            task_labels is None and \
+            targets is None and \
+            collate_fn is None and \
+            targets_adapter is None:
+        # simple case. Transforms and attributes are not overriden
+        # we can return a AvalancheSubset directly.
+        # help to avoid unnecessary depth in the dataset tree.
+        return AvalancheSubset(dataset, indices)
+    else:
+        warnings.warn(
+            "The parameters class_mapping, transform, target_transform, "
+            "transform_groups, initial_transform_group, task_labels, targets, "
+            "collate_fn and targets_adapter are deprecated and will be removed "
+            "in a future version.", DeprecationWarning)
+
+    tgroups = None
+    targets = AvalancheClassificationDataset._init_targets(
+        dataset, targets, targets_adapter, check_shape=False)
+    task_labels = AvalancheClassificationDataset._init_task_labels(
+        dataset, task_labels, check_shape=False)
+
+    if class_mapping is not None:  # update targets
+        l = [class_mapping[el] for el in targets]
+        targets = DataAttribute('targets', l)
+
+    if indices is None:
+        data = AvalancheDataset(
+            dataset,
+            data_attributes=[targets, task_labels],
+            transform_groups=tgroups)
+    else:
+        data = AvalancheSubset(
+            dataset,
+            indices=indices,
+            data_attributes=[targets, task_labels],
+            transform_groups=tgroups)
+
+    data = AvalancheClassificationDataset(
+        data,
+        transform=transform,
+        target_transform=target_transform,
+        transform_groups=transform_groups,
+        initial_transform_group=initial_transform_group,
+        collate_fn=collate_fn)
+
+    data.class_mapping = class_mapping
+    if class_mapping is not None:
+        data._frozen_transform_groups = DefaultTransformGroups(
+            (None, lambda x: data.class_mapping[x]))
+    return data
+
+
+def AvalancheTensorClassificationDataset(
         *dataset_tensors: Sequence,
         transform: Callable[[Any], Any] = None,
         target_transform: Callable[[int], int] = None,
@@ -460,82 +467,73 @@ class AvalancheTensorClassificationDataset(AvalancheClassificationDataset[T_co])
         collate_fn: Callable[[List], Any] = None,
         targets_adapter: Callable[[Any], TTargetType] = None,
     ):
-        """
-        Creates a ``AvalancheTensorDataset`` instance.
+    """Creates a ``AvalancheTensorDataset`` instance.
 
-        :param dataset_tensors: Sequences, Tensors or ndarrays representing the
-            content of the dataset.
-        :param transform: A function/transform that takes in a single element
-            from the first tensor and returns a transformed version.
-        :param target_transform: A function/transform that takes a single
-            element of the second tensor and transforms it.
-        :param transform_groups: A dictionary containing the transform groups.
-            Transform groups are used to quickly switch between training and
-            eval (test) transformations. This becomes useful when in need to
-            test on the training dataset as test transformations usually don't
-            contain random augmentations. ``AvalancheDataset`` natively supports
-            the 'train' and 'eval' groups by calling the ``train()`` and
-            ``eval()`` methods. When using custom groups one can use the
-            ``with_transforms(group_name)`` method instead. Defaults to None,
-            which means that the current transforms will be used to
-            handle both 'train' and 'eval' groups (just like in standard
-            ``torchvision`` datasets).
-        :param initial_transform_group: The name of the transform group
-            to be used. Defaults to 'train'.
-        :param task_labels: The task labels for each pattern. Must be a sequence
-            of ints, one for each pattern in the dataset. Alternatively can be a
-            single int value, in which case that value will be used as the task
-            label for all the instances. Defaults to None, which means that a
-            default task label "0" will be applied to all patterns.
-        :param targets: The label of each pattern. Defaults to None, which
-            means that the targets will be retrieved from the second tensor of
-            the dataset. Otherwise, it can be a sequence of values containing
-            as many elements as the number of patterns.
-        :param collate_fn: The function to use when slicing to merge single
-            patterns. In the future this function may become the function
-            used in the data loading process, too.
-        :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to None. Note: the adapter will not change
-            the value of the second element returned by `__getitem__`.
-            The adapter is used to adapt the values of the targets field only.
-        """
+    A Dataset that wraps existing ndarrays, Tensors, lists... to provide
+    basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
+    this Dataset also supports transformations, slicing, advanced indexing,
+    the targets field and all the other goodies listed in
+    :class:`AvalancheDataset`.
 
-        if len(dataset_tensors) < 1:
-            raise ValueError("At least one sequence must be passed")
-
-        if targets is None:
-            targets = dataset_tensors[1]
-        elif isinstance(targets, int):
-            targets = dataset_tensors[targets]
-        base_dataset = TensorDataset(*dataset_tensors)
-
-        super().__init__(
-            base_dataset,
-            transform=transform,
-            target_transform=target_transform,
-            transform_groups=transform_groups,
-            initial_transform_group=initial_transform_group,
-            task_labels=task_labels,
-            targets=targets,
-            collate_fn=collate_fn,
-            targets_adapter=targets_adapter,
-        )
-
-
-class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co]):
+    :param dataset_tensors: Sequences, Tensors or ndarrays representing the
+        content of the dataset.
+    :param transform: A function/transform that takes in a single element
+        from the first tensor and returns a transformed version.
+    :param target_transform: A function/transform that takes a single
+        element of the second tensor and transforms it.
+    :param transform_groups: A dictionary containing the transform groups.
+        Transform groups are used to quickly switch between training and
+        eval (test) transformations. This becomes useful when in need to
+        test on the training dataset as test transformations usually don't
+        contain random augmentations. ``AvalancheDataset`` natively supports
+        the 'train' and 'eval' groups by calling the ``train()`` and
+        ``eval()`` methods. When using custom groups one can use the
+        ``with_transforms(group_name)`` method instead. Defaults to None,
+        which means that the current transforms will be used to
+        handle both 'train' and 'eval' groups (just like in standard
+        ``torchvision`` datasets).
+    :param initial_transform_group: The name of the transform group
+        to be used. Defaults to 'train'.
+    :param task_labels: The task labels for each pattern. Must be a sequence
+        of ints, one for each pattern in the dataset. Alternatively can be a
+        single int value, in which case that value will be used as the task
+        label for all the instances. Defaults to None, which means that a
+        default task label "0" will be applied to all patterns.
+    :param targets: The label of each pattern. Defaults to None, which
+        means that the targets will be retrieved from the second tensor of
+        the dataset. Otherwise, it can be a sequence of values containing
+        as many elements as the number of patterns.
+    :param collate_fn: The function to use when slicing to merge single
+        patterns. In the future this function may become the function
+        used in the data loading process, too.
+    :param targets_adapter: A function used to convert the values of the
+        targets field. Defaults to None. Note: the adapter will not change
+        the value of the second element returned by `__getitem__`.
+        The adapter is used to adapt the values of the targets field only.
     """
-    A Dataset that behaves like a PyTorch
-    :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
-    transformations, slicing, advanced indexing and the targets field and all
-    the other goodies listed in :class:`AvalancheDataset`.
+    if len(dataset_tensors) < 1:
+        raise ValueError("At least one sequence must be passed")
 
-    This dataset guarantees that the operations involving the transformations
-    and transformations groups are consistent across the concatenated dataset
-    (if they are subclasses of :class:`AvalancheDataset`).
-    """
+    if targets is None:
+        targets = dataset_tensors[1]
+    elif isinstance(targets, int):
+        targets = dataset_tensors[targets]
+    base_dataset = TensorDataset(*dataset_tensors)
 
-    def __init__(
-        self,
+    return AvalancheClassificationDataset(
+        base_dataset,
+        transform=transform,
+        target_transform=target_transform,
+        transform_groups=transform_groups,
+        initial_transform_group=initial_transform_group,
+        task_labels=task_labels,
+        targets=targets,
+        collate_fn=collate_fn,
+        targets_adapter=targets_adapter,
+    )
+
+
+def AvalancheConcatClassificationDataset(
         datasets: Collection[SupportedDataset],
         *,
         transform: Callable[[Any], Any] = None,
@@ -547,103 +545,126 @@ class AvalancheConcatClassificationDataset(AvalancheClassificationDataset[T_co])
             Sequence[TTargetType], Sequence[Sequence[TTargetType]]
         ] = None,
         collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None,
-    ):
-        """
-        Creates a ``AvalancheConcatDataset`` instance.
+        targets_adapter: Callable[[Any], TTargetType] = None):
+    """Creates a ``AvalancheConcatDataset`` instance.
 
-        :param datasets: A collection of datasets.
-        :param transform: A function/transform that takes the X value of a
-            pattern from the original dataset and returns a transformed version.
-        :param target_transform: A function/transform that takes in the target
-            and transforms it.
-        :param transform_groups: A dictionary containing the transform groups.
-            Transform groups are used to quickly switch between training and
-            eval (test) transformations. This becomes useful when in need to
-            test on the training dataset as test transformations usually don't
-            contain random augmentations. ``AvalancheDataset`` natively supports
-            the 'train' and 'eval' groups by calling the ``train()`` and
-            ``eval()`` methods. When using custom groups one can use the
-            ``with_transforms(group_name)`` method instead. Defaults to None,
-            which means that the current transforms will be used to
-            handle both 'train' and 'eval' groups (just like in standard
-            ``torchvision`` datasets).
-        :param initial_transform_group: The name of the initial transform group
-            to be used. Defaults to None, which means that if all
-            AvalancheDatasets in the input datasets list agree on a common
-            group (the "current group" is the same for all datasets), then that
-            group will be used as the initial one. If the list of input datasets
-            does not contain an AvalancheDataset or if the AvalancheDatasets
-            do not agree on a common group, then 'train' will be used.
-        :param targets: The label of each pattern. Can either be a sequence of
-            labels or, alternatively, a sequence containing sequences of labels
-            (one for each dataset to be concatenated). Defaults to None, which
-            means that the targets will be retrieved from the datasets (if
-            possible).
-        :param task_labels: The task labels for each pattern. Must be a sequence
-            of ints, one for each pattern in the dataset. Alternatively, task
-            labels can be expressed as a sequence containing sequences of ints
-            (one for each dataset to be concatenated) or even a single int,
-            in which case that value will be used as the task label for all
-            instances. Defaults to None, which means that the dataset will try
-            to obtain the task labels from the original datasets. If no task
-            labels could be found for a dataset, a default task label "0" will
-            be applied to all patterns of that dataset.
-        :param collate_fn: The function to use when slicing to merge single
-            patterns. In the future this function may become the function
-            used in the data loading process, too. If None, the constructor
-            will check if a `collate_fn` field exists in the first dataset. If
-            no such field exists, the default collate function will be used.
-            Beware that the chosen collate function will be applied to all
-            the concatenated datasets even if a different collate is defined
-            in different datasets.
-        :param targets_adapter: A function used to convert the values of the
-            targets field. Defaults to None. Note: the adapter will not change
-            the value of the second element returned by `__getitem__`.
-            The adapter is used to adapt the values of the targets field only.
-        """
-        # remove empty datasets because they may not have all the attributes
-        datasets = list(filter(lambda d: len(d) > 0, datasets))
-        if len(datasets) == 0:
-            task_labels = []
-            targets = []
+    A Dataset that behaves like a PyTorch
+    :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
+    transformations, slicing, advanced indexing and the targets field and all
+    the other goodies listed in :class:`AvalancheDataset`.
 
-        dds = []
-        for d in datasets:
-            if not isinstance(d, AvalancheDataset):
-                # we need to wrap PyTorch datasets
-                dds.append(AvalancheClassificationDataset(d))
-            else:
-                dds.append(d)
+    This dataset guarantees that the operations involving the transformations
+    and transformations groups are consistent across the concatenated dataset
+    (if they are subclasses of :class:`AvalancheDataset`).
 
-        if initial_transform_group is None:
-            uniform_group = None
-            for d_set in dds:
-                if uniform_group is None:
-                    uniform_group = d_set._transform_groups.current_group
-                else:
-                    if uniform_group != d_set._transform_groups.current_group:
-                        uniform_group = None
-                        break
+    :param datasets: A collection of datasets.
+    :param transform: A function/transform that takes the X value of a
+        pattern from the original dataset and returns a transformed version.
+    :param target_transform: A function/transform that takes in the target
+        and transforms it.
+    :param transform_groups: A dictionary containing the transform groups.
+        Transform groups are used to quickly switch between training and
+        eval (test) transformations. This becomes useful when in need to
+        test on the training dataset as test transformations usually don't
+        contain random augmentations. ``AvalancheDataset`` natively supports
+        the 'train' and 'eval' groups by calling the ``train()`` and
+        ``eval()`` methods. When using custom groups one can use the
+        ``with_transforms(group_name)`` method instead. Defaults to None,
+        which means that the current transforms will be used to
+        handle both 'train' and 'eval' groups (just like in standard
+        ``torchvision`` datasets).
+    :param initial_transform_group: The name of the initial transform group
+        to be used. Defaults to None, which means that if all
+        AvalancheDatasets in the input datasets list agree on a common
+        group (the "current group" is the same for all datasets), then that
+        group will be used as the initial one. If the list of input datasets
+        does not contain an AvalancheDataset or if the AvalancheDatasets
+        do not agree on a common group, then 'train' will be used.
+    :param targets: The label of each pattern. Can either be a sequence of
+        labels or, alternatively, a sequence containing sequences of labels
+        (one for each dataset to be concatenated). Defaults to None, which
+        means that the targets will be retrieved from the datasets (if
+        possible).
+    :param task_labels: The task labels for each pattern. Must be a sequence
+        of ints, one for each pattern in the dataset. Alternatively, task
+        labels can be expressed as a sequence containing sequences of ints
+        (one for each dataset to be concatenated) or even a single int,
+        in which case that value will be used as the task label for all
+        instances. Defaults to None, which means that the dataset will try
+        to obtain the task labels from the original datasets. If no task
+        labels could be found for a dataset, a default task label "0" will
+        be applied to all patterns of that dataset.
+    :param collate_fn: The function to use when slicing to merge single
+        patterns. In the future this function may become the function
+        used in the data loading process, too. If None, the constructor
+        will check if a `collate_fn` field exists in the first dataset. If
+        no such field exists, the default collate function will be used.
+        Beware that the chosen collate function will be applied to all
+        the concatenated datasets even if a different collate is defined
+        in different datasets.
+    :param targets_adapter: A function used to convert the values of the
+        targets field. Defaults to None. Note: the adapter will not change
+        the value of the second element returned by `__getitem__`.
+        The adapter is used to adapt the values of the targets field only.
+    """
+    # remove empty datasets because they may not have all the attributes
+    datasets = list(filter(lambda d: len(d) > 0, datasets))
+    if len(datasets) == 0:
+        task_labels = []
+        targets = []
 
-            data = AvalancheConcatDataset(dds)
+    dds = []
+    for d in datasets:
+        if not isinstance(d, AvalancheDataset):
+            # we need to wrap PyTorch datasets
+            dds.append(AvalancheClassificationDataset(d))
+        else:
+            dds.append(d)
+
+    if transform is None and \
+            target_transform is None and \
+            transform_groups is None and \
+            initial_transform_group is None and \
+            task_labels is None and \
+            targets is None and \
+            collate_fn is None and \
+            targets_adapter is None:
+        return AvalancheConcatDataset(dds)
+    else:
+        warnings.warn(
+            "The transform, target_transform, transform_groups, "
+            "initial_transform_group, task_labels, targets, collate_fn and "
+            "targets_adapter arguments are deprecated for "
+            "AvalancheConcatDataset.")
+
+    data = AvalancheConcatDataset(dds)
+    if initial_transform_group is None:
+        uniform_group = None
+        for d_set in dds:
             if uniform_group is None:
-                initial_transform_group = "train"
-                data = data.with_transforms(initial_transform_group)
+                uniform_group = d_set._transform_groups.current_group
             else:
-                initial_transform_group = uniform_group
+                if uniform_group != d_set._transform_groups.current_group:
+                    uniform_group = None
+                    break
 
-        super().__init__(
-            data,
-            transform=transform,
-            target_transform=target_transform,
-            transform_groups=transform_groups,
-            initial_transform_group=initial_transform_group,
-            task_labels=task_labels,
-            targets=targets,
-            collate_fn=collate_fn,
-            targets_adapter=targets_adapter,
-        )
+        if uniform_group is None:
+            initial_transform_group = "train"
+            data = data.with_transforms(initial_transform_group)
+        else:
+            initial_transform_group = uniform_group
+
+    return AvalancheClassificationDataset(
+        data,
+        transform=transform,
+        target_transform=target_transform,
+        transform_groups=transform_groups,
+        initial_transform_group=initial_transform_group,
+        task_labels=task_labels,
+        targets=targets,
+        collate_fn=collate_fn,
+        targets_adapter=targets_adapter,
+    )
 
 
 def concat_datasets_sequentially(

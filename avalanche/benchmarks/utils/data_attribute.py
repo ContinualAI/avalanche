@@ -13,8 +13,10 @@ class DataAttribute:
     Both fields are initialized lazily.
     """
 
-    def __init__(self, name: str, data: IDataset):
+    def __init__(self, name: str, data: IDataset, append_to_minibatch=False):
         self.name = name
+        self.append_to_minibatch = append_to_minibatch
+
         self._data = self._optimize_sequence(data)
 
         self._uniques = None  # set()
@@ -77,4 +79,4 @@ class DataAttribute:
 
 class TaskLabels(DataAttribute):
     def __init__(self, task_labels):
-        super().__init__('task_labels', task_labels)
+        super().__init__('task_labels', task_labels, append_to_minibatch=True)

@@ -17,6 +17,7 @@ management of preprocessing pipelines and task/class labels.
 """
 import bisect
 import copy
+import warnings
 
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.dataset import Dataset, ConcatDataset
@@ -213,7 +214,11 @@ class AvalancheDataset(Dataset[T_co]):
         return element
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        return self._getitem_recursive_call(idx, self._transform_groups.current_group)
+        elem = list(self._getitem_recursive_call(idx, self._transform_groups.current_group))
+        for da in self._data_attributes.values():
+            if da.append_to_minibatch:
+                elem.append(da[idx])
+        return elem
 
     def __len__(self):
         return len(self._dataset)
@@ -345,20 +350,31 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         :param indices: Indices in the whole set selected for subset. Can
             be None, which means that the whole dataset will be returned.
         """
-        self._indices = indices
-
-        ll = []
-        for da in data_attributes:  # subset attributes if needed
-            if len(da) != len(dataset):
-                ll.append(da)
+        if data_attributes is None and \
+                transform_groups is None and \
+                collate_fn is None:
+            if isinstance(dataset, AvalancheDataset):
+                das = [da.subset(indices) for da in dataset._data_attributes.values()]
             else:
-                ll.append(da.subset(self._indices))
+                das = []
+            self._indices = indices
+            super().__init__(dataset, data_attributes=das)
+        else:
+            warnings.warn("data_attributes, transform_groups and "
+                          "collate_fn are deprecated. ")
+            self._indices = indices
+            ll = []
+            for da in data_attributes:  # subset attributes if needed
+                if len(da) != len(dataset):
+                    ll.append(da)
+                else:
+                    ll.append(da.subset(self._indices))
 
-        super().__init__(
-            dataset,
-            data_attributes=ll,
-            transform_groups=transform_groups,
-            collate_fn=collate_fn)
+            super().__init__(
+                dataset,
+                data_attributes=ll,
+                transform_groups=transform_groups,
+                collate_fn=collate_fn)
         self._flatten_dataset()
 
     def _getitem_recursive_call(self, idx, group_name):
@@ -545,6 +561,27 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             else:
                 flattened_list.append(dataset)
         self._datasets = flattened_list
+
+
+def _avalanche_dataset_depth(dataset):
+    """Internal debugging method.
+    Returns the depth of the dataset tree."""
+    if isinstance(dataset, AvalancheDataset):
+        dchilds = [_avalanche_dataset_depth(dd) for dd in dataset.data_list]
+        return 1 + max(dchilds)
+    else:
+        return 1
+
+
+def _avalanche_datatree_print(dataset, indent=0):
+    """Internal debugging method.
+    Print the dataset."""
+    if isinstance(dataset, AvalancheDataset):
+        print("\t" * indent + f"{dataset.__class__.__name__}")
+        for dd in dataset.data_list:
+            _avalanche_datatree_print(dd, indent + 1)
+    else:
+        print("\t" * indent + f"{dataset.__class__.__name__}")
 
 
 __all__ = [
