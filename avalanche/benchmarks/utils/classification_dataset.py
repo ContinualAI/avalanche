@@ -309,7 +309,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
         return TaskSet(self)
 
     def __getitem__(self, idx: int):
-        elem = self._getitem_recursive_call(idx)
+        elem = self._getitem_recursive_call(idx, self._transform_groups.current_group)
         return *elem, self.targets_task_labels[idx]
 
     def add_transforms(self, x_transform):

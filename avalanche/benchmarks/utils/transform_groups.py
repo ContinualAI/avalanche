@@ -46,11 +46,14 @@ class TransformGroups:
     def __setitem__(self, key, value):
         self.transform_groups[key] = _normalize_transform(value)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, group_name=None):
         """Apply current transformation group to element."""
         element = list(*args)
 
-        curr_t = self.transform_groups[self.current_group]
+        if group_name is None:
+            curr_t = self.transform_groups[self.current_group]
+        else:
+            curr_t = self.transform_groups[group_name]
         if curr_t is None:  # empty group
             return element
         elif not isinstance(curr_t, MultiParamTranform):  #

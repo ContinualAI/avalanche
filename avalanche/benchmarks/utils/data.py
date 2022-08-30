@@ -197,23 +197,23 @@ class AvalancheDataset(Dataset[T_co]):
             self._data_attributes == other._data_attributes and \
             self.collate_fn == other.collate_fn
 
-    def _getitem_recursive_call(self, idx):
+    def _getitem_recursive_call(self, idx, group_name):
         """Private method only for internal use.
 
         We need this recursive call to avoid appending task
         label multiple times inside the __getitem__.
         """
         if isinstance(self._dataset, AvalancheDataset):
-            element = self._dataset._getitem_recursive_call(idx)
+            element = self._dataset._getitem_recursive_call(idx, group_name=group_name)
         else:
             element = self._dataset[idx]
 
-        element = self._frozen_transform_groups(element)
-        element = self._transform_groups(element)
+        element = self._frozen_transform_groups(element, group_name=group_name)
+        element = self._transform_groups(element, group_name=group_name)
         return element
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        return self._getitem_recursive_call(idx)
+        return self._getitem_recursive_call(idx, self._transform_groups.current_group)
 
     def __len__(self):
         return len(self._dataset)
@@ -258,14 +258,6 @@ class AvalancheDataset(Dataset[T_co]):
         datacopy = self._shallow_clone_dataset()
         datacopy._frozen_transform_groups.with_transform(group_name)
         datacopy._transform_groups.with_transform(group_name)
-
-        dds = []
-        for dd in datacopy.data_list:
-            if isinstance(dd, AvalancheDataset):
-                dds.append(dd.with_transforms(group_name))
-            else:
-                dds.append(dd)
-        datacopy.data_list = dds
         return datacopy
 
     def freeze_transforms(self):
@@ -369,11 +361,11 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             collate_fn=collate_fn)
         self._flatten_dataset()
 
-    def _getitem_recursive_call(self, idx):
+    def _getitem_recursive_call(self, idx, group_name):
         """We need this recursive call to avoid appending task
         label multiple times inside the __getitem__."""
         if isinstance(self._dataset, AvalancheDataset):
-            element = self._dataset._getitem_recursive_call(self._indices[idx])
+            element = self._dataset._getitem_recursive_call(self._indices[idx], group_name=group_name)
         else:
             element = self._dataset[self._indices[idx]]
 
@@ -500,7 +492,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
         else:
             raise AttributeError(f"Attribute {item} not found")
 
-    def _getitem_recursive_call(self, idx):
+    def _getitem_recursive_call(self, idx, group_name):
         """We need this recursive call to avoid appending task
         label multiple times inside the __getitem__."""
         if idx < 0:
@@ -515,7 +507,7 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
 
         dd = self._datasets[dataset_idx]
         if isinstance(dd, AvalancheDataset):
-            element = dd._getitem_recursive_call(sample_idx)
+            element = dd._getitem_recursive_call(sample_idx, group_name=group_name)
         else:
             element = dd[sample_idx]
 

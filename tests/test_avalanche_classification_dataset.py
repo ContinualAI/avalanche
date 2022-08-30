@@ -1067,8 +1067,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset = AvalancheTensorClassificationDataset(
             tensor_x, tensor_y, task_labels=tensor_t
         )
-        assert False, "set depth to 500"
-        dataset_hierarchy_depth = 5
+        # assert False, "set depth to 500"
+        dataset_hierarchy_depth = 120
 
         # prepare random permutations for each step
         random_permutations: List[List[int]] = []
@@ -1084,7 +1084,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         for idx in range(dataset_hierarchy_depth):
             current_indices = [current_indices[x] for x in random_permutations[idx]]
             true_indices.append(current_indices)
-        true_indices = list(reversed(true_indices))  # ??? why is this reversed?
+        true_indices = list(reversed(true_indices))
 
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
