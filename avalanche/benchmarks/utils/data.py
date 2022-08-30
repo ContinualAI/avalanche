@@ -146,6 +146,34 @@ class AvalancheDataset(Dataset[T_co]):
         dataset.
         """
 
+    def print_frozen_transforms(self):
+        """Prints the current frozen transformations."""
+        print("FROZEN TRANSFORMS:\n" + str(self._frozen_transform_groups))
+        for dd in self.data_list:
+            if isinstance(dd, AvalancheDataset):
+                print("PARENT FROZEN:\n")
+                dd.print_frozen_transforms()
+
+    def print_nonfrozen_transforms(self):
+        """Prints the current non-frozen transformations."""
+        print("TRANSFORMS:\n" + str(self._transform_groups))
+        for dd in self.data_list:
+            if isinstance(dd, AvalancheDataset):
+                print("PARENT TRANSFORMS:\n")
+                dd.print_nonfrozen_transforms()
+
+    def print_transforms(self):
+        """Prints the current transformations."""
+        self.print_frozen_transforms()
+        self.print_nonfrozen_transforms()
+
+    @property
+    def transform(self):
+        raise AttributeError(
+            "Cannot modify transform directly. Use transform_groups "
+            "methods such as `replace_current_transform_group`. "
+            "See the documentation for more info.")
+
     @property
     def data_list(self):
         return [self._dataset]
@@ -243,8 +271,9 @@ class AvalancheDataset(Dataset[T_co]):
     def freeze_transforms(self):
         """Returns a new dataset with the transformation groups frozen."""
         tgroups = copy.copy(self._transform_groups)
+        frozen_tgroups = copy.copy(self._frozen_transform_groups)
         datacopy = self._shallow_clone_dataset()
-        datacopy._frozen_transform_groups = tgroups
+        datacopy._frozen_transform_groups = frozen_tgroups + tgroups
         datacopy._transform_groups = EmptyTransformGroups()
         dds = []
         for dd in datacopy.data_list:

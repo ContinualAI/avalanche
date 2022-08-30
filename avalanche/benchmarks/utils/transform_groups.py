@@ -1,7 +1,9 @@
 from collections import defaultdict
 from typing import Dict, Union, Callable, Tuple, Sequence
 
-from avalanche.benchmarks.utils import MultiParamTransform, Compose
+from avalanche.benchmarks.utils.transforms import \
+    MultiParamTransformCallable, MultiParamCompose, \
+    TupleTransform, MultiParamTranform
 
 
 class TransformGroups:
@@ -14,8 +16,14 @@ class TransformGroups:
     """
 
     def __init__(self,
-                 transform_groups: Dict[str, Union[Callable, Tuple[Callable, Callable]]],
+                 transform_groups: Dict[str, Union[Callable, Sequence[Callable]]],
                  current_group="train"):
+        for group, transform in transform_groups.items():
+            if not isinstance(transform, MultiParamTranform):
+                if isinstance(transform, Sequence):
+                    transform_groups[group] = TupleTransform(transform)
+                else:
+                    transform_groups[group] = TupleTransform([transform])
         self.transform_groups = transform_groups
         self.current_group = current_group
 
@@ -33,6 +41,9 @@ class TransformGroups:
         return self.transform_groups[item]
 
     def __setitem__(self, key, value):
+        if value is not None:
+            if isinstance(value, Sequence):
+                value = TupleTransform(value)
         self.transform_groups[key] = value
 
     def __call__(self, *args, **kwargs):
@@ -40,15 +51,12 @@ class TransformGroups:
         element = list(*args)
 
         curr_t = self.transform_groups[self.current_group]
-        if curr_t is None:
+        if curr_t is None:  # empty group
             return element
-        if not isinstance(curr_t, Sequence):
+        elif not isinstance(curr_t, MultiParamTranform):  #
             element[0] = curr_t(element[0])
         else:
-            if curr_t[0] is not None:
-                element = MultiParamTransform(curr_t[0])(*element)
-            if curr_t[1] is not None:
-                element[1] = curr_t[1](element[1])
+            element = curr_t(*element)
         return element
 
     def __add__(self, other: "TransformGroups"):
@@ -57,7 +65,7 @@ class TransformGroups:
             if gname not in tgroups:
                 tgroups[gname] = gtrans
             elif gtrans is not None:
-                tgroups[gname] = Compose([gtrans, tgroups[gname]])
+                tgroups[gname] = MultiParamCompose([tgroups[gname], gtrans])
         return TransformGroups(tgroups, self.current_group)
 
     def __eq__(self, other: "TransformGroups"):
@@ -67,6 +75,24 @@ class TransformGroups:
     def with_transform(self, group_name):
         assert group_name in self.transform_groups
         self.current_group = group_name
+
+    def __str__(self):
+        res = ""
+        for k, v in self.transform_groups.items():
+            if len(res) > 0:
+                res += "\n"
+            res += f"- {k}: {v}"
+        res = f"current_group: '{self.current_group}'\n" + res
+        return res
+
+    def __copy__(self):
+        # copy of TransformGroups should copy the dictionary
+        # to avoid side effects
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        result.transform_groups = self.transform_groups.copy()
+        return result
 
 
 class DefaultTransformGroups(TransformGroups):

@@ -30,7 +30,8 @@ from torchvision.transforms import (
 
 from avalanche.models import LeNet5, SlimResNet18
 from ..datasets import default_dataset_location
-from ..utils import Compose, AvalancheConcatClassificationDataset
+from ..utils import AvalancheConcatClassificationDataset
+from torchvision.transforms import Compose
 from avalanche.evaluation.metrics import TaskAwareAccuracy
 from . import SplitCIFAR10, CORe50, SplitMNIST
 from avalanche.benchmarks import ExModelCLScenario, nc_benchmark

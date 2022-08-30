@@ -141,9 +141,7 @@ class ImagesSamplePlugin(PluginMetric):
         self, data: "AvalancheClassificationDataset", mb_size: int
     ) -> DataLoader:
         if self.disable_augmentations:
-            data = data.replace_current_transform_group(
-                DefaultTransformGroups(_MaybeToTensor())
-            )
+            data = data.replace_current_transform_group(_MaybeToTensor())
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(
             dataset=data,
