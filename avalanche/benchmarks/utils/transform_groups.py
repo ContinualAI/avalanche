@@ -118,6 +118,8 @@ class EmptyTransformGroups(DefaultTransformGroups):
 
 def _normalize_transform(transforms):
     """Normalize transform to MultiParamTransform."""
+    if transforms is None:
+        return None
     if not isinstance(transforms, MultiParamTranform):
         if isinstance(transforms, Sequence):
             return TupleTransform(transforms)

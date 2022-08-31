@@ -97,8 +97,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(1, dataset_transform.min_params)
         self.assertEqual(2, dataset_transform.max_params)
 
+        tgs = {"train": dataset_transform, "eval": dataset_transform}
         x, y = dataset_mnist[ref_instance_idx]
-        dataset = AvalancheClassificationDataset(dataset_mnist, transform=dataset_transform)
+        dataset = AvalancheClassificationDataset(dataset_mnist, transform_groups=tgs)
         x2, y2, t2 = dataset[ref_instance_idx]
 
         self.assertIsInstance(x2, Tensor)

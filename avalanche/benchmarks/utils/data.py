@@ -295,7 +295,7 @@ class AvalancheDataset(Dataset[T_co]):
         dataset_copy.data_list = dds
         return dataset_copy
 
-    def replace_current_transform_group(self, *transform):
+    def replace_current_transform_group(self, transform):
         """Recursively remove the current transformation group from the dataset tree and replaces
         it."""
         dataset_copy = self.remove_current_transform_group()
