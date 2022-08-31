@@ -1068,7 +1068,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset = AvalancheTensorClassificationDataset(
             tensor_x, tensor_y, task_labels=tensor_t
         )
-        dataset_hierarchy_depth = 500
+        dataset_hierarchy_depth = 5
 
         # prepare random permutations for each step
         random_permutations: List[List[int]] = []
@@ -1089,8 +1089,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
-            # print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
-            # _avalanche_datatree_print(curr_dataset)
+            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            _avalanche_datatree_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
             curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))
@@ -1539,7 +1539,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertEqual(y, y2)
 
         dataset_eval = dataset.eval()
-
         x3, y3, _ = dataset_eval[0]
         self.assertIsInstance(x3, PIL.Image.Image)
         self.assertIsInstance(y3, int)
@@ -1547,7 +1546,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         # Regression test for #565
         dataset_inherit = AvalancheClassificationDataset(dataset_eval)
-
         x4, y4, _ = dataset_inherit[0]
         self.assertIsInstance(x4, PIL.Image.Image)
         self.assertIsInstance(y4, int)
@@ -1565,20 +1563,19 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         # End regression tests
 
         concat_dataset = AvalancheConcatClassificationDataset([dataset_sub_eval, dataset_sub])
-
         x6, y6, _ = concat_dataset[0]
         self.assertIsInstance(x6, PIL.Image.Image)
         self.assertIsInstance(y6, int)
         self.assertEqual(y + 1, y6)
 
-        concat_dataset_no_inherit_initial = AvalancheConcatClassificationDataset(
-            [dataset_sub_eval, dataset]
-        )
-
-        x7, y7, _ = concat_dataset_no_inherit_initial[0]
-        self.assertIsInstance(x7, Tensor)
-        self.assertIsInstance(y7, int)
-        self.assertEqual(y, y7)
+        # DEPRECATED BEHAVIOR
+        # concat_dataset_no_inherit_initial = AvalancheConcatClassificationDataset(
+        #     [dataset_sub_eval, dataset]
+        # )
+        # x7, y7, _ = concat_dataset_no_inherit_initial[0]
+        # self.assertIsInstance(x7, Tensor)
+        # self.assertIsInstance(y7, int)
+        # self.assertEqual(y, y7)
 
     def test_freeze_transforms(self):
         original_dataset = MNIST(

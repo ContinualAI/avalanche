@@ -398,6 +398,11 @@ def AvalancheClassificationSubset(
         the value of the second element returned by `__getitem__`.
         The adapter is used to adapt the values of the targets field only.
     """
+    tgroups = None
+    targets = AvalancheClassificationDataset._init_targets(
+        dataset, targets, targets_adapter, check_shape=False)
+    task_labels = AvalancheClassificationDataset._init_task_labels(
+        dataset, task_labels, check_shape=False)
 
     if class_mapping is None and \
             transform is None and \
@@ -411,19 +416,18 @@ def AvalancheClassificationSubset(
         # simple case. Transforms and attributes are not overriden
         # we can return a AvalancheSubset directly.
         # help to avoid unnecessary depth in the dataset tree.
-        return AvalancheSubset(dataset, indices)
+        if isinstance(dataset, AvalancheDataset):
+            return AvalancheSubset(dataset, indices)
+        else:
+            return AvalancheSubset(
+                dataset, indices,
+                data_attributes=[targets, task_labels])
     else:
         warnings.warn(
             "The parameters class_mapping, transform, target_transform, "
             "transform_groups, initial_transform_group, task_labels, targets, "
             "collate_fn and targets_adapter are deprecated and will be removed "
             "in a future version.", DeprecationWarning)
-
-    tgroups = None
-    targets = AvalancheClassificationDataset._init_targets(
-        dataset, targets, targets_adapter, check_shape=False)
-    task_labels = AvalancheClassificationDataset._init_task_labels(
-        dataset, task_labels, check_shape=False)
 
     if class_mapping is not None:  # update targets
         l = [class_mapping[el] for el in targets]

@@ -107,7 +107,7 @@ class DefaultTransformGroups(TransformGroups):
         self.transform_groups = defaultdict(lambda: transform)
 
     def with_transform(self, group_name):
-        pass
+        self.current_group = group_name
 
 
 class EmptyTransformGroups(DefaultTransformGroups):

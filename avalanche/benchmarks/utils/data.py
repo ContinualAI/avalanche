@@ -556,8 +556,13 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             if isinstance(dd, AvalancheDataset):
                 if cgroup is None:  # inherit transformations from original dataset
                     cgroup = dd._transform_groups.current_group
-                # all datasets must have the same transformation group
-                dds.append(dd.with_transforms(cgroup))
+                elif dd._transform_groups.current_group != cgroup:
+                    # all datasets must have the same transformation group
+                    warnings.warn(f"Concatenated datasets have different transformation groups."
+                                  f"Using group={cgroup}.")
+                    dds.append(dd.with_transforms(cgroup))
+                else:
+                    dds.append(dd)
 
         if cgroup is not None:
             self._frozen_transform_groups.current_group = cgroup
