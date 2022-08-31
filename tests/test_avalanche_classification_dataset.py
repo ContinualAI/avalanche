@@ -1068,8 +1068,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset = AvalancheTensorClassificationDataset(
             tensor_x, tensor_y, task_labels=tensor_t
         )
-        # assert False, "set depth to 500"
-        dataset_hierarchy_depth = 3
+        dataset_hierarchy_depth = 500
 
         # prepare random permutations for each step
         random_permutations: List[List[int]] = []
@@ -1090,8 +1089,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
-            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
-            _avalanche_datatree_print(curr_dataset)
+            # print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            # _avalanche_datatree_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
             curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))
@@ -1144,8 +1143,6 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         trg_slice = torch.tensor(curr_dataset.targets)[d_sz * dataset_hierarchy_depth :]
         self.assertTrue(torch.equal(tensor_y, trg_slice))
-
-        print("DONE")
 
     def test_avalanche_concat_datasets_sequentially(self):
         # create list of training datasets

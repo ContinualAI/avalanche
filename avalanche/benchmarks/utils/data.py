@@ -329,7 +329,100 @@ class AvalancheDataset(Dataset[T_co]):
         return default_collate
 
 
-class AvalancheSubset(AvalancheDataset[T_co]):
+def AvalancheSubset(
+        dataset: IDataset,
+        indices: Sequence[int],
+        *,
+        data_attributes: List[DataAttribute] = None,
+        transform_groups: TransformGroups = None,
+        collate_fn: Callable[[List], Any] = None
+    ):
+    """Creates an ``AvalancheSubset`` instance.
+
+    Flattens this subset by borrowing indices from the original dataset
+    (if it's an AvalancheSubset or PyTorch Subset)
+    Avalanche Dataset that behaves like a PyTorch
+    :class:`torch.utils.data.Subset`.
+
+    See :class:`AvalancheDataset` for more details.
+
+    :param dataset: The whole dataset.
+    :param indices: Indices in the whole set selected for subset. Can
+        be None, which means that the whole dataset will be returned.
+    """
+    if data_attributes is not None or \
+            transform_groups is not None or \
+            collate_fn is not None:
+        # we don't flatten if there are any custom
+        # collate_fn, transform_groups, or data_attributes
+        # May be possible to do it in the future but it's not
+        # implemented yet.
+        return _AvalancheSubset(
+            dataset,
+            indices,
+            data_attributes=data_attributes,
+            transform_groups=transform_groups,
+            collate_fn=collate_fn
+        )
+
+    # NOTE: in the following code we assume the data attributes
+    # and transforms are all None for the current call (checked above).
+
+    # Case1: flatten Subset -> Subset
+    if isinstance(dataset, _AvalancheSubset):
+        new_attributes = [da.subset(indices) for da in dataset._data_attributes.values()]  # they need to be permuted
+        data = _AvalancheSubset(
+            dataset._dataset,
+            # updated indices with new permutation
+            [dataset._indices[x] for x in indices],
+            data_attributes=None,  # we add them later otherwise they will be permuted again (wrongly).
+            # rest of the attributes are the same
+            transform_groups=dataset._transform_groups,
+            collate_fn=dataset.collate_fn
+        )
+        data._data_attributes = {da.name: da for da in new_attributes}
+        for el in data._data_attributes.values():
+            setattr(data, el.name, el)
+        return data
+
+    # Case 2: flatten Subset -> Concat -> Subset
+    # we want to push the subset indices down the hierarchy, if possible
+    elif isinstance(dataset, AvalancheConcatDataset):
+        new_data_list = []
+        start_idx = 0
+
+        for k, curr_data in enumerate(dataset.data_list):
+            # find permutation indices for current dataset in the concat list
+            end_idx = dataset._cumulative_sizes[k]
+            curr_idxs = indices[start_idx:end_idx]
+            curr_idxs = [el - start_idx for el in curr_idxs]
+            start_idx = end_idx
+
+            if len(curr_idxs) > 0:
+                # we have a recursive call here because
+                # if the curr_data is a subset, we can flatten it
+                new_data_list.append(AvalancheSubset(curr_data, curr_idxs))
+
+        # make a new ConcatDataset with the new data_list
+        # attributes and transform are the same as the original
+        return AvalancheConcatDataset(
+            new_data_list,
+            transform_groups=dataset._transform_groups,
+            collate_fn=dataset.collate_fn
+        )
+
+    # Case 3: no flattening
+    else:
+        return _AvalancheSubset(
+            dataset,
+            indices,
+            data_attributes=data_attributes,
+            transform_groups=transform_groups,
+            collate_fn=collate_fn
+        )
+
+
+class _AvalancheSubset(AvalancheDataset[T_co]):
     """Avalanche Dataset that behaves like a PyTorch
     :class:`torch.utils.data.Subset`.
 
@@ -350,6 +443,10 @@ class AvalancheSubset(AvalancheDataset[T_co]):
         :param indices: Indices in the whole set selected for subset. Can
             be None, which means that the whole dataset will be returned.
         """
+        # NOTE: we assume that data is already flattened here.
+        # Users should not use this class directly but use the public ones
+        # instead, which does the flattening.
+
         if data_attributes is None and \
                 transform_groups is None and \
                 collate_fn is None:
@@ -363,19 +460,20 @@ class AvalancheSubset(AvalancheDataset[T_co]):
             warnings.warn("data_attributes, transform_groups and "
                           "collate_fn are deprecated. ")
             self._indices = indices
-            ll = []
-            for da in data_attributes:  # subset attributes if needed
-                if len(da) != len(dataset):
-                    ll.append(da)
-                else:
-                    ll.append(da.subset(self._indices))
+            ll = None
+            if data_attributes is not None:
+                ll = []
+                for da in data_attributes:  # subset attributes if needed
+                    if len(da) != len(dataset):
+                        ll.append(da)
+                    else:
+                        ll.append(da.subset(self._indices))
 
             super().__init__(
                 dataset,
                 data_attributes=ll,
                 transform_groups=transform_groups,
                 collate_fn=collate_fn)
-        self._flatten_dataset()
 
     def _getitem_recursive_call(self, idx, group_name):
         """We need this recursive call to avoid appending task
@@ -391,20 +489,6 @@ class AvalancheSubset(AvalancheDataset[T_co]):
 
     def __len__(self):
         return len(self._indices)
-
-    def _flatten_dataset(self):
-        """Flattens this subset by borrowing indices from the original dataset
-        (if it's an AvalancheSubset or PyTorch Subset)"""
-
-        if isinstance(self._dataset, AvalancheSubset):
-            # combine self and self.dataset transforms
-            old_tgroups = copy.copy(self._dataset._transform_groups)
-            new_tgroups = self._transform_groups
-            self.transform_groups = old_tgroups + new_tgroups
-
-            # update indices
-            parent_idxs = self._dataset._indices
-            self._indices = [parent_idxs[x] for x in self._indices]
 
 
 class AvalancheConcatDataset(AvalancheDataset[T_co]):
@@ -547,20 +631,54 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
 
     def _flatten_datasets_list(self):
         """Flatten dataset tree if possible."""
-        # Flattens this subset by borrowing the list of concatenated datasets
+        # Concat -> Concat branch
+        # Flattens by borrowing the list of concatenated datasets
         # from the original datasets.
-
         flattened_list = []
         for dataset in self._datasets:
-            if isinstance(dataset, AvalancheConcatDataset):
-                if isinstance(dataset._transform_groups, EmptyTransformGroups):
-                    flattened_list.extend(dataset._datasets)
-                else:
-                    # Can't flatten as the dataset has custom transformations
-                    flattened_list.append(dataset)
+            # wa can flatten only if the dataset has no transforms
+            if isinstance(dataset, AvalancheConcatDataset) and \
+                    isinstance(dataset._transform_groups, EmptyTransformGroups) and \
+                    isinstance(dataset._frozen_transform_groups, EmptyTransformGroups):
+                # BUG: here we don't know if the collate_fn or attributes
+                # have been overridden. We should fix this
+                flattened_list.extend(dataset._datasets)
             else:
                 flattened_list.append(dataset)
-        self._datasets = flattened_list
+
+        # merge consecutive Subsets if compatible
+        new_data_list = []
+        for dataset in flattened_list:
+            if isinstance(dataset, _AvalancheSubset):
+                if len(new_data_list) > 0 and isinstance(new_data_list[-1], _AvalancheSubset):
+                    d2 = new_data_list.pop()
+                    new_data_list.extend(_maybe_merge_subsets(d2, dataset))
+                else:
+                    new_data_list.append(dataset)
+            else:
+                new_data_list.append(dataset)
+        self._datasets = new_data_list
+
+
+def _has_empty_transforms(dataset: AvalancheDataset):
+    """Method for internal use only.
+    Check whether the dataset has empty transform (no recursion).
+    """
+    return isinstance(dataset._transform_groups, EmptyTransformGroups) and \
+        isinstance(dataset._frozen_transform_groups, EmptyTransformGroups)
+
+
+def _maybe_merge_subsets(d1: _AvalancheSubset, d2: _AvalancheSubset):
+    """Merges two avalanche subsets if possible."""
+    if not _has_empty_transforms(d1) or not _has_empty_transforms(d2):
+        return [d1, d2]
+    if d1._dataset is not d2._dataset:
+        return [d1, d2]
+    # datasets are the compatible, merge subsets
+    return [AvalancheSubset(
+        d1._dataset,
+        d1._indices + d2._indices,
+    )]
 
 
 def _avalanche_dataset_depth(dataset):
@@ -577,11 +695,11 @@ def _avalanche_datatree_print(dataset, indent=0):
     """Internal debugging method.
     Print the dataset."""
     if isinstance(dataset, AvalancheDataset):
-        print("\t" * indent + f"{dataset.__class__.__name__}")
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
         for dd in dataset.data_list:
             _avalanche_datatree_print(dd, indent + 1)
     else:
-        print("\t" * indent + f"{dataset.__class__.__name__}")
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
 
 
 __all__ = [

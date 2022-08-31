@@ -1,49 +1,33 @@
 import unittest
 
-from os.path import expanduser
-
-import avalanche
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.models import SimpleMLP
-from torch.optim import SGD
-from torch.nn import CrossEntropyLoss
-from avalanche.training.supervised import Naive
-from avalanche.benchmarks.generators import dataset_benchmark
 import PIL
 import torch
 from PIL import ImageChops
 from PIL.Image import Image
 from torch import Tensor
-from torch.utils.data import TensorDataset, Subset, ConcatDataset
+from torch.utils.data import ConcatDataset, TensorDataset
 from torchvision.datasets import MNIST
 from torchvision.transforms import (
     ToTensor,
     RandomCrop,
-    ToPILImage,
-    Compose,
-    Lambda,
     CenterCrop,
 )
 from typing import List
-
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_tensor_lists,
-)
 from avalanche.benchmarks.utils import (
     AvalancheClassificationDataset,
-    AvalancheClassificationSubset,
     AvalancheConcatClassificationDataset,
-    AvalancheTensorClassificationDataset,
-    concat_datasets_sequentially, AvalancheDataset,
+    AvalancheDataset,
 )
 from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from avalanche.training.utils import load_all_dataset
 import random
 
 import numpy as np
 
 from avalanche.benchmarks.utils import DefaultTransformGroups
-from avalanche.benchmarks.utils.data_attribute import DataAttribute, TaskLabels
+from avalanche.benchmarks.utils.data_attribute import TaskLabels
+from avalanche.benchmarks.utils.data import _avalanche_dataset_depth, _avalanche_datatree_print, AvalancheSubset, \
+    AvalancheConcatDataset
 from tests.unit_tests_utils import load_image_benchmark, load_tensor_benchmark, load_image_data
 
 
@@ -64,6 +48,72 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+    def test_subset_subset_merge(self):
+        d_sz, num_permutations = 3, 4
+
+        # prepare dataset
+        xdata = torch.rand(d_sz, 2)
+        dadata = torch.randint(0, 10, (d_sz,))
+        curr_dataset = AvalancheDataset(
+            TensorDataset(xdata),
+            data_attributes=[TaskLabels(dadata)])
+
+        # apply permutations iteratively
+        ps = []
+        true_indices = range(d_sz)
+        for idx in range(num_permutations):
+            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            _avalanche_datatree_print(curr_dataset)
+
+            idx_permuted = list(range(d_sz))
+            random.shuffle(idx_permuted)
+            true_indices = [true_indices[x] for x in idx_permuted]
+            ps.append(list(idx_permuted))
+
+            curr_dataset = AvalancheSubset(curr_dataset, indices=idx_permuted)
+            self.assertEqual(len(curr_dataset), d_sz)
+
+            print("Check data")
+            x_curr = torch.stack([curr_dataset[idx][0] for idx in range(d_sz)], dim=0)
+            x_true = torch.stack([xdata[idx] for idx in true_indices], dim=0)
+            self.assertTrue(torch.equal(x_curr, x_true))
+
+            t_curr = torch.tensor([curr_dataset.task_labels[idx] for idx in range(d_sz)])
+            t_true = torch.stack([dadata[idx] for idx in true_indices], dim=0)
+            self.assertTrue(torch.equal(t_curr, t_true))
+
+    def test_subset_concat_subset_merge(self):
+        d_sz, num_permutations = 3, 4
+
+        # prepare random permutations for each step
+        random_permutations: List[List[int]] = []
+        for _ in range(num_permutations):
+            idx_permuted = list(range(d_sz))
+            random.shuffle(idx_permuted)
+            random_permutations.append(idx_permuted)
+
+        # compute expected indices after all permutations
+        current_indices = range(d_sz)
+        true_indices: List[List[int]] = []
+        for idx in range(num_permutations):
+            current_indices = [current_indices[x] for x in random_permutations[idx]]
+            true_indices.append(current_indices)
+
+        # apply permutations iteratively
+        xdata = torch.rand(d_sz, 2)
+        curr_dataset = AvalancheDataset(TensorDataset(xdata))
+        for idx in range(num_permutations):
+            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            _avalanche_datatree_print(curr_dataset)
+
+            subset = AvalancheSubset(curr_dataset, indices=random_permutations[idx])
+            curr_dataset = AvalancheConcatDataset([subset, curr_dataset])
+            self.assertEqual(len(curr_dataset), d_sz)
+
+            x_curr = torch.stack([curr_dataset[idx][0] for idx in range(d_sz)], dim=0)
+            x_true = torch.stack([xdata[idx] for idx in true_indices[idx]], dim=0)
+            self.assertTrue(torch.equal(x_curr, x_true))
+
     def test_mnist_no_transforms(self):
         """check properties we need from the data for testing."""
         dataset = load_image_benchmark()

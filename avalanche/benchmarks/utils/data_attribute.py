@@ -62,12 +62,19 @@ class DataAttribute:
         return self._val_to_idx
 
     def subset(self, indices):
-        return DataAttribute(self.name, _FlatDataSubset(self._data, indices))
+        return DataAttribute(
+            self.name,
+            _FlatDataSubset(self._data, indices),
+            append_to_minibatch=self.append_to_minibatch
+        )
 
     def concat(self, other: "DataAttribute"):
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
-        return DataAttribute(self.name, _FlatDataConcat([self._data, other._data]))
+        return DataAttribute(
+            self.name, _FlatDataConcat([self._data, other._data]),
+            append_to_minibatch=self.append_to_minibatch
+        )
 
     @staticmethod
     def _optimize_sequence(seq):
