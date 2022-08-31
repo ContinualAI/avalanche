@@ -21,7 +21,7 @@ from collections import defaultdict, deque
 
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
-from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset
+from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset, _AvalancheSubset
 from .transform_groups import TransformGroups, EmptyTransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
@@ -85,7 +85,20 @@ SupportedDataset = Union[
 ]
 
 
-class AvalancheClassificationDataset(AvalancheDataset[T_co]):
+class _ClassificationAttributesMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    def task_pattern_indices(self):
+        return self.targets_task_labels.val_to_idx
+
+    @property
+    def task_set(self):
+        return _TaskSet(self)
+
+
+class AvalancheClassificationDataset(AvalancheDataset[T_co], _ClassificationAttributesMixin):
     """Avalanche Classification Dataset.
 
     Supervised continual learning benchmarks in Avalanche return instances of
@@ -199,10 +212,6 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             collate_fn=collate_fn
         )
 
-    @property
-    def task_pattern_indices(self):
-        return self.targets_task_labels.val_to_idx
-
     @staticmethod
     def _init_transform_groups(transform_groups, transform, target_transform,
                                initial_transform_group, dataset):
@@ -288,26 +297,6 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
             tls = _make_task_labels_from_supported_dataset(dataset)
         return DataAttribute("targets_task_labels", tls, append_to_minibatch=True)
 
-    @property
-    def task_set(self):
-        class TaskSet(Mapping):
-            """A lazy mapping for <task-label -> task dataset>"""
-            def __init__(self, data):
-                super().__init__()
-                self.data = data
-
-            def __iter__(self):
-                return iter(self.data.targets_task_labels.uniques)
-
-            def __getitem__(self, task_label):
-                tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-                return AvalancheClassificationSubset(self.data, tl_idx)
-
-            def __len__(self):
-                return len(self.data.targets_task_labels.uniques)
-
-        return TaskSet(self)
-
     def __getitem__(self, idx: int):
         elem = self._getitem_recursive_call(idx, self._transform_groups.current_group)
         return *elem, self.targets_task_labels[idx]
@@ -317,6 +306,21 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co]):
         return AvalancheClassificationDataset(
             self, transform=x_transform,
             initial_transform_group=self._transform_groups.current_group)
+
+
+class _AvalancheClassificationSubset(_AvalancheSubset[T_co], _ClassificationAttributesMixin):
+    # add the attributes mixin to avalanche subset
+    pass
+
+
+class _AvalancheClassificationConcat(AvalancheConcatDataset[T_co], _ClassificationAttributesMixin):
+    # add the attributes mixin to avalanche subset
+    pass
+
+
+class _AvalancheSimpleClassificationDataset(AvalancheDataset[T_co], _ClassificationAttributesMixin):
+    # add the attributes mixin to avalanche subset
+    pass
 
 
 def AvalancheClassificationSubset(
@@ -417,9 +421,9 @@ def AvalancheClassificationSubset(
         # we can return a AvalancheSubset directly.
         # help to avoid unnecessary depth in the dataset tree.
         if isinstance(dataset, AvalancheDataset):
-            return AvalancheSubset(dataset, indices)
+            return _AvalancheClassificationSubset(dataset, indices)
         else:
-            return AvalancheSubset(
+            return _AvalancheClassificationSubset(
                 dataset, indices,
                 data_attributes=[targets, task_labels])
     else:
@@ -434,12 +438,12 @@ def AvalancheClassificationSubset(
         targets = DataAttribute('targets', l)
 
     if indices is None:
-        data = AvalancheDataset(
+        data = _AvalancheSimpleClassificationDataset(
             dataset,
             data_attributes=[targets, task_labels],
             transform_groups=tgroups)
     else:
-        data = AvalancheSubset(
+        data = _AvalancheClassificationSubset(
             dataset,
             indices=indices,
             data_attributes=[targets, task_labels],
@@ -633,7 +637,7 @@ def AvalancheConcatClassificationDataset(
             targets is None and \
             collate_fn is None and \
             targets_adapter is None:
-        return AvalancheConcatDataset(dds)
+        return _AvalancheClassificationConcat(dds)
     else:
         warnings.warn(
             "The transform, target_transform, transform_groups, "
@@ -641,7 +645,7 @@ def AvalancheConcatClassificationDataset(
             "targets_adapter arguments are deprecated for "
             "AvalancheConcatDataset.")
 
-    data = AvalancheConcatDataset(dds)
+    data = _AvalancheClassificationConcat(dds)
     if initial_transform_group is None:
         uniform_group = None
         for d_set in dds:
@@ -954,6 +958,26 @@ def _make_task_labels_from_supported_dataset(
     task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
 
     return SubSequence(task_labels, converter=int)
+
+
+class _TaskSet(Mapping):
+    """A lazy mapping for <task-label -> task dataset>.
+    Class for internal use only.
+    """
+
+    def __init__(self, data: AvalancheClassificationDataset):
+        super().__init__()
+        self.data = data
+
+    def __iter__(self):
+        return iter(self.data.targets_task_labels.uniques)
+
+    def __getitem__(self, task_label):
+        tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
+        return AvalancheClassificationSubset(self.data, tl_idx)
+
+    def __len__(self):
+        return len(self.data.targets_task_labels.uniques)
 
 
 __all__ = [

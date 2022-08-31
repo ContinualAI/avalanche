@@ -1703,7 +1703,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, _ = original_dataset[0]
         dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
         x2, *_ = dataset[0]
-        dataset_reset = dataset.replace_current_transform_group(None, None)
+        dataset_reset = dataset.replace_current_transform_group((None, None))
         x3, *_ = dataset_reset[0]
 
         self.assertIsInstance(x, Image)
@@ -1715,7 +1715,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_frozen[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(None, None)
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group((None, None))
 
         x5, *_ = dataset_frozen_reset[0]
         self.assertIsInstance(x5, Tensor)
