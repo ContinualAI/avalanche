@@ -36,7 +36,7 @@ class MetaUpdate:
         trigger_plugins(self, "before_inner_updates", **kwargs)
 
     def _inner_updates(self, **kwargs):
-        trigger_plugins(self, "inner_updates", **kwargs)
+        raise NotImplementedError()
 
     def _after_inner_updates(self, **kwargs):
         trigger_plugins(self, "after_inner_updates", **kwargs)
@@ -45,7 +45,7 @@ class MetaUpdate:
         trigger_plugins(self, "before_outer_update", **kwargs)
 
     def _outer_update(self, **kwargs):
-        trigger_plugins(self, "outer_update", **kwargs)
+        raise NotImplementedError()
 
     def _after_outer_update(self, **kwargs):
         trigger_plugins(self, "after_outer_update", **kwargs)

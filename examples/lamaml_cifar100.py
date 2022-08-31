@@ -77,7 +77,7 @@ def main(args):
         lr_alpha=0.25,
         sync_update=False,
         train_mb_size=10,
-        train_epochs=10,
+        train_epochs=1,
         eval_mb_size=100,
         device=device,
         plugins=[replay_plugin],
