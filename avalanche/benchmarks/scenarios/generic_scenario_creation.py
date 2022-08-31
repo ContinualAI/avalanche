@@ -27,7 +27,7 @@ from avalanche.benchmarks.utils import (
 )
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .classification_scenario import GenericCLScenario
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from ..utils.flattened_data import ConstantSequence
 
 
 def create_multi_dataset_generic_scenario(

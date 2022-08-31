@@ -4,39 +4,29 @@
 import bisect
 from typing import Sequence
 
-import torch
 
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
-from avalanche.benchmarks.utils.dataset_definitions import IDataset
-
-
-class _FlatData:
-    """FlatData is a pytorch-like Dataset optimized to minimize its tree
-    depth.
+class FlatData(Sequence):
+    """FlatData is an efficient dataset optimized for repeated concatenations
+    and subset operations.
 
     Class for internal use only.
     """
 
-    def __init__(self, data: IDataset):
+    def __init__(self, data: Sequence):
         self._data = data
 
     def get_data(self):
         return self._data
 
     def subset(self, indices):
-        if isinstance(self.get_data(), ConstantSequence):
-            # fast path for ConstantSequence
-            new_info = ConstantSequence(self._data[0], len(indices))
-            return _FlatData(new_info)
+        if isinstance(self.get_data(), FlatData):
+            return self.get_data().subset(indices)
         else:
             return _FlatDataSubset(self.get_data(), indices)
 
-    def concat(self, other: "_FlatData"):
-        if isinstance(self.get_data(), ConstantSequence) and \
-                isinstance(self.get_data(), ConstantSequence):
-            # fast path for ConstantSequence
-            new_info = ConstantSequence(self._data[0], len(self) + len(other))
-            return _FlatData(new_info)
+    def concat(self, other: "FlatData"):
+        if isinstance(self.get_data(), FlatData):
+            return self.get_data().concat(other)
         else:
             return _FlatDataConcat([self, other])
 
@@ -47,14 +37,14 @@ class _FlatData:
         return len(self._data)
 
 
-class _FlatDataSubset(_FlatData):
+class _FlatDataSubset(FlatData):
     """FlatData is a pytorch-like Dataset optimized to minimize its tree
     depth.
 
     Class for internal use only.
     """
 
-    def __init__(self, data: IDataset, indices: Sequence[int]):
+    def __init__(self, data: Sequence, indices: Sequence[int]):
         self._indices = list(indices)
         super().__init__(data)
 
@@ -62,7 +52,7 @@ class _FlatDataSubset(_FlatData):
         return _FlatDataSubset(self.get_data(),
                                [self._indices[i] for i in indices])
 
-    def concat(self, other: "_FlatData"):
+    def concat(self, other: "FlatData"):
         if isinstance(other, _FlatDataSubset):
             if other.get_data() is self.get_data():
                 return _FlatDataSubset(self.get_data(),
@@ -76,7 +66,7 @@ class _FlatDataSubset(_FlatData):
         return len(self._indices)
 
 
-class _FlatDataConcat(_FlatData):
+class _FlatDataConcat(FlatData):
     """FlatData is a pytorch-like Dataset optimized to minimize its tree
     depth.
 
@@ -92,7 +82,7 @@ class _FlatDataConcat(_FlatData):
             s += l
         return r
 
-    def __init__(self, datas: Sequence[IDataset]):
+    def __init__(self, datas: Sequence[Sequence]):
         assert len(datas) > 0, 'datasets should not be an empty iterable'
         self._datasets = list(datas)
         self.cumulative_sizes = self.cumsum(self._datasets)
@@ -100,7 +90,7 @@ class _FlatDataConcat(_FlatData):
     def get_data(self):
         return self
 
-    def concat(self, other: "_FlatData"):
+    def concat(self, other: "FlatData"):
         if isinstance(other, _FlatDataConcat):
             return _FlatDataConcat(self._datasets + other._datasets)
         return super().concat(other)
@@ -119,3 +109,37 @@ class _FlatDataConcat(_FlatData):
         else:
             sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
         return self._datasets[dataset_idx][sample_idx]
+
+
+class ConstantSequence(FlatData):
+    """A memory-efficient constant sequence."""
+
+    def __init__(self, constant_value: int, size: int):
+        self._constant_value = constant_value
+        self._size = size
+
+    def __len__(self):
+        return self._size
+
+    def __getitem__(self, item_idx) -> int:
+        if item_idx >= len(self):
+            raise IndexError()
+        return self._constant_value
+
+    def get_data(self):
+        return self
+
+    def subset(self, indices):
+        return ConstantSequence(self._data[0], len(indices))
+
+    def concat(self, other: "FlatData"):
+        if isinstance(other, ConstantSequence) and \
+                self._constant_value == other._constant_value:
+            return ConstantSequence(self._constant_value, len(self) + len(other))
+        else:
+            return _FlatDataConcat([self, other])
+
+    def __str__(self):
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )

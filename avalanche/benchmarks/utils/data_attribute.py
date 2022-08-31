@@ -1,8 +1,7 @@
 import torch
 
 from .dataset_definitions import IDataset
-from .dataset_utils import ConstantSequence
-from .flattened_data import _FlatDataSubset, _FlatDataConcat
+from .flattened_data import _FlatDataSubset, _FlatDataConcat, ConstantSequence
 
 
 class DataAttribute:

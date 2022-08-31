@@ -27,11 +27,11 @@ from .data_attribute import DataAttribute
 from .dataset_utils import (
     ClassificationSubset,
     find_list_from_index,
-    ConstantSequence,
     LazyClassMapping,
     SubSequence,
     LazyConcatTargets,
 )
+from .flattened_data import ConstantSequence
 from .dataset_definitions import (
     ITensorDataset,
     IDatasetWithTargets,

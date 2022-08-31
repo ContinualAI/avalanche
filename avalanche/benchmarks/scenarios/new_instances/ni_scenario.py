@@ -22,7 +22,7 @@ from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
 from avalanche.benchmarks.utils import AvalancheClassificationSubset, AvalancheClassificationDataset
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.benchmarks.utils.flattened_data import ConstantSequence
 
 
 class NIScenario(GenericCLScenario["NIExperience"]):

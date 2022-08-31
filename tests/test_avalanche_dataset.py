@@ -19,7 +19,7 @@ from avalanche.benchmarks.utils import (
     AvalancheConcatClassificationDataset,
     AvalancheDataset,
 )
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.benchmarks.utils.flattened_data import ConstantSequence
 import random
 
 import numpy as np

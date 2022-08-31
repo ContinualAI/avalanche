@@ -1,6 +1,5 @@
 """
-    Avalanche transforms offer seamless support for multi-arguments
-    transformations.
+    Avalanche transformations are multi-argument.
 """
 import warnings
 from typing import Callable, Sequence
@@ -9,7 +8,11 @@ from inspect import signature, Parameter
 
 class MultiParamTranform:
     """We need this class to be able to distinguish between a single argument
-    transformation and multi-argument ones."""
+    transformation and multi-argument ones.
+
+    Transformations are callable objects.
+    """
+
     def __call__(self, *args, **kwargs):
         pass
 
