@@ -9,7 +9,7 @@ from avalanche.evaluation.metrics import (
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.logging import InteractiveLogger
-from avalanche.training.supervised.NEW_strategy_wrappers import (
+from avalanche.training.supervised import (
     Naive
 )
 

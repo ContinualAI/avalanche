@@ -9,7 +9,7 @@ from avalanche.evaluation.metrics import (
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.logging import InteractiveLogger
-from avalanche.training.templates.NEW_common_templates import (
+from avalanche.training.templates.common_templates import (
     SupervisedMetaLearningTemplate
 )
 from avalanche.training.plugins.NEW_lamaml import LaMAMLPlugin

@@ -9,7 +9,7 @@ from avalanche.training.plugins.evaluation import default_evaluator
 from .observation_type import *
 from .problem_type import *
 from .update_type import *
-from .NEW_base_sgd import BaseSGDTemplate
+from .base_sgd import BaseSGDTemplate
 
 
 class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,

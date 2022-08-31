@@ -10,7 +10,7 @@ from torch.nn import CrossEntropyLoss
 import torch.optim.lr_scheduler
 from avalanche.benchmarks.classic import SplitCIFAR100
 from avalanche.models import MTSimpleCNN
-from avalanche.training.supervised import LaMAML
+from avalanche.training.supervised.lamaml import LaMAML
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.evaluation.metrics import (

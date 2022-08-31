@@ -15,13 +15,13 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.templates.online_supervised import (
+from avalanche.training.templates.common_templates import (
     OnlineSupervisedTemplate,
 )
 
 
 class OnlineNaive(OnlineSupervisedTemplate):
-    """Naive finetuning.
+    """Online naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
@@ -42,7 +42,7 @@ class OnlineNaive(OnlineSupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
     ):
         """

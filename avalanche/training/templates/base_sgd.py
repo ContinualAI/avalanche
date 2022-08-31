@@ -1,8 +1,10 @@
 from typing import Iterable, Sequence, Optional, Union, List
+from pkg_resources import parse_version
 
 import torch
-from torch.nn import Module
+from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BaseSGDPlugin
@@ -10,17 +12,14 @@ from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate, ExpSequence
-
-from typing import TYPE_CHECKING
-
+from avalanche.models.utils import avalanche_model_adaptation
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+    collate_from_data_or_kwargs
 from avalanche.training.utils import trigger_plugins
-
-if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
 
 
 class BaseSGDTemplate(BaseTemplate):
-    """Base class for continual learning skeletons.
+    """Base SGD class for continual learning skeletons.
 
     **Training loop**
     The training loop is organized as follows::
@@ -42,12 +41,13 @@ class BaseSGDTemplate(BaseTemplate):
         self,
         model: Module,
         optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -55,6 +55,7 @@ class BaseSGDTemplate(BaseTemplate):
 
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
@@ -74,6 +75,9 @@ class BaseSGDTemplate(BaseTemplate):
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
 
+        self._criterion = criterion
+        """ Criterion. """
+
         self.train_epochs: int = train_epochs
         """ Number of training epochs. """
 
@@ -92,7 +96,7 @@ class BaseSGDTemplate(BaseTemplate):
         """ EvaluationPlugin used for logging and metric computations. """
 
         # Configure periodic evaluation.
-        assert peval_mode in {"epoch", "iteration"}
+        assert peval_mode in {"experience", "epoch", "iteration"}
         self.eval_every = eval_every
         peval = PeriodicEval(eval_every, peval_mode)
         self.plugins.append(peval)
@@ -106,6 +110,17 @@ class BaseSGDTemplate(BaseTemplate):
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
+
+        self.adapted_dataset = None
+        """ Data used to train. It may be modified by plugins. Plugins can 
+        append data to it (e.g. for replay). 
+
+        .. note::
+
+            This dataset may contain samples from different experiences. If you 
+            want the original data for the current experience  
+            use :attr:`.BaseTemplate.experience`.
+        """
 
         self.dataloader = None
         """ Dataloader. """
@@ -127,6 +142,7 @@ class BaseSGDTemplate(BaseTemplate):
               eval_streams: Optional[Sequence[Union[CLExperience,
                                                     ExpSequence]]] = None,
               **kwargs):
+
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 
@@ -145,58 +161,18 @@ class BaseSGDTemplate(BaseTemplate):
         super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
-    def _before_training_exp(self, **kwargs):
-        self.make_train_dataloader(**kwargs)
-        # Model Adaptation (e.g. freeze/add new units)
-        self.model = self.model_adaptation()
-        self.make_optimizer()
-        super()._before_training_exp(**kwargs)
-
     def _train_exp(
-        self, experience: CLExperience, eval_streams=None, **kwargs
+        self, experience: CLExperience, eval_streams, **kwargs
     ):
-        """Training loop over a single Experience object.
-
-        :param experience: CL experience information.
-        :param eval_streams: list of streams for evaluation.
-            If None: use the training experience for evaluation.
-            Use [] if you do not want to evaluate during training.
-        :param kwargs: custom arguments.
-        """
-        if eval_streams is None:
-            eval_streams = [experience]
-        for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Iterable):
-                eval_streams[i] = [exp]
-        for _ in range(self.train_epochs):
-            self._before_training_epoch(**kwargs)
-
-            if self._stop_training:  # Early stopping
-                self._stop_training = False
-                break
-
-            self.training_epoch(**kwargs)
-            self._after_training_epoch(**kwargs)
-
-    def _before_eval_exp(self, **kwargs):
-        self.make_eval_dataloader(**kwargs)
-        # Model Adaptation (e.g. freeze/add new units)
-        self.model = self.model_adaptation()
-        super()._before_eval_exp(**kwargs)
+        # Should be implemented in Observation Type
+        raise NotImplementedError()
 
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
-    def make_train_dataloader(self, **kwargs):
-        """Assign dataloader to self.dataloader."""
-        raise NotImplementedError()
-
-    def make_eval_dataloader(self, **kwargs):
-        """Assign dataloader to self.dataloader."""
-        raise NotImplementedError()
-
     def make_optimizer(self, **kwargs):
         """Optimizer initialization."""
+        # Should be implemented in Observation Type
         raise NotImplementedError()
 
     def criterion(self):
@@ -216,39 +192,8 @@ class BaseSGDTemplate(BaseTemplate):
         self._stop_training = True
 
     def training_epoch(self, **kwargs):
-        """Training epoch.
-
-        :param kwargs:
-        :return:
-        """
-        for self.mbatch in self.dataloader:
-            if self._stop_training:
-                break
-
-            self._unpack_minibatch()
-            self._before_training_iteration(**kwargs)
-
-            self.optimizer.zero_grad()
-            self.loss = 0
-
-            # Forward
-            self._before_forward(**kwargs)
-            self.mb_output = self.forward()
-            self._after_forward(**kwargs)
-
-            # Loss & Backward
-            self.loss += self.criterion()
-
-            self._before_backward(**kwargs)
-            self.backward()
-            self._after_backward(**kwargs)
-
-            # Optimization step
-            self._before_update(**kwargs)
-            self.optimizer_step()
-            self._after_update(**kwargs)
-
-            self._after_training_iteration(**kwargs)
+        # Should be implemented in Update Type
+        raise NotADirectoryError()
 
     def backward(self):
         """Run the backward pass."""
@@ -271,8 +216,152 @@ class BaseSGDTemplate(BaseTemplate):
 
             self._after_eval_iteration(**kwargs)
 
+    # ==================================================================> NEW
+
+    def maybe_adapt_model_and_make_optimizer(self):
+        # Should be implemented in observation type
+        raise NotImplementedError()
+
+    def _before_training_exp(self, **kwargs):
+        """Setup to train on a single experience."""
+        # Data Adaptation (e.g. add new samples/data augmentation)
+        self._before_train_dataset_adaptation(**kwargs)
+        self.train_dataset_adaptation(**kwargs)
+        self._after_train_dataset_adaptation(**kwargs)
+
+        self.make_train_dataloader(**kwargs)
+
+        # Model Adaptation (e.g. freeze/add new units)
+        # self.model = self.model_adaptation()
+        # self.make_optimizer()
+        self.maybe_adapt_model_and_make_optimizer()
+
+        super()._before_training_exp(**kwargs)
+
+    def _save_train_state(self):
+        """Save the training state which may be modified by the eval loop.
+
+        This currently includes: experience, adapted_dataset, dataloader,
+        is_training, and train/eval modes for each module.
+
+        TODO: we probably need a better way to do this.
+        """
+        state = super()._save_train_state()
+        new_state = {
+            "adapted_dataset": self.adapted_dataset,
+            "dataloader": self.dataloader,
+        }
+        return {**state, **new_state}
+
+    def train_dataset_adaptation(self, **kwargs):
+        """Initialize `self.adapted_dataset`."""
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.train()
+
+    def _load_train_state(self, prev_state):
+        super()._load_train_state(prev_state)
+        self.adapted_dataset = prev_state["adapted_dataset"]
+        self.dataloader = prev_state["dataloader"]
+
+    def _before_eval_exp(self, **kwargs):
+
+        # Data Adaptation
+        self._before_eval_dataset_adaptation(**kwargs)
+        self.eval_dataset_adaptation(**kwargs)
+        self._after_eval_dataset_adaptation(**kwargs)
+
+        self.make_eval_dataloader(**kwargs)
+        # Model Adaptation (e.g. freeze/add new units)
+        self.model = self.model_adaptation()
+
+        super()._before_eval_exp(**kwargs)
+
+    def make_train_dataloader(
+        self,
+        num_workers=0,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=False,
+        **kwargs
+    ):
+        """Data loader initialization.
+
+        Called at the start of each learning experience after the dataset
+        adaptation.
+
+        :param num_workers: number of thread workers for the data loading.
+        :param shuffle: True if the data should be shuffled, False otherwise.
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
+        """
+
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        self.dataloader = TaskBalancedDataLoader(
+            self.adapted_dataset,
+            oversample_small_groups=True,
+            num_workers=num_workers,
+            batch_size=self.train_mb_size,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            **other_dataloader_args
+        )
+
+    def make_eval_dataloader(
+        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+    ):
+        """
+        Initializes the eval data loader.
+        :param num_workers: How many subprocesses to use for data loading.
+            0 means that the data will be loaded in the main process.
+            (default: 0).
+        :param pin_memory: If True, the data loader will copy Tensors into CUDA
+            pinned memory before returning them. Defaults to True.
+        :param kwargs:
+        :return:
+        """
+        other_dataloader_args = {}
+
+        if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        collate_from_data_or_kwargs(self.adapted_dataset,
+                                    other_dataloader_args)
+        self.dataloader = DataLoader(
+            self.adapted_dataset,
+            num_workers=num_workers,
+            batch_size=self.eval_mb_size,
+            pin_memory=pin_memory,
+            **other_dataloader_args
+        )
+
+    def eval_dataset_adaptation(self, **kwargs):
+        """Initialize `self.adapted_dataset`."""
+        self.adapted_dataset = self.experience.dataset
+        self.adapted_dataset = self.adapted_dataset.eval()
+
+    def model_adaptation(self, model=None):
+        """Adapts the model to the current data.
+
+        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+        """
+        if model is None:
+            model = self.model
+        avalanche_model_adaptation(model, self.experience)
+        return model.to(self.device)
+
     def _unpack_minibatch(self):
         """Move to device"""
+        # First verify the mini-batch
+        self._check_minibatch()
+
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
 
@@ -322,6 +411,20 @@ class BaseSGDTemplate(BaseTemplate):
     def _after_eval_iteration(self, **kwargs):
         trigger_plugins(self, "after_eval_iteration", **kwargs)
 
+    # ==================================================================> NEW
+
+    def _before_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "before_train_dataset_adaptation", **kwargs)
+
+    def _after_train_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "after_train_dataset_adaptation", **kwargs)
+
+    def _before_eval_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "before_eval_dataset_adaptation", **kwargs)
+
+    def _after_eval_dataset_adaptation(self, **kwargs):
+        trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
+
 
 class PeriodicEval(SupervisedPlugin):
     """Schedules periodic evaluation during training.
@@ -345,7 +448,7 @@ class PeriodicEval(SupervisedPlugin):
             accuracy before training.
         """
         super().__init__()
-        assert peval_mode in {"epoch", "iteration"}
+        assert peval_mode in {"experience", "epoch", "iteration"}
         self.eval_every = eval_every
         self.peval_mode = peval_mode
         self.do_initial = do_initial and eval_every > -1
@@ -378,11 +481,6 @@ class PeriodicEval(SupervisedPlugin):
             pass
         self.do_final = self.do_final and self.eval_every > -1
 
-    def after_training_exp(self, strategy, **kwargs):
-        """Final eval after a learning experience."""
-        if self.do_final:
-            self._peval(strategy, **kwargs)
-
     def _peval(self, strategy, **kwargs):
         for el in strategy._eval_streams:
             strategy.eval(el, **kwargs)
@@ -391,16 +489,31 @@ class PeriodicEval(SupervisedPlugin):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy, **kwargs)
 
-    def after_training_epoch(self, strategy: "BaseSGDTemplate", **kwargs):
+    def after_training_epoch(self, strategy: "BaseSGDTemplate",
+                             **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
             self._maybe_peval(strategy, strategy.clock.train_exp_epochs,
                               **kwargs)
 
-    def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
+    def after_training_iteration(self, strategy: "BaseSGDTemplate",
+                                 **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":
             self._maybe_peval(strategy, strategy.clock.train_exp_iterations,
                               **kwargs)
+
+    # ---> New
+    def after_training_exp(self, strategy, **kwargs):
+        """Final eval after a learning experience."""
+        if self.do_final:
+            self._peval(strategy, **kwargs)
+
+    # def after_training_exp(self, strategy: "BaseOnlineSGDTemplate", **kwargs):
+    #     """Periodic eval controlled by `self.eval_every` and
+    #     `self.peval_mode`."""
+    #     if self.peval_mode == "experience":
+    #         self._maybe_peval(strategy, strategy.clock.train_exp_counter,
+    #                           **kwargs)
