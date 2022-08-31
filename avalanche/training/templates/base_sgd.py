@@ -47,7 +47,7 @@ class BaseSGDTemplate(BaseTemplate):
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -346,16 +346,6 @@ class BaseSGDTemplate(BaseTemplate):
         """Initialize `self.adapted_dataset`."""
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
-
-    def model_adaptation(self, model=None):
-        """Adapts the model to the current data.
-
-        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
-        """
-        if model is None:
-            model = self.model
-        avalanche_model_adaptation(model, self.experience)
-        return model.to(self.device)
 
     def _unpack_minibatch(self):
         """Move to device"""

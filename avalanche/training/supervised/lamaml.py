@@ -197,7 +197,8 @@ class LaMAML(SupervisedMetaLearningTemplate):
             batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
 
             # We assume that samples for inner update are from the same task
-            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i, batch_t_i)
+            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i,
+                                   batch_t_i)
 
             # Compute meta-loss with the combination of batch and buffer samples
             logits_meta = avalanche_forward(

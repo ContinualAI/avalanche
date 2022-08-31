@@ -3,6 +3,7 @@ from typing import Iterable
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.dynamic_optimizers import update_optimizer
+from avalanche.models.utils import avalanche_model_adaptation
 
 
 class OnlineObservation:
@@ -43,6 +44,32 @@ class OnlineObservation:
                              self.model_params_before_adaptation,
                              self.model.parameters(),
                              reset_state=False)
+
+    def model_adaptation(self, model=None):
+        """Adapts the model to the current data.
+
+        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+        """
+        if model is None:
+            model = self.model
+
+        # For training:
+        if isinstance(self.experience, OnlineCLExperience):
+            # If the strategy has access to task boundaries, adapt the model
+            # for the whole origin experience to add the
+            if self.experience.access_task_boundaries:
+                avalanche_model_adaptation(model,
+                                           self.experience.origin_experience)
+            else:
+                self.model_params_before_adaptation = list(model.parameters())
+                avalanche_model_adaptation(model, self.experience)
+
+        # For evaluation, the experience is not necessarily an online
+        # experience:
+        else:
+            avalanche_model_adaptation(model, self.experience)
+
+        return model.to(self.device)
 
     def maybe_adapt_model_and_make_optimizer(self):
         # If strategy has access to the task boundaries, and the current

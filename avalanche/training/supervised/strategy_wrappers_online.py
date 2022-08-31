@@ -15,7 +15,7 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.templates.common_templates import (
+from avalanche.training.templates import (
     OnlineSupervisedTemplate,
 )
 

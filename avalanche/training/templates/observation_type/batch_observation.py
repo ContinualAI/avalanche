@@ -2,6 +2,7 @@ from typing import Iterable
 
 from avalanche.benchmarks import CLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
+from avalanche.models.utils import avalanche_model_adaptation
 
 
 class BatchObservation:
@@ -30,6 +31,16 @@ class BatchObservation:
 
             self.training_epoch(**kwargs)
             self._after_training_epoch(**kwargs)
+
+    def model_adaptation(self, model=None):
+        """Adapts the model to the current data.
+
+        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+        """
+        if model is None:
+            model = self.model
+        avalanche_model_adaptation(model, self.experience)
+        return model.to(self.device)
 
     def make_optimizer(self):
         """Optimizer initialization.
