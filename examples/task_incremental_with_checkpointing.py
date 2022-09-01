@@ -29,11 +29,12 @@ from avalanche.benchmarks import CLExperience, SplitCIFAR100
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
-from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
+from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger, \
+    WandBLogger
 from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, CWRStarPlugin, \
-    ReplayPlugin
+    ReplayPlugin, GDumbPlugin, LwFPlugin, SynapticIntelligencePlugin, EWCPlugin
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
 from avalanche.training.supervised import Naive
@@ -52,13 +53,16 @@ def main(args):
     print('Using device', device)
 
     # CL Benchmark Creation
-    scenario = SplitCIFAR100(n_experiences=5, return_task_id=True)
+    scenario = SplitCIFAR100(n_experiences=5, return_task_id='si' not in args.plugins)
     train_stream: Sequence[CLExperience] = scenario.train_stream
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Define the model (and load initial weights if necessary)
-    model = SimpleMLP(input_size=32 * 32 * 3, num_classes=scenario.n_classes//5)
-    model = as_multitask(model, 'classifier')
+    if not 'si' in args.plugins:
+        model = SimpleMLP(input_size=32 * 32 * 3, num_classes=scenario.n_classes//5)
+        model = as_multitask(model, 'classifier')
+    else:
+        model = SimpleMLP(input_size=32 * 32 * 3, num_classes=scenario.n_classes)
 
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
@@ -92,6 +96,14 @@ def main(args):
                     model, freeze_remaining_model=False)
             elif cli_plugin == 'replay':
                 plugin_instance = ReplayPlugin(mem_size=500)
+            elif cli_plugin == 'gdumb':
+                plugin_instance = GDumbPlugin(mem_size=500)
+            elif cli_plugin == 'lwf':
+                plugin_instance = LwFPlugin()
+            elif cli_plugin == 'si':
+                plugin_instance = SynapticIntelligencePlugin(0.001)
+            elif cli_plugin == 'ewc':
+                plugin_instance = EWCPlugin(0.001)
             else:
                 raise ValueError('Unrecognized plugin name from CLI.')
             print('Adding plugin', plugin_instance)
@@ -111,7 +123,13 @@ def main(args):
                 # TextLogger(open('text_logger_test_out.txt', 'w')),
                 InteractiveLogger(),
                 TensorboardLogger(f'./logs/checkpointing{args.checkpoint_at}_'
-                                  f'{cli_plugin_names}')
+                                  f'{cli_plugin_names}'),
+                WandBLogger(
+                    project_name='AvalancheCheckpointing',
+                    run_name=f'checkpointing{args.checkpoint_at}_'
+                             f'{cli_plugin_names}',
+
+                )
             ]
         )
 

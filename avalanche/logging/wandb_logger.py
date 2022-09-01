@@ -121,10 +121,19 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
     def before_run(self):
         if self.wandb is None:
             self.import_wandb()
-        if self.init_kwargs:
-            self.wandb.init(**self.init_kwargs)
-        else:
-            self.wandb.init()
+
+        if self.init_kwargs is None:
+            self.init_kwargs = dict()
+
+        run_id = self.init_kwargs.get('id', None)
+        if run_id is None:
+            run_id = os.environ.get("WANDB_RUN_ID", None)
+        if run_id is None:
+            run_id = self.wandb.util.generate_id()
+
+        self.init_kwargs['id'] = run_id
+
+        self.wandb.init(**self.init_kwargs)
         self.wandb.run._label(repo="Avalanche")
 
     def after_training_exp(
@@ -140,6 +149,7 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         self.exp_count += 1
 
     def log_single_metric(self, name, value, x_plot):
+        print('W&B xplot:', x_plot)
         self.step = x_plot
 
         if isinstance(value, AlternativeValues):
@@ -200,5 +210,23 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
                     if self.uri is not None:
                         artifact.add_reference(self.uri, name=artifact_name)
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if 'wandb' in state:
+            del state['wandb']
+        return state
 
-__all__ = ["WandBLogger"]
+    def __setstate__(self, state):
+        print('[W&B logger] Resuming from checkpoint...')
+        self.__dict__ = state
+        if self.init_kwargs is None:
+            self.init_kwargs = dict()
+        self.init_kwargs['resume'] = 'allow'
+
+        self.wandb = None
+        self.before_run()
+
+
+__all__ = [
+    "WandBLogger"
+]
