@@ -163,14 +163,14 @@ class AvalancheDatasetTests(unittest.TestCase):
         tgs = DefaultTransformGroups((CenterCrop(16), None))
         dataset_mnist = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
-        taskl = DataAttribute("task_labels", ConstantSequence(0, len(dataset_mnist)))
+        taskl = DataAttribute(ConstantSequence(0, len(dataset_mnist)), "task_labels")
         tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = AvalancheDataset(
             dataset_mnist,
             data_attributes=[taskl],
             transform_groups=tgs)
 
-        taskl = DataAttribute("task_labels", ConstantSequence(2, len(dataset_mnist)))
+        taskl = DataAttribute(ConstantSequence(2, len(dataset_mnist)), "task_labels")
         tgs = DefaultTransformGroups((None, lambda target: -2))
         dataset2 = AvalancheDataset(
             dataset_mnist,

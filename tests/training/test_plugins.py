@@ -351,6 +351,12 @@ class PluginTests(unittest.TestCase):
             set(bench1.streams.keys()), set(bench2.streams.keys())
         )
 
+        def get_mbatch(data, batch_size=5):
+            dl = DataLoader(data, shuffle=False,
+                            batch_size=batch_size,
+                            collate_fn=data.collate_fn)
+            return next(iter(dl))
+
         for stream_name in list(bench1.streams.keys()):
             for exp1, exp2 in zip(
                 bench1.streams[stream_name], bench2.streams[stream_name]
@@ -358,8 +364,8 @@ class PluginTests(unittest.TestCase):
                 dataset1 = exp1.dataset
                 dataset2 = exp2.dataset
                 for t_idx in range(3):
-                    dataset1_content = dataset1[:][t_idx]
-                    dataset2_content = dataset2[:][t_idx]
+                    dataset1_content = get_mbatch(dataset1, len(dataset1))[t_idx]
+                    dataset2_content = get_mbatch(dataset2, len(dataset2))[:][t_idx]
                     self.assertTrue(
                         torch.equal(dataset1_content, dataset2_content)
                     )

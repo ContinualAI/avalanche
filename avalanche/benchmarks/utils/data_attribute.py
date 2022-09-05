@@ -8,18 +8,31 @@ class DataAttribute:
     """Data attributes manage sample-wise information such as task or
     class labels.
 
-    provides access to unique values (`self.uniques`) and their indices (`self.val_to_idx`).
-    Both fields are initialized lazily.
+    It provides access to unique values (`self.uniques`) and their indices
+    (`self.val_to_idx`). Both fields are initialized lazily.
+
+    Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, name: str, data: IDataset, append_to_minibatch=False):
+    def __init__(self, data: IDataset,
+                 name: str=None,
+                 use_in_getitem=False):
+        """Data Attribute.
+
+        :param data: a sequence of values, one for each sample.
+        :param name: a name that uniquely identifies the attribute.
+            It is used by the dataset to dynamically it to its attributes.
+        :param use_in_getitem: If True, `AvalancheDataset` will add
+            the value at the end of each sample.
+        """
         self.name = name
-        self.append_to_minibatch = append_to_minibatch
+        self.use_in_getitem = use_in_getitem
 
         self._data = self._optimize_sequence(data)
 
         self._uniques = None  # set()
         self._val_to_idx = None  # dict()
+        self._count = None  # dict()
 
         if len(data) == 0:
             return
@@ -46,6 +59,17 @@ class DataAttribute:
         return self._uniques
 
     @property
+    def count(self):
+        """Dictionary of value -> count."""
+        if self._count is None:
+            self._count = {}
+            for val in self.uniques:
+                self._count[val] = 0
+            for val in self._data:
+                self._count[val] += 1
+        return self._count
+
+    @property
     def val_to_idx(self):
         """Dictionary mapping unique values to indices."""
         if self._val_to_idx is None:
@@ -61,19 +85,14 @@ class DataAttribute:
         return self._val_to_idx
 
     def subset(self, indices):
-        return DataAttribute(
-            self.name,
-            _FlatDataSubset(self._data, indices),
-            append_to_minibatch=self.append_to_minibatch
-        )
+        return DataAttribute(_FlatDataSubset(self._data, indices), self.name,
+                             use_in_getitem=self.use_in_getitem)
 
     def concat(self, other: "DataAttribute"):
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
-        return DataAttribute(
-            self.name, _FlatDataConcat([self._data, other._data]),
-            append_to_minibatch=self.append_to_minibatch
-        )
+        return DataAttribute(_FlatDataConcat([self._data, other._data]), self.name,
+                             use_in_getitem=self.use_in_getitem)
 
     @staticmethod
     def _optimize_sequence(seq):
@@ -85,4 +104,4 @@ class DataAttribute:
 
 class TaskLabels(DataAttribute):
     def __init__(self, task_labels):
-        super().__init__('task_labels', task_labels, append_to_minibatch=True)
+        super().__init__(task_labels, 'task_labels', use_in_getitem=True)

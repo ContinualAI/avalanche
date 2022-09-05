@@ -216,7 +216,7 @@ class AvalancheDataset(Dataset[T_co]):
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
         elem = list(self._getitem_recursive_call(idx, self._transform_groups.current_group))
         for da in self._data_attributes.values():
-            if da.append_to_minibatch:
+            if da.use_in_getitem:
                 elem.append(da[idx])
         return elem
 

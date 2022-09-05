@@ -275,9 +275,9 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co], _ClassificationAttr
                     "number of patterns in the dataset. Got {}, expected "
                     "{}!".format(len(targets), len(dataset))
                 )
-            return DataAttribute("targets", targets)
+            return DataAttribute(targets, "targets")
         targets = _make_target_from_supported_dataset(dataset, targets_adapter)
-        return DataAttribute("targets", targets)
+        return DataAttribute(targets, "targets")
 
     @staticmethod
     def _init_task_labels(dataset, task_labels, check_shape=True):
@@ -295,7 +295,7 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co], _ClassificationAttr
             tls = SubSequence(task_labels, converter=int)
         else:
             tls = _make_task_labels_from_supported_dataset(dataset)
-        return DataAttribute("targets_task_labels", tls, append_to_minibatch=True)
+        return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
     def __getitem__(self, idx: int):
         elem = self._getitem_recursive_call(idx, self._transform_groups.current_group)
@@ -435,7 +435,7 @@ def AvalancheClassificationSubset(
 
     if class_mapping is not None:  # update targets
         l = [class_mapping[el] for el in targets]
-        targets = DataAttribute('targets', l)
+        targets = DataAttribute(l, 'targets')
 
     if indices is None:
         data = _AvalancheSimpleClassificationDataset(

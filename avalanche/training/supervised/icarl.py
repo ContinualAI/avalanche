@@ -145,7 +145,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         if strategy.clock.train_exp_counter != 0:
             memory = AvalancheTensorClassificationDataset(
                 torch.cat(self.x_memory).cpu(),
-                list(itertools.chain.from_iterable(self.y_memory)),
+                torch.tensor(list(itertools.chain.from_iterable(self.y_memory))),
                 transform=self.buffer_transform,
                 target_transform=None,
             )

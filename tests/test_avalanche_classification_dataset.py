@@ -67,7 +67,6 @@ def get_mbatch(data, batch_size=5):
 
 
 class AvalancheDatasetTests(unittest.TestCase):
-
     def test_avalanche_dataset_multi_param_transform(self):
         dataset_mnist = MNIST(
             root=default_dataset_location("mnist"), download=True
