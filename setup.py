@@ -80,6 +80,7 @@ setuptools.setup(
         'setuptools<=59.5.0'
     ],
     extras_require=get_extra_requires('extra_dependencies.txt',
-                                      add_all=True)
+                                      add_all=True),
+    include_package_data=True
 )
 

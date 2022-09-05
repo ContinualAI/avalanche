@@ -33,7 +33,6 @@ class EvaluationPlugin:
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
         loggers: Union["BaseLogger", Sequence["BaseLogger"]] = None,
         collect_all=True,
-        benchmark=None,
         strict_checks=False
     ):
         """Creates an instance of the evaluation plugin.
@@ -50,8 +49,6 @@ class EvaluationPlugin:
         super().__init__()
         self.collect_all = collect_all
         self.strict_checks = strict_checks
-
-        self.benchmark = benchmark
 
         flat_metrics_list = []
         for metric in metrics:

@@ -169,7 +169,7 @@ class JointTraining(SupervisedTemplate):
         for experience in self._experiences:
             for module in model.modules():
                 if isinstance(module, DynamicModule):
-                    module.adaptation(experience.dataset)
+                    module.adaptation(experience)
             model = model.to(self.device)
         return model
 
