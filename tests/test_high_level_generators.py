@@ -136,15 +136,15 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         wf.write("{} {}\n".format(
                             os.path.join(rel_dir, name), label))
 
-        generic_benchmark = filelist_benchmark(
-            dirpath,
-                list_paths,
-                [list_paths[0]],
-                task_labels=[0, 0],
-                complete_test_set_only=True,
-                train_transform=ToTensor(),
-                eval_transform=ToTensor(),
-            )
+            generic_benchmark = filelist_benchmark(
+                dirpath,
+                    list_paths,
+                    [list_paths[0]],
+                    task_labels=[0, 0],
+                    complete_test_set_only=True,
+                    train_transform=ToTensor(),
+                    eval_transform=ToTensor(),
+                )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
