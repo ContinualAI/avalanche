@@ -1,3 +1,14 @@
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 19-07-2022                                                             #
+# Author(s): Antonio Carta                                                     #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
 import torch
 
 from .dataset_definitions import IDataset
@@ -85,10 +96,22 @@ class DataAttribute:
         return self._val_to_idx
 
     def subset(self, indices):
+        """Subset operation.
+
+        Return a new `DataAttribute` by keeping only the elements in `indices`.
+
+        :param indices: position of the elements in the new subset
+        :return: the new `DataAttribute`
+        """
         return DataAttribute(_FlatDataSubset(self._data, indices), self.name,
                              use_in_getitem=self.use_in_getitem)
 
     def concat(self, other: "DataAttribute"):
+        """Concatenation operation.
+
+        :param other: the other `DataAttribute`
+        :return: the new concatenated `DataAttribute`
+        """
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
         return DataAttribute(_FlatDataConcat([self._data, other._data]), self.name,
@@ -103,5 +126,8 @@ class DataAttribute:
 
 
 class TaskLabels(DataAttribute):
+    """Task labels are `DataAttribute`s that are automatically appended to the
+    mini-batch."""
+
     def __init__(self, task_labels):
         super().__init__(task_labels, 'task_labels', use_in_getitem=True)

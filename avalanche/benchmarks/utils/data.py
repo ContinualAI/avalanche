@@ -44,37 +44,40 @@ TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 class AvalancheDataset(Dataset[T_co]):
     """Avalanche Dataset.
 
-    This class extends pytorch Datasets with some additional functionality:
+    Avlanche dataset are pytorch-compatible Datasets with some additional
+    functionality such as:
     - management of transformation groups via :class:`AvalancheTransform`
     - support for sample attributes such as class targets and task labels
 
-    This dataset can also be used to apply several advanced operations involving
-    transformations. For instance, it allows the user to add and replace
-    transformations, freeze them so that they can't be changed, etc.
+    Data Attributes
+    ---------------
 
-    This dataset also allows the user to keep distinct transformations groups.
-    Simply put, a transformation group is a pair of transform+target_transform
-    (exactly as in torchvision datasets). This dataset natively supports keeping
-    two transformation groups: the first, 'train', contains transformations
-    applied to training patterns. Those transformations usually involve some
-    kind of data augmentation. The second one is 'eval', that will contain
-    transformations applied to test patterns. Having both groups can be
-    useful when, for instance, in need to test on the training data (as this
-    process usually involves removing data augmentation operations). Switching
-    between transformations can be easily achieved by using the
-    :func:`train` and :func:`eval` methods.
+    Avalanche datasets manage sample-wise information such as class or task
+    labels via :class:`DataAttribute`.
 
-    Moreover, arbitrary transformation groups can be added and used. For more
-    info see the constructor and the :func:`with_transforms` method.
-    AvalancheDataset can switch between the 'train' and
-    'eval' groups by calling the ``train()`` and ``eval()`` methods. When
-    using custom groups one can use the ``with_transforms(group_name)``
-    method instead.
+    Transformation Groups
+    ---------------------
 
-    This dataset will try to inherit the task labels from the input
-    dataset. If none are available and none are given via the `task_labels`
-    parameter, each pattern will be assigned a default task label "0".
-    See the constructor for more details.
+    Avalanche datasets manage transformation via transformation groups.
+    Simply put, a transformation group is a named preprocessing function
+    (as in torchvision datasets). By default, Avalanche expects
+    two transformation groups:
+    - 'train', which contains transformations applied to training patterns.
+    - 'eval', that contain transformations applied to test patterns.
+
+    Having both groups allows to use different transformations during training
+    and evaluation and to seamlessly switch between them by using the
+    :func:`train` and :func:`eval` methods. Arbitrary transformation groups
+    can be added and used.  If you define custom groups, you can use them by
+    calling the `:func:with_transforms` method.
+
+    switching to a different transformation group by calling the ``train()``,
+    ``eval()`` or ``with_transforms` methods always returns a new dataset,
+    levaing the original one unchanged.
+
+    Ttransformation groups can be manipulated by removing, freezing, or
+    replacing transformations. Each operation returns a new dataset, leaving
+    the original one unchanged.
     """
 
     def __init__(
@@ -104,7 +107,6 @@ class AvalancheDataset(Dataset[T_co]):
 
         # original dataset. Don't use this attribute directly because some subclasses
         # (e.g. AvalancheConcatDataset) don't have it.
-        # This attribute is a list to make it compatible with AvalancheConcatDataset
         self._dataset = dataset
         self._data_attributes = {}
 
@@ -147,31 +149,17 @@ class AvalancheDataset(Dataset[T_co]):
         dataset.
         """
 
-    def print_frozen_transforms(self):
-        """Prints the current frozen transformations."""
-        print("FROZEN TRANSFORMS:\n" + str(self._frozen_transform_groups))
-        for dd in self.data_list:
-            if isinstance(dd, AvalancheDataset):
-                print("PARENT FROZEN:\n")
-                dd.print_frozen_transforms()
-
-    def print_nonfrozen_transforms(self):
-        """Prints the current non-frozen transformations."""
-        print("TRANSFORMS:\n" + str(self._transform_groups))
-        for dd in self.data_list:
-            if isinstance(dd, AvalancheDataset):
-                print("PARENT TRANSFORMS:\n")
-                dd.print_nonfrozen_transforms()
-
-    def print_transforms(self):
-        """Prints the current transformations."""
-        self.print_frozen_transforms()
-        self.print_nonfrozen_transforms()
-
     @property
     def transform(self):
         raise AttributeError(
-            "Cannot modify transform directly. Use transform_groups "
+            "Cannot access or modify transform directly. Use transform_groups "
+            "methods such as `replace_current_transform_group`. "
+            "See the documentation for more info.")
+
+    @transform.setter
+    def transform(self, v):
+        raise AttributeError(
+            "Cannot access or modify transform directly. Use transform_groups "
             "methods such as `replace_current_transform_group`. "
             "See the documentation for more info.")
 
@@ -663,6 +651,33 @@ class AvalancheConcatDataset(AvalancheDataset[T_co]):
             else:
                 new_data_list.append(dataset)
         self._datasets = new_data_list
+
+
+def _print_frozen_transforms(self):
+    """Internal debugging method. Do not use it.
+    Prints the current frozen transformations."""
+    print("FROZEN TRANSFORMS:\n" + str(self._frozen_transform_groups))
+    for dd in self.data_list:
+        if isinstance(dd, AvalancheDataset):
+            print("PARENT FROZEN:\n")
+            dd.print_frozen_transforms()
+
+
+def _print_nonfrozen_transforms(self):
+    """Internal debugging method. Do not use it.
+    Prints the current non-frozen transformations."""
+    print("TRANSFORMS:\n" + str(self._transform_groups))
+    for dd in self.data_list:
+        if isinstance(dd, AvalancheDataset):
+            print("PARENT TRANSFORMS:\n")
+            dd.print_nonfrozen_transforms()
+
+
+def _print_transforms(self):
+    """Internal debugging method. Do not use it.
+    Prints the current transformations."""
+    self._print_frozen_transforms()
+    self._print_nonfrozen_transforms()
 
 
 def _has_empty_transforms(dataset: AvalancheDataset):

@@ -1,3 +1,13 @@
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 19-07-2022                                                             #
+# Author(s): Lorenzo Pellegrini, Antonio Carta                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
 """
     Avalanche transformations are multi-argument.
 """

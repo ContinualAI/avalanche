@@ -1604,46 +1604,18 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             original_dataset, transform=ToPILImage()
         )  # TRANSFORMS: ToTensor -> ToPILImage
         self.assertIsInstance(dataset_transform[0][0], Image)
-        print("dataset_transform:")
-        print(dataset_transform.print_transforms())
-        print("\n\n")
 
         dataset_frozen = dataset_transform.freeze_transforms()
-        print("dataset_transform:")
-        print(dataset_transform.print_transforms())
-        print("\n\n")
-        print("dataset_frozen:")
-        print(dataset_frozen.print_transforms())
-        print("\n\n")
-        # dataset_frozen
-        # FROZEN: ToTensor -> ToPILImage
-        # TRANSFORMS: None
-        # dataset_transform
-        # FROZEN: None
-        # TRANSFORMS: ToTensor -> ToPILImage
         self.assertIsInstance(dataset_frozen[0][0], Image)
 
         dataset_transform = dataset_transform.replace_current_transform_group(None)
-        # FROZEN: ToTensor -> ToPILImage
-        # TRANSFORMS: None
-        print("dataset_frozen:")
-        print(dataset_frozen.print_transforms())
-        print("\n\n")
-        print("dataset_transform:")
-        print(dataset_transform.print_transforms())
         self.assertIsInstance(dataset_transform[0][0], Tensor)
         self.assertIsInstance(dataset_frozen[0][0], Image)
 
         dataset_frozen = dataset_frozen.replace_current_transform_group(ToTensor())
-        print("dataset_frozen:")
-        print(dataset_frozen.print_transforms())
-        print("\n\n")
         self.assertIsInstance(dataset_frozen[0][0], Tensor)
 
         dataset_frozen2 = dataset_frozen.freeze_transforms()
-        print("dataset_frozen2:")
-        print(dataset_frozen2.print_transforms())
-        print("\n\n")
         x2, *_ = dataset_frozen2[0]
         self.assertIsInstance(x2, Tensor)
 
