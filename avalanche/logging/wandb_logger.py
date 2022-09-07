@@ -149,7 +149,6 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         self.exp_count += 1
 
     def log_single_metric(self, name, value, x_plot):
-        print('W&B xplot:', x_plot)
         self.step = x_plot
 
         if isinstance(value, AlternativeValues):

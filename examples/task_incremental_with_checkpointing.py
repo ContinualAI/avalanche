@@ -25,7 +25,8 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks import CLExperience, SplitCIFAR100
+from avalanche.benchmarks import CLExperience, SplitCIFAR100, CLStream51, \
+    SplitInaturalist, SplitOmniglot
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
@@ -41,6 +42,7 @@ from avalanche.training.supervised import Naive
 
 
 def main(args):
+    print(args)
     RNGManager.set_random_seeds(1234)
     torch.use_deterministic_algorithms(True)
 
@@ -52,17 +54,33 @@ def main(args):
     )
     print('Using device', device)
 
+    use_tasks = 'si' not in args.plugins and 'cwr' not in args.plugins \
+        and args.benchmark != 'Stream51'
+    input_size = 32*32*3
     # CL Benchmark Creation
-    scenario = SplitCIFAR100(n_experiences=5, return_task_id='si' not in args.plugins)
+    if args.benchmark == 'SplitCifar100':
+        scenario = SplitCIFAR100(n_experiences=5, return_task_id=use_tasks)
+    elif args.benchmark == 'SplitCifar10':
+        scenario = SplitCIFAR10(n_experiences=5, return_task_id=use_tasks)
+    elif args.benchmark == 'Stream51':
+        scenario = CLStream51()
+    elif args.benchmark == 'SplitInaturalist':
+        scenario = SplitInaturalist(return_task_id=use_tasks,
+                                    download=True)
+    elif args.benchmark == 'SplitOmniglot':
+        scenario = SplitOmniglot(n_experiences=4, return_task_id=use_tasks)
+        input_size = 105*105*1
+    else:
+        raise ValueError('Unrecognized benchmark name from CLI.')
     train_stream: Sequence[CLExperience] = scenario.train_stream
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Define the model (and load initial weights if necessary)
-    if not 'si' in args.plugins:
-        model = SimpleMLP(input_size=32 * 32 * 3, num_classes=scenario.n_classes//5)
+    if use_tasks:
+        model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes//5)
         model = as_multitask(model, 'classifier')
     else:
-        model = SimpleMLP(input_size=32 * 32 * 3, num_classes=scenario.n_classes)
+        model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes)
 
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
@@ -122,13 +140,14 @@ def main(args):
             loggers=[
                 # TextLogger(open('text_logger_test_out.txt', 'w')),
                 InteractiveLogger(),
-                TensorboardLogger(f'./logs/checkpointing{args.checkpoint_at}_'
+                TensorboardLogger(f'./logs/checkpointing_{args.benchmark}_'
+                                  f'{args.checkpoint_at}_'
                                   f'{cli_plugin_names}'),
                 WandBLogger(
                     project_name='AvalancheCheckpointing',
-                    run_name=f'checkpointing{args.checkpoint_at}_'
-                             f'{cli_plugin_names}',
-
+                    run_name=f'checkpointing_{args.benchmark}_'
+                             f'{args.checkpoint_at}_'
+                             f'{cli_plugin_names}'
                 )
             ]
         )
@@ -160,7 +179,13 @@ if __name__ == "__main__":
         "--cuda",
         type=int,
         default=0,
-        help="Select zero-indexed cuda device. -1 to use CPU.",
+        help="Select zero-indexed cuda device. -1 to use CPU."
+    )
+    parser.add_argument(
+        "--benchmark",
+        type=str,
+        default='SplitCifar100',
+        help="The benchmark to use."
     )
     parser.add_argument(
         "--checkpoint_at",
