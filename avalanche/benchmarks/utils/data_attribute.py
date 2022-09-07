@@ -12,7 +12,7 @@
 import torch
 
 from .dataset_definitions import IDataset
-from .flattened_data import _FlatDataSubset, _FlatDataConcat, ConstantSequence
+from .flattened_data import _FlatDataSubset, _FlatDataConcat, ConstantSequence, FlatData
 
 
 class DataAttribute:
@@ -32,14 +32,15 @@ class DataAttribute:
 
         :param data: a sequence of values, one for each sample.
         :param name: a name that uniquely identifies the attribute.
-            It is used by the dataset to dynamically it to its attributes.
+            It is used by `AvalancheDataset` to dynamically add it to its
+            attributes.
         :param use_in_getitem: If True, `AvalancheDataset` will add
             the value at the end of each sample.
         """
         self.name = name
         self.use_in_getitem = use_in_getitem
 
-        self._data = self._optimize_sequence(data)
+        self._data = self._normalize_sequence(data)
 
         self._uniques = None  # set()
         self._val_to_idx = None  # dict()
@@ -118,10 +119,12 @@ class DataAttribute:
                              use_in_getitem=self.use_in_getitem)
 
     @staticmethod
-    def _optimize_sequence(seq):
+    def _normalize_sequence(seq):
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
-            return seq.tolist()
+            seq = seq.tolist()
+        if not isinstance(seq, FlatData):
+            return FlatData(seq)
         return seq
 
 

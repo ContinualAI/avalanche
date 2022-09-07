@@ -1089,6 +1089,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
+            print(idx)
             print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
             _avalanche_datatree_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
@@ -1097,7 +1098,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
-            curr_targets = torch.tensor(curr_dataset.targets)
+            curr_targets = torch.tensor(list(curr_dataset.targets))
             # self.assertTrue(torch.equal(tensor_y[true_indices[-idx]], curr_targets))
             for idx_internal in range(idx + 1):
                 # curr_dataset is the concat of idx+1 datasets.
