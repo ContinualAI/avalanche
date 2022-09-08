@@ -9,28 +9,26 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 """
-This example trains on Split CIFAR10 with Naive strategy.
-In this example each experience has a different task label.
-We use a multi-head model with a separate classifier for each task.
+Example on how to use the checkpoint plugin.
+
+This is basically a vanilla Avalanche main script, but with the replay
+functionality enabled. Proper comments are provided to point out the changes
+required to use the checkpoint plugin.
 """
 
 import argparse
-import random
-from collections import defaultdict
 from typing import Sequence
 
-import dill
-import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks import CLExperience, SplitCIFAR100, CLStream51, \
-    SplitInaturalist, SplitOmniglot
+    SplitOmniglot
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
-from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger, \
+from avalanche.logging import InteractiveLogger, TensorboardLogger, \
     WandBLogger
 from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
@@ -42,11 +40,17 @@ from avalanche.training.supervised import Naive
 
 
 def main(args):
-    print(args)
+    # FIRST CHANGE: SET THE RANDOM SEEDS
+    # In fact, you should to this no matter the checkpointing functionality.
+    # Using `use_deterministic_algorithms` may require setting the
+    # CUBLAS_WORKSPACE_CONFIG=:4096:8 environment variable.
+
+    # Remember to load checkpoints by setting the same random seed used when
+    # creating them...
     RNGManager.set_random_seeds(1234)
     torch.use_deterministic_algorithms(True)
 
-    # Config
+    # Nothing new here...
     device = torch.device(
         f"cuda:{args.cuda}"
         if torch.cuda.is_available() and args.cuda >= 0
@@ -54,6 +58,7 @@ def main(args):
     )
     print('Using device', device)
 
+    # Code used to select the benchmark: not checkpoint-related
     use_tasks = 'si' not in args.plugins and 'cwr' not in args.plugins \
         and args.benchmark != 'Stream51'
     input_size = 32*32*3
@@ -64,9 +69,8 @@ def main(args):
         scenario = SplitCIFAR10(n_experiences=5, return_task_id=use_tasks)
     elif args.benchmark == 'Stream51':
         scenario = CLStream51()
-    elif args.benchmark == 'SplitInaturalist':
-        scenario = SplitInaturalist(return_task_id=use_tasks,
-                                    download=True)
+        scenario.n_classes = 51
+        input_size = 224*224*3
     elif args.benchmark == 'SplitOmniglot':
         scenario = SplitOmniglot(n_experiences=4, return_task_id=use_tasks)
         input_size = 105*105*1
@@ -76,17 +80,31 @@ def main(args):
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Define the model (and load initial weights if necessary)
+    # Again, not checkpoint-related
     if use_tasks:
-        model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes//5)
+        model = SimpleMLP(input_size=input_size,
+                          num_classes=scenario.n_classes // 5)
         model = as_multitask(model, 'classifier')
     else:
         model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes)
 
-    # Prepare for training & testing
+    # Prepare for training & testing: not checkpoint-related
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     criterion = CrossEntropyLoss()
 
-    # Define the checkpoint plugin
+    # SECOND CHANGE: INSTANTIATE THE CHECKPOINT PLUGIN
+    # FileSystemCheckpointStorage is a good default choice.
+    # The provided directory should point to the SPECIFIC experiment: do not
+    # re-use the same folder for different experiments/runs.
+    # Obvious noob advice: do not use a runtime-computed timestamp for the
+    # directory name, or you will end up by NOT loading the previous
+    # checkpoint ;)
+    # Please notice the `map_location`: you should set the current device there.
+    # That will take care of loading the checkpoint on the correct device, even
+    # if it was previously produced on a cuda device with a different id. It
+    # can also be used to resume a cuda checkpoint from cuda to CPU.
+    # However, it will not work when loading a CPU checkpoint to cuda...
+    # In brief: CUDA -> CPU (OK), CUDA:0 -> CUDA:1 (OK), CPU -> CUDA (NO!)
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(
             directory='./checkpoints/task_incremental',
@@ -94,11 +112,17 @@ def main(args):
         map_location=device
     )
 
+    # THIRD CHANGE: LOAD THE CHECKPOINT IF EXISTS
+    # IF THE CHECKPOINT EXISTS, SKIP THE CREATION OF THE STRATEGY!
+    # OTHERWISE, CREATE THE STRATEGY AS USUAL.
+    # NOTE: add the checkpoint plugin to the list of strategy plugins!
+
     # Load checkpoint (if exists)
     strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
 
     # Create the CL strategy (if not already loaded from checkpoint)
     if strategy is None:
+        # Add the checkpoint plugin to the list of plugins!
         plugins = [
             checkpoint_plugin
         ]
@@ -165,11 +189,20 @@ def main(args):
             evaluator=evaluation_plugin
         )
 
-    # Train and test loop
+    # Train and test loop: as usual
+    # Notice the if checking "checkpoint_at", which here is only used to
+    # demonstrate the checkpoint functionality. In your code, you may want
+    # to add a similar check based on received early termination signals.
+    # These signals may include keyboard interrupts, SLURM interrupts, etc.
+    # Just keep in mind that the checkpoint is saved AFTER each eval phase.
+    # If you terminate the process before the end of the eval phase,
+    # all the work done between the previous checkpoint and the current moment
+    # is lost.
     for train_task in train_stream[initial_exp:]:
-        strategy.train(train_task, num_workers=0)
-        strategy.eval(test_stream)
+        strategy.train(train_task, num_workers=10, persistent_workers=True)
+        strategy.eval(test_stream, num_workers=10)
         if train_task.current_experience == args.checkpoint_at:
+            print('Exiting early')
             break
 
 

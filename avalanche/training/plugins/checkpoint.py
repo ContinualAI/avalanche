@@ -1,47 +1,136 @@
-import random
 from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
-from typing import Union, Callable, IO, Any, Dict, Optional
+from typing import Union, Callable, IO, Any, Dict, Optional, Iterable, \
+    List
+
 import dill
-import numpy as np
 import torch
 
 from avalanche.core import BaseSGDPlugin
 from avalanche.training.determinism.rng_manager import RNGManager
-from avalanche.training.templates import BaseSGDTemplate, BaseTemplate
-
 from avalanche.training.plugins.checkpoint_common_recipes import *
+from avalanche.training.templates import BaseSGDTemplate, BaseTemplate
 
 
 class CheckpointStorage(ABC):
+    """
+    Abstract class for the checkpoint storage component.
+
+    A checkpoint storage implementations must provide mechanisms to store, list,
+    and load checkpoints from a persistent storage. Instances of this class are
+    used by the :class:`CheckpointPlugin` strategy plugin.
+    """
     def __init__(self):
+        """
+        Initializes the checkpoint storage.
+        """
         super(CheckpointStorage, self).__init__()
 
     @abstractmethod
     def store_checkpoint(
             self,
             checkpoint_name: str,
-            checkpoint_writer: Callable[[IO[bytes]], None]):
+            checkpoint_writer: Callable[[IO[bytes]], None]) -> None:
+        """
+        Stores a checkpoint.
+
+        This method expects a checkpoint name and a callable.
+
+        The callable must accept a file-like object as input. The file-like
+        object is created by the checkpoint storage (this object) and it will
+        accept binary write operations to store the byte representation of the
+        checkpoint.
+
+        :param checkpoint_name: The name of the checkpoint.
+        :param checkpoint_writer: A callable that accepts a writable file-like
+            object. The callable must write the checkpoint to the provided file
+            object.
+        :return: None. It will raise an exception if the checkpoint cannot be
+            loaded, depending on the specific implementation.
+        """
         pass
 
     @abstractmethod
-    def list_checkpoints(self):
+    def list_checkpoints(self) -> Iterable[str]:
+        """
+        Retrieves a list of available checkpoints
+
+        :return: The names of available checkpoints.
+        """
         pass
 
     @abstractmethod
-    def checkpoint_exists(self, checkpoint_name: str):
+    def checkpoint_exists(self, checkpoint_name: str) -> bool:
+        """
+        Checks if a checkpoint exists
+
+        :param checkpoint_name: The name of the checkpoint to check.
+        :return: True if it exists.
+        """
         pass
 
     @abstractmethod
     def load_checkpoint(
             self,
             checkpoint_name: str,
-            checkpoint_loader: Callable[[IO[bytes]], Any]):
+            checkpoint_loader: Callable[[IO[bytes]], Any]) -> Any:
+        """
+        Loads a checkpoint.
+
+        The `checkpoint_loader` parameter works similarly to the
+        `checkpoint_writer` parameter of :meth:`store_checkpoint`,
+        with the difference that it should read the checkpoint.
+
+        :param checkpoint_name: The name of the checkpoint to load.
+        :param checkpoint_loader: A callable that accepts a readable file-like
+            object. The callable must read the checkpoint from the provided file
+            object and return it.
+        :return: The loaded checkpoint, as returned from `checkpoint_loader. It
+            will raise an exception if the checkpoint cannot be loaded,
+            depending on the specific implementation.
+        """
         pass
 
 
 class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
+    """
+    A checkpointing facility that can be used to persist the entire state of the
+    strategy (including its model, plugins, metrics, loggers, etcetera).
+
+    This strategy plugin will store a checkpoint after each evaluation phase.
+
+    Using this plugin required minor changes to the usual Avalanche main script.
+    Please refer to the `task_incremental_with_checkpointing.py` example for a
+    simple guide on how to use this plugin.
+
+    The checkpoint is stored using the :class:`CheckpointStorage` object
+    provided in the input. The :class:`FileSystemCheckpointStorage` is the
+    simpler option, but more sophisticated storage mechanisms can be used
+    (based on W&B, S3, etcetera).
+
+    This implementation sends a pickled version of the strategy object to the
+    checkpoint storage. The strategy object is pickled using `dill`, which
+    is a powerful drop-in replacement of pickle supported by PyTorch.
+
+    This class also adds the ability to load a checkpoint by using a different
+    target device than the one used when producing the checkpoint. In other
+    words, this plugin adds the ability to load a cuda checkpoint to CPU,
+    or to load a checkpoint created on cuda:1 to cuda:0. See the `map_location`
+    parameter of the constructor for more details.
+
+    Critical objects such as loggers are pickled as well, but the whole process
+    is managed carefully to avoid errors. Datasets are pickled as well, but
+    for datasets like torchvision ones, that load the whole content of the
+    dataset in-memory, a custom pickling method is provided by Avalanche out
+    of the box, so there is no need to worry about the checkpoint size. The
+    replay plugin already uses the subset operation to manage the replay,
+    which means that no dataset elements are actually saved to checkpoints.
+
+    However, this will also mean that the main script must correctly re-create
+    the benchmark object when loading a checkpoint. This is usually not a big
+    deal as random number generators state are saved and loaded as well.
+    """
 
     def __init__(
             self,
@@ -88,7 +177,7 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             number can also be interpreted as the index of the next training
             experience).
         """
-        existing_checkpoints = self.storage.list_checkpoints()
+        existing_checkpoints = list(self.storage.list_checkpoints())
         if len(existing_checkpoints) == 0:
             # No checkpoints exist
             return None, 0
@@ -133,10 +222,12 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
 
         self.storage.store_checkpoint(
             str(ended_experience_counter),
-            partial(self.save_checkpoint, checkpoint_data))
+            partial(CheckpointPlugin.save_checkpoint,
+                    checkpoint_data))
         print('Checkpoint', ended_experience_counter, 'saved!')
 
-    def save_checkpoint(self, checkpoint_data, fobj):
+    @staticmethod
+    def save_checkpoint(checkpoint_data, fobj):
         # import dill.detect
         # dill.detect.trace(True)
         torch.save(checkpoint_data, fobj, pickle_module=dill)
@@ -145,7 +236,7 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
         """
         Loads the checkpoint given the file-like object coming from the storage.
 
-        This function is mostly an internal mechanism. Do not use if you are
+        This function is mostly an internal mechanism. Do not use it if you are
         not 100% sure of what it does (and does not).
 
         :param fobj: A file-like object, usually provided by the
@@ -175,9 +266,20 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
 
 
 class FileSystemCheckpointStorage(CheckpointStorage):
+    """
+    A checkpoint storage that stores the checkpoint of an experiments in the
+    given directory.
+    """
     def __init__(
             self,
             directory: Union[str, Path]):
+        """
+        Creates an instance of the filesystem checkpoint storage.
+
+        :param directory: The directory in which to save the checkpoints.
+            This should be an experiment/run specific directory. Do not use
+            the same directory for more than one experiment.
+        """
         super(FileSystemCheckpointStorage, self).__init__()
         self.directory = Path(directory)
 
@@ -195,16 +297,14 @@ class FileSystemCheckpointStorage(CheckpointStorage):
         try:
             with open(checkpoint_file, 'wb') as f:
                 checkpoint_writer(f)
-        except:
+        except BaseException:
             try:
                 checkpoint_file.unlink()
             except OSError:
                 pass
             raise
 
-        return True
-
-    def list_checkpoints(self):
+    def list_checkpoints(self) -> List[str]:
         if not self.directory.exists():
             return []
 
@@ -214,13 +314,13 @@ class FileSystemCheckpointStorage(CheckpointStorage):
             if self.checkpoint_exists(x.name)
         ]
 
-    def checkpoint_exists(self, checkpoint_name: str):
+    def checkpoint_exists(self, checkpoint_name: str) -> bool:
         return (self.directory / checkpoint_name / 'checkpoint.pth').exists()
 
     def load_checkpoint(
             self,
             checkpoint_name: str,
-            checkpoint_loader: Callable[[IO[bytes]], Any]):
+            checkpoint_loader: Callable[[IO[bytes]], Any]) -> Any:
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
 
         with open(checkpoint_file, 'rb') as f:
