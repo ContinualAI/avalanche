@@ -535,6 +535,8 @@ def _make_data_loader(
 
     if force_no_workers:
         data_loader_args['num_workers'] = 0
+        if 'persistent_workers' in data_loader_args:
+            data_loader_args['persistent_workers'] = False
 
     if _DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(
