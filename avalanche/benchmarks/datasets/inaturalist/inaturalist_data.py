@@ -75,6 +75,8 @@ import sys
 import logging
 import tarfile
 
+from tqdm import tqdm
+
 if sys.version_info[0] >= 3:
     from urllib.request import urlretrieve
 else:
@@ -99,6 +101,26 @@ test_data = [
     # Test annotations
     ("test2018.json.tar.gz", f"{base_url}/test2018.json.tar.gz"),
 ]
+
+
+class TqdmUpTo(tqdm):
+    """
+    Progress bar for urlretrieve-based downloads.
+    https://gist.github.com/leimao/37ff6e990b3226c2c9670a2cd1e4a6f5
+    """
+
+    def update_to(self, b=1, bsize=1, tsize=None):
+        """
+        b  : int, optional
+            Number of blocks transferred so far [default: 1].
+        bsize  : int, optional
+            Size of each block (in tqdm units) [default: 1].
+        tsize  : int, optional
+            Total size (in tqdm units). If [default: None] remains unchanged.
+        """
+        if tsize is not None:
+            self.total = tsize
+        self.update(b * bsize - self.n)  # will also set self.n = b * bsize
 
 
 class INATURALIST_DATA(object):
@@ -150,7 +172,9 @@ class INATURALIST_DATA(object):
             self.log.info("Downloading " + name[1] + "...")
             save_name = os.path.join(self.data_folder, name[0])
             if not os.path.exists(save_name):
-                urlretrieve(name[1], save_name)
+                with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024,
+                              miniters=1, desc=name[0]) as t:
+                    urlretrieve(name[1], save_name, reporthook=t.update_to)
             else:
                 self.log.info("Skipping download, exists: ", save_name)
 
