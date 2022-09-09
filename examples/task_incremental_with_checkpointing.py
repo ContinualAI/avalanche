@@ -24,7 +24,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks import CLExperience, SplitCIFAR100, CLStream51, \
-    SplitOmniglot
+    SplitOmniglot, SplitMNIST
 from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
@@ -66,7 +66,10 @@ def main(args):
         and args.benchmark != 'Stream51'
     input_size = 32*32*3
     # CL Benchmark Creation
-    if args.benchmark == 'SplitCifar100':
+    if args.benchmark == 'SplitMNIST':
+        scenario = SplitMNIST(n_experiences=5, return_task_id=True)
+        input_size = 28*28*1
+    elif args.benchmark == 'SplitCifar100':
         scenario = SplitCIFAR100(n_experiences=5, return_task_id=use_tasks)
     elif args.benchmark == 'SplitCifar10':
         scenario = SplitCIFAR10(n_experiences=5, return_task_id=use_tasks)
