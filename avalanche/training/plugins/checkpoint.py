@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
 from typing import Union, Callable, IO, Any, Dict, Optional, Iterable, \
-    List
+    List, BinaryIO
 
 import dill
 import torch
@@ -31,7 +31,8 @@ class CheckpointStorage(ABC):
     def store_checkpoint(
             self,
             checkpoint_name: str,
-            checkpoint_writer: Callable[[IO[bytes]], None]) -> None:
+            checkpoint_writer: Callable[[Union[BinaryIO, IO[bytes]]], None]) \
+            -> None:
         """
         Stores a checkpoint.
 
@@ -74,7 +75,8 @@ class CheckpointStorage(ABC):
     def load_checkpoint(
             self,
             checkpoint_name: str,
-            checkpoint_loader: Callable[[IO[bytes]], Any]) -> Any:
+            checkpoint_loader: Callable[[Union[BinaryIO, IO[bytes]]], Any]) \
+            -> Any:
         """
         Loads a checkpoint.
 
@@ -157,6 +159,7 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
         super(CheckpointPlugin, self).__init__()
         self.map_location = CheckpointPlugin._make_map(map_location)
         self.storage = storage
+        self._training = False
 
     def load_checkpoint_if_exists(
             self, update_checkpoint_plugin=True):
@@ -212,6 +215,10 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
         return strategy, exp_counter
 
     def after_eval(self, strategy: BaseSGDTemplate, *args, **kwargs):
+        if self._training:
+            # Do not checkpoint on periodic evaluation
+            return
+
         ended_experience_counter = strategy.clock.train_exp_counter
 
         checkpoint_data = {
@@ -226,13 +233,21 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
                     checkpoint_data))
         print('Checkpoint', ended_experience_counter, 'saved!')
 
+    def before_training(self, strategy, *args, **kwargs):
+        # Used to track periodic evaluation
+        self._training = True
+
+    def after_training(self, strategy, *args, **kwargs):
+        # Used to track periodic evaluation
+        self._training = False
+
     @staticmethod
-    def save_checkpoint(checkpoint_data, fobj):
+    def save_checkpoint(checkpoint_data, fobj: Union[BinaryIO, IO[bytes]]):
         # import dill.detect
         # dill.detect.trace(True)
         torch.save(checkpoint_data, fobj, pickle_module=dill)
 
-    def load_checkpoint(self, fobj):
+    def load_checkpoint(self, fobj: Union[BinaryIO, IO[bytes]]):
         """
         Loads the checkpoint given the file-like object coming from the storage.
 

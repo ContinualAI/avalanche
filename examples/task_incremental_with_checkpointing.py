@@ -42,12 +42,15 @@ from avalanche.training.supervised import Naive
 def main(args):
     # FIRST CHANGE: SET THE RANDOM SEEDS
     # In fact, you should to this no matter the checkpointing functionality.
-    # Using `use_deterministic_algorithms` may require setting the
-    # CUBLAS_WORKSPACE_CONFIG=:4096:8 environment variable.
-
     # Remember to load checkpoints by setting the same random seed used when
     # creating them...
     RNGManager.set_random_seeds(1234)
+
+    # Determinism is not strictly required, but it is here added to show that
+    # checkpointing doesn't alter the results of an experiment.
+    # If you don't want to use deterministic algorithms, you can remove this.
+    # Using `use_deterministic_algorithms` may require setting the
+    # CUBLAS_WORKSPACE_CONFIG=:4096:8 environment variable.
     torch.use_deterministic_algorithms(True)
 
     # Nothing new here...
