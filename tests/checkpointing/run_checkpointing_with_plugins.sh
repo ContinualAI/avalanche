@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
+# Used to run the "task_incremental_with_checkpointing.py" script by
+# taking the list of plugins as parameters. It will run the script
+# by not checkpointing, by checkpointing after the first experience,
+# and by checkpointing after the second experience.
 set -euo pipefail
-cd ../examples
+cd ../../examples
 rm -rf checkpoints
 
 export PYTHONUNBUFFERED=1

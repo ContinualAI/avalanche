@@ -17,6 +17,8 @@ required to use the checkpoint plugin.
 """
 
 import argparse
+import pickle
+from pathlib import Path
 from typing import Sequence
 
 import torch
@@ -161,6 +163,22 @@ def main(args):
             cli_plugins.append(plugin_instance)
         plugins += cli_plugins
 
+        loggers = [
+            # TextLogger(open('text_logger_test_out.txt', 'w')),
+            InteractiveLogger(),
+            TensorboardLogger(f'./logs/checkpointing_{args.benchmark}_'
+                              f'{args.checkpoint_at}_'
+                              f'{cli_plugin_names}')
+        ]
+
+        if args.wandb:
+            loggers.append(WandBLogger(
+                project_name='AvalancheCheckpointing',
+                run_name=f'checkpointing_{args.benchmark}_'
+                         f'{args.checkpoint_at}_'
+                         f'{cli_plugin_names}'
+            ))
+
         # Create the evaluation plugin (when not using the default one)
         evaluation_plugin = EvaluationPlugin(
             accuracy_metrics(minibatch=False, epoch=True,
@@ -170,19 +188,7 @@ def main(args):
             class_accuracy_metrics(
                 stream=True
             ),
-            loggers=[
-                # TextLogger(open('text_logger_test_out.txt', 'w')),
-                InteractiveLogger(),
-                TensorboardLogger(f'./logs/checkpointing_{args.benchmark}_'
-                                  f'{args.checkpoint_at}_'
-                                  f'{cli_plugin_names}'),
-                WandBLogger(
-                    project_name='AvalancheCheckpointing',
-                    run_name=f'checkpointing_{args.benchmark}_'
-                             f'{args.checkpoint_at}_'
-                             f'{cli_plugin_names}'
-                )
-            ]
+            loggers=loggers
         )
 
         # Create the strategy
@@ -209,7 +215,13 @@ def main(args):
     # is lost.
     for train_task in train_stream[initial_exp:]:
         strategy.train(train_task, num_workers=10, persistent_workers=True)
-        strategy.eval(test_stream, num_workers=10)
+        metrics = strategy.eval(test_stream, num_workers=10)
+
+        Path(args.log_metrics_to).mkdir(parents=True, exist_ok=True)
+        with open(Path(args.log_metrics_to) /
+                  f'metrics_exp{train_task.current_experience}.pkl', 'wb') as f:
+            pickle.dump(metrics, f)
+
         if train_task.current_experience == args.checkpoint_at:
             print('Exiting early')
             break
@@ -233,6 +245,15 @@ if __name__ == "__main__":
         "--checkpoint_at",
         type=int,
         default=-1
+    )
+    parser.add_argument(
+        "--log_metrics_to",
+        type=str,
+        default='./metrics'
+    )
+    parser.add_argument(
+        "--wandb",
+        action='store_true'
     )
     parser.add_argument(
         "--plugins",

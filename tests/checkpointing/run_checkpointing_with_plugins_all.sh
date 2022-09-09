@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Script used to manually test various combinations of plugins when used with
-# the checkpointing functionality
+# the checkpointing functionality.
 set -euo pipefail
 ./test_checkpointing_plugins.sh
 ./test_checkpointing_plugins.sh replay

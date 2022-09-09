@@ -51,3 +51,4 @@ jobs:
         run: |
           conda activate avalanche-env
           FAST_TEST=True USE_GPU=False python -m unittest discover tests
+          bash ./tests/checkpointing/test_checkpointing.sh
