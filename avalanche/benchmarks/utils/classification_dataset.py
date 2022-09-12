@@ -269,7 +269,9 @@ class AvalancheClassificationDataset(AvalancheDataset[T_co], _ClassificationAttr
         if targets is not None:
             # User defined targets always take precedence
             # Note: no adapter is applied!
-            if len(targets) != len(dataset) and check_shape:
+            if isinstance(targets, int):
+                targets = ConstantSequence(targets, len(dataset))
+            elif len(targets) != len(dataset) and check_shape:
                 raise ValueError(
                     "Invalid amount of target labels. It must be equal to the "
                     "number of patterns in the dataset. Got {}, expected "
@@ -526,7 +528,7 @@ def AvalancheTensorClassificationDataset(
         targets = dataset_tensors[1]
     elif isinstance(targets, int):
         targets = dataset_tensors[targets]
-    base_dataset = TensorDataset(*dataset_tensors)
+    base_dataset = _TensorClassificationDataset(*dataset_tensors)
 
     return AvalancheClassificationDataset(
         base_dataset,
@@ -539,6 +541,14 @@ def AvalancheTensorClassificationDataset(
         collate_fn=collate_fn,
         targets_adapter=targets_adapter,
     )
+
+
+class _TensorClassificationDataset(TensorDataset):
+    """we want class labels to be integers, not tensors."""
+    def __getitem__(self, item):
+        elem = list(super().__getitem__(item))
+        elem[1] = elem[1].item()
+        return tuple(elem)
 
 
 def AvalancheConcatClassificationDataset(

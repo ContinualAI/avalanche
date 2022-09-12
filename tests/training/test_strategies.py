@@ -337,7 +337,7 @@ class StrategyTest(unittest.TestCase):
         # Check past_j SIT
         for exp in benchmark.train_stream:
             for cls in set(exp.dataset.targets):
-                dict_past_j[cls] += exp.dataset.targets.count(cls)
+                dict_past_j[cls] += exp.dataset.targets.count[cls]
         for cls in model.past_j.keys():
             assert model.past_j[cls] == dict_past_j[cls]
 

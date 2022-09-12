@@ -120,7 +120,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         x = torch.rand(32, 10)
         y = torch.rand(32, 10)
         t = torch.ones(32)  # Single task
-        dataset = AvalancheTensorClassificationDataset(x, y, targets=1, task_labels=t)
+        dataset = AvalancheClassificationDataset(
+            TensorDataset(x, y), targets=1, task_labels=t)
 
         x2, y2, t2 = get_mbatch(dataset, batch_size=32)
 
@@ -663,21 +664,29 @@ class AvalancheDatasetTests(unittest.TestCase):
         tensor_x7, tensor_y7, tensor_z7 = gen_random_tensors(200)
 
         dataset1 = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset2 = AvalancheTensorClassificationDataset(
-            tensor_x2, tensor_y2, tensor_z2, task_labels=1
+        dataset2 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x2, tensor_y2, tensor_z2),
+            targets=tensor_y2, task_labels=1
         )
-        dataset3 = AvalancheTensorClassificationDataset(
-            tensor_x3, tensor_y3, tensor_z3, task_labels=2
+        dataset3 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x3, tensor_y3, tensor_z3),
+            targets=tensor_y3, task_labels=2
         )
 
-        dataset4 = AvalancheTensorClassificationDataset(
-            tensor_x4, tensor_y4, tensor_z4, task_labels=3
+        dataset4 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x4, tensor_y4, tensor_z4),
+            targets=tensor_y4, task_labels=3
         )
-        dataset5 = AvalancheTensorClassificationDataset(
-            tensor_x5, tensor_y5, tensor_z5, task_labels=4
+        dataset5 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x5, tensor_y5, tensor_z5),
+            targets=tensor_y5, task_labels=4
         )
-        dataset6 = AvalancheTensorClassificationDataset(tensor_x6, tensor_y6, tensor_z6)
-        dataset7 = AvalancheTensorClassificationDataset(tensor_x7, tensor_y7, tensor_z7)
+        dataset6 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x6, tensor_y6, tensor_z6),
+            targets=tensor_y6)
+        dataset7 = AvalancheClassificationDataset(
+            TensorDataset(tensor_x7, tensor_y7, tensor_z7),
+            targets=tensor_y7)
 
         # This will test recursion on both PyTorch ConcatDataset and
         # AvalancheConcatDataset
@@ -1065,8 +1074,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         tensor_x = torch.rand(d_sz, 2)
         tensor_y = torch.randint(0, 7, (d_sz,))
         tensor_t = torch.randint(0, 7, (d_sz,))
-        dataset = AvalancheTensorClassificationDataset(
-            tensor_x, tensor_y, task_labels=tensor_t
+        dataset = AvalancheClassificationDataset(
+            TensorDataset(tensor_x, tensor_y),
+            targets=tensor_y, task_labels=tensor_t
         )
         dataset_hierarchy_depth = 5
 

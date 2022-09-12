@@ -273,7 +273,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], y))
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -282,7 +282,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         tensor_idx = 0
         for x, y, *_ in exp.dataset:
             self.assertTrue(torch.equal(test_x[tensor_idx], x))
-            self.assertTrue(torch.equal(test_y[tensor_idx], y))
+            self.assertTrue(torch.equal(test_y[tensor_idx], torch.tensor(y)))
             tensor_idx += 1
 
     def test_data_incremental_benchmark_from_lazy_benchmark(self):
@@ -353,7 +353,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], y))
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -362,7 +362,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         tensor_idx = 0
         for x, y, *_ in exp.dataset:
             self.assertTrue(torch.equal(test_x[tensor_idx], x))
-            self.assertTrue(torch.equal(test_y[tensor_idx], y))
+            self.assertTrue(torch.equal(test_y[tensor_idx], torch.tensor(y)))
             tensor_idx += 1
 
     def test_benchmark_with_validation_stream_fixed_size(self):
