@@ -16,7 +16,7 @@ from typing import Callable, Sequence
 from inspect import signature, Parameter
 
 
-class MultiParamTranform:
+class MultiParamTransform:
     """We need this class to be able to distinguish between a single argument
     transformation and multi-argument ones.
 
@@ -27,7 +27,7 @@ class MultiParamTranform:
         pass
 
 
-class MultiParamCompose(MultiParamTranform):
+class MultiParamCompose(MultiParamTransform):
     """Compose transformation for multi-argument transformations.
 
     Differently from torchvision Compose, this transformation can handle both
@@ -98,7 +98,7 @@ class MultiParamCompose(MultiParamTranform):
         return self.__repr__()
 
 
-class MultiParamTransformCallable(MultiParamTranform):
+class MultiParamTransformCallable(MultiParamTransform):
     """Generic multi-argument transformation."""
 
     def __init__(self, transform: Callable):
@@ -193,7 +193,7 @@ class MultiParamTransformCallable(MultiParamTranform):
         return "torchvision.transforms" in tc_module
 
 
-class TupleTransform(MultiParamTranform):
+class TupleTransform(MultiParamTransform):
     """Multi-argument transformation represented as tuples."""
 
     def __init__(self, transforms: Sequence[Callable]):
@@ -219,7 +219,7 @@ warnings.simplefilter("once", ComposeMaxParamsWarning)
 
 
 __all__ = [
-    "MultiParamTranform",
+    "MultiParamTransform",
     "MultiParamCompose",
     "MultiParamTransformCallable",
     "ComposeMaxParamsWarning",

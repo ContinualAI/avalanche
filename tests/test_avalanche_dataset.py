@@ -48,6 +48,15 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+
+    def test_disallowed_attribute_name(self):
+        d_sz = 3
+        xdata = torch.rand(d_sz, 2)
+        dadata = torch.randint(0, 10, (d_sz,))
+        da = DataAttribute(torch.zeros(d_sz), "collate_fn")
+        with self.assertRaises(ValueError):
+            d = AvalancheDataset(TensorDataset(xdata), data_attributes=[da])
+
     def test_subset_subset_merge(self):
         d_sz, num_permutations = 3, 4
 

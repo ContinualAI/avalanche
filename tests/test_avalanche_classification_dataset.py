@@ -1078,7 +1078,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             TensorDataset(tensor_x, tensor_y),
             targets=tensor_y, task_labels=tensor_t
         )
-        dataset_hierarchy_depth = 5
+        dataset_hierarchy_depth = 500
 
         # prepare random permutations for each step
         random_permutations: List[List[int]] = []
@@ -1099,9 +1099,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
-            print(idx)
-            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
-            _avalanche_datatree_print(curr_dataset)
+            # print(idx)
+            # print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            # _avalanche_datatree_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
             curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))

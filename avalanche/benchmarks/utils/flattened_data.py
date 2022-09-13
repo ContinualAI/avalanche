@@ -12,177 +12,81 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
-from typing import Sequence
+from typing import Sequence, List
+
+from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 
 
 class FlatData(IDataset):
-    """FlatData is an efficient dataset optimized for repeated concatenations
+    """FlatData is a dataset optimized for efficient repeated concatenation
     and subset operations.
 
     Class for internal use only.
     """
 
-    def __init__(self, data: IDataset):
-        # IMPLEMENTATION NOTE: if you make a subclass remember to check
-        # _can_flatten and _can_merge.
-        self._data = data
+    def __init__(self, datasets: Sequence[IDataset],
+                 indices: List[int] = None, can_flatten=True):
+        self._datasets = datasets
+        if can_flatten:
+            self._datasets = _flatten_dataset_list(self._datasets)
 
-    def _can_flatten(self):
-        """Private method used to check if the dataset can be flattened.
-
-        Child classes of FlatData can override this method to disable flattening
-        whenever is necessary, for example, to avoid removing transformations.
-        """
-        return True
-
-    def _can_merge(self, other):
-        """Private method used to check if the dataset can be merged.
-
-        Child classes of FlatData can override this method to disable merging
-        whenever is necessary, for example, to avoid removing transformations.
-
-        :param other:
-        :return:
-        """
-        return False
-
-    def get_data(self):
-        return self._data
+        self._indices = indices
+        self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
+        self._can_flatten = can_flatten
+        if indices is not None and can_flatten:
+            pass  # flatten indices
 
     def subset(self, indices):
-        if isinstance(self.get_data(), FlatData) and self._can_flatten():
-            return self.get_data().subset(indices)
-        else:
-            return _FlatDataSubset(self.get_data(), indices)
+        assert len(indices) == len(self)
+        if self._can_flatten:
+            new_indices = [self._indices[x] for x in indices]
+            self.__class__(self._datasets, new_indices)
+        return self.__class__([self], indices)
 
     def concat(self, other: "FlatData"):
-        if isinstance(self.get_data(), FlatData) and self._can_flatten():
-            return self.get_data().concat(other)
-        else:
-            return _FlatDataConcat([self, other])
+        if self._can_flatten and other._can_flatten:
+            return self.__class__(
+                self._datasets + other._datasets,
+                self._indices + [len(self) + idx for idx in other._indices])
+        elif self._can_flatten:
+            return self.__class__(
+                self._datasets + [other],
+                self._indices + [len(self) + idx for idx in other._indices])
+        elif other._can_flatten:
+            return self.__class__(
+                [self] + other._datasets,
+                list(range(len(self))) + [len(self) + idx for idx in other._indices])
+        return self.__class__([self, other])
 
-    def __getitem__(self, item):
-        return self._data[item]
-
-    def __len__(self):
-        return len(self._data)
-
-
-class _FlatDataSubset(FlatData):
-    """FlatData is a pytorch-like Dataset optimized to minimize its tree
-    depth.
-
-    Class for internal use only.
-    """
-
-    def __init__(self, data: IDataset, indices: Sequence[int]):
-        self._indices = list(indices)
-        super().__init__(data)
-
-    def _can_merge(self, other: FlatData):
-        return self.get_data() is other.get_data()
-
-    def subset(self, indices):
-        if not self._can_flatten():
-            return _FlatDataSubset(self.get_data(), indices)
-        else:
-            mapped_idxs = [self._indices[i] for i in indices]
-            return _FlatDataSubset(self.get_data(), mapped_idxs)
-
-    def concat(self, other: "FlatData"):
-        if isinstance(other, _FlatDataSubset) and \
-                self._can_flatten() and other._can_flatten() and \
-                self._can_merge(other) and other._can_merge(self):
-            return _FlatDataSubset(self.get_data(),
-                                   self._indices + other._indices)
-        return super().concat(other)
-
-    def __getitem__(self, item):
-        return super().__getitem__(self._indices[item])
-
-    def __len__(self):
-        return len(self._indices)
-
-
-class _FlatDataConcat(FlatData):
-    """FlatData is a pytorch-like Dataset optimized to minimize its tree
-    depth.
-
-    Class for internal use only.
-    """
-
-    @staticmethod
-    def cumsum(sequence):
-        r, s = [], 0
-        for e in sequence:
-            l = len(e)
-            r.append(l + s)
-            s += l
-        return r
-
-    def __init__(self, datas: Sequence[IDataset]):
-        assert len(datas) > 0, 'datasets should not be an empty iterable'
-        self._datasets = list(datas)
-        self.cumulative_sizes = self.cumsum(self._datasets)
-
-    def _can_merge(self, other):
-        return True
-
-    def get_data(self):
-        return self
-
-    def subset(self, indices):
-        if not self._can_flatten():
-            return _FlatDataSubset(self, indices)
-
-        # flatten Subset -> Concat -> Subset branches
-        # before creating the new dataset
-        new_data_list = []
-        start_idx = 0
-        for k, curr_data in enumerate(self._datasets):
-            if not isinstance(curr_data, FlatData):
-                new_data_list.append(curr_data)
+    def _get_idx(self, idx):
+        if self._indices is not None:  # subset indexing
+            idx = self._indices[idx]
+        if len(self._datasets) == 1:
+            dataset_idx = 1
+        else:  # concat indexing
+            dataset_idx = bisect.bisect_right(self._cumulative_sizes, idx)
+            if dataset_idx == 0:
+                idx = idx
             else:
-                # find permutation indices for current dataset in the concat list
-                end_idx = self.cumulative_sizes[k]
-                curr_idxs = indices[start_idx:end_idx]
-                curr_idxs = [el - start_idx for el in curr_idxs]
-                start_idx = end_idx
-
-                if len(curr_idxs) > 0:
-                    # we have a recursive call here because
-                    # if the curr_data is a subset, we can flatten it
-                    new_data_list.append(curr_data.subset(curr_idxs))
-
-        # make a new ConcatDataset with the new data_list
-        # attributes and transform are the same as the original
-        return _FlatDataConcat(new_data_list)
-
-    def concat(self, other: "FlatData"):
-        if isinstance(other, _FlatDataConcat):
-            if self._can_flatten() and other._can_flatten():
-                return _FlatDataConcat(self._datasets + other._datasets)
-        else:
-            if self._can_flatten():
-                return _FlatDataConcat(self._datasets + [other])
-        return super().concat(other)
-
-    def __len__(self):
-        return self.cumulative_sizes[-1]
+                idx = idx - self._cumulative_sizes[dataset_idx - 1]
+        return dataset_idx, idx
 
     def __getitem__(self, idx):
-        if idx < 0:
-            if -idx > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
-            idx = len(self) + idx
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
-        if dataset_idx == 0:
-            sample_idx = idx
-        else:
-            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
-        return self._datasets[dataset_idx][sample_idx]
+        dataset_idx, idx = self._get_idx(idx)
+        return self._datasets[dataset_idx][idx]
+
+    def __len__(self):
+        if len(self._cumulative_sizes) == 0:
+            return 0
+        return self._cumulative_sizes[-1]
+
+    def __add__(self, other: "FlatData") -> "FlatData":
+        return self.concat(other)
+
+    def __radd__(self, other: "FlatData") -> "FlatData":
+        return other.concat(self)
 
 
 class ConstantSequence(FlatData):
@@ -191,6 +95,7 @@ class ConstantSequence(FlatData):
     def __init__(self, constant_value: int, size: int):
         self._constant_value = constant_value
         self._size = size
+        super().__init__([self])
 
     def __len__(self):
         return self._size
@@ -200,22 +105,51 @@ class ConstantSequence(FlatData):
             raise IndexError()
         return self._constant_value
 
-    def get_data(self):
-        return self
-
     def subset(self, indices):
-        return ConstantSequence(self._data[0], len(indices))
+        return ConstantSequence(self._constant_value, len(indices))
 
     def concat(self, other: "FlatData"):
-        if self._can_flatten() and other._can_flatten() and \
-                self._can_merge(other) and other._can_merge(self) and \
-                isinstance(other, ConstantSequence) and \
+        if isinstance(other, ConstantSequence) and \
                 self._constant_value == other._constant_value:
             return ConstantSequence(self._constant_value, len(self) + len(other))
         else:
             return super().concat(other)
 
     def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
-        )
+        return f"ConstantSequence(value={self._constant_value}, len={self._size}"
+
+
+def _flatten_dataset_list(datasets: List[FlatData]):
+    """Flatten dataset tree if possible."""
+    # Concat -> Concat branch
+    # Flattens by borrowing the list of concatenated datasets
+    # from the original datasets.
+    flattened_list = []
+    for dataset in datasets:
+        if len(dataset) == 0:
+            continue
+        elif isinstance(dataset, FlatData) and dataset._can_flatten:
+            flattened_list.extend(dataset._datasets)
+        else:
+            flattened_list.append(dataset)
+
+    # merge consecutive Subsets if compatible
+    new_data_list = []
+    for dataset in flattened_list:
+        if isinstance(dataset, FlatData) and len(new_data_list) > 0 and \
+                isinstance(new_data_list[-1], FlatData):
+            merged_ds = _maybe_merge_subsets(new_data_list.pop(), dataset)
+            new_data_list.extend(merged_ds)
+        else:
+            new_data_list.append(dataset)
+    return new_data_list
+
+
+def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
+    if (not d1._can_flatten) or (not d2._can_flatten):
+        return [d1, d2]
+
+    if len(d1._datasets) == 1 and len(d2._datasets) == 1 and d1._datasets[0] is d2._datasets[0]:
+        return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
+
+    return [d1, d2]

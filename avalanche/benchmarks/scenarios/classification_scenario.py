@@ -33,6 +33,7 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
 from avalanche.benchmarks.utils import AvalancheClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import _AvalancheClassificationDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(
@@ -491,7 +492,7 @@ class GenericCLScenario(Generic[TCLExperience]):
                 # exp_data[0] must contain the generator
                 stream_length = exp_data[1]
             is_lazy = True
-        elif isinstance(exp_data, AvalancheClassificationDataset):
+        elif isinstance(exp_data, _AvalancheClassificationDataset):
             # Single element
             exp_data = [exp_data]
             is_lazy = False
@@ -503,7 +504,7 @@ class GenericCLScenario(Generic[TCLExperience]):
 
         if not is_lazy:
             for i, dataset in enumerate(exp_data):
-                if not isinstance(dataset, AvalancheClassificationDataset):
+                if not isinstance(dataset, _AvalancheClassificationDataset):
                     raise ValueError(
                         "All experience datasets must be subclasses of"
                         " AvalancheDataset"

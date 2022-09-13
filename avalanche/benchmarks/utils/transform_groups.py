@@ -19,7 +19,7 @@ from collections import defaultdict
 from typing import Dict, Union, Callable, Sequence
 
 from avalanche.benchmarks.utils.transforms import \
-    MultiParamCompose, TupleTransform, MultiParamTranform
+    MultiParamCompose, TupleTransform, MultiParamTransform
 
 
 class TransformGroups:
@@ -66,7 +66,7 @@ class TransformGroups:
             curr_t = self.transform_groups[group_name]
         if curr_t is None:  # empty group
             return element
-        elif not isinstance(curr_t, MultiParamTranform):  #
+        elif not isinstance(curr_t, MultiParamTransform):  #
             element[0] = curr_t(element[0])
         else:
             element = curr_t(*element)
@@ -130,7 +130,7 @@ def _normalize_transform(transforms):
     """Normalize transform to MultiParamTransform."""
     if transforms is None:
         return None
-    if not isinstance(transforms, MultiParamTranform):
+    if not isinstance(transforms, MultiParamTransform):
         if isinstance(transforms, Sequence):
             return TupleTransform(transforms)
         else:

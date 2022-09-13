@@ -12,7 +12,7 @@
 import torch
 
 from .dataset_definitions import IDataset
-from .flattened_data import _FlatDataSubset, _FlatDataConcat, ConstantSequence, FlatData
+from .flattened_data import ConstantSequence, FlatData
 
 
 class DataAttribute:
@@ -45,9 +45,6 @@ class DataAttribute:
         self._uniques = None  # set()
         self._val_to_idx = None  # dict()
         self._count = None  # dict()
-
-        if len(data) == 0:
-            return
 
     def __getitem__(self, item):
         return self._data[item]
@@ -104,7 +101,7 @@ class DataAttribute:
         :param indices: position of the elements in the new subset
         :return: the new `DataAttribute`
         """
-        return DataAttribute(_FlatDataSubset(self._data, indices), self.name,
+        return DataAttribute(FlatData([self._data], indices), self.name,
                              use_in_getitem=self.use_in_getitem)
 
     def concat(self, other: "DataAttribute"):
@@ -115,7 +112,7 @@ class DataAttribute:
         """
         assert self.name == other.name, "Cannot concatenate DataAttributes" + \
                                         "with different names."
-        return DataAttribute(_FlatDataConcat([self._data, other._data]), self.name,
+        return DataAttribute(FlatData([self._data, other._data]), self.name,
                              use_in_getitem=self.use_in_getitem)
 
     @staticmethod
@@ -124,7 +121,7 @@ class DataAttribute:
             # equality doesn't work for tensors
             seq = seq.tolist()
         if not isinstance(seq, FlatData):
-            return FlatData(seq)
+            return FlatData([seq])
         return seq
 
 
