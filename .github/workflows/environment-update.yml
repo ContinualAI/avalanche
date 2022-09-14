@@ -28,7 +28,7 @@ jobs:
     name: new environment creation
     runs-on: ubuntu-latest
     container:
-      image: continuumio/anaconda3:latest
+      image: condaforge/mambaforge:latest
     strategy:
       fail-fast: false
       matrix:
@@ -40,16 +40,16 @@ jobs:
       - name: install opencv dependency libs
         run: |
           apt-get update
-          apt-get install ffmpeg libsm6 libxext6  -y
+          DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install ffmpeg libsm6 libxext6  -y
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: install conda environment
         run: |
-          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
+          mamba create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
           conda activate avalanche-env
-          conda install pytorch torchvision cpuonly -c pytorch  -y
-          conda env update --file environment.yml
+          mamba install pytorch torchvision cpuonly -c pytorch  -y
+          mamba env update --file environment.yml
       - name: python unit test
         id: unittest
         run: |
