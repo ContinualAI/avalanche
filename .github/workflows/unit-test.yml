@@ -48,7 +48,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         run: |
-          conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False python -m unittest discover tests
-          bash ./tests/checkpointing/test_checkpointing.sh
+          conda run -n avalanche-env --no-capture-output python -m unittest discover tests
+          conda run -n avalanche-env --no-capture-output bash ./tests/checkpointing/test_checkpointing.sh
