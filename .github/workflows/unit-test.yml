@@ -48,5 +48,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         run: |
-          FAST_TEST=True USE_GPU=False python -m unittest discover tests
+          python -m unittest discover tests
