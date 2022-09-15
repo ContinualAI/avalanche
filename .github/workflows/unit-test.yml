@@ -41,7 +41,7 @@ jobs:
         python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
-        shell: conda run -n avalanche-env --no-capture-output {0}
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -52,4 +52,4 @@ jobs:
           FAST_TEST: "True"
           USE_GPU: "False"
         run: |
-          python -m unittest discover tests
+          conda run -n avalanche-env --no-capture-output python -m unittest discover tests
