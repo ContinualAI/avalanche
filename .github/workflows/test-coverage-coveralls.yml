@@ -41,6 +41,7 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+        working-directory: /root
     steps:
       - uses: actions/checkout@v2
         with:
