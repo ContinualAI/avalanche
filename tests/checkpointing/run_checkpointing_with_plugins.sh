@@ -4,11 +4,10 @@
 # by not checkpointing, by checkpointing after the first experience,
 # and by checkpointing after the second experience.
 set -euo pipefail
-cd ../../examples
 rm -rf checkpoints
 
 export PYTHONUNBUFFERED=1
-export PYTHONPATH=..
+export PYTHONPATH=../..
 export CUDA_VISIBLE_DEVICES=0
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
