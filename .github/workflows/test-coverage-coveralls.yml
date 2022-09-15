@@ -47,18 +47,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: install coverage.py and coverralls
         run: |
-          conda activate avalanche-env
-          pip install coverage
-          pip install coveralls
+          conda run -n avalanche-env --no-capture-output pip install coverage
+          conda run -n avalanche-env --no-capture-output pip install coveralls
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         run: |
-          conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False coverage run -m unittest
+          conda run -n avalanche-env --no-capture-output coverage run -m unittest
       - name: Upload coverage data to coveralls.io
         run: |
-          conda activate avalanche-env
-          coveralls --service=github
+          conda run -n avalanche-env --no-capture-output coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
