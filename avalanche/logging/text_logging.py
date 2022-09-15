@@ -259,10 +259,10 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             return file_def
 
         if file_def.startswith('path:'):
-            file_def = file_def.removeprefix('path:')
+            file_def = _remove_prefix(file_def, 'path:')
             return open(file_def, 'a')
         elif file_def.startswith('stream:'):
-            file_def = file_def.removeprefix('stream:')
+            file_def = _remove_prefix(file_def, 'stream:')
             if file_def == 'stdout':
                 return sys.stdout
             elif file_def == 'stderr':
@@ -291,3 +291,14 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             return 'stderr'
 
         return None
+
+
+def _remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text  # or whatever
+
+
+__all__ = [
+    'TextLogger'
+]

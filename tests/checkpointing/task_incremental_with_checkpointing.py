@@ -16,6 +16,7 @@ Used in unit tests.
 """
 
 import argparse
+import os
 import pickle
 from pathlib import Path
 from typing import Sequence
@@ -30,7 +31,7 @@ from avalanche.benchmarks.classic import SplitCIFAR10
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
     class_accuracy_metrics
 from avalanche.logging import InteractiveLogger, TensorboardLogger, \
-    WandBLogger
+    WandBLogger, TextLogger
 from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, CWRStarPlugin, \
@@ -142,7 +143,6 @@ def main(args):
         cli_plugins = []
         cli_plugin_names = '_'.join(args.plugins)
         for cli_plugin in args.plugins:
-
             if cli_plugin == 'cwr':
                 plugin_instance = CWRStarPlugin(
                     model, freeze_remaining_model=False)
@@ -162,12 +162,16 @@ def main(args):
             cli_plugins.append(plugin_instance)
         plugins += cli_plugins
 
+        # Create loggers (as usual)
+        os.makedirs(f'./logs/checkpointing_{args.checkpoint_at}',
+                    exist_ok=True)
+
         loggers = [
-            # TextLogger(open('text_logger_test_out.txt', 'w')),
+            TextLogger(
+                open(f'./logs/checkpointing_'
+                     f'{args.checkpoint_at}/log.txt', 'w')),
             InteractiveLogger(),
-            TensorboardLogger(f'./logs/checkpointing_{args.benchmark}_'
-                              f'{args.checkpoint_at}_'
-                              f'{cli_plugin_names}')
+            TensorboardLogger(f'./logs/checkpointing_{args.checkpoint_at}')
         ]
 
         if args.wandb:
@@ -260,5 +264,4 @@ if __name__ == "__main__":
         required=False,
         default=[]
     )
-    args = parser.parse_args()
-    main(args)
+    main(parser.parse_args())

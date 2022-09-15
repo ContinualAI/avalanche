@@ -3,6 +3,7 @@
 # the checkpointing functionality.
 set -euo pipefail
 cd tests/checkpointing
+rm -rf logs
 rm -rf checkpoints
 rm -rf metrics_no_checkpoint
 rm -rf metrics_checkpoint
@@ -33,6 +34,7 @@ run_and_check() {
 
   rm -r metrics_no_checkpoint
   rm -r metrics_checkpoint
+  rm -r logs
 }
 
 run_and_check "replay"
