@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
@@ -53,3 +53,5 @@ jobs:
           USE_GPU: "False"
         run: |
           python -m unittest discover tests
+          echo "While running unit tests, the following datasets were downloaded:"
+          ls ~/.avalanche/data
