@@ -28,7 +28,7 @@ jobs:
     if: ${{ github.repository == 'ContinualAI/avalanche' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check date of last commit
         run: |
           let DIFF=(`date +%s -d "1 day ago"`-`git log -1 --pretty=format:%ct`)

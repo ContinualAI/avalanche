@@ -40,25 +40,24 @@ jobs:
         python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: install coverage.py and coverralls
         run: |
-          conda run -n avalanche-env --no-capture-output pip install coverage
-          conda run -n avalanche-env --no-capture-output pip install coveralls
+          pip install coverage coveralls
       - name: python unit test
         id: unittest
         env:
           FAST_TEST: "True"
           USE_GPU: "False"
         run: |
-          conda run -n avalanche-env --no-capture-output coverage run -m unittest
+          coverage run -m unittest discover tests
       - name: Upload coverage data to coveralls.io
         run: |
-          conda run -n avalanche-env --no-capture-output coveralls --service=github
+          coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
