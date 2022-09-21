@@ -57,10 +57,11 @@ jobs:
           coverage run -m unittest discover tests
       - name: Upload coverage data to coveralls.io
         uses: coverallsapp/github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
-          COVERALLS_PARALLEL: true
+        with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: ${{ matrix.python-version }}
+          parallel: true
+
 
   coveralls:
     if: github.repository == 'ContinualAI/avalanche'
@@ -71,6 +72,6 @@ jobs:
     steps:
       - name: Finished
         uses: coverallsapp/github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          github-token: ${{ secrets.github_token }}
           parallel-finished: true
