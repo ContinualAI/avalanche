@@ -56,8 +56,7 @@ jobs:
         run: |
           coverage run -m unittest discover tests
       - name: Upload coverage data to coveralls.io
-        run: |
-          coveralls --service=github
+        uses: coverallsapp/github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
