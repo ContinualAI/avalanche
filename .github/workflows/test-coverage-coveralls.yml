@@ -70,8 +70,7 @@ jobs:
     container: python:3-slim
     steps:
       - name: Finished
-        run: |
-          pip3 install --upgrade coveralls
-          coveralls --finish
+        uses: coverallsapp/github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
