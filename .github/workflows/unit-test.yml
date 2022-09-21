@@ -52,6 +52,6 @@ jobs:
           FAST_TEST: "True"
           USE_GPU: "False"
         run: |
-          python -m unittest discover tests
-          echo "While running unit tests, the following datasets were downloaded:"
+          python -m unittest discover tests &&
+          echo "While running unit tests, the following datasets were downloaded:" &&
           ls ~/.avalanche/data
