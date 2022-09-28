@@ -27,6 +27,7 @@ NOTE: Do not shuffle the data such that target labels are out of order.
  each label is indexed starting from 0.
 """
 
+
 def main(args):
     # Set device
     # check if selected GPU is available or use CPU
@@ -73,10 +74,10 @@ def main(args):
         # Transform targets to index by 0, if needed
         num_classes = len(experience.classes_in_this_experience)
         max_target_id = max(experience.classes_in_this_experience)
-        index_diff = max_target_id +1 - num_classes
+        index_diff = max_target_id + 1 - num_classes
         if (index_diff != 0):
             experience.dataset = experience.dataset.add_transforms(
-                target_transform= transforms.Lambda(lambda y: y-index_diff)
+                target_transform = transforms.Lambda(lambda y: y-index_diff)
             )
         strategy.train(experience)
 
@@ -89,17 +90,18 @@ def main(args):
         index_diff = max_target_id +1 - num_classes
         if (index_diff != 0):
             experience.dataset = experience.dataset.add_transforms(
-                target_transform= transforms.Lambda(lambda y: y-index_diff)
+                target_transform = transforms.Lambda(lambda y: y-index_diff)
             )
         strategy.eval(experience)
+
 
 def build_scenario(mnist=False):
 
     if(not mnist):
-    # Fake benchmark is (1,1,6)
-    # Data needs to be transformed for AlexNet
-    # Repeat the "channel" as AlexNet expects 3 channel input
-    # Resize to 227 because AlexNet convolution will reduce the data shape 
+        # Fake benchmark is (1,1,6)
+        # Data needs to be transformed for AlexNet
+        # Repeat the "channel" as AlexNet expects 3 channel input
+        # Resize to 227 because AlexNet convolution will reduce the data shape 
         CustomDataAlexTransform = transforms.Compose([
             transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
             transforms.Resize((227, 227)),
@@ -118,11 +120,12 @@ def build_scenario(mnist=False):
 
         # Note: Must provide task ID for training
         scenario = SplitMNIST(n_experiences=5,
-                            return_task_id=True,
-                            train_transform=MNISTAlexTransform, 
-                            eval_transform=MNISTAlexTransform)
+                              return_task_id=True,
+                              train_transform=MNISTAlexTransform, 
+                              eval_transform=MNISTAlexTransform)
     
     return scenario
+
 
 def get_custom_benchmark(use_task_labels=False, 
                          shuffle=False, 
@@ -159,9 +162,11 @@ def get_custom_benchmark(use_task_labels=False,
     )
     return my_nc_benchmark
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
+    parser.add_argument("--lr", type=float, default=1e-3, 
+        help="Learning rate.")
     parser.add_argument(
         "--epochs", type=int, default=5, help="Number of training epochs."
     )
