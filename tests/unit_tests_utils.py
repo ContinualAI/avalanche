@@ -74,7 +74,8 @@ def load_benchmark(use_task_labels=False, fast_test=True):
 
 
 def get_fast_benchmark(
-    use_task_labels=False, shuffle=True, n_samples_per_class=100
+    use_task_labels=False, shuffle=True, n_samples_per_class=100, 
+    train_transform=None, eval_transform=None, 
 ):
     dataset = make_classification(
         n_samples=10 * n_samples_per_class,
@@ -99,6 +100,8 @@ def get_fast_benchmark(
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
+        train_transform=train_transform,
+        eval_transform=eval_transform
     )
     return my_nc_benchmark
 

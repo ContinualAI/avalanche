@@ -18,7 +18,7 @@ from torch.optim import SGD
 
 from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
 from avalanche.logging import TextLogger, InteractiveLogger
-from avalanche.models import SimpleMLP, IncrementalClassifier, PNN
+from avalanche.models import SimpleMLP, IncrementalClassifier, PNN, ExpertGate
 from avalanche.training.plugins import (
     EvaluationPlugin,
     SupervisedPlugin,
@@ -42,6 +42,7 @@ from avalanche.training.supervised import (
     CoPE,
     StreamingLDA,
     MAS,
+    ExpertGateStrategy
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -50,6 +51,7 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.training.utils import get_last_fc_layer
 from tests.unit_tests_utils import get_fast_benchmark, get_device
+from torchvision import transforms
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -748,6 +750,46 @@ class StrategyTest(unittest.TestCase):
             strategy.train(train_task)
         strategy.eval(benchmark.test_stream)
 
+    def test_expertgate(self):
+        model = ExpertGate(shape=(3, 227, 227), device=self.device)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = ExpertGateStrategy(
+            model,
+            optimizer,
+            device=self.device,
+            train_mb_size=10,
+            train_epochs=2,
+            eval_mb_size=50,
+            ae_train_mb_size=10,
+            ae_train_epochs=2, 
+            ae_lr=5e-4,
+        )
+
+        # Mandatory transform for AlexNet
+        # 3 Channels and input size should be a minimum of 227
+        AlexNetTransform = transforms.Compose([
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
+            transforms.Resize((227, 227)),
+            ])
+
+        # train and test loop
+        benchmark = self.load_benchmark(
+            use_task_labels=True, 
+            train_transform=AlexNetTransform, 
+            eval_transform=AlexNetTransform,
+            shuffle=False)
+
+        for experience in benchmark.train_stream:
+            # Transform targets to index by 0, if needed
+            num_classes = len(experience.classes_in_this_experience)
+            max_target_id = max(experience.classes_in_this_experience)
+            index_diff = max_target_id +1 - num_classes
+            if (index_diff != 0):
+                experience.dataset = experience.dataset.add_transforms(
+                    target_transform= transforms.Lambda(lambda y: y-index_diff)
+                )
+            strategy.train(experience)
+
     def test_icarl(self):
         model, optimizer, criterion, benchmark = self.init_sit()
 
@@ -828,14 +870,20 @@ class StrategyTest(unittest.TestCase):
         benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
-    def load_benchmark(self, use_task_labels=False):
+    def load_benchmark(self, use_task_labels=False, 
+                       train_transform=None, 
+                       eval_transform=None, 
+                       shuffle=True):
         """
         Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
         2 classes per experience.
 
         :param fast_test: if True loads fake data, MNIST otherwise.
         """
-        return get_fast_benchmark(use_task_labels=use_task_labels)
+        return get_fast_benchmark(use_task_labels=use_task_labels, 
+                                  train_transform=train_transform, 
+                                  eval_transform=eval_transform,
+                                  shuffle=shuffle)
 
     def get_model(self, fast_test=False):
         if fast_test:
