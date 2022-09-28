@@ -77,7 +77,7 @@ def main(args):
         index_diff = max_target_id + 1 - num_classes
         if (index_diff != 0):
             experience.dataset = experience.dataset.add_transforms(
-                target_transform = transforms.Lambda(lambda y: y-index_diff)
+                target_transform=transforms.Lambda(lambda y: y-index_diff)
             )
         strategy.train(experience)
 
@@ -87,10 +87,10 @@ def main(args):
         # Transform targets to index by 0, if needed
         num_classes = len(experience.classes_in_this_experience)
         max_target_id = max(experience.classes_in_this_experience)
-        index_diff = max_target_id +1 - num_classes
+        index_diff = max_target_id + 1 - num_classes
         if (index_diff != 0):
             experience.dataset = experience.dataset.add_transforms(
-                target_transform = transforms.Lambda(lambda y: y-index_diff)
+                target_transform=transforms.Lambda(lambda y: y-index_diff)
             )
         strategy.eval(experience)
 
@@ -123,7 +123,7 @@ def build_scenario(mnist=False):
                               return_task_id=True,
                               train_transform=MNISTAlexTransform, 
                               eval_transform=MNISTAlexTransform)
-    
+
     return scenario
 
 
@@ -166,7 +166,7 @@ def get_custom_benchmark(use_task_labels=False,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-3, 
-        help="Learning rate.")
+                        help="Learning rate.")
     parser.add_argument(
         "--epochs", type=int, default=5, help="Number of training epochs."
     )
