@@ -1,3 +1,14 @@
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 28-09-2022                                                             #
+# Author(s): Nishant Aswani                                                    #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
 from collections import OrderedDict
 import warnings
 
@@ -8,14 +19,14 @@ from torch.nn.functional import log_softmax
 
 from typing import Optional, List
 
-from avalanche.models.expert_gate import (ExpertAutoencoder, 
-                                          ExpertModel, 
+from avalanche.models.expert_gate import (ExpertAutoencoder,
+                                          ExpertModel,
                                           ExpertGate)
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates.supervised import SupervisedTemplate
-from avalanche.training.plugins import (SupervisedPlugin, 
-                                        EvaluationPlugin, 
+from avalanche.training.plugins import (SupervisedPlugin,
+                                        EvaluationPlugin,
                                         LwFPlugin)
 from avalanche.training.plugins.evaluation import default_evaluator
 
@@ -75,7 +86,7 @@ class ExpertGateStrategy(SupervisedTemplate):
         """
         # Check that the model has the correct architecture.
         assert isinstance(
-            model, 
+            model,
             ExpertGate), "ExpertGateStrategy requires an ExpertGate model."
 
         expertgate = _ExpertGatePlugin()
@@ -99,18 +110,18 @@ class ExpertGateStrategy(SupervisedTemplate):
             "github.com/continualAI/continual-learning-baselines")
 
         super().__init__(
-                model=model,
-                optimizer=optimizer,
-                criterion=criterion,
-                train_mb_size=train_mb_size,
-                train_epochs=train_epochs,
-                eval_mb_size=eval_mb_size,
-                device=device,
-                plugins=plugins,
-                evaluator=evaluator,
-                eval_every=eval_every,
-                **base_kwargs
-                )
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
 
 
 class _ExpertGatePlugin(SupervisedPlugin):
@@ -133,23 +144,23 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Initialize instance of the LwF plugin
         self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
 
-    def before_training_exp(self, 
-                            strategy: "SupervisedTemplate", 
-                            *args, 
+    def before_training_exp(self,
+                            strategy: "SupervisedTemplate",
+                            *args,
                             **kwargs):
         super().before_training_exp(strategy, *args, **kwargs)
 
         # Store task label for easy access
         task_label = strategy.experience.task_label
 
-        # Build an autoencoder for this experience and 
+        # Build an autoencoder for this experience and
         # store it in a dictionary
         autoencoder = self._add_autoencoder(strategy, task_label)
 
         # Train the autoencoder on current experience
         self._train_autoencoder(strategy, autoencoder)
 
-        # If experts exist, build new expert with feature extraction 
+        # If experts exist, build new expert with feature extraction
         # from the most related existing expert
         new_expert, relatedness = self._select_expert(strategy, task_label)
 
@@ -167,14 +178,14 @@ class _ExpertGatePlugin(SupervisedPlugin):
             strategy.plugins.remove(self.lwf_plugin)
 
         print("\nTRAINING EXPERT")
-        # If needed, add a new instance of LwF plugin back 
+        # If needed, add a new instance of LwF plugin back
         if (relatedness > strategy.rel_thresh):
             print("WITH LWF")
             self.lwf_plugin = LwFPlugin(self.alpha, self.temp)
             strategy.plugins.append(self.lwf_plugin)
 
     # ##############
-    # EXPERT METHODS 
+    # EXPERT METHODS
     # ##############
 
     def _add_expert(self, strategy: "SupervisedTemplate", task_label, expert):
@@ -195,17 +206,17 @@ class _ExpertGatePlugin(SupervisedPlugin):
         Returns the most related expert and the relatedness value.
         """
         print("\nSELECTING EXPERT")
-        # If the expert dictionary is empty, 
+        # If the expert dictionary is empty,
         # build the first expert
         if (len(strategy.model.expert_dict) == 0):
             expert = ExpertModel(
-                num_classes=len(strategy.experience.classes_in_this_experience), 
+                num_classes=len(strategy.experience.classes_in_this_experience),
                 arch=strategy.model.arch,
-                device=strategy.device, 
+                device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag)
             relatedness = 0
 
-        # If experts exist, 
+        # If experts exist,
         # select an autoencoder using task relatedness
         else:
             # Build an error dictionary
@@ -232,7 +243,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
             expert = ExpertModel(
                 num_classes=len(strategy.experience.classes_in_this_experience),
                 arch=strategy.model.arch,
-                device=strategy.device, 
+                device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag,
                 provided_template=most_relevant_expert)
 
@@ -245,9 +256,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
     # ########################
     # EXPERT SELECTION METHODS
     # ########################
-    def _task_relatedness(self, 
-                          strategy: "SupervisedTemplate", 
-                          error_dict, 
+    def _task_relatedness(self,
+                          strategy: "SupervisedTemplate",
+                          error_dict,
                           task_label):
         """Given a task label and error dictionary, returns a dictionary 
         of relatedness between the autoencoder of the current task 
@@ -265,20 +276,20 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         return relatedness_dict
 
-    def _get_average_reconstruction_error(self, 
-                                          strategy: "SupervisedTemplate", 
+    def _get_average_reconstruction_error(self,
+                                          strategy: "SupervisedTemplate",
                                           task_label):
         """Given a task label, retrieves an autoencoder and 
         evaluates the reconstruction error on the current batch of data.
         """
         autoencoder = self._get_autoencoder(strategy, task_label)
 
-        ae_strategy = AETraining(model=autoencoder, 
+        ae_strategy = AETraining(model=autoencoder,
                                  optimizer=SGD(
-                                     autoencoder.parameters(), 
+                                     autoencoder.parameters(),
                                      lr=strategy.ae_lr),
                                  device=strategy.device,
-                                 eval_mb_size=100, 
+                                 eval_mb_size=100,
                                  eval_every=-1)
 
         # Run evaluation on autoencoder
@@ -299,20 +310,20 @@ class _ExpertGatePlugin(SupervisedPlugin):
         return error
 
     # ##################
-    # AUTENCODER METHODS 
+    # AUTENCODER METHODS
     # ##################
-    def _add_autoencoder(self, 
-                         strategy: "SupervisedTemplate", 
+    def _add_autoencoder(self,
+                         strategy: "SupervisedTemplate",
                          task_label):
         """Builds a new autoencoder and stores it in the ExpertGate 
         autoencoder dictionary. Returns the new autoencoder.
         """
         # Build a new autoencoder
-        # This shape is equivalent to the output shape of 
+        # This shape is equivalent to the output shape of
         # the Alexnet features module
         new_autoencoder = ExpertAutoencoder(
-            shape=(256, 6, 6), 
-            latent_dim=strategy.ae_latent_dim, 
+            shape=(256, 6, 6),
+            latent_dim=strategy.ae_latent_dim,
             device=strategy.device)
 
         # Store autoencoder with task number
@@ -331,12 +342,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
         """
         # Setup autoencoder strategy
         ae_strategy = AETraining(model=autoencoder,
-                                 optimizer=SGD(autoencoder.parameters(), 
+                                 optimizer=SGD(autoencoder.parameters(),
                                                lr=strategy.ae_lr,
-                                               momentum=0.9, 
+                                               momentum=0.9,
                                                weight_decay=0.0005),
-                                 device=strategy.device, 
-                                 train_mb_size=strategy.ae_train_mb_size, 
+                                 device=strategy.device,
+                                 train_mb_size=strategy.ae_train_mb_size,
                                  train_epochs=strategy.ae_train_epochs,
                                  eval_every=-1)
 
