@@ -40,7 +40,7 @@ def main(args):
     print(f"Using device: {device}")
 
     # Initialize model and specify shape
-    model = ExpertGate(shape=(3, 227, 227), device=device) 
+    model = ExpertGate(shape=(3, 227, 227), device=device)
 
     # Vanilla optimization
     optimizer = SGD(model.expert.parameters(), lr=args.lr,
@@ -53,9 +53,9 @@ def main(args):
         device=device,
         train_mb_size=args.minibatch_size,
         train_epochs=args.epochs,
-        eval_every=-1, 
+        eval_every=-1,
         ae_train_mb_size=args.minibatch_size,
-        ae_train_epochs=int(args.epochs/2), 
+        ae_train_epochs=int(args.epochs/2),
         ae_lr=1e-4,
     )
 
@@ -97,40 +97,40 @@ def main(args):
 
 def build_scenario(mnist=False):
 
-    if(not mnist):
+    if (not mnist):
         # Fake benchmark is (1,1,6)
         # Data needs to be transformed for AlexNet
         # Repeat the "channel" as AlexNet expects 3 channel input
-        # Resize to 227 because AlexNet convolution will reduce the data shape 
+        # Resize to 227 because AlexNet convolution will reduce the data shape
         CustomDataAlexTransform = transforms.Compose([
-            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),      
+            transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
             transforms.Resize((227, 227)),
         ])
 
         scenario = get_custom_benchmark(
-            use_task_labels=True, train_transform=CustomDataAlexTransform, 
+            use_task_labels=True, train_transform=CustomDataAlexTransform,
             eval_transform=CustomDataAlexTransform, shuffle=False)
     else:
         # More resource intensive example
         MNISTAlexTransform = transforms.Compose([
             transforms.Resize((227, 227)),
-            transforms.ToTensor(), 
+            transforms.ToTensor(),
             transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
         ])
 
         # Note: Must provide task ID for training
         scenario = SplitMNIST(n_experiences=5,
                               return_task_id=True,
-                              train_transform=MNISTAlexTransform, 
+                              train_transform=MNISTAlexTransform,
                               eval_transform=MNISTAlexTransform)
 
     return scenario
 
 
-def get_custom_benchmark(use_task_labels=False, 
-                         shuffle=False, 
-                         n_samples_per_class=100, 
-                         train_transform=None, 
+def get_custom_benchmark(use_task_labels=False,
+                         shuffle=False,
+                         n_samples_per_class=100,
+                         train_transform=None,
                          eval_transform=None
                          ):
 
@@ -165,7 +165,7 @@ def get_custom_benchmark(use_task_labels=False,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lr", type=float, default=1e-3, 
+    parser.add_argument("--lr", type=float, default=1e-3,
                         help="Learning rate.")
     parser.add_argument(
         "--epochs", type=int, default=5, help="Number of training epochs."
@@ -174,7 +174,8 @@ if __name__ == "__main__":
         "--minibatch_size", type=int, default=32, help="Minibatch size."
     )
     parser.add_argument(
-        "--mnist", action="store_true", help="Use the MNIST dataset for the example"
+        "--mnist", action="store_true",
+        help="Use the MNIST dataset for the example"
     )
     parser.add_argument(
         "--cuda",

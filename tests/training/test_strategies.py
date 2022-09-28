@@ -786,7 +786,7 @@ class StrategyTest(unittest.TestCase):
             index_diff = max_target_id + 1 - num_classes
             if (index_diff != 0):
                 experience.dataset = experience.dataset.add_transforms(
-                    target_transform = transforms.Lambda(
+                    target_transform=transforms.Lambda(
                         lambda y: y-index_diff)
                 )
             strategy.train(experience)
