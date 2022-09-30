@@ -218,7 +218,7 @@ class BaseSGDTemplate(BaseTemplate):
 
     # ==================================================================> NEW
 
-    def maybe_adapt_model_and_make_optimizer(self):
+    def check_model_and_optimizer(self):
         # Should be implemented in observation type
         raise NotImplementedError()
 
@@ -234,9 +234,35 @@ class BaseSGDTemplate(BaseTemplate):
         # Model Adaptation (e.g. freeze/add new units)
         # self.model = self.model_adaptation()
         # self.make_optimizer()
-        self.maybe_adapt_model_and_make_optimizer()
+        self.check_model_and_optimizer()
 
         super()._before_training_exp(**kwargs)
+
+    def _train_exp(
+        self, experience: CLExperience, eval_streams=None, **kwargs
+    ):
+        """Training loop over a single Experience object.
+
+        :param experience: CL experience information.
+        :param eval_streams: list of streams for evaluation.
+            If None: use the training experience for evaluation.
+            Use [] if you do not want to evaluate during training.
+        :param kwargs: custom arguments.
+        """
+        if eval_streams is None:
+            eval_streams = [experience]
+        for i, exp in enumerate(eval_streams):
+            if not isinstance(exp, Iterable):
+                eval_streams[i] = [exp]
+        for _ in range(self.train_epochs):
+            self._before_training_epoch(**kwargs)
+
+            if self._stop_training:  # Early stopping
+                self._stop_training = False
+                break
+
+            self.training_epoch(**kwargs)
+            self._after_training_epoch(**kwargs)
 
     def _save_train_state(self):
         """Save the training state which may be modified by the eval loop.

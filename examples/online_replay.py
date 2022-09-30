@@ -127,7 +127,7 @@ def main(args):
                                          experiences=exp,
                                          experience_size=1)
         # Train on the online train stream of the scenario
-        cl_strategy.train(ocl_benchmark.online_train_stream)
+        cl_strategy.train(ocl_benchmark.train_stream)
         results.append(cl_strategy.eval(scenario.test_stream))
     
 

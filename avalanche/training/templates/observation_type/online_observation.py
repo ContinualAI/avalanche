@@ -7,25 +7,6 @@ from avalanche.models.utils import avalanche_model_adaptation
 
 
 class OnlineObservation:
-    def _train_exp(
-            self, experience: OnlineCLExperience, eval_streams=None, **kwargs
-    ):
-        """Training loop over a single Experience object.
-
-        :param experience: Online CL experience information.
-        :param eval_streams: list of streams for evaluation.
-            If None: use the training experience for evaluation.
-            Use [] if you do not want to evaluate during training.
-        :param kwargs: custom arguments.
-        """
-        if eval_streams is None:
-            eval_streams = [experience]
-        for i, exp in enumerate(eval_streams):
-            if not isinstance(exp, Iterable):
-                eval_streams[i] = [exp]
-
-        self.training_epoch(**kwargs)
-
     def make_optimizer(self):
         """Optimizer initialization.
 
@@ -71,7 +52,7 @@ class OnlineObservation:
 
         return model.to(self.device)
 
-    def maybe_adapt_model_and_make_optimizer(self):
+    def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
         # sub-experience is the first sub-experience in the online (sub-)stream,
         # then adapt the model with the full origin experience:
