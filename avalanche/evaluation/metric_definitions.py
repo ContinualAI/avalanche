@@ -18,7 +18,7 @@ from .metric_utils import get_metric_name, generic_get_metric_name, \
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from ..training.templates.supervised import SupervisedTemplate
+    from ..training.templates import SupervisedTemplate
 
 TResult = TypeVar("TResult")
 TAggregated = TypeVar("TAggregated", bound="PluginMetric")

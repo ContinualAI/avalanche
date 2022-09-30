@@ -47,7 +47,7 @@ from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.utils import get_last_fc_layer
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 

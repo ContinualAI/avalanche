@@ -21,7 +21,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
     from avalanche.benchmarks.utils import AvalancheDataset
 
 

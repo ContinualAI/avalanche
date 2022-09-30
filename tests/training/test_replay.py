@@ -22,7 +22,7 @@ from avalanche.training.storage_policy import (
     ParametricBuffer,
 )
 from avalanche.training.supervised import Naive
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from tests.unit_tests_utils import get_fast_benchmark
 
 
