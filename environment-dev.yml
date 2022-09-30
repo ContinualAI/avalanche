@@ -37,3 +37,4 @@ dependencies:
     - higher
     - gym
     - lvis
+    - dill
