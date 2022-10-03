@@ -227,7 +227,7 @@ def _init_transform_groups(transform_groups, transform, target_transform,
     if initial_transform_group is None:
         # Detect from the input dataset. If not an AvalancheDataset then
         # use 'train' as the initial transform group
-        if isinstance(dataset, _AvalancheClassificationDataset):
+        if isinstance(dataset, _AvalancheClassificationDataset) and dataset._transform_groups is not None:
             initial_transform_group = dataset._transform_groups.current_group
         else:
             initial_transform_group = "train"

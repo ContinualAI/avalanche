@@ -130,9 +130,9 @@ class _AvalancheDataset(FlatData):
         # inherit transformation group from original dataset
         for dd in self._datasets:
             if isinstance(dd, _AvalancheDataset):
-                if cgroup is None:
+                if cgroup is None and dd._transform_groups is not None:
                     cgroup = dd._transform_groups.current_group
-                elif dd._transform_groups.current_group != cgroup:
+                elif dd._transform_groups is not None and dd._transform_groups.current_group != cgroup:
                     # all datasets must have the same transformation group
                     warnings.warn(f"Concatenated datasets have different transformation groups."
                                   f"Using group={cgroup}.")

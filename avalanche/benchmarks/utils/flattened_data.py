@@ -26,7 +26,7 @@ class FlatData(IDataset):
     Class for internal use only.
     """
 
-    def __init__(self, datasets: Sequence[IDataset],
+    def __init__(self, datasets: List[IDataset],
                  indices: List[int] = None, can_flatten=True):
         self._datasets = datasets
         if can_flatten:
@@ -35,8 +35,6 @@ class FlatData(IDataset):
         self._indices = indices
         self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
         self._can_flatten = can_flatten
-        if indices is not None and can_flatten:
-            pass  # flatten indices
 
     def subset(self, indices):
         assert len(indices) == len(self)
@@ -64,7 +62,7 @@ class FlatData(IDataset):
         if self._indices is not None:  # subset indexing
             idx = self._indices[idx]
         if len(self._datasets) == 1:
-            dataset_idx = 1
+            dataset_idx = 0
         else:  # concat indexing
             dataset_idx = bisect.bisect_right(self._cumulative_sizes, idx)
             if dataset_idx == 0:
@@ -128,7 +126,7 @@ def _flatten_dataset_list(datasets: List[FlatData]):
     for dataset in datasets:
         if len(dataset) == 0:
             continue
-        elif isinstance(dataset, FlatData) and dataset._can_flatten:
+        elif isinstance(dataset, FlatData) and dataset._indices is None and dataset._can_flatten:
             flattened_list.extend(dataset._datasets)
         else:
             flattened_list.append(dataset)
