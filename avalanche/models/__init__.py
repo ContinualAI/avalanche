@@ -9,6 +9,7 @@ the near future.
 
 from .simple_cnn import *
 from .simple_mlp import *
+from .simple_sequence_classifier import *
 from .mlp_tiny_imagenet import SimpleMLP_TinyImageNet
 from .mobilenetv1 import MobilenetV1
 from .dynamic_modules import *

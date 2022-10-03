@@ -77,13 +77,11 @@ setuptools.setup(
         'torchmetrics',
         'gdown',
         'quadprog',
+        'dill',
         'setuptools<=59.5.0'
     ],
-    # extras_require=get_extra_requires('extra_dependencies.txt',
-    #                                   add_all=True)
-    extras_require={'extra': ['higher', 'ctrl-benchmark'], 'rl': ['gym'],
-                    'detection': ['pycocotools', 'lvis'],
-                    'all': ['higher', 'ctrl-benchmark', 'gym',
-                            'pycocotools', 'lvis']}
+    extras_require=get_extra_requires('extra_dependencies.txt',
+                                      add_all=True),
+    include_package_data=True
 )
 

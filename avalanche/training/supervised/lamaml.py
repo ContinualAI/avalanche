@@ -53,7 +53,7 @@ class LaMAML(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
     ):

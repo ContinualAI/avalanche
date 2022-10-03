@@ -60,7 +60,7 @@ class AR1(SupervisedTemplate):
         eval_mb_size: int = 128,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """
@@ -256,12 +256,15 @@ class AR1(SupervisedTemplate):
         current_batch_mb_size = max(1, current_batch_mb_size)
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
+        collate_fn = self.adapted_dataset.collate_fn \
+            if hasattr(self.adapted_dataset, "collate_fn") else None
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=current_batch_mb_size,
             shuffle=shuffle,
+            collate_fn=collate_fn
         )
 
     def training_epoch(self, **kwargs):
@@ -283,7 +286,9 @@ class AR1(SupervisedTemplate):
                     * self.replay_mb_size
                 ]
                 lat_mb_y = lat_mb_y.to(self.device)
+                lat_task_id = torch.zeros(lat_mb_y.shape[0]).to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
+                self.mbatch[2] = torch.cat((self.mb_task_id, lat_task_id), 0)
             else:
                 lat_mb_x = None
 

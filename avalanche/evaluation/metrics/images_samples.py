@@ -144,10 +144,12 @@ class ImagesSamplePlugin(PluginMetric):
                 transform=_MaybeToTensor(),
                 target_transform=None,
             )
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(
             dataset=data,
             batch_size=min(mb_size, self.n_wanted_images),
             shuffle=True,
+            collate_fn=collate_fn
         )
 
 

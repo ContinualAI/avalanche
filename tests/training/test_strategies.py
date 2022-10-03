@@ -18,7 +18,8 @@ from torch.optim import SGD
 
 from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
 from avalanche.logging import TextLogger, InteractiveLogger
-from avalanche.models import SimpleMLP, IncrementalClassifier, PNN, ExpertGate
+from avalanche.models import SimpleMLP, ExpertGate
+from avalanche.models import MTSimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
     EvaluationPlugin,
     SupervisedPlugin,
@@ -180,7 +181,7 @@ class BaseStrategyTest(unittest.TestCase):
     def test_early_stop(self):
         class EarlyStopP(SupervisedPlugin):
             def after_training_iteration(
-                self, strategy: "SupervisedTemplate", **kwargs
+                    self, strategy: "SupervisedTemplate", **kwargs
             ):
                 if strategy.clock.train_epoch_iterations == 10:
                     strategy.stop_training()
@@ -225,16 +226,17 @@ class StrategyTest(unittest.TestCase):
     else:
         device = "cpu"
 
-    def init_sit(self):
-        model = self.get_model(fast_test=True)
+    def init_scenario(self, multi_task=False):
+        model = self.get_model(fast_test=True, multi_task=multi_task)
         optimizer = SGD(model.parameters(), lr=1e-3)
         criterion = CrossEntropyLoss()
-        benchmark = self.load_benchmark(use_task_labels=False)
+        benchmark = self.load_benchmark(use_task_labels=multi_task)
         return model, optimizer, criterion, benchmark
 
     def test_naive(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = Naive(
             model,
             optimizer,
@@ -244,9 +246,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = Naive(
             model,
             optimizer,
@@ -256,7 +260,6 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_joint(self):
@@ -266,7 +269,7 @@ class StrategyTest(unittest.TestCase):
                 self.benchmark = benchmark
 
             def after_train_dataset_adaptation(
-                self, strategy: "SupervisedTemplate", **kwargs
+                    self, strategy: "SupervisedTemplate", **kwargs
             ):
                 """
                 Check that the dataset used for training contains the
@@ -278,7 +281,8 @@ class StrategyTest(unittest.TestCase):
                 assert len(strategy.adapted_dataset) == cum_len
 
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = JointTraining(
             model,
             optimizer,
@@ -287,13 +291,14 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             eval_mb_size=50,
             train_epochs=2,
-            plugins=[JointSTestPlugin(my_nc_benchmark)],
+            plugins=[JointSTestPlugin(benchmark)],
         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        strategy.train(my_nc_benchmark.train_stream)
+        strategy.train(benchmark.train_stream)
 
         # MT scenario
-        my_nc_benchmark = self.load_benchmark(use_task_labels=True)
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = JointTraining(
             model,
             optimizer,
@@ -302,20 +307,21 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             eval_mb_size=50,
             train_epochs=2,
-            plugins=[JointSTestPlugin(my_nc_benchmark)],
+            plugins=[JointSTestPlugin(benchmark)],
         )
         strategy.evaluator.loggers = [TextLogger(sys.stdout)]
-        strategy.train(my_nc_benchmark.train_stream)
+        strategy.train(benchmark.train_stream)
 
         # Raise error when retraining
         self.assertRaises(
             AlreadyTrainedError,
-            lambda: strategy.train(my_nc_benchmark.train_stream),
+            lambda: strategy.train(benchmark.train_stream),
         )
 
     def test_cwrstar(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         last_fc_name, _ = get_last_fc_layer(model)
         strategy = CWRStar(
             model,
@@ -325,14 +331,14 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=64,
             device=self.device,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         dict_past_j = {}
-        for cls in range(my_nc_benchmark.n_classes):
+        for cls in range(benchmark.n_classes):
             dict_past_j[cls] = 0
 
         # Check past_j SIT
-        for exp in my_nc_benchmark.train_stream:
+        for exp in benchmark.train_stream:
             for cls in set(exp.dataset.targets):
                 dict_past_j[cls] += exp.dataset.targets.count(cls)
         for cls in model.past_j.keys():
@@ -342,6 +348,8 @@ class StrategyTest(unittest.TestCase):
             model.past_j[cls] = 0
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = CWRStar(
             model,
             optimizer,
@@ -350,7 +358,6 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=64,
             device=self.device,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         # self.run_strategy(benchmark, strategy)
 
         # Check past_j MT
@@ -366,7 +373,8 @@ class StrategyTest(unittest.TestCase):
 
     def test_replay(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = Replay(
             model,
             optimizer,
@@ -377,9 +385,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = Replay(
             model,
             optimizer,
@@ -390,12 +400,12 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_gdumb(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = GDumb(
             model,
             optimizer,
@@ -406,9 +416,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = GDumb(
             model,
             optimizer,
@@ -419,12 +431,12 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_cumulative(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = Cumulative(
             model,
             optimizer,
@@ -434,9 +446,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = Cumulative(
             model,
             optimizer,
@@ -446,11 +460,10 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_slda(self):
-        model, _, criterion, my_nc_benchmark = self.init_sit()
+        model, _, criterion, benchmark = self.init_scenario(multi_task=False)
         strategy = StreamingLDA(
             model,
             criterion,
@@ -462,10 +475,10 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             train_mb_size=7,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
     def test_warning_slda_lwf(self):
-        model, _, criterion, my_nc_benchmark = self.init_sit()
+        model, _, criterion, benchmark = self.init_scenario(multi_task=False)
         with self.assertWarns(Warning) as cm:
             StreamingLDA(
                 model,
@@ -478,7 +491,8 @@ class StrategyTest(unittest.TestCase):
 
     def test_lwf(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = LwF(
             model,
             optimizer,
@@ -490,9 +504,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = LwF(
             model,
             optimizer,
@@ -504,12 +520,12 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_agem(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = AGEM(
             model,
             optimizer,
@@ -520,9 +536,11 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = AGEM(
             model,
             optimizer,
@@ -533,12 +551,12 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_gem(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = GEM(
             model,
             optimizer,
@@ -549,9 +567,11 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2,
         )
 
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = GEM(
             model,
             optimizer,
@@ -561,13 +581,13 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
         benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_ewc(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = EWC(
             model,
             optimizer,
@@ -579,9 +599,11 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2,
         )
 
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
         strategy = EWC(
             model,
             optimizer,
@@ -592,12 +614,12 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
 
     def test_ewc_online(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = EWC(
             model,
             optimizer,
@@ -609,26 +631,28 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
-
-        # MT scenario
-        strategy = EWC(
-            model,
-            optimizer,
-            criterion,
-            ewc_lambda=0.4,
-            mode="online",
-            decay_factor=0.1,
-            train_mb_size=10,
-            eval_mb_size=50,
-            train_epochs=2,
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
+
+        # # MT scenario
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = EWC(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     ewc_lambda=0.4,
+        #     mode="online",
+        #     decay_factor=0.1,
+        #     train_mb_size=10,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def test_rwalk(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = Naive(
             model,
             optimizer,
@@ -644,30 +668,32 @@ class StrategyTest(unittest.TestCase):
                 ),
             ],
         )
-        self.run_strategy(my_nc_benchmark, strategy)
-
-        # MT scenario
-        strategy = Naive(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size=10,
-            eval_mb_size=50,
-            train_epochs=2,
-            plugins=[
-                RWalkPlugin(
-                    ewc_lambda=0.1,
-                    ewc_alpha=0.9,
-                    delta_t=10,
-                ),
-            ],
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
         self.run_strategy(benchmark, strategy)
+
+        # # MT scenario
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = Naive(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     train_mb_size=10,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        #     plugins=[
+        #         RWalkPlugin(
+        #             ewc_lambda=0.1,
+        #             ewc_alpha=0.9,
+        #             delta_t=10,
+        #         ),
+        #     ],
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def test_synaptic_intelligence(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = SynapticIntelligence(
             model,
             optimizer,
@@ -677,21 +703,21 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=10,
             eval_mb_size=10,
         )
-        benchmark = self.load_benchmark(use_task_labels=False)
         self.run_strategy(benchmark, strategy)
 
         # MT scenario
-        strategy = SynapticIntelligence(
-            model,
-            optimizer,
-            criterion,
-            si_lambda=0.0001,
-            train_epochs=1,
-            train_mb_size=10,
-            eval_mb_size=10,
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = SynapticIntelligence(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     si_lambda=0.0001,
+        #     train_epochs=1,
+        #     train_mb_size=10,
+        #     eval_mb_size=10,
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def test_cope(self):
         # Fast benchmark (hardcoded)
@@ -699,7 +725,8 @@ class StrategyTest(unittest.TestCase):
         emb_size = n_classes  # Embedding size
 
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = CoPE(
             model,
             optimizer,
@@ -712,23 +739,24 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
-        strategy = CoPE(
-            model,
-            optimizer,
-            criterion,
-            mem_size=10,
-            n_classes=n_classes,
-            p_size=emb_size,
-            train_mb_size=10,
-            device=self.device,
-            eval_mb_size=50,
-            train_epochs=2,
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = CoPE(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     mem_size=10,
+        #     n_classes=n_classes,
+        #     p_size=emb_size,
+        #     train_mb_size=10,
+        #     device=self.device,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def test_pnn(self):
         # only multi-task scenarios.
@@ -792,7 +820,8 @@ class StrategyTest(unittest.TestCase):
             strategy.train(experience)
 
     def test_icarl(self):
-        model, optimizer, criterion, benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
 
         strategy = ICaRL(
             model.features,
@@ -813,7 +842,8 @@ class StrategyTest(unittest.TestCase):
     def test_lfl(self):
 
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = LFL(
             model,
             optimizer,
@@ -824,25 +854,27 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
-        strategy = LFL(
-            model,
-            optimizer,
-            criterion,
-            lambda_e=0.0001,
-            train_mb_size=10,
-            device=self.device,
-            eval_mb_size=50,
-            train_epochs=2,
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = LFL(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     lambda_e=0.0001,
+        #     train_mb_size=10,
+        #     device=self.device,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def test_mas(self):
         # SIT scenario
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False)
         strategy = MAS(
             model,
             optimizer,
@@ -854,22 +886,23 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
-        self.run_strategy(my_nc_benchmark, strategy)
+        self.run_strategy(benchmark, strategy)
 
         # MT scenario
-        strategy = MAS(
-            model,
-            optimizer,
-            criterion,
-            lambda_reg=1.0,
-            alpha=0.5,
-            train_mb_size=10,
-            device=self.device,
-            eval_mb_size=50,
-            train_epochs=2,
-        )
-        benchmark = self.load_benchmark(use_task_labels=True)
-        self.run_strategy(benchmark, strategy)
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = MAS(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     lambda_reg=1.0,
+        #     alpha=0.5,
+        #     train_mb_size=10,
+        #     device=self.device,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False, 
                        train_transform=None, 
@@ -886,14 +919,20 @@ class StrategyTest(unittest.TestCase):
                                   eval_transform=eval_transform,
                                   shuffle=shuffle)
 
-    def get_model(self, fast_test=False):
+    def get_model(self, fast_test=False, multi_task=False):
         if fast_test:
-            model = SimpleMLP(input_size=6, hidden_size=10)
+            if multi_task:
+                model = MTSimpleMLP(input_size=6, hidden_size=10)
+            else:
+                model = SimpleMLP(input_size=6, hidden_size=10)
             # model.classifier = IncrementalClassifier(
             #     model.classifier.in_features)
             return model
         else:
-            model = SimpleMLP()
+            if multi_task:
+                model = MTSimpleMLP()
+            else:
+                model = SimpleMLP()
             # model.classifier = IncrementalClassifier(
             #     model.classifier.in_features)
             return model

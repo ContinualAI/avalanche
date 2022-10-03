@@ -6,7 +6,8 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+    collate_from_data_or_kwargs
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -77,7 +78,7 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
             eval_mb_size: Optional[int] = 1,
             device="cpu",
             plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-            evaluator=default_evaluator,
+            evaluator=default_evaluator(),
             eval_every=-1,
             peval_mode="experience",
     ):
@@ -214,7 +215,11 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
+        collate_from_data_or_kwargs(self.adapted_dataset,
+                                    other_dataloader_args)
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
@@ -243,7 +248,11 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
 
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
 
+        collate_from_data_or_kwargs(self.adapted_dataset,
+                                    other_dataloader_args)
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,

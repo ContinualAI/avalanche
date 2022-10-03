@@ -53,7 +53,7 @@ class JointTraining(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
     ):
         """Init.
@@ -169,7 +169,7 @@ class JointTraining(SupervisedTemplate):
         for experience in self._experiences:
             for module in model.modules():
                 if isinstance(module, DynamicModule):
-                    module.adaptation(experience.dataset)
+                    module.adaptation(experience)
             model = model.to(self.device)
         return model
 

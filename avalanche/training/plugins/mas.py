@@ -68,9 +68,12 @@ class MASPlugin(SupervisedPlugin):
 
         # Do forward and backward pass to accumulate L2-loss gradients
         strategy.model.train()
+        collate_fn = strategy.experience.dataset.collate_fn \
+            if hasattr(strategy.experience.dataset, "collate_fn") else None
         dataloader = DataLoader(
             strategy.experience.dataset,
             batch_size=strategy.train_mb_size,
+            collate_fn=collate_fn
         )  # type: ignore
 
         # Progress bar

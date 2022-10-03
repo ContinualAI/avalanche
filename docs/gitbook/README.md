@@ -41,7 +41,7 @@ from avalanche.benchmarks.classic import PermutedMNIST
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.models import SimpleMLP
-from avalanche.training.strategies import Naive
+from avalanche.training.supervised import Naive
 
 # Config
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -221,8 +221,8 @@ We know that learning a new tool _may be tough at first_. This is why we made _A
 
 For example, you may start with our _**5-minutes**_ **guide** that will let you acquire the basics about _Avalanche_ and how you can use it in your research project:
 
-{% content-ref url="broken-reference" %}
-[Broken link](broken-reference)
+{% content-ref url="getting-started/learn-avalanche-in-5-minutes.md" %}
+[learn-avalanche-in-5-minutes.md](getting-started/learn-avalanche-in-5-minutes.md)
 {% endcontent-ref %}
 
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:&#x20;

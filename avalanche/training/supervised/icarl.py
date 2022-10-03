@@ -41,7 +41,7 @@ class ICaRL(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """Init.
@@ -243,9 +243,10 @@ class _ICaRLPlugin(SupervisedPlugin):
             cd = AvalancheSubset(
                 dataset, torch.where(targets == new_classes[iter_dico])[0]
             )
-
+            collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
             class_patterns, _, _ = next(
-                iter(DataLoader(cd.eval(), batch_size=len(cd)))
+                iter(DataLoader(cd.eval(), collate_fn=collate_fn,
+                                batch_size=len(cd)))
             )
             class_patterns = class_patterns.to(strategy.device)
 

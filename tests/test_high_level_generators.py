@@ -1,12 +1,15 @@
 import os
+import tempfile
 import unittest
 from os.path import expanduser
 
 import torch
 from numpy.testing import assert_almost_equal
-from torchvision.datasets import CIFAR10, MNIST
+from torchvision.datasets import MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
+from tests.unit_tests_utils import DummyImageDataset
+
 
 from avalanche.benchmarks import (
     dataset_benchmark,
@@ -26,8 +29,7 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 )
 from avalanche.benchmarks.utils import (
     AvalancheDataset,
-    AvalancheTensorDataset,
-    AvalancheDatasetType,
+    AvalancheTensorDataset
 )
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
 
@@ -44,12 +46,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
             root=default_dataset_location("mnist"), train=False, download=True
         )
 
-        train_cifar10 = CIFAR10(
-            root=default_dataset_location("cifar10"), train=True, download=True
-        )
-        test_cifar10 = CIFAR10(
-            root=default_dataset_location("cifar10"), train=False, download=True
-        )
+        train_cifar10 = DummyImageDataset(n_classes=10)
+        test_cifar10 = DummyImageDataset(n_classes=10)
 
         generic_benchmark = dataset_benchmark(
             [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
@@ -75,20 +73,12 @@ class HighLevelGeneratorTests(unittest.TestCase):
         )
 
         train_cifar10 = AvalancheDataset(
-            CIFAR10(
-                root=default_dataset_location("cifar10"),
-                train=True,
-                download=True,
-            ),
+            DummyImageDataset(n_classes=10),
             task_labels=1,
         )
 
         test_cifar10 = AvalancheDataset(
-            CIFAR10(
-                root=default_dataset_location("cifar10"),
-                train=False,
-                download=True,
-            ),
+            DummyImageDataset(n_classes=10),
             task_labels=1,
         )
 
@@ -119,26 +109,31 @@ class HighLevelGeneratorTests(unittest.TestCase):
             expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
         )
 
-        for filelist, dir, label in zip(
-            ["train_filelist_00.txt", "train_filelist_01.txt"],
-            ["cats", "dogs"],
-            [0, 1],
-        ):
-            # First, obtain the list of files
-            filenames_list = os.listdir(os.path.join(dirpath, dir))
-            with open(filelist, "w") as wf:
-                for name in filenames_list:
-                    wf.write("{} {}\n".format(os.path.join(dir, name), label))
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            list_paths = []
+            for filelist, rel_dir, label in zip(
+                ["train_filelist_00.txt", "train_filelist_01.txt"],
+                ["cats", "dogs"],
+                [0, 1],
+            ):
+                # First, obtain the list of files
+                filenames_list = os.listdir(os.path.join(dirpath, rel_dir))
+                filelist_path = os.path.join(tmpdirname, filelist)
+                list_paths.append(filelist_path)
+                with open(filelist_path, "w") as wf:
+                    for name in filenames_list:
+                        wf.write("{} {}\n".format(
+                            os.path.join(rel_dir, name), label))
 
-        generic_benchmark = filelist_benchmark(
-            dirpath,
-            ["train_filelist_00.txt", "train_filelist_01.txt"],
-            ["train_filelist_00.txt"],
-            task_labels=[0, 0],
-            complete_test_set_only=True,
-            train_transform=ToTensor(),
-            eval_transform=ToTensor(),
-        )
+            generic_benchmark = filelist_benchmark(
+                dirpath,
+                list_paths,
+                [list_paths[0]],
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
@@ -315,8 +310,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         initial_benchmark_instance = create_lazy_generic_benchmark(
             train_generator=LazyStreamDefinition(train_gen(), 2, [0, 0]),
             test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-            complete_test_set_only=True,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            complete_test_set_only=True
         )
 
         data_incremental_instance = data_incremental_benchmark(
@@ -621,8 +615,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         train_gen(), 2, [0, 0]
                     ),
                     test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-                    complete_test_set_only=True,
-                    dataset_type=AvalancheDatasetType.CLASSIFICATION,
+                    complete_test_set_only=True
                 )
 
                 valid_benchmark = benchmark_with_validation_stream(

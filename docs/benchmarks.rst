@@ -229,6 +229,14 @@ Datasets
     TinyImagenet
     CLEARDataset
 
+| Datasets of audio sequences from TorchAudio.
+
+.. autosummary::
+    :toctree: generated
+
+    torchaudio_wrapper.SpeechCommands
+
+
 .. currentmodule:: avalanche.benchmarks.generators
 
 Benchmark Generators

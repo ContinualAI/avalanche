@@ -8,8 +8,8 @@ If you are here it means you are considering contributing to _Avalanche_. It is 
 
 In order to contribute the this awesome framework we recommend to go through the "_From Zero to Hero_" _Avalanche_ Tutorial:
 
-{% content-ref url="broken-reference" %}
-[Broken link](broken-reference)
+{% content-ref url="../from-zero-to-hero-tutorial/01_introduction.md" %}
+[01\_introduction.md](../from-zero-to-hero-tutorial/01\_introduction.md)
 {% endcontent-ref %}
 
 In this tutorial you'll learn Avalanche _in-depth_ and learn how to extend and contribute back to the community! In particular, be sure to read the "_Contribute to Avalanche_" chapter:

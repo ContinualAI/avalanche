@@ -60,12 +60,6 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
 
         super().__init__()
 
-        warnings.warn(
-            "The Synaptic Intelligence plugin is in an alpha stage "
-            "and is not perfectly aligned with the paper "
-            "implementation. Please use at your own risk!"
-        )
-
         if excluded_parameters is None:
             excluded_parameters = []
         self.si_lambda = (

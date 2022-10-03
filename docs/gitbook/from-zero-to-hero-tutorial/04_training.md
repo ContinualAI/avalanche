@@ -9,7 +9,7 @@ First, let's install Avalanche. You can skip this step if you have installed it 
 
 
 ```python
-!pip install avalanche-lib=0.2.0
+!pip install avalanche-lib==0.2.0
 ```
 
 ## 💪 The Training Module

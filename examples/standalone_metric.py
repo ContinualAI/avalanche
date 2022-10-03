@@ -19,10 +19,10 @@ in the Avalanche training and evaluation loops.
 
 # import a standalone metric
 import torch
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 # all standalone metrics
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 # , Loss, # Loss
 # Forgetting,  # Forgetting
@@ -36,7 +36,7 @@ from avalanche.evaluation.metrics import Accuracy
 
 # create an instance of the standalone Accuracy metric
 # initial accuracy is 0
-acc_metric = Accuracy()
+acc_metric = TaskAwareAccuracy()
 print("Initial Accuracy: ", acc_metric.result())  # output 0
 
 # update method allows to keep the running average accuracy

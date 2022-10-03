@@ -1,6 +1,3 @@
-# this file is currently not used due to a problem with setuptools
-# the extra dependencies are currently specified in the setup.py file
-
 # FORMAT
 # Put your extra requirements here in the following format
 #
@@ -8,6 +5,7 @@
 
 higher:               extra
 ctrl-benchmark:       extra
+torchaudio:           extra
 gym:                  rl
 pycocotools:          detection
 lvis:                 detection

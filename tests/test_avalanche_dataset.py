@@ -33,7 +33,6 @@ from avalanche.benchmarks.utils import (
     AvalancheDataset,
     AvalancheSubset,
     AvalancheConcatDataset,
-    AvalancheDatasetType,
     AvalancheTensorDataset,
     concat_datasets_sequentially,
 )
@@ -428,7 +427,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             AvalancheTensorDataset(
                 torch.randn(10, 4),
                 torch.randint(0, 3, (10,)),
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
                 task_labels=torch.randint(0, 5, (10,)).tolist(),
             )
             for i in range(3)
@@ -437,7 +435,6 @@ class AvalancheDatasetTests(unittest.TestCase):
             AvalancheTensorDataset(
                 torch.randn(10, 4),
                 torch.randint(0, 3, (10,)),
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
                 task_labels=torch.randint(0, 5, (10,)).tolist(),
             )
             for i in range(3)
@@ -837,14 +834,6 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.full((5,), -1, dtype=torch.long), z3))
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t3))
 
-        with self.assertRaises(ValueError):
-            # Can't define a custom collate when dataset_type != UNDEFINED
-            bad_definition = AvalancheDataset(
-                dataset,
-                dataset_type=AvalancheDatasetType.CLASSIFICATION,
-                collate_fn=my_collate_fn,
-            )
-
     def test_avalanche_dataset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
@@ -876,18 +865,10 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t))
 
         classification_dataset = AvalancheDataset(
-            whole_dataset, dataset_type=AvalancheDatasetType.CLASSIFICATION
+            whole_dataset
         )
 
-        with self.assertRaises(ValueError):
-            bad_inherited = AvalancheDataset(
-                classification_dataset, collate_fn=my_collate_fn
-            )
         ok_inherited_classification = AvalancheDataset(classification_dataset)
-        self.assertEqual(
-            AvalancheDatasetType.CLASSIFICATION,
-            ok_inherited_classification.dataset_type,
-        )
 
     def test_avalanche_concat_dataset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
@@ -937,33 +918,24 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset1_classification = AvalancheTensorDataset(
             tensor_x,
             tensor_y,
-            tensor_z,
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            tensor_z
         )
 
         dataset2_segmentation = AvalancheDataset(
-            dataset2, dataset_type=AvalancheDatasetType.SEGMENTATION
+            dataset2
         )
 
-        with self.assertRaises(ValueError):
-            bad_concat_types = dataset1_classification + dataset2_segmentation
-
-        with self.assertRaises(ValueError):
-            bad_concat_collate = AvalancheConcatDataset(
-                [dataset1, dataset2_segmentation], collate_fn=my_collate_fn
-            )
+        # with self.assertRaises(ValueError):
+        #     bad_concat_types = dataset1_classification + dataset2_segmentation
+        #
+        # with self.assertRaises(ValueError):
+        #     bad_concat_collate = AvalancheConcatDataset(
+        #         [dataset1, dataset2_segmentation], collate_fn=my_collate_fn
+        #     )
 
         ok_concat_classification = dataset1_classification + dataset2
-        self.assertEqual(
-            AvalancheDatasetType.CLASSIFICATION,
-            ok_concat_classification.dataset_type,
-        )
 
         ok_concat_classification2 = dataset2 + dataset1_classification
-        self.assertEqual(
-            AvalancheDatasetType.CLASSIFICATION,
-            ok_concat_classification2.dataset_type,
-        )
 
     def test_avalanche_concat_dataset_recursion(self):
         def gen_random_tensors(n):
@@ -1771,21 +1743,11 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t))
 
         classification_dataset = AvalancheDataset(
-            whole_dataset, dataset_type=AvalancheDatasetType.CLASSIFICATION
+            whole_dataset
         )
 
-        with self.assertRaises(ValueError):
-            bad_inherited = AvalancheSubset(
-                classification_dataset,
-                indices=list(range(5, 150)),
-                collate_fn=my_collate_fn,
-            )
         ok_inherited_classification = AvalancheSubset(
             classification_dataset, indices=list(range(5, 150))
-        )
-        self.assertEqual(
-            AvalancheDatasetType.CLASSIFICATION,
-            ok_inherited_classification.dataset_type,
         )
 
 
