@@ -11,10 +11,10 @@ _dataset_add = None
 
 
 def _avdataset_radd(self, other, *args, **kwargs):
-    from avalanche.benchmarks.utils import AvalancheDataset
+    from avalanche.benchmarks.utils.data import _AvalancheDataset
 
     global _dataset_add
-    if isinstance(other, AvalancheDataset):
+    if isinstance(other, _AvalancheDataset):
         return NotImplemented
 
     return _dataset_add(self, other, *args, **kwargs)

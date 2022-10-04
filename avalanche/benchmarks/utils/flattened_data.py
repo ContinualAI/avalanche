@@ -36,27 +36,38 @@ class FlatData(IDataset):
         self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
         self._can_flatten = can_flatten
 
+    def get_indices(self):
+        """This method creates indices on-the-fly if self._indices=None"""
+        if self._indices is not None:
+            return self._indices
+        else:
+            return list(range(len(self)))
+
     def subset(self, indices):
         assert len(indices) == len(self)
         if self._can_flatten:
-            new_indices = [self._indices[x] for x in indices]
+            self_indices = self.get_indices()
+            new_indices = [self_indices[x] for x in indices]
             self.__class__(self._datasets, new_indices)
         return self.__class__([self], indices)
 
     def concat(self, other: "FlatData"):
+        if (not self._can_flatten) and (not other._can_flatten):
+            return self.__class__([self, other])
+
+        if self._indices is None and other._indices is None:
+            new_indices = None
+        else:
+            new_indices = self.get_indices() + [len(self) + idx for idx in other.get_indices()]
+
         if self._can_flatten and other._can_flatten:
-            return self.__class__(
-                self._datasets + other._datasets,
-                self._indices + [len(self) + idx for idx in other._indices])
+            return self.__class__(self._datasets + other._datasets, new_indices)
         elif self._can_flatten:
-            return self.__class__(
-                self._datasets + [other],
-                self._indices + [len(self) + idx for idx in other._indices])
+            return self.__class__(self._datasets + [other], new_indices)
         elif other._can_flatten:
-            return self.__class__(
-                [self] + other._datasets,
-                list(range(len(self))) + [len(self) + idx for idx in other._indices])
-        return self.__class__([self, other])
+            return self.__class__([self] + other._datasets, new_indices)
+        else:
+            assert False, "should never get here"
 
     def _get_idx(self, idx):
         if self._indices is not None:  # subset indexing
@@ -78,6 +89,8 @@ class FlatData(IDataset):
     def __len__(self):
         if len(self._cumulative_sizes) == 0:
             return 0
+        elif self._indices is not None:
+            return len(self._indices)
         return self._cumulative_sizes[-1]
 
     def __add__(self, other: "FlatData") -> "FlatData":

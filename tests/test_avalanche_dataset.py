@@ -27,7 +27,8 @@ import numpy as np
 from avalanche.benchmarks.utils import DefaultTransformGroups
 from avalanche.benchmarks.utils.data_attribute import TaskLabels, DataAttribute
 from avalanche.benchmarks.utils.data import _avalanche_dataset_depth, _avalanche_datatree_print, AvalancheSubset, \
-    AvalancheConcatDataset
+    AvalancheConcatDataset, _AvalancheDataset
+from avalanche.benchmarks.utils.classification_dataset import _AvalancheClassificationDataset
 from tests.unit_tests_utils import load_image_benchmark, load_tensor_benchmark, load_image_data
 
 
@@ -219,15 +220,15 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset1 = AvalancheDataset(dataset_mnist, transform_groups=tgs)
 
         dataset2 = dataset_mnist + dataset1
-        self.assertIsInstance(dataset2, AvalancheDataset)
+        self.assertIsInstance(dataset2, _AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 2, len(dataset2))
 
         dataset3 = dataset_mnist + dataset1 + dataset_mnist
-        self.assertIsInstance(dataset3, AvalancheDataset)
+        self.assertIsInstance(dataset3, _AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 3, len(dataset3))
 
         dataset4 = dataset_mnist + dataset_mnist + dataset1
-        self.assertIsInstance(dataset4, AvalancheDataset)
+        self.assertIsInstance(dataset4, _AvalancheDataset)
         self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
@@ -283,7 +284,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(1, len(dataset.task_set))
 
         subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
+        self.assertIsInstance(subset_task1, _AvalancheClassificationDataset)
         self.assertEqual(len(dataset), len(subset_task1))
 
         with self.assertRaises(KeyError):
@@ -349,7 +350,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         u_labels, counts = np.unique(random_task_labels, return_counts=True)
         for i, task_label in enumerate(u_labels.tolist()):
             subset_task = dataset.task_set[task_label]
-            self.assertIsInstance(subset_task, AvalancheClassificationDataset)
+            self.assertIsInstance(subset_task, _AvalancheClassificationDataset)
             self.assertEqual(int(counts[i]), len(subset_task))
 
             unique_task_labels = list(subset_task.targets_task_labels)

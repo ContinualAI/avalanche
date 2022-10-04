@@ -117,10 +117,6 @@ class _AvalancheDataset(FlatData):
         self._frozen_transform_groups = frozen_transform_groups
         self.collate_fn = collate_fn
 
-        if len(datasets) == 0:
-            return
-        dataset = datasets[0]
-
         ####################################
         # Init transformations
         ####################################
@@ -139,13 +135,18 @@ class _AvalancheDataset(FlatData):
         if self._transform_groups is None:
             self._transform_groups = EmptyTransformGroups()
 
+        if cgroup is None:
+            cgroup = "train"
         self._frozen_transform_groups.current_group = cgroup
         self._transform_groups.current_group = cgroup
 
         ####################################
         # Init collate_fn
         ####################################
-        self.collate_fn = self._init_collate_fn(dataset, collate_fn)
+        if len(datasets) > 0:
+            self.collate_fn = self._init_collate_fn(datasets[0], collate_fn)
+        else:
+            self.collate_fn = default_collate
         """
         The collate function to use when creating mini-batches from this
         dataset.
@@ -177,7 +178,7 @@ class _AvalancheDataset(FlatData):
             for da in self._data_attributes.values():
                 # TODO: this was the old behavior. How do we know what to do if
                 # we permute the entire dataset?
-                if len(da) != len(dataset):
+                if len(da) != sum([len(d) for d in datasets]):
                     self._data_attributes[da.name] = da
                 else:
                     self._data_attributes[da.name] = da.subset(self._indices)
@@ -203,8 +204,8 @@ class _AvalancheDataset(FlatData):
     def __eq__(self, other: "AvalancheDataset"):
         if not hasattr(other, '_datasets'):
             return False
-        eq_datasets = all(d1 == d2 for d1, d2 in zip(self._datasets))
-        eq_datasets = eq_datasets and len(self._datasets) == len(other._datasets)
+        eq_datasets = len(self._datasets) == len(other._datasets)
+        eq_datasets = eq_datasets and all(d1 == d2 for d1, d2 in zip(self._datasets, other._datasets))
         return eq_datasets and \
             self._transform_groups == other._transform_groups and \
             self._data_attributes == other._data_attributes and \
@@ -220,7 +221,7 @@ class _AvalancheDataset(FlatData):
 
         dd = self._datasets[dataset_idx]
         if isinstance(dd, _AvalancheDataset):
-            element = dd[dataset_idx]._getitem_recursive_call(idx, group_name=group_name)
+            element = dd._getitem_recursive_call(idx, group_name=group_name)
         else:
             element = dd[idx]
 

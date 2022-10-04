@@ -200,15 +200,16 @@ def AvalancheClassificationDataset(
     targets = _init_targets(dataset, targets, targets_adapter)
     task_labels = _init_task_labels(dataset, task_labels)
 
-    if initial_transform_group is not None and \
-            isinstance(dataset, _AvalancheDataset):
-        dataset = dataset.with_transforms(initial_transform_group)
-    return _AvalancheClassificationDataset(
+    data = _AvalancheClassificationDataset(
         [dataset],
         data_attributes=[targets, task_labels],
         transform_groups=transform_gs,
         collate_fn=collate_fn
     )
+    if initial_transform_group is not None:
+        return data.with_transforms(initial_transform_group)
+    else:
+        return data
 
 
 def _init_transform_groups(transform_groups, transform, target_transform,
@@ -402,7 +403,8 @@ def AvalancheClassificationSubset(
         indices=indices,
         data_attributes=[targets, task_labels],
         transform_groups=transform_gs,
-        frozen_transform_groups=frozen_transform_groups
+        frozen_transform_groups=frozen_transform_groups,
+        collate_fn=collate_fn
     )
 
 
@@ -586,10 +588,74 @@ def AvalancheConcatClassificationDataset(
             )
         dds.append(dd)
 
-    return _AvalancheClassificationDataset(
+    das = []
+    if len(dds) == 0:
+        if initial_transform_group is None:
+            initial_transform_group = "train"
+        transform_groups = EmptyTransformGroups()
+        const = ConstantSequence(0, 0)
+        das.append(DataAttribute(const, "targets_task_labels", use_in_getitem=True))
+        das.append(DataAttribute(const, "targets"))
+    else:
+        transform_groups = _init_transform_groups(
+            transform_groups, transform, target_transform,
+            initial_transform_group, dds[0])
+
+        if initial_transform_group is None:
+            uniform_group = None
+            for d_set in datasets:
+                if isinstance(d_set, _AvalancheDataset):
+                    if uniform_group is None:
+                        uniform_group = d_set._transform_groups.current_group
+                    else:
+                        if uniform_group != d_set._transform_groups.current_group:
+                            uniform_group = None
+                            break
+
+            if uniform_group is None:
+                initial_transform_group = "train"
+            else:
+                initial_transform_group = uniform_group
+
+        totlen = sum([len(d) for d in datasets])
+        if task_labels is not None:  # User defined targets always take precedence
+            if isinstance(task_labels, int):
+                task_labels = ConstantSequence(task_labels, totlen)
+            elif len(task_labels) != totlen:
+                raise ValueError(
+                    "Invalid amount of target labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(task_labels), totlen)
+                )
+            das.append(DataAttribute(task_labels, "targets_task_labels", use_in_getitem=True))
+        else:
+            task_labels = dds[0].targets_task_labels
+            for d in dds[1:]:
+                task_labels = task_labels.concat(d.targets_task_labels)
+            das.append(task_labels)
+
+        if targets is not None:  # User defined targets always take precedence
+            if isinstance(targets, int):
+                targets = ConstantSequence(targets, totlen)
+            elif len(targets) != totlen:
+                raise ValueError(
+                    "Invalid amount of target labels. It must be equal to the "
+                    "number of patterns in the dataset. Got {}, expected "
+                    "{}!".format(len(targets), totlen)
+                )
+            das.append(DataAttribute(targets, "targets"))
+        else:
+            targets = dds[0].targets
+            for d in dds[1:]:
+                targets = targets.concat(d.targets)
+            das.append(targets)
+
+    data = _AvalancheClassificationDataset(
         dds,
-        transform_groups=transform_groups
+        transform_groups=transform_groups,
+        data_attributes=das
     )
+    return data.with_transforms(initial_transform_group)
 
 
 def concat_datasets_sequentially(

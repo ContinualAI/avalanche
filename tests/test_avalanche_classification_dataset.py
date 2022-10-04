@@ -43,6 +43,7 @@ import random
 import numpy as np
 
 from avalanche.benchmarks.utils.data import _avalanche_dataset_depth, _avalanche_datatree_print
+from avalanche.benchmarks.utils.classification_dataset import _AvalancheClassificationDataset
 from tests.unit_tests_utils import load_image_data
 
 
@@ -138,7 +139,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(1, len(dataset.task_set))
 
         subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
+        self.assertIsInstance(subset_task1, _AvalancheClassificationDataset)
         self.assertEqual(len(dataset), len(subset_task1))
 
         with self.assertRaises(KeyError):
@@ -171,7 +172,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         )
 
         subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, AvalancheClassificationDataset)
+        self.assertIsInstance(subset_task1, _AvalancheClassificationDataset)
         self.assertEqual(len(dataset), len(subset_task1))
 
         with self.assertRaises(KeyError):
@@ -205,7 +206,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         u_labels, counts = np.unique(random_task_labels, return_counts=True)
         for i, task_label in enumerate(u_labels.tolist()):
             subset_task = dataset.task_set[task_label]
-            self.assertIsInstance(subset_task, AvalancheClassificationDataset)
+            self.assertIsInstance(subset_task, _AvalancheClassificationDataset)
             self.assertEqual(int(counts[i]), len(subset_task))
 
             unique_task_labels = list(subset_task.targets_task_labels)
@@ -1078,7 +1079,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             TensorDataset(tensor_x, tensor_y),
             targets=tensor_y, task_labels=tensor_t
         )
-        dataset_hierarchy_depth = 500
+        dataset_hierarchy_depth = 5
 
         # prepare random permutations for each step
         random_permutations: List[List[int]] = []
@@ -1100,8 +1101,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
             # print(idx)
-            # print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
-            # _avalanche_datatree_print(curr_dataset)
+            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
+            _avalanche_datatree_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
             curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))
@@ -1635,19 +1636,6 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         x2, *_ = dataset_frozen[0]
         self.assertIsInstance(x2, Image)
-
-    def test_add_transforms(self):
-        original_dataset = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
-        x, _ = original_dataset[0]
-        dataset = AvalancheClassificationDataset(original_dataset, transform=ToTensor())
-        dataset_added = dataset.add_transforms(ToPILImage())
-        x2, *_ = dataset[0]
-        x3, *_ = dataset_added[0]
-        self.assertIsInstance(x, Image)
-        self.assertIsInstance(x2, Tensor)
-        self.assertIsInstance(x3, Image)
 
     def test_replace_transforms(self):
         original_dataset = MNIST(
