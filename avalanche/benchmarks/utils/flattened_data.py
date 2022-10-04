@@ -87,13 +87,12 @@ class FlatData(IDataset):
         return other.concat(self)
 
 
-class ConstantSequence(FlatData):
+class ConstantSequence:
     """A memory-efficient constant sequence."""
 
     def __init__(self, constant_value: int, size: int):
         self._constant_value = constant_value
         self._size = size
-        super().__init__([self])
 
     def __len__(self):
         return self._size
@@ -111,7 +110,7 @@ class ConstantSequence(FlatData):
                 self._constant_value == other._constant_value:
             return ConstantSequence(self._constant_value, len(self) + len(other))
         else:
-            return super().concat(other)
+            return FlatData([self, other])
 
     def __str__(self):
         return f"ConstantSequence(value={self._constant_value}, len={self._size}"

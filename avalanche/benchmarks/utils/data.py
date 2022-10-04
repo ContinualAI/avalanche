@@ -15,12 +15,10 @@ Avalanche dataset class which extends PyTorch's dataset.
 AvalancheDataset (and its derivatives) offers additional features like the
 management of preprocessing pipelines and task/class labels.
 """
-import bisect
 import copy
 import warnings
 
 from torch.utils.data.dataloader import default_collate
-from torch.utils.data.dataset import Dataset, ConcatDataset
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
@@ -136,10 +134,13 @@ class _AvalancheDataset(FlatData):
                     # all datasets must have the same transformation group
                     warnings.warn(f"Concatenated datasets have different transformation groups."
                                   f"Using group={cgroup}.")
-        if self._frozen_transform_groups is not None:
-            self._frozen_transform_groups.current_group = cgroup
-        if self._transform_groups is not None:
-            self._transform_groups.current_group = cgroup
+        if self._frozen_transform_groups is None:
+            self._frozen_transform_groups = EmptyTransformGroups()
+        if self._transform_groups is None:
+            self._transform_groups = EmptyTransformGroups()
+
+        self._frozen_transform_groups.current_group = cgroup
+        self._transform_groups.current_group = cgroup
 
         ####################################
         # Init collate_fn
@@ -218,7 +219,7 @@ class _AvalancheDataset(FlatData):
         dataset_idx, idx = self._get_idx(idx)
 
         dd = self._datasets[dataset_idx]
-        if isinstance(dd, AvalancheDataset):
+        if isinstance(dd, _AvalancheDataset):
             element = dd[dataset_idx]._getitem_recursive_call(idx, group_name=group_name)
         else:
             element = dd[idx]
@@ -286,8 +287,8 @@ class _AvalancheDataset(FlatData):
         datacopy._frozen_transform_groups = frozen_tgroups + tgroups
         datacopy._transform_groups = EmptyTransformGroups()
         dds = []
-        for dd in datacopy.data_list:
-            if isinstance(dd, AvalancheDataset):
+        for dd in datacopy._datasets:
+            if isinstance(dd, _AvalancheDataset):
                 dds.append(dd.freeze_transforms())
             else:
                 dds.append(dd)
@@ -300,12 +301,12 @@ class _AvalancheDataset(FlatData):
         cgroup = dataset_copy._transform_groups.current_group
         dataset_copy._transform_groups[cgroup] = None
         dds = []
-        for dd in dataset_copy.data_list:
-            if isinstance(dd, AvalancheDataset):
+        for dd in dataset_copy._datasets:
+            if isinstance(dd, _AvalancheDataset):
                 dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
-        dataset_copy.data_list = dds
+        dataset_copy._datasets = dds
         return dataset_copy
 
     def replace_current_transform_group(self, transform):
@@ -315,12 +316,12 @@ class _AvalancheDataset(FlatData):
         cgroup = dataset_copy._transform_groups.current_group
         dataset_copy._transform_groups[cgroup] = transform
         dds = []
-        for dd in dataset_copy.data_list:
-            if isinstance(dd, AvalancheDataset):
+        for dd in dataset_copy._datasets:
+            if isinstance(dd, _AvalancheDataset):
                 dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
-        dataset_copy.data_list = dds
+        dataset_copy._datasets = dds
         return dataset_copy
 
     def _shallow_clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
