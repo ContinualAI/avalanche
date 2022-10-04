@@ -32,7 +32,7 @@ def main(args):
 
     # --- SCENARIO CREATION
     scenario = SplitTinyImageNet(n_experiences=20, return_task_id=True,
-                             class_ids_from_zero_in_each_exp=True)
+                                 class_ids_from_zero_in_each_exp=True)
     config = {"scenario": "SplitCIFAR100"}
 
     # MODEL CREATION
