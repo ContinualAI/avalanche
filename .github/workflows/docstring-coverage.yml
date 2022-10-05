@@ -27,10 +27,9 @@ jobs:
     name: docstring coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -38,7 +37,7 @@ jobs:
           architecture: x64
       - name: Install and use interrogate
         run: |
-          pip install interrogate
+          pip install interrogate &&
           interrogate avalanche -vv --generate-badge interrogate-badge.svg -o documentation-coverage.txt
       - name: clone reports repository
         if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
@@ -51,13 +50,13 @@ jobs:
       - name: commit badge
         if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         run: |
-          mv interrogate-badge.svg avalanche-reports/badge/
-          mv documentation-coverage.txt avalanche-reports/docstring_coverage/
-          cd avalanche-reports
-          git config --local user.email ${{ secrets.EMAIL }}
-          git config --local user.name ${{ secrets.NAME }}
-          git pull
-          git add .
+          mv interrogate-badge.svg avalanche-reports/badge/ &&
+          mv documentation-coverage.txt avalanche-reports/docstring_coverage/ &&
+          cd avalanche-reports &&
+          git config --local user.email ${{ secrets.EMAIL }} &&
+          git config --local user.name ${{ secrets.NAME }} &&
+          git pull &&
+          git add . &&
           git commit -m "Update coverage badge" -a || true
       - name: Push changes
         if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'

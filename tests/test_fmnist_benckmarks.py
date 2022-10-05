@@ -2,7 +2,12 @@ import unittest
 
 import avalanche.benchmarks.datasets.external_datasets.fmnist
 from avalanche.benchmarks import ClassificationExperience, SplitFMNIST
-from tests.unit_tests_utils import load_experience_train_eval
+
+from tests.unit_tests_utils import (
+    load_experience_train_eval,
+    FAST_TEST,
+    is_github_action,
+)
 
 MNIST_DOWNLOADS = 0
 MNIST_DOWNLOAD_METHOD = None
@@ -34,6 +39,10 @@ class FMNISTBenchmarksTests(unittest.TestCase):
                 get_fmnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
+    @unittest.skipIf(
+        FAST_TEST or is_github_action(),
+        "We don't want to download large datasets in github actions.",
+    )
     def test_SplitFMNIST_benchmark(self):
         benchmark = SplitFMNIST(5)
         self.assertEqual(5, len(benchmark.train_stream))
