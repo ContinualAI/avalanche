@@ -49,7 +49,7 @@ class FlatData(IDataset):
         if self._can_flatten:
             self_indices = self._get_indices()
             new_indices = [self_indices[x] for x in indices]
-            self.__class__(datasets=self._datasets, indices=new_indices)
+            return self.__class__(datasets=self._datasets, indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
 
     def concat(self, other: "FlatData"):
@@ -57,15 +57,15 @@ class FlatData(IDataset):
             return self.__class__(datasets=[self, other])
 
         ## Case 1: one is a subset of the other
-        # if len(self._datasets) == 1 and len(other._datasets) == 1:
-        #     if self._can_flatten and self._datasets[0] is other:
-        #         return other.subset(self._indices + list(range(len(other))))
-        #     elif other._can_flatten and other._datasets[0] is self:
-        #         return self.subset(list(range(len(self))) + other._indices)
-        #     elif self._can_flatten and other._can_flatten and \
-        #             self._datasets[0] is other._datasets[0]:
-        #         idxs = list(range(len(self))) + list(range(len(other)))
-        #         return self.__class__(datasets=self._datasets, indices=idxs)
+        if len(self._datasets) == 1 and len(other._datasets) == 1:
+            if self._can_flatten and self._datasets[0] is other:
+                return other.subset(self._indices + list(range(len(other))))
+            elif other._can_flatten and other._datasets[0] is self:
+                return self.subset(list(range(len(self))) + other._indices)
+            elif self._can_flatten and other._can_flatten and \
+                    self._datasets[0] is other._datasets[0]:
+                idxs = self._get_indices() + other._get_indices()
+                return self.__class__(datasets=self._datasets, indices=idxs)
 
         ## Case 2: at least one of them can be flattened
         if self._indices is None and other._indices is None:

@@ -13,7 +13,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         d_sz = 5
         x_raw = torch.randint(0, 7, (d_sz,))
         data = FlatData([x_raw])
-        dataset_hierarchy_depth = 5
+        dataset_hierarchy_depth = 500
 
         # prepare random permutations for each step
         perms = []
@@ -34,12 +34,16 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = data
         for idx in range(dataset_hierarchy_depth):
-            print(idx)
-            print(idx, "depth: ", _flatdata_depth(curr_dataset))
-            _flatdata_print(curr_dataset)
+            # print(idx)
+            # print(idx, "depth: ", _flatdata_depth(curr_dataset))
 
             subset = curr_dataset.subset(indices=perms[idx])
+            # print("SUBSET:")
+            # _flatdata_print(subset)
+
             curr_dataset = subset.concat(curr_dataset)
+            # print("CONCAT:")
+            # _flatdata_print(curr_dataset)
 
         self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset))
         for idx in range(dataset_hierarchy_depth):
@@ -52,3 +56,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         slice_idxs = list(range(d_sz * dataset_hierarchy_depth, len(curr_dataset)))
         x_slice = torch.stack([curr_dataset[idx] for idx in slice_idxs], dim=0)
         self.assertTrue(torch.equal(x_raw, x_slice))
+
+        # If you broke this test it means that dataset merging is not working anymore.
+        # you are probably doing something that disable merging (passing custom transforms?)
+        # Good luck...
+        assert _flatdata_depth(curr_dataset) == 2
