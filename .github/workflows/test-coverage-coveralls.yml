@@ -56,7 +56,7 @@ jobs:
         run: |
           mkdir coverage &&
           coverage run -m unittest discover tests &&
-          coverage lcov -o coverage/lcov.info
+          coverage lcov -o coverage/lcov.info --omit '**/config-3.py,**/config.py'
       - name: Upload coverage data to coveralls.io
         uses: coverallsapp/github-action@master
         with:
