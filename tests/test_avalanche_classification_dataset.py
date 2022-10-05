@@ -42,7 +42,7 @@ import random
 
 import numpy as np
 
-from avalanche.benchmarks.utils.data import _avalanche_dataset_depth, _avalanche_datatree_print
+from avalanche.benchmarks.utils.data import _flatdata_depth, _flatdata_print
 from avalanche.benchmarks.utils.classification_dataset import _AvalancheClassificationDataset
 from tests.unit_tests_utils import load_image_data
 
@@ -1071,7 +1071,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x2, x3))
 
     def test_avalanche_avalanche_subset_concat_stack_overflow(self):
-        d_sz = 3
+        d_sz = 4
         tensor_x = torch.rand(d_sz, 2)
         tensor_y = torch.randint(0, 7, (d_sz,))
         tensor_t = torch.randint(0, 7, (d_sz,))
@@ -1100,17 +1100,19 @@ class AvalancheDatasetTests(unittest.TestCase):
         # apply permutations and concatenations iteratively
         curr_dataset = dataset
         for idx in range(dataset_hierarchy_depth):
-            # print(idx)
-            print(idx, "depth: ", _avalanche_dataset_depth(curr_dataset))
-            _avalanche_datatree_print(curr_dataset)
+            print(idx)
+            print(idx, "depth: ", _flatdata_depth(curr_dataset))
+            _flatdata_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
             subset = AvalancheClassificationSubset(curr_dataset, indices=random_permutations[idx])
             curr_dataset = AvalancheConcatClassificationDataset((subset, curr_dataset))
 
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
+            all_targets = torch.tensor(curr_dataset.targets)
+            self.assertTrue(torch.equal(tensor_y, all_targets[-d_sz:]))
+
             curr_targets = torch.tensor(list(curr_dataset.targets))
-            # self.assertTrue(torch.equal(tensor_y[true_indices[-idx]], curr_targets))
             for idx_internal in range(idx + 1):
                 # curr_dataset is the concat of idx+1 datasets.
                 # Check all of them are permuted correctly

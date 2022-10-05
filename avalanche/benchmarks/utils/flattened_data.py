@@ -29,43 +29,63 @@ class FlatData(IDataset):
     def __init__(self, datasets: List[IDataset],
                  indices: List[int] = None, can_flatten=True):
         self._datasets = datasets
-        if can_flatten:
-            self._datasets = _flatten_dataset_list(self._datasets)
-
         self._indices = indices
-        self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
         self._can_flatten = can_flatten
 
-    def get_indices(self):
-        """This method creates indices on-the-fly if self._indices=None"""
+        if can_flatten:
+            self._datasets = _flatten_dataset_list(self._datasets)
+        self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
+
+    def _get_indices(self):
+        """This method creates indices on-the-fly if self._indices=None.
+        Only for internal use. Call may be expensive if self._indices=None.
+        """
         if self._indices is not None:
             return self._indices
         else:
             return list(range(len(self)))
 
     def subset(self, indices):
-        assert len(indices) == len(self)
         if self._can_flatten:
-            self_indices = self.get_indices()
+            self_indices = self._get_indices()
             new_indices = [self_indices[x] for x in indices]
-            self.__class__(self._datasets, new_indices)
-        return self.__class__([self], indices)
+            self.__class__(datasets=self._datasets, indices=new_indices)
+        return self.__class__(datasets=[self], indices=indices)
 
     def concat(self, other: "FlatData"):
         if (not self._can_flatten) and (not other._can_flatten):
-            return self.__class__([self, other])
+            return self.__class__(datasets=[self, other])
 
+        ## Case 1: one is a subset of the other
+        # if len(self._datasets) == 1 and len(other._datasets) == 1:
+        #     if self._can_flatten and self._datasets[0] is other:
+        #         return other.subset(self._indices + list(range(len(other))))
+        #     elif other._can_flatten and other._datasets[0] is self:
+        #         return self.subset(list(range(len(self))) + other._indices)
+        #     elif self._can_flatten and other._can_flatten and \
+        #             self._datasets[0] is other._datasets[0]:
+        #         idxs = list(range(len(self))) + list(range(len(other)))
+        #         return self.__class__(datasets=self._datasets, indices=idxs)
+
+        ## Case 2: at least one of them can be flattened
         if self._indices is None and other._indices is None:
             new_indices = None
         else:
-            new_indices = self.get_indices() + [len(self) + idx for idx in other.get_indices()]
+            if len(self._cumulative_sizes) == 0:
+                base_other = 0
+            else:
+                base_other = self._cumulative_sizes[-1]
+            new_indices = self._get_indices() + [base_other + idx for idx in other._get_indices()]
 
         if self._can_flatten and other._can_flatten:
-            return self.__class__(self._datasets + other._datasets, new_indices)
+            return self.__class__(datasets=self._datasets + other._datasets,
+                                  indices=new_indices)
         elif self._can_flatten:
-            return self.__class__(self._datasets + [other], new_indices)
+            return self.__class__(datasets=self._datasets + [other],
+                                  indices=new_indices)
         elif other._can_flatten:
-            return self.__class__([self] + other._datasets, new_indices)
+            return self.__class__(datasets=[self] + other._datasets,
+                                  indices=new_indices)
         else:
             assert False, "should never get here"
 
@@ -129,6 +149,10 @@ class ConstantSequence:
         return f"ConstantSequence(value={self._constant_value}, len={self._size}"
 
 
+def _merge_same_datasets(datasets, indices):
+    cumsizes = ConcatDataset.cumsum(datasets)
+
+
 def _flatten_dataset_list(datasets: List[FlatData]):
     """Flatten dataset tree if possible."""
     # Concat -> Concat branch
@@ -156,6 +180,7 @@ def _flatten_dataset_list(datasets: List[FlatData]):
 
 
 def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
+    """Check the conditions for merging subsets."""
     if (not d1._can_flatten) or (not d2._can_flatten):
         return [d1, d2]
 

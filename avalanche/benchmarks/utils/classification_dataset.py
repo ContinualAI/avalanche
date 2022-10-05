@@ -21,15 +21,12 @@ from collections import defaultdict, deque
 
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
-from .data import AvalancheDataset, AvalancheConcatDataset, AvalancheSubset, _AvalancheDataset
-from .transform_groups import TransformGroups, EmptyTransformGroups, DefaultTransformGroups
+from .data import AvalancheDataset, _AvalancheDataset
+from .transform_groups import TransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
-    ClassificationSubset,
     find_list_from_index,
-    LazyClassMapping,
     SubSequence,
-    LazyConcatTargets,
 )
 from .flattened_data import ConstantSequence
 from .dataset_definitions import (
@@ -49,7 +46,7 @@ from typing import (
     Callable,
     Dict,
     Tuple,
-    Collection, Mapping,
+    Mapping,
 )
 
 from typing_extensions import Protocol
@@ -200,9 +197,17 @@ def AvalancheClassificationDataset(
     targets = _init_targets(dataset, targets, targets_adapter)
     task_labels = _init_task_labels(dataset, task_labels)
 
+    das = []
+    if targets is not None:
+        das.append(targets)
+    if task_labels is not None:
+        das.append(task_labels)
+    if len(das) == 0:
+        das = None
+
     data = _AvalancheClassificationDataset(
         [dataset],
-        data_attributes=[targets, task_labels],
+        data_attributes=das,
         transform_groups=transform_gs,
         collate_fn=collate_fn
     )
@@ -234,10 +239,13 @@ def _init_transform_groups(transform_groups, transform, target_transform,
             initial_transform_group = "train"
 
     if transform_groups is None:
-        tgs = TransformGroups({
-            'train': (transform, target_transform),
-            'eval': (transform, target_transform)
-        }, current_group=initial_transform_group)
+        if target_transform is None and transform is None:
+            tgs = None
+        else:
+            tgs = TransformGroups({
+                'train': (transform, target_transform),
+                'eval': (transform, target_transform)
+            }, current_group=initial_transform_group)
     else:
         tgs = TransformGroups(transform_groups,
                               current_group=initial_transform_group)
@@ -278,6 +286,8 @@ def _init_targets(dataset, targets, targets_adapter, check_shape=True):
             )
         return DataAttribute(targets, "targets")
     targets = _make_target_from_supported_dataset(dataset, targets_adapter)
+    if targets is None:
+        return None
     return DataAttribute(targets, "targets")
 
 
@@ -296,6 +306,8 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
         tls = SubSequence(task_labels, converter=int)
     else:
         tls = _make_task_labels_from_supported_dataset(dataset)
+    if tls is None:
+        return None
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
@@ -378,6 +390,11 @@ def AvalancheClassificationSubset(
         the value of the second element returned by `__getitem__`.
         The adapter is used to adapt the values of the targets field only.
     """
+    if class_mapping is None and transform is None and target_transform is None and \
+        transform_groups is None and initial_transform_group is None and \
+        task_labels is None and targets is None and collate_fn is None:
+        return dataset.subset(indices)
+
     targets = _init_targets(dataset, targets, targets_adapter, check_shape=False)
     task_labels = _init_task_labels(dataset, task_labels, check_shape=False)
     transform_gs = _init_transform_groups(
@@ -389,7 +406,10 @@ def AvalancheClassificationSubset(
         dataset = dataset.with_transforms(initial_transform_group)
 
     if class_mapping is not None:  # update targets
-        l = [class_mapping[el] for el in targets]
+        if targets is None:
+            l = [class_mapping[el] for el in dataset.targets]
+        else:
+            l = [class_mapping[el] for el in targets]
         targets = DataAttribute(l, 'targets')
 
     if class_mapping is not None:
@@ -398,10 +418,18 @@ def AvalancheClassificationSubset(
     else:
         frozen_transform_groups = None
 
+    das = []
+    if targets is not None:
+        das.append(targets)
+    if task_labels is not None:
+        das.append(task_labels)
+    if len(das) == 0:
+        das = None
+
     return _AvalancheClassificationDataset(
         [dataset],
         indices=indices,
-        data_attributes=[targets, task_labels],
+        data_attributes=das,
         transform_groups=transform_gs,
         frozen_transform_groups=frozen_transform_groups,
         collate_fn=collate_fn
@@ -588,15 +616,29 @@ def AvalancheConcatClassificationDataset(
             )
         dds.append(dd)
 
+    if transform is None and target_transform is None and \
+        transform_groups is None and initial_transform_group is None and \
+        task_labels is None and targets is None and collate_fn is None and \
+        len(datasets) > 0:
+        d0 = datasets[0]
+        for d1 in datasets[1:]:
+            d0 = d0.concat(d1)
+        return d0
+
     das = []
     if len(dds) == 0:
-        if initial_transform_group is None:
-            initial_transform_group = "train"
-        transform_groups = EmptyTransformGroups()
-        const = ConstantSequence(0, 0)
-        das.append(DataAttribute(const, "targets_task_labels", use_in_getitem=True))
-        das.append(DataAttribute(const, "targets"))
+        pass
+        # TODO: BASE CLASS SHOULD MANAGE THIS
+        # if initial_transform_group is None:
+        #     initial_transform_group = "train"
+        # transform_groups = EmptyTransformGroups()
+        # const = ConstantSequence(0, 0)
+        # das.append(DataAttribute(const, "targets_task_labels", use_in_getitem=True))
+        # das.append(DataAttribute(const, "targets"))
     else:
+        #######################################
+        # TRANSFORMATION GROUPS
+        #######################################
         transform_groups = _init_transform_groups(
             transform_groups, transform, target_transform,
             initial_transform_group, dds[0])
@@ -617,6 +659,10 @@ def AvalancheConcatClassificationDataset(
             else:
                 initial_transform_group = uniform_group
 
+        #######################################
+        # DATA ATTRIBUTES
+        #######################################
+
         totlen = sum([len(d) for d in datasets])
         if task_labels is not None:  # User defined targets always take precedence
             if isinstance(task_labels, int):
@@ -628,11 +674,12 @@ def AvalancheConcatClassificationDataset(
                     "{}!".format(len(task_labels), totlen)
                 )
             das.append(DataAttribute(task_labels, "targets_task_labels", use_in_getitem=True))
-        else:
-            task_labels = dds[0].targets_task_labels
-            for d in dds[1:]:
-                task_labels = task_labels.concat(d.targets_task_labels)
-            das.append(task_labels)
+        # TODO: BASE CLASS SHOULD MANAGE THIS CASE
+        # else:
+        #     task_labels = dds[0].targets_task_labels
+        #     for d in dds[1:]:
+        #         task_labels = task_labels.concat(d.targets_task_labels)
+        #     das.append(task_labels)
 
         if targets is not None:  # User defined targets always take precedence
             if isinstance(targets, int):
@@ -644,12 +691,14 @@ def AvalancheConcatClassificationDataset(
                     "{}!".format(len(targets), totlen)
                 )
             das.append(DataAttribute(targets, "targets"))
-        else:
-            targets = dds[0].targets
-            for d in dds[1:]:
-                targets = targets.concat(d.targets)
-            das.append(targets)
-
+        # TODO: BASE CLASS SHOULD MANAGE THIS CASE
+        # else:
+        #     targets = dds[0].targets
+        #     for d in dds[1:]:
+        #         targets = targets.concat(d.targets)
+        #     das.append(targets)
+    if len(das) == 0:
+        das = None
     data = _AvalancheClassificationDataset(
         dds,
         transform_groups=transform_groups,
@@ -916,19 +965,8 @@ def _make_target_from_supported_dataset(
     dataset: SupportedDataset, converter: Callable[[Any], TTargetType] = None
 ) -> Sequence[TTargetType]:
     if isinstance(dataset, _AvalancheClassificationDataset):
-        if converter is None:
-            return dataset.targets
-        elif (
-            isinstance(dataset.targets, (SubSequence, LazyConcatTargets))
-            and dataset.targets.converter == converter
-        ):
-            return dataset.targets
-        elif isinstance(dataset.targets, LazyClassMapping) and converter == int:
-            # LazyClassMapping already outputs int targets
-            return dataset.targets
-
+        return None  # targets are initialized automatically
     targets = _traverse_supported_dataset(dataset, _select_targets)
-
     return SubSequence(targets, converter=converter)
 
 
@@ -936,7 +974,7 @@ def _make_task_labels_from_supported_dataset(
     dataset: SupportedDataset,
 ) -> Sequence[int]:
     if isinstance(dataset, _AvalancheClassificationDataset):
-        return dataset.targets_task_labels
+        return None
 
     task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
 

@@ -155,24 +155,22 @@ class _AvalancheDataset(FlatData):
         ####################################
         # Init data attributes
         ####################################
-        if data_attributes is None:  # inherit attributes from childs
-            # concat attributes from child datasets
-            self._data_attributes = {}
-            if len(self._datasets) > 0 and \
-                    isinstance(self._datasets[0], _AvalancheDataset):
-                for attr in self._datasets[0]._data_attributes.values():
-                    acat = attr
-                    found_all = True
-                    for d2 in self._datasets[1:]:
-                        if hasattr(d2, attr.name):
-                            acat = acat.concat(getattr(d2, attr.name))
-                        else:
-                            found_all = False
-                            break
-                    if found_all:
-                        self._data_attributes[attr.name] = acat
-                        assert len(acat) == len(self), \
-                            f"BUG: Wrong size for attribute {acat.name}"
+        # concat attributes from child datasets
+        if len(self._datasets) > 0 and \
+                isinstance(self._datasets[0], _AvalancheDataset):
+            for attr in self._datasets[0]._data_attributes.values():
+                if attr.name in self._data_attributes:
+                    continue  # don't touch overridden attributes
+                acat = attr
+                found_all = True
+                for d2 in self._datasets[1:]:
+                    if hasattr(d2, attr.name):
+                        acat = acat.concat(getattr(d2, attr.name))
+                    else:
+                        found_all = False
+                        break
+                if found_all:
+                    self._data_attributes[attr.name] = acat
 
         if indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():
@@ -188,6 +186,9 @@ class _AvalancheDataset(FlatData):
 
         # set attributes dynamically
         for el in self._data_attributes.values():
+            assert len(el) == len(self), \
+                f"BUG: Wrong size for attribute {el.name}"
+
             if hasattr(self, el.name):
                 raise ValueError(
                     f"Trying to add DataAttribute `{el.name}` to "
@@ -492,23 +493,26 @@ def _has_empty_transforms(dataset: AvalancheDataset):
         isinstance(dataset._frozen_transform_groups, EmptyTransformGroups)
 
 
-def _avalanche_dataset_depth(dataset):
+def _flatdata_depth(dataset):
     """Internal debugging method.
     Returns the depth of the dataset tree."""
-    if isinstance(dataset, _AvalancheDataset):
-        dchilds = [_avalanche_dataset_depth(dd) for dd in dataset._datasets]
+    if isinstance(dataset, FlatData):
+        dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
         return 1 + max(dchilds)
     else:
         return 1
 
 
-def _avalanche_datatree_print(dataset, indent=0):
+def _flatdata_print(dataset, indent=0):
     """Internal debugging method.
     Print the dataset."""
-    if isinstance(dataset, _AvalancheDataset):
-        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
+    if isinstance(dataset, FlatData):
+        ss = dataset._indices is not None
+        cc = len(dataset._datasets) != 1
+        cf = dataset._can_flatten
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},cat={cc},cf={cf})")
         for dd in dataset._datasets:
-            _avalanche_datatree_print(dd, indent + 1)
+            _flatdata_print(dd, indent + 1)
     else:
         print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
 
