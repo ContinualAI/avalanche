@@ -98,6 +98,14 @@ class _ClassificationAttributesMixin:
 class _AvalancheClassificationDataset(_AvalancheDataset, _ClassificationAttributesMixin):
     pass
 
+    def subset(self, indices):
+        data = super().subset(indices)
+        return data.with_transforms(self._transform_groups.current_group)
+
+    def concat(self, other):
+        data = super().concat(other)
+        return data.with_transforms(self._transform_groups.current_group)
+
 
 def AvalancheClassificationDataset(
     dataset: SupportedDataset,
@@ -390,10 +398,11 @@ def AvalancheClassificationSubset(
         the value of the second element returned by `__getitem__`.
         The adapter is used to adapt the values of the targets field only.
     """
-    if class_mapping is None and transform is None and target_transform is None and \
-        transform_groups is None and initial_transform_group is None and \
-        task_labels is None and targets is None and collate_fn is None:
-        return dataset.subset(indices)
+    if isinstance(dataset, _AvalancheClassificationDataset):
+        if class_mapping is None and transform is None and target_transform is None and \
+            transform_groups is None and initial_transform_group is None and \
+            task_labels is None and targets is None and collate_fn is None:
+            return dataset.subset(indices)
 
     targets = _init_targets(dataset, targets, targets_adapter, check_shape=False)
     task_labels = _init_task_labels(dataset, task_labels, check_shape=False)
@@ -615,15 +624,15 @@ def AvalancheConcatClassificationDataset(
                 targets_adapter=targets_adapter
             )
         dds.append(dd)
-
     if transform is None and target_transform is None and \
         transform_groups is None and initial_transform_group is None and \
         task_labels is None and targets is None and collate_fn is None and \
         len(datasets) > 0:
         d0 = datasets[0]
-        for d1 in datasets[1:]:
-            d0 = d0.concat(d1)
-        return d0
+        if isinstance(d0, _AvalancheClassificationDataset):
+            for d1 in datasets[1:]:
+                d0 = d0.concat(d1)
+            return d0
 
     das = []
     if len(dds) == 0:

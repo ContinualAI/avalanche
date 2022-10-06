@@ -17,7 +17,7 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
 from avalanche.models import SimpleMLP
@@ -61,6 +61,11 @@ class DataLoaderTests(unittest.TestCase):
         benchmark = get_fast_benchmark()
         ds = [el.dataset for el in benchmark.train_stream]
         data = AvalancheConcatClassificationDataset(ds)
+
+        dl = DataLoader(data)
+        for el in dl:
+            pass
+
         dl = TaskBalancedDataLoader(data)
         for el in dl:
             pass

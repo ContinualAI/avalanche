@@ -68,22 +68,35 @@ class FlatData(IDataset):
                 return self.__class__(datasets=self._datasets, indices=idxs)
 
         ## Case 2: at least one of them can be flattened
-        if self._indices is None and other._indices is None:
-            new_indices = None
-        else:
-            if len(self._cumulative_sizes) == 0:
-                base_other = 0
-            else:
-                base_other = self._cumulative_sizes[-1]
-            new_indices = self._get_indices() + [base_other + idx for idx in other._get_indices()]
-
         if self._can_flatten and other._can_flatten:
+            if self._indices is None and other._indices is None:
+                new_indices = None
+            else:
+                if len(self._cumulative_sizes) == 0:
+                    base_other = 0
+                else:
+                    base_other = self._cumulative_sizes[-1]
+                new_indices = self._get_indices() + [base_other + idx for idx in other._get_indices()]
             return self.__class__(datasets=self._datasets + other._datasets,
                                   indices=new_indices)
         elif self._can_flatten:
+            if self._indices is None and other._indices is None:
+                new_indices = None
+            else:
+                if len(self._cumulative_sizes) == 0:
+                    base_other = 0
+                else:
+                    base_other = self._cumulative_sizes[-1]
+                new_indices = self._get_indices() + [base_other + idx for idx in range(len(other))]
             return self.__class__(datasets=self._datasets + [other],
                                   indices=new_indices)
         elif other._can_flatten:
+            if self._indices is None and other._indices is None:
+                new_indices = None
+            else:
+                base_other = len(self)
+                self_idxs = list(range(len(self)))
+                new_indices = self_idxs + [base_other + idx for idx in other._get_indices()]
             return self.__class__(datasets=[self] + other._datasets,
                                   indices=new_indices)
         else:
