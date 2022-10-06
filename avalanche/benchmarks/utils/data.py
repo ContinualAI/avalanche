@@ -39,7 +39,7 @@ T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 
 
-class _AvalancheDataset(FlatData):
+class AvalancheDataset(FlatData):
     """Avalanche Dataset.
 
     Avlanche dataset are pytorch-compatible Datasets with some additional
@@ -80,7 +80,7 @@ class _AvalancheDataset(FlatData):
 
     def __init__(
         self,
-        datasets: Sequence[IDataset],
+        datasets: List[IDataset],
         *,
         indices: List[int] = None,
         data_attributes: List[DataAttribute] = None,
@@ -122,7 +122,7 @@ class _AvalancheDataset(FlatData):
         cgroup = None
         # inherit transformation group from original dataset
         for dd in self._datasets:
-            if isinstance(dd, _AvalancheDataset):
+            if isinstance(dd, AvalancheDataset):
                 if cgroup is None and dd._transform_groups is not None:
                     cgroup = dd._transform_groups.current_group
                 elif dd._transform_groups is not None and dd._transform_groups.current_group != cgroup:
@@ -156,7 +156,7 @@ class _AvalancheDataset(FlatData):
         ####################################
         # concat attributes from child datasets
         if len(self._datasets) > 0 and \
-                isinstance(self._datasets[0], _AvalancheDataset):
+                isinstance(self._datasets[0], AvalancheDataset):
             for attr in self._datasets[0]._data_attributes.values():
                 if attr.name in self._data_attributes:
                     continue  # don't touch overridden attributes
@@ -201,7 +201,7 @@ class _AvalancheDataset(FlatData):
             "methods such as `replace_current_transform_group`. "
             "See the documentation for more info.")
 
-    def __eq__(self, other: "AvalancheDataset"):
+    def __eq__(self, other: "SimpleAvalancheDataset"):
         if not hasattr(other, '_datasets'):
             return False
         eq_datasets = len(self._datasets) == len(other._datasets)
@@ -220,7 +220,7 @@ class _AvalancheDataset(FlatData):
         dataset_idx, idx = self._get_idx(idx)
 
         dd = self._datasets[dataset_idx]
-        if isinstance(dd, _AvalancheDataset):
+        if isinstance(dd, AvalancheDataset):
             element = dd._getitem_recursive_call(idx, group_name=group_name)
         else:
             element = dd[idx]
@@ -289,7 +289,7 @@ class _AvalancheDataset(FlatData):
         datacopy._transform_groups = EmptyTransformGroups()
         dds = []
         for dd in datacopy._datasets:
-            if isinstance(dd, _AvalancheDataset):
+            if isinstance(dd, AvalancheDataset):
                 dds.append(dd.freeze_transforms())
             else:
                 dds.append(dd)
@@ -303,7 +303,7 @@ class _AvalancheDataset(FlatData):
         dataset_copy._transform_groups[cgroup] = None
         dds = []
         for dd in dataset_copy._datasets:
-            if isinstance(dd, _AvalancheDataset):
+            if isinstance(dd, AvalancheDataset):
                 dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
@@ -318,7 +318,7 @@ class _AvalancheDataset(FlatData):
         dataset_copy._transform_groups[cgroup] = transform
         dds = []
         for dd in dataset_copy._datasets:
-            if isinstance(dd, _AvalancheDataset):
+            if isinstance(dd, AvalancheDataset):
                 dds.append(dd.remove_current_transform_group())
             else:
                 dds.append(dd)
@@ -344,7 +344,7 @@ class _AvalancheDataset(FlatData):
         return default_collate
 
 
-def AvalancheDataset(
+def SimpleAvalancheDataset(
         dataset: IDataset,
         *,
         data_attributes: List[DataAttribute] = None,
@@ -353,106 +353,19 @@ def AvalancheDataset(
         collate_fn: Callable[[List], Any] = None):
     """Avalanche Dataset.
 
-    Avlanche dataset are pytorch-compatible Datasets with some additional
-    functionality such as:
-    - management of transformation groups via :class:`AvalancheTransform`
-    - support for sample attributes such as class targets and task labels
-
-    Data Attributes
-    ---------------
-
-    Avalanche datasets manage sample-wise information such as class or task
-    labels via :class:`DataAttribute`.
-
-    Transformation Groups
-    ---------------------
-
-    Avalanche datasets manage transformation via transformation groups.
-    Simply put, a transformation group is a named preprocessing function
-    (as in torchvision datasets). By default, Avalanche expects
-    two transformation groups:
-    - 'train', which contains transformations applied to training patterns.
-    - 'eval', that contain transformations applied to test patterns.
-
-    Having both groups allows to use different transformations during training
-    and evaluation and to seamlessly switch between them by using the
-    :func:`train` and :func:`eval` methods. Arbitrary transformation groups
-    can be added and used.  If you define custom groups, you can use them by
-    calling the `:func:with_transforms` method.
-
-    switching to a different transformation group by calling the ``train()``,
-    ``eval()`` or ``with_transforms` methods always returns a new dataset,
-    levaing the original one unchanged.
-
-    Ttransformation groups can be manipulated by removing, freezing, or
-    replacing transformations. Each operation returns a new dataset, leaving
-    the original one unchanged.
-
     Creates a ``AvalancheDataset`` instance.
+    See ``AvalancheDataset`` for more details.
 
     :param dataset: Original dataset. Beware that
         AvalancheDataset will not overwrite transformations already
         applied by this dataset.
     :param transform_groups: Avalanche transform groups.
     """
-    return _AvalancheDataset(
+    return AvalancheDataset(
         [dataset],
         data_attributes=data_attributes,
         transform_groups=transform_groups,
         frozen_transform_groups=frozen_transform_groups,
-        collate_fn=collate_fn
-    )
-
-
-def AvalancheSubset(
-        dataset: AvalancheDataset,
-        indices: List[int],
-        *,
-        data_attributes: List[DataAttribute] = None,
-        transform_groups: TransformGroups = None,
-        collate_fn: Callable[[List], Any] = None
-    ):
-    """Creates an ``AvalancheSubset`` instance.
-
-    Flattens this subset by borrowing indices from the original dataset
-    (if it's an AvalancheSubset or PyTorch Subset)
-    Avalanche Dataset that behaves like a PyTorch
-    :class:`torch.utils.data.Subset`.
-
-    See :class:`AvalancheDataset` for more details.
-
-    :param dataset: The whole dataset.
-    :param indices: Indices in the whole set selected for subset. Can
-        be None, which means that the whole dataset will be returned.
-    """
-    return _AvalancheDataset(
-        [dataset],
-        indices=indices,
-        data_attributes=data_attributes,
-        transform_groups=transform_groups,
-        collate_fn=collate_fn
-    )
-
-
-def AvalancheConcatDataset(
-    datasets: Sequence[IDataset],
-    *,
-    transform_groups: TransformGroups = None,
-    collate_fn: Callable[[List], Any] = None):
-    """A Dataset that behaves like a PyTorch
-    :class:`torch.utils.data.ConcatDataset`.
-
-    However, this Dataset also supports
-    transformations, slicing the targets field and all
-    the other goodies listed in :class:`AvalancheDataset`.
-
-    This dataset guarantees that the operations involving the transformations
-    and transformations groups are consistent across the concatenated dataset
-    (if they are subclasses of :class:`AvalancheDataset`).
-    """
-    return _AvalancheDataset(
-        datasets,
-        transform_groups=transform_groups,
         collate_fn=collate_fn
     )
 
@@ -462,7 +375,7 @@ def _print_frozen_transforms(self):
     Prints the current frozen transformations."""
     print("FROZEN TRANSFORMS:\n" + str(self._frozen_transform_groups))
     for dd in self._datasets:
-        if isinstance(dd, _AvalancheDataset):
+        if isinstance(dd, AvalancheDataset):
             print("PARENT FROZEN:\n")
             _print_frozen_transforms(dd)
 
@@ -472,7 +385,7 @@ def _print_nonfrozen_transforms(self):
     Prints the current non-frozen transformations."""
     print("TRANSFORMS:\n" + str(self._transform_groups))
     for dd in self._datasets:
-        if isinstance(dd, _AvalancheDataset):
+        if isinstance(dd, AvalancheDataset):
             print("PARENT TRANSFORMS:\n")
             _print_nonfrozen_transforms(dd)
 
@@ -484,16 +397,6 @@ def _print_transforms(self):
     self._print_nonfrozen_transforms()
 
 
-def _has_empty_transforms(dataset: AvalancheDataset):
-    """Method for internal use only.
-    Check whether the dataset has empty transform (no recursion).
-    """
-    return isinstance(dataset._transform_groups, EmptyTransformGroups) and \
-        isinstance(dataset._frozen_transform_groups, EmptyTransformGroups)
-
-
 __all__ = [
-    "AvalancheDataset",
-    "AvalancheSubset",
-    "AvalancheConcatDataset",
+    "SimpleAvalancheDataset"
 ]

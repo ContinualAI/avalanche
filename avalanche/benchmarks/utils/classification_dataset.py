@@ -21,7 +21,7 @@ from collections import defaultdict, deque
 
 from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
 
-from .data import AvalancheDataset, _AvalancheDataset
+from .data import SimpleAvalancheDataset, AvalancheDataset
 from .transform_groups import TransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
@@ -77,7 +77,7 @@ TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
 SupportedDataset = Union[
-    AvalancheDataset, IDatasetWithTargets, ITensorDataset, Subset,
+    SimpleAvalancheDataset, IDatasetWithTargets, ITensorDataset, Subset,
     ConcatDataset
 ]
 
@@ -95,7 +95,7 @@ class _ClassificationAttributesMixin:
         return TaskSet(self)
 
 
-class _AvalancheClassificationDataset(_AvalancheDataset, _ClassificationAttributesMixin):
+class _AvalancheClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
     pass
 
     def subset(self, indices):
@@ -422,7 +422,7 @@ def AvalancheClassificationSubset(
         initial_transform_group, dataset)
 
     if initial_transform_group is not None and \
-            isinstance(dataset, _AvalancheDataset):
+            isinstance(dataset, AvalancheDataset):
         dataset = dataset.with_transforms(initial_transform_group)
 
     if class_mapping is not None:  # update targets
@@ -527,7 +527,7 @@ def AvalancheTensorClassificationDataset(
     task_labels = _init_task_labels(dataset, task_labels)
 
     if initial_transform_group is not None and \
-            isinstance(dataset, _AvalancheDataset):
+            isinstance(dataset, AvalancheDataset):
         dataset = dataset.with_transforms(initial_transform_group)
 
     return _AvalancheClassificationDataset(
@@ -622,7 +622,7 @@ def AvalancheConcatClassificationDataset(
     """
     dds = []
     for dd in datasets:
-        if not isinstance(dd, _AvalancheDataset):
+        if not isinstance(dd, AvalancheDataset):
             dd = AvalancheClassificationDataset(
                 dd,
                 transform=transform,
@@ -657,7 +657,7 @@ def AvalancheConcatClassificationDataset(
         if initial_transform_group is None:
             uniform_group = None
             for d_set in datasets:
-                if isinstance(d_set, _AvalancheDataset):
+                if isinstance(d_set, AvalancheDataset):
                     if uniform_group is None:
                         uniform_group = d_set._transform_groups.current_group
                     else:
