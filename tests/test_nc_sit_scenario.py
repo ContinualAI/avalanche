@@ -7,7 +7,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import nc_benchmark, ClassificationStream
-from avalanche.benchmarks.datasets import CIFAR100, default_dataset_location
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
     make_nc_transformation_subset,
@@ -16,9 +16,12 @@ from avalanche.benchmarks.utils import (
     classification_subset,
     SimpleClassificationDataset,
 )
+from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+from tests.unit_tests_utils import DummyImageDataset
 
 
 class SITTests(unittest.TestCase):
+
     def test_sit_single_dataset(self):
         mnist_train = MNIST(
             root=default_dataset_location("mnist"),
@@ -476,8 +479,8 @@ class SITTests(unittest.TestCase):
 
     def test_nc_benchmark_transformations_basic(self):
         # Regression for #577
-        ds = CIFAR100(
-            root=default_dataset_location("cifar100"),
+        ds = MNIST(
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
@@ -492,8 +495,8 @@ class SITTests(unittest.TestCase):
 
     def test_nc_benchmark_transformations_advanced(self):
         # Regression for #577
-        ds = CIFAR100(
-            root=default_dataset_location("cifar100"),
+        ds = MNIST(
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
@@ -521,13 +524,8 @@ class SITTests(unittest.TestCase):
         self.assertIsInstance(ds_test_train[0][0], Tensor)
 
     def test_nc_benchmark_classes_in_exp_range(self):
-        train_set = CIFAR100(
-            default_dataset_location("cifar100"), train=True, download=True
-        )
-
-        test_set = CIFAR100(
-            default_dataset_location("cifar100"), train=False, download=True
-        )
+        train_set = DummyImageDataset()
+        test_set = DummyImageDataset()
 
         benchmark_instance = nc_benchmark(
             train_dataset=train_set,

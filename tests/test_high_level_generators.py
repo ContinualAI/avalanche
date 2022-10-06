@@ -5,9 +5,11 @@ from os.path import expanduser
 
 import torch
 from numpy.testing import assert_almost_equal
-from torchvision.datasets import CIFAR10, MNIST
+from torchvision.datasets import MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
+from tests.unit_tests_utils import DummyImageDataset
+
 
 from avalanche.benchmarks import (
     dataset_benchmark,
@@ -45,12 +47,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
             root=default_dataset_location("mnist"), train=False, download=True
         )
 
-        train_cifar10 = CIFAR10(
-            root=default_dataset_location("cifar10"), train=True, download=True
-        )
-        test_cifar10 = CIFAR10(
-            root=default_dataset_location("cifar10"), train=False, download=True
-        )
+        train_cifar10 = DummyImageDataset(n_classes=10)
+        test_cifar10 = DummyImageDataset(n_classes=10)
 
         generic_benchmark = dataset_benchmark(
             [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
@@ -75,21 +73,13 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=0,
         )
 
-        train_cifar10 = SimpleClassificationDataset(
-            CIFAR10(
-                root=default_dataset_location("cifar10"),
-                train=True,
-                download=True,
-            ),
+        train_cifar10 = AvalancheDataset(
+            DummyImageDataset(n_classes=10),
             task_labels=1,
         )
 
-        test_cifar10 = SimpleClassificationDataset(
-            CIFAR10(
-                root=default_dataset_location("cifar10"),
-                train=False,
-                download=True,
-            ),
+        test_cifar10 = AvalancheDataset(
+            DummyImageDataset(n_classes=10),
             task_labels=1,
         )
 

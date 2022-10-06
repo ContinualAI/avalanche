@@ -69,6 +69,7 @@ def SplitOmniglot(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_omniglot_train_transform,
     eval_transform: Optional[Any] = _default_omniglot_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -114,6 +115,10 @@ def SplitOmniglot(
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
         randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -141,7 +146,7 @@ def SplitOmniglot(
         seed=seed,
         fixed_class_order=fixed_class_order,
         shuffle=shuffle,
-        class_ids_from_zero_in_each_exp=False,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )

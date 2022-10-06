@@ -3,10 +3,11 @@ from os.path import expanduser
 import os
 import random
 import torch
+from PIL.Image import Image
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 import numpy as np
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from torchvision.datasets import MNIST
@@ -140,6 +141,26 @@ def get_fast_benchmark(
         shuffle=shuffle,
     )
     return my_nc_benchmark
+
+
+class DummyImageDataset(Dataset):
+    def __init__(self, n_elements=10000, n_classes=100):
+        assert n_elements >= n_classes
+
+        super().__init__()
+        self.targets = list(range(n_classes))
+        self.targets += [
+            random.randint(0, 99) for _ in range(n_elements - n_classes)
+        ]
+
+    def __getitem__(self, index):
+        return (
+            Image(),
+            self.targets[index],
+        )
+
+    def __len__(self):
+        return len(self.targets)
 
 
 def load_experience_train_eval(experience, batch_size=32, num_workers=0):

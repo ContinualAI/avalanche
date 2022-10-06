@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     container: python:3.8
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: install nbconvert
@@ -42,9 +42,9 @@ jobs:
              done' sh {} +
       - name: commit to repo
         run: |
-          git config --local user.email ${{ secrets.BOT_EMAIL }}
-          git config --local user.name ${{ secrets.BOT_NAME }}
-          git add .
+          git config --local user.email ${{ secrets.BOT_EMAIL }} &&
+          git config --local user.name ${{ secrets.BOT_NAME }} &&
+          git add . &&
           git commit -m "Update gitbook documentation" -a || true
           # The above command will fail if no changes were present, so we ignore that.
       - name: Push changes (deploy)
