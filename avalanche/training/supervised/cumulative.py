@@ -4,7 +4,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
-from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
+from avalanche.benchmarks.utils import ConcatClassificationDataset
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates.supervised import SupervisedTemplate
@@ -71,7 +71,7 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = self.experience.dataset
         else:
-            self.dataset = AvalancheConcatClassificationDataset(
+            self.dataset = ConcatClassificationDataset(
                 [self.dataset, self.experience.dataset]
             )
         self.adapted_dataset = self.dataset

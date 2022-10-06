@@ -10,29 +10,28 @@
 ################################################################################
 
 """
-This module contains the implementation of the Avalanche Dataset,
-which is the standard Avalanche implementation of a PyTorch dataset. Despite
-being a child class of the PyTorch Dataset, the AvalancheDataset (and its
-derivatives) is much more powerful as it offers many more features
-out-of-the-box.
+This module contains the implementation of the ``ClassificationDataset``,
+which is the dataset used for supervised continual learning benchmarks.
+ClassificationDatasets are ``AvalancheDatasets`` that manage class and task
+labels automatically. Concatenation and subsampling operations are optimized
+to be used frequently, as is common in replay strategies.
 """
 import warnings
 from collections import defaultdict, deque
 
-from torch.utils.data.dataset import Dataset, Subset, ConcatDataset, TensorDataset
+from torch.utils.data import Dataset, Subset, ConcatDataset
+from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
 from .data import SimpleAvalancheDataset, AvalancheDataset
 from .transform_groups import TransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
-    find_list_from_index,
-    SubSequence,
+    SubSequence, find_list_from_index,
 )
 from .flat_data import ConstantSequence
 from .dataset_definitions import (
     ITensorDataset,
     IDatasetWithTargets,
-    ISupportedClassificationDataset,
 )
 
 from typing import (
@@ -42,11 +41,9 @@ from typing import (
     Union,
     Optional,
     TypeVar,
-    SupportsInt,
     Callable,
     Dict,
-    Tuple,
-    Mapping,
+    Tuple, Mapping,
 )
 
 from typing_extensions import Protocol
@@ -88,16 +85,16 @@ class _ClassificationAttributesMixin:
 
     @property
     def task_pattern_indices(self):
+        """A dictionary mapping task ids to their sample indices."""
         return self.targets_task_labels.val_to_idx
 
     @property
     def task_set(self):
+        """Returns the datasets's ``TaskSet``, which is a mapping <task-id, task-dataset>."""
         return TaskSet(self)
 
 
-class _AvalancheClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
-    pass
-
+class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
     def subset(self, indices):
         data = super().subset(indices)
         return data.with_transforms(self._transform_groups.current_group)
@@ -107,7 +104,7 @@ class _AvalancheClassificationDataset(AvalancheDataset, _ClassificationAttribute
         return data.with_transforms(self._transform_groups.current_group)
 
 
-def AvalancheClassificationDataset(
+def SimpleClassificationDataset(
     dataset: SupportedDataset,
     *,
     transform: XTransform = None,
@@ -213,7 +210,7 @@ def AvalancheClassificationDataset(
     if len(das) == 0:
         das = None
 
-    data = _AvalancheClassificationDataset(
+    data = ClassificationDataset(
         [dataset],
         data_attributes=das,
         transform_groups=transform_gs,
@@ -241,7 +238,7 @@ def _init_transform_groups(transform_groups, transform, target_transform,
     if initial_transform_group is None:
         # Detect from the input dataset. If not an AvalancheDataset then
         # use 'train' as the initial transform group
-        if isinstance(dataset, _AvalancheClassificationDataset) and dataset._transform_groups is not None:
+        if isinstance(dataset, ClassificationDataset) and dataset._transform_groups is not None:
             initial_transform_group = dataset._transform_groups.current_group
         else:
             initial_transform_group = "train"
@@ -294,7 +291,7 @@ def _init_targets(dataset, targets, targets_adapter, check_shape=True):
             )
         return DataAttribute(targets, "targets")
 
-    if isinstance(dataset, _AvalancheClassificationDataset):
+    if isinstance(dataset, ClassificationDataset):
         return None  # targets are initialized automatically
     else:
         targets = _traverse_supported_dataset(dataset, _select_targets)
@@ -319,7 +316,7 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
             )
         tls = SubSequence(task_labels, converter=int)
     else:
-        if isinstance(dataset, _AvalancheClassificationDataset):
+        if isinstance(dataset, ClassificationDataset):
             tls = None
         else:
             task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
@@ -330,7 +327,7 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
-def AvalancheClassificationSubset(
+def ClassificationSubset(
         dataset: SupportedDataset,
         indices: Sequence[int] = None,
         *,
@@ -409,7 +406,7 @@ def AvalancheClassificationSubset(
         the value of the second element returned by `__getitem__`.
         The adapter is used to adapt the values of the targets field only.
     """
-    if isinstance(dataset, _AvalancheClassificationDataset):
+    if isinstance(dataset, ClassificationDataset):
         if class_mapping is None and transform is None and target_transform is None and \
             transform_groups is None and initial_transform_group is None and \
             task_labels is None and targets is None and collate_fn is None:
@@ -446,7 +443,7 @@ def AvalancheClassificationSubset(
     if len(das) == 0:
         das = None
 
-    return _AvalancheClassificationDataset(
+    return ClassificationDataset(
         [dataset],
         indices=indices,
         data_attributes=das,
@@ -456,7 +453,7 @@ def AvalancheClassificationSubset(
     )
 
 
-def AvalancheTensorClassificationDataset(
+def TensorClassificationDataset(
         *dataset_tensors: Sequence,
         transform: Callable[[Any], Any] = None,
         target_transform: Callable[[int], int] = None,
@@ -530,7 +527,7 @@ def AvalancheTensorClassificationDataset(
             isinstance(dataset, AvalancheDataset):
         dataset = dataset.with_transforms(initial_transform_group)
 
-    return _AvalancheClassificationDataset(
+    return ClassificationDataset(
         [dataset],
         data_attributes=[targets, task_labels],
         transform_groups=transform_gs,
@@ -546,7 +543,7 @@ class _TensorClassificationDataset(TensorDataset):
         return tuple(elem)
 
 
-def AvalancheConcatClassificationDataset(
+def ConcatClassificationDataset(
         datasets: List[SupportedDataset],
         *,
         transform: Callable[[Any], Any] = None,
@@ -623,7 +620,7 @@ def AvalancheConcatClassificationDataset(
     dds = []
     for dd in datasets:
         if not isinstance(dd, AvalancheDataset):
-            dd = AvalancheClassificationDataset(
+            dd = SimpleClassificationDataset(
                 dd,
                 transform=transform,
                 target_transform=target_transform,
@@ -640,7 +637,7 @@ def AvalancheConcatClassificationDataset(
         task_labels is None and targets is None and collate_fn is None and \
         len(datasets) > 0:
         d0 = datasets[0]
-        if isinstance(d0, _AvalancheClassificationDataset):
+        if isinstance(d0, ClassificationDataset):
             for d1 in datasets[1:]:
                 d0 = d0.concat(d1)
             return d0
@@ -698,7 +695,7 @@ def AvalancheConcatClassificationDataset(
             das.append(DataAttribute(targets, "targets"))
     if len(das) == 0:
         das = None
-    data = _AvalancheClassificationDataset(
+    data = ClassificationDataset(
         dds,
         transform_groups=transform_groups,
         data_attributes=das
@@ -706,129 +703,49 @@ def AvalancheConcatClassificationDataset(
     return data.with_transforms(initial_transform_group)
 
 
-def concat_datasets_sequentially(
-    train_dataset_list: Sequence[ISupportedClassificationDataset],
-    test_dataset_list: Sequence[ISupportedClassificationDataset],
-) -> Tuple[AvalancheConcatClassificationDataset, AvalancheConcatClassificationDataset, List[list]]:
-    """
-    Concatenates a list of datasets. This is completely different from
-    :class:`ConcatDataset`, in which datasets are merged together without
-    other processing. Instead, this function re-maps the datasets class IDs.
-    For instance:
-    let the dataset[0] contain patterns of 3 different classes,
-    let the dataset[1] contain patterns of 2 different classes, then class IDs
-    will be mapped as follows:
-
-    dataset[0] class "0" -> new class ID is "0"
-
-    dataset[0] class "1" -> new class ID is "1"
-
-    dataset[0] class "2" -> new class ID is "2"
-
-    dataset[1] class "0" -> new class ID is "3"
-
-    dataset[1] class "1" -> new class ID is "4"
-
-    ... -> ...
-
-    dataset[-1] class "C-1" -> new class ID is "overall_n_classes-1"
-
-    In contrast, using PyTorch ConcatDataset:
-
-    dataset[0] class "0" -> ID is "0"
-
-    dataset[0] class "1" -> ID is "1"
-
-    dataset[0] class "2" -> ID is "2"
-
-    dataset[1] class "0" -> ID is "0"
-
-    dataset[1] class "1" -> ID is "1"
-
-    Note: ``train_dataset_list`` and ``test_dataset_list`` must have the same
-    number of datasets.
-
-    :param train_dataset_list: A list of training datasets
-    :param test_dataset_list: A list of test datasets
-
-    :returns: A concatenated dataset.
-    """
-    remapped_train_datasets = []
-    remapped_test_datasets = []
-    next_remapped_idx = 0
-
-    # Obtain the number of classes of each dataset
-    classes_per_dataset = [
-        _count_unique(
-            train_dataset_list[dataset_idx].targets,
-            test_dataset_list[dataset_idx].targets,
-        )
-        for dataset_idx in range(len(train_dataset_list))
-    ]
-
-    new_class_ids_per_dataset = []
-    for dataset_idx in range(len(train_dataset_list)):
-
-        # Get the train and test sets of the dataset
-        train_set = train_dataset_list[dataset_idx]
-        test_set = test_dataset_list[dataset_idx]
-
-        # Get the classes in the dataset
-        dataset_classes = set(map(int, train_set.targets))
-
-        # The class IDs for this dataset will be in range
-        # [n_classes_in_previous_datasets,
-        #       n_classes_in_previous_datasets + classes_in_this_dataset)
-        new_classes = list(
-            range(
-                next_remapped_idx,
-                next_remapped_idx + classes_per_dataset[dataset_idx],
+def _select_targets(dataset, indices):
+    if hasattr(dataset, "targets"):
+        # Standard supported dataset
+        found_targets = dataset.targets
+    elif hasattr(dataset, "tensors"):
+        # Support for PyTorch TensorDataset
+        if len(dataset.tensors) < 2:
+            raise ValueError(
+                "Tensor dataset has not enough tensors: "
+                "at least 2 are required."
             )
+        found_targets = dataset.tensors[1]
+    else:
+        raise ValueError(
+            "Unsupported dataset: must have a valid targets field "
+            "or has to be a Tensor Dataset with at least 2 "
+            "Tensors"
         )
-        new_class_ids_per_dataset.append(new_classes)
 
-        # AvalancheSubset is used to apply the class IDs transformation.
-        # Remember, the class_mapping parameter must be a list in which:
-        # new_class_id = class_mapping[original_class_id]
-        # Hence, a list of size equal to the maximum class index is created
-        # Only elements corresponding to the present classes are remapped
-        class_mapping = [-1] * (max(dataset_classes) + 1)
-        j = 0
-        for i in dataset_classes:
-            class_mapping[i] = new_classes[j]
-            j += 1
+    if indices is not None:
+        found_targets = SubSequence(found_targets, indices=indices)
 
-        # Create remapped datasets and append them to the final list
-        remapped_train_datasets.append(
-            AvalancheClassificationSubset(train_set, class_mapping=class_mapping)
-        )
-        remapped_test_datasets.append(
-            AvalancheClassificationSubset(test_set, class_mapping=class_mapping)
-        )
-        next_remapped_idx += classes_per_dataset[dataset_idx]
-
-    return (
-        AvalancheConcatClassificationDataset(remapped_train_datasets),
-        AvalancheConcatClassificationDataset(remapped_test_datasets),
-        new_class_ids_per_dataset,
-    )
+    return found_targets
 
 
-def as_avalanche_dataset(
-    dataset: ISupportedClassificationDataset[T_co],
-) -> _AvalancheClassificationDataset:
-    if isinstance(dataset, _AvalancheClassificationDataset):
-        return dataset
+def _select_task_labels(dataset, indices):
+    found_task_labels = None
+    if hasattr(dataset, "targets_task_labels"):
+        found_task_labels = dataset.targets_task_labels
 
-    return AvalancheClassificationDataset(dataset)
+    if found_task_labels is None:
+        if isinstance(dataset, (Subset, ConcatDataset)):
+            return None  # Continue traversing
 
+    if found_task_labels is None:
+        if indices is None:
+            return ConstantSequence(0, len(dataset))
+        return ConstantSequence(0, len(indices))
 
-def as_classification_dataset(
-    dataset: ISupportedClassificationDataset[T_co],
-) -> _AvalancheClassificationDataset:
-    return as_avalanche_dataset(
-        dataset
-    )
+    if indices is not None:
+        found_task_labels = SubSequence(found_task_labels, indices=indices)
+
+    return found_task_labels
 
 
 def _traverse_supported_dataset(
@@ -905,61 +822,6 @@ def _traverse_supported_dataset(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-def _count_unique(*sequences: Sequence[SupportsInt]):
-    uniques = set()
-
-    for seq in sequences:
-        for x in seq:
-            uniques.add(int(x))
-
-    return len(uniques)
-
-
-def _select_targets(dataset, indices):
-    if hasattr(dataset, "targets"):
-        # Standard supported dataset
-        found_targets = dataset.targets
-    elif hasattr(dataset, "tensors"):
-        # Support for PyTorch TensorDataset
-        if len(dataset.tensors) < 2:
-            raise ValueError(
-                "Tensor dataset has not enough tensors: "
-                "at least 2 are required."
-            )
-        found_targets = dataset.tensors[1]
-    else:
-        raise ValueError(
-            "Unsupported dataset: must have a valid targets field "
-            "or has to be a Tensor Dataset with at least 2 "
-            "Tensors"
-        )
-
-    if indices is not None:
-        found_targets = SubSequence(found_targets, indices=indices)
-
-    return found_targets
-
-
-def _select_task_labels(dataset, indices):
-    found_task_labels = None
-    if hasattr(dataset, "targets_task_labels"):
-        found_task_labels = dataset.targets_task_labels
-
-    if found_task_labels is None:
-        if isinstance(dataset, (Subset, ConcatDataset)):
-            return None  # Continue traversing
-
-    if found_task_labels is None:
-        if indices is None:
-            return ConstantSequence(0, len(dataset))
-        return ConstantSequence(0, len(indices))
-
-    if indices is not None:
-        found_task_labels = SubSequence(found_task_labels, indices=indices)
-
-    return found_task_labels
-
-
 class TaskSet(Mapping):
     """A lazy mapping for <task-label -> task dataset>.
 
@@ -977,7 +839,7 @@ class TaskSet(Mapping):
 
     """
 
-    def __init__(self, data: AvalancheClassificationDataset):
+    def __init__(self, data: SimpleClassificationDataset):
         """Constructor.
 
         :param data: original data
@@ -990,7 +852,7 @@ class TaskSet(Mapping):
 
     def __getitem__(self, task_label):
         tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-        return AvalancheClassificationSubset(self.data, tl_idx)
+        return ClassificationSubset(self.data, tl_idx)
 
     def __len__(self):
         return len(self.data.targets_task_labels.uniques)
@@ -998,11 +860,9 @@ class TaskSet(Mapping):
 
 __all__ = [
     "SupportedDataset",
-    "AvalancheClassificationDataset",
-    "AvalancheClassificationSubset",
-    "AvalancheTensorClassificationDataset",
-    "AvalancheConcatClassificationDataset",
-    "concat_datasets_sequentially",
-    "as_avalanche_dataset",
-    "as_classification_dataset",
+    "SimpleClassificationDataset",
+    "ClassificationSubset",
+    "TensorClassificationDataset",
+    "ConcatClassificationDataset",
+    "TaskSet"
 ]

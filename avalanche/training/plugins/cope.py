@@ -7,7 +7,7 @@ from torch.nn.functional import normalize
 from torch.nn.modules import Module
 
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
-from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
+from avalanche.benchmarks.utils import ConcatClassificationDataset
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
@@ -114,7 +114,7 @@ class CoPEPlugin(SupervisedPlugin):
         self.it_cnt = 0
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatClassificationDataset(self.replay_mem.values()),
+            ConcatClassificationDataset(self.replay_mem.values()),
             oversample_small_tasks=False,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size * 2,

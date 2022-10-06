@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Resize, Compose, ToTensor
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.utils import AvalancheTensorClassificationDataset
+from avalanche.benchmarks.utils import TensorClassificationDataset
 from avalanche.evaluation.metrics import ImagesSamplePlugin
 
 
@@ -36,7 +36,7 @@ class ImageSamplesTests(unittest.TestCase):
         curr_exp = scenario.train_stream[0]
         for mb in DataLoader(curr_exp.dataset, batch_size=32):
             break
-        curr_dataset = AvalancheTensorClassificationDataset(*mb[:2], targets=mb[1])
+        curr_dataset = TensorClassificationDataset(*mb[:2], targets=mb[1])
 
         strategy_mock = MagicMock(
             eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset

@@ -28,7 +28,7 @@ from torch.optim import SGD
 from avalanche.benchmarks.generators.benchmark_generators import (
     create_multi_dataset_generic_benchmark,
 )
-from avalanche.benchmarks.utils import AvalancheTensorClassificationDataset
+from avalanche.benchmarks.utils import TensorClassificationDataset
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -57,7 +57,7 @@ def main(args):
     # ---------
 
     tr_ds = [
-        AvalancheTensorClassificationDataset(
+        TensorClassificationDataset(
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)).tolist(),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
@@ -65,7 +65,7 @@ def main(args):
         for _ in range(3)
     ]
     ts_ds = [
-        AvalancheTensorClassificationDataset(
+        TensorClassificationDataset(
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)).tolist(),
             task_labels=torch.randint(0, 5, (10,)).tolist(),

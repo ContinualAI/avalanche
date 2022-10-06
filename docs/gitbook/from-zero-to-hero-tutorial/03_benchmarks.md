@@ -81,7 +81,7 @@ Of course also the basic utilities `ImageFolder` and `DatasetFolder` can be used
 We also provide an additional `FilelistDataset` and `AvalancheDataset` classes. The former to construct a dataset from a filelist [\(caffe style\)](https://ceciliavision.wordpress.com/2016/03/08/caffedata-layer/) pointing to files anywhere on the disk. The latter to augment the basic Pytorch Dataset functionalities with an extention to better deal with a stack of transformations to be used during train and test.
 
 ```python
-from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, AvalancheClassificationDataset
+from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, SimpleClassificationDataset
 ```
 
 ## 🛠️ Benchmarks Basics

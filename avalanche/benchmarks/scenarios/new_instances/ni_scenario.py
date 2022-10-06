@@ -21,7 +21,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
-from avalanche.benchmarks.utils import AvalancheClassificationSubset, AvalancheClassificationDataset
+from avalanche.benchmarks.utils import ClassificationSubset, SimpleClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
@@ -44,8 +44,8 @@ class NIScenario(GenericCLScenario["NIExperience"]):
 
     def __init__(
         self,
-        train_dataset: AvalancheClassificationDataset,
-        test_dataset: AvalancheClassificationDataset,
+        train_dataset: SimpleClassificationDataset,
+        test_dataset: SimpleClassificationDataset,
         n_experiences: int,
         task_labels: bool = False,
         shuffle: bool = True,
@@ -155,7 +155,7 @@ class NIScenario(GenericCLScenario["NIExperience"]):
             included_patterns = list()
             for exp_def in fixed_exp_assignment:
                 included_patterns.extend(exp_def)
-            subset = AvalancheClassificationSubset(train_dataset, indices=included_patterns)
+            subset = ClassificationSubset(train_dataset, indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True
             )
@@ -419,7 +419,7 @@ class NIScenario(GenericCLScenario["NIExperience"]):
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
-                AvalancheClassificationSubset(
+                ClassificationSubset(
                     train_dataset, indices=exp_def, task_labels=task_labels
                 )
             )

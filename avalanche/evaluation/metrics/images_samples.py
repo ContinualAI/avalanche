@@ -23,7 +23,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from avalanche.training.templates.supervised import SupervisedTemplate
-    from avalanche.benchmarks.utils import AvalancheClassificationDataset
+    from avalanche.benchmarks.utils import SimpleClassificationDataset
 
 
 class ImagesSamplePlugin(PluginMetric):
@@ -138,7 +138,7 @@ class ImagesSamplePlugin(PluginMetric):
         ]
 
     def _make_dataloader(
-        self, data: "AvalancheClassificationDataset", mb_size: int
+        self, data: "SimpleClassificationDataset", mb_size: int
     ) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_current_transform_group(_MaybeToTensor())

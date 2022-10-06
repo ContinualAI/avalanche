@@ -9,6 +9,13 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
+"""
+This module contains the implementation of the DataAttribute,
+a class designed to managed task and class labels. DataAttributes allow fast
+concatenation and subsampling operations and are automatically managed by
+AvalancheDatasets.
+"""
+
 import torch
 
 from .dataset_definitions import IDataset
@@ -131,3 +138,9 @@ class TaskLabels(DataAttribute):
 
     def __init__(self, task_labels):
         super().__init__(task_labels, 'task_labels', use_in_getitem=True)
+
+
+__all__ = [
+    "DataAttribute",
+    "TaskLabels"
+]

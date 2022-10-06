@@ -3,7 +3,7 @@ from os.path import expanduser
 import torch
 
 from avalanche.benchmarks.datasets import CIFAR100
-from avalanche.benchmarks.utils import AvalancheClassificationDataset
+from avalanche.benchmarks.utils import SimpleClassificationDataset
 from avalanche.models import IcarlNet, make_icarl_net, initialize_icarl_net
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from torch.optim import SGD
@@ -113,12 +113,12 @@ def run_experiment(config):
         download=True,
     )
 
-    train_set = AvalancheClassificationDataset(
+    train_set = SimpleClassificationDataset(
         train_set,
         transform_groups=transforms_group,
         initial_transform_group="train",
     )
-    test_set = AvalancheClassificationDataset(
+    test_set = SimpleClassificationDataset(
         test_set,
         transform_groups=transforms_group,
         initial_transform_group="eval",

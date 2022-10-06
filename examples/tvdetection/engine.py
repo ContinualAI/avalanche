@@ -11,9 +11,9 @@ from pycocotools.coco import COCO
 from torch.utils.data import Subset
 
 from avalanche.benchmarks.utils import (
-    AvalancheClassificationDataset,
-    AvalancheClassificationSubset,
-    AvalancheConcatClassificationDataset,
+    SimpleClassificationDataset,
+    ClassificationSubset,
+    ConcatClassificationDataset,
 )
 from examples.tvdetection.coco_eval import CocoEvaluator
 from examples.tvdetection.coco_utils import CocoDetection, convert_to_coco_api
@@ -218,11 +218,11 @@ def get_detection_api_from_dataset(dataset):
             break
         elif isinstance(dataset, Subset):
             dataset = dataset.dataset
-        elif isinstance(dataset, AvalancheClassificationSubset):
+        elif isinstance(dataset, ClassificationSubset):
             dataset = dataset._original_dataset
-        elif isinstance(dataset, AvalancheConcatClassificationDataset):
+        elif isinstance(dataset, ConcatClassificationDataset):
             dataset = dataset._dataset_list[0]
-        elif isinstance(dataset, AvalancheClassificationDataset):
+        elif isinstance(dataset, SimpleClassificationDataset):
             dataset = dataset._dataset
 
     if isinstance(dataset, torchvision.datasets.CocoDetection):

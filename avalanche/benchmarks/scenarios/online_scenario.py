@@ -20,7 +20,7 @@ from avalanche.benchmarks.scenarios.generic_scenario import (
     ExperienceAttribute,
     CLScenario,
 )
-from avalanche.benchmarks.utils import AvalancheClassificationSubset
+from avalanche.benchmarks.utils import ClassificationSubset
 
 
 class OnlineCLExperience(CLExperience):
@@ -121,7 +121,7 @@ def fixed_size_experience_split(
                 sub_stream_length=sub_stream_length,
                 access_task_boundaries=access_task_boundaries
             )
-            exp.dataset = AvalancheClassificationSubset(
+            exp.dataset = ClassificationSubset(
                 exp_dataset, indices=exp_indices[init_idx:final_idx]
             )
             is_first = False

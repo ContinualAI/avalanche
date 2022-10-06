@@ -28,9 +28,9 @@ except ImportError:
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.utils import (
-    AvalancheTensorClassificationDataset,
+    TensorClassificationDataset,
     common_paths_root,
-    AvalancheClassificationDataset,
+    SimpleClassificationDataset,
     PathsDataset,
 )
 
@@ -95,7 +95,7 @@ def CTrL(
 
                 common_root, exp_paths_list = common_paths_root(files)
                 paths_dataset = PathsDataset(common_root, exp_paths_list)
-                dataset = AvalancheClassificationDataset(
+                dataset = SimpleClassificationDataset(
                     paths_dataset,
                     task_labels=task_labels,
                     transform=transforms.Compose(
@@ -103,7 +103,7 @@ def CTrL(
                     ),
                 )
             else:
-                dataset = AvalancheTensorClassificationDataset(
+                dataset = TensorClassificationDataset(
                     samples,
                     labels.squeeze(1),
                     task_labels=task_labels,

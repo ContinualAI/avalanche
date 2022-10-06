@@ -28,7 +28,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from ..utils import AvalancheClassificationDataset, DefaultTransformGroups
+from ..utils import SimpleClassificationDataset, DefaultTransformGroups
 from ..utils.data import SimpleAvalancheDataset
 
 _default_mnist_train_transform = Compose(
@@ -227,12 +227,12 @@ def PermutedMNIST(
 
         # Freeze the permutation
         permuted_train = SimpleAvalancheDataset(
-            AvalancheClassificationDataset(mnist_train),
+            SimpleClassificationDataset(mnist_train),
             frozen_transform_groups=DefaultTransformGroups((permutation, None))
         )
 
         permuted_test = SimpleAvalancheDataset(
-            AvalancheClassificationDataset(mnist_test),
+            SimpleClassificationDataset(mnist_test),
             frozen_transform_groups=DefaultTransformGroups((permutation, None))
         )
 
@@ -344,12 +344,12 @@ def RotatedMNIST(
 
         # Freeze the rotation
         rotated_train = SimpleAvalancheDataset(
-            AvalancheClassificationDataset(mnist_train),
+            SimpleClassificationDataset(mnist_train),
             frozen_transform_groups=DefaultTransformGroups((rotation, None))
         )
 
         rotated_test = SimpleAvalancheDataset(
-            AvalancheClassificationDataset(mnist_test),
+            SimpleClassificationDataset(mnist_test),
             frozen_transform_groups=DefaultTransformGroups((rotation, None))
         )
 

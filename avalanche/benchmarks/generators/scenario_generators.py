@@ -35,10 +35,9 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially, as_classification_dataset
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupportedDataset,
-    as_classification_dataset
+    SupportedDataset
 )
 
 

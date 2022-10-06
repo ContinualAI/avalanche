@@ -15,7 +15,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
-from avalanche.benchmarks.utils import AvalancheConcatClassificationDataset
+from avalanche.benchmarks.utils import ConcatClassificationDataset
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.supervised import SupervisedTemplate
 from avalanche.models import DynamicModule
@@ -155,7 +155,7 @@ class JointTraining(SupervisedTemplate):
         self.adapted_dataset = self._experiences[0].dataset
         if len(self._experiences) > 1:
             for exp in self._experiences[1:]:
-                cat_data = AvalancheConcatClassificationDataset(
+                cat_data = ConcatClassificationDataset(
                     [self.adapted_dataset, exp.dataset]
                 )
                 self.adapted_dataset = cat_data

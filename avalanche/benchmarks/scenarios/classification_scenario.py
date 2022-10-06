@@ -32,8 +32,8 @@ from avalanche.benchmarks.scenarios.generic_definitions import (
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
-from avalanche.benchmarks.utils import AvalancheClassificationDataset
-from avalanche.benchmarks.utils.classification_dataset import _AvalancheClassificationDataset
+from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(
@@ -47,9 +47,9 @@ TGenericScenarioStream = TypeVar(
 )
 
 TStreamDataOrigin = Union[
-    AvalancheClassificationDataset,
-    Sequence[AvalancheClassificationDataset],
-    Tuple[Iterable[AvalancheClassificationDataset], int],
+    SimpleClassificationDataset,
+    Sequence[SimpleClassificationDataset],
+    Tuple[Iterable[SimpleClassificationDataset], int],
 ]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
@@ -492,7 +492,7 @@ class GenericCLScenario(Generic[TCLExperience]):
                 # exp_data[0] must contain the generator
                 stream_length = exp_data[1]
             is_lazy = True
-        elif isinstance(exp_data, _AvalancheClassificationDataset):
+        elif isinstance(exp_data, ClassificationDataset):
             # Single element
             exp_data = [exp_data]
             is_lazy = False
@@ -504,7 +504,7 @@ class GenericCLScenario(Generic[TCLExperience]):
 
         if not is_lazy:
             for i, dataset in enumerate(exp_data):
-                if not isinstance(dataset, _AvalancheClassificationDataset):
+                if not isinstance(dataset, ClassificationDataset):
                     raise ValueError(
                         "All experience datasets must be subclasses of"
                         " AvalancheDataset"
@@ -520,7 +520,7 @@ class GenericCLScenario(Generic[TCLExperience]):
             # Extract task labels from the dataset
             task_labels = []
             for i in range(len(exp_data)):
-                exp_dataset: AvalancheClassificationDataset = exp_data[i]
+                exp_dataset: SimpleClassificationDataset = exp_data[i]
                 task_labels.append(set(exp_dataset.targets_task_labels))
         else:
             # Standardize task labels structure
@@ -931,7 +931,7 @@ class GenericClassificationExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.dataset: AvalancheClassificationDataset = (
+        self.dataset: SimpleClassificationDataset = (
             origin_stream.benchmark.stream_definitions[
                 origin_stream.name
             ].exps_data[current_experience]

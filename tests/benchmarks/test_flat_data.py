@@ -3,8 +3,8 @@ import random
 
 import torch
 
-from avalanche.benchmarks.utils.flattened_data import FlatData
-from avalanche.benchmarks.utils.data import _flatdata_depth, _flatdata_print
+from avalanche.benchmarks.utils.flat_data import FlatData
+from avalanche.benchmarks.utils.flat_data import _flatdata_depth, _flatdata_print
 
 
 class AvalancheDatasetTests(unittest.TestCase):
