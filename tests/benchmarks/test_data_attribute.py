@@ -24,7 +24,9 @@ class DataAttributeTests(unittest.TestCase):
         t0 = torch.zeros(10, dtype=torch.int)
         t1 = torch.ones(10, dtype=torch.int)
         da = DataAttribute(torch.cat([t0, t1]), "task_labels")
-        self.assertEqual(da.val_to_idx, {0: list(range(10)), 1: list(range(10, 20))})
+        self.assertEqual(
+            da.val_to_idx, {0: list(range(10)), 1: list(range(10, 20))}
+        )
 
     def test_subset(self):
         """Test that subset is correctly computed."""
@@ -39,4 +41,6 @@ class DataAttributeTests(unittest.TestCase):
         t0 = torch.zeros(10, dtype=torch.int)
         t1 = torch.ones(10, dtype=torch.int)
         da = DataAttribute(torch.cat([t0, t1]), "task_labels")
-        self.assertEqual(list(da.concat(da)._data), list(torch.cat([t0, t1, t0, t1])))
+        self.assertEqual(
+            list(da.concat(da)._data), list(torch.cat([t0, t1, t0, t1]))
+        )
