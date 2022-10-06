@@ -448,7 +448,7 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         idxs = self.selection_strategy.make_sorted_indices(
             strategy=strategy, data=self.buffer
         )
-        self.buffer = classification_subset(self.buffer, idxs[: self.max_size])
+        self.buffer = self.buffer.subset(idxs[: self.max_size])
 
 
 class ExemplarsSelectionStrategy(ABC):

@@ -76,8 +76,11 @@ class FlatData(IDataset):
         :return:
         """
         if self._can_flatten:
-            self_indices = self._get_indices()
-            new_indices = [self_indices[x] for x in indices]
+            if self._indices is None:
+                new_indices = indices
+            else:
+                self_indices = self._get_indices()
+                new_indices = [self_indices[x] for x in indices]
             return self.__class__(datasets=self._datasets,
                                   indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
@@ -281,8 +284,8 @@ def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
         and len(d2._datasets) == 1
         and d1._datasets[0] is d2._datasets[0]
     ):
-        return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
-
+        # return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
+        return d1.concat(d2)
     return [d1, d2]
 
 
@@ -291,6 +294,8 @@ def _flatdata_depth(dataset):
     Returns the depth of the dataset tree."""
     if isinstance(dataset, FlatData):
         dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
+        if len(dchilds) == 0:
+            return 1
         return 1 + max(dchilds)
     else:
         return 1

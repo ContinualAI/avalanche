@@ -70,3 +70,21 @@ class AvalancheDatasetTests(unittest.TestCase):
         # (passing custom transforms?)
         # Good luck...
         assert _flatdata_depth(curr_dataset) == 2
+
+    def test_merging(self):
+        x = torch.randn(10)
+        fdata = FlatData([x])
+
+        dd = fdata
+        for i in range(5):
+            dd = dd.concat(fdata)
+            assert _flatdata_depth(dd) == 2
+            assert len(dd._datasets) == 1
+
+            idxs = list(range(len(dd)))
+            random.shuffle(idxs)
+            dd = dd.subset(idxs[:12])
+
+            assert _flatdata_depth(dd) == 2
+            assert len(dd._indices) == 12
+            assert len(dd._datasets) == 1

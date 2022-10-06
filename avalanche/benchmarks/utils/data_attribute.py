@@ -52,10 +52,14 @@ class DataAttribute:
         self._count = None  # dict()
 
     def __getitem__(self, item):
-        return self._data[item]
+        return self.data[item]
 
     def __len__(self):
-        return len(self._data)
+        return len(self.data)
+
+    @property
+    def data(self):
+        return self._data
 
     @property
     def uniques(self):
@@ -63,12 +67,12 @@ class DataAttribute:
         if self._uniques is None:
             self._uniques = set()
             # init. uniques with fast paths for special cases
-            if isinstance(self._data, ConstantSequence):
-                self.uniques.add(self._data[0])
-            elif isinstance(self._data, DataAttribute):
-                self.uniques.update(self._data.uniques)
+            if isinstance(self.data, ConstantSequence):
+                self.uniques.add(self.data[0])
+            elif isinstance(self.data, DataAttribute):
+                self.uniques.update(self.data.uniques)
             else:
-                for el in self._data:
+                for el in self.data:
                     self.uniques.add(el)
         return self._uniques
 
@@ -79,7 +83,7 @@ class DataAttribute:
             self._count = {}
             for val in self.uniques:
                 self._count[val] = 0
-            for val in self._data:
+            for val in self.data:
                 self._count[val] += 1
         return self._count
 
@@ -89,10 +93,10 @@ class DataAttribute:
         if self._val_to_idx is None:
             # init. val-to-idx
             self._val_to_idx = dict()
-            if isinstance(self._data, ConstantSequence):
-                self._val_to_idx = {self._data[0]: range(len(self._data))}
+            if isinstance(self.data, ConstantSequence):
+                self._val_to_idx = {self.data[0]: range(len(self.data))}
             else:
-                for i, x in enumerate(self._data):
+                for i, x in enumerate(self.data):
                     if x not in self.val_to_idx:
                         self._val_to_idx[x] = []
                     self._val_to_idx[x].append(i)
@@ -107,7 +111,7 @@ class DataAttribute:
         :return: the new `DataAttribute`
         """
         return DataAttribute(
-            FlatData([self._data], indices),
+            self.data.subset(indices),
             self.name,
             use_in_getitem=self.use_in_getitem,
         )
@@ -122,7 +126,7 @@ class DataAttribute:
             "Cannot concatenate DataAttributes" + "with different names."
         )
         return DataAttribute(
-            FlatData([self._data, other._data]),
+            self.data.concat(other.data),
             self.name,
             use_in_getitem=self.use_in_getitem,
         )

@@ -644,14 +644,8 @@ def random_validation_split_strategy(
             )
 
     train_n_instances = len(exp_dataset) - valid_n_instances
-
-    result_train_dataset = classification_subset(
-        exp_dataset, indices=exp_indices[:train_n_instances]
-    )
-    result_valid_dataset = classification_subset(
-        exp_dataset, indices=exp_indices[train_n_instances:]
-    )
-
+    result_train_dataset = exp_dataset.subset(exp_indices[:train_n_instances])
+    result_valid_dataset = exp_dataset.subset(exp_indices[train_n_instances:])
     return result_train_dataset, result_valid_dataset
 
 

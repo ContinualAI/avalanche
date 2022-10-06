@@ -123,9 +123,7 @@ def fixed_size_experience_split(
                 sub_stream_length=sub_stream_length,
                 access_task_boundaries=access_task_boundaries,
             )
-            exp.dataset = classification_subset(
-                exp_dataset, indices=exp_indices[init_idx:final_idx]
-            )
+            exp.dataset = exp_dataset.subset(exp_indices[init_idx:final_idx])
             is_first = False
             yield exp
             init_idx = final_idx
