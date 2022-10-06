@@ -1,3 +1,7 @@
+"""
+    Profiling script to measure the performance of the merging process
+    of AvalancheDatasets
+"""
 from unittest.mock import Mock
 
 import time
@@ -5,8 +9,9 @@ from os.path import expanduser
 
 from tqdm import tqdm
 
-from avalanche.benchmarks import fixed_size_experience_split, SplitMNIST
+from avalanche.benchmarks import fixed_size_experience_split, SplitMNIST, classification_subset
 from avalanche.benchmarks.utils.flat_data import _flatdata_depth
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training import ReservoirSamplingBuffer
 from avalanche.training import ParametricBuffer
 
@@ -18,21 +23,13 @@ benchmark = SplitMNIST(
 experience = benchmark.train_stream[0]
 print("len experience: ", len(experience.dataset))
 
-start = time.time()
-buffer = ReservoirSamplingBuffer(100)
-for exp in tqdm(fixed_size_experience_split(experience, 1)):
-    buffer.update_from_dataset(exp.dataset)
-
-end = time.time()
-duration = end - start
-print("ReservoirSampling Duration: ", duration)
-
 
 start = time.time()
-buffer = ParametricBuffer(100)
+buffer = concat_datasets([])
 for exp in tqdm(fixed_size_experience_split(experience, 1)):
-    buffer.update(Mock(experience=exp, dataset=exp.dataset))
-    bgs = buffer.buffer_datasets
+    buffer = buffer.concat(exp.dataset)
+    buffer = classification_subset(buffer, list(range(len(buffer)))[:100])
+    # buffer = buffer.subset(list(range(len(buffer)))[:100])
 
     # depths = [_flatdata_depth(b) for b in bgs]
     # lenidxs = [len(b._indices) for b in bgs]
