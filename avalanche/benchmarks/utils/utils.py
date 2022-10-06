@@ -17,10 +17,18 @@ from typing import List, Iterable, Sequence, Union, Dict, Tuple, SupportsInt
 import torch
 from torch import Tensor
 
-from avalanche.benchmarks.utils.classification_dataset import classification_subset, concat_classification_datasets
-from avalanche.benchmarks.utils.classification_dataset import T_co, ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    classification_subset,
+    concat_classification_datasets,
+)
+from avalanche.benchmarks.utils.classification_dataset import (
+    T_co,
+    ClassificationDataset,
+)
 from avalanche.benchmarks.utils.data import AvalancheDataset
-from avalanche.benchmarks.utils.dataset_definitions import ISupportedClassificationDataset
+from avalanche.benchmarks.utils.dataset_definitions import (
+    ISupportedClassificationDataset,
+)
 
 
 def tensor_as_list(sequence) -> List:

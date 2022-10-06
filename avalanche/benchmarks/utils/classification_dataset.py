@@ -26,7 +26,8 @@ from .data import SimpleAvalancheDataset, AvalancheDataset
 from .transform_groups import TransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
-    SubSequence, find_list_from_index,
+    SubSequence,
+    find_list_from_index,
 )
 from .flat_data import ConstantSequence
 from .dataset_definitions import (
@@ -43,7 +44,8 @@ from typing import (
     TypeVar,
     Callable,
     Dict,
-    Tuple, Mapping,
+    Tuple,
+    Mapping,
 )
 
 from typing_extensions import Protocol
@@ -51,6 +53,7 @@ from typing_extensions import Protocol
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 TTargetType = Union[int]
+
 
 # Info: https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
 class XComposedTransformDef(Protocol):
@@ -74,8 +77,11 @@ TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
 SupportedDataset = Union[
-    SimpleAvalancheDataset, IDatasetWithTargets, ITensorDataset, Subset,
-    ConcatDataset
+    SimpleAvalancheDataset,
+    IDatasetWithTargets,
+    ITensorDataset,
+    Subset,
+    ConcatDataset,
 ]
 
 
@@ -90,7 +96,8 @@ class _ClassificationAttributesMixin:
 
     @property
     def task_set(self):
-        """Returns the datasets's ``TaskSet``, which is a mapping <task-id, task-dataset>."""
+        """Returns the datasets's ``TaskSet``, which is a mapping <task-id,
+        task-dataset>."""
         return TaskSet(self)
 
 
@@ -197,8 +204,12 @@ def SimpleClassificationDataset(
         The adapter is used to adapt the values of the targets field only.
     """
     transform_gs = _init_transform_groups(
-        transform_groups, transform, target_transform,
-        initial_transform_group, dataset)
+        transform_groups,
+        transform,
+        target_transform,
+        initial_transform_group,
+        dataset,
+    )
     targets = _init_targets(dataset, targets, targets_adapter)
     task_labels = _init_task_labels(dataset, task_labels)
 
@@ -214,7 +225,7 @@ def SimpleClassificationDataset(
         [dataset],
         data_attributes=das,
         transform_groups=transform_gs,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
     )
     if initial_transform_group is not None:
         return data.with_transforms(initial_transform_group)
@@ -222,8 +233,13 @@ def SimpleClassificationDataset(
         return data
 
 
-def _init_transform_groups(transform_groups, transform, target_transform,
-                           initial_transform_group, dataset):
+def _init_transform_groups(
+    transform_groups,
+    transform,
+    target_transform,
+    initial_transform_group,
+    dataset,
+):
     if transform_groups is not None and (
         transform is not None or target_transform is not None
     ):
@@ -238,7 +254,10 @@ def _init_transform_groups(transform_groups, transform, target_transform,
     if initial_transform_group is None:
         # Detect from the input dataset. If not an AvalancheDataset then
         # use 'train' as the initial transform group
-        if isinstance(dataset, ClassificationDataset) and dataset._transform_groups is not None:
+        if (
+            isinstance(dataset, ClassificationDataset)
+            and dataset._transform_groups is not None
+        ):
             initial_transform_group = dataset._transform_groups.current_group
         else:
             initial_transform_group = "train"
@@ -247,13 +266,17 @@ def _init_transform_groups(transform_groups, transform, target_transform,
         if target_transform is None and transform is None:
             tgs = None
         else:
-            tgs = TransformGroups({
-                'train': (transform, target_transform),
-                'eval': (transform, target_transform)
-            }, current_group=initial_transform_group)
+            tgs = TransformGroups(
+                {
+                    "train": (transform, target_transform),
+                    "eval": (transform, target_transform),
+                },
+                current_group=initial_transform_group,
+            )
     else:
-        tgs = TransformGroups(transform_groups,
-                              current_group=initial_transform_group)
+        tgs = TransformGroups(
+            transform_groups, current_group=initial_transform_group
+        )
     return tgs
 
 
@@ -319,7 +342,9 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
         if isinstance(dataset, ClassificationDataset):
             tls = None
         else:
-            task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
+            task_labels = _traverse_supported_dataset(
+                dataset, _select_task_labels
+            )
             tls = SubSequence(task_labels, converter=int)
 
     if tls is None:
@@ -328,22 +353,25 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
 
 
 def classification_subset(
-        dataset: SupportedDataset,
-        indices: Sequence[int] = None,
-        *,
-        class_mapping: Sequence[int] = None,
-        transform: Callable[[Any], Any] = None,
-        target_transform: Callable[[int], int] = None,
-        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-        initial_transform_group: str = None,
-        task_labels: Union[int, Sequence[int]] = None,
-        targets: Sequence[TTargetType] = None,
-        collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None):
+    dataset: SupportedDataset,
+    indices: Sequence[int] = None,
+    *,
+    class_mapping: Sequence[int] = None,
+    transform: Callable[[Any], Any] = None,
+    target_transform: Callable[[int], int] = None,
+    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+    initial_transform_group: str = None,
+    task_labels: Union[int, Sequence[int]] = None,
+    targets: Sequence[TTargetType] = None,
+    collate_fn: Callable[[List], Any] = None,
+    targets_adapter: Callable[[Any], TTargetType] = None,
+):
     """Creates an ``AvalancheSubset`` instance.
 
-    For simple subset operations you should use the method `dataset.subset(indices)`.
-    Use this constructor only if you need to redefine transformation or class/task labels.
+    For simple subset operations you should use the method
+    `dataset.subset(indices)`.
+    Use this constructor only if you need to redefine transformation or
+    class/task labels.
 
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
@@ -410,31 +438,46 @@ def classification_subset(
         The adapter is used to adapt the values of the targets field only.
     """
     if isinstance(dataset, ClassificationDataset):
-        if class_mapping is None and transform is None and target_transform is None and \
-            transform_groups is None and initial_transform_group is None and \
-            task_labels is None and targets is None and collate_fn is None:
+        if (
+            class_mapping is None
+            and transform is None
+            and target_transform is None
+            and transform_groups is None
+            and initial_transform_group is None
+            and task_labels is None
+            and targets is None
+            and collate_fn is None
+        ):
             return dataset.subset(indices)
 
-    targets = _init_targets(dataset, targets, targets_adapter, check_shape=False)
+    targets = _init_targets(
+        dataset, targets, targets_adapter, check_shape=False
+    )
     task_labels = _init_task_labels(dataset, task_labels, check_shape=False)
     transform_gs = _init_transform_groups(
-        transform_groups, transform, target_transform,
-        initial_transform_group, dataset)
+        transform_groups,
+        transform,
+        target_transform,
+        initial_transform_group,
+        dataset,
+    )
 
-    if initial_transform_group is not None and \
-            isinstance(dataset, AvalancheDataset):
+    if initial_transform_group is not None and isinstance(
+        dataset, AvalancheDataset
+    ):
         dataset = dataset.with_transforms(initial_transform_group)
 
     if class_mapping is not None:  # update targets
         if targets is None:
-            l = [class_mapping[el] for el in dataset.targets]
+            tgs = [class_mapping[el] for el in dataset.targets]
         else:
-            l = [class_mapping[el] for el in targets]
-        targets = DataAttribute(l, 'targets')
+            tgs = [class_mapping[el] for el in targets]
+        targets = DataAttribute(tgs, "targets")
 
     if class_mapping is not None:
         frozen_transform_groups = DefaultTransformGroups(
-            (None, lambda x: class_mapping[x]))
+            (None, lambda x: class_mapping[x])
+        )
     else:
         frozen_transform_groups = None
 
@@ -452,21 +495,21 @@ def classification_subset(
         data_attributes=das,
         transform_groups=transform_gs,
         frozen_transform_groups=frozen_transform_groups,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
     )
 
 
 def TensorClassificationDataset(
-        *dataset_tensors: Sequence,
-        transform: Callable[[Any], Any] = None,
-        target_transform: Callable[[int], int] = None,
-        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-        initial_transform_group: str = "train",
-        task_labels: Union[int, Sequence[int]] = None,
-        targets: Union[Sequence[TTargetType], int] = None,
-        collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None,
-    ):
+    *dataset_tensors: Sequence,
+    transform: Callable[[Any], Any] = None,
+    target_transform: Callable[[int], int] = None,
+    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+    initial_transform_group: str = "train",
+    task_labels: Union[int, Sequence[int]] = None,
+    targets: Union[Sequence[TTargetType], int] = None,
+    collate_fn: Callable[[List], Any] = None,
+    targets_adapter: Callable[[Any], TTargetType] = None,
+):
     """Creates a ``AvalancheTensorDataset`` instance.
 
     A Dataset that wraps existing ndarrays, Tensors, lists... to provide
@@ -521,25 +564,31 @@ def TensorClassificationDataset(
     dataset = _TensorClassificationDataset(*dataset_tensors)
 
     transform_gs = _init_transform_groups(
-        transform_groups, transform, target_transform,
-        initial_transform_group, dataset)
+        transform_groups,
+        transform,
+        target_transform,
+        initial_transform_group,
+        dataset,
+    )
     targets = _init_targets(dataset, targets, targets_adapter)
     task_labels = _init_task_labels(dataset, task_labels)
 
-    if initial_transform_group is not None and \
-            isinstance(dataset, AvalancheDataset):
+    if initial_transform_group is not None and isinstance(
+        dataset, AvalancheDataset
+    ):
         dataset = dataset.with_transforms(initial_transform_group)
 
     return ClassificationDataset(
         [dataset],
         data_attributes=[targets, task_labels],
         transform_groups=transform_gs,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
     )
 
 
 class _TensorClassificationDataset(TensorDataset):
     """we want class labels to be integers, not tensors."""
+
     def __getitem__(self, item):
         elem = list(super().__getitem__(item))
         elem[1] = elem[1].item()
@@ -547,23 +596,26 @@ class _TensorClassificationDataset(TensorDataset):
 
 
 def concat_classification_datasets(
-        datasets: List[SupportedDataset],
-        *,
-        transform: Callable[[Any], Any] = None,
-        target_transform: Callable[[int], int] = None,
-        transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-        initial_transform_group: str = None,
-        task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]] = None,
-        targets: Union[
-            Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-        ] = None,
-        collate_fn: Callable[[List], Any] = None,
-        targets_adapter: Callable[[Any], TTargetType] = None):
+    datasets: List[SupportedDataset],
+    *,
+    transform: Callable[[Any], Any] = None,
+    target_transform: Callable[[int], int] = None,
+    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
+    initial_transform_group: str = None,
+    task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]] = None,
+    targets: Union[
+        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
+    ] = None,
+    collate_fn: Callable[[List], Any] = None,
+    targets_adapter: Callable[[Any], TTargetType] = None,
+):
     """Creates a ``AvalancheConcatDataset`` instance.
 
-    For simple subset operations you should use the method `dataset.concat(other)` or
+    For simple subset operations you should use the method
+    `dataset.concat(other)` or
     `concat_datasets` from `avalanche.benchmarks.utils.utils`.
-    Use this constructor only if you need to redefine transformation or class/task labels.
+    Use this constructor only if you need to redefine transformation or
+    class/task labels.
 
     A Dataset that behaves like a PyTorch
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
@@ -636,13 +688,19 @@ def concat_classification_datasets(
                 task_labels=task_labels,
                 targets=targets,
                 collate_fn=collate_fn,
-                targets_adapter=targets_adapter
+                targets_adapter=targets_adapter,
             )
         dds.append(dd)
-    if transform is None and target_transform is None and \
-        transform_groups is None and initial_transform_group is None and \
-        task_labels is None and targets is None and collate_fn is None and \
-        len(datasets) > 0:
+    if (
+        transform is None
+        and target_transform is None
+        and transform_groups is None
+        and initial_transform_group is None
+        and task_labels is None
+        and targets is None
+        and collate_fn is None
+        and len(datasets) > 0
+    ):
         d0 = datasets[0]
         if isinstance(d0, ClassificationDataset):
             for d1 in datasets[1:]:
@@ -655,8 +713,12 @@ def concat_classification_datasets(
         # TRANSFORMATION GROUPS
         #######################################
         transform_groups = _init_transform_groups(
-            transform_groups, transform, target_transform,
-            initial_transform_group, dds[0])
+            transform_groups,
+            transform,
+            target_transform,
+            initial_transform_group,
+            dds[0],
+        )
 
         if initial_transform_group is None:
             uniform_group = None
@@ -665,7 +727,10 @@ def concat_classification_datasets(
                     if uniform_group is None:
                         uniform_group = d_set._transform_groups.current_group
                     else:
-                        if uniform_group != d_set._transform_groups.current_group:
+                        if (
+                            uniform_group
+                            != d_set._transform_groups.current_group
+                        ):
                             uniform_group = None
                             break
 
@@ -679,7 +744,9 @@ def concat_classification_datasets(
         #######################################
 
         totlen = sum([len(d) for d in datasets])
-        if task_labels is not None:  # User defined targets always take precedence
+        if (
+            task_labels is not None
+        ):  # User defined targets always take precedence
             if isinstance(task_labels, int):
                 task_labels = ConstantSequence(task_labels, totlen)
             elif len(task_labels) != totlen:
@@ -688,7 +755,11 @@ def concat_classification_datasets(
                     "number of patterns in the dataset. Got {}, expected "
                     "{}!".format(len(task_labels), totlen)
                 )
-            das.append(DataAttribute(task_labels, "targets_task_labels", use_in_getitem=True))
+            das.append(
+                DataAttribute(
+                    task_labels, "targets_task_labels", use_in_getitem=True
+                )
+            )
 
         if targets is not None:  # User defined targets always take precedence
             if isinstance(targets, int):
@@ -703,9 +774,7 @@ def concat_classification_datasets(
     if len(das) == 0:
         das = None
     data = ClassificationDataset(
-        dds,
-        transform_groups=transform_groups,
-        data_attributes=das
+        dds, transform_groups=transform_groups, data_attributes=das
     )
     return data.with_transforms(initial_transform_group)
 
@@ -871,5 +940,5 @@ __all__ = [
     "classification_subset",
     "TensorClassificationDataset",
     "concat_classification_datasets",
-    "TaskSet"
+    "TaskSet",
 ]

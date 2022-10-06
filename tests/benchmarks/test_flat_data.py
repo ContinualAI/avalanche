@@ -4,11 +4,13 @@ import random
 import torch
 
 from avalanche.benchmarks.utils.flat_data import FlatData
-from avalanche.benchmarks.utils.flat_data import _flatdata_depth, _flatdata_print
+from avalanche.benchmarks.utils.flat_data import (
+    _flatdata_depth,
+    _flatdata_print,
+)
 
 
 class AvalancheDatasetTests(unittest.TestCase):
-
     def test_flatdata_subset_concat_stack_overflow(self):
         d_sz = 5
         x_raw = torch.randint(0, 7, (d_sz,))
@@ -45,19 +47,26 @@ class AvalancheDatasetTests(unittest.TestCase):
             # print("CONCAT:")
             # _flatdata_print(curr_dataset)
 
-        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset))
+        self.assertEqual(
+            d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset)
+        )
         for idx in range(dataset_hierarchy_depth):
             leaf_range = range(idx * d_sz, (idx + 1) * d_sz)
             permuted = true_indices[idx]
 
-            x_leaf = torch.stack([curr_dataset[idx] for idx in leaf_range], dim=0)
+            x_leaf = torch.stack(
+                [curr_dataset[idx] for idx in leaf_range], dim=0
+            )
             self.assertTrue(torch.equal(x_raw[permuted], x_leaf))
 
-        slice_idxs = list(range(d_sz * dataset_hierarchy_depth, len(curr_dataset)))
+        slice_idxs = list(
+            range(d_sz * dataset_hierarchy_depth, len(curr_dataset))
+        )
         x_slice = torch.stack([curr_dataset[idx] for idx in slice_idxs], dim=0)
         self.assertTrue(torch.equal(x_raw, x_slice))
 
-        # If you broke this test it means that dataset merging is not working anymore.
-        # you are probably doing something that disable merging (passing custom transforms?)
+        # If you broke this test it means that dataset merging is not working
+        # anymore. you are probably doing something that disable merging
+        # (passing custom transforms?)
         # Good luck...
         assert _flatdata_depth(curr_dataset) == 2

@@ -20,10 +20,12 @@ from tqdm import tqdm
 try:
     import ctrl
 except ImportError:
-    raise ModuleNotFoundError("ctrl not found, if you want to use this"
-                              "dataset please install avalanche with the "
-                              "extra dependencies: "
-                              "pip install avalanche-lib[extra]")
+    raise ModuleNotFoundError(
+        "ctrl not found, if you want to use this"
+        "dataset please install avalanche with the "
+        "extra dependencies: "
+        "pip install avalanche-lib[extra]"
+    )
 
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location

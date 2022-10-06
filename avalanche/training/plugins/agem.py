@@ -35,7 +35,9 @@ class AGEMPlugin(SupervisedPlugin):
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
 
-        self.buffers: List[SimpleClassificationDataset] = []  # one AvalancheDataset for
+        self.buffers: List[
+            SimpleClassificationDataset
+        ] = []  # one AvalancheDataset for
         # each experience.
         self.buffer_dataloader = None
         self.buffer_dliter = None

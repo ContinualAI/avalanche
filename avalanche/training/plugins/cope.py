@@ -73,9 +73,11 @@ class CoPEPlugin(SupervisedPlugin):
 
         self.initialized = False
 
-        warnings.warn("The current version of COPE is not working properly."
-                      "Please, use it carefully. The performance may not"
-                      "be aligned with the actual COPE performance.")
+        warnings.warn(
+            "The current version of COPE is not working properly."
+            "Please, use it carefully. The performance may not"
+            "be aligned with the actual COPE performance."
+        )
 
     def before_training(self, strategy, **kwargs):
         """Enforce using the PPP-loss and add a NN-classifier."""

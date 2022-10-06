@@ -111,9 +111,7 @@ class TaskAwareAccuracy(Metric[float]):
     """
 
     def __init__(self):
-        """Creates an instance of the task-aware Accuracy metric.
-
-        """
+        """Creates an instance of the task-aware Accuracy metric."""
         self._mean_accuracy = defaultdict(Accuracy)
         """
         The mean utility that will be used to store the running accuracy
@@ -156,8 +154,9 @@ class TaskAwareAccuracy(Metric[float]):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
                 if isinstance(t, Tensor):
                     t = t.item()
-                self._mean_accuracy[t].update(pred.unsqueeze(0),
-                                              true.unsqueeze(0))
+                self._mean_accuracy[t].update(
+                    pred.unsqueeze(0), true.unsqueeze(0)
+                )
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
@@ -232,15 +231,11 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
 
     def update(self, strategy):
         if isinstance(self._accuracy, Accuracy):
-            self._accuracy.update(
-                strategy.mb_output,
-                strategy.mb_y
-            )
+            self._accuracy.update(strategy.mb_output, strategy.mb_y)
         elif isinstance(self._accuracy, TaskAwareAccuracy):
             self._accuracy.update(
-                strategy.mb_output,
-                strategy.mb_y,
-                strategy.mb_task_id)
+                strategy.mb_output, strategy.mb_y, strategy.mb_task_id
+            )
         else:
             assert False, "should never get here."
 

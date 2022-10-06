@@ -147,7 +147,6 @@ def SplitOmniglot(
     )
 
 
-
 def _get_omniglot_dataset(dataset_root):
     if dataset_root is None:
         dataset_root = default_dataset_location("omniglot")

@@ -146,7 +146,9 @@ class _ICaRLPlugin(SupervisedPlugin):
         if strategy.clock.train_exp_counter != 0:
             memory = TensorClassificationDataset(
                 torch.cat(self.x_memory).cpu(),
-                torch.tensor(list(itertools.chain.from_iterable(self.y_memory))),
+                torch.tensor(
+                    list(itertools.chain.from_iterable(self.y_memory))
+                ),
                 transform=self.buffer_transform,
                 target_transform=None,
             )
@@ -246,8 +248,11 @@ class _ICaRLPlugin(SupervisedPlugin):
             )
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
             class_patterns, _, _ = next(
-                iter(DataLoader(cd.eval(), collate_fn=collate_fn,
-                                batch_size=len(cd)))
+                iter(
+                    DataLoader(
+                        cd.eval(), collate_fn=collate_fn, batch_size=len(cd)
+                    )
+                )
             )
             class_patterns = class_patterns.to(strategy.device)
 

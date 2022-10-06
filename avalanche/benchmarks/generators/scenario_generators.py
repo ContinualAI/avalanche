@@ -35,10 +35,11 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils.utils import concat_datasets_sequentially, as_classification_dataset
-from avalanche.benchmarks.utils.classification_dataset import (
-    SupportedDataset
+from avalanche.benchmarks.utils.utils import (
+    concat_datasets_sequentially,
+    as_classification_dataset,
 )
+from avalanche.benchmarks.utils.classification_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -373,7 +374,7 @@ def dataset_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
         task_labels=task_labels,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -553,7 +554,7 @@ def paths_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 
@@ -640,7 +641,7 @@ def tensors_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 
@@ -766,7 +767,7 @@ def tensor_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 

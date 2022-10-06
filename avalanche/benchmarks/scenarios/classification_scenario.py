@@ -15,7 +15,7 @@ from typing import (
     Set,
     Tuple,
     NamedTuple,
-    Mapping
+    Mapping,
 )
 
 from typing_extensions import Protocol
@@ -33,7 +33,9 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
 from avalanche.benchmarks.utils import SimpleClassificationDataset
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(

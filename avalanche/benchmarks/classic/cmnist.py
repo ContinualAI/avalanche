@@ -228,12 +228,12 @@ def PermutedMNIST(
         # Freeze the permutation
         permuted_train = SimpleAvalancheDataset(
             SimpleClassificationDataset(mnist_train),
-            frozen_transform_groups=DefaultTransformGroups((permutation, None))
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
         permuted_test = SimpleAvalancheDataset(
             SimpleClassificationDataset(mnist_test),
-            frozen_transform_groups=DefaultTransformGroups((permutation, None))
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
         list_train_dataset.append(permuted_train)
@@ -345,12 +345,12 @@ def RotatedMNIST(
         # Freeze the rotation
         rotated_train = SimpleAvalancheDataset(
             SimpleClassificationDataset(mnist_train),
-            frozen_transform_groups=DefaultTransformGroups((rotation, None))
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
         rotated_test = SimpleAvalancheDataset(
             SimpleClassificationDataset(mnist_test),
-            frozen_transform_groups=DefaultTransformGroups((rotation, None))
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
         list_train_dataset.append(rotated_train)

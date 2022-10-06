@@ -33,14 +33,19 @@ class FlatData(IDataset):
 
     Cat/Sub operations are "flattened" if possible, which means that they will
     take the datasets and indices from their arguments and create a new dataset
-    with them, avoiding the creation of large trees of dataset (what would happen
-    with PyTorch datasets). Flattening is not always possible, for example if the
-    data contains additional info (e.g. custom transformation groups), so subclasses
-    MUST set `can_flatten` properly in order to avoid nasty bugs.
+    with them, avoiding the creation of large trees of dataset (what would
+    happen with PyTorch datasets). Flattening is not always possible, for
+    example if the data contains additional info (e.g. custom transformation
+    groups), so subclasses MUST set `can_flatten` properly in order to avoid
+    nasty bugs.
     """
 
-    def __init__(self, datasets: List[IDataset],
-                 indices: List[int] = None, can_flatten=True):
+    def __init__(
+        self,
+        datasets: List[IDataset],
+        indices: List[int] = None,
+        can_flatten=True,
+    ):
         """Constructor
 
         :param datasets: list of datasets to concatenate.
@@ -73,7 +78,8 @@ class FlatData(IDataset):
         if self._can_flatten:
             self_indices = self._get_indices()
             new_indices = [self_indices[x] for x in indices]
-            return self.__class__(datasets=self._datasets, indices=new_indices)
+            return self.__class__(datasets=self._datasets,
+                                  indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
 
     def concat(self, other: "FlatData") -> "FlatData":
@@ -85,18 +91,21 @@ class FlatData(IDataset):
         if (not self._can_flatten) and (not other._can_flatten):
             return self.__class__(datasets=[self, other])
 
-        ## Case 1: one is a subset of the other
+        # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
             if self._can_flatten and self._datasets[0] is other:
                 return other.subset(self._indices + list(range(len(other))))
             elif other._can_flatten and other._datasets[0] is self:
                 return self.subset(list(range(len(self))) + other._indices)
-            elif self._can_flatten and other._can_flatten and \
-                    self._datasets[0] is other._datasets[0]:
+            elif (
+                self._can_flatten
+                and other._can_flatten
+                and self._datasets[0] is other._datasets[0]
+            ):
                 idxs = self._get_indices() + other._get_indices()
                 return self.__class__(datasets=self._datasets, indices=idxs)
 
-        ## Case 2: at least one of them can be flattened
+        # Case 2: at least one of them can be flattened
         if self._can_flatten and other._can_flatten:
             if self._indices is None and other._indices is None:
                 new_indices = None
@@ -105,9 +114,12 @@ class FlatData(IDataset):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                new_indices = self._get_indices() + [base_other + idx for idx in other._get_indices()]
-            return self.__class__(datasets=self._datasets + other._datasets,
-                                  indices=new_indices)
+                new_indices = self._get_indices() + [
+                    base_other + idx for idx in other._get_indices()
+                ]
+            return self.__class__(
+                datasets=self._datasets + other._datasets, indices=new_indices
+            )
         elif self._can_flatten:
             if self._indices is None and other._indices is None:
                 new_indices = None
@@ -116,18 +128,24 @@ class FlatData(IDataset):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                new_indices = self._get_indices() + [base_other + idx for idx in range(len(other))]
-            return self.__class__(datasets=self._datasets + [other],
-                                  indices=new_indices)
+                new_indices = self._get_indices() + [
+                    base_other + idx for idx in range(len(other))
+                ]
+            return self.__class__(
+                datasets=self._datasets + [other], indices=new_indices
+            )
         elif other._can_flatten:
             if self._indices is None and other._indices is None:
                 new_indices = None
             else:
                 base_other = len(self)
                 self_idxs = list(range(len(self)))
-                new_indices = self_idxs + [base_other + idx for idx in other._get_indices()]
-            return self.__class__(datasets=[self] + other._datasets,
-                                  indices=new_indices)
+                new_indices = self_idxs + [
+                    base_other + idx for idx in other._get_indices()
+                ]
+            return self.__class__(
+                datasets=[self] + other._datasets, indices=new_indices
+            )
         else:
             assert False, "should never get here"
 
@@ -204,14 +222,20 @@ class ConstantSequence:
         :param other: other dataset
         :return:
         """
-        if isinstance(other, ConstantSequence) and \
-                self._constant_value == other._constant_value:
-            return ConstantSequence(self._constant_value, len(self) + len(other))
+        if (
+            isinstance(other, ConstantSequence)
+            and self._constant_value == other._constant_value
+        ):
+            return ConstantSequence(
+                self._constant_value, len(self) + len(other)
+            )
         else:
             return FlatData([self, other])
 
     def __str__(self):
-        return f"ConstantSequence(value={self._constant_value}, len={self._size}"
+        return (
+            f"ConstantSequence(value={self._constant_value}, len={self._size}"
+        )
 
 
 def _flatten_dataset_list(datasets: List[FlatData]):
@@ -223,7 +247,11 @@ def _flatten_dataset_list(datasets: List[FlatData]):
     for dataset in datasets:
         if len(dataset) == 0:
             continue
-        elif isinstance(dataset, FlatData) and dataset._indices is None and dataset._can_flatten:
+        elif (
+            isinstance(dataset, FlatData)
+            and dataset._indices is None
+            and dataset._can_flatten
+        ):
             flattened_list.extend(dataset._datasets)
         else:
             flattened_list.append(dataset)
@@ -231,8 +259,11 @@ def _flatten_dataset_list(datasets: List[FlatData]):
     # merge consecutive Subsets if compatible
     new_data_list = []
     for dataset in flattened_list:
-        if isinstance(dataset, FlatData) and len(new_data_list) > 0 and \
-                isinstance(new_data_list[-1], FlatData):
+        if (
+            isinstance(dataset, FlatData)
+            and len(new_data_list) > 0
+            and isinstance(new_data_list[-1], FlatData)
+        ):
             merged_ds = _maybe_merge_subsets(new_data_list.pop(), dataset)
             new_data_list.extend(merged_ds)
         else:
@@ -245,7 +276,11 @@ def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
     if (not d1._can_flatten) or (not d2._can_flatten):
         return [d1, d2]
 
-    if len(d1._datasets) == 1 and len(d2._datasets) == 1 and d1._datasets[0] is d2._datasets[0]:
+    if (
+        len(d1._datasets) == 1
+        and len(d2._datasets) == 1
+        and d1._datasets[0] is d2._datasets[0]
+    ):
         return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
 
     return [d1, d2]
@@ -268,14 +303,17 @@ def _flatdata_print(dataset, indent=0):
         ss = dataset._indices is not None
         cc = len(dataset._datasets) != 1
         cf = dataset._can_flatten
-        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},cat={cc},cf={cf})")
+        print(
+            "\t" * indent
+            + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
+              f"cat={cc},cf={cf})"
+        )
         for dd in dataset._datasets:
             _flatdata_print(dd, indent + 1)
     else:
-        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
+        print(
+            "\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})"
+        )
 
 
-__all__ = [
-    "FlatData",
-    "ConstantSequence"
-]
+__all__ = ["FlatData", "ConstantSequence"]

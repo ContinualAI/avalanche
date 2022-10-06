@@ -91,6 +91,7 @@ def load_image_data():
 
 image_data = None
 
+
 def load_image_benchmark():
     """Returns a PyTorch image dataset of 10 classes."""
     global image_data

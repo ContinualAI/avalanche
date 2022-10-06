@@ -6,8 +6,10 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
-    collate_from_data_or_kwargs
+from avalanche.benchmarks.utils.data_loader import (
+    TaskBalancedDataLoader,
+    collate_from_data_or_kwargs,
+)
 from avalanche.models import avalanche_forward
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -69,18 +71,18 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
     PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
-            self,
-            model: Module,
-            optimizer: Optimizer,
-            criterion=CrossEntropyLoss(),
-            train_mb_size: int = 1,
-            train_passes: int = 1,
-            eval_mb_size: Optional[int] = 1,
-            device="cpu",
-            plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-            evaluator=default_evaluator(),
-            eval_every=-1,
-            peval_mode="experience",
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        train_mb_size: int = 1,
+        train_passes: int = 1,
+        eval_mb_size: Optional[int] = 1,
+        device="cpu",
+        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        evaluator=default_evaluator(),
+        eval_every=-1,
+        peval_mode="experience",
     ):
         """Init.
 
@@ -193,12 +195,12 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
         super()._before_eval_exp(**kwargs)
 
     def make_train_dataloader(
-            self,
-            num_workers=0,
-            shuffle=True,
-            pin_memory=True,
-            persistent_workers=False,
-            **kwargs
+        self,
+        num_workers=0,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=False,
+        **kwargs
     ):
         """Data loader initialization.
 
@@ -218,8 +220,7 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
 
-        collate_from_data_or_kwargs(self.adapted_dataset,
-                                    other_dataloader_args)
+        collate_from_data_or_kwargs(self.adapted_dataset, other_dataloader_args)
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
@@ -231,8 +232,7 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
         )
 
     def make_eval_dataloader(
-            self, num_workers=0, pin_memory=True, persistent_workers=False,
-            **kwargs
+        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
     ):
         """
         Initializes the eval data loader.
@@ -251,8 +251,7 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
 
-        collate_from_data_or_kwargs(self.adapted_dataset,
-                                    other_dataloader_args)
+        collate_from_data_or_kwargs(self.adapted_dataset, other_dataloader_args)
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
@@ -278,8 +277,9 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
             # If the strategy has access to task boundaries, adapt the model
             # for the whole origin experience to add the
             if self.experience.access_task_boundaries:
-                avalanche_model_adaptation(model,
-                                           self.experience.origin_experience)
+                avalanche_model_adaptation(
+                    model, self.experience.origin_experience
+                )
             else:
                 self.model_params_before_adaptation = list(model.parameters())
                 avalanche_model_adaptation(model, self.experience)
@@ -319,10 +319,12 @@ class OnlineSupervisedTemplate(BaseOnlineSGDTemplate):
             reset_optimizer(self.optimizer, self.model)
 
         else:
-            update_optimizer(self.optimizer,
-                             self.model_params_before_adaptation,
-                             self.model.parameters(),
-                             reset_state=False)
+            update_optimizer(
+                self.optimizer,
+                self.model_params_before_adaptation,
+                self.model.parameters(),
+                reset_state=False,
+            )
 
     #########################################################
     # Plugin Triggers                                       #

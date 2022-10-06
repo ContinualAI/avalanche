@@ -208,11 +208,11 @@ class EvaluationPlugin:
 
 def default_evaluator():
     return EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True,
-                         experience=True, stream=True),
-        loss_metrics(minibatch=False, epoch=True,
-                     experience=True, stream=True),
-        loggers=[InteractiveLogger()]
+        accuracy_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True
+        ),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loggers=[InteractiveLogger()],
     )
 
 

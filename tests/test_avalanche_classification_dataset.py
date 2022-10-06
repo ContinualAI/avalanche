@@ -34,14 +34,22 @@ from avalanche.benchmarks.utils import (
     concat_classification_datasets,
     TensorClassificationDataset,
 )
-from avalanche.benchmarks.utils.utils import concat_datasets_sequentially, concat_datasets
+from avalanche.benchmarks.utils.utils import (
+    concat_datasets_sequentially,
+    concat_datasets,
+)
 from avalanche.training.utils import load_all_dataset
 import random
 
 import numpy as np
 
-from avalanche.benchmarks.utils.flat_data import _flatdata_depth, _flatdata_print
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.flat_data import (
+    _flatdata_depth,
+    _flatdata_print,
+)
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
 from tests.unit_tests_utils import load_image_data
 
 
@@ -59,9 +67,9 @@ def zero_if_label_2(img_tensor: Tensor, class_label):
 
 
 def get_mbatch(data, batch_size=5):
-    dl = DataLoader(data, shuffle=False,
-                    batch_size=batch_size,
-                    collate_fn=data.collate_fn)
+    dl = DataLoader(
+        data, shuffle=False, batch_size=batch_size, collate_fn=data.collate_fn
+    )
     return next(iter(dl))
 
 
@@ -97,7 +105,9 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         tgs = {"train": dataset_transform, "eval": dataset_transform}
         x, y = dataset_mnist[ref_instance_idx]
-        dataset = SimpleClassificationDataset(dataset_mnist, transform_groups=tgs)
+        dataset = SimpleClassificationDataset(
+            dataset_mnist, transform_groups=tgs
+        )
         x2, y2, t2 = dataset[ref_instance_idx]
 
         self.assertIsInstance(x2, Tensor)
@@ -120,7 +130,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         y = torch.rand(32, 10)
         t = torch.ones(32)  # Single task
         dataset = SimpleClassificationDataset(
-            TensorDataset(x, y), targets=1, task_labels=t)
+            TensorDataset(x, y), targets=1, task_labels=t
+        )
 
         x2, y2, t2 = get_mbatch(dataset, batch_size=32)
 
@@ -519,7 +530,9 @@ class AvalancheDatasetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = SimpleClassificationDataset(whole_dataset, collate_fn=my_collate_fn)
+        dataset = SimpleClassificationDataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
 
         x, y, z, t = dataset[0]
         self.assertIsInstance(x, Tensor)
@@ -563,8 +576,12 @@ class AvalancheDatasetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = SimpleClassificationDataset(whole_dataset, collate_fn=my_collate_fn)
-        inherited = SimpleClassificationDataset(dataset, collate_fn=my_collate_fn2)  # Ok
+        dataset = SimpleClassificationDataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
+        inherited = SimpleClassificationDataset(
+            dataset, collate_fn=my_collate_fn2
+        )  # Ok
 
         x, y, z, t = get_mbatch(inherited)
         self.assertIsInstance(x, Tensor)
@@ -573,11 +590,11 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.full((5,), -2, dtype=torch.long), z))
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t))
 
-        classification_dataset = SimpleClassificationDataset(
-            whole_dataset
-        )
+        classification_dataset = SimpleClassificationDataset(whole_dataset)
 
-        ok_inherited_classification = SimpleClassificationDataset(classification_dataset)
+        ok_inherited_classification = SimpleClassificationDataset(
+            classification_dataset
+        )
 
     def test_avalanche_concat_dataset_collate_fn_inheritance(self):
         tensor_x = torch.rand(200, 3, 28, 28)
@@ -625,14 +642,10 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t2))
 
         dataset1_classification = TensorClassificationDataset(
-            tensor_x,
-            tensor_y,
-            tensor_z
+            tensor_x, tensor_y, tensor_z
         )
 
-        dataset2_segmentation = SimpleClassificationDataset(
-            dataset2
-        )
+        dataset2_segmentation = SimpleClassificationDataset(dataset2)
 
         # with self.assertRaises(ValueError):
         #     bad_concat_types = dataset1_classification + dataset2_segmentation
@@ -665,27 +678,31 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset1 = TensorDataset(tensor_x, tensor_y, tensor_z)
         dataset2 = SimpleClassificationDataset(
             TensorDataset(tensor_x2, tensor_y2, tensor_z2),
-            targets=tensor_y2, task_labels=1
+            targets=tensor_y2,
+            task_labels=1,
         )
         dataset3 = SimpleClassificationDataset(
             TensorDataset(tensor_x3, tensor_y3, tensor_z3),
-            targets=tensor_y3, task_labels=2
+            targets=tensor_y3,
+            task_labels=2,
         )
 
         dataset4 = SimpleClassificationDataset(
             TensorDataset(tensor_x4, tensor_y4, tensor_z4),
-            targets=tensor_y4, task_labels=3
+            targets=tensor_y4,
+            task_labels=3,
         )
         dataset5 = SimpleClassificationDataset(
             TensorDataset(tensor_x5, tensor_y5, tensor_z5),
-            targets=tensor_y5, task_labels=4
+            targets=tensor_y5,
+            task_labels=4,
         )
         dataset6 = SimpleClassificationDataset(
-            TensorDataset(tensor_x6, tensor_y6, tensor_z6),
-            targets=tensor_y6)
+            TensorDataset(tensor_x6, tensor_y6, tensor_z6), targets=tensor_y6
+        )
         dataset7 = SimpleClassificationDataset(
-            TensorDataset(tensor_x7, tensor_y7, tensor_z7),
-            targets=tensor_y7)
+            TensorDataset(tensor_x7, tensor_y7, tensor_z7), targets=tensor_y7
+        )
 
         # This will test recursion on both PyTorch ConcatDataset and
         # AvalancheConcatDataset
@@ -709,9 +726,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         concat3 = concat_classification_datasets(
             [dataset6, dataset7], target_transform=transform_target_to_constant2
         ).freeze_transforms()
-        concat_uut = concat_datasets(
-            [concat, dataset3, concat2, concat3]
-        )
+        concat_uut = concat_datasets([concat, dataset3, concat2, concat3])
 
         self.assertEqual(400, len(concat))
         self.assertEqual(400, len(concat2))
@@ -1010,7 +1025,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         class_mapping = list(range(10))
         random.shuffle(class_mapping)
 
-        subset = classification_subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+        subset = classification_subset(
+            dataset_mnist, indices=[3000, 8, 4, 1010, 12]
+        )
 
         dataset = classification_subset(
             subset, indices=[0, 3, 1], class_mapping=class_mapping
@@ -1075,7 +1092,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         tensor_t = torch.randint(0, 7, (d_sz,))
         dataset = SimpleClassificationDataset(
             TensorDataset(tensor_x, tensor_y),
-            targets=tensor_y, task_labels=tensor_t
+            targets=tensor_y,
+            task_labels=tensor_t,
         )
         dataset_hierarchy_depth = 500
 
@@ -1091,7 +1109,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         true_indices: List[List[int]] = []
         true_indices.append(list(current_indices))
         for idx in range(dataset_hierarchy_depth):
-            current_indices = [current_indices[x] for x in random_permutations[idx]]
+            current_indices = [
+                current_indices[x] for x in random_permutations[idx]
+            ]
             true_indices.append(current_indices)
         true_indices = list(reversed(true_indices))
 
@@ -1102,7 +1122,9 @@ class AvalancheDatasetTests(unittest.TestCase):
             # print(idx, "depth: ", _flatdata_depth(curr_dataset))
             # _flatdata_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
-            subset = classification_subset(curr_dataset, indices=random_permutations[idx])
+            subset = classification_subset(
+                curr_dataset, indices=random_permutations[idx]
+            )
             curr_dataset = subset.concat(curr_dataset)
 
             # Regression test for #616 (second bug)
@@ -1124,7 +1146,9 @@ class AvalancheDatasetTests(unittest.TestCase):
 
             self.assertTrue(torch.equal(tensor_y, curr_targets[-d_sz:]))
 
-        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset))
+        self.assertEqual(
+            d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset)
+        )
 
         def collect_permuted_data(dataset, indices):
             x, y, t = [], [], []
@@ -1139,7 +1163,9 @@ class AvalancheDatasetTests(unittest.TestCase):
             leaf_range = range(idx * d_sz, (idx + 1) * d_sz)
             permuted = true_indices[idx]
 
-            x_leaf, y_leaf, t_leaf = collect_permuted_data(curr_dataset, leaf_range)
+            x_leaf, y_leaf, t_leaf = collect_permuted_data(
+                curr_dataset, leaf_range
+            )
             self.assertTrue(torch.equal(tensor_x[permuted], x_leaf))
             self.assertTrue(torch.equal(tensor_y[permuted], y_leaf))
             self.assertTrue(torch.equal(tensor_t[permuted], t_leaf))
@@ -1147,17 +1173,24 @@ class AvalancheDatasetTests(unittest.TestCase):
             trg_leaf = torch.tensor(curr_dataset.targets)[leaf_range]
             self.assertTrue(torch.equal(tensor_y[permuted], trg_leaf))
 
-        slice_idxs = list(range(d_sz * dataset_hierarchy_depth, len(curr_dataset)))
-        x_slice, y_slice, t_slice = collect_permuted_data(curr_dataset, slice_idxs)
+        slice_idxs = list(
+            range(d_sz * dataset_hierarchy_depth, len(curr_dataset))
+        )
+        x_slice, y_slice, t_slice = collect_permuted_data(
+            curr_dataset, slice_idxs
+        )
         self.assertTrue(torch.equal(tensor_x, x_slice))
         self.assertTrue(torch.equal(tensor_y, y_slice))
         self.assertTrue(torch.equal(tensor_t, t_slice))
 
-        trg_slice = torch.tensor(curr_dataset.targets)[d_sz * dataset_hierarchy_depth :]
+        trg_slice = torch.tensor(curr_dataset.targets)[
+            d_sz * dataset_hierarchy_depth :
+        ]
         self.assertTrue(torch.equal(tensor_y, trg_slice))
 
-        # If you broke this test it means that dataset merging is not working anymore.
-        # you are probably doing something that disable merging (passing custom transforms?)
+        # If you broke this test it means that dataset merging is not working
+        # anymore. you are probably doing something that disable merging
+        # (passing custom transforms?)
         # Good luck...
         assert _flatdata_depth(curr_dataset) == 3
 
@@ -1364,7 +1397,9 @@ class TransformationSubsetTests(unittest.TestCase):
             dataset_mnist, transform=ToTensor(), task_labels=random_task_labels
         )
 
-        dataset_child = classification_subset(dataset_orig, indices=[1000, 1007])
+        dataset_child = classification_subset(
+            dataset_orig, indices=[1000, 1007]
+        )
         _, _, t2 = dataset_orig[1000]
         _, _, t5 = dataset_orig[1007]
         _, _, t3 = dataset_child[0]
@@ -1404,7 +1439,9 @@ class TransformationSubsetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = SimpleClassificationDataset(whole_dataset, collate_fn=my_collate_fn)
+        dataset = SimpleClassificationDataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
         inherited = classification_subset(
             dataset, indices=list(range(5, 150)), collate_fn=my_collate_fn2
         )  # Ok
@@ -1416,9 +1453,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertTrue(torch.equal(torch.full((5,), -2, dtype=torch.long), z))
         self.assertTrue(torch.equal(torch.zeros(5, dtype=torch.long), t))
 
-        classification_dataset = SimpleClassificationDataset(
-            whole_dataset
-        )
+        classification_dataset = SimpleClassificationDataset(whole_dataset)
 
         ok_inherited_classification = classification_subset(
             classification_dataset, indices=list(range(5, 150))
@@ -1586,7 +1621,8 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertEqual(y + 1, y6)
 
         # DEPRECATED BEHAVIOR
-        # concat_dataset_no_inherit_initial = AvalancheConcatClassificationDataset(
+        # concat_dataset_no_inherit_initial =
+        #   AvalancheConcatClassificationDataset(
         #     [dataset_sub_eval, dataset]
         # )
         # x7, y7, _ = concat_dataset_no_inherit_initial[0]
@@ -1599,7 +1635,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             root=default_dataset_location("mnist"), download=True
         )
         x, y = original_dataset[0]
-        dataset = SimpleClassificationDataset(original_dataset, transform=ToTensor())
+        dataset = SimpleClassificationDataset(
+            original_dataset, transform=ToTensor()
+        )
         dataset_frozen = dataset.freeze_transforms()
 
         x2, y2, _ = dataset_frozen[0]
@@ -1625,11 +1663,15 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset_frozen = dataset_transform.freeze_transforms()
         self.assertIsInstance(dataset_frozen[0][0], Image)
 
-        dataset_transform = dataset_transform.replace_current_transform_group(None)
+        dataset_transform = dataset_transform.replace_current_transform_group(
+            None
+        )
         self.assertIsInstance(dataset_transform[0][0], Tensor)
         self.assertIsInstance(dataset_frozen[0][0], Image)
 
-        dataset_frozen = dataset_frozen.replace_current_transform_group(ToTensor())
+        dataset_frozen = dataset_frozen.replace_current_transform_group(
+            ToTensor()
+        )
         self.assertIsInstance(dataset_frozen[0][0], Tensor)
 
         dataset_frozen2 = dataset_frozen.freeze_transforms()
@@ -1647,7 +1689,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             root=default_dataset_location("mnist"), download=True
         )
         x, y = original_dataset[0]
-        dataset = SimpleClassificationDataset(original_dataset, transform=ToTensor())
+        dataset = SimpleClassificationDataset(
+            original_dataset, transform=ToTensor()
+        )
         x2, *_ = dataset[0]
         dataset_reset = dataset.replace_current_transform_group(None)
         x3, *_ = dataset_reset[0]
@@ -1656,7 +1700,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(x3, Image)
 
-        dataset_reset = dataset_reset.replace_current_transform_group(ToTensor())
+        dataset_reset = dataset_reset.replace_current_transform_group(
+            ToTensor()
+        )
         x4, *_ = dataset_reset[0]
         self.assertIsInstance(x4, Tensor)
 
@@ -1666,7 +1712,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(x5, Tensor)
 
         dataset_other = SimpleClassificationDataset(dataset_reset)
-        dataset_other = dataset_other.replace_current_transform_group((None, lambda l: l + 1))
+        dataset_other = dataset_other.replace_current_transform_group(
+            (None, lambda l: l + 1)
+        )
 
         _, y6, _ = dataset_other[0]
         self.assertEqual(y + 1, y6)
@@ -1676,7 +1724,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             root=default_dataset_location("mnist"), download=True
         )
         x, _ = original_dataset[0]
-        dataset = SimpleClassificationDataset(original_dataset, transform=ToTensor())
+        dataset = SimpleClassificationDataset(
+            original_dataset, transform=ToTensor()
+        )
         x2, *_ = dataset[0]
         dataset_reset = dataset.replace_current_transform_group((None, None))
         x3, *_ = dataset_reset[0]
@@ -1690,7 +1740,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x4, *_ = dataset_frozen[0]
         self.assertIsInstance(x4, Tensor)
 
-        dataset_frozen_reset = dataset_frozen.replace_current_transform_group((None, None))
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(
+            (None, None)
+        )
 
         x5, *_ = dataset_frozen_reset[0]
         self.assertIsInstance(x5, Tensor)

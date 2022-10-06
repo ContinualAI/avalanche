@@ -147,7 +147,7 @@ class ImagesSamplePlugin(PluginMetric):
             dataset=data,
             batch_size=min(mb_size, self.n_wanted_images),
             shuffle=True,
-            collate_fn=collate_fn
+            collate_fn=collate_fn,
         )
 
 

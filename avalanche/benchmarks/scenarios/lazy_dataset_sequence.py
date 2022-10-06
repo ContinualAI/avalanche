@@ -13,7 +13,9 @@ from collections import defaultdict
 from typing import Sequence, Iterable, Dict, Optional, Iterator
 
 from avalanche.benchmarks.utils import SimpleClassificationDataset
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
 
 
 class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
@@ -53,7 +55,9 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
         The ID of the next experience that will be generated.
         """
 
-        self._loaded_experiences: Dict[int, SimpleClassificationDataset] = dict()
+        self._loaded_experiences: Dict[
+            int, SimpleClassificationDataset
+        ] = dict()
         """
         The sequence of experiences obtained from the generator.
         """
@@ -63,9 +67,9 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
         The length of the stream.
         """
         try:
-            self._exp_generator: Optional[Iterator[SimpleClassificationDataset]] = iter(
-                self._exp_source
-            )
+            self._exp_generator: Optional[
+                Iterator[SimpleClassificationDataset]
+            ] = iter(self._exp_source)
         except TypeError as e:
             if callable(self._exp_source):
                 # https://stackoverflow.com/a/17092033
@@ -198,7 +202,9 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
 
         for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
-                generated_exp: SimpleClassificationDataset = next(self._exp_generator)
+                generated_exp: SimpleClassificationDataset = next(
+                    self._exp_generator
+                )
             except StopIteration:
                 raise RuntimeError(
                     f"Unexpected end of stream. The generator was supposed to "

@@ -281,10 +281,4 @@ class PNN(MultiTaskModule):
         return self.classifier(x[col_idx], task_label)
 
 
-__all__ = [
-    'PNN',
-    'PNNLayer',
-    'PNNColumn',
-    'MLPAdapter',
-    'LinearAdapter'
-]
+__all__ = ["PNN", "PNNLayer", "PNNColumn", "MLPAdapter", "LinearAdapter"]

@@ -148,8 +148,9 @@ class ExMLMNIST(ExModelCLScenario):
 
         ll = len(benchmark.train_stream)
         base_model = LeNet5(10, 1)
-        experts = _load_expert_models(f"{scenario}_mnist", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_mnist", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 
@@ -207,8 +208,12 @@ class ExMLCoRE50(ExModelCLScenario):
             )
         elif scenario == "joint":
             core50nc = CORe50(scenario="nc")
-            train_cat = concat_datasets([e.dataset for e in core50nc.train_stream])
-            test_cat = concat_datasets([e.dataset for e in core50nc.test_stream])
+            train_cat = concat_datasets(
+                [e.dataset for e in core50nc.train_stream]
+            )
+            test_cat = concat_datasets(
+                [e.dataset for e in core50nc.test_stream]
+            )
             benchmark = nc_benchmark(
                 train_cat, test_cat, n_experiences=1, task_labels=False
             )
@@ -221,8 +226,9 @@ class ExMLCoRE50(ExModelCLScenario):
             nn.Dropout(0.2),
             nn.Linear(base_model.last_channel, 50),
         )
-        experts = _load_expert_models(f"{scenario}_core50", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_core50", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 
@@ -264,8 +270,9 @@ class ExMLCIFAR10(ExModelCLScenario):
 
         ll = len(benchmark.train_stream)
         base_model = SlimResNet18(10)
-        experts = _load_expert_models(f"{scenario}_cifar10", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_cifar10", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 

@@ -83,12 +83,13 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
             experience = strategy.experience.logging()
             if experience.is_first_subexp:
                 super().before_training_exp(strategy, metric_values, **kwargs)
-                self._progress.total = \
-                    experience.sub_stream_length * \
-                    strategy.train_passes * \
-                    (experience.subexp_size // strategy.train_mb_size)
+                self._progress.total = (
+                    experience.sub_stream_length
+                    * strategy.train_passes
+                    * (experience.subexp_size // strategy.train_mb_size)
+                )
                 self.last_length = self._progress.total
-    
+
     def after_training_exp(
         self,
         strategy: "SupervisedTemplate",

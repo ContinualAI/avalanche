@@ -10,8 +10,8 @@
 ################################################################################
 """
     Avalanche transformations are multi-argument.
-    This module contains a bunch of utility classes to help define multi-argument
-    transformations.
+    This module contains a bunch of utility classes to help define
+    multi-argument transformations.
 """
 import warnings
 from typing import Callable, Sequence
@@ -156,7 +156,9 @@ class MultiParamTransformCallable(MultiParamTransform):
         ):
             min_params = transform_callable.min_params
             max_params = transform_callable.max_params
-        elif MultiParamTransformCallable._is_torchvision_transform(transform_callable):
+        elif MultiParamTransformCallable._is_torchvision_transform(
+            transform_callable
+        ):
             min_params = 1
             max_params = 1
         else:

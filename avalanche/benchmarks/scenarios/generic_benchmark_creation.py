@@ -145,7 +145,7 @@ def create_multi_dataset_generic_benchmark(
                 SimpleClassificationDataset(
                     dataset,
                     transform_groups=transform_groups,
-                    initial_transform_group=initial_transform_group
+                    initial_transform_group=initial_transform_group,
                 )
             )
         stream_definitions[stream_name] = (stream_datasets,)
@@ -156,9 +156,7 @@ def create_multi_dataset_generic_benchmark(
     )
 
 
-def _adapt_lazy_stream(
-    generator, transform_groups, initial_transform_group
-):
+def _adapt_lazy_stream(generator, transform_groups, initial_transform_group):
     """
     A simple internal utility to apply transforms and dataset type to all lazily
     generated datasets. Used in the :func:`create_lazy_generic_benchmark`
@@ -172,7 +170,7 @@ def _adapt_lazy_stream(
         dataset = SimpleClassificationDataset(
             dataset,
             transform_groups=transform_groups,
-            initial_transform_group=initial_transform_group
+            initial_transform_group=initial_transform_group,
         )
         yield dataset
 
@@ -335,7 +333,7 @@ def create_lazy_generic_benchmark(
         adapted_stream_generator = _adapt_lazy_stream(
             generator,
             transform_groups,
-            initial_transform_group=initial_transform_group
+            initial_transform_group=initial_transform_group,
         )
 
         stream_definitions[stream_name] = (
@@ -468,7 +466,7 @@ def create_generic_benchmark_from_filelists(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms
+        other_streams_transforms=other_streams_transforms,
     )
 
 
@@ -581,7 +579,9 @@ def create_generic_benchmark_from_paths(
             common_root, exp_paths_list = common_paths_root(list_of_files)
             paths_dataset = PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
-                SimpleClassificationDataset(paths_dataset, task_labels=task_labels[exp_id])
+                SimpleClassificationDataset(
+                    paths_dataset, task_labels=task_labels[exp_id]
+                )
             )
 
         stream_definitions[stream_name] = stream_datasets
@@ -595,7 +595,7 @@ def create_generic_benchmark_from_paths(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms
+        other_streams_transforms=other_streams_transforms,
     )
 
 
@@ -699,8 +699,7 @@ def create_generic_benchmark_from_tensor_lists(
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
                 TensorClassificationDataset(
-                    *exp_tensors,
-                    task_labels=task_labels[exp_id]
+                    *exp_tensors, task_labels=task_labels[exp_id]
                 )
             )
 
@@ -715,7 +714,7 @@ def create_generic_benchmark_from_tensor_lists(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
-        other_streams_transforms=other_streams_transforms
+        other_streams_transforms=other_streams_transforms,
     )
 
 

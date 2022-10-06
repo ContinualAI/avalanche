@@ -25,9 +25,18 @@ import numpy as np
 from avalanche.benchmarks.utils import DefaultTransformGroups
 from avalanche.benchmarks.utils.data_attribute import TaskLabels, DataAttribute
 from avalanche.benchmarks.utils.data import AvalancheDataset
-from avalanche.benchmarks.utils.flat_data import _flatdata_depth, _flatdata_print
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
-from tests.unit_tests_utils import load_image_benchmark, load_tensor_benchmark, load_image_data
+from avalanche.benchmarks.utils.flat_data import (
+    _flatdata_depth,
+    _flatdata_print,
+)
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
+from tests.unit_tests_utils import (
+    load_image_benchmark,
+    load_tensor_benchmark,
+    load_image_data,
+)
 
 
 def pil_images_equal(img_a, img_b):
@@ -47,14 +56,15 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
-
     def test_disallowed_attribute_name(self):
         d_sz = 3
         xdata = torch.rand(d_sz, 2)
         dadata = torch.randint(0, 10, (d_sz,))
         da = DataAttribute(torch.zeros(d_sz), "collate_fn")
         with self.assertRaises(ValueError):
-            d = SimpleAvalancheDataset(TensorDataset(xdata), data_attributes=[da])
+            d = SimpleAvalancheDataset(
+                TensorDataset(xdata), data_attributes=[da]
+            )
 
     def test_subset_subset_merge(self):
         d_sz, num_permutations = 3, 4
@@ -63,8 +73,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         xdata = torch.rand(d_sz, 2)
         dadata = torch.randint(0, 10, (d_sz,))
         curr_dataset = SimpleAvalancheDataset(
-            TensorDataset(xdata),
-            data_attributes=[TaskLabels(dadata)])
+            TensorDataset(xdata), data_attributes=[TaskLabels(dadata)]
+        )
 
         # apply permutations iteratively
         ps = []
@@ -82,11 +92,15 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(len(curr_dataset), d_sz)
 
             print("Check data")
-            x_curr = torch.stack([curr_dataset[idx][0] for idx in range(d_sz)], dim=0)
+            x_curr = torch.stack(
+                [curr_dataset[idx][0] for idx in range(d_sz)], dim=0
+            )
             x_true = torch.stack([xdata[idx] for idx in true_indices], dim=0)
             self.assertTrue(torch.equal(x_curr, x_true))
 
-            t_curr = torch.tensor([curr_dataset.task_labels[idx] for idx in range(d_sz)])
+            t_curr = torch.tensor(
+                [curr_dataset.task_labels[idx] for idx in range(d_sz)]
+            )
             t_true = torch.stack([dadata[idx] for idx in true_indices], dim=0)
             self.assertTrue(torch.equal(t_curr, t_true))
 
@@ -103,8 +117,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         x, y = dataset[0]
 
         dataset = SimpleAvalancheDataset(
-            dataset,
-            transform_groups=DefaultTransformGroups((ToTensor(), None)))
+            dataset, transform_groups=DefaultTransformGroups((ToTensor(), None))
+        )
         x2, y2 = dataset[0][0], dataset[0][1]
         # TODO: check __getitem__ task label
 
@@ -137,21 +151,24 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_add(self):
         dataset_mnist = load_image_benchmark()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
-        dataset_mnist = SimpleAvalancheDataset(dataset_mnist, transform_groups=tgs)
+        dataset_mnist = SimpleAvalancheDataset(
+            dataset_mnist, transform_groups=tgs
+        )
 
-        taskl = DataAttribute(ConstantSequence(0, len(dataset_mnist)), "task_labels")
+        taskl = DataAttribute(
+            ConstantSequence(0, len(dataset_mnist)), "task_labels"
+        )
         tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = SimpleAvalancheDataset(
-            dataset_mnist,
-            data_attributes=[taskl],
-            transform_groups=tgs)
+            dataset_mnist, data_attributes=[taskl], transform_groups=tgs
+        )
 
-        taskl = DataAttribute(ConstantSequence(2, len(dataset_mnist)), "task_labels")
+        taskl = DataAttribute(
+            ConstantSequence(2, len(dataset_mnist)), "task_labels"
+        )
         tgs = DefaultTransformGroups((None, lambda target: -2))
         dataset2 = SimpleAvalancheDataset(
-            dataset_mnist,
-            data_attributes=[taskl],
-            transform_groups=tgs
+            dataset_mnist, data_attributes=[taskl], transform_groups=tgs
         )
 
         dataset3 = dataset1 + dataset2
@@ -180,7 +197,9 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_radd(self):
         dataset_mnist = load_image_benchmark()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
-        dataset_mnist = SimpleAvalancheDataset(dataset_mnist, transform_groups=tgs)
+        dataset_mnist = SimpleAvalancheDataset(
+            dataset_mnist, transform_groups=tgs
+        )
 
         tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = SimpleAvalancheDataset(dataset_mnist, transform_groups=tgs)

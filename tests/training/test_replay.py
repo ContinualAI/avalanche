@@ -135,8 +135,7 @@ class SelectionStrategyTest(unittest.TestCase):
         # Features are [[0], [4], [5]]
         # Center is [3]
         dataset = TensorClassificationDataset(
-            tensor([0, -4, 5]).float(),
-            zeros(3)
+            tensor([0, -4, 5]).float(), zeros(3)
         )
         strategy = MagicMock(device="cpu", eval_mb_size=8)
 

@@ -4,7 +4,10 @@ from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
-from avalanche.benchmarks.utils import SimpleClassificationDataset, classification_subset
+from avalanche.benchmarks.utils import (
+    SimpleClassificationDataset,
+    classification_subset,
+)
 
 
 def split_detection_benchmark(

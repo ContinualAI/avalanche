@@ -38,7 +38,7 @@ def create_multi_dataset_generic_scenario(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -126,7 +126,7 @@ def create_multi_dataset_generic_scenario(
                 task_labels[dataset_idx], len(dataset)
             ),
             transform_groups=transform_groups,
-            initial_transform_group="train"
+            initial_transform_group="train",
         )
 
     test_t_labels = []
@@ -144,7 +144,7 @@ def create_multi_dataset_generic_scenario(
             dataset,
             task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
-            initial_transform_group="eval"
+            initial_transform_group="eval",
         )
 
     return GenericCLScenario(
@@ -242,7 +242,7 @@ def create_generic_scenario_from_filelists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -259,7 +259,7 @@ def create_generic_scenario_from_paths(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -346,7 +346,7 @@ def create_generic_scenario_from_paths(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -446,7 +446,7 @@ def create_generic_scenario_from_tensor_lists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -460,7 +460,7 @@ def create_generic_scenario_from_tensors(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -574,7 +574,7 @@ def create_generic_scenario_from_tensors(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 

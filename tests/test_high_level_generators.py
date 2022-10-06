@@ -27,7 +27,7 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 )
 from avalanche.benchmarks.utils import (
     SimpleClassificationDataset,
-    TensorClassificationDataset
+    TensorClassificationDataset,
 )
 from tests.test_avalanche_classification_dataset import get_mbatch
 from tests.unit_tests_utils import common_setups, get_fast_benchmark
@@ -117,7 +117,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         )
 
         dirpath = (
-                expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
+            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
         )
 
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -133,18 +133,19 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 list_paths.append(filelist_path)
                 with open(filelist_path, "w") as wf:
                     for name in filenames_list:
-                        wf.write("{} {}\n".format(
-                            os.path.join(rel_dir, name), label))
+                        wf.write(
+                            "{} {}\n".format(os.path.join(rel_dir, name), label)
+                        )
 
             generic_benchmark = filelist_benchmark(
                 dirpath,
-                    list_paths,
-                    [list_paths[0]],
-                    task_labels=[0, 0],
-                    complete_test_set_only=True,
-                    train_transform=ToTensor(),
-                    eval_transform=ToTensor(),
-                )
+                list_paths,
+                [list_paths[0]],
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
@@ -164,7 +165,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         )
 
         dirpath = (
-                expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
+            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
         )
 
         train_experiences = []
@@ -273,7 +274,9 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
+                self.assertTrue(
+                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
+                )
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -321,7 +324,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         initial_benchmark_instance = create_lazy_generic_benchmark(
             train_generator=LazyStreamDefinition(train_gen(), 2, [0, 0]),
             test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-            complete_test_set_only=True
+            complete_test_set_only=True,
         )
 
         data_incremental_instance = data_incremental_benchmark(
@@ -353,7 +356,9 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
+                self.assertTrue(
+                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
+                )
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -546,7 +551,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         train_gen(), 2, [0, 0]
                     ),
                     test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
-                    complete_test_set_only=True
+                    complete_test_set_only=True,
                 )
 
                 valid_benchmark = benchmark_with_validation_stream(

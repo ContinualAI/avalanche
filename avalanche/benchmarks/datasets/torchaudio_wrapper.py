@@ -17,7 +17,8 @@ except ImportError:
     raise ModuleNotFoundError(
         "TorchAudio package is required to load its dataset. "
         "You can install it as extra dependency with "
-        "`pip install avalanche-lib[extra]`")
+        "`pip install avalanche-lib[extra]`"
+    )
 from torchaudio.datasets import SPEECHCOMMANDS
 from avalanche.benchmarks.utils import SimpleClassificationDataset
 from avalanche.benchmarks.datasets import default_dataset_location
@@ -31,9 +32,9 @@ def speech_commands_collate(batch):
         targets += [torch.tensor(label)]
         t_labels += [torch.tensor(t_label)]
     tensors = [item.t() for item in tensors]
-    tensors = torch.nn.utils.rnn.pad_sequence(tensors,
-                                              batch_first=True,
-                                              padding_value=0.)
+    tensors = torch.nn.utils.rnn.pad_sequence(
+        tensors, batch_first=True, padding_value=0.0
+    )
     if len(tensors.size()) == 2:  # no MFCC, add feature dimension
         tensors = tensors.unsqueeze(-1)
     targets = torch.stack(targets)
@@ -43,15 +44,44 @@ def speech_commands_collate(batch):
 
 class SpeechCommandsData(SPEECHCOMMANDS):
     def __init__(self, root, url, download, subset, mfcc_preprocessing):
-        super().__init__(root=root, download=download,
-                         subset=subset, url=url)
-        self.labels_names = ['backward', 'bed', 'bird', 'cat', 'dog', 'down',
-                             'eight', 'five', 'follow', 'forward', 'four',
-                             'go', 'happy', 'house', 'learn', 'left',
-                             'marvin', 'nine', 'no', 'off', 'on', 'one',
-                             'right', 'seven', 'sheila', 'six', 'stop',
-                             'three', 'tree', 'two', 'up', 'visual',
-                             'wow', 'yes', 'zero']
+        super().__init__(root=root, download=download, subset=subset, url=url)
+        self.labels_names = [
+            "backward",
+            "bed",
+            "bird",
+            "cat",
+            "dog",
+            "down",
+            "eight",
+            "five",
+            "follow",
+            "forward",
+            "four",
+            "go",
+            "happy",
+            "house",
+            "learn",
+            "left",
+            "marvin",
+            "nine",
+            "no",
+            "off",
+            "on",
+            "one",
+            "right",
+            "seven",
+            "sheila",
+            "six",
+            "stop",
+            "three",
+            "tree",
+            "two",
+            "up",
+            "visual",
+            "wow",
+            "yes",
+            "zero",
+        ]
         self.mfcc_preprocessing = mfcc_preprocessing
 
     def __getitem__(self, item):
@@ -65,10 +95,13 @@ class SpeechCommandsData(SPEECHCOMMANDS):
         return wave, label, rate, speaker_id, ut_number
 
 
-def SpeechCommands(root=default_dataset_location(''),
-                   url='speech_commands_v0.02',
-                   download=True, subset=None,
-                   mfcc_preprocessing=None):
+def SpeechCommands(
+    root=default_dataset_location(""),
+    url="speech_commands_v0.02",
+    download=True,
+    subset=None,
+    mfcc_preprocessing=None,
+):
     """
     root: dataset root location
     url: version name of the dataset
@@ -79,13 +112,17 @@ def SpeechCommands(root=default_dataset_location(''),
         since preprocessing is applied on-the-fly each time a sample is
         retrieved from the dataset.
     """
-    dataset = SpeechCommandsData(root=root, download=download,
-                                 subset=subset, url=url,
-                                 mfcc_preprocessing=mfcc_preprocessing)
+    dataset = SpeechCommandsData(
+        root=root,
+        download=download,
+        subset=subset,
+        url=url,
+        mfcc_preprocessing=mfcc_preprocessing,
+    )
     labels = [datapoint[1] for datapoint in dataset]
-    return SimpleClassificationDataset(dataset,
-                                       collate_fn=speech_commands_collate,
-                                       targets=labels)
+    return SimpleClassificationDataset(
+        dataset, collate_fn=speech_commands_collate, targets=labels
+    )
 
 
-__all__ = ['SpeechCommands']
+__all__ = ["SpeechCommands"]

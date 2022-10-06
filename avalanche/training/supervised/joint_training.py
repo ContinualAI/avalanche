@@ -156,9 +156,7 @@ class JointTraining(SupervisedTemplate):
         self.adapted_dataset = self._experiences[0].dataset
         if len(self._experiences) > 1:
             for exp in self._experiences[1:]:
-                cat_data = concat_datasets(
-                    [self.adapted_dataset, exp.dataset]
-                )
+                cat_data = concat_datasets([self.adapted_dataset, exp.dataset])
                 self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 

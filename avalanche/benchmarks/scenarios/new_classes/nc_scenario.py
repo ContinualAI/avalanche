@@ -18,7 +18,10 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationStream,
     GenericClassificationExperience,
 )
-from avalanche.benchmarks.utils import classification_subset, SimpleClassificationDataset
+from avalanche.benchmarks.utils import (
+    classification_subset,
+    SimpleClassificationDataset,
+)
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 

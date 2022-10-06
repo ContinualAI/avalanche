@@ -108,7 +108,9 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         self.max_size = new_size
         if len(self.buffer) <= self.max_size:
             return
-        self.buffer = classification_subset(self.buffer, torch.arange(self.max_size))
+        self.buffer = classification_subset(
+            self.buffer, torch.arange(self.max_size)
+        )
         self._buffer_weights = self._buffer_weights[: self.max_size]
 
 
@@ -173,9 +175,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
 
     @property
     def buffer(self):
-        return concat_datasets(
-            [g.buffer for g in self.buffer_groups.values()]
-        )
+        return concat_datasets([g.buffer for g in self.buffer_groups.values()])
 
     @buffer.setter
     def buffer(self, new_buffer):
@@ -494,8 +494,11 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
         features = cat(
             [
                 self.feature_extractor(x.to(strategy.device))
-                for x, *_ in DataLoader(data, collate_fn=collate_fn,
-                                        batch_size=strategy.eval_mb_size)
+                for x, *_ in DataLoader(
+                    data,
+                    collate_fn=collate_fn,
+                    batch_size=strategy.eval_mb_size,
+                )
             ]
         )
         return self.make_sorted_indices_from_features(features)

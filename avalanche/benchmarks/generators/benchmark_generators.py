@@ -223,14 +223,14 @@ def nc_benchmark(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        targets_adapter=int
+        targets_adapter=int,
     )
 
     test_dataset = SimpleClassificationDataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        targets_adapter=int
+        targets_adapter=int,
     )
 
     return NCScenario(
@@ -347,14 +347,14 @@ def ni_benchmark(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        targets_adapter=int
+        targets_adapter=int,
     )
 
     seq_test_dataset = SimpleClassificationDataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        targets_adapter=int
+        targets_adapter=int,
     )
 
     return NIScenario(
@@ -705,7 +705,9 @@ def class_balanced_split_strategy(
 
 
 def _gen_split(
-    split_generator: Iterable[Tuple[SimpleClassificationDataset, SimpleClassificationDataset]]
+    split_generator: Iterable[
+        Tuple[SimpleClassificationDataset, SimpleClassificationDataset]
+    ]
 ) -> Tuple[
     Generator[SimpleClassificationDataset, None, None],
     Generator[SimpleClassificationDataset, None, None],
@@ -727,10 +729,13 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [ClassificationExperience], Tuple[SimpleClassificationDataset, SimpleClassificationDataset]
+        [ClassificationExperience],
+        Tuple[SimpleClassificationDataset, SimpleClassificationDataset],
     ],
     experiences: Iterable[ClassificationExperience],
-) -> Generator[Tuple[SimpleClassificationDataset, SimpleClassificationDataset], None, None]:
+) -> Generator[
+    Tuple[SimpleClassificationDataset, SimpleClassificationDataset], None, None
+]:
     """
     Creates a generator operating around the split strategy and the
     experiences stream.
@@ -752,7 +757,8 @@ def benchmark_with_validation_stream(
     input_stream: str = "train",
     output_stream: str = "valid",
     custom_split_strategy: Callable[
-        [ClassificationExperience], Tuple[SimpleClassificationDataset, SimpleClassificationDataset]
+        [ClassificationExperience],
+        Tuple[SimpleClassificationDataset, SimpleClassificationDataset],
     ] = None,
     *,
     experience_factory: Callable[

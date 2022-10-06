@@ -26,6 +26,7 @@ try:
         Generic,
         TYPE_CHECKING,
     )
+
     if TYPE_CHECKING:
         from .generic_scenario import CLScenario, CLStream, CLExperience
 except ImportError:

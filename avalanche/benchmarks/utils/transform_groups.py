@@ -10,7 +10,8 @@
 ################################################################################
 """
     Transformation groups manage transformations that are in different
-    phases of the optimization process, such as different train/eval transformations.
+    phases of the optimization process, such as different train/eval
+    transformations.
 
     They support multi-argument transforms as defined in
     `avalanche.benchmarks.utils.transforms`.
@@ -18,8 +19,11 @@
 from collections import defaultdict
 from typing import Dict, Union, Callable, Sequence
 
-from avalanche.benchmarks.utils.transforms import \
-    MultiParamCompose, TupleTransform, MultiParamTransform
+from avalanche.benchmarks.utils.transforms import (
+    MultiParamCompose,
+    TupleTransform,
+    MultiParamTransform,
+)
 
 
 class TransformGroups:
@@ -31,9 +35,11 @@ class TransformGroups:
     `with_transform` method.
     """
 
-    def __init__(self,
-                 transform_groups: Dict[str, Union[Callable, Sequence[Callable]]],
-                 current_group="train"):
+    def __init__(
+        self,
+        transform_groups: Dict[str, Union[Callable, Sequence[Callable]]],
+        current_group="train",
+    ):
         """Constructor.
 
         :param transform_groups: A dictionary with group names (string) as keys
@@ -88,8 +94,10 @@ class TransformGroups:
         return TransformGroups(tgroups, self.current_group)
 
     def __eq__(self, other: "TransformGroups"):
-        return self.transform_groups == other.transform_groups and \
-            self.current_group == other.current_group
+        return (
+            self.transform_groups == other.transform_groups
+            and self.current_group == other.current_group
+        )
 
     def with_transform(self, group_name):
         assert group_name in self.transform_groups

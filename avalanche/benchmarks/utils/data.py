@@ -23,14 +23,7 @@ from torch.utils.data.dataloader import default_collate
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
 
-from typing import (
-    List,
-    Any,
-    Sequence,
-    Union,
-    TypeVar,
-    Callable
-)
+from typing import List, Any, Sequence, Union, TypeVar, Callable
 
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
@@ -86,7 +79,7 @@ class AvalancheDataset(FlatData):
         data_attributes: List[DataAttribute] = None,
         transform_groups: TransformGroups = None,
         frozen_transform_groups: TransformGroups = None,
-        collate_fn: Callable[[List], Any] = None
+        collate_fn: Callable[[List], Any] = None,
     ):
         """Creates a ``AvalancheDataset`` instance.
 
@@ -103,9 +96,12 @@ class AvalancheDataset(FlatData):
         # together and decides how the information propagates through
         # operations (e.g. how to pass attributes after concat/subset
         # operations).
-        can_flatten = (transform_groups is None) and \
-                      (frozen_transform_groups is None) and \
-                      data_attributes is None and collate_fn is None
+        can_flatten = (
+            (transform_groups is None)
+            and (frozen_transform_groups is None)
+            and data_attributes is None
+            and collate_fn is None
+        )
         super().__init__(datasets, indices, can_flatten)
 
         if data_attributes is None:
@@ -125,10 +121,15 @@ class AvalancheDataset(FlatData):
             if isinstance(dd, AvalancheDataset):
                 if cgroup is None and dd._transform_groups is not None:
                     cgroup = dd._transform_groups.current_group
-                elif dd._transform_groups is not None and dd._transform_groups.current_group != cgroup:
+                elif (
+                    dd._transform_groups is not None
+                    and dd._transform_groups.current_group != cgroup
+                ):
                     # all datasets must have the same transformation group
-                    warnings.warn(f"Concatenated datasets have different transformation groups."
-                                  f"Using group={cgroup}.")
+                    warnings.warn(
+                        f"Concatenated datasets have different transformation "
+                        f"groups. Using group={cgroup}."
+                    )
         if self._frozen_transform_groups is None:
             self._frozen_transform_groups = EmptyTransformGroups()
         if self._transform_groups is None:
@@ -155,8 +156,9 @@ class AvalancheDataset(FlatData):
         # Init data attributes
         ####################################
         # concat attributes from child datasets
-        if len(self._datasets) > 0 and \
-                isinstance(self._datasets[0], AvalancheDataset):
+        if len(self._datasets) > 0 and isinstance(
+            self._datasets[0], AvalancheDataset
+        ):
             for attr in self._datasets[0]._data_attributes.values():
                 if attr.name in self._data_attributes:
                     continue  # don't touch overridden attributes
@@ -185,13 +187,15 @@ class AvalancheDataset(FlatData):
 
         # set attributes dynamically
         for el in self._data_attributes.values():
-            assert len(el) == len(self), \
-                f"BUG: Wrong size for attribute {el.name}"
+            assert len(el) == len(
+                self
+            ), f"BUG: Wrong size for attribute {el.name}"
 
             if hasattr(self, el.name):
                 raise ValueError(
                     f"Trying to add DataAttribute `{el.name}` to "
-                    f"AvalancheDataset but the attribute name is already used.")
+                    f"AvalancheDataset but the attribute name is already used."
+                )
             setattr(self, el.name, el)
 
     @property
@@ -199,17 +203,22 @@ class AvalancheDataset(FlatData):
         raise AttributeError(
             "Cannot access or modify transform directly. Use transform_groups "
             "methods such as `replace_current_transform_group`. "
-            "See the documentation for more info.")
+            "See the documentation for more info."
+        )
 
     def __eq__(self, other: "SimpleAvalancheDataset"):
-        if not hasattr(other, '_datasets'):
+        if not hasattr(other, "_datasets"):
             return False
         eq_datasets = len(self._datasets) == len(other._datasets)
-        eq_datasets = eq_datasets and all(d1 == d2 for d1, d2 in zip(self._datasets, other._datasets))
-        return eq_datasets and \
-            self._transform_groups == other._transform_groups and \
-            self._data_attributes == other._data_attributes and \
-            self.collate_fn == other.collate_fn
+        eq_datasets = eq_datasets and all(
+            d1 == d2 for d1, d2 in zip(self._datasets, other._datasets)
+        )
+        return (
+            eq_datasets
+            and self._transform_groups == other._transform_groups
+            and self._data_attributes == other._data_attributes
+            and self.collate_fn == other.collate_fn
+        )
 
     def _getitem_recursive_call(self, idx, group_name):
         """Private method only for internal use.
@@ -226,13 +235,19 @@ class AvalancheDataset(FlatData):
             element = dd[idx]
 
         if self._frozen_transform_groups is not None:
-            element = self._frozen_transform_groups(element, group_name=group_name)
+            element = self._frozen_transform_groups(
+                element, group_name=group_name
+            )
         if self._transform_groups is not None:
             element = self._transform_groups(element, group_name=group_name)
         return element
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        elem = list(self._getitem_recursive_call(idx, self._transform_groups.current_group))
+        elem = list(
+            self._getitem_recursive_call(
+                idx, self._transform_groups.current_group
+            )
+        )
         for da in self._data_attributes.values():
             if da.use_in_getitem:
                 elem.append(da[idx])
@@ -311,8 +326,8 @@ class AvalancheDataset(FlatData):
         return dataset_copy
 
     def replace_current_transform_group(self, transform):
-        """Recursively remove the current transformation group from the dataset tree and replaces
-        it."""
+        """Recursively remove the current transformation group from the
+        dataset tree and replaces it."""
         dataset_copy = self.remove_current_transform_group()
         cgroup = dataset_copy._transform_groups.current_group
         dataset_copy._transform_groups[cgroup] = transform
@@ -330,8 +345,12 @@ class AvalancheDataset(FlatData):
         This is a shallow copy, i.e. the data attributes are not copied.
         """
         dataset_copy = copy.copy(self)
-        dataset_copy._transform_groups = copy.copy(dataset_copy._transform_groups)
-        dataset_copy._frozen_transform_groups = copy.copy(dataset_copy._frozen_transform_groups)
+        dataset_copy._transform_groups = copy.copy(
+            dataset_copy._transform_groups
+        )
+        dataset_copy._frozen_transform_groups = copy.copy(
+            dataset_copy._frozen_transform_groups
+        )
         return dataset_copy
 
     def _init_collate_fn(self, dataset, collate_fn):
@@ -345,12 +364,13 @@ class AvalancheDataset(FlatData):
 
 
 def SimpleAvalancheDataset(
-        dataset: IDataset,
-        *,
-        data_attributes: List[DataAttribute] = None,
-        transform_groups: TransformGroups = None,
-        frozen_transform_groups: TransformGroups = None,
-        collate_fn: Callable[[List], Any] = None):
+    dataset: IDataset,
+    *,
+    data_attributes: List[DataAttribute] = None,
+    transform_groups: TransformGroups = None,
+    frozen_transform_groups: TransformGroups = None,
+    collate_fn: Callable[[List], Any] = None,
+):
     """Avalanche Dataset.
 
     Creates a ``AvalancheDataset`` instance.
@@ -366,7 +386,7 @@ def SimpleAvalancheDataset(
         data_attributes=data_attributes,
         transform_groups=transform_groups,
         frozen_transform_groups=frozen_transform_groups,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
     )
 
 
@@ -397,6 +417,4 @@ def _print_transforms(self):
     self._print_nonfrozen_transforms()
 
 
-__all__ = [
-    "SimpleAvalancheDataset"
-]
+__all__ = ["SimpleAvalancheDataset"]

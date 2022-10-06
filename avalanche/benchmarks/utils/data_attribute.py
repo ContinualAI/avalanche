@@ -32,9 +32,7 @@ class DataAttribute:
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, data: IDataset,
-                 name: str=None,
-                 use_in_getitem=False):
+    def __init__(self, data: IDataset, name: str = None, use_in_getitem=False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.
@@ -108,8 +106,11 @@ class DataAttribute:
         :param indices: position of the elements in the new subset
         :return: the new `DataAttribute`
         """
-        return DataAttribute(FlatData([self._data], indices), self.name,
-                             use_in_getitem=self.use_in_getitem)
+        return DataAttribute(
+            FlatData([self._data], indices),
+            self.name,
+            use_in_getitem=self.use_in_getitem,
+        )
 
     def concat(self, other: "DataAttribute"):
         """Concatenation operation.
@@ -117,10 +118,14 @@ class DataAttribute:
         :param other: the other `DataAttribute`
         :return: the new concatenated `DataAttribute`
         """
-        assert self.name == other.name, "Cannot concatenate DataAttributes" + \
-                                        "with different names."
-        return DataAttribute(FlatData([self._data, other._data]), self.name,
-                             use_in_getitem=self.use_in_getitem)
+        assert self.name == other.name, (
+            "Cannot concatenate DataAttributes" + "with different names."
+        )
+        return DataAttribute(
+            FlatData([self._data, other._data]),
+            self.name,
+            use_in_getitem=self.use_in_getitem,
+        )
 
     @staticmethod
     def _normalize_sequence(seq):
@@ -137,10 +142,7 @@ class TaskLabels(DataAttribute):
     mini-batch."""
 
     def __init__(self, task_labels):
-        super().__init__(task_labels, 'task_labels', use_in_getitem=True)
+        super().__init__(task_labels, "task_labels", use_in_getitem=True)
 
 
-__all__ = [
-    "DataAttribute",
-    "TaskLabels"
-]
+__all__ = ["DataAttribute", "TaskLabels"]

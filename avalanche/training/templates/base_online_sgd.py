@@ -121,12 +121,14 @@ class BaseOnlineSGDTemplate(BaseTemplate):
 
         self._stop_training = False
 
-    def train(self,
-              experiences: Union[CLExperience,
-                                 ExpSequence],
-              eval_streams: Optional[Sequence[Union[CLExperience,
-                                                    ExpSequence]]] = None,
-              **kwargs):
+    def train(
+        self,
+        experiences: Union[CLExperience, ExpSequence],
+        eval_streams: Optional[
+            Sequence[Union[CLExperience, ExpSequence]]
+        ] = None,
+        **kwargs
+    ):
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 
@@ -163,9 +165,7 @@ class BaseOnlineSGDTemplate(BaseTemplate):
 
         super()._before_training_exp(**kwargs)
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams=None, **kwargs
-    ):
+    def _train_exp(self, experience: CLExperience, eval_streams=None, **kwargs):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -328,8 +328,7 @@ class PeriodicEval(SupervisedPlugin):
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
-    def __init__(self, eval_every=-1, peval_mode="experience",
-                 do_initial=True):
+    def __init__(self, eval_every=-1, peval_mode="experience", do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -374,13 +373,16 @@ class PeriodicEval(SupervisedPlugin):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "experience":
-            self._maybe_peval(strategy, strategy.clock.train_exp_counter,
-                              **kwargs)
+            self._maybe_peval(
+                strategy, strategy.clock.train_exp_counter, **kwargs
+            )
 
-    def after_training_iteration(self, strategy: "BaseOnlineSGDTemplate",
-                                 **kwargs):
+    def after_training_iteration(
+        self, strategy: "BaseOnlineSGDTemplate", **kwargs
+    ):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":
-            self._maybe_peval(strategy, strategy.clock.train_exp_iterations,
-                              **kwargs)
+            self._maybe_peval(
+                strategy, strategy.clock.train_exp_iterations, **kwargs
+            )
