@@ -16,7 +16,6 @@ from avalanche.benchmarks.utils import (
     classification_subset,
     SimpleClassificationDataset,
 )
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
 from tests.unit_tests_utils import DummyImageDataset
 
 

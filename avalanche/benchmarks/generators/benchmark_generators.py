@@ -222,15 +222,13 @@ def nc_benchmark(
     train_dataset = SimpleClassificationDataset(
         train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train",
-        targets_adapter=int,
+        initial_transform_group="train"
     )
 
     test_dataset = SimpleClassificationDataset(
         test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval",
-        targets_adapter=int,
+        initial_transform_group="eval"
     )
 
     return NCScenario(
@@ -346,15 +344,13 @@ def ni_benchmark(
     seq_train_dataset = SimpleClassificationDataset(
         seq_train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train",
-        targets_adapter=int,
+        initial_transform_group="train"
     )
 
     seq_test_dataset = SimpleClassificationDataset(
         seq_test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval",
-        targets_adapter=int,
+        initial_transform_group="eval"
     )
 
     return NIScenario(

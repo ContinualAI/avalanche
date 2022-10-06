@@ -73,12 +73,12 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=0,
         )
 
-        train_cifar10 = AvalancheDataset(
+        train_cifar10 = SimpleClassificationDataset(
             DummyImageDataset(n_classes=10),
             task_labels=1,
         )
 
-        test_cifar10 = AvalancheDataset(
+        test_cifar10 = SimpleClassificationDataset(
             DummyImageDataset(n_classes=10),
             task_labels=1,
         )

@@ -19,6 +19,7 @@ to be used frequently, as is common in replay strategies.
 import warnings
 from collections import defaultdict, deque
 
+import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
@@ -120,8 +121,7 @@ def SimpleClassificationDataset(
     initial_transform_group: str = None,
     task_labels: Union[int, Sequence[int]] = None,
     targets: Sequence[TTargetType] = None,
-    collate_fn: Callable[[List], Any] = None,
-    targets_adapter: Callable[[Any], TTargetType] = None,
+    collate_fn: Callable[[List], Any] = None
 ):
     """Avalanche Classification Dataset.
 
@@ -198,10 +198,6 @@ def SimpleClassificationDataset(
         the constructor will check if a
         `collate_fn` field exists in the dataset. If no such field exists,
         the default collate function will be used.
-    :param targets_adapter: A function used to convert the values of the
-        targets field. Defaults to int. Note: the adapter will not change
-        the value of the second element returned by `__getitem__`.
-        The adapter is used to adapt the values of the targets field only.
     """
     transform_gs = _init_transform_groups(
         transform_groups,
@@ -210,7 +206,7 @@ def SimpleClassificationDataset(
         initial_transform_group,
         dataset,
     )
-    targets = _init_targets(dataset, targets, targets_adapter)
+    targets = _init_targets(dataset, targets)
     task_labels = _init_task_labels(dataset, task_labels)
 
     das = []
@@ -300,10 +296,9 @@ def _check_groups_dict_format(groups_dict):
         )
 
 
-def _init_targets(dataset, targets, targets_adapter, check_shape=True):
+def _init_targets(dataset, targets, check_shape=True):
     if targets is not None:
         # User defined targets always take precedence
-        # Note: no adapter is applied!
         if isinstance(targets, int):
             targets = ConstantSequence(targets, len(dataset))
         elif len(targets) != len(dataset) and check_shape:
@@ -318,7 +313,8 @@ def _init_targets(dataset, targets, targets_adapter, check_shape=True):
         return None  # targets are initialized automatically
     else:
         targets = _traverse_supported_dataset(dataset, _select_targets)
-        targets = SubSequence(targets, converter=targets_adapter)
+        if isinstance(targets, torch.Tensor):
+            targets = targets.tolist()
 
     if targets is None:
         return None
@@ -363,8 +359,7 @@ def classification_subset(
     initial_transform_group: str = None,
     task_labels: Union[int, Sequence[int]] = None,
     targets: Sequence[TTargetType] = None,
-    collate_fn: Callable[[List], Any] = None,
-    targets_adapter: Callable[[Any], TTargetType] = None,
+    collate_fn: Callable[[List], Any] = None
 ):
     """Creates an ``AvalancheSubset`` instance.
 
@@ -432,10 +427,6 @@ def classification_subset(
         the constructor will check if a
         `collate_fn` field exists in the dataset. If no such field exists,
         the default collate function will be used.
-    :param targets_adapter: A function used to convert the values of the
-        targets field. Defaults to None. Note: the adapter will not change
-        the value of the second element returned by `__getitem__`.
-        The adapter is used to adapt the values of the targets field only.
     """
     if isinstance(dataset, ClassificationDataset):
         if (
@@ -451,7 +442,7 @@ def classification_subset(
             return dataset.subset(indices)
 
     targets = _init_targets(
-        dataset, targets, targets_adapter, check_shape=False
+        dataset, targets, check_shape=False
     )
     task_labels = _init_task_labels(dataset, task_labels, check_shape=False)
     transform_gs = _init_transform_groups(
@@ -507,8 +498,7 @@ def TensorClassificationDataset(
     initial_transform_group: str = "train",
     task_labels: Union[int, Sequence[int]] = None,
     targets: Union[Sequence[TTargetType], int] = None,
-    collate_fn: Callable[[List], Any] = None,
-    targets_adapter: Callable[[Any], TTargetType] = None,
+    collate_fn: Callable[[List], Any] = None
 ):
     """Creates a ``AvalancheTensorDataset`` instance.
 
@@ -549,10 +539,6 @@ def TensorClassificationDataset(
     :param collate_fn: The function to use when slicing to merge single
         patterns. In the future this function may become the function
         used in the data loading process, too.
-    :param targets_adapter: A function used to convert the values of the
-        targets field. Defaults to None. Note: the adapter will not change
-        the value of the second element returned by `__getitem__`.
-        The adapter is used to adapt the values of the targets field only.
     """
     if len(dataset_tensors) < 1:
         raise ValueError("At least one sequence must be passed")
@@ -570,7 +556,7 @@ def TensorClassificationDataset(
         initial_transform_group,
         dataset,
     )
-    targets = _init_targets(dataset, targets, targets_adapter)
+    targets = _init_targets(dataset, targets)
     task_labels = _init_task_labels(dataset, task_labels)
 
     if initial_transform_group is not None and isinstance(
@@ -606,8 +592,7 @@ def concat_classification_datasets(
     targets: Union[
         Sequence[TTargetType], Sequence[Sequence[TTargetType]]
     ] = None,
-    collate_fn: Callable[[List], Any] = None,
-    targets_adapter: Callable[[Any], TTargetType] = None,
+    collate_fn: Callable[[List], Any] = None
 ):
     """Creates a ``AvalancheConcatDataset`` instance.
 
@@ -671,10 +656,6 @@ def concat_classification_datasets(
         Beware that the chosen collate function will be applied to all
         the concatenated datasets even if a different collate is defined
         in different datasets.
-    :param targets_adapter: A function used to convert the values of the
-        targets field. Defaults to None. Note: the adapter will not change
-        the value of the second element returned by `__getitem__`.
-        The adapter is used to adapt the values of the targets field only.
     """
     dds = []
     for dd in datasets:
@@ -687,8 +668,7 @@ def concat_classification_datasets(
                 initial_transform_group=initial_transform_group,
                 task_labels=task_labels,
                 targets=targets,
-                collate_fn=collate_fn,
-                targets_adapter=targets_adapter,
+                collate_fn=collate_fn
             )
         dds.append(dd)
     if (
