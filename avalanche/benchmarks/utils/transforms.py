@@ -10,6 +10,8 @@
 ################################################################################
 """
     Avalanche transformations are multi-argument.
+    This module contains a bunch of utility classes to help define multi-argument
+    transformations.
 """
 import warnings
 from typing import Callable, Sequence

@@ -18,7 +18,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationStream,
     GenericClassificationExperience,
 )
-from avalanche.benchmarks.utils import ClassificationSubset, SimpleClassificationDataset
+from avalanche.benchmarks.utils import classification_subset, SimpleClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
@@ -415,12 +415,12 @@ class NCScenario(GenericCLScenario["NCExperience"]):
         #     .replace_transforms(*transform_groups['train'], group='train') \
         #     .replace_transforms(*transform_groups['eval'], group='eval')
 
-        train_dataset = ClassificationSubset(
+        train_dataset = classification_subset(
             train_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="train",
         )
-        test_dataset = ClassificationSubset(
+        test_dataset = classification_subset(
             test_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="eval",
@@ -447,7 +447,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
-                ClassificationSubset(
+                classification_subset(
                     train_dataset, indices=exp_def, task_labels=task_labels
                 )
             )
@@ -463,7 +463,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 test_task_labels[-1], len(test_dataset)
             )
             test_experiences.append(
-                ClassificationSubset(
+                classification_subset(
                     test_dataset, indices=exp_def, task_labels=task_labels
                 )
             )

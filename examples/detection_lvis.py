@@ -24,7 +24,7 @@ from avalanche.benchmarks.datasets import LvisDataset
 from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
-from avalanche.benchmarks.utils import SimpleClassificationDataset, ClassificationSubset
+from avalanche.benchmarks.utils import SimpleClassificationDataset, classification_subset
 from avalanche.training.supervised.naive_object_detection import (
     ObjectDetectionTemplate,
 )

@@ -34,6 +34,12 @@ class TransformGroups:
     def __init__(self,
                  transform_groups: Dict[str, Union[Callable, Sequence[Callable]]],
                  current_group="train"):
+        """Constructor.
+
+        :param transform_groups: A dictionary with group names (string) as keys
+            and transformations (pytorch transformations) as values.
+        :param current_group: the currently active group.
+        """
         for group, transform in transform_groups.items():
             transform = _normalize_transform(transform)
             transform_groups[group] = transform

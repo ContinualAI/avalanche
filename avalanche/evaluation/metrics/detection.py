@@ -15,6 +15,8 @@ from typing import (
     Optional,
 )
 
+from avalanche.benchmarks.utils.data import AvalancheDataset
+
 try:
     from lvis import LVIS
     from pycocotools.coco import COCO
@@ -33,8 +35,8 @@ from torch.utils.data import Subset, ConcatDataset
 from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils import (
-    ClassificationSubset,
-    ConcatClassificationDataset,
+    classification_subset,
+    concat_classification_datasets,
     SimpleClassificationDataset,
 )
 from avalanche.evaluation import PluginMetric
@@ -432,17 +434,13 @@ def get_detection_api_from_dataset(
         recursion_result = get_detection_api_from_dataset(
             dataset.dataset, supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, ClassificationSubset):
+    elif isinstance(dataset, AvalancheDataset) and len(dataset._datasets) == 1:
         recursion_result = get_detection_api_from_dataset(
-            dataset._original_dataset, supported_types, none_if_not_found=True
+            dataset._datasets[0], supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, SimpleClassificationDataset):
-        recursion_result = get_detection_api_from_dataset(
-            dataset._dataset, supported_types, none_if_not_found=True
-        )
-    elif isinstance(dataset, (ConcatClassificationDataset, ConcatDataset)):
-        if isinstance(dataset, ConcatClassificationDataset):
-            datasets_list = dataset._dataset_list
+    elif isinstance(dataset, (AvalancheDataset, ConcatDataset)):
+        if isinstance(dataset, AvalancheDataset):
+            datasets_list = dataset._datasets
         else:
             datasets_list = dataset.datasets
 

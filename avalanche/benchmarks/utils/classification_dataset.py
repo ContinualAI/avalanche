@@ -19,7 +19,7 @@ to be used frequently, as is common in replay strategies.
 import warnings
 from collections import defaultdict, deque
 
-from torch.utils.data import Dataset, Subset, ConcatDataset
+from torch.utils.data import Dataset
 from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
 from .data import SimpleAvalancheDataset, AvalancheDataset
@@ -327,7 +327,7 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
-def ClassificationSubset(
+def classification_subset(
         dataset: SupportedDataset,
         indices: Sequence[int] = None,
         *,
@@ -341,6 +341,9 @@ def ClassificationSubset(
         collate_fn: Callable[[List], Any] = None,
         targets_adapter: Callable[[Any], TTargetType] = None):
     """Creates an ``AvalancheSubset`` instance.
+
+    For simple subset operations you should use the method `dataset.subset(indices)`.
+    Use this constructor only if you need to redefine transformation or class/task labels.
 
     A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
     This Dataset also supports transformations, slicing, advanced indexing,
@@ -543,7 +546,7 @@ class _TensorClassificationDataset(TensorDataset):
         return tuple(elem)
 
 
-def ConcatClassificationDataset(
+def concat_classification_datasets(
         datasets: List[SupportedDataset],
         *,
         transform: Callable[[Any], Any] = None,
@@ -557,6 +560,10 @@ def ConcatClassificationDataset(
         collate_fn: Callable[[List], Any] = None,
         targets_adapter: Callable[[Any], TTargetType] = None):
     """Creates a ``AvalancheConcatDataset`` instance.
+
+    For simple subset operations you should use the method `dataset.concat(other)` or
+    `concat_datasets` from `avalanche.benchmarks.utils.utils`.
+    Use this constructor only if you need to redefine transformation or class/task labels.
 
     A Dataset that behaves like a PyTorch
     :class:`torch.utils.data.ConcatDataset`. However, this Dataset also supports
@@ -852,7 +859,7 @@ class TaskSet(Mapping):
 
     def __getitem__(self, task_label):
         tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-        return ClassificationSubset(self.data, tl_idx)
+        return classification_subset(self.data, tl_idx)
 
     def __len__(self):
         return len(self.data.targets_task_labels.uniques)
@@ -861,8 +868,8 @@ class TaskSet(Mapping):
 __all__ = [
     "SupportedDataset",
     "SimpleClassificationDataset",
-    "ClassificationSubset",
+    "classification_subset",
     "TensorClassificationDataset",
-    "ConcatClassificationDataset",
+    "concat_classification_datasets",
     "TaskSet"
 ]

@@ -30,11 +30,11 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 )
 from avalanche.benchmarks.utils import (
     SimpleClassificationDataset,
-    ClassificationSubset,
-    ConcatClassificationDataset,
+    classification_subset,
+    concat_classification_datasets,
     TensorClassificationDataset,
 )
-from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially, concat_datasets
 from avalanche.training.utils import load_all_dataset
 import random
 
@@ -606,7 +606,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset2 = TensorClassificationDataset(
             tensor_x2, tensor_y2, tensor_z2, collate_fn=my_collate_fn
         )
-        concat = ConcatClassificationDataset(
+        concat = concat_classification_datasets(
             [dataset1, dataset2], collate_fn=my_collate_fn2
         )  # Ok
 
@@ -689,7 +689,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         # This will test recursion on both PyTorch ConcatDataset and
         # AvalancheConcatDataset
-        concat = ConcatClassificationDataset([dataset1, dataset2])
+        concat = concat_classification_datasets([dataset1, dataset2])
 
         # Beware of the explicit task_labels=5 that *must* override the
         # task labels set in dataset4 and dataset5
@@ -700,16 +700,16 @@ class AvalancheDatasetTests(unittest.TestCase):
         def transform_target_to_constant2(ignored_target_value):
             return 102
 
-        concat2 = ConcatClassificationDataset(
+        concat2 = concat_classification_datasets(
             [dataset4, dataset5],
             task_labels=5,
             target_transform=transform_target_to_constant,
         )
 
-        concat3 = ConcatClassificationDataset(
+        concat3 = concat_classification_datasets(
             [dataset6, dataset7], target_transform=transform_target_to_constant2
         ).freeze_transforms()
-        concat_uut = ConcatClassificationDataset(
+        concat_uut = concat_datasets(
             [concat, dataset3, concat2, concat3]
         )
 
@@ -770,7 +770,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
 
-        dataset = ClassificationSubset(subset, indices=[0, 3])
+        dataset = classification_subset(subset, indices=[0, 3])
 
         self.assertEqual(5, len(subset))
         self.assertEqual(2, len(dataset))
@@ -791,7 +791,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset,
             indices=[0, 3],
             target_transform=transform_target_to_constant,
@@ -821,7 +821,7 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         subset = Subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
 
-        dataset = ClassificationSubset(subset)
+        dataset = classification_subset(subset)
 
         self.assertEqual(5, len(subset))
         self.assertEqual(5, len(dataset))
@@ -848,14 +848,14 @@ class AvalancheDatasetTests(unittest.TestCase):
         def transform_target_plus_one(target_value):
             return target_value + 1
 
-        subset = ClassificationSubset(
+        subset = classification_subset(
             dataset_mnist,
             indices=[3000, 8, 4, 1010, 12],
             transform=ToTensor(),
             target_transform=transform_target_to_constant,
         )
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset, target_transform=transform_target_plus_one
         )
 
@@ -886,13 +886,13 @@ class AvalancheDatasetTests(unittest.TestCase):
         def transform_target_plus_one(target_value):
             return target_value + 2
 
-        subset = ClassificationSubset(
+        subset = classification_subset(
             dataset_mnist,
             indices=[3000, 8, 4, 1010, 12],
             target_transform=transform_target_to_constant,
         )
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset,
             indices=[0, 3, 1],
             target_transform=transform_target_plus_one,
@@ -924,14 +924,14 @@ class AvalancheDatasetTests(unittest.TestCase):
         def transform_target_plus_two(target_value):
             return target_value + 2
 
-        subset = ClassificationSubset(
+        subset = classification_subset(
             dataset_mnist,
             indices=[3000, 8, 4, 1010, 12],
             target_transform=transform_target_to_constant,
         )
         subset = subset.freeze_transforms()
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset,
             indices=[0, 3, 1],
             target_transform=transform_target_plus_two,
@@ -950,7 +950,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertFalse(pil_images_equal(x, x4))
         self.assertFalse(pil_images_equal(x2, x3))
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset,
             indices=[0, 3, 1],
             target_transform=transform_target_plus_two,
@@ -977,13 +977,13 @@ class AvalancheDatasetTests(unittest.TestCase):
         class_mapping = list(range(10))
         random.shuffle(class_mapping)
 
-        subset = ClassificationSubset(
+        subset = classification_subset(
             dataset_mnist,
             indices=[3000, 8, 4, 1010, 12],
             class_mapping=class_mapping,
         )
 
-        dataset = ClassificationSubset(subset, indices=[0, 3, 1])
+        dataset = classification_subset(subset, indices=[0, 3, 1])
 
         self.assertEqual(5, len(subset))
         self.assertEqual(3, len(dataset))
@@ -1010,9 +1010,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         class_mapping = list(range(10))
         random.shuffle(class_mapping)
 
-        subset = ClassificationSubset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+        subset = classification_subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset, indices=[0, 3, 1], class_mapping=class_mapping
         )
 
@@ -1043,13 +1043,13 @@ class AvalancheDatasetTests(unittest.TestCase):
         random.shuffle(class_mapping)
         random.shuffle(class_mapping2)
 
-        subset = ClassificationSubset(
+        subset = classification_subset(
             dataset_mnist,
             indices=[3000, 8, 4, 1010, 12],
             class_mapping=class_mapping,
         )
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             subset, indices=[0, 3, 1], class_mapping=class_mapping2
         )
 
@@ -1102,8 +1102,8 @@ class AvalancheDatasetTests(unittest.TestCase):
             # print(idx, "depth: ", _flatdata_depth(curr_dataset))
             # _flatdata_print(curr_dataset)
             intermediate_idx_test = (dataset_hierarchy_depth - 1) - idx
-            subset = ClassificationSubset(curr_dataset, indices=random_permutations[idx])
-            curr_dataset = ConcatClassificationDataset((subset, curr_dataset))
+            subset = classification_subset(curr_dataset, indices=random_permutations[idx])
+            curr_dataset = subset.concat(curr_dataset)
 
             # Regression test for #616 (second bug)
             # https://github.com/ContinualAI/avalanche/issues/616#issuecomment-848852287
@@ -1215,7 +1215,7 @@ class TransformationSubsetTests(unittest.TestCase):
             root=default_dataset_location("mnist"), download=True
         )
         x, y = dataset_mnist[0]
-        dataset = ClassificationSubset(dataset_mnist, transform=ToTensor())
+        dataset = classification_subset(dataset_mnist, transform=ToTensor())
         x2, y2, t2 = dataset[0]
         self.assertIsInstance(x2, Tensor)
         self.assertIsInstance(y2, int)
@@ -1235,7 +1235,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual([x.width, x.height], [16, 16])
         self.assertIsInstance(y, int)
 
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             dataset_mnist,
             transform=ToTensor(),
             target_transform=lambda target: -1,
@@ -1256,7 +1256,7 @@ class TransformationSubsetTests(unittest.TestCase):
         x, y = dataset_mnist[1000]
         x2, y2 = dataset_mnist[1007]
 
-        dataset = ClassificationSubset(dataset_mnist, indices=[1000, 1007])
+        dataset = classification_subset(dataset_mnist, indices=[1000, 1007])
 
         x3, y3, t3 = dataset[0]
         x4, y4, t4 = dataset[1]
@@ -1282,7 +1282,7 @@ class TransformationSubsetTests(unittest.TestCase):
         mapping[y] = swap_y
         mapping[swap_y] = y
 
-        dataset = ClassificationSubset(dataset_mnist, class_mapping=mapping)
+        dataset = classification_subset(dataset_mnist, class_mapping=mapping)
 
         _, y2, _ = dataset[1000]
         self.assertEqual(y2, swap_y)
@@ -1295,7 +1295,7 @@ class TransformationSubsetTests(unittest.TestCase):
         x2, y2 = dataset_mnist[1007]
 
         # First, test by passing len(task_labels) == len(dataset_mnist)
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             dataset_mnist,
             indices=[1000, 1007],
             task_labels=[1] * len(dataset_mnist),
@@ -1309,7 +1309,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(1, t4)
 
         # Secondly, test by passing len(task_labels) == len(indices)
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             dataset_mnist, indices=[1000, 1007], task_labels=[1, 1]
         )
 
@@ -1330,7 +1330,7 @@ class TransformationSubsetTests(unittest.TestCase):
         full_task_labels = [1] * len(dataset_mnist)
         full_task_labels[1000] = 2
         # First, test by passing len(task_labels) == len(dataset_mnist)
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             dataset_mnist, indices=[1000, 1007], task_labels=full_task_labels
         )
 
@@ -1342,7 +1342,7 @@ class TransformationSubsetTests(unittest.TestCase):
         self.assertEqual(1, t4)
 
         # Secondly, test by passing len(task_labels) == len(indices)
-        dataset = ClassificationSubset(
+        dataset = classification_subset(
             dataset_mnist, indices=[1000, 1007], task_labels=[3, 5]
         )
 
@@ -1364,7 +1364,7 @@ class TransformationSubsetTests(unittest.TestCase):
             dataset_mnist, transform=ToTensor(), task_labels=random_task_labels
         )
 
-        dataset_child = ClassificationSubset(dataset_orig, indices=[1000, 1007])
+        dataset_child = classification_subset(dataset_orig, indices=[1000, 1007])
         _, _, t2 = dataset_orig[1000]
         _, _, t5 = dataset_orig[1007]
         _, _, t3 = dataset_child[0]
@@ -1405,7 +1405,7 @@ class TransformationSubsetTests(unittest.TestCase):
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
         dataset = SimpleClassificationDataset(whole_dataset, collate_fn=my_collate_fn)
-        inherited = ClassificationSubset(
+        inherited = classification_subset(
             dataset, indices=list(range(5, 150)), collate_fn=my_collate_fn2
         )  # Ok
 
@@ -1420,7 +1420,7 @@ class TransformationSubsetTests(unittest.TestCase):
             whole_dataset
         )
 
-        ok_inherited_classification = ClassificationSubset(
+        ok_inherited_classification = classification_subset(
             classification_dataset, indices=list(range(5, 150))
         )
 
@@ -1569,9 +1569,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertEqual(y + 1, y4)
 
         # Regression test for #566
-        dataset_sub_train = ClassificationSubset(dataset)
+        dataset_sub_train = classification_subset(dataset)
         dataset_sub_eval = dataset_sub_train.eval()
-        dataset_sub = ClassificationSubset(dataset_sub_eval, indices=[0])
+        dataset_sub = classification_subset(dataset_sub_eval, indices=[0])
 
         x5, y5, _ = dataset_sub[0]
         self.assertIsInstance(x5, PIL.Image.Image)
@@ -1579,7 +1579,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertEqual(y + 1, y5)
         # End regression tests
 
-        concat_dataset = ConcatClassificationDataset([dataset_sub_eval, dataset_sub])
+        concat_dataset = dataset_sub_eval.concat(dataset_sub)
         x6, y6, _ = concat_dataset[0]
         self.assertIsInstance(x6, PIL.Image.Image)
         self.assertIsInstance(y6, int)
@@ -1830,7 +1830,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             root=default_dataset_location("mnist"), download=True
         )
 
-        dataset = ConcatClassificationDataset([original_dataset, original_dataset2])
+        dataset = original_dataset.concat(original_dataset2)
 
         self.assertEqual(
             len(original_dataset) + len(original_dataset2), len(dataset)
@@ -1846,7 +1846,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
             transform_groups=dict(train=(None, None), eval=(ToTensor(), None)),
         )
 
-        dataset = ConcatClassificationDataset([original_dataset, original_dataset2])
+        dataset = original_dataset.concat(original_dataset2)
 
         self.assertEqual(
             len(original_dataset) + len(original_dataset2), len(dataset)

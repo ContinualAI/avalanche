@@ -17,7 +17,7 @@ from typing import List, Iterable, Sequence, Union, Dict, Tuple, SupportsInt
 import torch
 from torch import Tensor
 
-from avalanche.benchmarks.utils.classification_dataset import ClassificationSubset, ConcatClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import classification_subset, concat_classification_datasets
 from avalanche.benchmarks.utils.classification_dataset import T_co, ClassificationDataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_definitions import ISupportedClassificationDataset
@@ -144,7 +144,7 @@ def grouped_and_ordered_indexes(
 def concat_datasets_sequentially(
     train_dataset_list: Sequence[ISupportedClassificationDataset],
     test_dataset_list: Sequence[ISupportedClassificationDataset],
-) -> Tuple[ConcatClassificationDataset, ConcatClassificationDataset, List[list]]:
+) -> Tuple[ClassificationDataset, ClassificationDataset, List[list]]:
     """
     Concatenates a list of datasets. This is completely different from
     :class:`ConcatDataset`, in which datasets are merged together without
@@ -235,16 +235,16 @@ def concat_datasets_sequentially(
 
         # Create remapped datasets and append them to the final list
         remapped_train_datasets.append(
-            ClassificationSubset(train_set, class_mapping=class_mapping)
+            classification_subset(train_set, class_mapping=class_mapping)
         )
         remapped_test_datasets.append(
-            ClassificationSubset(test_set, class_mapping=class_mapping)
+            classification_subset(test_set, class_mapping=class_mapping)
         )
         next_remapped_idx += classes_per_dataset[dataset_idx]
 
     return (
-        ConcatClassificationDataset(remapped_train_datasets),
-        ConcatClassificationDataset(remapped_test_datasets),
+        concat_datasets(remapped_train_datasets),
+        concat_datasets(remapped_test_datasets),
         new_class_ids_per_dataset,
     )
 
@@ -275,9 +275,19 @@ def _count_unique(*sequences: Sequence[SupportsInt]):
     return len(uniques)
 
 
+def concat_datasets(datasets):
+    """Concatenates a list of datasets."""
+    if len(datasets) == 0:
+        return AvalancheDataset([])
+    res = datasets[0]
+    for d in datasets[1:]:
+        res = res.concat(d)
+    return res
+
+
 __all__ = [
     "tensor_as_list",
     "grouped_and_ordered_indexes",
     "as_avalanche_dataset",
-    "as_classification_dataset"
+    "as_classification_dataset",
 ]

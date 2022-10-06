@@ -257,7 +257,7 @@ Notice that the `EvaluationPlugin` (see `evaluation` tutorial) uses the strategy
 As an example, the `SupervisedTemplate`, for continual supervised strategies, provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. For instance, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
 
 ```python
-from avalanche.benchmarks.utils import ConcatClassificationDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
 from avalanche.training.templates import SupervisedTemplate
 
 
@@ -272,7 +272,7 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = curr_data
         else:
-            self.dataset = ConcatClassificationDataset([self.dataset, curr_data])
+            self.dataset = self.dataset.concat(curr_data)
         self.adapted_dataset = self.dataset.train()
 
 

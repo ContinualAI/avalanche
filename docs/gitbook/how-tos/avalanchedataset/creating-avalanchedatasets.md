@@ -141,7 +141,7 @@ Regarding the subsetting operation, `AvalancheSubset` behaves in the same way th
 Here we create a toy dataset in which each X and Y values are *int*s. We then obtain a subset of it by creating an **AvalancheSubset**:
 
 ```python
-from avalanche.benchmarks.utils import ClassificationSubset
+from avalanche.benchmarks.utils import classification_subset
 
 # Define the X values of 10 instances (each instance is an int)
 x_data_toy = [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
@@ -161,7 +161,7 @@ toy_dataset = AvalancheTensorDataset(x_data_toy, y_data_toy)
 subset_indices = [0, 5, 8, 2]
 
 # Create the subset
-avl_subset = ClassificationSubset(toy_dataset, indices=subset_indices)
+avl_subset = classification_subset(toy_dataset, indices=subset_indices)
 print('The subset contains', len(avl_subset), 'instances.')
 # Output: "The subset contains 4 instances."
 
@@ -180,7 +180,7 @@ Concatenation is even simpler. Just like with PyTorch *ConcatDataset*, one can e
 Both *AvalancheConcatDataset* and PyTorch *ConcatDataset* accept a list of datasets to concatenate.
 
 ```python
-from avalanche.benchmarks.utils import ConcatClassificationDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
 
 # Define the 2 datasets to be concatenated
 x_data_toy_1 = [50, 51, 52, 53, 54]
@@ -193,7 +193,7 @@ toy_dataset_1 = AvalancheTensorDataset(x_data_toy_1, y_data_toy_1)
 toy_dataset_2 = AvalancheTensorDataset(x_data_toy_2, y_data_toy_2)
 
 # Create the concat dataset
-avl_concat = ConcatClassificationDataset([toy_dataset_1, toy_dataset_2])
+avl_concat = toy_dataset_1.concat(toy_dataset_2)
 print('The concat dataset contains', len(avl_concat), 'instances.')
 # Output: "The concat dataset contains 10 instances."
 

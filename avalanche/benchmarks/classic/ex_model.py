@@ -28,9 +28,10 @@ from torchvision.transforms import (
     Resize,
 )
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import LeNet5, SlimResNet18
 from ..datasets import default_dataset_location
-from ..utils import ConcatClassificationDataset
+from ..utils import concat_classification_datasets
 from torchvision.transforms import Compose
 from avalanche.evaluation.metrics import TaskAwareAccuracy
 from . import SplitCIFAR10, CORe50, SplitMNIST
@@ -206,12 +207,8 @@ class ExMLCoRE50(ExModelCLScenario):
             )
         elif scenario == "joint":
             core50nc = CORe50(scenario="nc")
-            train_cat = ConcatClassificationDataset(
-                [e.dataset for e in core50nc.train_stream]
-            )
-            test_cat = ConcatClassificationDataset(
-                [e.dataset for e in core50nc.test_stream]
-            )
+            train_cat = concat_datasets([e.dataset for e in core50nc.train_stream])
+            test_cat = concat_datasets([e.dataset for e in core50nc.test_stream])
             benchmark = nc_benchmark(
                 train_cat, test_cat, n_experiences=1, task_labels=False
             )

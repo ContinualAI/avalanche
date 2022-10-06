@@ -4,7 +4,7 @@ from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
-from avalanche.benchmarks.utils import SimpleClassificationDataset, ClassificationSubset
+from avalanche.benchmarks.utils import SimpleClassificationDataset, classification_subset
 
 
 def split_detection_benchmark(
@@ -72,7 +72,7 @@ def split_detection_benchmark(
         n_imgs = exp_sz[exp_id]
         idx_range = train_indices[last_slice_idx : last_slice_idx + n_imgs]
         train_exps_datasets.append(
-            ClassificationSubset(train_dataset_avl, indices=idx_range)
+            classification_subset(train_dataset_avl, indices=idx_range)
         )
         last_slice_idx += n_imgs
 

@@ -5,12 +5,13 @@ import torch
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import (
-    ConcatClassificationDataset,
+    concat_classification_datasets,
     TensorClassificationDataset,
-    ClassificationSubset,
+    classification_subset,
 )
 from math import ceil
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -150,7 +151,7 @@ class _ICaRLPlugin(SupervisedPlugin):
                 target_transform=None,
             )
 
-            strategy.adapted_dataset = ConcatClassificationDataset(
+            strategy.adapted_dataset = concat_datasets(
                 (strategy.adapted_dataset, memory)
             )
 
@@ -240,7 +241,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
         for iter_dico in range(nb_cl):
-            cd = ClassificationSubset(
+            cd = classification_subset(
                 dataset, torch.where(targets == new_classes[iter_dico])[0]
             )
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None

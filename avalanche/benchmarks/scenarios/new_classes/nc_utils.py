@@ -14,7 +14,7 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.benchmarks.utils import ClassificationSubset, SupportedDataset
+from avalanche.benchmarks.utils import classification_subset, SupportedDataset
 from avalanche.benchmarks.utils import tensor_as_list
 
 
@@ -159,7 +159,7 @@ def make_nc_transformation_subset(
     bucket_classes: bool = False,
     sort_classes: bool = False,
     sort_indexes: bool = False,
-) -> ClassificationSubset:
+) -> classification_subset:
     """
     Creates a subset given the list of classes the patterns should belong to.
 
@@ -183,7 +183,7 @@ def make_nc_transformation_subset(
         belonging to the given classes, in the order controlled by the
         ``bucket_classes``, ``sort_classes`` and ``sort_indexes`` parameters.
     """
-    return ClassificationSubset(
+    return classification_subset(
         dataset,
         indices=_indexes_from_set(
             dataset.targets,

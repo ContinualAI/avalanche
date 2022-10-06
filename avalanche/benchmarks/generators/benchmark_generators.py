@@ -49,7 +49,7 @@ from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
     SimpleClassificationDataset,
-    ClassificationSubset,
+    classification_subset,
 )
 
 
@@ -467,9 +467,7 @@ def fixed_size_experience_split_strategy(
             final_idx = len(exp_indices)
 
         result_datasets.append(
-            ClassificationSubset(
-                exp_dataset, indices=exp_indices[init_idx:final_idx]
-            )
+            exp_dataset.subset(exp_indices[init_idx:final_idx])
         )
         init_idx = final_idx
 
@@ -647,10 +645,10 @@ def random_validation_split_strategy(
 
     train_n_instances = len(exp_dataset) - valid_n_instances
 
-    result_train_dataset = ClassificationSubset(
+    result_train_dataset = classification_subset(
         exp_dataset, indices=exp_indices[:train_n_instances]
     )
-    result_valid_dataset = ClassificationSubset(
+    result_valid_dataset = classification_subset(
         exp_dataset, indices=exp_indices[train_n_instances:]
     )
 
@@ -701,12 +699,8 @@ def class_balanced_split_strategy(
         valid_exp_indices.extend(c_indices[:valid_n_instances])
         train_exp_indices.extend(c_indices[valid_n_instances:])
 
-    result_train_dataset = ClassificationSubset(
-        exp_dataset, indices=train_exp_indices
-    )
-    result_valid_dataset = ClassificationSubset(
-        exp_dataset, indices=valid_exp_indices
-    )
+    result_train_dataset = exp_dataset.subset(train_exp_indices)
+    result_valid_dataset = exp_dataset.subset(valid_exp_indices)
     return result_train_dataset, result_valid_dataset
 
 
