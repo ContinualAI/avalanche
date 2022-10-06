@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from avalanche.benchmarks.utils.flattened_data import ConstantSequence
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.models import MultiTaskModule
 from avalanche.models import MultiHeadClassifier
 from avalanche.benchmarks.scenarios import CLExperience

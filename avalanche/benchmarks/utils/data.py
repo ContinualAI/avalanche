@@ -12,7 +12,7 @@
 """
 This module contains the implementation of the Avalanche Dataset,
 Avalanche dataset class which extends PyTorch's dataset.
-AvalancheDataset (and its derivatives) offers additional features like the
+AvalancheDataset offers additional features like the
 management of preprocessing pipelines and task/class labels.
 """
 import copy
@@ -29,11 +29,10 @@ from typing import (
     Sequence,
     Union,
     TypeVar,
-    Callable,
-    Collection
+    Callable
 )
 
-from .flattened_data import FlatData
+from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
 
 T_co = TypeVar("T_co", covariant=True)
@@ -491,30 +490,6 @@ def _has_empty_transforms(dataset: AvalancheDataset):
     """
     return isinstance(dataset._transform_groups, EmptyTransformGroups) and \
         isinstance(dataset._frozen_transform_groups, EmptyTransformGroups)
-
-
-def _flatdata_depth(dataset):
-    """Internal debugging method.
-    Returns the depth of the dataset tree."""
-    if isinstance(dataset, FlatData):
-        dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
-        return 1 + max(dchilds)
-    else:
-        return 1
-
-
-def _flatdata_print(dataset, indent=0):
-    """Internal debugging method.
-    Print the dataset."""
-    if isinstance(dataset, FlatData):
-        ss = dataset._indices is not None
-        cc = len(dataset._datasets) != 1
-        cf = dataset._can_flatten
-        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},cat={cc},cf={cf})")
-        for dd in dataset._datasets:
-            _flatdata_print(dd, indent + 1)
-    else:
-        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
 
 
 __all__ = [

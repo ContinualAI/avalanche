@@ -12,7 +12,7 @@
 import torch
 
 from .dataset_definitions import IDataset
-from .flattened_data import ConstantSequence, FlatData
+from .flat_data import ConstantSequence, FlatData
 
 
 class DataAttribute:

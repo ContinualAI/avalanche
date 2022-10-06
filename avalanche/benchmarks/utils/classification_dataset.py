@@ -28,7 +28,7 @@ from .dataset_utils import (
     find_list_from_index,
     SubSequence,
 )
-from .flattened_data import ConstantSequence
+from .flat_data import ConstantSequence
 from .dataset_definitions import (
     ITensorDataset,
     IDatasetWithTargets,
@@ -92,7 +92,7 @@ class _ClassificationAttributesMixin:
 
     @property
     def task_set(self):
-        return _TaskSet(self)
+        return TaskSet(self)
 
 
 class _AvalancheClassificationDataset(_AvalancheDataset, _ClassificationAttributesMixin):
@@ -293,7 +293,13 @@ def _init_targets(dataset, targets, targets_adapter, check_shape=True):
                 "{}!".format(len(targets), len(dataset))
             )
         return DataAttribute(targets, "targets")
-    targets = _make_target_from_supported_dataset(dataset, targets_adapter)
+
+    if isinstance(dataset, _AvalancheClassificationDataset):
+        return None  # targets are initialized automatically
+    else:
+        targets = _traverse_supported_dataset(dataset, _select_targets)
+        targets = SubSequence(targets, converter=targets_adapter)
+
     if targets is None:
         return None
     return DataAttribute(targets, "targets")
@@ -313,7 +319,12 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
             )
         tls = SubSequence(task_labels, converter=int)
     else:
-        tls = _make_task_labels_from_supported_dataset(dataset)
+        if isinstance(dataset, _AvalancheClassificationDataset):
+            tls = None
+        else:
+            task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
+            tls = SubSequence(task_labels, converter=int)
+
     if tls is None:
         return None
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
@@ -635,16 +646,7 @@ def AvalancheConcatClassificationDataset(
             return d0
 
     das = []
-    if len(dds) == 0:
-        pass
-        # TODO: BASE CLASS SHOULD MANAGE THIS
-        # if initial_transform_group is None:
-        #     initial_transform_group = "train"
-        # transform_groups = EmptyTransformGroups()
-        # const = ConstantSequence(0, 0)
-        # das.append(DataAttribute(const, "targets_task_labels", use_in_getitem=True))
-        # das.append(DataAttribute(const, "targets"))
-    else:
+    if len(dds) > 0:
         #######################################
         # TRANSFORMATION GROUPS
         #######################################
@@ -683,12 +685,6 @@ def AvalancheConcatClassificationDataset(
                     "{}!".format(len(task_labels), totlen)
                 )
             das.append(DataAttribute(task_labels, "targets_task_labels", use_in_getitem=True))
-        # TODO: BASE CLASS SHOULD MANAGE THIS CASE
-        # else:
-        #     task_labels = dds[0].targets_task_labels
-        #     for d in dds[1:]:
-        #         task_labels = task_labels.concat(d.targets_task_labels)
-        #     das.append(task_labels)
 
         if targets is not None:  # User defined targets always take precedence
             if isinstance(targets, int):
@@ -700,12 +696,6 @@ def AvalancheConcatClassificationDataset(
                     "{}!".format(len(targets), totlen)
                 )
             das.append(DataAttribute(targets, "targets"))
-        # TODO: BASE CLASS SHOULD MANAGE THIS CASE
-        # else:
-        #     targets = dds[0].targets
-        #     for d in dds[1:]:
-        #         targets = targets.concat(d.targets)
-        #     das.append(targets)
     if len(das) == 0:
         das = None
     data = _AvalancheClassificationDataset(
@@ -970,32 +960,28 @@ def _select_task_labels(dataset, indices):
     return found_task_labels
 
 
-def _make_target_from_supported_dataset(
-    dataset: SupportedDataset, converter: Callable[[Any], TTargetType] = None
-) -> Sequence[TTargetType]:
-    if isinstance(dataset, _AvalancheClassificationDataset):
-        return None  # targets are initialized automatically
-    targets = _traverse_supported_dataset(dataset, _select_targets)
-    return SubSequence(targets, converter=converter)
-
-
-def _make_task_labels_from_supported_dataset(
-    dataset: SupportedDataset,
-) -> Sequence[int]:
-    if isinstance(dataset, _AvalancheClassificationDataset):
-        return None
-
-    task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
-
-    return SubSequence(task_labels, converter=int)
-
-
-class _TaskSet(Mapping):
+class TaskSet(Mapping):
     """A lazy mapping for <task-label -> task dataset>.
-    Class for internal use only.
+
+    Given an `AvalancheClassificationDataset`, this class provides an
+    iterator that splits the data into task subsets, returning tuples
+    `<task_id, task_dataset>`.
+
+    Usage:
+
+    .. code-block:: python
+
+        tset = TaskSet(data)
+        for tid, tdata in tset:
+            print(f"task {tid} has {len(tdata)} examples.")
+
     """
 
     def __init__(self, data: AvalancheClassificationDataset):
+        """Constructor.
+
+        :param data: original data
+        """
         super().__init__()
         self.data = data
 

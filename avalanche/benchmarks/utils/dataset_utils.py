@@ -16,7 +16,7 @@ from .dataset_definitions import (
     IDatasetWithTargets,
     ISupportedClassificationDataset,
 )
-from .flattened_data import ConstantSequence
+from .flat_data import ConstantSequence
 
 try:
     from typing import (

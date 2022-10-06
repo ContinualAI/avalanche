@@ -19,7 +19,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     GenericClassificationExperience,
 )
 from avalanche.benchmarks.utils import AvalancheClassificationSubset, AvalancheClassificationDataset
-from avalanche.benchmarks.utils.flattened_data import ConstantSequence
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NCScenario(GenericCLScenario["NCExperience"]):

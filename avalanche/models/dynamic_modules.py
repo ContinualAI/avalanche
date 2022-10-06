@@ -16,7 +16,7 @@ import torch
 from torch.nn import Module
 import numpy as np
 
-from avalanche.benchmarks.utils.flattened_data import ConstantSequence
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience
 
 

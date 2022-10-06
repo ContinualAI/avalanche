@@ -12,7 +12,7 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
-from typing import Sequence, List
+from typing import List
 
 from torch.utils.data import ConcatDataset
 
@@ -23,11 +23,30 @@ class FlatData(IDataset):
     """FlatData is a dataset optimized for efficient repeated concatenation
     and subset operations.
 
-    Class for internal use only.
+    The class combines concatentation and subsampling operations in a single
+    class.
+
+    Class for internal use only. Users shuold use `AvalancheDataset` for data
+    or `DataAttribute` for attributes such as class and task labels.
+
+    *Notes for subclassing*
+
+    Cat/Sub operations are "flattened" if possible, which means that they will
+    take the datasets and indices from their arguments and create a new dataset
+    with them, avoiding the creation of large trees of dataset (what would happen
+    with PyTorch datasets). Flattening is not always possible, for example if the
+    data contains additional info (e.g. custom transformation groups), so subclasses
+    MUST set `can_flatten` properly in order to avoid nasty bugs.
     """
 
     def __init__(self, datasets: List[IDataset],
                  indices: List[int] = None, can_flatten=True):
+        """Constructor
+
+        :param datasets: list of datasets to concatenate.
+        :param indices:  list of indices.
+        :param can_flatten: if True, enables flattening.
+        """
         self._datasets = datasets
         self._indices = indices
         self._can_flatten = can_flatten
@@ -45,14 +64,24 @@ class FlatData(IDataset):
         else:
             return list(range(len(self)))
 
-    def subset(self, indices):
+    def subset(self, indices: list[int]) -> "FlatData":
+        """Subsampling operation.
+
+        :param indices: indices of the new samples
+        :return:
+        """
         if self._can_flatten:
             self_indices = self._get_indices()
             new_indices = [self_indices[x] for x in indices]
             return self.__class__(datasets=self._datasets, indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
 
-    def concat(self, other: "FlatData"):
+    def concat(self, other: "FlatData") -> "FlatData":
+        """Concatenation operation.
+
+        :param other: other dataset.
+        :return:
+        """
         if (not self._can_flatten) and (not other._can_flatten):
             return self.__class__(datasets=[self, other])
 
@@ -103,6 +132,14 @@ class FlatData(IDataset):
             assert False, "should never get here"
 
     def _get_idx(self, idx):
+        """Return the index as a tuple <dataset-idx, sample-idx>.
+
+        The first index indicates the dataset to use from `self._datasets`,
+        while the second is the index of the sample in
+        `self._datasets[dataset-idx]`.
+
+        Private method.
+        """
         if self._indices is not None:  # subset indexing
             idx = self._indices[idx]
         if len(self._datasets) == 1:
@@ -137,6 +174,11 @@ class ConstantSequence:
     """A memory-efficient constant sequence."""
 
     def __init__(self, constant_value: int, size: int):
+        """Constructor
+
+        :param constant_value: the fixed value
+        :param size: length of the sequence
+        """
         self._constant_value = constant_value
         self._size = size
 
@@ -148,10 +190,20 @@ class ConstantSequence:
             raise IndexError()
         return self._constant_value
 
-    def subset(self, indices):
+    def subset(self, indices: list[int]) -> "ConstantSequence":
+        """Subset
+
+        :param indices: indices of the new data.
+        :return:
+        """
         return ConstantSequence(self._constant_value, len(indices))
 
     def concat(self, other: "FlatData"):
+        """Concatenation
+
+        :param other: other dataset
+        :return:
+        """
         if isinstance(other, ConstantSequence) and \
                 self._constant_value == other._constant_value:
             return ConstantSequence(self._constant_value, len(self) + len(other))
@@ -160,10 +212,6 @@ class ConstantSequence:
 
     def __str__(self):
         return f"ConstantSequence(value={self._constant_value}, len={self._size}"
-
-
-def _merge_same_datasets(datasets, indices):
-    cumsizes = ConcatDataset.cumsum(datasets)
 
 
 def _flatten_dataset_list(datasets: List[FlatData]):
@@ -201,3 +249,33 @@ def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
         return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
 
     return [d1, d2]
+
+
+def _flatdata_depth(dataset):
+    """Internal debugging method.
+    Returns the depth of the dataset tree."""
+    if isinstance(dataset, FlatData):
+        dchilds = [_flatdata_depth(dd) for dd in dataset._datasets]
+        return 1 + max(dchilds)
+    else:
+        return 1
+
+
+def _flatdata_print(dataset, indent=0):
+    """Internal debugging method.
+    Print the dataset."""
+    if isinstance(dataset, FlatData):
+        ss = dataset._indices is not None
+        cc = len(dataset._datasets) != 1
+        cf = dataset._can_flatten
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},cat={cc},cf={cf})")
+        for dd in dataset._datasets:
+            _flatdata_print(dd, indent + 1)
+    else:
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
+
+
+__all__ = [
+    "FlatData",
+    "ConstantSequence"
+]
