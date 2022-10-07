@@ -44,7 +44,7 @@ if [ "$help" = true ] ; then
     echo ''
     echo 'The scrip takes the following arguments:'
     echo ''
-    echo '   --python         set the python version. Can take the values [3.6, 3.7, 3.8, 3.9], default 3.8.'
+    echo '   --python         set the python version. Can take the values [3.7, 3.8, 3.9], default 3.8.'
     echo '   --cuda_version   set the cuda version. You have to check the current version of cuda installed on your system and pass it as argument. If cuda is not installed or you want to use cpu pass "none". Can take the values [9.2, 10.1, 10.2, 11.0, 11.1, none], default none.'
     echo '   --help           display this help and exit.'
     echo ''
@@ -57,8 +57,8 @@ fi
 echo "python version : $python";
 echo "cuda version : $cuda_version";
 
-if ! [[ "$python" =~ ^(3.6|3.7|3.8|3.9)$ ]]; then
-    echo "Select a python version between 3.6, 3.7, 3.8, 3.9"
+if ! [[ "$python" =~ ^(3.7|3.8|3.9)$ ]]; then
+    echo "Select a python version between 3.7, 3.8, 3.9"
     exit 1
 fi
 
