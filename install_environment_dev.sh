@@ -11,9 +11,11 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-python="3.8"
+python="3.9"
 cuda_version="none"
 help=false
+accept_conda_prompts=false
+use_mamba=false
 
 while test $# -gt 0; do
          case "$1" in
@@ -31,6 +33,14 @@ while test $# -gt 0; do
                   help=true
                   shift
                   ;;
+              --yes)
+                  accept_conda_prompts=true
+                  shift
+                  ;;
+              --mamba)
+                  use_mamba=true
+                  shift
+                  ;;
               *)
                  echo "$1 is not a recognized flag! Use --python and/or --cuda_version. Use --help to open the guide."
                  exit 1;
@@ -44,42 +54,62 @@ if [ "$help" = true ] ; then
     echo ''
     echo 'The scrip takes the following arguments:'
     echo ''
-    echo '   --python         set the python version. Can take the values [3.7, 3.8, 3.9], default 3.8.'
-    echo '   --cuda_version   set the cuda version. You have to check the current version of cuda installed on your system and pass it as argument. If cuda is not installed or you want to use cpu pass "none". Can take the values [9.2, 10.1, 10.2, 11.0, 11.1, none], default none.'
+    echo '   --python         set the python version. Can take the values [3.7, 3.8, 3.9, 3.10], default 3.9.'
+    echo '   --cuda_version   set the cuda version. You have to check the current version of cuda installed on your system and pass it as argument. If cuda is not installed or you want to use cpu pass "none". Can take the values [9.2, 10.1, 10.2, 11.0, 11.1, 11.3, 11.6, none], default none.'
+    echo '   --yes            automatically answer yes to conda prompts.'
+    echo '   --mamba          use mamba instead of conda.'
     echo '   --help           display this help and exit.'
     echo ''
     echo 'Examples:'
-    echo '   bash -i install_environment_dev.sh --python 3.7 --cuda_version 10.2'
+    echo '   bash -i install_environment_dev.sh --python 3.9 --cuda_version 11.6'
     echo '   bash -i install_environment_dev.sh --cuda_version none'
     exit 0
 fi
 
-echo "python version : $python";
-echo "cuda version : $cuda_version";
+conda_prompt=""
+conda_executable="conda"
+conda_channels="-c pytorch"
+cuda_package=""
 
-if ! [[ "$python" =~ ^(3.7|3.8|3.9)$ ]]; then
-    echo "Select a python version between 3.7, 3.8, 3.9"
+if [ "$accept_conda_prompts" = true ] ; then
+    conda_prompt="-y"
+fi
+
+if [ "$use_mamba" = true ] ; then
+    conda_executable="mamba"
+fi
+
+if ! [[ "$python" =~ ^(3.7|3.8|3.9|3.10)$ ]]; then
+    echo "Select a python version between 3.7, 3.8, 3.9, 3.10"
     exit 1
 fi
 
-if ! [[ "$cuda_version" =~ ^(9.2|10.1|10.2|11.0|11.1|"none")$ ]]; then
-    echo "Select a CUDA version between 9.2 10.1, 10.2, 11.0, 11.1, none"
+if ! [[ "$cuda_version" =~ ^(9.2|10.1|10.2|11.0|11.1|11.3|11.6|"none")$ ]]; then
+    echo "Select a CUDA version between 9.2, 10.1, 10.2, 11.0, 11.1, 11.3, 11.6, none"
     exit 1
 fi
 
-conda create -n avalanche-dev-env python=$python -c conda-forge
-conda activate avalanche-dev-env
 if [[ "$cuda_version" = "none" ]]; then
-    if [[ "$python_version" = 3.9 ]]; then
-        conda install pytorch torchvision cpuonly -c pytorch -c=conda-forge
-    else
-        conda install pytorch torchvision cpuonly -c pytorch
+    cuda_package="cpuonly"
+    if [[ "$python" = 3.9 || "$python" = 3.10 ]]; then
+        conda_channels="${conda_channels} -c=conda-forge"
     fi
 else
-    if [[ "$python_version" = 3.9 || "$cuda_version" = 11.1 ]]; then
-        conda install pytorch torchvision cudatoolkit=$cuda_version -c pytorch -c=conda-forge
-    else
-        conda install pytorch torchvision cudatoolkit=$cuda_version -c pytorch
+    cuda_package="cudatoolkit=$cuda_version"
+    if [[ "$python" = 3.9 || "$python" = 3.10 || "$cuda_version" = 11.1 || "$cuda_version" = 11.6 ]]; then
+        conda_channels="${conda_channels} -c=conda-forge"
     fi
 fi
-conda env update --file environment-dev.yml
+
+echo "python version: $python"
+echo "cuda version: $cuda_version"
+echo "conda executable: $conda_executable"
+
+set -euox pipefail
+$conda_executable create -n avalanche-env python=$python -c conda-forge $conda_prompt
+set +euox pipefail
+source activate avalanche-env
+
+set -euox pipefail
+$conda_executable install pytorch torchvision $cuda_package $conda_channels $conda_prompt
+$conda_executable env update --file environment-dev.yml
