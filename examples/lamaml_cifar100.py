@@ -8,7 +8,7 @@ import torch
 import wandb
 from torch.nn import CrossEntropyLoss
 import torch.optim.lr_scheduler
-from avalanche.benchmarks.classic import SplitCIFAR100
+from avalanche.benchmarks.classic import SplitCIFAR100, SplitTinyImageNet
 from avalanche.models import MTSimpleCNN
 from avalanche.training.supervised.lamaml import LaMAML
 from avalanche.training.plugins import ReplayPlugin
@@ -31,8 +31,8 @@ def main(args):
     )
 
     # --- SCENARIO CREATION
-    scenario = SplitCIFAR100(n_experiences=20, return_task_id=True,
-                             class_ids_from_zero_in_each_exp=True)
+    scenario = SplitTinyImageNet(n_experiences=20, return_task_id=True,
+                                 class_ids_from_zero_in_each_exp=True)
     config = {"scenario": "SplitCIFAR100"}
 
     # MODEL CREATION
@@ -78,7 +78,7 @@ def main(args):
         lr_alpha=0.25,
         sync_update=False,
         train_mb_size=10,
-        train_epochs=1,
+        train_epochs=10,
         eval_mb_size=100,
         device=device,
         plugins=[replay_plugin],
