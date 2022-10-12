@@ -6,8 +6,9 @@ from torch import Tensor
 from torch.nn.functional import normalize
 from torch.nn.modules import Module
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
@@ -72,9 +73,11 @@ class CoPEPlugin(SupervisedPlugin):
 
         self.initialized = False
 
-        warnings.warn("The current version of COPE is not working properly."
-                      "Please, use it carefully. The performance may not"
-                      "be aligned with the actual COPE performance.")
+        warnings.warn(
+            "The current version of COPE is not working properly."
+            "Please, use it carefully. The performance may not"
+            "be aligned with the actual COPE performance."
+        )
 
     def before_training(self, strategy, **kwargs):
         """Enforce using the PPP-loss and add a NN-classifier."""
@@ -114,7 +117,7 @@ class CoPEPlugin(SupervisedPlugin):
         self.it_cnt = 0
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset(self.replay_mem.values()),
+            concat_datasets(self.replay_mem.values()),
             oversample_small_tasks=False,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size * 2,

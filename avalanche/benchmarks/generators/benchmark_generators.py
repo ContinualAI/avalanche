@@ -45,11 +45,11 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 )
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import concat_datasets_sequentially
-from avalanche.benchmarks.utils.avalanche_dataset import (
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
-    AvalancheDataset,
-    AvalancheSubset,
+    make_classification_dataset,
+    classification_subset,
 )
 
 
@@ -219,18 +219,16 @@ def nc_benchmark(
     )
 
     # Datasets should be instances of AvalancheDataset
-    train_dataset = AvalancheDataset(
+    train_dataset = make_classification_dataset(
         train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train",
-        targets_adapter=int
+        initial_transform_group="train"
     )
 
-    test_dataset = AvalancheDataset(
+    test_dataset = make_classification_dataset(
         test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval",
-        targets_adapter=int
+        initial_transform_group="eval"
     )
 
     return NCScenario(
@@ -343,18 +341,16 @@ def ni_benchmark(
     )
 
     # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = AvalancheDataset(
+    seq_train_dataset = make_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train",
-        targets_adapter=int
+        initial_transform_group="train"
     )
 
-    seq_test_dataset = AvalancheDataset(
+    seq_test_dataset = make_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval",
-        targets_adapter=int
+        initial_transform_group="eval"
     )
 
     return NIScenario(
@@ -467,9 +463,7 @@ def fixed_size_experience_split_strategy(
             final_idx = len(exp_indices)
 
         result_datasets.append(
-            AvalancheSubset(
-                exp_dataset, indices=exp_indices[init_idx:final_idx]
-            )
+            exp_dataset.subset(exp_indices[init_idx:final_idx])
         )
         init_idx = final_idx
 
@@ -483,7 +477,7 @@ def data_incremental_benchmark(
     drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
     custom_split_strategy: Callable[
-        [ClassificationExperience], Sequence[AvalancheDataset]
+        [ClassificationExperience], Sequence[make_classification_dataset]
     ] = None,
     experience_factory: Callable[
         [ClassificationStream, int], ClassificationExperience
@@ -563,7 +557,7 @@ def data_incremental_benchmark(
 
         stream = getattr(benchmark_instance, f"{stream_name}_stream")
 
-        split_datasets: List[AvalancheDataset] = []
+        split_datasets: List[make_classification_dataset] = []
         split_task_labels: List[Set[int]] = []
 
         exp: ClassificationExperience
@@ -646,14 +640,8 @@ def random_validation_split_strategy(
             )
 
     train_n_instances = len(exp_dataset) - valid_n_instances
-
-    result_train_dataset = AvalancheSubset(
-        exp_dataset, indices=exp_indices[:train_n_instances]
-    )
-    result_valid_dataset = AvalancheSubset(
-        exp_dataset, indices=exp_indices[train_n_instances:]
-    )
-
+    result_train_dataset = exp_dataset.subset(exp_indices[:train_n_instances])
+    result_valid_dataset = exp_dataset.subset(exp_indices[train_n_instances:])
     return result_train_dataset, result_valid_dataset
 
 
@@ -701,20 +689,18 @@ def class_balanced_split_strategy(
         valid_exp_indices.extend(c_indices[:valid_n_instances])
         train_exp_indices.extend(c_indices[valid_n_instances:])
 
-    result_train_dataset = AvalancheSubset(
-        exp_dataset, indices=train_exp_indices
-    )
-    result_valid_dataset = AvalancheSubset(
-        exp_dataset, indices=valid_exp_indices
-    )
+    result_train_dataset = exp_dataset.subset(train_exp_indices)
+    result_valid_dataset = exp_dataset.subset(valid_exp_indices)
     return result_train_dataset, result_valid_dataset
 
 
 def _gen_split(
-    split_generator: Iterable[Tuple[AvalancheDataset, AvalancheDataset]]
+    split_generator: Iterable[
+        Tuple[make_classification_dataset, make_classification_dataset]
+    ]
 ) -> Tuple[
-    Generator[AvalancheDataset, None, None],
-    Generator[AvalancheDataset, None, None],
+    Generator[make_classification_dataset, None, None],
+    Generator[make_classification_dataset, None, None],
 ]:
     """
     Internal utility function to split the train-validation generator
@@ -733,10 +719,13 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience],
+        Tuple[make_classification_dataset, make_classification_dataset],
     ],
     experiences: Iterable[ClassificationExperience],
-) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+) -> Generator[
+    Tuple[make_classification_dataset, make_classification_dataset], None, None
+]:
     """
     Creates a generator operating around the split strategy and the
     experiences stream.
@@ -758,7 +747,8 @@ def benchmark_with_validation_stream(
     input_stream: str = "train",
     output_stream: str = "valid",
     custom_split_strategy: Callable[
-        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience],
+        Tuple[make_classification_dataset, make_classification_dataset],
     ] = None,
     *,
     experience_factory: Callable[

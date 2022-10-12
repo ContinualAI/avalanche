@@ -15,16 +15,20 @@ from typing import (
     Optional,
 )
 
+from avalanche.benchmarks.utils.data import AvalancheDataset
+
 try:
     from lvis import LVIS
     from pycocotools.coco import COCO
     from pycocotools import mask as coco_mask
 except ImportError:
-    raise ModuleNotFoundError("LVIS or PyCocoTools not found, "
-                              "if you want to use detection "
-                              "please install avalanche with the "
-                              "detection dependencies: "
-                              "pip install avalanche-lib[detection]")
+    raise ModuleNotFoundError(
+        "LVIS or PyCocoTools not found, "
+        "if you want to use detection "
+        "please install avalanche with the "
+        "detection dependencies: "
+        "pip install avalanche-lib[detection]"
+    )
 
 from torch import Tensor
 from json import JSONEncoder
@@ -33,9 +37,9 @@ from torch.utils.data import Subset, ConcatDataset
 from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils import (
-    AvalancheSubset,
-    AvalancheConcatDataset,
-    AvalancheDataset,
+    classification_subset,
+    concat_classification_datasets,
+    make_classification_dataset,
 )
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
@@ -432,17 +436,13 @@ def get_detection_api_from_dataset(
         recursion_result = get_detection_api_from_dataset(
             dataset.dataset, supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, AvalancheSubset):
+    elif isinstance(dataset, AvalancheDataset) and len(dataset._datasets) == 1:
         recursion_result = get_detection_api_from_dataset(
-            dataset._original_dataset, supported_types, none_if_not_found=True
+            dataset._datasets[0], supported_types, none_if_not_found=True
         )
-    elif isinstance(dataset, AvalancheDataset):
-        recursion_result = get_detection_api_from_dataset(
-            dataset._dataset, supported_types, none_if_not_found=True
-        )
-    elif isinstance(dataset, (AvalancheConcatDataset, ConcatDataset)):
-        if isinstance(dataset, AvalancheConcatDataset):
-            datasets_list = dataset._dataset_list
+    elif isinstance(dataset, (AvalancheDataset, ConcatDataset)):
+        if isinstance(dataset, AvalancheDataset):
+            datasets_list = dataset._datasets
         else:
             datasets_list = dataset.datasets
 

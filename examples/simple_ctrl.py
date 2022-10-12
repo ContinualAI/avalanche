@@ -98,9 +98,11 @@ def main(args):
     if args.stream == "s_long":
         res = []
         for tid in range(len(train_stream)):
-            res.append(logger.last_metric_results[
-                "Top1_Acc_Stream/eval_phase/test_stream/" f"Task00{tid}"
-            ])
+            res.append(
+                logger.last_metric_results[
+                    "Top1_Acc_Stream/eval_phase/test_stream/" f"Task00{tid}"
+                ]
+            )
         print(f"Average accuracy on S_long : {np.mean(res)}")
     else:
         optimizer = SGD(model_init.parameters(), lr=0.001, momentum=0.9)

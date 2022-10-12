@@ -163,8 +163,6 @@ Benchmarks based on the `Omniglot <https://github.com/brendenlake/omniglot>`_ da
     :toctree: generated
 
     SplitOmniglot
-    PermutedOmniglot
-    RotatedOmniglot
 
 
 OpenLORIS-based benchmarks
@@ -299,7 +297,7 @@ Data Loaders
     GroupBalancedInfiniteDataLoader
 
 
-.. currentmodule:: avalanche.benchmarks.utils.avalanche_dataset
+.. currentmodule:: avalanche.benchmarks.utils
 
 AvalancheDataset
 ............................
@@ -307,6 +305,10 @@ AvalancheDataset
     :toctree: generated
 
     AvalancheDataset
-    AvalancheSubset
-    AvalancheTensorDataset
-    AvalancheConcatDataset
+    make_avalanche_dataset
+    make_classification_dataset
+    classification_subset
+    make_tensor_classification_dataset
+    concat_classification_datasets
+    TaskSet
+    DataAttribute

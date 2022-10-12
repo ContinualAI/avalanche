@@ -28,37 +28,38 @@ jobs:
     name: new environment creation
     runs-on: ubuntu-latest
     container:
-      image: continuumio/anaconda3:latest
+      image: condaforge/mambaforge:latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
         shell: bash -l {0}
     steps:
-      - name: install opencv dependency libs
-        run: |
-          apt-get update
-          apt-get install ffmpeg libsm6 libxext6  -y
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install opencv dependency libs
+        env:
+          DEBIAN_FRONTEND: "noninteractive"
+          TZ: "Etc/UTC"
+        run: |
+          apt-get update &&
+          apt-get install ffmpeg libsm6 libxext6  -y
       - name: install conda environment
         run: |
-          conda create -n avalanche-env python=${{ matrix.python-version }} -c conda-forge
-          conda activate avalanche-env
-          conda install pytorch torchvision cpuonly -c pytorch  -y
-          conda env update --file environment.yml
+          mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
+          conda run -n avalanche-env --no-capture-output mamba install -y -v pytorch torchvision cpuonly -c pytorch &&
+          conda run -n avalanche-env --no-capture-output mamba env update --file environment.yml -v
       - name: python unit test
         id: unittest
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False python -m unittest
-
+          python -m unittest discover tests
       - name: checkout avalanche-docker repo
         if: always()
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'ContinualAI/avalanche-docker'
           ref: master
@@ -66,9 +67,9 @@ jobs:
           token: ${{ secrets.BOT_TOKEN }}
       - name: test failure
         if: failure()
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          conda activate avalanche-env
-          conda env export > failed-environment.yml
+          conda env export > failed-environment.yml &&
           diff avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml failed-environment.yml > diff_fail.txt
       - name: test failure - open an issue
         if: failure()
@@ -90,16 +91,16 @@ jobs:
             })
       - name: test success
         if: success()
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          conda activate avalanche-env
-          rm -f avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml
-          conda env export > $"avalanche-docker/"${{ matrix.python-version }}"/environment-"${{ matrix.python-version }}".yml"
-          cd avalanche-docker
-          git config --local user.email ${{ secrets.BOT_EMAIL }}
-          git config --local user.name ${{ secrets.BOT_NAME }}
-          git pull
-          git add .
-          git commit -m $"Update environment with python "${{ matrix.python-version }} -a || true
+          rm -f avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml &&
+          conda env export > $"avalanche-docker/"${{ matrix.python-version }}"/environment-"${{ matrix.python-version }}".yml" &&
+          cd avalanche-docker &&
+          git config --local user.email ${{ secrets.BOT_EMAIL }} &&
+          git config --local user.name ${{ secrets.BOT_NAME }} &&
+          git pull &&
+          git add . &&
+          git commit -m $"Update environment with python "${{ matrix.python-version }} -a || true &&
           git pull
       - name: Push changes to avalanche-docker
         if: success()

@@ -8,8 +8,8 @@
 # E-mail: jiashi@andrew.cmu.edu, zl279@cornell.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
 ################################################################################
-'''Example: Training and evaluating on CLEAR benchmark (pre-trained features)
-'''
+"""Example: Training and evaluating on CLEAR benchmark (pre-trained features)
+"""
 import os
 import sys
 import json
@@ -56,7 +56,7 @@ MODEL_ROOT.mkdir(parents=True, exist_ok=True)
 # Define hyperparameters/model/scheduler/augmentation
 HPARAM = {
     "batch_size": 512,
-    'num_epoch' : 10,
+    "num_epoch": 10,
     "step_scheduler_decay": 60,
     "scheduler_step": 0.1,
     "start_lr": 1,
@@ -65,9 +65,7 @@ HPARAM = {
 }
 
 # feature size is 2048 for resnet50
-model = torch.nn.Linear(
-    2048, NUM_CLASSES[DATASET_NAME]
-)
+model = torch.nn.Linear(2048, NUM_CLASSES[DATASET_NAME])
 
 
 def make_scheduler(optimizer, step_size, gamma=0.1):
@@ -151,8 +149,7 @@ for index, experience in enumerate(scenario.train_stream):
     print("Current Classes: ", experience.classes_in_this_experience)
     res = cl_strategy.train(experience)
     torch.save(
-        model.state_dict(),
-        str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
+        model.state_dict(), str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
     )
     print("Training completed")
     print(
@@ -166,8 +163,9 @@ accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
 for train_idx in range(num_timestamp):
     for test_idx in range(num_timestamp):
         accuracy_matrix[train_idx][test_idx] = results[train_idx][
-            f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"]
-print('Accuracy_matrix : ')
+            f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"
+        ]
+print("Accuracy_matrix : ")
 print(accuracy_matrix)
 metric = CLEARMetric().get_metrics(accuracy_matrix)
 print(metric)

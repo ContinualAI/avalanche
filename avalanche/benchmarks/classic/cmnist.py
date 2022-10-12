@@ -28,7 +28,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import AvalancheDataset
+from ..utils import make_classification_dataset, DefaultTransformGroups
+from ..utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
     [ToTensor(), Normalize((0.1307,), (0.3081,))]
@@ -75,6 +76,7 @@ def SplitMNIST(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -118,6 +120,10 @@ def SplitMNIST(
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
         randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -146,7 +152,7 @@ def SplitMNIST(
         seed=seed,
         fixed_class_order=fixed_class_order,
         shuffle=shuffle,
-        class_ids_from_zero_in_each_exp=False,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
@@ -224,22 +230,16 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        permutation_transforms = dict(
-            train=(permutation, None), eval=(permutation, None)
+        # Freeze the permutation
+        permuted_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
-        # Freeze the permutation
-        permuted_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=permutation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        permuted_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=permutation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        permuted_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
+        )
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -347,22 +347,16 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        rotation_transforms = dict(
-            train=(rotation, None), eval=(rotation, None)
+        # Freeze the rotation
+        rotated_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
-        # Freeze the rotation
-        rotated_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=rotation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        rotated_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=rotation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        rotated_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
+        )
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)

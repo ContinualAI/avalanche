@@ -89,9 +89,11 @@ def main(args):
         model = as_multitask(model, "classifier")
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     else:
-        raise ValueError("Wrong scenario name. "
-                         "Allowed pmnist, smnist, "
-                         "multitask_smnist.")
+        raise ValueError(
+            "Wrong scenario name. "
+            "Allowed pmnist, smnist, "
+            "multitask_smnist."
+        )
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -106,7 +108,7 @@ def main(args):
         loggers=[interactive_logger, tensorboard_logger],
     )
 
-    if args.ewc_mode == 'separate':
+    if args.ewc_mode == "separate":
         args.decay_factor = None
     # create strategy
     strategy = EWC(

@@ -51,10 +51,11 @@ class StrategyTest(unittest.TestCase):
             criterion,
             train_mb_size=1,
             device=self.device,
-            eval_mb_size=50
+            eval_mb_size=50,
         )
-        ocl_benchmark = OnlineCLScenario(benchmark_streams,
-                                         access_task_boundaries=True)
+        ocl_benchmark = OnlineCLScenario(
+            benchmark_streams, access_task_boundaries=True
+        )
         self.run_strategy_boundaries(ocl_benchmark, strategy)
 
         # Without task boundaries
@@ -65,10 +66,11 @@ class StrategyTest(unittest.TestCase):
             criterion,
             train_mb_size=1,
             device=self.device,
-            eval_mb_size=50
+            eval_mb_size=50,
         )
-        ocl_benchmark = OnlineCLScenario(benchmark_streams,
-                                         access_task_boundaries=False)
+        ocl_benchmark = OnlineCLScenario(
+            benchmark_streams, access_task_boundaries=False
+        )
         self.run_strategy_no_boundaries(ocl_benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False):

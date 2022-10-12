@@ -19,9 +19,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import CIFAR10, default_dataset_location
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    concat_datasets_sequentially,
-)
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose(
@@ -53,6 +51,7 @@ def SplitCIFAR100(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar100_train_transform,
     eval_transform: Optional[Any] = _default_cifar100_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -102,6 +101,10 @@ def SplitCIFAR100(
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
         randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -130,7 +133,7 @@ def SplitCIFAR100(
         fixed_class_order=fixed_class_order,
         shuffle=shuffle,
         per_exp_classes={0: 50} if first_exp_with_half_classes else None,
-        class_ids_from_zero_in_each_exp=False,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
