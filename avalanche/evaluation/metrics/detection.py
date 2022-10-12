@@ -39,7 +39,7 @@ from typing_extensions import Protocol
 from avalanche.benchmarks.utils import (
     classification_subset,
     concat_classification_datasets,
-    SimpleClassificationDataset,
+    make_classification_dataset,
 )
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue

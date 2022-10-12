@@ -20,7 +20,7 @@ except ImportError:
         "`pip install avalanche-lib[extra]`"
     )
 from torchaudio.datasets import SPEECHCOMMANDS
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.datasets import default_dataset_location
 import torch
 
@@ -120,7 +120,7 @@ def SpeechCommands(
         mfcc_preprocessing=mfcc_preprocessing,
     )
     labels = [datapoint[1] for datapoint in dataset]
-    return SimpleClassificationDataset(
+    return make_classification_dataset(
         dataset, collate_fn=speech_commands_collate, targets=labels
     )
 

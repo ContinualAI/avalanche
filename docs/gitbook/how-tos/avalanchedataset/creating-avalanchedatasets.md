@@ -41,14 +41,14 @@ Avalanche exposes 4 classes of *AvalancheDataset*s which map exactly the 4 *Data
 Given a dataset (like MNIST), an *AvalancheDataset* can be instantiated as follows:
 
 ```python
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from torchvision.datasets import MNIST
 
 # Instantiate the MNIST train dataset from torchvision
 mnist_dataset = MNIST('mnist_data', download=True)
 
 # Create the AvalancheDataset
-mnist_avalanche_dataset = SimpleClassificationDataset(mnist_dataset)
+mnist_avalanche_dataset = make_classification_dataset(mnist_dataset)
 ```
 
 Just like any other Dataset, a data point can be obtained using the `x, y = dataset[idx]` syntax. **When obtaining a data point from an AvalancheDataset, an additional third value (the task label) will be returned**:
@@ -107,10 +107,10 @@ print(f'x={x}, y={y}, t={t}')
 **Instead, it is recommended to use the AvalancheTensorDataset** class to get the same result. In this way, you can just skip one intermediate step.
 
 ```python
-from avalanche.benchmarks.utils import TensorClassificationDataset
+from avalanche.benchmarks.utils import make_tensor_classification_dataset
 
 # Create the tensor dataset
-avl_tensor_dataset = TensorClassificationDataset(x_data, y_data)
+avl_tensor_dataset = make_tensor_classification_dataset(x_data, y_data)
 
 # Obtain the first instance from the AvalancheTensorDataset
 x, y, t = avl_tensor_dataset[0]

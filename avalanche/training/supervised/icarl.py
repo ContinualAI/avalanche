@@ -6,7 +6,7 @@ from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import (
     concat_classification_datasets,
-    TensorClassificationDataset,
+    make_tensor_classification_dataset,
     classification_subset,
 )
 from math import ceil
@@ -144,7 +144,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         self, strategy: "SupervisedTemplate", **kwargs
     ):
         if strategy.clock.train_exp_counter != 0:
-            memory = TensorClassificationDataset(
+            memory = make_tensor_classification_dataset(
                 torch.cat(self.x_memory).cpu(),
                 torch.tensor(
                     list(itertools.chain.from_iterable(self.y_memory))

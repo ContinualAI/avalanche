@@ -28,7 +28,7 @@ from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
 from avalanche.benchmarks.utils import (
-    SimpleClassificationDataset,
+    make_classification_dataset,
     classification_subset,
 )
 from avalanche.training.supervised.naive_object_detection import (

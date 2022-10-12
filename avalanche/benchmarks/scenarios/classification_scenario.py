@@ -32,7 +32,7 @@ from avalanche.benchmarks.scenarios.generic_definitions import (
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
@@ -49,9 +49,9 @@ TGenericScenarioStream = TypeVar(
 )
 
 TStreamDataOrigin = Union[
-    SimpleClassificationDataset,
-    Sequence[SimpleClassificationDataset],
-    Tuple[Iterable[SimpleClassificationDataset], int],
+    make_classification_dataset,
+    Sequence[make_classification_dataset],
+    Tuple[Iterable[make_classification_dataset], int],
 ]
 TStreamTaskLabels = Optional[Sequence[Union[int, Set[int]]]]
 TOriginDataset = Optional[Dataset]
@@ -522,7 +522,7 @@ class GenericCLScenario(Generic[TCLExperience]):
             # Extract task labels from the dataset
             task_labels = []
             for i in range(len(exp_data)):
-                exp_dataset: SimpleClassificationDataset = exp_data[i]
+                exp_dataset: make_classification_dataset = exp_data[i]
                 task_labels.append(set(exp_dataset.targets_task_labels))
         else:
             # Standardize task labels structure
@@ -933,7 +933,7 @@ class GenericClassificationExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.dataset: SimpleClassificationDataset = (
+        self.dataset: make_classification_dataset = (
             origin_stream.benchmark.stream_definitions[
                 origin_stream.name
             ].exps_data[current_experience]

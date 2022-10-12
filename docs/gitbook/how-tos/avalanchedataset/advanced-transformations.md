@@ -29,7 +29,7 @@ In the following example, a MNIST dataset is created and then wrapped in an Aval
 ```python
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 mnist_dataset = MNIST('mnist_data', download=True)
 
@@ -51,7 +51,7 @@ transform_groups = {
     'eval': (eval_transformation, eval_target_transformation)
 }
 
-avl_mnist_transform = SimpleClassificationDataset(mnist_dataset, transform_groups=transform_groups)
+avl_mnist_transform = make_classification_dataset(mnist_dataset, transform_groups=transform_groups)
 ```
 
 Of course, one can also just use the `transform` and `target_transform` constructor parameters to set the transformations for both the *train* and the *eval* groups. However, it is recommended to use the approach based on *transform\_groups* (shown in the code above) as it is much more flexible.

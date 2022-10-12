@@ -11,7 +11,7 @@ from pycocotools.coco import COCO
 from torch.utils.data import Subset
 
 from avalanche.benchmarks.utils import (
-    SimpleClassificationDataset,
+    make_classification_dataset,
     classification_subset,
     concat_classification_datasets,
 )

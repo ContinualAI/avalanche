@@ -27,6 +27,8 @@ from typing import List, Any, Sequence, Union, TypeVar, Callable
 
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
+from torch.utils.data import Dataset as TorchDataset
+
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -88,6 +90,14 @@ class AvalancheDataset(FlatData):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
+        if isinstance(datasets, TorchDataset) or isinstance(datasets, AvalancheDataset):
+            warnings.warn(
+                "AvalancheDataset constructor has been changed. "
+                "Please check the documentation for the correct usage. You can"
+                " use `avalanche.benchmarks.utils.make_classification_dataset"
+                "if you need the old behavior.",
+                DeprecationWarning)
+
         # NOTES on implementation:
         # - raw datasets operations are implemented by _FlatData
         # - data attributes are implemented by DataAttribute
@@ -206,7 +216,7 @@ class AvalancheDataset(FlatData):
             "See the documentation for more info."
         )
 
-    def __eq__(self, other: "SimpleAvalancheDataset"):
+    def __eq__(self, other: "make_avalanche_dataset"):
         if not hasattr(other, "_datasets"):
             return False
         eq_datasets = len(self._datasets) == len(other._datasets)
@@ -363,7 +373,7 @@ class AvalancheDataset(FlatData):
         return default_collate
 
 
-def SimpleAvalancheDataset(
+def make_avalanche_dataset(
     dataset: IDataset,
     *,
     data_attributes: List[DataAttribute] = None,
@@ -417,4 +427,7 @@ def _print_transforms(self):
     self._print_nonfrozen_transforms()
 
 
-__all__ = ["SimpleAvalancheDataset"]
+__all__ = [
+    "AvalancheDataset",
+    "make_avalanche_dataset"
+]

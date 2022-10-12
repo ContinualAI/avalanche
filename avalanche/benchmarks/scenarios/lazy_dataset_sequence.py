@@ -12,13 +12,13 @@
 from collections import defaultdict
 from typing import Sequence, Iterable, Dict, Optional, Iterator
 
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
 
 
-class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
+class LazyDatasetSequence(Sequence[make_classification_dataset]):
     """
     A lazily initialized sequence of datasets.
 
@@ -33,11 +33,11 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
 
     def __init__(
         self,
-        experience_generator: Iterable[SimpleClassificationDataset],
+        experience_generator: Iterable[make_classification_dataset],
         stream_length: int,
     ):
         self._exp_source: Optional[
-            Iterable[SimpleClassificationDataset]
+            Iterable[make_classification_dataset]
         ] = experience_generator
         """
         The source of the experiences stream, as an Iterable.
@@ -56,7 +56,7 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
         """
 
         self._loaded_experiences: Dict[
-            int, SimpleClassificationDataset
+            int, make_classification_dataset
         ] = dict()
         """
         The sequence of experiences obtained from the generator.
@@ -68,7 +68,7 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
         """
         try:
             self._exp_generator: Optional[
-                Iterator[SimpleClassificationDataset]
+                Iterator[make_classification_dataset]
             ] = iter(self._exp_source)
         except TypeError as e:
             if callable(self._exp_source):
@@ -114,7 +114,7 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
         """
         return self._stream_length
 
-    def __getitem__(self, exp_idx: int) -> SimpleClassificationDataset:
+    def __getitem__(self, exp_idx: int) -> make_classification_dataset:
         """
         Gets the dataset associated to an experience.
 
@@ -130,7 +130,7 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
 
     def get_experience_if_loaded(
         self, exp_idx: int
-    ) -> Optional[SimpleClassificationDataset]:
+    ) -> Optional[make_classification_dataset]:
         """
         Gets the dataset associated to an experience.
 
@@ -202,7 +202,7 @@ class LazyDatasetSequence(Sequence[SimpleClassificationDataset]):
 
         for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
-                generated_exp: SimpleClassificationDataset = next(
+                generated_exp: make_classification_dataset = next(
                     self._exp_generator
                 )
             except StopIteration:

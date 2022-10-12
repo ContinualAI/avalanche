@@ -7,3 +7,4 @@ from .transform_groups import *
 from .flat_data import *
 from .data_attribute import *
 from .utils import *
+from .deprecated import *

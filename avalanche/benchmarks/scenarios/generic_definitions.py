@@ -42,7 +42,7 @@ except ImportError:
     )
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 
 TCLScenario = TypeVar("TCLScenario", bound="CLScenario")
@@ -90,7 +90,7 @@ class ClassificationExperience(Protocol[TCLScenario, TCLStream]):
     encounter experiences.
     """
 
-    dataset: SimpleClassificationDataset
+    dataset: make_classification_dataset
     """
     The dataset containing the patterns available in this experience.
     """

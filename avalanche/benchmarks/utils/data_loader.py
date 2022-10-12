@@ -21,7 +21,7 @@ import torch
 from torch.utils.data import RandomSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.collate_functions import (
     classification_collate_mbatches_fn,
 )
@@ -51,7 +51,7 @@ class TaskBalancedDataLoader:
 
     def __init__(
         self,
-        data: SimpleClassificationDataset,
+        data: make_classification_dataset,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
@@ -110,7 +110,7 @@ class GroupBalancedDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[SimpleClassificationDataset],
+        datasets: Sequence[make_classification_dataset],
         oversample_small_groups: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
@@ -235,7 +235,7 @@ class GroupBalancedInfiniteDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[SimpleClassificationDataset],
+        datasets: Sequence[make_classification_dataset],
         collate_mbatches=_default_collate_mbatches_fn,
         distributed_sampling: bool = True,
         **kwargs
@@ -303,8 +303,8 @@ class ReplayDataLoader:
 
     def __init__(
         self,
-        data: SimpleClassificationDataset,
-        memory: SimpleClassificationDataset = None,
+        data: make_classification_dataset,
+        memory: make_classification_dataset = None,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,

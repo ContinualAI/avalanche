@@ -3,9 +3,9 @@ import unittest
 import torch
 from torch.utils.data import TensorDataset
 
-from avalanche.benchmarks.utils import TensorClassificationDataset
+from avalanche.benchmarks.utils import make_tensor_classification_dataset
 from avalanche.benchmarks import GenericCLScenario
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 
 class CustomStreamsTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_y = torch.randint(0, 100, (200,))
             tensor_t = torch.randint(0, 5, (200,))
             train_exps.append(
-                SimpleClassificationDataset(
+                make_classification_dataset(
                     TensorDataset(tensor_x, tensor_y),
                     targets=tensor_y,
                     task_labels=tensor_t,
@@ -32,7 +32,7 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_y = torch.randint(0, 100, (150,))
             tensor_t = torch.randint(0, 3, (150,))
             test_exps.append(
-                SimpleClassificationDataset(
+                make_classification_dataset(
                     TensorDataset(tensor_x, tensor_y),
                     targets=tensor_y,
                     task_labels=tensor_t,
@@ -44,14 +44,14 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_y = torch.randint(0, 100, (220,))
             tensor_t = torch.randint(0, 5, (220,))
             valid_exps.append(
-                SimpleClassificationDataset(
+                make_classification_dataset(
                     TensorDataset(tensor_x, tensor_y),
                     targets=tensor_y,
                     task_labels=tensor_t,
                 )
             )
 
-        valid_origin_dataset = SimpleClassificationDataset(
+        valid_origin_dataset = make_classification_dataset(
             TensorDataset(torch.ones(10, 3, 32, 32), torch.zeros(10)),
             targets=torch.zeros(10),
         )
@@ -132,7 +132,7 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_y = torch.randint(0, 100, (200,))
             tensor_t = torch.randint(0, 5, (200,))
             train_exps.append(
-                TensorClassificationDataset(
+                make_tensor_classification_dataset(
                     tensor_x, tensor_y, task_labels=tensor_t
                 )
             )
@@ -142,7 +142,7 @@ class CustomStreamsTests(unittest.TestCase):
             tensor_y = torch.randint(0, 100, (150,))
             tensor_t = torch.randint(0, 5, (150,))
             test_exps.append(
-                TensorClassificationDataset(
+                make_tensor_classification_dataset(
                     tensor_x, tensor_y, task_labels=tensor_t
                 )
             )

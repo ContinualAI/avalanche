@@ -69,7 +69,7 @@ class FlatData(IDataset):
         else:
             return list(range(len(self)))
 
-    def subset(self, indices: list[int]) -> "FlatData":
+    def subset(self, indices: List[int]) -> "FlatData":
         """Subsampling operation.
 
         :param indices: indices of the new samples
@@ -211,7 +211,7 @@ class ConstantSequence:
             raise IndexError()
         return self._constant_value
 
-    def subset(self, indices: list[int]) -> "ConstantSequence":
+    def subset(self, indices: List[int]) -> "ConstantSequence":
         """Subset
 
         :param indices: indices of the new data.

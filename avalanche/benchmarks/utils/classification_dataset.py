@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
-from .data import SimpleAvalancheDataset, AvalancheDataset
+from .data import make_avalanche_dataset, AvalancheDataset
 from .transform_groups import TransformGroups, DefaultTransformGroups
 from .data_attribute import DataAttribute
 from .dataset_utils import (
@@ -78,7 +78,6 @@ TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
 SupportedDataset = Union[
-    SimpleAvalancheDataset,
     IDatasetWithTargets,
     ITensorDataset,
     Subset,
@@ -112,7 +111,7 @@ class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
         return data.with_transforms(self._transform_groups.current_group)
 
 
-def SimpleClassificationDataset(
+def make_classification_dataset(
     dataset: SupportedDataset,
     *,
     transform: XTransform = None,
@@ -490,7 +489,7 @@ def classification_subset(
     )
 
 
-def TensorClassificationDataset(
+def make_tensor_classification_dataset(
     *dataset_tensors: Sequence,
     transform: Callable[[Any], Any] = None,
     target_transform: Callable[[int], int] = None,
@@ -660,7 +659,7 @@ def concat_classification_datasets(
     dds = []
     for dd in datasets:
         if not isinstance(dd, AvalancheDataset):
-            dd = SimpleClassificationDataset(
+            dd = make_classification_dataset(
                 dd,
                 transform=transform,
                 target_transform=target_transform,
@@ -895,7 +894,7 @@ class TaskSet(Mapping):
 
     """
 
-    def __init__(self, data: SimpleClassificationDataset):
+    def __init__(self, data: make_classification_dataset):
         """Constructor.
 
         :param data: original data
@@ -916,9 +915,9 @@ class TaskSet(Mapping):
 
 __all__ = [
     "SupportedDataset",
-    "SimpleClassificationDataset",
+    "make_classification_dataset",
     "classification_subset",
-    "TensorClassificationDataset",
+    "make_tensor_classification_dataset",
     "concat_classification_datasets",
     "TaskSet",
 ]

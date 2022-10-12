@@ -1,4 +1,4 @@
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
 import torch.nn as nn
 from collections import OrderedDict

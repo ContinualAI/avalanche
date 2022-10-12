@@ -14,7 +14,7 @@ from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
 )
 from avalanche.benchmarks.utils import (
     classification_subset,
-    SimpleClassificationDataset,
+    make_classification_dataset,
 )
 from tests.unit_tests_utils import DummyImageDataset
 
@@ -483,7 +483,7 @@ class SITTests(unittest.TestCase):
             train=True,
             download=True,
         )
-        ds = SimpleClassificationDataset(ds, transform=ToTensor())
+        ds = make_classification_dataset(ds, transform=ToTensor())
 
         benchmark = nc_benchmark(
             ds, ds, n_experiences=10, shuffle=True, seed=1234, task_labels=False

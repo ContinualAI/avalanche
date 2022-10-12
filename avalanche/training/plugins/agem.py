@@ -4,7 +4,7 @@ from typing import List
 import torch
 from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -36,7 +36,7 @@ class AGEMPlugin(SupervisedPlugin):
         self.sample_size = int(sample_size)
 
         self.buffers: List[
-            SimpleClassificationDataset
+            make_classification_dataset
         ] = []  # one AvalancheDataset for
         # each experience.
         self.buffer_dataloader = None

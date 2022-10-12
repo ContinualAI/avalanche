@@ -16,7 +16,7 @@ generator. It returns an iterable scenario object
 """
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    SimpleClassificationDataset,
+    make_classification_dataset,
 )
 from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim import (
     EndlessCLSimDataset,
@@ -32,7 +32,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import dataset_benchmark
-from avalanche.benchmarks.utils import SimpleClassificationDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 _default_transform = Compose([ToTensor()])
 
@@ -136,12 +136,12 @@ def EndlessCLSim(
         eval_data.transform = eval_transform
 
         train_datasets.append(
-            SimpleClassificationDataset(
+            make_classification_dataset(
                 dataset=train_data, task_labels=task_order[i]
             )
         )
         eval_datasets.append(
-            SimpleClassificationDataset(
+            make_classification_dataset(
                 dataset=eval_data, task_labels=task_order[i]
             )
         )
