@@ -38,7 +38,7 @@ def main(args):
     )
     # model
     model = SimpleMLP(input_size=32 * 32 * 3, num_classes=10)
-    model = as_multitask(model, 'classifier')
+    model = as_multitask(model, "classifier")
 
     # CL Benchmark Creation
     scenario = SplitCIFAR10(n_experiences=5, return_task_id=True)

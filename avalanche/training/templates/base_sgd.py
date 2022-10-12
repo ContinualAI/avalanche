@@ -121,12 +121,14 @@ class BaseSGDTemplate(BaseTemplate):
 
         self._stop_training = False
 
-    def train(self,
-              experiences: Union[CLExperience,
-                                 ExpSequence],
-              eval_streams: Optional[Sequence[Union[CLExperience,
-                                                    ExpSequence]]] = None,
-              **kwargs):
+    def train(
+        self,
+        experiences: Union[CLExperience, ExpSequence],
+        eval_streams: Optional[
+            Sequence[Union[CLExperience, ExpSequence]]
+        ] = None,
+        **kwargs
+    ):
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 
@@ -152,9 +154,7 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_optimizer()
         super()._before_training_exp(**kwargs)
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams=None, **kwargs
-    ):
+    def _train_exp(self, experience: CLExperience, eval_streams=None, **kwargs):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -395,12 +395,14 @@ class PeriodicEval(SupervisedPlugin):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
-            self._maybe_peval(strategy, strategy.clock.train_exp_epochs,
-                              **kwargs)
+            self._maybe_peval(
+                strategy, strategy.clock.train_exp_epochs, **kwargs
+            )
 
     def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":
-            self._maybe_peval(strategy, strategy.clock.train_exp_iterations,
-                              **kwargs)
+            self._maybe_peval(
+                strategy, strategy.clock.train_exp_iterations, **kwargs
+            )

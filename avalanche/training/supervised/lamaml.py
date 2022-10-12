@@ -9,10 +9,12 @@ from torch.optim import Optimizer
 try:
     import higher
 except ImportError:
-    raise ModuleNotFoundError("higher not found, if you want to use "
-                              "MAML please install avalanche with "
-                              "the extra dependencies: "
-                              "pip install avalanche-lib[extra]")
+    raise ModuleNotFoundError(
+        "higher not found, if you want to use "
+        "MAML please install avalanche with "
+        "the extra dependencies: "
+        "pip install avalanche-lib[extra]"
+    )
 import math
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin

@@ -224,7 +224,7 @@ class EagerCLStream(CLStream[E]):
                 e.origin_stream = self
                 e.current_experience = i
 
-    def __getitem__(self, item) -> Union['EagerCLStream[E]', E]:
+    def __getitem__(self, item) -> Union["EagerCLStream[E]", E]:
         # This check allows CL streams slicing
         if isinstance(item, slice):
             return EagerCLStream(

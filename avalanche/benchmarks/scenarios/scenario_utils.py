@@ -12,7 +12,7 @@
 """
 A set of internal utils used by nc and ni scenario.
 """
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 
 def train_eval_transforms(dataset_train, dataset_test):
@@ -25,7 +25,7 @@ def train_eval_transforms(dataset_train, dataset_test):
     :return: The transformations groups.
     """
 
-    if isinstance(dataset_train, AvalancheDataset):
+    if isinstance(dataset_train, make_classification_dataset):
         train_group = dataset_train.get_transforms("train")
     else:
         train_group = (
@@ -33,7 +33,7 @@ def train_eval_transforms(dataset_train, dataset_test):
             getattr(dataset_train, "target_transform", None),
         )
 
-    if isinstance(dataset_test, AvalancheDataset):
+    if isinstance(dataset_test, make_classification_dataset):
         eval_group = dataset_test.get_transforms("eval")
     else:
         eval_group = (

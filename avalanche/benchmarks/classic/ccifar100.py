@@ -19,9 +19,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import CIFAR10, default_dataset_location
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    concat_datasets_sequentially,
-)
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose(

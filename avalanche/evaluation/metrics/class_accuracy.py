@@ -14,10 +14,16 @@ from collections import defaultdict, OrderedDict
 
 import torch
 from torch import Tensor
-from avalanche.evaluation import Metric, PluginMetric, \
-    _ExtendedGenericPluginMetric, _ExtendedPluginMetricValue
-from avalanche.evaluation.metric_utils import default_metric_name_template, \
-    generic_get_metric_name
+from avalanche.evaluation import (
+    Metric,
+    PluginMetric,
+    _ExtendedGenericPluginMetric,
+    _ExtendedPluginMetricValue,
+)
+from avalanche.evaluation.metric_utils import (
+    default_metric_name_template,
+    generic_get_metric_name,
+)
 from avalanche.evaluation.metrics import Mean
 
 if TYPE_CHECKING:
@@ -49,9 +55,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
     set to 0.
     """
 
-    def __init__(
-            self,
-            classes: Optional[TrackedClassesType] = None):
+    def __init__(self, classes: Optional[TrackedClassesType] = None):
         """
         Creates an instance of the standalone Accuracy metric.
 
@@ -83,8 +87,9 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         If True, newly encountered classes will be tracked.
         """
 
-        self._class_accuracies: Dict[int, Dict[int, Mean]] = \
-            defaultdict(lambda: defaultdict(Mean))
+        self._class_accuracies: Dict[int, Dict[int, Mean]] = defaultdict(
+            lambda: defaultdict(Mean)
+        )
         """
         A dictionary "task_id -> {class_id -> Mean}".
         """
@@ -94,7 +99,8 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
                 # Task-id -> classes dict
                 self.classes = {
                     task_id: self._ensure_int_classes(class_list)
-                    for task_id, class_list in classes.items()}
+                    for task_id, class_list in classes.items()
+                }
             else:
                 # Assume is a plain iterable
                 self.classes = {0: self._ensure_int_classes(classes)}
@@ -104,10 +110,12 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         self.__init_accs_for_known_classes()
 
     @torch.no_grad()
-    def update(self,
-               predicted_y: Tensor,
-               true_y: Tensor,
-               task_labels: Union[int, Tensor]) -> None:
+    def update(
+        self,
+        predicted_y: Tensor,
+        true_y: Tensor,
+        task_labels: Union[int, Tensor],
+    ) -> None:
         """
         Update the running accuracy given the true and predicted labels for each
         class.
@@ -122,7 +130,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         :return: None.
         """
         if len(true_y) != len(predicted_y):
-            raise ValueError('Size mismatch for true_y and predicted_y tensors')
+            raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
         if isinstance(task_labels, Tensor) and len(task_labels) != len(true_y):
             raise ValueError("Size mismatch for true_y and task_labels tensors")
@@ -176,8 +184,9 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
             task_dict = self._class_accuracies[task_label]
             running_class_accuracies[task_label] = OrderedDict()
             for class_id in sorted(task_dict.keys()):
-                running_class_accuracies[task_label][class_id] = \
-                    task_dict[class_id].result()
+                running_class_accuracies[task_label][class_id] = task_dict[
+                    class_id
+                ].result()
 
         return running_class_accuracies
 
@@ -208,20 +217,20 @@ class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
     def __init__(self, reset_at, emit_at, mode, classes=None):
         self._class_accuracy = ClassAccuracy(classes=classes)
         super(ClassAccuracyPluginMetric, self).__init__(
-            self._class_accuracy, reset_at=reset_at, emit_at=emit_at,
-            mode=mode)
+            self._class_accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
 
     def update(self, strategy: "SupervisedTemplate"):
         self._class_accuracy.update(
-            strategy.mb_output,
-            strategy.mb_y,
-            strategy.mb_task_id)
+            strategy.mb_output, strategy.mb_y, strategy.mb_task_id
+        )
 
-    def result(self, strategy: "SupervisedTemplate") -> \
-            List[_ExtendedPluginMetricValue]:
+    def result(
+        self, strategy: "SupervisedTemplate"
+    ) -> List[_ExtendedPluginMetricValue]:
         metric_values = []
         task_accuracies = self._class_accuracy.result()
-        phase_name = "train" if strategy.is_training else 'eval'
+        phase_name = "train" if strategy.is_training else "eval"
         stream_name = strategy.experience.origin_stream.name
         experience_id = strategy.experience.current_experience
 
@@ -235,7 +244,7 @@ class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
                         stream_name=stream_name,
                         task_label=task_id,
                         experience_id=experience_id,
-                        class_id=class_id
+                        class_id=class_id,
                     )
                 )
 
@@ -245,12 +254,12 @@ class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
         m_value_values = vars(m_value)
         add_exp = self._emit_at == "experience"
         if not add_exp:
-            del m_value_values['experience_id']
-        m_value_values['class_id'] = m_value.other_info['class_id']
+            del m_value_values["experience_id"]
+        m_value_values["class_id"] = m_value.other_info["class_id"]
 
         return generic_get_metric_name(
-            default_metric_name_template(m_value_values) + '/{class_id}',
-            m_value_values
+            default_metric_name_template(m_value_values) + "/{class_id}",
+            m_value_values,
         )
 
 
@@ -266,15 +275,17 @@ class MinibatchClassAccuracy(ClassAccuracyPluginMetric):
     If a more coarse-grained logging is needed, consider using
     :class:`EpochClassAccuracy` instead.
     """
+
     def __init__(self, classes=None):
         """
         Creates an instance of the MinibatchClassAccuracy metric.
         """
         super().__init__(
-            reset_at='iteration',
-            emit_at='iteration',
-            mode='train',
-            classes=classes)
+            reset_at="iteration",
+            emit_at="iteration",
+            mode="train",
+            classes=classes,
+        )
 
     def __str__(self):
         return "Top1_ClassAcc_MB"
@@ -290,15 +301,14 @@ class EpochClassAccuracy(ClassAccuracyPluginMetric):
     the overall number of patterns encountered in that epoch (separately
     for each class).
     """
+
     def __init__(self, classes=None):
         """
         Creates an instance of the EpochClassAccuracy metric.
         """
         super().__init__(
-            reset_at='epoch',
-            emit_at='epoch',
-            mode='train',
-            classes=classes)
+            reset_at="epoch", emit_at="epoch", mode="train", classes=classes
+        )
 
     def __str__(self):
         return "Top1_ClassAcc_Epoch"
@@ -314,16 +324,15 @@ class RunningEpochClassAccuracy(ClassAccuracyPluginMetric):
     seen so far in the current epoch (separately for each class).
     The metric resets its state after each training epoch.
     """
+
     def __init__(self, classes=None):
         """
         Creates an instance of the RunningEpochClassAccuracy metric.
         """
 
         super().__init__(
-            reset_at='epoch',
-            emit_at='iteration',
-            mode='train',
-            classes=classes)
+            reset_at="epoch", emit_at="iteration", mode="train", classes=classes
+        )
 
     def __str__(self):
         return "Top1_RunningClassAcc_Epoch"
@@ -337,15 +346,17 @@ class ExperienceClassAccuracy(ClassAccuracyPluginMetric):
 
     This metric only works at eval time.
     """
+
     def __init__(self, classes=None):
         """
         Creates an instance of ExperienceClassAccuracy metric
         """
         super().__init__(
-            reset_at='experience',
-            emit_at='experience',
-            mode='eval',
-            classes=classes)
+            reset_at="experience",
+            emit_at="experience",
+            mode="eval",
+            classes=classes,
+        )
 
     def __str__(self):
         return "Top1_ClassAcc_Exp"
@@ -359,24 +370,28 @@ class StreamClassAccuracy(ClassAccuracyPluginMetric):
 
     This metric only works at eval time.
     """
+
     def __init__(self, classes=None):
         """
         Creates an instance of StreamClassAccuracy metric
         """
         super().__init__(
-            reset_at='stream',
-            emit_at='stream',
-            mode='eval',
-            classes=classes)
+            reset_at="stream", emit_at="stream", mode="eval", classes=classes
+        )
 
     def __str__(self):
         return "Top1_ClassAcc_Stream"
 
 
 def class_accuracy_metrics(
-        *, minibatch=False, epoch=False, epoch_running=False,
-        experience=False, stream=False, classes=None) \
-        -> List[PluginMetric]:
+    *,
+    minibatch=False,
+    epoch=False,
+    epoch_running=False,
+    experience=False,
+    stream=False,
+    classes=None,
+) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -417,12 +432,12 @@ def class_accuracy_metrics(
 
 
 __all__ = [
-    'TrackedClassesType',
-    'ClassAccuracy',
-    'MinibatchClassAccuracy',
-    'EpochClassAccuracy',
-    'RunningEpochClassAccuracy',
-    'ExperienceClassAccuracy',
-    'StreamClassAccuracy',
-    'class_accuracy_metrics'
+    "TrackedClassesType",
+    "ClassAccuracy",
+    "MinibatchClassAccuracy",
+    "EpochClassAccuracy",
+    "RunningEpochClassAccuracy",
+    "ExperienceClassAccuracy",
+    "StreamClassAccuracy",
+    "class_accuracy_metrics",
 ]
