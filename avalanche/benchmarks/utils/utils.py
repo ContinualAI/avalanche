@@ -288,7 +288,12 @@ def concat_datasets(datasets):
     if len(datasets) == 0:
         return AvalancheDataset([])
     res = datasets[0]
+    if not isinstance(res, AvalancheDataset):
+        res = AvalancheDataset([res])
+
     for d in datasets[1:]:
+        if not isinstance(d, AvalancheDataset):
+            d = AvalancheDataset([d])
         res = res.concat(d)
     return res
 

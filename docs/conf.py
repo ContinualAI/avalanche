@@ -25,6 +25,8 @@ import os
 import sys
 
 import pkgutil
+from importlib import import_module
+
 from jinja2.filters import FILTERS
 
 

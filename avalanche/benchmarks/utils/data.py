@@ -90,7 +90,8 @@ class AvalancheDataset(FlatData):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if isinstance(datasets, TorchDataset) or isinstance(datasets, AvalancheDataset):
+        if isinstance(datasets, TorchDataset) or \
+                isinstance(datasets, AvalancheDataset):
             warnings.warn(
                 "AvalancheDataset constructor has been changed. "
                 "Please check the documentation for the correct usage. You can"

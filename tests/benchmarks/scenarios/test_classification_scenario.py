@@ -39,7 +39,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            make_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -47,7 +48,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            make_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         benchmark_instance = dataset_benchmark(
@@ -118,7 +120,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            make_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -126,7 +129,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            make_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         benchmark_instance = dataset_benchmark(
@@ -536,7 +540,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            make_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -544,7 +549,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            make_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         return train_exps, test_exps, other_stream_exps

@@ -3,7 +3,8 @@ from typing import Sequence, Callable, Any, Dict, Tuple, Union, List, Collection
 
 from avalanche.benchmarks.utils import SupportedDataset
 from avalanche.benchmarks.utils.classification_dataset import XTransform, \
-    YTransform, TTargetType, classification_subset, make_tensor_classification_dataset, concat_classification_datasets
+    YTransform, TTargetType, classification_subset, \
+    make_tensor_classification_dataset, concat_classification_datasets
 
 
 def AvalanceDataset():
@@ -25,12 +26,13 @@ def AvalancheSubset(
         task_labels: Union[int, Sequence[int]] = None,
         targets: Sequence[TTargetType] = None,
         collate_fn: Callable[[List], Any] = None
-    ):
+):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
         "Please use `AvalancheDataset` `subset` method to create subsets.`",
         DeprecationWarning)
-    return classification_subset(dataset, indices,
+    return classification_subset(
+        dataset, indices,
         class_mapping=class_mapping,
         transform=transform,
         target_transform=target_transform,
@@ -39,7 +41,7 @@ def AvalancheSubset(
         task_labels=task_labels,
         targets=targets,
         collate_fn=collate_fn
-    )
+        )
 
 
 def AvalancheTensorDataset(
@@ -51,7 +53,7 @@ def AvalancheTensorDataset(
         task_labels: Union[int, Sequence[int]] = None,
         targets: Union[Sequence[TTargetType], int] = None,
         collate_fn: Callable[[List], Any] = None,
-    ):
+):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
         "Please use `avalanche.benchmarks.make_tensor_classification_dataset` "
@@ -81,7 +83,7 @@ def AvalancheConcatDataset(
             Sequence[TTargetType], Sequence[Sequence[TTargetType]]
         ] = None,
         collate_fn: Callable[[List], Any] = None,
-    ):
+):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
         "Please use `AvalancheDataset` `concat` method to concatenate "

@@ -36,7 +36,8 @@ class ImageSamplesTests(unittest.TestCase):
         curr_exp = scenario.train_stream[0]
         for mb in DataLoader(curr_exp.dataset, batch_size=32):
             break
-        curr_dataset = make_tensor_classification_dataset(*mb[:2], targets=mb[1])
+        curr_dataset = make_tensor_classification_dataset(
+            *mb[:2], targets=mb[1])
 
         strategy_mock = MagicMock(
             eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
