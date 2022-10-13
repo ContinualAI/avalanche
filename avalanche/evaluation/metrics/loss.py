@@ -334,6 +334,7 @@ def loss_metrics(
 
 
 __all__ = [
+    "LossMetric",
     "TaskAwareLoss",
     "MinibatchLoss",
     "EpochLoss",

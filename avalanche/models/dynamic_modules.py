@@ -321,6 +321,22 @@ class MultiHeadClassifier(MultiTaskModule):
         au_init = torch.zeros(initial_out_features, dtype=torch.bool)
         self.register_buffer("active_units_T0", au_init)
 
+    @property
+    def active_units(self):
+        res = {}
+        for tid in self.known_train_tasks_labels:
+            mask = getattr(self, f"active_units_T{tid}")
+            au = torch.arange(0, mask.shape[0])[mask].tolist()
+            res[tid] = au
+        return res
+
+    @property
+    def task_masks(self):
+        res = {}
+        for tid in self.known_train_tasks_labels:
+            res[tid] = getattr(self, f"active_units_T{tid}")
+        return res
+
     def adaptation(self, experience: CLExperience):
         """If `dataset` contains new tasks, a new head is initialized.
 
