@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.models import MultiTaskModule
 from avalanche.models import MultiHeadClassifier
 from avalanche.benchmarks.scenarios import CLExperience
@@ -281,10 +281,4 @@ class PNN(MultiTaskModule):
         return self.classifier(x[col_idx], task_label)
 
 
-__all__ = [
-    'PNN',
-    'PNNLayer',
-    'PNNColumn',
-    'MLPAdapter',
-    'LinearAdapter'
-]
+__all__ = ["PNN", "PNNLayer", "PNNColumn", "MLPAdapter", "LinearAdapter"]

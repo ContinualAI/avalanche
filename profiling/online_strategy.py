@@ -85,6 +85,9 @@ def profile_online_naive_lazy_stream(benchmark, device):
 
     experience_0 = benchmark.train_stream[0]
 
+    def load_all_data(data):
+        return next(iter(DataLoader(data, len(data))))
+
     with cProfile.Profile() as pr:
         model = SimpleMLP(num_classes=10).to(device)
         model.train()
@@ -92,7 +95,7 @@ def profile_online_naive_lazy_stream(benchmark, device):
         criterion = torch.nn.CrossEntropyLoss()
 
         for exp in tqdm(fixed_size_experience_split(experience_0, 1)):
-            x, y, _ = exp.dataset[:]
+            x, y, _ = load_all_data(exp.dataset)
             x, y = x.to(device), torch.tensor([y]).to(device)
 
             optimizer.zero_grad()

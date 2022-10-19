@@ -284,7 +284,7 @@ def CLStream51(
         task_labels=[0 for _ in range(num_tasks)],
         complete_test_set_only=scenario == "instance",
         train_transform=train_transform,
-        eval_transform=eval_transform
+        eval_transform=eval_transform,
     )
 
     return benchmark_obj

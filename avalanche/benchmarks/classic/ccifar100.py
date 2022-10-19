@@ -19,9 +19,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import CIFAR10, default_dataset_location
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    concat_datasets_sequentially,
-)
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose(
@@ -167,12 +165,12 @@ def SplitCIFAR110(
     scenario are "Class Incremental", "New Classes", etc. By default,
     an equal amount of classes will be assigned to each experience.
 
-    This generator will apply a task label "0" to all experiences.
+    This generator will apply a task label 0 to all experiences.
 
     The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
-    `dataset` and the associated task label (always "0" for this specific
+    `dataset` and the associated task label (always 0 for this specific
     benchmark).
 
     The benchmark API is quite simple and is uniform across all benchmark

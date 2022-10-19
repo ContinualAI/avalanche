@@ -9,8 +9,17 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import Dict, Union, Iterable, Sequence, Tuple, TYPE_CHECKING,\
-    List, Callable, Any
+from typing import (
+    Dict,
+    Union,
+    Iterable,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    List,
+    Callable,
+    Any,
+)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -282,33 +291,34 @@ def bytes2human(n):
 
 
 def default_metric_name_template(metric_info: Dict[str, Any]):
-    add_task = metric_info.get('task_label', None) is not None
-    add_phase = metric_info.get('phase_name', None) is not None
-    add_experience = metric_info.get('experience_id', None) is not None
-    add_stream = metric_info.get('stream_name', None) is not None
+    add_task = metric_info.get("task_label", None) is not None
+    add_phase = metric_info.get("phase_name", None) is not None
+    add_experience = metric_info.get("experience_id", None) is not None
+    add_stream = metric_info.get("stream_name", None) is not None
 
-    if 'metric_name' not in metric_info:
-        raise RuntimeError('Key metric_name missing from value dictionary.')
+    if "metric_name" not in metric_info:
+        raise RuntimeError("Key metric_name missing from value dictionary.")
 
-    result_template = '{metric_name}/'
+    result_template = "{metric_name}/"
     if add_phase:
-        result_template += '{phase_name}_phase/'
+        result_template += "{phase_name}_phase/"
 
     if add_stream:
-        result_template += '{stream_name}_stream/'
+        result_template += "{stream_name}_stream/"
 
     if add_task:
-        result_template += 'Task{task_label:03}/'
+        result_template += "Task{task_label:03}/"
 
     if add_experience:
-        result_template += 'Exp{experience_id:03}/'
+        result_template += "Exp{experience_id:03}/"
 
     return result_template[:-1]
 
 
 def generic_get_metric_name(
-        value_name_template: Union[str, Callable[[Dict[str, Any]], str]],
-        metric_info: Dict[str, Any]):
+    value_name_template: Union[str, Callable[[Dict[str, Any]], str]],
+    metric_info: Dict[str, Any],
+):
 
     if isinstance(value_name_template, str):
         name_template = value_name_template
@@ -358,12 +368,12 @@ def get_metric_name(
     return generic_get_metric_name(
         default_metric_name_template,
         {
-            'metric_name': str(metric),
-            'task_label': task_label,
-            'phase_name': phase_name,
-            'experience_id': experience_id,
-            'stream_name': stream
-        }
+            "metric_name": str(metric),
+            "task_label": task_label,
+            "phase_name": phase_name,
+            "experience_id": experience_id,
+            "stream_name": stream,
+        },
     )
 
 

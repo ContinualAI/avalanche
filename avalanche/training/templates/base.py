@@ -71,8 +71,9 @@ class BaseTemplate:
     def train(
         self,
         experiences: Union[CLExperience, ExpSequence],
-        eval_streams: Optional[Sequence[Union[CLExperience,
-                                              ExpSequence]]] = None,
+        eval_streams: Optional[
+            Sequence[Union[CLExperience, ExpSequence]]
+        ] = None,
         **kwargs,
     ):
         """Training loop.
@@ -108,9 +109,7 @@ class BaseTemplate:
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams, **kwargs
-    ):
+    def _train_exp(self, experience: CLExperience, eval_streams, **kwargs):
         raise NotImplementedError()
 
     @torch.no_grad()

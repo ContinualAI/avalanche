@@ -162,7 +162,7 @@ class EpochMaxRAM(RAMPluginMetric):
 
     def __init__(self, every=1):
         """Creates an instance of the epoch Max RAM metric.
-        
+
         :param every: seconds after which update the maximum RAM usage.
         """
         super(EpochMaxRAM, self).__init__(
@@ -239,7 +239,7 @@ class StreamMaxRAM(RAMPluginMetric):
 def ram_usage_metrics(
     *, every=1, minibatch=False, epoch=False, experience=False, stream=False
 ) -> List[PluginMetric]:
-    """ Helper method that can be used to obtain the desired set of
+    """Helper method that can be used to obtain the desired set of
     plugin metrics.
 
     :param every: seconds after which update the maximum RAM

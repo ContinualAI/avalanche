@@ -47,7 +47,7 @@ class CORe50Dataset(DownloadableDataset):
 
         """Creates an instance of the CORe50 dataset.
 
-        :param root: root for the datasets data. Defaults to None, which 
+        :param root: root for the datasets data. Defaults to None, which
             means that the default location for 'core50' will be used.
         :param train: train or test split.
         :param transform: eventual transformations to be applied.

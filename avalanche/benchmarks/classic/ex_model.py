@@ -28,9 +28,11 @@ from torchvision.transforms import (
     Resize,
 )
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import LeNet5, SlimResNet18
 from ..datasets import default_dataset_location
-from ..utils import Compose, AvalancheConcatDataset
+from ..utils import concat_classification_datasets
+from torchvision.transforms import Compose
 from avalanche.evaluation.metrics import TaskAwareAccuracy
 from . import SplitCIFAR10, CORe50, SplitMNIST
 from avalanche.benchmarks import ExModelCLScenario, nc_benchmark
@@ -146,8 +148,9 @@ class ExMLMNIST(ExModelCLScenario):
 
         ll = len(benchmark.train_stream)
         base_model = LeNet5(10, 1)
-        experts = _load_expert_models(f"{scenario}_mnist", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_mnist", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 
@@ -205,10 +208,10 @@ class ExMLCoRE50(ExModelCLScenario):
             )
         elif scenario == "joint":
             core50nc = CORe50(scenario="nc")
-            train_cat = AvalancheConcatDataset(
+            train_cat = concat_datasets(
                 [e.dataset for e in core50nc.train_stream]
             )
-            test_cat = AvalancheConcatDataset(
+            test_cat = concat_datasets(
                 [e.dataset for e in core50nc.test_stream]
             )
             benchmark = nc_benchmark(
@@ -223,8 +226,9 @@ class ExMLCoRE50(ExModelCLScenario):
             nn.Dropout(0.2),
             nn.Linear(base_model.last_channel, 50),
         )
-        experts = _load_expert_models(f"{scenario}_core50", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_core50", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 
@@ -266,8 +270,9 @@ class ExMLCIFAR10(ExModelCLScenario):
 
         ll = len(benchmark.train_stream)
         base_model = SlimResNet18(10)
-        experts = _load_expert_models(f"{scenario}_cifar10", base_model,
-                                      run_id, ll)
+        experts = _load_expert_models(
+            f"{scenario}_cifar10", base_model, run_id, ll
+        )
         super().__init__(benchmark, experts)
 
 

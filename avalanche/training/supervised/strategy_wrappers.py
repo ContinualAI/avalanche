@@ -618,7 +618,6 @@ class LwF(SupervisedTemplate):
     """Learning without Forgetting (LwF) strategy.
 
     See LwF plugin for details.
-    This strategy does not use task identities.
     """
 
     def __init__(

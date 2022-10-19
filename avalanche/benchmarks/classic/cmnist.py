@@ -28,7 +28,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import AvalancheDataset
+from ..utils import make_classification_dataset, DefaultTransformGroups
+from ..utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
     [ToTensor(), Normalize((0.1307,), (0.3081,))]
@@ -182,7 +183,7 @@ def PermutedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
@@ -229,22 +230,16 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        permutation_transforms = dict(
-            train=(permutation, None), eval=(permutation, None)
+        # Freeze the permutation
+        permuted_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
-        # Freeze the permutation
-        permuted_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=permutation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        permuted_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=permutation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        permuted_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
+        )
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -286,7 +281,7 @@ def RotatedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
@@ -352,22 +347,16 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        rotation_transforms = dict(
-            train=(rotation, None), eval=(rotation, None)
+        # Freeze the rotation
+        rotated_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
-        # Freeze the rotation
-        rotated_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=rotation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        rotated_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=rotation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        rotated_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
+        )
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)

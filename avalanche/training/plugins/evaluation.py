@@ -44,7 +44,6 @@ class EvaluationPlugin:
             `get_all_metrics` method.
         :param strict_checks: if True, checks that the full evaluation streams
             is used when calling `eval`. An error will be raised otherwise.
-            When False only warnings will be raised.
         """
         super().__init__()
         self.collect_all = collect_all
@@ -186,33 +185,26 @@ class EvaluationPlugin:
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
         self._update_metrics_and_loggers(strategy, "before_eval")
-        msgw = (
-            "Evaluation stream is not equal to the complete test stream. "
-            "This may result in inconsistent metrics. Use at your own risk."
-        )
         msge = (
             "Stream provided to `eval` must be the same of the entire "
             "evaluation stream."
         )
+        if self.strict_checks:
+            curr_stream = strategy.current_eval_stream[0].origin_stream
+            benchmark = curr_stream[0].origin_stream.benchmark
+            full_stream = benchmark.streams[curr_stream.name]
 
-        curr_stream = strategy.current_eval_stream[0].origin_stream
-        benchmark = curr_stream[0].origin_stream.benchmark
-        full_stream = benchmark.streams[curr_stream.name]
-
-        if len(curr_stream) != len(full_stream):
-            if self.strict_checks:
+            if len(curr_stream) != len(full_stream):
                 raise ValueError(msge)
-            else:
-                warnings.warn(msgw)
 
 
 def default_evaluator():
     return EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True,
-                         experience=True, stream=True),
-        loss_metrics(minibatch=False, epoch=True,
-                     experience=True, stream=True),
-        loggers=[InteractiveLogger()]
+        accuracy_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True
+        ),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loggers=[InteractiveLogger()],
     )
 
 

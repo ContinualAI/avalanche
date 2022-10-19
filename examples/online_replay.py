@@ -99,8 +99,9 @@ def main(args):
 
     # CREATE THE STRATEGY INSTANCE (ONLINE-REPLAY)
     storage_policy = ReservoirSamplingBuffer(max_size=100)
-    replay_plugin = ReplayPlugin(mem_size=100, batch_size=1,
-                                 storage_policy=storage_policy)
+    replay_plugin = ReplayPlugin(
+        mem_size=100, batch_size=1, storage_policy=storage_policy
+    )
 
     cl_strategy = OnlineNaive(
         model,
@@ -111,7 +112,7 @@ def main(args):
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
-        plugins=[replay_plugin]
+        plugins=[replay_plugin],
     )
 
     # TRAINING LOOP
@@ -123,13 +124,13 @@ def main(args):
     # ocl_benchmark = OnlineCLScenario(batch_streams)
     for i, exp in enumerate(scenario.train_stream):
         # Create online scenario from experience exp
-        ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
-                                         experiences=exp,
-                                         experience_size=1)
+        ocl_benchmark = OnlineCLScenario(
+            original_streams=batch_streams, experiences=exp, experience_size=1
+        )
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
         results.append(cl_strategy.eval(scenario.test_stream))
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
