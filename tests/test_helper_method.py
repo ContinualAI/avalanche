@@ -56,10 +56,10 @@ class ConversionMethodTests(unittest.TestCase):
         module = as_multitask(module, "classifier")
         module = module.to(self.device)
         new_classifier_weight = torch.clone(
-            module.classifier.classifiers[0].classifier.weight
+            module.classifier.classifiers["0"].classifier.weight
         )
         new_classifier_bias = torch.clone(
-            module.classifier.classifiers[0].classifier.bias
+            module.classifier.classifiers["0"].classifier.bias
         )
         self.assertTrue(
             torch.equal(old_classifier_weight, new_classifier_weight)
