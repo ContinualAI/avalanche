@@ -6,9 +6,9 @@ import torch
 from avalanche.models import MultiTaskModule, avalanche_forward
 from collections import defaultdict
 
+
 class RegularizationMethod:
     """RegularizationMethod implement regularization strategies.
-
     RegularizationMethod is a callable.
     The method `update` is called to update the loss, typically at the end
     of an experience.
