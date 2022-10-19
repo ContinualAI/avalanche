@@ -315,7 +315,7 @@ class MultiHeadClassifier(MultiTaskModule):
         first_head = IncrementalClassifier(
             self.in_features, self.starting_out_features, masking=False
         )
-        self.classifiers[0] = first_head
+        self.classifiers["0"] = first_head
         self.max_class_label = max(self.max_class_label, initial_out_features)
 
         au_init = torch.zeros(initial_out_features, dtype=torch.bool)
@@ -351,6 +351,7 @@ class MultiHeadClassifier(MultiTaskModule):
             task_labels = [task_labels[0]]
 
         for tid in set(task_labels):
+            tid = str(tid)
             # head adaptation
             if tid not in self.classifiers:  # create new head
                 new_head = IncrementalClassifier(
@@ -404,6 +405,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :param task_label:
         :return:
         """
+        task_label = str(task_label)
         out = self.classifiers[task_label](x)
         if self.masking:
             au_name = f"active_units_T{task_label}"
