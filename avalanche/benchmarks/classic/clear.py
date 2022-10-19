@@ -84,7 +84,7 @@ def CLEAR(
     For 'streaming' protocol, train stream is 100% of current task data,
     and test stream is just a duplicate of train stream.
 
-    The task label "0" will be assigned to each experience.
+    The task label 0 will be assigned to each experience.
 
     :param evaluation_protocol: Choose from ['iid', 'streaming']
         if chosen 'iid', then must specify a seed between [0,1,2,3,4];

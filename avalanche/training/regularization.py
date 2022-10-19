@@ -4,11 +4,11 @@ import copy
 import torch
 
 from avalanche.models import MultiTaskModule, avalanche_forward
+from collections import defaultdict
 
 
 class RegularizationMethod:
     """RegularizationMethod implement regularization strategies.
-
     RegularizationMethod is a callable.
     The method `update` is called to update the loss, typically at the end
     of an experience.
@@ -37,13 +37,14 @@ class LearningWithoutForgetting(RegularizationMethod):
         self.alpha = alpha
         self.temperature = temperature
         self.prev_model = None
-        self.expcount = 0  # count number of experiences (used to increase alpha)
-
-        self.prev_classes_by_task = {"0": set()}
+        self.expcount = 0
+        # count number of experiences (used to increase alpha)
+        self.prev_classes_by_task = defaultdict(set)
         """ In Avalanche, targets of different experiences are not ordered. 
         As a result, some units may be allocated even though their 
         corresponding class has never been seen by the model.
-        Knowledge distillation uses only units corresponding to old classes. 
+        Knowledge distillation uses only units corresponding
+        to old classes. 
         """
 
     def _distillation_loss(self, out, prev_out, active_units):
@@ -69,16 +70,16 @@ class LearningWithoutForgetting(RegularizationMethod):
                 # output from previous output heads.
                 with torch.no_grad():
                     y_prev = avalanche_forward(self.prev_model, x, None)
-                y_prev = {str(k): v for k, v in y_prev.items()}
+                y_prev = {k: v for k, v in y_prev.items()}
                 # in a multitask scenario we need to compute the output
                 # from all the heads, so we need to call forward again.
                 # TODO: can we avoid this?
                 y_curr = avalanche_forward(curr_model, x, None)
-                y_curr = {str(k): v for k, v in y_curr.items()}
+                y_curr = {k: v for k, v in y_curr.items()}
             else:  # no task labels. Single task LwF
                 with torch.no_grad():
-                    y_prev = {"0": self.prev_model(x)}
-                y_curr = {"0": out}
+                    y_prev = {0: self.prev_model(x)}
+                y_curr = {0: out}
 
             dist_loss = 0
             for task_id in y_prev.keys():
@@ -95,7 +96,7 @@ class LearningWithoutForgetting(RegularizationMethod):
         Add distillation loss
         """
         alpha = (
-            self.expcount
+            self.alpha[self.expcount]
             if isinstance(self.alpha, (list, tuple))
             else self.alpha
         )
@@ -108,17 +109,19 @@ class LearningWithoutForgetting(RegularizationMethod):
         :param experience: current experience
         :param model: current model
         """
+
         self.expcount += 1
         self.prev_model = copy.deepcopy(model)
         task_ids = experience.dataset.targets_task_labels.uniques
+
         for task_id in task_ids:
             task_data = experience.dataset.task_set[task_id]
             pc = set(task_data.targets.uniques)
 
             if task_id not in self.prev_classes_by_task:
-                self.prev_classes_by_task[str(task_id)] = pc
+                self.prev_classes_by_task[task_id] = pc
             else:
-                self.prev_classes_by_task[str(task_id)] = self.prev_classes_by_task[
+                self.prev_classes_by_task[task_id] = self.prev_classes_by_task[
                     task_id
                 ].union(pc)
 

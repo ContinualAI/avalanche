@@ -67,7 +67,7 @@ def nc_scenario(
     class won't be assigned to more than one experience.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
@@ -238,7 +238,7 @@ def ni_scenario(
     experience will contain patterns belonging to the same classes.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 

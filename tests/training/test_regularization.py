@@ -47,7 +47,7 @@ class TestLwF(unittest.TestCase):
                 # non-zero loss for all the previous heads
                 loss.backward()
                 for tid in lwf.prev_classes_by_task.keys():
-                    head = model.classifier.classifiers[tid]
+                    head = model.classifier.classifiers[str(tid)]
                     weight = head.classifier.weight
                     assert weight.grad is not None
                     assert torch.norm(weight.grad) > 0
