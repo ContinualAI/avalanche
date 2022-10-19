@@ -23,6 +23,7 @@ class LwFPlugin(SupervisedPlugin):
         """
         Add distillation loss
         """
+
         strategy.loss += self.lwf(
             strategy.mb_x, strategy.mb_output, strategy.model)
 

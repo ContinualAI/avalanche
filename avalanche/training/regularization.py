@@ -37,9 +37,10 @@ class LearningWithoutForgetting(RegularizationMethod):
         self.alpha = alpha
         self.temperature = temperature
         self.prev_model = None
-        self.expcount = 0  # count number of experiences (used to increase alpha)
+        self.expcount = 0
+        # count number of experiences (used to increase alpha)
 
-        self.prev_classes_by_task = {"0": set()}
+        self.prev_classes_by_task = {0: set()}
         """ In Avalanche, targets of different experiences are not ordered. 
         As a result, some units may be allocated even though their 
         corresponding class has never been seen by the model.
@@ -69,16 +70,16 @@ class LearningWithoutForgetting(RegularizationMethod):
                 # output from previous output heads.
                 with torch.no_grad():
                     y_prev = avalanche_forward(self.prev_model, x, None)
-                y_prev = {str(k): v for k, v in y_prev.items()}
+                y_prev = {k: v for k, v in y_prev.items()}
                 # in a multitask scenario we need to compute the output
                 # from all the heads, so we need to call forward again.
                 # TODO: can we avoid this?
                 y_curr = avalanche_forward(curr_model, x, None)
-                y_curr = {str(k): v for k, v in y_curr.items()}
+                y_curr = {k: v for k, v in y_curr.items()}
             else:  # no task labels. Single task LwF
                 with torch.no_grad():
-                    y_prev = {"0": self.prev_model(x)}
-                y_curr = {"0": out}
+                    y_prev = {0: self.prev_model(x)}
+                y_curr = {0: out}
 
             dist_loss = 0
             for task_id in y_prev.keys():
@@ -95,7 +96,7 @@ class LearningWithoutForgetting(RegularizationMethod):
         Add distillation loss
         """
         alpha = (
-            self.expcount
+            self.alpha[self.expcount]
             if isinstance(self.alpha, (list, tuple))
             else self.alpha
         )
@@ -116,9 +117,9 @@ class LearningWithoutForgetting(RegularizationMethod):
             pc = set(task_data.targets.uniques)
 
             if task_id not in self.prev_classes_by_task:
-                self.prev_classes_by_task[str(task_id)] = pc
+                self.prev_classes_by_task[task_id] = pc
             else:
-                self.prev_classes_by_task[str(task_id)] = self.prev_classes_by_task[
+                self.prev_classes_by_task[task_id] = self.prev_classes_by_task[
                     task_id
                 ].union(pc)
 
