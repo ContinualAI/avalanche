@@ -183,7 +183,7 @@ def PermutedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
@@ -281,7 +281,7 @@ def RotatedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,

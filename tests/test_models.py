@@ -262,8 +262,8 @@ class DynamicModelsTests(unittest.TestCase):
 
         # head creation
         strategy.train(benchmark.train_stream[0])
-        w_ptr = model.classifier.classifiers["0"].classifier.weight.data_ptr()
-        b_ptr = model.classifier.classifiers["0"].classifier.bias.data_ptr()
+        w_ptr = model.classifier.classifiers[0].classifier.weight.data_ptr()
+        b_ptr = model.classifier.classifiers[0].classifier.bias.data_ptr()
         opt_params_ptrs = [
             w.data_ptr()
             for group in optimizer.param_groups
@@ -275,13 +275,13 @@ class DynamicModelsTests(unittest.TestCase):
         # head update
         strategy.train(benchmark.train_stream[4])
         w_ptr_t0 = model.classifier.classifiers[
-            "0"
+            0
         ].classifier.weight.data_ptr()
-        b_ptr_t0 = model.classifier.classifiers["0"].classifier.bias.data_ptr()
+        b_ptr_t0 = model.classifier.classifiers[0].classifier.bias.data_ptr()
         w_ptr_new = model.classifier.classifiers[
-            "4"
+            4
         ].classifier.weight.data_ptr()
-        b_ptr_new = model.classifier.classifiers["4"].classifier.bias.data_ptr()
+        b_ptr_new = model.classifier.classifiers[4].classifier.bias.data_ptr()
         opt_params_ptrs = [
             w.data_ptr()
             for group in optimizer.param_groups
@@ -319,8 +319,8 @@ class DynamicModelsTests(unittest.TestCase):
         strategy.train(benchmark.train_stream[4])
 
         # create models with fixed head
-        model_t0 = model.classifiers["0"]
-        model_t4 = model.classifiers["4"]
+        model_t0 = model.classifiers[0]
+        model_t4 = model.classifiers[4]
 
         # check head task0
         model.masking = False  # disable masking to check output equality

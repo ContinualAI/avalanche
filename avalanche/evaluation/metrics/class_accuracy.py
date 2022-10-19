@@ -70,7 +70,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         :param classes: The classes to keep track of. If None (default), all
             classes seen are tracked. Otherwise, it can be a dict of classes
             to be tracked (as "task-id" -> "list of class ids") or, if running
-            a task-free benchmark (with only task "0"), a simple list of class
+            a task-free benchmark (with only task 0), a simple list of class
             ids. By passing this parameter, the plot of each class is
             created immediately (with a default value of 0.0) and plots
             will be aligned across all classes. In addition, this can be used to

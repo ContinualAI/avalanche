@@ -4,7 +4,7 @@ import copy
 import torch
 
 from avalanche.models import MultiTaskModule, avalanche_forward
-
+from collections import defaultdict
 
 class RegularizationMethod:
     """RegularizationMethod implement regularization strategies.
@@ -39,12 +39,12 @@ class LearningWithoutForgetting(RegularizationMethod):
         self.prev_model = None
         self.expcount = 0
         # count number of experiences (used to increase alpha)
-
-        self.prev_classes_by_task = {0: set()}
+        self.prev_classes_by_task = defaultdict(set)
         """ In Avalanche, targets of different experiences are not ordered. 
         As a result, some units may be allocated even though their 
         corresponding class has never been seen by the model.
-        Knowledge distillation uses only units corresponding to old classes. 
+        Knowledge distillation uses only units corresponding
+        to old classes. 
         """
 
     def _distillation_loss(self, out, prev_out, active_units):
@@ -109,9 +109,11 @@ class LearningWithoutForgetting(RegularizationMethod):
         :param experience: current experience
         :param model: current model
         """
+
         self.expcount += 1
         self.prev_model = copy.deepcopy(model)
         task_ids = experience.dataset.targets_task_labels.uniques
+
         for task_id in task_ids:
             task_data = experience.dataset.task_set[task_id]
             pc = set(task_data.targets.uniques)

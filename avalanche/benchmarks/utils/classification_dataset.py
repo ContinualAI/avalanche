@@ -154,7 +154,7 @@ def make_classification_dataset(
 
     This dataset will try to inherit the task labels from the input
     dataset. If none are available and none are given via the `task_labels`
-    parameter, each pattern will be assigned a default task label "0".
+    parameter, each pattern will be assigned a default task label 0.
 
     Creates a ``AvalancheDataset`` instance.
 
@@ -187,7 +187,7 @@ def make_classification_dataset(
         task label for all the instances. Defaults to None, which means that
         the dataset will try to obtain the task labels from the original
         dataset. If no task labels could be found, a default task label
-        "0" will be applied to all instances.
+        0 will be applied to all instances.
     :param targets: The label of each pattern. Defaults to None, which
         means that the targets will be retrieved from the dataset (if
         possible).
@@ -410,7 +410,7 @@ def classification_subset(
         that value will be used as the task label for all the instances.
         Defaults to None, which means that the dataset will try to
         obtain the task labels from the original dataset. If no task labels
-        could be found, a default task label "0" will be applied to all
+        could be found, a default task label 0 will be applied to all
         instances.
     :param targets: The label of each pattern. Defaults to None, which
         means that the targets will be retrieved from the dataset (if
@@ -530,7 +530,7 @@ def make_tensor_classification_dataset(
         of ints, one for each pattern in the dataset. Alternatively can be a
         single int value, in which case that value will be used as the task
         label for all the instances. Defaults to None, which means that a
-        default task label "0" will be applied to all patterns.
+        default task label 0 will be applied to all patterns.
     :param targets: The label of each pattern. Defaults to None, which
         means that the targets will be retrieved from the second tensor of
         the dataset. Otherwise, it can be a sequence of values containing
@@ -645,7 +645,7 @@ def concat_classification_datasets(
         in which case that value will be used as the task label for all
         instances. Defaults to None, which means that the dataset will try
         to obtain the task labels from the original datasets. If no task
-        labels could be found for a dataset, a default task label "0" will
+        labels could be found for a dataset, a default task label 0 will
         be applied to all patterns of that dataset.
     :param collate_fn: The function to use when slicing to merge single
         patterns. In the future this function may become the function
