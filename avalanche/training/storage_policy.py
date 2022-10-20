@@ -17,7 +17,7 @@ from avalanche.models import FeatureExtractorBackbone
 from ..benchmarks.utils.utils import concat_datasets
 
 if TYPE_CHECKING:
-    from .templates.supervised import SupervisedTemplate
+    from .templates import SupervisedTemplate
 
 
 class ExemplarsBuffer(ABC):

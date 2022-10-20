@@ -10,7 +10,7 @@ from avalanche.logging import InteractiveLogger
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import BaseLogger
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class EvaluationPlugin:

@@ -19,7 +19,7 @@ from avalanche.benchmarks.scenarios import OnlineCLExperience
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class InteractiveLogger(TextLogger, SupervisedPlugin):
@@ -61,6 +61,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         super().before_training_epoch(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.dataloader)
 
@@ -70,6 +72,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
 

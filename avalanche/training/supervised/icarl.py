@@ -19,7 +19,7 @@ from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 
 
 class ICaRL(SupervisedTemplate):
