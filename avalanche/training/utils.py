@@ -15,7 +15,7 @@ General utility functions for pytorch.
 
 """
 from collections import defaultdict
-from typing import NamedTuple, List, Optional, Tuple, Callable
+from typing import NamedTuple, List, Optional, Tuple, Callable, Union
 
 import torch
 from torch import Tensor
@@ -87,10 +87,8 @@ def zerolike_params_dict(model):
     :param model: a pytorch model
     """
 
-    return [
-        (k, torch.zeros_like(p).to(p.device))
-        for k, p in model.named_parameters()
-    ]
+    return dict([(k, ParamData(k, p.shape, device=p.device))
+                 for k, p in model.named_parameters()])
 
 
 def copy_params_dict(model, copy_grad=False):
@@ -101,11 +99,10 @@ def copy_params_dict(model, copy_grad=False):
     :param model: a pytorch model
     :param copy_grad: if True returns gradients instead of parameter values
     """
-
-    if copy_grad:
-        return [(k, p.grad.data.clone()) for k, p in model.named_parameters()]
-    else:
-        return [(k, p.data.clone()) for k, p in model.named_parameters()]
+    return dict([(k, ParamData(k, p.shape, device=p.device,
+                               init_tensor=p.grad.data.clone()
+                               if copy_grad else p.data.clone()))
+                 for k, p in model.named_parameters()])
 
 
 class LayerAndParameter(NamedTuple):
@@ -318,6 +315,90 @@ def examples_per_class(targets):
     return result
 
 
+class ParamData(object):
+    def __init__(
+            self,
+            name: str, shape: tuple,
+            init_function: Callable[[torch.Size], torch.Tensor] = torch.zeros,
+            init_tensor: Union[torch.Tensor, None] = None,
+            device: str = 'cpu'):
+        """
+        An object that contains a tensor with methods to expand it along
+        a single dimension.
+
+        :param name: data tensor name as a string
+        :param shape: data tensor shape. Must match the `init_tensor` shape,
+            if provided.
+        :param init_function: function used to initialize the data tensor.
+        :param init_tensor: value to be used when creating the object. If None,
+            `init_function` will be used.
+        :param device: pytorch like device specification as a string
+        """
+        assert isinstance(name, str)
+        assert isinstance(shape, (tuple, list))
+        assert (init_tensor is None) or (shape == init_tensor.shape)
+        self.init_function = init_function
+        self.name = name
+        self.shape = torch.Size(shape)
+        self.device = device
+        if init_tensor is not None:
+            self._data: torch.Tensor = init_tensor
+        else:
+            self.reset_like()
+
+    def reset_like(self, shape=None):
+        """
+        Reset the tensor with the shape provided or, otherwise, by
+        using the one most recently provided.
+        """
+        if shape is not None:
+            self.shape = torch.Size(shape)
+        self._data = self.init_function(self.shape).to(self.device)
+
+    def expand(self, new_shape):
+        """
+        Expand the data tensor along one dimension.
+        The shape cannot shrink. It cannot add new dimensions, either.
+        If the shape does not change, this method does nothing.
+        """
+        assert len(new_shape) == len(self.shape), \
+            "Expansion cannot add new dimensions"
+        expanded = False
+        for i, (snew, sold) in enumerate(zip(new_shape, self.shape)):
+            assert snew >= sold, "Shape cannot decrease."
+            if snew > sold:
+                assert not expanded, \
+                    "Expansion cannot occur in more than one dimension."
+                expanded = True
+                exp_idx = i
+
+        if not expanded:
+            return
+
+        old_data = self._data.clone()
+        old_shape_len = self._data.shape[exp_idx]
+        self.reset_like(new_shape)
+        idx = [slice(el) if i != exp_idx else
+               slice(old_shape_len) for i, el in
+               enumerate(new_shape)]
+        self._data[idx] = old_data
+
+    @property
+    def data(self) -> torch.Tensor:
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        assert value.shape == self._data.shape, \
+            "Shape of new value should be the same of old value. " \
+            "Use `expand` method to expand one dimension. " \
+            "Use `reset_like` to reset with a different shape."
+        self._data = value
+
+    def __str__(self):
+        return f"ParamData_{self.name}:{self.shape}:{self._data}"
+
+
 __all__ = [
     "load_all_dataset",
     "zerolike_params_dict",
@@ -334,4 +415,5 @@ __all__ = [
     "unfreeze_everything",
     "freeze_up_to",
     "examples_per_class",
+    "ParamData"
 ]
