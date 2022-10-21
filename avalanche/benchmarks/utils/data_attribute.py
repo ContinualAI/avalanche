@@ -57,6 +57,12 @@ class DataAttribute:
     def __len__(self):
         return len(self.data)
 
+    def __repr__(self):
+        return str(self.data[:])
+
+    def __str__(self):
+        return str(self.data[:])
+
     @property
     def data(self):
         return self._data
