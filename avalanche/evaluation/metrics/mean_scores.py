@@ -32,7 +32,7 @@ except ImportError:
     from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
     from avalanche.evaluation.metric_results import MetricResult
 
 

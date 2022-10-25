@@ -26,8 +26,11 @@ from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.evaluation.metrics import StreamAccuracy, ExperienceAccuracy
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 
-from tests.unit_tests_utils import get_fast_benchmark, get_device, \
-    set_deterministic_run
+from tests.unit_tests_utils import (
+    get_fast_benchmark,
+    get_device,
+    set_deterministic_run,
+)
 
 
 class TestMLP(nn.Module):

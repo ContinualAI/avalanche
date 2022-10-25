@@ -82,7 +82,7 @@ def CORe50(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    The task label "0" will be assigned to each experience.
+    The task label 0 will be assigned to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,

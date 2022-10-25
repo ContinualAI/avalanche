@@ -271,7 +271,7 @@ class EndlessCLSimDataset(DownloadableDataset):
         Endless-Continual-Learning Simulator, including settings of incremental
         classes, decrasing illumination, and shifting weather conditions, as
         described in the paper `A Procedural World Generation Framework for
-        Systematic Evaluation of Continual Learning 
+        Systematic Evaluation of Continual Learning
         <https://arxiv.org/abs/2106.02585>`__.
         Also custom datasets are supported
         when following the same structure. Such can be obtained from the

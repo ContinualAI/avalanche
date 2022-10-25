@@ -169,12 +169,12 @@ def SplitCIFAR110(
     scenario are "Class Incremental", "New Classes", etc. By default,
     an equal amount of classes will be assigned to each experience.
 
-    This generator will apply a task label "0" to all experiences.
+    This generator will apply a task label 0 to all experiences.
 
     The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
-    `dataset` and the associated task label (always "0" for this specific
+    `dataset` and the associated task label (always 0 for this specific
     benchmark).
 
     The benchmark API is quite simple and is uniform across all benchmark

@@ -97,7 +97,7 @@ class GEMPlugin(SupervisedPlugin):
                 curr_pars = p.numel()
                 if p.grad is not None:
                     p.grad.copy_(
-                        v_star[num_pars: num_pars + curr_pars].view(p.size())
+                        v_star[num_pars : num_pars + curr_pars].view(p.size())
                     )
                 num_pars += curr_pars
 
@@ -119,10 +119,12 @@ class GEMPlugin(SupervisedPlugin):
         """
         Update replay memory with patterns from current experience.
         """
-        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") \
-            else None
-        dataloader = DataLoader(dataset, batch_size=batch_size,
-                                collate_fn=collate_fn)
+        collate_fn = (
+            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
+        )
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, collate_fn=collate_fn
+        )
         tot = 0
         for mbatch in dataloader:
             x, y, tid = mbatch[0], mbatch[1], mbatch[-1]
