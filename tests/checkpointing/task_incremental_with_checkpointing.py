@@ -39,6 +39,7 @@ from avalanche.training.plugins import EvaluationPlugin, CWRStarPlugin, \
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
 from avalanche.training.supervised import Naive
+from tests.unit_tests_utils import get_fast_benchmark
 
 
 def main(args):
@@ -68,7 +69,15 @@ def main(args):
         and args.benchmark != 'Stream51'
     input_size = 32*32*3
     # CL Benchmark Creation
-    if args.benchmark == 'SplitMNIST':
+    if args.benchmark == 'TestBenchmark':
+        input_size = 28 * 28 * 1
+        scenario = get_fast_benchmark(
+            use_task_labels=True,
+            n_features=input_size,
+            n_samples_per_class=256,
+            seed=1337
+        )
+    elif args.benchmark == 'SplitMNIST':
         scenario = SplitMNIST(n_experiences=5, return_task_id=True)
         input_size = 28*28*1
     elif args.benchmark == 'SplitFMNIST':
@@ -200,7 +209,7 @@ def main(args):
             optimizer=optimizer,
             criterion=criterion,
             train_mb_size=128,
-            train_epochs=2,
+            train_epochs=1,
             eval_mb_size=128,
             device=device,
             plugins=plugins,

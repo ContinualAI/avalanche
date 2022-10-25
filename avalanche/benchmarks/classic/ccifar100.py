@@ -21,9 +21,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 
 from avalanche.benchmarks.datasets.external_datasets.cifar import \
     get_cifar100_dataset, get_cifar10_dataset
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    concat_datasets_sequentially,
-)
+from avalanche.benchmarks.utils import concat_datasets_sequentially
+
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose(
