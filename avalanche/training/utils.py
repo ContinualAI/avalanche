@@ -346,20 +346,31 @@ class ParamData(object):
         else:
             self.reset_like()
 
-    def reset_like(self, shape=None):
+    def reset_like(self, shape=None, init_function=None):
         """
         Reset the tensor with the shape provided or, otherwise, by
-        using the one most recently provided.
+        using the one most recently provided. The `init_function`,
+        if provided, does not override the default one.
+
+        :param shape: the new shape or None to use the current one
+        :param init_function: init function to use or None to use
+            the default one.
         """
         if shape is not None:
             self.shape = torch.Size(shape)
-        self._data = self.init_function(self.shape).to(self.device)
+        if init_function is None:
+            init_function = self.init_function
+        self._data = init_function(self.shape).to(self.device)
 
     def expand(self, new_shape):
         """
         Expand the data tensor along one dimension.
         The shape cannot shrink. It cannot add new dimensions, either.
         If the shape does not change, this method does nothing.
+
+        :param new_shape: expanded shape
+
+        :return the expanded tensor or the previous tensor
         """
         assert len(new_shape) == len(self.shape), \
             "Expansion cannot add new dimensions"
@@ -372,16 +383,15 @@ class ParamData(object):
                 expanded = True
                 exp_idx = i
 
-        if not expanded:
-            return
-
-        old_data = self._data.clone()
-        old_shape_len = self._data.shape[exp_idx]
-        self.reset_like(new_shape)
-        idx = [slice(el) if i != exp_idx else
-               slice(old_shape_len) for i, el in
-               enumerate(new_shape)]
-        self._data[idx] = old_data
+        if expanded:
+            old_data = self._data.clone()
+            old_shape_len = self._data.shape[exp_idx]
+            self.reset_like(new_shape)
+            idx = [slice(el) if i != exp_idx else
+                   slice(old_shape_len) for i, el in
+                   enumerate(new_shape)]
+            self._data[idx] = old_data
+        return self.data
 
     @property
     def data(self) -> torch.Tensor:
