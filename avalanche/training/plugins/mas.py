@@ -109,13 +109,11 @@ class MASPlugin(SupervisedPlugin):
                     # to be None for all the heads different from the
                     # current one.
                     if param.grad is not None:
-                        importance[name] += param.grad.abs() * len(batch)
+                        importance[name].data += param.grad.abs() * len(batch)
 
         # Normalize importance
-        importance = {
-            name: importance[name] / len(dataloader)
-            for name in importance.keys()
-        }
+        for k in importance.keys():
+            importance[k].data /= len(dataloader)
 
         return importance
 
@@ -139,7 +137,8 @@ class MASPlugin(SupervisedPlugin):
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
                 loss_reg += torch.sum(
-                    self.importance[name] * (param - self.params[name]).pow(2)
+                    self.importance[name].expand(param.shape) *
+                    (param - self.params[name].expand(param.shape)).pow(2)
                 )
 
         # Update loss
@@ -166,7 +165,8 @@ class MASPlugin(SupervisedPlugin):
 
         # Update importance
         for name in self.importance.keys():
-            self.importance[name] = (
-                self.alpha * self.importance[name]
-                + (1 - self.alpha) * curr_importance[name]
+            new_shape = curr_importance[name].data.shape
+            self.importance[name].data = (
+                self.alpha * self.importance[name].expand(new_shape)
+                + (1 - self.alpha) * curr_importance[name].data
             )

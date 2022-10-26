@@ -99,10 +99,14 @@ def copy_params_dict(model, copy_grad=False):
     :param model: a pytorch model
     :param copy_grad: if True returns gradients instead of parameter values
     """
-    return dict([(k, ParamData(k, p.shape, device=p.device,
-                               init_tensor=p.grad.data.clone()
-                               if copy_grad else p.data.clone()))
-                 for k, p in model.named_parameters()])
+    out = {}
+    for k, p in model.named_parameters():
+        if copy_grad and p.grad is None:
+            continue
+        init = p.grad.data.clone() if copy_grad else p.data.clone()
+        out[k] = ParamData(k, p.shape, device=p.device,
+                           init_tensor=init)
+    return out
 
 
 class LayerAndParameter(NamedTuple):
@@ -318,7 +322,7 @@ def examples_per_class(targets):
 class ParamData(object):
     def __init__(
             self,
-            name: str, shape: tuple,
+            name: str, shape: tuple = None,
             init_function: Callable[[torch.Size], torch.Tensor] = torch.zeros,
             init_tensor: Union[torch.Tensor, None] = None,
             device: str = 'cpu'):
@@ -327,19 +331,19 @@ class ParamData(object):
         a single dimension.
 
         :param name: data tensor name as a string
-        :param shape: data tensor shape. Must match the `init_tensor` shape,
-            if provided.
+        :param shape: data tensor shape. Will be set to the `init_tensor`
+            shape, if provided.
         :param init_function: function used to initialize the data tensor.
         :param init_tensor: value to be used when creating the object. If None,
             `init_function` will be used.
         :param device: pytorch like device specification as a string
         """
         assert isinstance(name, str)
-        assert isinstance(shape, (tuple, list))
-        assert (init_tensor is None) or (shape == init_tensor.shape)
+        assert (init_tensor is not None) or (shape is not None)
         self.init_function = init_function
         self.name = name
-        self.shape = torch.Size(shape)
+        self.shape = torch.Size(shape) if shape is not None else \
+            init_tensor.size()
         self.device = device
         if init_tensor is not None:
             self._data: torch.Tensor = init_tensor

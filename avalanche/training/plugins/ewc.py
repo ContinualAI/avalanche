@@ -84,29 +84,26 @@ class EWCPlugin(SupervisedPlugin):
                 for k, cur_param in strategy.model.named_parameters():
                     # new parameters do not count
                     if k not in self.saved_params[experience]:
-                        assert k not in self.importances[experience]
                         continue
-                    assert k in self.importances[experience]
                     saved_param = self.saved_params[experience][k]
                     imp = self.importances[experience][k]
                     new_shape = cur_param.shape
-                    penalty += (imp.expand(new_shape).data *
-                               (cur_param - saved_param.expand(new_shape).data)
-                               .pow(2)).sum()
+                    penalty += (imp.expand(new_shape) *
+                                (cur_param -
+                                 saved_param.expand(new_shape))
+                                .pow(2)).sum()
         elif self.mode == "online":  # may need importance and param expansion
             prev_exp = exp_counter - 1
             for k, cur_param in strategy.model.named_parameters():
                 # new parameters do not count
                 if k not in self.saved_params[prev_exp]:
-                    assert k not in self.importances[prev_exp]
                     continue
-                assert k in self.importances[prev_exp]
                 saved_param = self.saved_params[prev_exp][k]
                 imp = self.importances[prev_exp][k]
                 new_shape = cur_param.shape
-                penalty += (imp.expand(new_shape).data *
-                           (cur_param - saved_param.expand(new_shape).data)
-                           .pow(2)).sum()
+                penalty += (imp.expand(new_shape) *
+                            (cur_param - saved_param.expand(new_shape))
+                            .pow(2)).sum()
         else:
             raise ValueError("Wrong EWC mode.")
 
@@ -209,9 +206,8 @@ class EWCPlugin(SupervisedPlugin):
                 # manage expansion of existing layers
                 self.importances[t][k1] = ParamData(
                     f'imp_{k1}', curr_imp.shape,
-                    init_tensor=self.decay_factor *
-                                old_imp.expand(curr_imp.shape).data +
-                                curr_imp.data,
+                    init_tensor=self.decay_factor * old_imp.expand(
+                        curr_imp.shape) + curr_imp.data,
                     device=curr_imp.device)
 
             # clear previous parameter importances
