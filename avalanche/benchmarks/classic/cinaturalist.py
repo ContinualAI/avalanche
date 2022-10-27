@@ -51,6 +51,7 @@ def SplitInaturalist(
     return_task_id=False,
     download=False,
     seed=0,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_train_transform,
     eval_transform: Optional[Any] = _default_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -105,6 +106,10 @@ def SplitInaturalist(
         experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -152,7 +157,7 @@ def SplitInaturalist(
         n_experiences=len(super_categories),
         task_labels=return_task_id,
         seed=seed,
-        class_ids_from_zero_in_each_exp=False,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )

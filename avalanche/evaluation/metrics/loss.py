@@ -169,9 +169,11 @@ class LossPluginMetric(GenericPluginMetric[float]):
 
     def update(self, strategy):
         if self.split_by_task:
-            self._loss.update(loss=strategy.loss,
-                              patterns=len(strategy.mb_y),
-                              task_label=strategy.mb_task_id)
+            self._loss.update(
+                loss=strategy.loss,
+                patterns=len(strategy.mb_y),
+                task_label=strategy.mb_task_id,
+            )
         else:
             self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
 
@@ -332,6 +334,7 @@ def loss_metrics(
 
 
 __all__ = [
+    "LossMetric",
     "TaskAwareLoss",
     "MinibatchLoss",
     "EpochLoss",

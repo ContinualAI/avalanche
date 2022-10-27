@@ -17,9 +17,10 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.supervised import Naive
@@ -60,7 +61,12 @@ class DataLoaderTests(unittest.TestCase):
     def test_basic(self):
         benchmark = get_fast_benchmark()
         ds = [el.dataset for el in benchmark.train_stream]
-        data = AvalancheConcatDataset(ds)
+        data = concat_datasets(ds)
+
+        dl = DataLoader(data)
+        for el in dl:
+            pass
+
         dl = TaskBalancedDataLoader(data)
         for el in dl:
             pass
@@ -122,7 +128,7 @@ class DataLoaderTests(unittest.TestCase):
             for mini_batch in dataloader:
                 mb_task_labels = mini_batch[-1]
                 lengths = []
-                for task_id in adapted_dataset.task_set:
+                for task_id in adapted_dataset.targets_task_labels.val_to_idx:
                     len_task = (mb_task_labels == task_id).sum()
                     lengths.append(len_task)
                 if sum(lengths) == batch_size:

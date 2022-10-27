@@ -13,7 +13,7 @@ from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import get_layers_and_params
 
 if TYPE_CHECKING:
-    from ..templates.supervised import SupervisedTemplate
+    from ..templates import SupervisedTemplate
 
 SynDataType = Dict[str, Dict[str, Tensor]]
 
@@ -59,12 +59,6 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
         """
 
         super().__init__()
-
-        warnings.warn(
-            "The Synaptic Intelligence plugin is in an alpha stage "
-            "and is not perfectly aligned with the paper "
-            "implementation. Please use at your own risk!"
-        )
 
         if excluded_parameters is None:
             excluded_parameters = []
