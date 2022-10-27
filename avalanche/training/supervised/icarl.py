@@ -247,19 +247,21 @@ class _ICaRLPlugin(SupervisedPlugin):
                 dataset, torch.where(targets == new_classes[iter_dico])[0]
             )
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
-            class_patterns, _, _ = next(
-                iter(
-                    DataLoader(
-                        cd.eval(), collate_fn=collate_fn, batch_size=len(cd)
-                    )
-                )
-            )
-            class_patterns = class_patterns.to(strategy.device)
 
-            with torch.no_grad():
-                mapped_prototypes = strategy.model.feature_extractor(
-                    class_patterns
-                ).detach()
+            eval_dataloader = DataLoader(cd.eval(), collate_fn=collate_fn, batch_size=strategy.eval_mb_size)
+
+            class_patterns = []
+            mapped_prototypes = []
+            for idx, (class_pt, _, _) in enumerate(eval_dataloader):
+                class_pt = class_pt.to(strategy.device)
+                class_patterns.append(class_pt)
+                with torch.no_grad():
+                    mapped_pttp = strategy.model.feature_extractor(class_pt).detach()
+                mapped_prototypes.append(mapped_pttp)
+
+            class_patterns = torch.cat(class_patterns, dim=0)
+            mapped_prototypes = torch.cat(mapped_prototypes, dim=0)
+
             D = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
 
