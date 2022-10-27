@@ -334,12 +334,17 @@ class ParamData(object):
         :param shape: data tensor shape. Will be set to the `init_tensor`
             shape, if provided.
         :param init_function: function used to initialize the data tensor.
+            If `init_tensor` is provided, `init_function` will only be used
+            on subsequent calls of `reset_like` method.
         :param init_tensor: value to be used when creating the object. If None,
             `init_function` will be used.
         :param device: pytorch like device specification as a string
         """
         assert isinstance(name, str)
         assert (init_tensor is not None) or (shape is not None)
+        if init_tensor is not None and shape is not None:
+            assert init_tensor.shape == shape
+
         self.init_function = init_function
         self.name = name
         self.shape = torch.Size(shape) if shape is not None else \
@@ -366,13 +371,15 @@ class ParamData(object):
             init_function = self.init_function
         self._data = init_function(self.shape).to(self.device)
 
-    def expand(self, new_shape):
+    def expand(self, new_shape, padding_fn=torch.zeros):
         """
         Expand the data tensor along one dimension.
         The shape cannot shrink. It cannot add new dimensions, either.
         If the shape does not change, this method does nothing.
 
         :param new_shape: expanded shape
+        :param padding_fn: function used to create the padding
+            around the expanded tensor.
 
         :return the expanded tensor or the previous tensor
         """
@@ -390,7 +397,7 @@ class ParamData(object):
         if expanded:
             old_data = self._data.clone()
             old_shape_len = self._data.shape[exp_idx]
-            self.reset_like(new_shape)
+            self.reset_like(new_shape, init_function=padding_fn)
             idx = [slice(el) if i != exp_idx else
                    slice(old_shape_len) for i, el in
                    enumerate(new_shape)]

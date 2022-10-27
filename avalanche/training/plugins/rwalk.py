@@ -109,6 +109,7 @@ class RWalkPlugin(SupervisedPlugin):
             old_p = self.iter_params[k]
             p_grad = self.iter_grad[k]
             shape = new_p.shape
+            self.checkpoint_loss[k].expand(shape)
             self.checkpoint_loss[k].data -= p_grad.expand(
                 shape) * (new_p - old_p.expand(shape))
 
@@ -150,6 +151,7 @@ class RWalkPlugin(SupervisedPlugin):
 
             shape = new_p.shape
             eps = torch.finfo(loss.data.dtype).eps
+            self.checkpoint_scores[k].expand(shape)
             self.checkpoint_scores[k].data += loss.data / \
                 (0.5 * imp.expand(shape) * (new_p - old_p.expand(shape))
                  .pow(2) + eps)
