@@ -248,7 +248,10 @@ class _ICaRLPlugin(SupervisedPlugin):
             )
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
 
-            eval_dataloader = DataLoader(cd.eval(), collate_fn=collate_fn, batch_size=strategy.eval_mb_size)
+            eval_dataloader = DataLoader(
+                cd.eval(), collate_fn=collate_fn,
+                batch_size=strategy.eval_mb_size
+            )
 
             class_patterns = []
             mapped_prototypes = []
@@ -256,7 +259,10 @@ class _ICaRLPlugin(SupervisedPlugin):
                 class_pt = class_pt.to(strategy.device)
                 class_patterns.append(class_pt)
                 with torch.no_grad():
-                    mapped_pttp = strategy.model.feature_extractor(class_pt).detach()
+                    mapped_pttp = (
+                        strategy.model.feature_extractor(class_pt)
+                        .detach()
+                    )
                 mapped_prototypes.append(mapped_pttp)
 
             class_patterns = torch.cat(class_patterns, dim=0)
