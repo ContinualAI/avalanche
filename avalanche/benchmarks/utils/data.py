@@ -254,14 +254,16 @@ class AvalancheDataset(FlatData):
         return element
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        elem = list(
-            self._getitem_recursive_call(
-                idx, self._transform_groups.current_group
-            )
-        )
+        elem = self._getitem_recursive_call(idx, self._transform_groups.current_group)
         for da in self._data_attributes.values():
             if da.use_in_getitem:
-                elem.append(da[idx])
+                if isinstance(elem, dict):
+                    elem[da.name] = da[idx]
+                elif isinstance(elem, tuple):
+                    elem = list(elem)
+                    elem.append(da[idx])
+                else:
+                    elem.append(da[idx])
         return elem
 
     def train(self):

@@ -171,7 +171,7 @@ class FlatData(IDataset):
                 idx = idx
             else:
                 idx = idx - self._cumulative_sizes[dataset_idx - 1]
-        return dataset_idx, idx
+        return dataset_idx, int(idx)
 
     def __getitem__(self, idx):
         dataset_idx, idx = self._get_idx(idx)
