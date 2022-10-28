@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 
 import torch
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
 if TYPE_CHECKING:
-    from ..templates.supervised import SupervisedTemplate
+    from ..templates import SupervisedTemplate
 
 
 class GSS_greedyPlugin(SupervisedPlugin):
@@ -168,7 +168,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
         temp_y_tensors = self.ext_mem_list_y.to("cpu")
 
         memory = list(zip(temp_x_tensors, temp_y_tensors))
-        memory = AvalancheDataset(memory, targets=temp_y_tensors)
+        memory = make_classification_dataset(memory, targets=temp_y_tensors)
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,

@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class ForwardTransfer(Metric[Union[float, None, Dict[int, float]]]):

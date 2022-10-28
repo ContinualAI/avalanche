@@ -19,8 +19,14 @@ class MLP(nn.Module):
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3,
-                     stride=stride, padding=1, bias=False)
+    return nn.Conv2d(
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False,
+    )
 
 
 class BasicBlock(nn.Module):
@@ -36,9 +42,14 @@ class BasicBlock(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1,
-                          stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(
+                    in_planes,
+                    self.expansion * planes,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
+                nn.BatchNorm2d(self.expansion * planes),
             )
 
     def forward(self, x):
@@ -50,7 +61,6 @@ class BasicBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-
     def __init__(self, block, num_blocks, num_classes, nf):
         super(ResNet, self).__init__()
         self.in_planes = nf
@@ -104,8 +114,9 @@ class MTSlimResNet18(MultiTaskModule, DynamicModule):
         self.layer2 = self._make_layer(block, nf * 2, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
-        self.linear = MultiHeadClassifier(nf * 8 * BasicBlock.expansion,
-                                          nclasses)
+        self.linear = MultiHeadClassifier(
+            nf * 8 * BasicBlock.expansion, nclasses
+        )
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)

@@ -9,9 +9,7 @@ from avalanche.benchmarks import (
     GenericClassificationExperience,
     GenericCLScenario,
 )
-from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset
-)
+from avalanche.benchmarks.utils import make_tensor_classification_dataset
 
 
 class GenericCLScenarioTests(unittest.TestCase):
@@ -22,14 +20,18 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         test_exps = []
@@ -37,7 +39,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            AvalancheTensorDataset(test_x, test_y, task_labels=test_t)
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -45,7 +48,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            AvalancheTensorDataset(other_x, other_y, task_labels=other_t)
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         benchmark_instance = dataset_benchmark(
@@ -97,14 +101,18 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(tensor_x, tensor_y, task_labels=tensor_t)
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         test_exps = []
@@ -112,7 +120,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            AvalancheTensorDataset(test_x, test_y, task_labels=test_t)
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -120,7 +129,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            AvalancheTensorDataset(other_x, other_y, task_labels=other_t)
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         benchmark_instance = dataset_benchmark(
@@ -511,10 +521,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(
-                tensor_x,
-                tensor_y,
-                task_labels=tensor_t
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
             )
         )
 
@@ -522,10 +530,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            AvalancheTensorDataset(
-                tensor_x,
-                tensor_y,
-                task_labels=tensor_t
+            make_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
             )
         )
 
@@ -534,11 +540,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            AvalancheTensorDataset(
-                test_x,
-                test_y,
-                task_labels=test_t
-            )
+            make_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -546,11 +549,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            AvalancheTensorDataset(
-                other_x,
-                other_y,
-                task_labels=other_t
-            )
+            make_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t)
         )
 
         return train_exps, test_exps, other_stream_exps

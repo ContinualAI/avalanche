@@ -119,6 +119,8 @@ Loss Functions
     :toctree: generated
 
     ICaRLLossPlugin
+    RegularizationMethod
+    LearningWithoutForgetting
 
 
 Training Plugins

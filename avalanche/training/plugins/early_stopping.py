@@ -31,7 +31,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         metric_name: str = "Top1_Acc_Stream",
         mode: str = "max",
         peval_mode: str = "epoch",
-        margin: float = .0,
+        margin: float = 0.0,
     ):
         """Init.
 
@@ -46,9 +46,9 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
             early stopping should happen after `patience`
             epochs or iterations (Default='epoch').
-        :param margin: a minimal margin of improvements required to be 
-            considered best than a previous one. It should be an float, the 
-            default value is 0. That means that any improvement is considered 
+        :param margin: a minimal margin of improvements required to be
+            considered best than a previous one. It should be an float, the
+            default value is 0. That means that any improvement is considered
             better.
         """
         super().__init__()
@@ -123,7 +123,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
             if self.operator(float(val_acc - self.best_val), self.margin):
                 self.best_step = self._get_strategy_counter(strategy)
                 self.best_val = val_acc
-        
+
         return self.best_val
 
     def _get_strategy_counter(self, strategy):

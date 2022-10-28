@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cuda",
         type=int,
-        default=0,
+        default=-1,
         help="Specify GPU id to use. Use CPU if -1.",
     )
     args = parser.parse_args()

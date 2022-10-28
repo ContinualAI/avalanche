@@ -24,11 +24,11 @@ class EWCPlugin(SupervisedPlugin):
     """
 
     def __init__(
-            self,
-            ewc_lambda,
-            mode="separate",
-            decay_factor=None,
-            keep_importance_data=False,
+        self,
+        ewc_lambda,
+        mode="separate",
+        decay_factor=None,
+        keep_importance_data=False,
     ):
         """
         :param ewc_lambda: hyperparameter to weigh the penalty inside the total
@@ -48,13 +48,13 @@ class EWCPlugin(SupervisedPlugin):
 
         super().__init__()
         assert (decay_factor is None) or (
-                mode == "online"
+            mode == "online"
         ), "You need to set `online` mode to use `decay_factor`."
         assert (decay_factor is not None) or (
-                mode != "online"
+            mode != "online"
         ), "You need to set `decay_factor` to use the `online` mode."
         assert (
-                mode == "separate" or mode == "online"
+            mode == "separate" or mode == "online"
         ), "Mode must be separate or online."
 
         self.ewc_lambda = ewc_lambda
@@ -82,9 +82,9 @@ class EWCPlugin(SupervisedPlugin):
         if self.mode == "separate":
             for experience in range(exp_counter):
                 for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                        strategy.model.named_parameters(),
-                        self.saved_params[experience],
-                        self.importances[experience],
+                    strategy.model.named_parameters(),
+                    self.saved_params[experience],
+                    self.importances[experience],
                 ):
                     # dynamic models may add new units
                     # new units are ignored by the regularization
@@ -94,9 +94,9 @@ class EWCPlugin(SupervisedPlugin):
         elif self.mode == "online":
             prev_exp = exp_counter - 1
             for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                    strategy.model.named_parameters(),
-                    self.saved_params[prev_exp],
-                    self.importances[prev_exp],
+                strategy.model.named_parameters(),
+                self.saved_params[prev_exp],
+                self.importances[prev_exp],
             ):
                 # dynamic models may add new units
                 # new units are ignored by the regularization
@@ -128,7 +128,7 @@ class EWCPlugin(SupervisedPlugin):
             del self.saved_params[exp_counter - 1]
 
     def compute_importances(
-            self, model, criterion, optimizer, dataset, device, batch_size
+        self, model, criterion, optimizer, dataset, device, batch_size
     ):
         """
         Compute EWC importance matrix for each parameter
@@ -151,10 +151,12 @@ class EWCPlugin(SupervisedPlugin):
 
         # list of list
         importances = zerolike_params_dict(model)
-        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") \
-            else None
-        dataloader = DataLoader(dataset, batch_size=batch_size,
-                                collate_fn=collate_fn)
+        collate_fn = (
+            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
+        )
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, collate_fn=collate_fn
+        )
         for i, batch in enumerate(dataloader):
             # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]
@@ -166,7 +168,7 @@ class EWCPlugin(SupervisedPlugin):
             loss.backward()
 
             for (k1, p), (k2, imp) in zip(
-                    model.named_parameters(), importances
+                model.named_parameters(), importances
             ):
                 assert k1 == k2
                 if p.grad is not None:
@@ -189,8 +191,9 @@ class EWCPlugin(SupervisedPlugin):
             self.importances[t] = importances
         elif self.mode == "online":
             for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
-                    self.importances[t - 1], importances,
-                    fillvalue=(None, None),
+                self.importances[t - 1],
+                importances,
+                fillvalue=(None, None),
             ):
                 # Add new module importances to the importances value (New head)
                 if k1 is None:
