@@ -1261,10 +1261,10 @@ class BiC(SupervisedTemplate):
         else:
             plugins.append(bic)
 
-        if multihead:
-            model = BiCAdapterMH(model)
-        else:
-            model = BiCAdapter(model)
+        # if multihead:
+        #     model = BiCAdapterMH(model)
+        # else:
+        model = BiCAdapter(model)
 
         super().__init__(
             model,

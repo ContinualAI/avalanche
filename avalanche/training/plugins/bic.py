@@ -12,7 +12,7 @@ from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-
+from avalanche.models.bic_model import BiasLayer
 
 _default_cifar100_train_transform = transforms.Compose(
     [
@@ -76,6 +76,8 @@ class BiCPlugin(SupervisedPlugin):
         self.train_data = {}
         self.val_data = {}
 
+        self.bias_layer = {}
+
         self.model_old = None
 
         self.task_balanced_dataloader = False
@@ -98,7 +100,9 @@ class BiCPlugin(SupervisedPlugin):
         if strategy.experience.current_experience > 0  and isinstance(strategy.model, MultiTaskModule):
             strategy.model.adaptation(strategy.experience)
 
-        strategy.model.add_bias_layer(strategy.device, cl_idxs.keys())
+        # strategy.model.add_bias_layer(strategy.device, cl_idxs.keys())
+        if task_id not in self.bias_layer:
+            self.bias_layer[task_id] = BiasLayer(strategy.device, cl_idxs.keys())
 
         self.seen_classes.update(cl_idxs.keys())
         num_per_class = self.mem_size // len(self.seen_classes)
@@ -183,6 +187,10 @@ class BiCPlugin(SupervisedPlugin):
             shuffle=shuffle,
         )
 
+    def after_forward(self, strategy, **kwargs):
+        # Here we multiple the bias, we dont need the model
+        pass
+
     def before_backward(self, strategy, **kwargs):
         t = strategy.experience.current_experience
 
@@ -247,7 +255,7 @@ class BiCPlugin(SupervisedPlugin):
                                 num_workers=4)
 
             bic_optimizer = torch.optim.SGD(
-                                strategy.model.bias_layers[t].parameters(), 
+                               self.bias_layer[t].parameters(), 
                                 lr=self.lr, momentum=0.9)
 
             scheduler = MultiStepLR(bic_optimizer, milestones=[50,100, 150], 
@@ -286,7 +294,7 @@ class BiCPlugin(SupervisedPlugin):
                         t_loss += loss.item() * x.size(0)
                         total += x.size(0)
 
-                    loss += 0.1 * ((strategy.model.bias_layers[t].beta[0] 
+                    loss += 0.1 * ((self.bias_layer[t].beta[0] 
                                     ** 2) / 2)
 
                     bic_optimizer.zero_grad()
@@ -302,17 +310,6 @@ class BiCPlugin(SupervisedPlugin):
     def cross_entropy(self, outputs, targets, exp=1.0, 
                       eps=1e-5):
         """Calculates cross-entropy with temperature scaling"""
-        # out = torch.nn.functional.softmax(outputs, dim=1)
-        # tar = torch.nn.functional.softmax(targets, dim=1)
-        # if exp != 1:
-        #     out = out.pow(exp)
-        #     out = out / out.sum(1).view(-1, 1).expand_as(out)
-        #     tar = tar.pow(exp)
-        #     tar = tar / tar.sum(1).view(-1, 1).expand_as(tar)
-        # out = out + eps / out.size(1)
-        # out = out / out.sum(1).view(-1, 1).expand_as(out)
-        # ce = -(tar * out.log()).sum(1)
-        # ce = ce.mean()
         logp = torch.nn.functional.log_softmax(outputs/self.T, dim=1)
         pre_p = torch.nn.functional.softmax(targets/self.T, dim=1)
         return -torch.mean(torch.sum(pre_p * logp, dim=1)) * self.T * self.T

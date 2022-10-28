@@ -12,8 +12,8 @@ class BiCAdapter(torch.nn.Module):
         self.model = model
         self.bias_layers = []
 
-    def add_bias_layer(self, device, cls):
-        self.bias_layers.append(BiasLayer(device, cls, False))
+    def add_bias_layer(self, device, clss):
+        self.bias_layers.append(BiasLayer(device, clss, False))
     
     def forward(self, x):
         out = self.model(x)
@@ -71,9 +71,9 @@ class BiasLayer(torch.nn.Module):
         self.alpha = torch.nn.Parameter(torch.ones(1, device=device))
         self.beta = torch.nn.Parameter(torch.zeros(1, device=device))
 
-        self.cls = torch.Tensor(list(cls)).long().to(device)
-        self.not_cls = None
-        self.device = device
+        self.clss = torch.Tensor(list(clss)).long().to(device)
+        self.not_clss = None
+        # self.device = device
         self.task_incremental = task_incremental
 
     def forward(self, x):
@@ -81,11 +81,11 @@ class BiasLayer(torch.nn.Module):
             return self.alpha * x + self.beta
         else:
             tmp = torch.zeros_like(x)
-            tmp[:, self.cls] += x[:, self.cls] * self.alpha + self.beta
+            tmp[:, self.clss] += x[:, self.clss] * self.alpha + self.beta
 
-            if self.not_cls is None:
-                self.not_cls = torch.Tensor([i for i in range(x.size(1)) if i not in self.cls]).long()
+            if self.not_clss is None:
+                self.not_clss = torch.Tensor([i for i in range(x.size(1)) if i not in self.clss]).long()
                 
-            tmp[:, self.not_cls] += x[:, self.not_cls]
+            tmp[:, self.not_clss] += x[:, self.not_clss]
 
             return tmp
