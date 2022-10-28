@@ -9,7 +9,7 @@ from avalanche.evaluation.metrics import (
     accuracy_metrics,
     loss_metrics,
 )
-from avalanche.logging import InteractiveLogger
+from avalanche.logging import InteractiveLogger, TextLogger
 from avalanche.training.plugins import EvaluationPlugin, LRSchedulerPlugin
 
 
@@ -17,11 +17,13 @@ def main(args):
     model = resnet32(num_classes=100)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, 
                                 momentum=0.9, weight_decay=0.0002)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, 
+    #                             momentum=0.9, weight_decay=0.0002)
     criterion = torch.nn.CrossEntropyLoss()
 
     schedule_plugins = LRSchedulerPlugin(
-                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-4),
-                        metric="train_loss")
+                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-4, verbose=True),
+                        metric="train_loss", first_exp_only=True)
 
     # check if selected GPU is available or use CPU
     assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
@@ -38,9 +40,9 @@ def main(args):
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
+            minibatch=False, epoch=True, experience=True, stream=True
         ),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
         forgetting_metrics(experience=True),
         loggers=[interactive_logger],
     )
@@ -97,7 +99,7 @@ if __name__ == "__main__":
                         required=False,
                         help='Number of epochs for training bias \
                                     (default=%(default)s)')
-    parser.add_argument("--lr", type=float, default=1e-2, help="Learning rate.")
+    parser.add_argument("--lr", type=float, default=1e-1, help="Learning rate.")
     parser.add_argument(
         "--epochs", type=int, default=10, help="Number of training epochs."
     )

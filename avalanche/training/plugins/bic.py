@@ -2,13 +2,29 @@ import random
 from copy import deepcopy
 
 from torch.utils.data import DataLoader
-from avalanche.models.dynamic_modules import MultiTaskModule
+from torch.optim.lr_scheduler import MultiStepLR
+from torchvision import transforms
 import torch
 
+from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict
 from avalanche.benchmarks.utils import AvalancheSubset, AvalancheConcatDataset
+from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
+
+
+_default_cifar100_train_transform = transforms.Compose(
+    [
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
+        ),
+    ]
+)
+
 
 
 class BiCPlugin(SupervisedPlugin):
@@ -26,7 +42,7 @@ class BiCPlugin(SupervisedPlugin):
 
     def __init__(
         self, val_percentage: float = 0.1, T: int = 2, 
-        mem_size: int = 200, stage_2_epochs: int = 200, lamb: float = -1, 
+        mem_size: int = 2000, stage_2_epochs: int = 200, lamb: float = -1, 
         verbose: bool = False, lr: float = 0.1
     ):
         """
@@ -54,22 +70,19 @@ class BiCPlugin(SupervisedPlugin):
 
         self.verbose = verbose
 
-        self.examplars_data = {}
-        self.examplars_idx = {}
         self.seen_classes = set()
         self.class_to_tasks = {}
 
+        self.train_data = {}
+        self.val_data = {}
+
         self.model_old = None
 
+        self.task_balanced_dataloader = False
+        self.batch_size = None
+        self.batch_size_mem = None
+
     def before_train_dataset_adaptation(self, strategy, **kwargs):
-        # Create a SubSet for the task with num_per_class elements
-        # Remove extra elements from past SubSets (max num_per_class)
-        # Iterate over all (past and current) tasks and create val and train
-        #   Past tasks use self.val_percentage
-        #   Current task num_val_cls and the rest 
-
-        # self.bias_layers.append(BiasLayer(strategy.device))
-
         new_data = strategy.experience.dataset
         task_id = strategy.experience.current_experience
 
@@ -81,55 +94,98 @@ class BiCPlugin(SupervisedPlugin):
 
         for c in cl_idxs.keys():
             self.class_to_tasks[c] = task_id
+        
+        if strategy.experience.current_experience > 0  and isinstance(strategy.model, MultiTaskModule):
+            strategy.model.adaptation(strategy.experience)
 
         strategy.model.add_bias_layer(strategy.device, cl_idxs.keys())
+
         self.seen_classes.update(cl_idxs.keys())
         num_per_class = self.mem_size // len(self.seen_classes)
+        num_val_cls = int(self.val_percentage * num_per_class)
 
-        for t in self.examplars_idx.keys():  # If class is in multiple exp
-            for c in self.examplars_idx[t].keys():
-                if len(self.examplars_idx[t][c]) > num_per_class:
-                    self.examplars_idx[t][c] = \
-                            self.examplars_idx[t][c][:num_per_class]
+        # Remove extra exemplars from previous tasks
+        for k in self.val_data.keys():
+            for i, subset in enumerate(self.val_data[k]):
+                self.val_data[k][i] = AvalancheSubset(subset, torch.arange(num_val_cls))
+
+            for i, subset in enumerate(self.train_data[k]):
+                num_train = num_per_class - num_val_cls
+                self.train_data[k][i] = AvalancheSubset(subset, torch.arange(num_train))
         
-        self.exemplar_stage_2 = {}
-        self.exemplar_stage_1 = {}
-        if task_id > 0:
-            num_val_cls = int(self.val_percentage * num_per_class)
-            for t in self.examplars_idx.keys():
-                self.exemplar_stage_2[t] = []
-                self.exemplar_stage_1[t] = []
-                for c in self.examplars_idx[t].keys():
-                    self.exemplar_stage_2[t] += \
-                        self.examplars_idx[t][c][:num_val_cls]
-                    self.exemplar_stage_1[t] += \
-                        self.examplars_idx[t][c][num_val_cls:]
+        # Add elements from the current task
+        self.train_data[task_id] = []
+        self.val_data[task_id] = []
+
+        for c in cl_idxs.keys():
+            # w = torch.rand(len(cl_idxs[c]))
+            # _, sorted_idx = w.sort(descending=True)
             
-            self.exemplar_stage_2[task_id] = []
-            self.exemplar_stage_1[task_id] = []
-            for k in cl_idxs.keys():
-                w = torch.rand(len(cl_idxs[k]))
-                _, sorted_idx = w.sort(descending=True)
-                self.exemplar_stage_2[task_id] += sorted_idx[:num_val_cls]
-                self.exemplar_stage_1[task_id] += sorted_idx[num_val_cls:]
+            self.val_data[task_id].append(AvalancheSubset(new_data, 
+                                            cl_idxs[c][:num_val_cls], 
+                                            task_labels=task_id))
+            self.train_data[task_id].append(AvalancheSubset(new_data, 
+                                            cl_idxs[c][num_val_cls:]))
+        
+        current_subsets = []
+        for k in self.train_data.keys():
+            for subset in self.train_data[k]:
+                current_subsets.append(subset)
 
-        self.examplars_idx[task_id] = {}
-        for k in cl_idxs.keys():
-            self.examplars_idx[task_id][k] = random.sample(cl_idxs[k], 
-                                                           num_per_class)
+        # strategy.experience.dataset = AvalancheConcatDataset(current_subsets)
 
-        self.examplars_data[task_id] = new_data
+    def before_training_exp(
+        self,
+        strategy: "SupervisedTemplate",
+        num_workers: int = 0,
+        shuffle: bool = True,
+        **kwargs
+    ):
+        """
+        Dataloader to build batches containing examples from both memories and
+        the training dataset
+        """
+        t = strategy.experience.current_experience
 
-        if task_id > 0:
-            list_dataset = []
-            for k in self.exemplar_stage_1.keys():
-                list_dataset.append(AvalancheSubset(self.examplars_data[k],
-                                                    self.exemplar_stage_1[k]))
-            
-            strategy.experience.dataset = AvalancheConcatDataset(list_dataset)
+        if t == 0:
+            # first experience. We don't use the buffer, no need to change
+            # the dataloader.
+            return
+
+        current_subsets = []
+        past_subsets = []
+        for k in self.train_data.keys():
+            for subset in self.train_data[k]:
+                if k == t:
+                    current_subsets.append(subset)
+                else:
+                    past_subsets.append(subset)
+
+        current_data = AvalancheConcatDataset(current_subsets)
+        past_data = AvalancheConcatDataset(past_subsets)
+
+        batch_size = self.batch_size
+        if batch_size is None:
+            batch_size = strategy.train_mb_size
+
+        batch_size_mem = self.batch_size_mem
+        if batch_size_mem is None:
+            batch_size_mem = strategy.train_mb_size
+
+        strategy.dataloader = ReplayDataLoader(
+            current_data,
+            past_data,
+            oversample_small_tasks=True,
+            batch_size=batch_size,
+            batch_size_mem=batch_size_mem,
+            task_balanced_dataloader=self.task_balanced_dataloader,
+            num_workers=num_workers,
+            shuffle=shuffle,
+        )
 
     def before_backward(self, strategy, **kwargs):
         t = strategy.experience.current_experience
+
         if self.model_old is not None:
             if isinstance(self.model_old, MultiTaskModule):
                 out_old = []
@@ -178,13 +234,12 @@ class BiCPlugin(SupervisedPlugin):
         # Stage 2: Bias Correction
         t = strategy.experience.current_experience
         if t > 0:
-            list_dataset = []
-            for k in self.exemplar_stage_2.keys():
-                list_dataset.append(AvalancheSubset(self.examplars_data[k],
-                                                    self.exemplar_stage_2[k],
-                                                    task_labels=k))
+            list_subsets = []
+            for k in self.val_data.keys():
+                for subset in self.val_data[k]:
+                    list_subsets.append(subset)
             
-            stage_set = AvalancheConcatDataset(list_dataset)
+            stage_set = AvalancheConcatDataset(list_subsets)
             stage_loader = DataLoader(
                                 stage_set, 
                                 batch_size=strategy.train_mb_size, 
@@ -194,6 +249,9 @@ class BiCPlugin(SupervisedPlugin):
             bic_optimizer = torch.optim.SGD(
                                 strategy.model.bias_layers[t].parameters(), 
                                 lr=self.lr, momentum=0.9)
+
+            scheduler = MultiStepLR(bic_optimizer, milestones=[50,100, 150], 
+                                    gamma=0.1, verbose=False)
 
             # Loop epochs
             for e in range(self.stage_2_epochs):
@@ -235,24 +293,26 @@ class BiCPlugin(SupervisedPlugin):
                     loss.backward()
                     bic_optimizer.step()
                 
-                if (e + 1) % (self.stage_2_epochs / 4) == 0:
+                scheduler.step()
+                if (e + 1) % (int(self.stage_2_epochs / 4)) == 0:
                     print('| E {:3d} | Train: loss={:.3f}, S2 acc={:5.1f}% |'
                           .format(e + 1, t_loss / total,
                                   100 * t_acc / total))
                                   
     def cross_entropy(self, outputs, targets, exp=1.0, 
-                      size_average=True, eps=1e-5):
+                      eps=1e-5):
         """Calculates cross-entropy with temperature scaling"""
-        out = torch.nn.functional.softmax(outputs, dim=1)
-        tar = torch.nn.functional.softmax(targets, dim=1)
-        if exp != 1:
-            out = out.pow(exp)
-            out = out / out.sum(1).view(-1, 1).expand_as(out)
-            tar = tar.pow(exp)
-            tar = tar / tar.sum(1).view(-1, 1).expand_as(tar)
-        out = out + eps / out.size(1)
-        out = out / out.sum(1).view(-1, 1).expand_as(out)
-        ce = -(tar * out.log()).sum(1)
-        if size_average:
-            ce = ce.mean()
-        return ce
+        # out = torch.nn.functional.softmax(outputs, dim=1)
+        # tar = torch.nn.functional.softmax(targets, dim=1)
+        # if exp != 1:
+        #     out = out.pow(exp)
+        #     out = out / out.sum(1).view(-1, 1).expand_as(out)
+        #     tar = tar.pow(exp)
+        #     tar = tar / tar.sum(1).view(-1, 1).expand_as(tar)
+        # out = out + eps / out.size(1)
+        # out = out / out.sum(1).view(-1, 1).expand_as(out)
+        # ce = -(tar * out.log()).sum(1)
+        # ce = ce.mean()
+        logp = torch.nn.functional.log_softmax(outputs/self.T, dim=1)
+        pre_p = torch.nn.functional.softmax(targets/self.T, dim=1)
+        return -torch.mean(torch.sum(pre_p * logp, dim=1)) * self.T * self.T

@@ -7,7 +7,7 @@ from avalanche.models.dynamic_modules import (
 
 class BiCAdapter(torch.nn.Module):
     def __init__(self, model) -> None:
-        super(BiCAdapter, self).__init__()
+        super().__init__()
 
         self.model = model
         self.bias_layers = []
@@ -29,12 +29,15 @@ class BiCAdapter(torch.nn.Module):
 
 class BiCAdapterMH(MultiTaskModule):
     def __init__(self, model) -> None:
-        super(BiCAdapterMH, self).__init__()
+        super().__init__()
 
         self.model = model
         self.bias_layers = []
 
-        self.model.fc = MultiHeadClassifier(64)
+        out_weights = model.fc.out_features
+        in_features = model.fc.in_features
+        self.model.fc = MultiHeadClassifier(in_features, 
+                                initial_out_features=out_weights)
 
     def add_bias_layer(self, device, cls):
         self.bias_layers.append(BiasLayer(device, cls, True))
@@ -44,7 +47,6 @@ class BiCAdapterMH(MultiTaskModule):
         out = self.model.fc(out, task_label)
         
         if isinstance(task_label, int):
-            # fast path. mini-batch is single task.
             return self.bias_layers[task_label](out)
         else:
             unique_tasks = torch.unique(task_label)
@@ -65,24 +67,25 @@ class BiasLayer(torch.nn.Module):
     """Bias layers with alpha and beta parameters"""
 
     def __init__(self, device, cls, task_incremental=False):
-        super(BiasLayer, self).__init__()
+        super().__init__()
         self.alpha = torch.nn.Parameter(torch.ones(1, device=device))
         self.beta = torch.nn.Parameter(torch.zeros(1, device=device))
 
         self.cls = torch.Tensor(list(cls)).long().to(device)
+        self.not_cls = None
         self.device = device
         self.task_incremental = task_incremental
 
     def forward(self, x):
         if self.task_incremental:
-            a = self.alpha
-            b = self.beta
+            return self.alpha * x + self.beta
         else:
-            a = torch.ones(x.size(1), device=self.device)
-            a[self.cls] = self.alpha
+            tmp = torch.zeros_like(x)
+            tmp[:, self.cls] += x[:, self.cls] * self.alpha + self.beta
 
-            b = torch.ones(x.size(1), device=self.device)
-            b[self.cls] = self.beta
+            if self.not_cls is None:
+                self.not_cls = torch.Tensor([i for i in range(x.size(1)) if i not in self.cls]).long()
+                
+            tmp[:, self.not_cls] += x[:, self.not_cls]
 
-        # return self.alpha * x + self.beta
-        return a * x + b
+            return tmp
