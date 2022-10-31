@@ -301,6 +301,8 @@ def concat_datasets(datasets):
 __all__ = [
     "tensor_as_list",
     "grouped_and_ordered_indexes",
+    "concat_datasets_sequentially",
     "as_avalanche_dataset",
     "as_classification_dataset",
+    "concat_datasets"
 ]
