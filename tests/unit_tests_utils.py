@@ -143,7 +143,7 @@ def get_fast_benchmark(
         task_labels=use_task_labels,
         shuffle=shuffle,
         train_transform=train_transform,
-        eval_transform=eval_transform
+        eval_transform=eval_transform,
         seed=seed
     )
     return my_nc_benchmark
