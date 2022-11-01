@@ -1,19 +1,25 @@
 import torch
 import argparse
 from avalanche.benchmarks import SplitMNIST
-from avalanche.training.supervised import BiC
-from avalanche.models import SimpleMLP
+from avalanche.training.supervised import Naive
+from avalanche.models import SimpleMLP, MTSimpleMLP
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
     loss_metrics,
 )
 from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin, BiCPlugin
 
 
 def main(args):
-    model = SimpleMLP(hidden_size=args.hs)
+    multihead = False
+
+    if multihead:
+        model = MTSimpleMLP(hidden_size=args.hs)
+    else:
+        model = SimpleMLP(hidden_size=args.hs)
+    
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -27,7 +33,7 @@ def main(args):
     print(f"Using device: {device}")
 
     # create split scenario
-    scenario = SplitMNIST(n_experiences=5, return_task_id=False)
+    scenario = SplitMNIST(n_experiences=5, return_task_id=multihead)
 
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
@@ -39,20 +45,24 @@ def main(args):
         loggers=[interactive_logger],
     )
 
-    strategy = BiC(
+    bic_plugin = BiCPlugin(
+                    val_percentage=args.val_exemplar_percentage, 
+                    T=args.T, 
+                    mem_size=args.mem_size, 
+                    stage_2_epochs=args.num_bias_epochs, 
+                    lamb=args.lamb, 
+                    multihead=multihead
+                    )
+
+    cl_strategy = Naive(
         model,
         optimizer,
         criterion,
-        val_percentage=args.val_exemplar_percentage, 
-        T=args.T, 
-        mem_size=args.mem_size, 
-        stage_2_epochs=args.num_bias_epochs, 
-        lamb=args.lamb, 
-        verbose=True,
-        train_epochs=args.epochs,
-        device=device,
         train_mb_size=args.minibatch_size,
         eval_mb_size=args.minibatch_size,
+        train_epochs=args.epochs,
+        device=device,
+        plugins=[bic_plugin],
         evaluator=eval_plugin,
     )
 
@@ -64,12 +74,12 @@ def main(args):
             "Start training on experience ", train_batch_info.current_experience
         )
 
-        strategy.train(train_batch_info, num_workers=0)
+        cl_strategy.train(train_batch_info, num_workers=0)
         print(
             "End training on experience ", train_batch_info.current_experience
         )
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(cl_strategy.eval(scenario.test_stream[:]))
 
 
 if __name__ == "__main__":

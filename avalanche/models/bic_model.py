@@ -66,26 +66,23 @@ class BiCAdapterMH(MultiTaskModule):
 class BiasLayer(torch.nn.Module):
     """Bias layers with alpha and beta parameters"""
 
-    def __init__(self, device, cls, task_incremental=False):
+    def __init__(self, device, clss, task_incremental=False):
         super().__init__()
         self.alpha = torch.nn.Parameter(torch.ones(1, device=device))
         self.beta = torch.nn.Parameter(torch.zeros(1, device=device))
 
         self.clss = torch.Tensor(list(clss)).long().to(device)
         self.not_clss = None
-        # self.device = device
         self.task_incremental = task_incremental
 
     def forward(self, x):
         if self.task_incremental:
             return self.alpha * x + self.beta
         else:
-            tmp = torch.zeros_like(x)
-            tmp[:, self.clss] += x[:, self.clss] * self.alpha + self.beta
+            alpha = torch.ones_like(x)
+            beta = torch.ones_like(x)
 
-            if self.not_clss is None:
-                self.not_clss = torch.Tensor([i for i in range(x.size(1)) if i not in self.clss]).long()
-                
-            tmp[:, self.not_clss] += x[:, self.not_clss]
+            alpha[:, self.clss] = self.alpha
+            beta[:, self.clss] = self.beta
 
-            return tmp
+            return alpha * x + beta

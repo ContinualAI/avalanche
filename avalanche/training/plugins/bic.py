@@ -1,30 +1,23 @@
-import random
-from copy import deepcopy
+from typing import Optional, TYPE_CHECKING
 
+from copy import deepcopy
+import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
-from torchvision import transforms
-import torch
 
-from avalanche.models.dynamic_modules import MultiTaskModule
-from avalanche.models.utils import avalanche_forward
-from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheConcatDataset
+from avalanche.benchmarks.utils import classification_subset, \
+                                    concat_classification_datasets
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
+from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
+from avalanche.training.storage_policy import (
+    ExemplarsBuffer,
+    ExperienceBalancedBuffer,
+    ReservoirSamplingBuffer,
+)
 from avalanche.models.bic_model import BiasLayer
 
-_default_cifar100_train_transform = transforms.Compose(
-    [
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            (0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)
-        ),
-    ]
-)
-
+if TYPE_CHECKING:
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class BiCPlugin(SupervisedPlugin):
@@ -41,9 +34,19 @@ class BiCPlugin(SupervisedPlugin):
     """
 
     def __init__(
-        self, val_percentage: float = 0.1, T: int = 2, 
-        mem_size: int = 2000, stage_2_epochs: int = 200, lamb: float = -1, 
-        verbose: bool = False, lr: float = 0.1
+        self, 
+        mem_size: int = 2000,
+        batch_size: int = None,
+        batch_size_mem: int = None,
+        task_balanced_dataloader: bool = False,
+        storage_policy: Optional["ExemplarsBuffer"] = None,
+
+        val_percentage: float = 0.1,
+        T: int = 2, 
+        stage_2_epochs: int = 200,
+        lamb: float = -1, 
+        lr: float = 0.1,
+        multihead: bool = False
     ):
         """
         :param val_percentage: hyperparameter used to set the 
@@ -57,86 +60,88 @@ class BiCPlugin(SupervisedPlugin):
         :param verbose: when True, the computation of the influence
         """
 
-        # Init super class
+        # Replay (Phase 1)
         super().__init__()
-        
+        self.mem_size = mem_size
+        self.batch_size = batch_size
+        self.batch_size_mem = batch_size_mem
+        self.task_balanced_dataloader = task_balanced_dataloader
+
+        if storage_policy is not None:  # Use other storage policy
+            self.storage_policy = storage_policy
+            assert storage_policy.max_size == self.mem_size
+        else:  # Default
+            self.storage_policy = ExperienceBalancedBuffer(
+                max_size=self.mem_size, adaptive_size=True
+            )
+
+        # Train Bias (Phase 2)
         self.val_percentage = val_percentage
         self.stage_2_epochs = stage_2_epochs
-
         self.T = T
         self.lamb = lamb
         self.mem_size = mem_size
         self.lr = lr
-
-        self.verbose = verbose
+        self.multihead = multihead
 
         self.seen_classes = set()
         self.class_to_tasks = {}
-
-        self.train_data = {}
-        self.val_data = {}
-
         self.bias_layer = {}
-
         self.model_old = None
+        self.val_buffer = {}
 
-        self.task_balanced_dataloader = False
-        self.batch_size = None
-        self.batch_size_mem = None
+    @property
+    def ext_mem(self):
+        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
-    def before_train_dataset_adaptation(self, strategy, **kwargs):
+    # Tranformar val_data tambien en un buffer
+    def before_train_dataset_adaptation(
+        self, 
+        strategy: "SupervisedTemplate", 
+        **kwargs
+    ):
         new_data = strategy.experience.dataset
         task_id = strategy.experience.current_experience
 
-        cl_idxs = {}
+        cl_idxs = {k : [] for k in new_data.targets.uniques}
         for idx, target in enumerate(new_data.targets):
-            if target not in cl_idxs:
-                cl_idxs[target] = []
-            cl_idxs[target].append(idx)
+            cl_idxs[target].append(idx) 
 
         for c in cl_idxs.keys():
             self.class_to_tasks[c] = task_id
-        
-        if strategy.experience.current_experience > 0  and isinstance(strategy.model, MultiTaskModule):
-            strategy.model.adaptation(strategy.experience)
-
-        # strategy.model.add_bias_layer(strategy.device, cl_idxs.keys())
-        if task_id not in self.bias_layer:
-            self.bias_layer[task_id] = BiasLayer(strategy.device, cl_idxs.keys())
 
         self.seen_classes.update(cl_idxs.keys())
-        num_per_class = self.mem_size // len(self.seen_classes)
-        num_val_cls = int(self.val_percentage * num_per_class)
+        lens = self.get_group_lengths(len(self.seen_classes))
+        class_to_len = {}
+        for class_id, ll in zip(self.seen_classes, lens):
+            class_to_len[class_id] = ll
 
-        # Remove extra exemplars from previous tasks
-        for k in self.val_data.keys():
-            for i, subset in enumerate(self.val_data[k]):
-                self.val_data[k][i] = AvalancheSubset(subset, torch.arange(num_val_cls))
+        train_data = []
+        for class_id in cl_idxs.keys():
+            ll = class_to_len[class_id]
+            new_data_c = classification_subset(
+                                            new_data,
+                                            cl_idxs[class_id][:ll])
+            if class_id in self.val_buffer:
+                old_buffer_c = self.val_buffer[class_id]
+                old_buffer_c.update_from_dataset(new_data_c)
+                old_buffer_c.resize(strategy, ll)
+            else:
+                new_buffer = ReservoirSamplingBuffer(ll)
+                new_buffer.update_from_dataset(new_data_c)
+                self.val_buffer[class_id] = new_buffer
 
-            for i, subset in enumerate(self.train_data[k]):
-                num_train = num_per_class - num_val_cls
-                self.train_data[k][i] = AvalancheSubset(subset, torch.arange(num_train))
-        
-        # Add elements from the current task
-        self.train_data[task_id] = []
-        self.val_data[task_id] = []
+            train_data.append(classification_subset(
+                                            new_data,
+                                            cl_idxs[class_id][ll:]))
 
-        for c in cl_idxs.keys():
-            # w = torch.rand(len(cl_idxs[c]))
-            # _, sorted_idx = w.sort(descending=True)
-            
-            self.val_data[task_id].append(AvalancheSubset(new_data, 
-                                            cl_idxs[c][:num_val_cls], 
-                                            task_labels=task_id))
-            self.train_data[task_id].append(AvalancheSubset(new_data, 
-                                            cl_idxs[c][num_val_cls:]))
-        
-        current_subsets = []
-        for k in self.train_data.keys():
-            for subset in self.train_data[k]:
-                current_subsets.append(subset)
+        # resize buffers
+        for class_id, class_buf in self.val_buffer.items():
+            class_buf.resize(
+                strategy, class_to_len[class_id]
+            )
 
-        # strategy.experience.dataset = AvalancheConcatDataset(current_subsets)
+        strategy.experience.dataset = concat_classification_datasets(train_data)
 
     def before_training_exp(
         self,
@@ -149,24 +154,18 @@ class BiCPlugin(SupervisedPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
-        t = strategy.experience.current_experience
+        task_id = strategy.experience.current_experience
 
-        if t == 0:
+        if task_id not in self.bias_layer:
+            self.bias_layer[task_id] = BiasLayer(
+                                strategy.device, 
+                                list(strategy.adapted_dataset.targets.uniques)
+                            )
+
+        if len(self.storage_policy.buffer) == 0:
             # first experience. We don't use the buffer, no need to change
             # the dataloader.
             return
-
-        current_subsets = []
-        past_subsets = []
-        for k in self.train_data.keys():
-            for subset in self.train_data[k]:
-                if k == t:
-                    current_subsets.append(subset)
-                else:
-                    past_subsets.append(subset)
-
-        current_data = AvalancheConcatDataset(current_subsets)
-        past_data = AvalancheConcatDataset(past_subsets)
 
         batch_size = self.batch_size
         if batch_size is None:
@@ -177,8 +176,8 @@ class BiCPlugin(SupervisedPlugin):
             batch_size_mem = strategy.train_mb_size
 
         strategy.dataloader = ReplayDataLoader(
-            current_data,
-            past_data,
+            strategy.adapted_dataset,
+            self.storage_policy.buffer,
             oversample_small_tasks=True,
             batch_size=batch_size,
             batch_size_mem=batch_size_mem,
@@ -188,49 +187,32 @@ class BiCPlugin(SupervisedPlugin):
         )
 
     def after_forward(self, strategy, **kwargs):
-        # Here we multiple the bias, we dont need the model
-        pass
+        for t in self.bias_layer.keys():
+            strategy.mb_output = self.bias_layer[t](strategy.mb_output)
+    
+    def after_eval_forward(self, strategy, **kwargs):
+        for t in self.bias_layer.keys():
+            strategy.mb_output = self.bias_layer[t](strategy.mb_output)
 
     def before_backward(self, strategy, **kwargs):
-        t = strategy.experience.current_experience
+        # Distill
+        task_id = strategy.experience.current_experience
 
         if self.model_old is not None:
-            if isinstance(self.model_old, MultiTaskModule):
-                out_old = []
-                out_new = []
-                for i in strategy.mb_task_id.unique():
-                    if i != t:
-                        mask = (strategy.mb_task_id == i)
-                        out_old.append(self.model_old.forward_single_task(
-                                    strategy.mb_x[mask].to(strategy.device), 
-                                    int(i)))
-                        out_new.append(strategy.model.forward_single_task(
-                                    strategy.mb_x[mask].to(strategy.device), 
-                                    int(i)))
-
-                if len(out_old) == 0:
-                    return strategy.loss
-                out_old = torch.cat(out_old, dim=0)
-                out_new = torch.cat(out_new, dim=0)
-                
+            if self.multihead:
+                out_old = self.model_old(strategy.mb_x.to(strategy.device), 
+                                         task_id)
             else:
                 out_old = self.model_old(strategy.mb_x.to(strategy.device))
-                out_new = strategy.mb_output
+            out_new = strategy.model(strategy.mb_x.to(strategy.device))
 
             old_clss = []
             for c in self.class_to_tasks.keys():
-                if self.class_to_tasks[c] < t:
+                if self.class_to_tasks[c] < task_id:
                     old_clss.append(c)
-
-            if isinstance(self.model_old, MultiTaskModule):
-                loss_dist = self.cross_entropy(out_new,
-                                               out_old, 
-                                               exp=1.0 / self.T)
-            else:
-                loss_dist = self.cross_entropy(out_new[:, old_clss],
-                                               out_old[:, old_clss], 
-                                               exp=1.0 / self.T)
-
+            
+            loss_dist = self.cross_entropy(out_new[:, old_clss],
+                                           out_old[:, old_clss])
             if self.lamb == -1:
                 lamb = len(old_clss) / len(self.seen_classes)
                 return (1.0 - lamb) * strategy.loss + lamb * loss_dist
@@ -239,62 +221,49 @@ class BiCPlugin(SupervisedPlugin):
 
     def after_training_exp(self, strategy, **kwargs):
         self.model_old = deepcopy(strategy.model)
-        # Stage 2: Bias Correction
-        t = strategy.experience.current_experience
-        if t > 0:
+        task_id = strategy.experience.current_experience
+        self.storage_policy.update(strategy, **kwargs)
+
+        if task_id > 0:
             list_subsets = []
-            for k in self.val_data.keys():
-                for subset in self.val_data[k]:
-                    list_subsets.append(subset)
+            for _, class_buf in self.val_buffer.items():
+                list_subsets.append(class_buf.buffer)
             
-            stage_set = AvalancheConcatDataset(list_subsets)
+            stage_set = concat_classification_datasets(list_subsets)
             stage_loader = DataLoader(
                                 stage_set, 
                                 batch_size=strategy.train_mb_size, 
                                 shuffle=True,
                                 num_workers=4)
-
+            
             bic_optimizer = torch.optim.SGD(
-                               self.bias_layer[t].parameters(), 
+                                self.bias_layer[task_id].parameters(), 
                                 lr=self.lr, momentum=0.9)
 
-            scheduler = MultiStepLR(bic_optimizer, milestones=[50,100, 150], 
+            scheduler = MultiStepLR(bic_optimizer, milestones=[50, 100, 150], 
                                     gamma=0.1, verbose=False)
-
+            
             # Loop epochs
             for e in range(self.stage_2_epochs):
                 total, t_acc, t_loss = 0, 0, 0
                 for inputs in stage_loader:
                     x = inputs[0].to(strategy.device)
                     y_real = inputs[1].to(strategy.device)
-                    task_id = inputs[2].to(strategy.device)
-                    
-                    loss = 0
-                    if isinstance(self.model_old, MultiTaskModule):
-                        mask = (task_id == t)
-                        if mask.sum() > 0:
-                            out = strategy.model.forward_single_task(
-                                            x[mask], t)
-                            loss += torch.nn.functional.cross_entropy(
-                                                                out, 
-                                                                y_real[mask])
-                            _, preds = torch.max(out, 1)
-                            t_acc += torch.sum(preds == y_real[mask].data)
-                            t_loss += loss.item() * mask.sum()
-                            total += mask.sum()
 
-                    else:
-                        outputs = strategy.model(x)
-                        loss = torch.nn.functional.cross_entropy(
+                    outputs = strategy.model(x)
+                    for t in self.bias_layer.keys():
+                        outputs = self.bias_layer[t](outputs)
+
+                    loss = torch.nn.functional.cross_entropy(
                                                             outputs, 
                                                             y_real)
                         
-                        _, preds = torch.max(outputs, 1)
-                        t_acc += torch.sum(preds == y_real.data)
-                        t_loss += loss.item() * x.size(0)
-                        total += x.size(0)
+                    _, preds = torch.max(outputs, 1)
+                    t_acc += torch.sum(preds == y_real.data)
+                    t_loss += loss.item() * x.size(0)
+                    total += x.size(0)
 
-                    loss += 0.1 * ((self.bias_layer[t].beta[0] 
+                    loss += 0.1 * ((self.bias_layer[task_id].beta.sum() 
                                     ** 2) / 2)
 
                     bic_optimizer.zero_grad()
@@ -306,10 +275,20 @@ class BiCPlugin(SupervisedPlugin):
                     print('| E {:3d} | Train: loss={:.3f}, S2 acc={:5.1f}% |'
                           .format(e + 1, t_loss / total,
                                   100 * t_acc / total))
-                                  
-    def cross_entropy(self, outputs, targets, exp=1.0, 
-                      eps=1e-5):
+    
+    def cross_entropy(self, outputs, targets):
         """Calculates cross-entropy with temperature scaling"""
         logp = torch.nn.functional.log_softmax(outputs/self.T, dim=1)
         pre_p = torch.nn.functional.softmax(targets/self.T, dim=1)
         return -torch.mean(torch.sum(pre_p * logp, dim=1)) * self.T * self.T
+    
+    def get_group_lengths(self, num_groups):
+        """Compute groups lengths given the number of groups `num_groups`."""
+        max_size = int(self.val_percentage * self.mem_size)
+        lengths = [max_size // num_groups for _ in range(num_groups)]
+        # distribute remaining size among experiences.
+        rem = max_size - sum(lengths)
+        for i in range(rem):
+            lengths[i] += 1
+
+        return lengths
